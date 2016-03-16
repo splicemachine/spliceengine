@@ -1,7 +1,7 @@
 package com.splicemachine.storage;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.Iterables;
 import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;

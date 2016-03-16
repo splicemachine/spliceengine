@@ -3,7 +3,6 @@ package com.splicemachine.pipeline.utils;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.collect.Lists;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
 import com.splicemachine.pipeline.client.BulkWrite;
@@ -11,6 +10,7 @@ import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +36,7 @@ public class PipelineUtils{
         IntOpenHashSet notRunRows=response.getNotRunRows();
         IntObjectOpenHashMap<WriteResult> failedRows=response.getFailedRows();
         Collection<KVPair> toRetry=new ArrayList<>(failedRows.size()+notRunRows.size());
-        List<String> errorMsgs=Lists.newArrayListWithCapacity(failedRows.size());
+        List<String> errorMsgs= Lists.newArrayListWithCapacity(failedRows.size());
         int i=0;
         Collection<KVPair> allWrites=bulkWrite.getMutations();
         for(KVPair kvPair : allWrites){

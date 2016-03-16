@@ -7,8 +7,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Random;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.sparkproject.guava.base.Preconditions.checkArgument;
 
 /**
  * A builder for building collections of BigDecimals with that fit in derby's decimal column.

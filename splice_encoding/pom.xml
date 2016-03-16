@@ -4,7 +4,7 @@
     <groupId>com.splicemachine</groupId>
     <artifactId>splice_encoding</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
+    <name>splice_encoding</name>
     <description>Splice Encoding</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
@@ -23,6 +23,16 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>utilities</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>com.google.guava</artifactId>
+                    <groupId>guava</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine.db-project</groupId>
+            <artifactId>db-engine</artifactId>
         </dependency>
         <dependency>
             <groupId>com.esotericsoftware.kryo</groupId>

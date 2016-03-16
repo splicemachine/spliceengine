@@ -1,8 +1,5 @@
 package com.splicemachine.pipeline.writehandler;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.WrongPartitionException;
@@ -18,7 +15,9 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.Collections2;
+import org.sparkproject.guava.collect.Lists;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;

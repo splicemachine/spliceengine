@@ -1,12 +1,12 @@
 package com.splicemachine.pipeline.client;
 
-import com.google.common.collect.Iterators;
 import com.splicemachine.encoding.ExpandedDecoder;
 import com.splicemachine.encoding.ExpandingEncoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
+import org.sparkproject.guava.collect.Iterators;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -120,7 +120,7 @@ public class PipelineEncoding {
                      * We haven't read the entire data off yet, so we need to concatenate the
                      * cache with the remainder of the stuff
                      */
-                    return Iterators.concat(cache.iterator(),new BulkIter(lastIndex));
+                    return Iterators.concat(cache.iterator(), new BulkIter(lastIndex));
                 }
             }
             cache = new ArrayList<>(encodedStringNames.size());

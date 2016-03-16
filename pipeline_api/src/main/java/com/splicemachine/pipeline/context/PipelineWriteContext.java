@@ -1,7 +1,6 @@
 package com.splicemachine.pipeline.context;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
-import com.google.common.collect.Maps;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.access.util.CachedPartitionFactory;
 import com.splicemachine.kvpair.KVPair;
@@ -17,6 +16,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.Maps;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;

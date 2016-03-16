@@ -1,6 +1,5 @@
 package com.splicemachine.pipeline.callbuffer;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWrites;
@@ -13,6 +12,7 @@ import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.*;
 import java.util.Map.Entry;

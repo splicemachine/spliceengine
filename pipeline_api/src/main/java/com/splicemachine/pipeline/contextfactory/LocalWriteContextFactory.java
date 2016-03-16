@@ -1,7 +1,6 @@
 package com.splicemachine.pipeline.contextfactory;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.access.util.CachedPartitionFactory;
@@ -20,6 +19,7 @@ import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.IOException;
 import java.util.List;
@@ -125,7 +125,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             if(constraintFactories.isEmpty()){
                 return null;
             }
-            List<BatchConstraintChecker> checkers=Lists.newArrayListWithCapacity(constraintFactories.size());
+            List<BatchConstraintChecker> checkers= Lists.newArrayListWithCapacity(constraintFactories.size());
             for(ConstraintFactory factory : constraintFactories){
                 checkers.add(factory.getConstraintChecker());
             }

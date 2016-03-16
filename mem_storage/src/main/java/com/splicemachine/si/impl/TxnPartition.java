@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.collect.Iterators;
+import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;

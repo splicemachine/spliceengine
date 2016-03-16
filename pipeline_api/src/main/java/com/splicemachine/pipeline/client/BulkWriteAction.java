@@ -2,7 +2,6 @@ package com.splicemachine.pipeline.client;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
@@ -20,7 +19,7 @@ import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
+import org.sparkproject.guava.collect.Lists;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -37,7 +36,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private static final Logger RETRY_LOG=Logger.getLogger(BulkWriteAction.class.getName()+".retries");
     private static final AtomicLong idGen=new AtomicLong(0l);
     private BulkWrites bulkWrites;
-    private final List<Throwable> errors=Lists.newArrayListWithExpectedSize(0);
+    private final List<Throwable> errors= Lists.newArrayListWithExpectedSize(0);
     private final WriteConfiguration writeConfiguration;
     private final ActionStatusReporter statusReporter;
     private final byte[] tableName;

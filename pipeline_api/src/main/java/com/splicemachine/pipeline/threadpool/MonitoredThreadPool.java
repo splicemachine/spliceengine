@@ -1,14 +1,13 @@
 package com.splicemachine.pipeline.threadpool;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServerStoppedException;
 import com.splicemachine.pipeline.PipelineConfiguration;
 import org.apache.log4j.Logger;
-
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
+import org.sparkproject.guava.util.concurrent.ListeningExecutorService;
+import org.sparkproject.guava.util.concurrent.MoreExecutors;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;

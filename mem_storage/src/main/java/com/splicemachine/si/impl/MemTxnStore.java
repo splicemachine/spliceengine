@@ -1,8 +1,8 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Longs;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.primitives.Longs;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.data.ExceptionFactory;

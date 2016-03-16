@@ -1,9 +1,9 @@
 package com.splicemachine.storage;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Sets;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.BiMap;
+import org.sparkproject.guava.collect.HashBiMap;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.collections.EmptyNavigableSet;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;

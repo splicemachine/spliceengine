@@ -4,7 +4,7 @@
     <groupId>com.splicemachine</groupId>
     <artifactId>mem_storage</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
+    <name>mem_storage</name>
     <description>In Memory Storage Engine for SpliceMachine.</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
@@ -23,14 +23,6 @@
             <type>test-jar</type>
             <version>2.0.1-SNAPSHOT</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>utilities</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
         </dependency>
     </dependencies>
     <build>

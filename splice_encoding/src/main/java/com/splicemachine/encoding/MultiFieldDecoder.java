@@ -1,9 +1,8 @@
 package com.splicemachine.encoding;
 
-import com.google.common.base.Preconditions;
+import org.sparkproject.guava.base.Preconditions;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.math.BigDecimal;
 
 /**
