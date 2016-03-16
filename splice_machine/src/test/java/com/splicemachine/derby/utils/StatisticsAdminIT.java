@@ -23,6 +23,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  *         Date: 3/2/15
  */
 @Category(SerialTest.class)
+@Ignore("DB-4786")
 public class StatisticsAdminIT{
     private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
