@@ -19,11 +19,16 @@ import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
+import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
 import scala.Tuple2;
 
 import java.io.*;
@@ -172,7 +177,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + OperationContext.Scope.READ_TEXT_FILE.displayName() : "");
-            JavaRDD rdd = SpliceSpark.getContext().textFile(path);
+            JavaRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(path, SMTextInputFormat.class, LongWritable.class,Text.class, new Configuration(HConfiguration.INSTANCE.unwrapDelegate())).values().map(new Function<Text,String>() {
+                @Override
+                public String call(Text o) throws Exception {
+                    return o.toString();
+                }
+            });
             RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException ioe) {
