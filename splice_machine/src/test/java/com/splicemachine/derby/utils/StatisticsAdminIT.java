@@ -340,15 +340,18 @@ public class StatisticsAdminIT{
             Assert.assertEquals("Incorrect row count", tableStatsCount, rowCount);
         }
 
-        PreparedStatement check2=(table==null)?
+        try (
+            PreparedStatement check2=(table==null)?
             conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ?"):
-            conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ? and tablename = ?");
-        check2.setString(1,schema);
-        if(table!=null) check2.setString(2,table);
-        try(ResultSet resultSet2=check2.executeQuery()){
-            Assert.assertTrue("Unable to count stats for schema",resultSet2.next());
-            int rowCount=resultSet2.getInt(1);
-            Assert.assertEquals("Incorrect row count",colStatsCount,rowCount);
+            conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ? and tablename = ?")) {
+
+            check2.setString(1, schema);
+            if (table != null) check2.setString(2, table);
+            ResultSet resultSet2 = check2.executeQuery();
+            Assert.assertTrue("Unable to count stats for schema", resultSet2.next());
+            int rowCount = resultSet2.getInt(1);
+            resultSet2.close();
+            Assert.assertEquals("Incorrect row count", colStatsCount, rowCount);
         }
     }
 }
