@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.CountDownLatches;
 import com.splicemachine.derby.iapi.sql.olap.OlapCallable;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
@@ -33,17 +34,14 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
     private static final short CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
     private final String host;
     private final int port;
+    private final Clock clock;
 
-    public OlapClientImpl(SConfiguration config) {
-        timeoutMillis = config.getInt(SIConfigurations.OLAP_CLIENT_WAIT_TIME);
-        port = config.getInt(SIConfigurations.OLAP_SERVER_BIND_PORT);
-        LOG.info("Creating the OlapClient...");
-        HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
-        try {
-            host = hbcf.getMasterServer().getHostname();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+
+    public OlapClientImpl(String host, int port, int timeoutMillis, Clock clock) {
+        this.host = host;
+        this.port = port;
+        this.timeoutMillis = timeoutMillis;
+        this.clock = clock;
 
         clientCallbacks = new ConcurrentHashMap<>();
 
@@ -95,13 +93,13 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
     int timeoutMillis;
 
     public void shutdown() {
+        LOG.info(String.format("shutting down OlapClient state=%s", this.state.get()));
         boolean shouldContinue = true;
         while(shouldContinue){
             State state=this.state.get();
             if(state== State.SHUTDOWN) return;
             shouldContinue=!this.state.compareAndSet(state, State.SHUTDOWN);
         }
-        LOG.info(String.format("shutting down OlapClient state=%s", this.state.get()));
         try {
             this.state.set(State.SHUTDOWN);
             if (channel != null && channel.isOpen()) {
@@ -121,17 +119,39 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
         return port;
     }
 
+
+
+    /*
+    Returns when connected or raises an exception
+     */
     protected void connectIfNeeded() throws IOException {
 
         // Even though state is an atomic reference, synchronize on whole block
         // including code that attempts connection. Otherwise, two threads might
         // end up trying to connect at the same time.
 
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "Connect if needed state %s", state.get());
+        }
+
         boolean shouldContinue = true;
         while(shouldContinue){
             State s = state.get();
-            if(s != State.DISCONNECTED) return;
-            shouldContinue = !state.compareAndSet(s, State.CONNECTING);
+            switch (s){
+                case DISCONNECTED:
+                    shouldContinue = !state.compareAndSet(s, State.CONNECTING);
+                    if (LOG.isTraceEnabled()) {
+                        SpliceLogUtils.trace(LOG, "Connect if needed (should continue: %s, state %s)", shouldContinue, state.get());
+                    }
+                    break;
+                case CONNECTING:
+                    waitFor(State.CONNECTED);
+                    return;
+                case CONNECTED:
+                    return;
+                case SHUTDOWN:
+                    throw new IOException("Client is shuting down");
+            }
         }
 
         if (LOG.isInfoEnabled()) {
@@ -143,6 +163,10 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
         futureConnect.addListener(new ChannelFutureListener() {
                                       public void operationComplete(ChannelFuture cf) throws Exception {
                                           if (cf.isSuccess()) {
+
+                                              if (LOG.isInfoEnabled()) {
+                                                  SpliceLogUtils.info(LOG, "Connection successful");
+                                              }
                                               channel = cf.getChannel();
                                               latchConnect.countDown();
                                           } else {
@@ -158,8 +182,29 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
             throw new IOException("Unable to connect to OlapServer");
         }
 
-        // Can only assume connecting (not connected) until channelConnected method is invoked
-        state.set(State.CONNECTING);
+        if (LOG.isInfoEnabled()) {
+            SpliceLogUtils.info(LOG, "Successfully connected to server (host %s, port %s)", host, getPort());
+        }
+
+        state.set(State.CONNECTED);
+    }
+
+    private void waitFor(State endState) throws IOException {
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "Waiting for %s, current state %s", endState, state.get());
+        }
+        long startTime = clock.currentTimeMillis();
+        while(clock.currentTimeMillis() - startTime < timeoutMillis) {
+            try {
+                clock.sleep(100, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+            if (state.get().equals(endState)) {
+                return;
+            }
+        }
+        throw new IOException("waitFor " +endState+" timeout, waited " + (clock.currentTimeMillis() - startTime));
     }
 
     @Override
@@ -179,7 +224,7 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
         }
 
         try {
-            SpliceLogUtils.trace(LOG, "Writing request message to server for client: %s", callback);
+            SpliceLogUtils.trace(LOG, "Writing request message to server for client: %d", clientCallId);
             callable.setCallerId(clientCallId);
             ChannelFuture futureWrite = channel.write(callable);
             futureWrite.addListener(new ChannelFutureListener() {
@@ -195,7 +240,7 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
         } catch (Exception e) { // Correct to catch all Exceptions in this case so we can remove client call
             clientCallbacks.remove(clientCallId);
             callback.error(e);
-            doClientErrorThrow(LOG, "Exception writing message to olap server for client: %s", e, callback);
+            doClientErrorThrow(LOG, "Exception writing message to olap server for client: %d", e, clientCallId);
         }
 
         // If we get here, request was successfully sent without exception.
@@ -214,6 +259,9 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
         // If we get here, it should mean the client received the response with the timestamp,
         // which we can fetch now from the callback and send it back to the caller.
 
+        if (callback.getThrowable() != null) {
+            throw new IOException(callback.getThrowable());
+        }
         return (R) callback.getResult();
     }
 
@@ -231,17 +279,14 @@ public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
         // This releases the latch the original client thread is waiting for
         // (to provide the synchronous behavior for that caller) and also
         // provides the timestamp.
-        cb.complete(result);
+        if (result.getThrowable() != null) {
+            SpliceLogUtils.error(LOG, "Olap result for %d has an error %s", clientCallerId, result.getThrowable());
+            cb.error(result.getThrowable());
+        } else {
+            cb.complete(result);
+        }
 
         super.messageReceived(ctx, e);
-    }
-
-    @Override
-    public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-        SpliceLogUtils.info(LOG, "Successfully connected to server");
-        channel = e.getChannel();
-        state.set(State.CONNECTED);
-        super.channelConnected(ctx, e);
     }
 
     @Override

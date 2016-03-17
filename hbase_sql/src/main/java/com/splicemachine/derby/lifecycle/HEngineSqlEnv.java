@@ -3,7 +3,9 @@ package com.splicemachine.derby.lifecycle;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.backup.BackupManager;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.PropertyManagerService;
@@ -17,10 +19,12 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.olap.OlapClientImpl;
+import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * @author Scott Fines
@@ -50,8 +54,21 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp);
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();
-        this.olapClient = new OlapClientImpl(config);
+        this.olapClient = initializeOlapClient(config);
         backupManager = new HBaseBackupManager();
+    }
+
+    private OlapClient initializeOlapClient(SConfiguration config) {
+        int timeoutMillis = config.getInt(SIConfigurations.OLAP_CLIENT_WAIT_TIME);
+        int port = config.getInt(SIConfigurations.OLAP_SERVER_BIND_PORT);
+        HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
+        String host;
+        try {
+            host = hbcf.getMasterServer().getHostname();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return new OlapClientImpl(host, port, timeoutMillis, new SystemClock());
     }
 
     @Override

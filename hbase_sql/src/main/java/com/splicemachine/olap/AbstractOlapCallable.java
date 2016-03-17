@@ -11,7 +11,7 @@ import java.io.ObjectOutput;
 /**
  * Created by dgomezferro on 3/16/16.
  */
-public abstract class AbstractOlapCallable<R extends OlapResult> implements OlapCallable<R>, Externalizable {
+public abstract class AbstractOlapCallable<R extends OlapResult> implements OlapCallable<R> {
     private short callerId;
 
     @Override
@@ -22,15 +22,5 @@ public abstract class AbstractOlapCallable<R extends OlapResult> implements Olap
     @Override
     public short getCallerId() {
         return callerId;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeShort(callerId);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        this.callerId = in.readShort();
     }
 }

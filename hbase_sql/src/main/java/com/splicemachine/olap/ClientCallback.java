@@ -9,7 +9,7 @@ public class ClientCallback implements Callback {
 
     private final short _callerId;
     private volatile long _newTimestamp = -1l;
-    private Exception _e = null;
+    private Throwable _e = null;
     private CountDownLatch _latch = new CountDownLatch(1);
 
     public OlapResult getResult() {
@@ -26,7 +26,7 @@ public class ClientCallback implements Callback {
     	return _callerId;
     }
     
-    public Exception getException() {
+    public Throwable getThrowable() {
        return _e;
     }
 
@@ -60,8 +60,8 @@ public class ClientCallback implements Callback {
         return false;
     }
 
-    public synchronized void error(Exception e) {
-        _e = e;
+    public synchronized void error(Throwable t) {
+        _e = t;
         countDown();
     }
 

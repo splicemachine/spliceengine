@@ -8,4 +8,5 @@ import java.io.Serializable;
 public interface OlapResult extends Serializable {
     short getCallerId();
     void setCallerId(short callerId);
+    Throwable getThrowable();
 }

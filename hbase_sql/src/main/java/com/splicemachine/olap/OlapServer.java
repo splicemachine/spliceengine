@@ -16,21 +16,9 @@ import java.util.concurrent.Executors;
 public class OlapServer {
     private static final Logger LOG = Logger.getLogger(OlapServer.class);
 
-    /**
-     * Fixed number of bytes in the message we expect to receive from the client.
-     */
-    static final int FIXED_MSG_RECEIVED_LENGTH = 2; // 2 byte client id
-
-    /**
-     * Fixed number of bytes in the message we expect to send back to the client.
-     */
-    static final int FIXED_MSG_SENT_LENGTH = 10; // 2 byte client id + 8 byte timestamp
-
     private int port;
     private ChannelFactory factory;
     private Channel channel;
-    private TimestampBlockManager timestampBlockManager;
-    private int blockSize;
 
     public OlapServer(int port) {
         this.port = port;
@@ -38,25 +26,15 @@ public class OlapServer {
 
     public void startServer() {
 
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("OLAPServer-%d").setDaemon(true).build());
+        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("OlapServer-%d").setDaemon(true).build());
         this.factory = new NioServerSocketChannelFactory(executor, executor);
 
-        SpliceLogUtils.info(LOG, "OLAP Server starting (binding to port %s)...", port);
+        SpliceLogUtils.info(LOG, "Olap Server starting (binding to port %s)...", port);
 
         ServerBootstrap bootstrap = new ServerBootstrap(factory);
 
         // Instantiate handler once and share it
         final OlapServerHandler handler = new OlapServerHandler();
-
-        // If we end up needing to use one of the memory aware executors,
-        // do so with code like this (leave commented out for reference).
-        // But for now we can use the 'lite' implementation.
-        //
-        // final ThreadPoolExecutor pipelineExecutor = new OrderedMemoryAwareThreadPoolExecutor(
-        //     5 /* threads */, 1048576, 1073741824,
-        //     100, TimeUnit.MILLISECONDS, // Default would have been 30 SECONDS
-        //     Executors.defaultThreadFactory());
-        // bootstrap.setPipelineFactory(new TimestampPipelineFactory(pipelineExecutor, handler));
 
         bootstrap.setPipelineFactory(new OlapPipelineFactory(handler));
 
@@ -69,12 +47,21 @@ public class OlapServer {
         // bootstrap.setOption("child.connectTimeoutMillis", 120000);
 
         this.channel = bootstrap.bind(new InetSocketAddress(getPortNumber()));
+        ((InetSocketAddress)channel.getLocalAddress()).getPort();
 
-        SpliceLogUtils.info(LOG, "Timestamp Server started.");
+        SpliceLogUtils.info(LOG, "Olap Server started.");
     }
 
     protected int getPortNumber() {
         return port;
+    }
+
+    public int getBoundPort() {
+        return ((InetSocketAddress) channel.getLocalAddress()).getPort();
+    }
+
+    public String getBoundHost() {
+        return ((InetSocketAddress) channel.getLocalAddress()).getHostName();
     }
 
     public void stopServer() {

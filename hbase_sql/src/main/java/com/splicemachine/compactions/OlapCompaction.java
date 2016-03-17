@@ -76,27 +76,4 @@ public class OlapCompaction extends AbstractOlapCallable<CompactionResult> {
         dsp.setSchedulerPool(poolName);
     }
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(compactionFunction);
-        out.writeObject(files);
-        out.writeUTF(jobDetails);
-        out.writeUTF(jobGroup);
-        out.writeUTF(jobDescription);
-        out.writeUTF(poolName);
-        out.writeUTF(scope);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        compactionFunction = (SparkCompactionFunction) in.readObject();
-        files = (List<String>) in.readObject();
-        jobDetails = in.readUTF();
-        jobGroup = in.readUTF();
-        jobDescription = in.readUTF();
-        poolName = in.readUTF();
-        scope = in.readUTF();
-    }
 }

@@ -10,8 +10,9 @@ import java.io.ObjectOutput;
 /**
  * Created by dgomezferro on 3/16/16.
  */
-public abstract class AbstractOlapResult implements OlapResult, Externalizable {
+public abstract class AbstractOlapResult implements OlapResult {
     private short callerId;
+    protected Throwable throwable;
 
     @Override
     public short getCallerId() {
@@ -24,12 +25,7 @@ public abstract class AbstractOlapResult implements OlapResult, Externalizable {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeShort(callerId);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        this.callerId = in.readShort();
+    public Throwable getThrowable() {
+        return throwable;
     }
 }

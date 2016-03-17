@@ -11,6 +11,7 @@ import org.jboss.netty.handler.codec.serialization.ClassResolvers;
 import org.jboss.netty.handler.codec.serialization.ObjectDecoder;
 import org.jboss.netty.handler.codec.serialization.ObjectEncoder;
 import org.jboss.netty.handler.execution.ExecutionHandler;
+import org.jboss.netty.handler.execution.MemoryAwareThreadPoolExecutor;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 
 import java.util.concurrent.Executors;
@@ -26,7 +27,7 @@ public class OlapPipelineFactory implements ChannelPipelineFactory {
     public OlapPipelineFactory(ChannelHandler handler) {
         olapHandler = handler;
         executionHandler = new ExecutionHandler(
-                new OrderedMemoryAwareThreadPoolExecutor(16, 1048576, 1048576, 30, TimeUnit.SECONDS,
+                new MemoryAwareThreadPoolExecutor(16, 1048576, 1048576, 30, TimeUnit.SECONDS,
                         Executors.defaultThreadFactory()));
     }
 

@@ -24,16 +24,4 @@ public class CompactionResult extends AbstractOlapResult {
     public List<String> getPaths() {
         return paths;
     }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(paths);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        paths = (List<String>) in.readObject();
-    }
 }

@@ -22,7 +22,12 @@ public class OlapServerHandler extends SimpleChannelUpstreamHandler {
         final OlapCallable<?> callable = (OlapCallable<?>) e.getMessage();
         assert callable != null;
 
-        OlapResult result = callable.call();
+        OlapResult result;
+        try {
+            result = callable.call();
+        } catch (final Throwable t) {
+            result = new FailedOlapResult(t);
+        }
         result.setCallerId(callable.getCallerId());
 
         //
