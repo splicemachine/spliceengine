@@ -237,7 +237,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             }
         }
         badRecordsAccumulable.add(errorState + " " + badRecord+LINE_SEP);
-        if (failBadRecordCount>=0 && numberBadRecords>= this.failBadRecordCount)
+        if (failBadRecordCount>=0 && numberBadRecords> this.failBadRecordCount)
             failed=true;
     }
 
