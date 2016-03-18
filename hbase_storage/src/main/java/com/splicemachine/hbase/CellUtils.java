@@ -1,11 +1,12 @@
 package com.splicemachine.hbase;
 
 import java.util.List;
+
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
 
@@ -141,21 +142,21 @@ public class CellUtils {
         return matchKeyValue(kvs, DEFAULT_FAMILY_BYTES, PACKED_COLUMN_BYTES);
     }
 
-		public static boolean matchingColumn(Cell kv, byte[] family, byte[] qualifier) {
-				return CellUtil.matchingFamily(kv, family) && CellUtil.matchingQualifier(kv,qualifier);
-		}
+	public static boolean matchingColumn(Cell kv, byte[] family, byte[] qualifier) {
+			return CellUtil.matchingFamily(kv, family) && CellUtil.matchingQualifier(kv,qualifier);
+	}
 
-	    /**
-	     * Returns true if the specified KeyValue is contained by the specified range.
-	     */
-	    public static boolean isKeyValueInRange(Cell kv, Pair<byte[], byte[]> range) {
-	        byte[] kvBuffer = kv.getRowArray(); // TODO JL SAR
-	        int rowKeyOffset = kv.getRowOffset();
-	        short rowKeyLength = kv.getRowLength();
-	        byte[] start = range.getFirst();
-	        byte[] stop = range.getSecond();
-	        return (start.length == 0 || Bytes.compareTo(start, 0, start.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) &&
-	                (stop.length == 0 || Bytes.compareTo(stop, 0, stop.length, kvBuffer, rowKeyOffset, rowKeyLength) >= 0);
-	    }
+	/**
+	 * Returns true if the specified KeyValue is contained by the specified range.
+	 */
+	public static boolean isKeyValueInRange(Cell kv, Pair<byte[], byte[]> range) {
+		byte[] kvBuffer = kv.getRowArray(); // TODO JL SAR
+		int rowKeyOffset = kv.getRowOffset();
+		short rowKeyLength = kv.getRowLength();
+		byte[] start = range.getFirst();
+		byte[] stop = range.getSecond();
+		return (start.length == 0 || Bytes.compareTo(start, 0, start.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) &&
+				(stop.length == 0 || Bytes.compareTo(stop, 0, stop.length, kvBuffer, rowKeyOffset, rowKeyLength) >= 0);
+	}
 
 }
