@@ -9,12 +9,12 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *         Date: 12/28/15
  */
 //TODO -sf- fix the concurrency on this thing
-public class MemstoreAwareObserver implements CompactionObserver,
+public class MemstoreAwareObserver extends BaseRegionObserver implements CompactionObserver,
         SplitObserver,
         FlushObserver,
         StoreScannerObserver{
