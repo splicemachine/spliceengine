@@ -16,9 +16,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
-import org.apache.hadoop.hbase.regionserver.ConsistencyControl;
+//import org.apache.hadoop.hbase.regionserver.ConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
-import org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl;
+//import org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 
 import java.util.List;
@@ -140,7 +140,7 @@ class SpliceTestPlatformConfig {
         config.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy"); // change default split policy.  this makes more sense for a standalone/single regionserver
 
         // Support SI
-        config.setClass(HConstants.MVCC_IMPL, SIMultiVersionConsistencyControl.class, ConsistencyControl.class);
+        //config.setClass(HConstants.MVCC_IMPL, SIMultiVersionConsistencyControl.class, ConsistencyControl.class);
 
         //
         // HFile
