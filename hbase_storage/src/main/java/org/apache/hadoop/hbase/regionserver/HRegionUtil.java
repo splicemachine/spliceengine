@@ -1,6 +1,7 @@
 package org.apache.hadoop.hbase.regionserver;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.StorageConfiguration;
@@ -14,6 +15,8 @@ import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
 import org.apache.hadoop.hbase.util.BloomFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.apache.parquet.bytes.BytesUtils;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -53,6 +56,19 @@ public class HRegionUtil extends BaseHRegionUtil{
         HFile.Reader fileReader;
         List<byte[]> cutPoints = new ArrayList<byte[]>();
         int carry = 0;
+        byte[] regionStart = store.getRegionInfo().getStartKey();
+        byte[] regionEnd = store.getRegionInfo().getEndKey();
+        if (regionStart != null && regionStart.length > 0) {
+            if (start == null || Bytes.compareTo(start, regionStart) < 0) {
+                start = regionStart;
+            }
+        }
+        if (regionEnd != null && regionEnd.length > 0) {
+            if (end == null || Bytes.compareTo(end, regionEnd) > 0) {
+                end = regionEnd;
+            }
+        }
+        Pair<byte[], byte[]> range = new Pair<>(start, end);
         double multiplier = Math.pow(1.05, storeFiles.size());
         for (StoreFile file : storeFiles) {
             if (file != null) {
@@ -62,7 +78,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
                 fileReader = file.createReader().getHFileReader();
-                carry = addStoreFileCutpoints(cutPoints, fileReader, adjustedSize, carry);
+                carry = addStoreFileCutpoints(cutPoints, fileReader, adjustedSize, carry, range);
             }
         }
 
@@ -74,11 +90,19 @@ public class HRegionUtil extends BaseHRegionUtil{
                 }
             });
         }
+        if (LOG.isTraceEnabled()) {
+            HRegionInfo regionInfo = store.getRegionInfo();
+            String startKey = "\"" + Bytes.toStringBinary(regionInfo.getStartKey()) + "\"";
+            String endKey = "\"" + Bytes.toStringBinary(regionInfo.getEndKey()) + "\"";
+            LOG.trace("Cutpoints for " + regionInfo.getRegionNameAsString() + " [" + startKey + "," + endKey + "]: ");
+            for (byte[] cutpoint : cutPoints) {
+                LOG.trace("\t" + Bytes.toStringBinary(cutpoint));
+            }
+        }
         return cutPoints;
     }
 
-
-    private static int addStoreFileCutpoints(List<byte[]> cutpoints, HFile.Reader fileReader, long storeFileInBytes, int carry) throws IOException {
+    private static int addStoreFileCutpoints(List<byte[]> cutpoints, HFile.Reader fileReader, long storeFileInBytes, int carry, Pair<byte[],byte[]> range) throws IOException {
         HFileBlockIndex.BlockIndexReader indexReader = fileReader.getDataBlockIndexReader();
         int size = indexReader.getRootBlockCount();
         int levels = fileReader.getTrailer().getNumDataIndexLevels();
@@ -88,7 +112,10 @@ public class HRegionUtil extends BaseHRegionUtil{
             for (int i = 0; i < size; ++i) {
                 if (sizeCounter >= splitBlockSize) {
                     sizeCounter = 0;
-                    cutpoints.add(KeyValue.createKeyValueFromKey(indexReader.getRootBlockKey(i)).getRow());
+                    KeyValue tentative = KeyValue.createKeyValueFromKey(indexReader.getRootBlockKey(i));
+                    if (CellUtils.isKeyValueInRange(tentative, range)) {
+                        cutpoints.add(tentative.getRow());
+                    }
                 }
                 sizeCounter += incrementalSize;
             }
@@ -101,7 +128,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                         true, true, false, true,
                         levels == 2 ? BlockType.LEAF_INDEX : BlockType.INTERMEDIATE_INDEX,
                         fileReader.getDataBlockEncoding());
-                carry = addIndexCutpoints(fileReader, block.getBufferWithoutHeader(), levels - 1,  cutpoints, storeFileInBytes / size, carry);
+                carry = addIndexCutpoints(fileReader, block.getBufferWithoutHeader(), levels - 1,  cutpoints, storeFileInBytes / size, carry, range);
             }
 	        return carry;
         }
@@ -115,7 +142,7 @@ public class HRegionUtil extends BaseHRegionUtil{
      */
     static final int SECONDARY_INDEX_ENTRY_OVERHEAD = Bytes.SIZEOF_INT + Bytes.SIZEOF_LONG;
 
-    private static int addIndexCutpoints(HFile.Reader fileReader, ByteBuffer nonRootIndex, int level, List<byte[]> cutpoints, long storeFileInBytes, int carriedSize) throws IOException {
+    private static int addIndexCutpoints(HFile.Reader fileReader, ByteBuffer nonRootIndex, int level, List<byte[]> cutpoints, long storeFileInBytes, int carriedSize, Pair<byte[], byte[]> range) throws IOException {
         int numEntries = nonRootIndex.getInt(0);
         // Entries start after the number of entries and the secondary index.
         // The secondary index takes numEntries + 1 ints.
@@ -140,7 +167,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                         true, true, false, true,
                         level == 2 ? BlockType.LEAF_INDEX : BlockType.INTERMEDIATE_INDEX,
                         fileReader.getDataBlockEncoding());
-                carriedSize = addIndexCutpoints(fileReader, block.getBufferWithoutHeader(), level - 1, cutpoints, storeFileInBytes / numEntries, carriedSize);
+                carriedSize = addIndexCutpoints(fileReader, block.getBufferWithoutHeader(), level - 1, cutpoints, storeFileInBytes / numEntries, carriedSize, range);
             }
             return carriedSize;
         } else {
@@ -171,7 +198,10 @@ public class HRegionUtil extends BaseHRegionUtil{
                 ByteBuffer dup = nonRootIndex.duplicate();
                 dup.position(targetKeyOffset);
                 dup.limit(targetKeyOffset + targetKeyLength);
-                cutpoints.add(KeyValue.createKeyValueFromKey(dup.slice()).getRow());
+                KeyValue tentative = KeyValue.createKeyValueFromKey(dup.slice());
+                if (CellUtils.isKeyValueInRange(tentative, range)) {
+                    cutpoints.add(tentative.getRow());
+                }
             }
             return (numEntries - previous) * incrementalSize + carriedSize;
         }
