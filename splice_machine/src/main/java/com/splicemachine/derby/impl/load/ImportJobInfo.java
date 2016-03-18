@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang.WordUtils;
 import org.apache.hadoop.hbase.util.Pair;
@@ -85,6 +86,8 @@ public class ImportJobInfo extends JobInfo {
 	@Override
 	public void success(TaskFuture taskFuture) {
 		super.success(taskFuture);
+        if (LOG.isDebugEnabled())
+            LOG.debug("Import task succeeded.");
 		try {
 			// Skip the zero rows since we are reporting the status of a completed task and a new one may overlap briefly.
 			logStatusOfImportTasks(jobImportAdmin, true);
@@ -104,6 +107,39 @@ public class ImportJobInfo extends JobInfo {
 		}
 		logStatusOfImportFiles(jobFuture.getNumTasks(), jobFuture.getRemainingTasks());
 	}
+
+    @Override
+    public void failure(TaskFuture taskFuture) {
+        if (LOG.isDebugEnabled())
+            LOG.debug("Import task failed.");
+        super.failure(taskFuture);
+    }
+
+    @Override
+    public void cancelled(TaskFuture taskFuture) {
+        if (LOG.isDebugEnabled())
+            LOG.debug("Import task cancelled.");
+        super.cancelled(taskFuture);
+    }
+
+    @Override
+    public void invalidated(TaskFuture taskFuture) {
+        if (LOG.isDebugEnabled())
+            LOG.debug("Import task invalidated.");
+        super.invalidated(taskFuture);
+    }
+
+    public void failJob() {
+        if (LOG.isDebugEnabled())
+            LOG.debug("Import job failed.");
+        super.failJob();
+    }
+
+    public void cancel() throws ExecutionException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("Import job cancelled.");
+        super.cancel();
+    }
 
 	/**
 	 * Write the status of the import files to the job status log.

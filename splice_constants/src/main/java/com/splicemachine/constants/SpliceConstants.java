@@ -402,7 +402,7 @@ public class SpliceConstants {
 		 * Defaults to 1000000 rows.
 		 */
 		@Parameter public static final String IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = "splice.import.task.status.reporting.rowcount";
-		@DefaultValue(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT) public static final long DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = 1000000l;
+		@DefaultValue(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT) public static final long DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = 100000l;
 		public static Long importTaskStatusReportingRowCount;
 
 		/**
@@ -411,7 +411,7 @@ public class SpliceConstants {
 		 * Defaults to 60000 ms.
 		 */
 		@Parameter public static final String IMPORT_TASK_STATUS_LOGGING_INTERVAL = "splice.import.task.status.logging.interval";
-		@DefaultValue(IMPORT_TASK_STATUS_LOGGING_INTERVAL) public static final long DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL = 60000l;
+		@DefaultValue(IMPORT_TASK_STATUS_LOGGING_INTERVAL) public static final long DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL = 10000l;
 		public static Long importTaskStatusLoggingInterval;
 
 		//common SI fields
@@ -1084,7 +1084,7 @@ public class SpliceConstants {
     public static int tempTableBucketCount;
 
     @Parameter public static final String ENABLE_IMPORT_STATUS_LOGGING = "splice.import.enableStatusLogging";
-    @DefaultValue(ENABLE_IMPORT_STATUS_LOGGING) public static final boolean DEFAULT_ENABLE_IMPORT_STATUS_LOGGING = false;
+    @DefaultValue(ENABLE_IMPORT_STATUS_LOGGING) public static final boolean DEFAULT_ENABLE_IMPORT_STATUS_LOGGING = true;
     public static boolean enableImportStatusLogging;
 
     public static final String BATCH_ONCE_BATCH_SIZE = "splice.batchonce.batchsize";
@@ -1292,7 +1292,6 @@ public class SpliceConstants {
 
         ddlDrainingMaximumWait = config.getLong(DDL_DRAINING_MAXIMUM_WAIT,DEFAULT_DDL_DRAINING_MAXIMUM_WAIT);
         ddlDrainingInitialWait = config.getLong(DDL_DRAINING_INITIAL_WAIT,DEFAULT_DDL_DRAINING_INITIAL_WAIT);
-
 
         interRegionTaskSplitThresholdBytes = config.getLong(INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES,DEFAULT_INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES);
         maxInterRegionTaskSplits = config.getInt(MAX_INTER_REGION_TASK_SPLITS,DEFAULT_MAX_INTER_REGION_TASK_SPLITS);
