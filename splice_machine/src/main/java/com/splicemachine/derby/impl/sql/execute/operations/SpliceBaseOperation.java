@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.*;
@@ -204,6 +205,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // No difference. We can change that later if needed.
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
+
+        CompilerContext.DataSetProcessorType type = this.activation.getLanguageConnectionContext().getDataSetProcessorType();
+        // JL-TODO Cannot do this in the hot path
         explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
     }
 
@@ -455,8 +459,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             long txnId=getCurrentTransaction().getTxnId();
             sql=sql==null?this.toString():sql;
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
-            this.jobName=userId+" <"+txnId+">";
-            dsp.setJobGroup(jobName,sql);
+            if (dsp.getType() == DataSetProcessor.Type.SPARK) { // Only do this for spark jobs
+                this.jobName = userId + " <" + txnId + ">";
+                dsp.setJobGroup(jobName, sql);
+            }
             dsp.clearBroadcastedOperation();
             this.locatedRowIterator=getDataSet(dsp).toLocalIterator();
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy.

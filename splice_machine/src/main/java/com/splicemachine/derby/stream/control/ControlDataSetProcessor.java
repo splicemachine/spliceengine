@@ -59,6 +59,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         this.txnOperationFactory=txnOperationFactory;
     }
 
+    @Override
+    public Type getType() {
+        return Type.LOCAL;
+    }
+
     public static final Partitioner NOOP_PARTITIONER = new Partitioner() {
         @Override
         public void initialize() {

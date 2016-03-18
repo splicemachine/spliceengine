@@ -50,6 +50,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
+    public Type getType() {
+        return Type.SPARK;
+    }
+
+    @Override
     public void setup(Activation activation,String description,String schedulerPool) throws StandardException{
         String sql = activation.getPreparedStatement().getSource();
         long txnId = getCurrentTransaction(activation).getTxnId();

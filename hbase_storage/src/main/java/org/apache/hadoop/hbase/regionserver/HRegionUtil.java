@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.io.hfile.BlockType;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileBlock;
 import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
+import org.apache.hadoop.hbase.util.BloomFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -209,18 +210,26 @@ public class HRegionUtil extends BaseHRegionUtil{
 
                 // Check Store Files
 
+                byte[][] keys = new byte[dataAndLocks.length][];
+                int[] keyOffset = new int[dataAndLocks.length];
+                int[] keyLength = new int[dataAndLocks.length];
+                for (int i =0; i<dataAndLocks.length;i++) {
+                    if(dataAndLocks[i]==null) continue;
+                    if(hasConstraintChecker || !KVPair.Type.INSERT.equals(dataAndLocks[i].getFirst().getType())) {
+                        keys[i] = dataAndLocks[i].getFirst().getRowKey(); // Remove Array Copy (Is this buffered?)...
+                        keyOffset[i] = 0;
+                        keyLength[i] = keys[i].length;
+                    }
+                }
+
                 for (StoreFile file : storeFiles) {
                     if (file != null) {
                         fileReader = file.createReader();
-                        for (int i =0; i<dataAndLocks.length;i++) {
-                            if(dataAndLocks[i]==null) continue;
-                            byte[] key = dataAndLocks[i].getFirst().getRowKey();
-                            if(hasConstraintChecker || !KVPair.Type.INSERT.equals(dataAndLocks[i].getFirst().getType())) {
-                                if (!bitSet.get(i) && fileReader.passesGeneralBloomFilter(key, 0,
-                                key.length, null, 0, 0))
-                                    bitSet.set(i);
-                            }
-                        }
+                        BloomFilter bloomFilter = fileReader.generalBloomFilter;
+                        if (bloomFilter == null)
+                            bitSet.set(0,dataAndLocks.length); // Low level race condition, need to go to scan
+                        BitSet returnedBitSet = bloomFilter.contains(keys,keyOffset,keyLength,(ByteBuffer)null);
+                        bitSet.or(returnedBitSet);
                     }
                 }
                 NavigableSet<Cell> memstore = getKvset(hstore);

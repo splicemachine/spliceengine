@@ -17,6 +17,9 @@ import java.io.InputStream;
  * @author jleach
  */
 public interface DataSetProcessor {
+    enum Type {LOCAL,SPARK};
+
+    Type getType();
 
     <Op extends SpliceOperation, V> ScanSetBuilder<V> newScanSet(Op spliceOperation,String tableName) throws StandardException;
 
