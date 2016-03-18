@@ -67,7 +67,7 @@ public class SelfInsertSparkIT {
                 for(int i=0;i<maxLevel;i++){
                     long newSize = 1l<<i;
                     LOG.trace("inserting "+newSize+" records");
-                    sql = "insert into foo select col1+(select count(*) from foo), col2 from foo --SPLICE-PROPERTIES useSpark=true\n";
+                    sql = "insert into foo select col1+"+newSize+", col2 from foo";
                     updateCount = s.executeUpdate(sql);
                     Assert.assertEquals("Incorrect reported update count!",newSize,updateCount);
                     try(ResultSet rs = ps.executeQuery()){
