@@ -38,7 +38,7 @@ public class JobInfo implements JobFuture.StatusHook {
 		private final AtomicInteger tasksFailed = new AtomicInteger(0);
 		private volatile JobState jobState;
 
-		private volatile JobFuture jobFuture;
+		protected volatile JobFuture jobFuture;
 
 		public JobInfo(String jobId,int numTasks,long jobStartMs) {
 				this.jobId = jobId;

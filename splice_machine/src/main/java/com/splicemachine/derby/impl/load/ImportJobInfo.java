@@ -33,7 +33,6 @@ public class ImportJobInfo extends JobInfo {
 	private ImportAdmin jobImportAdmin = null;
 	private JobStatusLogger jobStatusLogger = null;
 	private TaskStatusLoggerThread taskStatusThread = null;
-	private JobFuture jobFuture = null;
 	private ImportContext importContext = null;
 
 	/**
@@ -85,6 +84,9 @@ public class ImportJobInfo extends JobInfo {
 	 */
 	@Override
 	public void success(TaskFuture taskFuture) {
+        // Get these now b/c the super call nulls jobFuture
+        int numTasks = jobFuture.getNumTasks();
+        int remainingTasks = jobFuture.getRemainingTasks();
 		super.success(taskFuture);
         if (LOG.isDebugEnabled())
             LOG.debug("Import task succeeded.");
@@ -105,7 +107,7 @@ public class ImportJobInfo extends JobInfo {
 				jobStatusLogger.log("Logging status of the import tasks has experienced an exception.  Check the logs for the stack trace.");
 			}
 		}
-		logStatusOfImportFiles(jobFuture.getNumTasks(), jobFuture.getRemainingTasks());
+		logStatusOfImportFiles(numTasks, remainingTasks);
 	}
 
     @Override
