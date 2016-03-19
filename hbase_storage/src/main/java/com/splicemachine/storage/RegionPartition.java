@@ -1,6 +1,7 @@
 package com.splicemachine.storage;
 
 import com.google.common.base.Function;
+import com.splicemachine.si.impl.HRegionTooBusy;
 import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
@@ -275,6 +276,9 @@ public class RegionPartition implements Partition{
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
+        } catch(NullPointerException npe) {
+            // Not Setup yet during split
+            throw new HRegionTooBusy(npe.getMessage());
         }
     }
 
