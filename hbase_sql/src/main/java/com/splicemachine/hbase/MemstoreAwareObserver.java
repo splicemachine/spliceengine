@@ -89,7 +89,12 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
     @Override
     public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> e,Store store,InternalScanner scanner) throws IOException{
-        return null;
+        while (true) {
+            MemstoreAware latest = memstoreAware.get();
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementFlushCount(latest)));
+            break;
+        }
+        return scanner;
     }
 
     @Override
