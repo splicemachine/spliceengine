@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.w3.org/TR/xhtml1/strict" version="2.0">
     <xsl:template match="/">
         <html>
             <style type="text/css">
@@ -17,6 +17,7 @@
                             <th>test label</th>
                             <th>thread name</th>
                             <th>pass</th>
+                            <th>start time</th>
                             <th>elapsed time(ms)</th>
                             <th>response code</th>
                             <th>failure message</th>
@@ -32,6 +33,11 @@
                             </td>
                             <td>
                                 <xsl:value-of select="current()/@s"/>
+                            </td>
+                            <td>
+                                <xsl:variable name="starttimemillis" select="current()/@ts"/>
+                                <xsl:variable name="starttime" select="xs:dateTime(&quot;1970-01-01T00:00:00&quot;) + $starttimemillis * xs:dayTimeDuration(&quot;PT0.001S&quot;)"/>
+                                <xsl:value-of select="format-dateTime($starttime, &quot;[M01]/[D01]/[Y0001] [H01]:[m01]:[s01].[f001]&quot;)"/>
                             </td>
                             <td>
                                 <xsl:value-of select="current()/@t"/>
