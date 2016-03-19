@@ -72,6 +72,7 @@ public class ImportJobStatusLogger implements JobStatusLogger {
 		try {
 			this.logFileOut.writeBytes(String.format("%s %s", dateFormat.format(new Date()), msg));
 			this.logFileOut.flush();
+            this.logFileOut.hsync();
 		} catch (IOException e){
 			LOG.error("Failed to write to the import log file", e);
 		}
