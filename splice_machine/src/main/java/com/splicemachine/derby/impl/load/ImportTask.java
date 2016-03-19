@@ -184,6 +184,7 @@ public class ImportTask extends ZkTask{
 								} catch (Exception e) {
 										throw new ExecutionException(e);
 								} finally{
+                                    jmxStats.cleanup(importTaskPath);
 										Closeables.closeQuietly(reader);
                     /*
                      * We don't call closeQuietly(importer) here, because

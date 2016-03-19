@@ -54,7 +54,7 @@ public class ImportTaskManagementStats implements ImportTaskManagement {
 	}
 
 	/**
-	 *  Singleton factory method.
+	 * Singleton factory method.
 	 */
 	public static ImportTaskManagementStats getInstance() {
 		return stats;
@@ -98,15 +98,13 @@ public class ImportTaskManagementStats implements ImportTaskManagement {
 	 * @param importTaskPath
 	 */
 	public void cleanup(String importTaskPath) {
-        boolean debug = LOG.isDebugEnabled();
-        if (debug) LOG.debug(String.format("Cleaning up: taskPath=%s", importTaskPath));
 		if (importTaskPath == null) return;  // This can happen for RollForward tasks that are not distributed, thus they do not have nodes in ZooKeeper.
-		Object obj1 = importedRowsMap.remove(importTaskPath);
-        if (debug) LOG.debug(String.format("Cleaning up: taskPath %s, importedRowsMap entry removed=%s", importTaskPath, obj1));
-		Object obj2 = badRowsMap.remove(importTaskPath);
-        if (debug) LOG.debug(String.format("Cleaning up: taskPath %s, badRowsMap entry removed=%s", importTaskPath, obj2));
-        Object obj3 = filePathsMap.remove(importTaskPath);
-        if (debug) LOG.debug(String.format("Cleaning up: taskPath %s, filePathsMap entry removed=%s", importTaskPath, obj3));
+		Object removed = importedRowsMap.remove(importTaskPath);
+        if (LOG.isDebugEnabled())
+            LOG.debug(String.format("cleanup(): taskPath=%s, importedRowsMap entry removed=%s", importTaskPath, removed));
+
+		badRowsMap.remove(importTaskPath);
+        filePathsMap.remove(importTaskPath);
 	}
 
 	/**
