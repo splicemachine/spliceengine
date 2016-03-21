@@ -228,8 +228,10 @@ public class HRegionUtil extends BaseHRegionUtil{
                         BloomFilter bloomFilter = fileReader.generalBloomFilter;
                         if (bloomFilter == null)
                             bitSet.set(0,dataAndLocks.length); // Low level race condition, need to go to scan
-                        BitSet returnedBitSet = bloomFilter.contains(keys,keyOffset,keyLength,(ByteBuffer)null);
-                        bitSet.or(returnedBitSet);
+                        else {
+                            BitSet returnedBitSet = bloomFilter.contains(keys, keyOffset, keyLength, (ByteBuffer) null);
+                            bitSet.or(returnedBitSet);
+                        }
                     }
                 }
                 NavigableSet<Cell> memstore = getKvset(hstore);
