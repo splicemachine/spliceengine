@@ -1419,19 +1419,25 @@ public class BinaryRelationalOperatorNode
         }
         else return selectivity;
 
-        StoreCostController innerTableCostController = getStoreCostController(innerColumn);
-        StoreCostController outerTableCostController = getStoreCostController(outerColumn);
+        StoreCostController innerTableCostController = innerColumn.getStoreCostController();
+        StoreCostController outerTableCostController = outerColumn.getStoreCostController();
 
         DataValueDescriptor minOuterColumn = null;
         DataValueDescriptor maxOuterColumn = null;
         DataValueDescriptor minInnerColumn = null;
         DataValueDescriptor maxInnerColumn = null;
         if (outerTableCostController != null) {
+            long rc = (long)outerTableCostController.baseRowCount();
+            if (rc == 0)
+                return 0.0d;
             minOuterColumn = outerTableCostController.minValue(outerColumn.getSource().getColumnPosition());
             maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
         }
 
         if (innerTableCostController != null) {
+            long rc = (long)innerTableCostController.baseRowCount();
+            if (rc == 0)
+                return 0.0d;
             minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
             maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
         }
@@ -1469,17 +1475,6 @@ public class BinaryRelationalOperatorNode
                 return d1;
             }
         }
-    }
-
-
-    private StoreCostController getStoreCostController(ColumnReference cr) throws StandardException{
-        StoreCostController storeCostController = null;
-        ColumnDescriptor cd = cr.getSource().getTableColumnDescriptor();
-        if (cd != null) {
-            ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-            storeCostController = getCompilerContext().getStoreCostController(outercCD);
-        }
-        return storeCostController;
     }
 
     @Override

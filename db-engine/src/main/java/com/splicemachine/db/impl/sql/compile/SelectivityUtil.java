@@ -214,8 +214,12 @@ public class SelectivityUtil {
      * @return
      */
 
-    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
-        return (outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost())/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
+    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty) {
+        if (outerTableEmpty) {
+            return (outerCost.localCost())/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
+        }
+        else
+            return (outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost())/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
     }
 
     /**

@@ -23,7 +23,9 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -1407,6 +1409,15 @@ public class ColumnReference extends ValueNode {
         return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
     }
 
+	public StoreCostController getStoreCostController() throws StandardException{
+		StoreCostController storeCostController = null;
+		ColumnDescriptor cd = getSource().getTableColumnDescriptor();
+		if (cd != null) {
+			ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
+			storeCostController = getCompilerContext().getStoreCostController(outercCD);
+		}
+		return storeCostController;
+	}
     /**
      * Get the row count estimate from the statistics for this column reference.
      */

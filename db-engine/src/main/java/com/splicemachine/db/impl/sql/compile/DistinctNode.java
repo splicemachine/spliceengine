@@ -165,7 +165,7 @@ public class DistinctNode extends SingleChildResultSetNode
 	{
         costEstimate = getNewCostEstimate();
         CostEstimate baseCost = childResult.getFinalCostEstimate();
-        double rc = baseCost.rowCount();
+		double rc = baseCost.rowCount() > 1? baseCost.rowCount():1;
         double outputHeapSizePerRow = baseCost.getEstimatedHeapSize()/rc;
         double remoteCostPerRow=baseCost.remoteCost()/rc;
 
