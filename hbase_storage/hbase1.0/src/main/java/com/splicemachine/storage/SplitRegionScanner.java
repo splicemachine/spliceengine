@@ -79,7 +79,8 @@ public class SplitRegionScanner implements RegionScanner {
 				    }
 				 }
 				 hasAdditionalScanners = false;
-			} catch (DoNotRetryIOException ioe) {
+			}
+            catch (Exception ioe ) {
                 boolean rethrow = shouldRethrowException(ioe);
                 if (!rethrow) {
                     hasAdditionalScanners = true;
