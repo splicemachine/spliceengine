@@ -89,7 +89,7 @@ public class SplitRegionScanner implements RegionScanner {
                     close();
                 }
                 else
-                    throw ioe;
+                    throw new IOException(ioe);
 			}
 		}
 	}
@@ -156,14 +156,13 @@ public class SplitRegionScanner implements RegionScanner {
 		return region;
 	}
 
-	void createAndRegisterClientSideRegionScanner(Table table, Scan newScan, Partition partition) throws IOException {
+	void createAndRegisterClientSideRegionScanner(Table table, Scan newScan, Partition partition) throws Exception {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s",table,newScan, table.getConfiguration());
 		Configuration conf = table.getConfiguration();
 		if (System.getProperty("hbase.rootdir") != null)
 			conf.set("hbase.rootdir",System.getProperty("hbase.rootdir"));
 
-        try{
 			SkeletonClientSideRegionScanner skeletonClientSideRegionScanner=
 					new HBase10ClientSideRegionScanner(table,
 							FSUtils.getCurrentFileSystem(conf),
@@ -173,9 +172,6 @@ public class SplitRegionScanner implements RegionScanner {
 							newScan);
 			this.region = skeletonClientSideRegionScanner.getRegion();
 			registerRegionScanner(skeletonClientSideRegionScanner);
-		} catch (Exception e) {
-			throw new IOException(e);
-		}
 	}
 
     @Override
