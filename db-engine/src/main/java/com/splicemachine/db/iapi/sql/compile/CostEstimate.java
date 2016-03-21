@@ -258,5 +258,7 @@ public interface CostEstimate extends StoreCostResult {
 
     public double getRemoteCost();
 
+    public double localCostPerPartition();
 
+    public void setLocalCostPerPartition(double localCostPerPartition);
 }

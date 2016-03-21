@@ -548,4 +548,10 @@ public class CostEstimateImpl implements CostEstimate {
     public double getRemoteCost() {
         return 0;
     }
+
+    @Override
+    public void setLocalCostPerPartition(double remoteCost){ }
+
+    @Override
+    public double localCostPerPartition(){ return 0;}
 }

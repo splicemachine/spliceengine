@@ -200,7 +200,7 @@ public class SelectivityUtil {
      * @return
      */
     public static double broadcastJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
-        return (outerCost.localCost())/outerCost.partitionCount()+innerCost.localCost()+innerCost.remoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost()+.01; // .01 Hash Cost
+        return (outerCost.localCostPerPartition())+innerCost.localCost()+innerCost.remoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost()+.01; // .01 Hash Cost//
     }
 
     /**
@@ -216,10 +216,10 @@ public class SelectivityUtil {
 
     public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty) {
         if (outerTableEmpty) {
-            return (outerCost.localCost())/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
+            return (outerCost.localCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
         else
-            return (outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost())/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
+            return outerCost.localCostPerPartition()+innerCost.localCostPerPartition()+innerCost.remoteCost()/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
     }
 
     /**
@@ -236,8 +236,14 @@ public class SelectivityUtil {
      * @return
      */
     public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double replicationFactor) {
-        return Math.max( (outerCost.localCost()+replicationFactor*outerCost.getRemoteCost())/outerCost.partitionCount(),
-                (innerCost.localCost()+replicationFactor*innerCost.getRemoteCost())/innerCost.partitionCount());
+        double outerShuffleCost = outerCost.localCostPerPartition()+replicationFactor*outerCost.getRemoteCost()/outerCost.partitionCount()
+                +outerCost.getOpenCost()+outerCost.getCloseCost();;
+        double innerShuffleCost = innerCost.localCostPerPartition()+replicationFactor*innerCost.getRemoteCost()/innerCost.partitionCount()
+                +innerCost.getOpenCost()+innerCost.getCloseCost();;
+        double outerReadCost = outerCost.localCost()/16;
+        double innerReadCost = innerCost.localCost()/16;
+
+        return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost;
     }
 
     /**
@@ -268,8 +274,6 @@ public class SelectivityUtil {
      */
 
     public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
-        return outerCost.localCost()/outerCost.partitionCount() + (outerCost.rowCount()/outerCost.partitionCount())*(innerCost.localCost()+innerCost.getRemoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost());
+        return outerCost.localCostPerPartition() + (outerCost.rowCount()/outerCost.partitionCount())*(innerCost.localCost()+innerCost.getRemoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost());
     }
-
-
 }

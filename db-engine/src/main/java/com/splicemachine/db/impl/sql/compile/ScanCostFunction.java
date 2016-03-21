@@ -247,6 +247,7 @@ public class ScanCostFunction{
         }
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
         scanCost.setNumPartitions(scc.getNumPartitions());
+        scanCost.setLocalCostPerPartition((baseCost + lookupCost + projectionCost)/scc.getNumPartitions());
     }
 
     /**
