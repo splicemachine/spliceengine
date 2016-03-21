@@ -28,7 +28,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         SplitObserver,
         FlushObserver,
         StoreScannerObserver{
-    private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
+    private static final Logger LOG = Logger.getLogger(MemstoreAwareObserver.class);
     private AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());     // Atomic Reference to memstore aware state handling
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,
@@ -51,6 +51,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         }
         return scanner;
     }
+
+
 
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile,CompactionRequest request) throws IOException{
