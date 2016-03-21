@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
@@ -85,7 +84,7 @@ public class SplitRegionScanner implements RegionScanner {
                 if (!rethrow) {
                     hasAdditionalScanners = true;
                     regionScanners.clear();
-                    partitions = getPartitionsInRange(partition, scan);
+                    partitions = getPartitionsInRange(partition, scan,true);
                     close();
                 }
                 else
@@ -232,9 +231,29 @@ public class SplitRegionScanner implements RegionScanner {
         return rethrow;
     }
 
+    /**
+     *
+     * Get Partitions in Range without refreshing the underlying cache.
+     *
+     * @param partition
+     * @param scan
+     * @return
+     */
     public List<Partition> getPartitionsInRange(Partition partition, Scan scan) {
+        return getPartitionsInRange(partition, scan, false);
+    }
+
+    /**
+     *
+     * Get the partitions in range with optional refreshing of the cache
+     *
+     * @param partition
+     * @param scan
+     * @param refresh
+     * @return
+     */
+    public List<Partition> getPartitionsInRange(Partition partition, Scan scan, boolean refresh) {
         List<Partition> partitions;
-        boolean refresh = false;
         while (true) {
             partitions = partition.subPartitions(scan.getStartRow(), scan.getStopRow(),refresh);
             if (partitions==null|| partitions.isEmpty()) {
@@ -246,5 +265,6 @@ public class SplitRegionScanner implements RegionScanner {
         }
         return partitions;
     }
+
 
 }
