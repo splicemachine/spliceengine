@@ -198,7 +198,9 @@ public class ImportJobInfo extends JobInfo {
 						String importTaskPath = importedRowsMapEntry.getKey();
 						Long importRowCount = importedRowsMapEntry.getValue();
 						Long badRowCount = badRowsMap.get(importTaskPath);
-						if (!skipZeroRows || importRowCount > 0 || badRowCount > 0) {
+						if (!skipZeroRows ||
+                            (importRowCount != null && importRowCount > 0) ||
+                            (badRowCount != null && badRowCount > 0)) {
 							String importFilePath = filePathsMap.get(importTaskPath);
 							logRows.add((String.format("    %sed%s %,d rows and rejected %,d rows from %s on %s",
 									WordUtils.capitalize(logVerb), (importContext.isCheckScan() ? " OK" : ""), importRowCount, badRowCount, importFilePath, regionServer)));
