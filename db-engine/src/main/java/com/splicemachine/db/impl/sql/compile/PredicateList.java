@@ -2169,6 +2169,20 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return;
         }
 
+        // If all equijoin predicates are candidate for transitive closure transformation,
+        // don't do it, because otherwise all potentially fast hashable join strategies will be ruled out.
+        boolean doTransform = false;
+        for (int i = 0; i < equijoinClauses.size(); ++i) {
+            Predicate predicate=equijoinClauses.elementAt(i);
+            if (!predicate.transitiveSearchClauseAdded(equalsNode)) {
+                doTransform = true;
+                break;
+            }
+        }
+
+        if (!doTransform) {
+            return;
+        }
     		/* Walk list backwards since we can delete while
 	  	   * traversing the list.
 	       */

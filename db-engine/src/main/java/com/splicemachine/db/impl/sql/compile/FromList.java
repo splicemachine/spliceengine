@@ -1291,7 +1291,10 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             FromTable ft=(FromTable)elementAt(index);
             String joinStrategy=ft.getUserSpecifiedJoinStrategy();
 
-            if(joinStrategy!=null && StringUtil.SQLToUpperCase(joinStrategy).equals("HASH")){
+            if(joinStrategy!=null &&
+                    (StringUtil.SQLToUpperCase(joinStrategy).equals("SORTMERGE") ||
+                            StringUtil.SQLToUpperCase(joinStrategy).equals("MERGE") ||
+                            StringUtil.SQLToUpperCase(joinStrategy).equals("BROADCAST"))) {
                 return true;
             }
         }
