@@ -2,12 +2,11 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import java.sql.ResultSet;
 
 /**
  *
@@ -53,4 +52,39 @@ public class SortMergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                 "rows=10","MergeSortRightOuterJoin","preds=[(TS_10_SPK.C1[4:1] = TS_5_SPK.C1[4:5])]");
     }
 
+    @Test
+    // DB-4078: For a three-way merge sort join (A, B, C), make sure the total cost is more than two-way merge sort
+    // join (A, B).
+    public void test3WayJoin() throws Exception {
+        String twoWay = "explain \n" +
+                "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "t1 a, t1 b --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
+                "where a.i=b.i";
+
+        String threeWay = "explain \n" +
+                "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "t1 a\n" +
+                ", t1 b --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
+                ", t1 c --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
+                "where a.i=b.i and b.i=c.i";
+
+        ResultSet rs = methodWatcher.executeQuery(twoWay);
+        String s = null;
+        while (rs.next()) {
+            s = rs.getString(1);
+            if (s.contains("ScrollInsensitive"))
+                break;
+        }
+        double cost1 = getTotalCost(s);
+
+        rs = methodWatcher.executeQuery(threeWay);
+        while (rs.next()) {
+            s = rs.getString(1);
+            if (s.contains("ScrollInsensitive"))
+                break;
+        }
+        double cost2 = getTotalCost(s);
+
+        Assert.assertTrue(cost1 < cost2);
+    }
 }
