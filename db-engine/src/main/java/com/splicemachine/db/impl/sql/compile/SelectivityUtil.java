@@ -162,8 +162,8 @@ public class SelectivityUtil {
                                       double innerRowCount,
                                       double totalOutputRows){
         return totalOutputRows*(
-                (innerHeapSize/(innerRowCount<0?1.0d:innerRowCount)) +
-                        (outerHeapSize/(outerRowCount<0?1.0d:outerRowCount)));
+                (innerHeapSize/(innerRowCount<1.0d?1.0d:innerRowCount)) +
+                        (outerHeapSize/(outerRowCount<1.0d?1.0d:outerRowCount)));
     }
 
     public static double getTotalRemoteCost(CostEstimate innerCostEstimate,
@@ -179,8 +179,8 @@ public class SelectivityUtil {
                                         double innerRowCount,
                                         double totalOutputRows){
         return totalOutputRows*(
-                (innerRemoteCost/(innerRowCount<0?1.0d:innerRowCount)) +
-                        (outerRemoteCost/(outerRowCount<0?1.0d:outerRowCount)));
+                (innerRemoteCost/(innerRowCount<1.0d?1.0d:innerRowCount)) +
+                        (outerRemoteCost/(outerRowCount<1.0d?1.0d:outerRowCount)));
     }
 
     public static double getTotalRows(Double joinSelectivity, double outerRowCount, double innerRowCount) {
