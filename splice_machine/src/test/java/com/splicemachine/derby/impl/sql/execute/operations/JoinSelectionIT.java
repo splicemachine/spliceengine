@@ -126,7 +126,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
-            NESTED_LOOP_JOIN, methodWatcher);
+            MERGE_SORT_JOIN, methodWatcher);
     }
     
     @Test
@@ -213,7 +213,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID" +
             				  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-            NESTED_LOOP_JOIN, methodWatcher);
+            BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
@@ -223,7 +223,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            NESTED_LOOP_JOIN, methodWatcher);
+            MERGE_SORT_JOIN, methodWatcher);
     }
     
     @Test
@@ -254,7 +254,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            NESTED_LOOP_JOIN, methodWatcher);
+            MERGE_SORT_JOIN, methodWatcher);
     }
 
     @Test
@@ -275,7 +275,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-            NESTED_LOOP_JOIN, methodWatcher);
+           BROADCAST_JOIN, methodWatcher);
     }
     
     @Test
@@ -287,7 +287,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-            NESTED_LOOP_JOIN, methodWatcher);
+            BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
@@ -419,13 +419,13 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                 new int[] {3, 4, 5},
                 explainHinted,
                 methodWatcher,
-                "NestedLoopJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
+                "BroadcastJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
 
         rowContainsQuery(
                 new int[] {3, 4, 5},
                 explainUnhinted,
                 methodWatcher,
-                "NestedLoopJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
+                "BroadcastJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
     }
 
     //DB-3865
