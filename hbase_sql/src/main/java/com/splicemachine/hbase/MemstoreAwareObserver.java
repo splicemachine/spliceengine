@@ -38,8 +38,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                                       CompactionRequest request) throws IOException{
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementCompactionCount(latest)));
-            break;
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementCompactionCount(latest)))
+                break;
         }
         while (memstoreAware.get().scannerCount>0) {
             SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
@@ -67,8 +67,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     public void preSplit(ObserverContext<RegionCoprocessorEnvironment> c,byte[] splitRow) throws IOException{
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, true)));
-            break;
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, true)))
+                break;
         }
         while (memstoreAware.get().scannerCount>0) {
             SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
@@ -93,8 +93,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> e,Store store,InternalScanner scanner) throws IOException{
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementFlushCount(latest)));
-            break;
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementFlushCount(latest)))
+                break;
         }
         return scanner;
     }
@@ -103,8 +103,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile) throws IOException{
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementFlushCount(latest)));
-            break;
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementFlushCount(latest)))
+                break;
         }
     }
 
@@ -138,8 +138,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                     !stopRowInRange(c, scan.getStopRow())) {
                 while (true) {
                     MemstoreAware latest = memstoreAware.get();
-                    if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)));
-                    break;
+                    if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)))
+                        break;
                 }
                 SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow(), scan.getStopRow(),c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
                 throw new DoNotRetryIOException();
