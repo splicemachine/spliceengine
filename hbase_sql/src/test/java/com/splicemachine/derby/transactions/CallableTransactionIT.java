@@ -280,7 +280,49 @@ public class CallableTransactionIT extends SpliceUnitTest {
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 	}
 
-	/**
+    @Ignore("DB-3177 - this test simulates the issue but it is tbd whether we will change product")
+    public void testInsertAndSelectRowProcedureWithExplicitTransactionCommit2() throws Exception {
+
+        // Same as testInsertAndSelectRowProcedureWithExplicitTransactionCommit,
+        // except that one cheats by asserting the returned result set from
+        // the stored procedure. What we need to test is that a fresh select query
+        // will find the records that the stored procedure inserted.
+
+        String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "5b";
+        int rc = 0;
+        ResultSet rs = null;
+
+        // TestConnection conn = new TestConnection(SpliceNetConnection.getConnectionAs(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD));
+        methodWatcher.setAutoCommit(false);
+
+        // Create the user-defined stored procedures.
+        rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+        // Create the table.
+        rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+        // Insert and get the row in one stored procedure.
+        rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN_FORMAT_STRING, employeeTableName));
+        Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
+        rs.close();
+
+        // Select to look for what the stored proc inserted
+        rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", employeeTableName));
+        Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
+        rs.close();
+
+        // Drop the user-defined stored procedures.
+        rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+        // Drop the table.
+        rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+    }
+
+    /**
 	 * Test inserting a row and returning a scanned row in one stored procedure without an explicit transaction commit.
 	 * @throws Exception
 	 */
@@ -312,7 +354,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 	}
 
-	/**
+    /**
 	 * Test inserting a row and returning a scanned row in one stored procedure with a transaction rollback.
 	 * @throws Exception
 	 */
