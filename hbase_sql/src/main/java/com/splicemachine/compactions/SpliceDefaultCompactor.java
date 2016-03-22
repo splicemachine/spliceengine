@@ -1,6 +1,7 @@
 package com.splicemachine.compactions;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
@@ -8,6 +9,7 @@ import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.commons.io.FileUtils;
@@ -76,25 +78,16 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             files.add(sf.getPath().toString());
         }
 
-        initializeJob(request);
-        
-        String scope = getScope(request);
-
-        SpliceSpark.pushScope(scope + ": Parallelize");
-        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(files, 1);
-        rdd1.setName("Distribute Compaction Load");
-        SpliceSpark.popScope();
-        
-        SpliceFlatMapFunction function = getCompactionFunction();
-            
-        SpliceSpark.pushScope(scope + ": Compact files");
-        JavaRDD rdd2 = rdd1.mapPartitions(new SparkFlatMapFunction<>(function));
-        rdd2.setName(getJobDetails(request));
-        SpliceSpark.popScope();
-
-        SpliceSpark.pushScope("Compaction");
-        List<String> sPaths = rdd2.collect();
-        SpliceSpark.popScope();
+        CompactionResult result = EngineDriver.driver().getOlapClient().submitOlapJob(
+                new OlapCompaction(
+                        getCompactionFunction(),
+                        files,
+                        getJobDetails(request),
+                        getJobGroup(request),
+                        getJobDescription(request),
+                        getPoolName(),
+                        getScope(request)));
+        List<String> sPaths = result.getPaths();
 
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
@@ -108,17 +101,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return paths;
     }
 
-    protected void initializeJob(CompactionRequest request) {
-        String jobGroup = getJobGroup(request);
-        String jobDescription = getJobDescription(request);
-        String poolName = getPoolName();
-        // TODO: we can get NPE here during system startup
-        DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        dsp.setJobGroup(jobGroup, jobDescription);
-        dsp.setSchedulerPool(poolName);
-    }
-    
-    protected SpliceFlatMapFunction getCompactionFunction() {
+    protected SparkCompactionFunction getCompactionFunction() {
         return new SparkCompactionFunction(
             smallestReadPoint,
             store.getTableName().getNamespace(),
@@ -126,7 +109,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             store.getRegionInfo(),
             store.getFamily().getName());
     }
-    
+
     protected String getScope(CompactionRequest request) {
         return String.format("%s Compaction: %s",
             getMajorMinorLabel(request),
@@ -141,11 +124,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             size,
             (size > 1 ? "Files" : "File"));
     }
-    
+
     protected String getMajorMinorLabel(CompactionRequest request) {
         return request.isMajor() ? "Major" : "Minor";
     }
-    
+
     protected String getTableInfoLabel(String delim) {
         StringBuilder sb = new StringBuilder();
         if (indexDisplayName != null) {
@@ -154,16 +137,16 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         } else if (tableDisplayName != null) {
             sb.append(String.format("Table=%s", tableDisplayName));
             sb.append(delim);
-        } 
+        }
         sb.append(String.format("Conglomerate=%s", conglomId));
         return sb.toString();
     }
-    
+
     protected String getJobGroup(CompactionRequest request) {
         // TODO: we can probably do better than this for unique job group
         return Long.toString(request.getSelectionTime());
     }
-    
+
     private static String delim = ",\n";
     private String jobDetails = null;
     protected String getJobDetails(CompactionRequest request) {
@@ -179,11 +162,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
         return jobDetails;
     }
-    
+
     protected String getPoolName() {
         return "compaction";
     }
-    
+
     public List<Path> sparkCompact(CompactionRequest request) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "sparkCompact(): CompactionRequest=%s", request);

@@ -6,6 +6,7 @@ import com.splicemachine.backup.BackupManager;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
+import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.*;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.management.DatabaseAdministrator;
@@ -48,6 +49,11 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     @Override
     public DatabaseAdministrator databaseAdministrator(){
         return dbAdmin;
+    }
+
+    @Override
+    public OlapClient getOlapClient() {
+        throw new UnsupportedOperationException("Olap client is unsupported in Mem Engine");
     }
 
     @Override

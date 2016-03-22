@@ -133,18 +133,4 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
             Collections.singletonList(paths.get(0).toString());
     }
 
-
-    // TODO (wjk): is this code ever used?
-    protected InternalScanner createScanner(Store store,
-                                            List<StoreFileScanner> scanners,
-                                            ScanType scanType,
-                                            long smallestReadPoint,
-                                            long earliestPutTs) throws IOException {
-        Scan scan = new Scan();
-        scan.setMaxVersions(store.getFamily().getMaxVersions());
-        return new StoreScanner(store, store.getScanInfo(), scan, scanners,
-                scanType, smallestReadPoint, earliestPutTs);
-    }
-
-
 }
