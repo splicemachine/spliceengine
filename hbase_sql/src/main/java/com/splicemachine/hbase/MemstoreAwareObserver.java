@@ -38,16 +38,16 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                                       CompactionRequest request) throws IOException{
         while (true) {
             MemstoreAware latest = memstoreAware.get();
+            if (latest.scannerCount>0) {
+                SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
+                try {
+                    Thread.sleep(1000); // Have Split sleep for a second
+                } catch (InterruptedException e1) {
+                    throw new IOException(e1);
+                }
+            }
             if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementCompactionCount(latest)))
                 break;
-        }
-        while (memstoreAware.get().scannerCount>0) {
-            SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
-            try {
-                Thread.sleep(1000); // Have Split sleep for a second
-            } catch (InterruptedException e1) {
-                throw new IOException(e1);
-            }
         }
         return scanner;
     }
@@ -67,16 +67,16 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     public void preSplit(ObserverContext<RegionCoprocessorEnvironment> c,byte[] splitRow) throws IOException{
         while (true) {
             MemstoreAware latest = memstoreAware.get();
+            if (latest.scannerCount>0) {
+                SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
+                try {
+                    Thread.sleep(1000); // Have Split sleep for a second
+                } catch (InterruptedException e1) {
+                    throw new IOException(e1);
+                }
+            }
             if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, true)))
                 break;
-        }
-        while (memstoreAware.get().scannerCount>0) {
-            SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
-            try {
-                Thread.sleep(1000); // Have Split sleep for a second
-            } catch (InterruptedException e1) {
-                throw new IOException(e1);
-            }
         }
     }
 
@@ -131,8 +131,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                     SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
                     throw new DoNotRetryIOException();
                 }
-                if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)));
-                break;
+                if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
+                    break;
             }
             if (!startRowInRange(c, scan.getStartRow()) ||
                     !stopRowInRange(c, scan.getStopRow())) {
