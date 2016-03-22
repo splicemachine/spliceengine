@@ -32,22 +32,15 @@ import com.splicemachine.pipeline.PipelineEnvironment;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.List;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * Region Observer for managing indices.
@@ -70,12 +63,6 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private SConfiguration config;
     private PartitionFactory tableFactory;
     private volatile ContextFactoryLoader factoryLoader;
-
-    //TODO -sf- add relevant observers in
-    private Set<CompactionObserver> compactionObservers = new CopyOnWriteArraySet<>();
-    private Set<SplitObserver> splitObservers = new CopyOnWriteArraySet<>();
-    private Set<FlushObserver> flushObservers = new CopyOnWriteArraySet<>();
-    private Set<StoreScannerObserver> storeScannerObservers = new CopyOnWriteArraySet<>();
     private PipelineLoadService<TableName> service;
 
     @Override
@@ -193,45 +180,6 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         super.prePut(e, put, edit, durability);
     }
 
-    @Override
-    public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,InternalScanner scanner,ScanType scanType,CompactionRequest request) throws IOException{
-        InternalScanner toReturn = scanner;
-        for(CompactionObserver observer:compactionObservers){
-            toReturn =observer.preCompact(e,store,toReturn,scanType,request);
-        }
-        return super.preCompact(e,store,toReturn,scanType,request);
-    }
-
-    @Override
-    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
-                            Store store, StoreFile resultFile, CompactionRequest request) throws IOException {
-
-        for(CompactionObserver observer:compactionObservers){
-            observer.postCompact(e,store,resultFile,request);
-        }
-//        if (LOG.isTraceEnabled())
-//            SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s, request=%s", store, resultFile, request);
-//
-//
-//        super.postCompact(e, store, resultFile, request);
-    }
-
-
-    @Override
-    public void preSplit(ObserverContext<RegionCoprocessorEnvironment> c,byte[] splitRow) throws IOException{
-        for(SplitObserver observer:splitObservers){
-            observer.preSplit(c,splitRow);
-        }
-        super.preSplit(c,splitRow);
-    }
-
-    @Override
-    public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
-        for(SplitObserver observer:splitObservers){
-            observer.postSplit(e,l,r);
-        }
-    }
-
     /**
      * ***************************************************************************************************************
      */
@@ -280,62 +228,5 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             ctxFactory.close();
         }
     }
-    
 
-    @Override
-	public KeyValueScanner preStoreScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Store store,
-			Scan scan, NavigableSet<byte[]> targetCols, KeyValueScanner s)
-			throws IOException {
-        KeyValueScanner kvs = s;
-        for(StoreScannerObserver obsever:storeScannerObservers){
-            kvs = obsever.preStoreScannerOpen(c,store,scan,targetCols,s);
-        }
-		return super.preStoreScannerOpen(c, store, scan, targetCols, kvs);
-	}	
-
-
-	@Override
-	public InternalScanner preFlush(
-			ObserverContext<RegionCoprocessorEnvironment> e, Store store,
-			InternalScanner scanner) throws IOException {
-		SpliceLogUtils.trace(LOG, "preFlush called on store %s",store);
-        InternalScanner toReturn = scanner;
-        for(FlushObserver observer:flushObservers){
-            scanner = observer.preFlush(e,store,scanner);
-        }
-		return super.preFlush(e, store, toReturn);
-	}
-	
-	@Override
-	public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
-        for(FlushObserver observer:flushObservers){
-            observer.postFlush(e,null,null);
-        }
-    }
-
-	@Override
-	public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e,
-			Store store, StoreFile resultFile) throws IOException {
-		SpliceLogUtils.trace(LOG, "postFlush called on store %s with file=%s",store, resultFile);
-        for(FlushObserver observer:flushObservers){
-            observer.postFlush(e,store,resultFile);
-        }
-	}
-	
-    @Override
-	public void preSplit(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
-		SpliceLogUtils.trace(LOG, "preSplit");
-        for(SplitObserver observer:splitObservers){
-            observer.preSplit(e,null);
-        }
-    	super.preSplit(e);
-	}
-
-	@Override
-	public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,
-			Store store, StoreFile resultFile) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "postCompact store=%s, storeFile=%s", store, resultFile);
-        super.postCompact(e, store, resultFile);
-    }
 }
