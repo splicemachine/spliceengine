@@ -53,7 +53,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
 
     @Override
     public OlapClient getOlapClient() {
-        throw new UnsupportedOperationException("Olap client is unsupported in Mem Engine");
+        return LocalOlapClient.getInstance();
     }
 
     @Override
