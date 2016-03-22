@@ -39,7 +39,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if (latest.scannerCount>0) {
-                SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
+                SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",latest.scannerCount);
                 try {
                     Thread.sleep(1000); // Have Split sleep for a second
                 } catch (InterruptedException e1) {
@@ -68,7 +68,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if (latest.scannerCount>0) {
-                SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",memstoreAware.get().scannerCount);
+                SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",latest.scannerCount);
                 try {
                     Thread.sleep(1000); // Have Split sleep for a second
                 } catch (InterruptedException e1) {
