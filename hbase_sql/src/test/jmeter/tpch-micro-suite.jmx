@@ -760,7 +760,7 @@
         </ResultCollector>
         <hashTree/>
         <ResultSaver guiclass="ResultSaverGui" testclass="ResultSaver" testname="Save Responses to a file" enabled="true">
-          <stringProp name="FileSaver.filename">${LOGDIR}/setup/${__samplerName}.</stringProp>
+          <stringProp name="FileSaver.filename">${LOGDIR}/${__BeanShell(ctx.getThreadGroup().getName())}/${__samplerName}.</stringProp>
           <boolProp name="FileSaver.errorsonly">false</boolProp>
           <boolProp name="FileSaver.skipautonumber">false</boolProp>
           <boolProp name="FileSaver.skipsuffix">false</boolProp>
@@ -1047,7 +1047,7 @@ where
         </ResultCollector>
         <hashTree/>
         <ResultSaver guiclass="ResultSaverGui" testclass="ResultSaver" testname="Save Responses to a file" enabled="true">
-          <stringProp name="FileSaver.filename">${LOGDIR}/queries/${__samplerName}.</stringProp>
+          <stringProp name="FileSaver.filename">${LOGDIR}/${__BeanShell(ctx.getThreadGroup().getName())}/${__samplerName}.</stringProp>
           <boolProp name="FileSaver.errorsonly">false</boolProp>
           <boolProp name="FileSaver.skipautonumber">false</boolProp>
           <boolProp name="FileSaver.skipsuffix">false</boolProp>

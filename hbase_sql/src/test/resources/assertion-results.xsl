@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.w3.org/TR/xhtml1/strict" version="2.0">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd" version="2.0">
     <xsl:template match="/">
         <html>
             <style type="text/css">
@@ -32,6 +32,16 @@
                                 <xsl:value-of select="current()/@tn"/>
                             </td>
                             <td>
+                                <xsl:attribute name="style">
+                                    <xsl:if test="current()/@s = 'false'">
+                                        background-color: #FFB3B3;
+                                        color: #800000;
+                                    </xsl:if>
+                                    <xsl:if test="current()/@s = 'true'">
+                                        background-color: #CCFFCC;
+                                        color: #003300;
+                                    </xsl:if>
+                                </xsl:attribute>
                                 <xsl:value-of select="current()/@s"/>
                             </td>
                             <td>
