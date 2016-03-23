@@ -192,8 +192,9 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                     int outerColNum = outerColumn.getColumnNumber();
                     //we don't care what the sort order for this column is, since it's an equals predicate anyway
                     int pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING, outerTableNum, outerColNum);
-                    if (pos >= 0)
+                    if (pos >= 0) {
                         outerColumns.set(pos);
+                    }
                     else {
                         pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING, outerTableNum, outerColNum);
                         if (pos >= 0)
@@ -234,12 +235,16 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                             outerColumns.set(outerPos);
                             innerToOuterJoinColumnMap[i] = outerPos;
                         }
+                        else
+                            return false;
                     }else {
                         int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING,outerTableNum,outerColNum);
                         if(outerPos>=0){
                             outerColumns.set(outerPos);
                             innerToOuterJoinColumnMap[i] = outerPos;
                         }
+                        else
+                            return false;
                     }
                 }
             }

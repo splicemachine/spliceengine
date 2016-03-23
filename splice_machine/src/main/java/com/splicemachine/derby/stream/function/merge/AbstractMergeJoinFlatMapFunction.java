@@ -15,6 +15,8 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.sparkproject.guava.collect.Iterators;
 import org.sparkproject.guava.collect.PeekingIterator;
 
@@ -25,6 +27,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 
 /**
  * Created by jleach on 6/9/15.
@@ -91,26 +94,33 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     protected ExecRow getScanStartOverride(PeekingIterator<LocatedRow> leftPeekingIterator) throws StandardException{
         ExecRow firstHashRow = joinOperation.getKeyRow(leftPeekingIterator.peek().getRow());
         ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
-        return concatenate(startPosition, firstHashRow);
-    }
-
-    private ExecRow concatenate(ExecRow start, ExecRow hash) throws StandardException {
-        int size = start!=null ? start.nColumns() : 0;
-        int len = 1;
-        int col = joinOperation.getRightHashKeys()[0];
-        while(len <joinOperation.getRightHashKeys().length && col+1 == joinOperation.getRightHashKeys()[len])
-            col = joinOperation.getRightHashKeys()[len++];
-        size += len;
-
-        ExecRow v = new ValueRow(size);
-        if (start != null) {
-            for (int i = 1; i <= start.nColumns(); ++i) {
-                v.setColumn(i, start.getColumn(i));
+        int nCols = startPosition != null ? startPosition.nColumns():0;
+        int[] rightHashKeys = joinOperation.getRightHashKeys();
+        // Find valid hash column values to narrow down right scan. The valid hash columns must:
+        // 1) not be used as a start key for inner table scan
+        // 2) be consecutive
+        LinkedList<Pair<Integer, Integer>> hashColumnIndexList = new LinkedList<>();
+        for (int i = 0; i < rightHashKeys.length; ++i) {
+            if(rightHashKeys[i] > nCols-1) {
+                if (hashColumnIndexList.isEmpty() || hashColumnIndexList.getLast().getValue() == rightHashKeys[i]-1) {
+                    hashColumnIndexList.add(new ImmutablePair<Integer, Integer>(i, rightHashKeys[i]));
+                }
+                else {
+                    break;
+                }
             }
         }
-        int offset = start!=null ? start.nColumns():0;
-        for (int i = 1; i <= len; ++i) {
-            v.setColumn(offset + i, hash.getColumn(i));
+
+        ExecRow v = new ValueRow(nCols+hashColumnIndexList.size());
+        if (startPosition != null) {
+            for (int i = 1; i <= startPosition.nColumns(); ++i) {
+                v.setColumn(i, startPosition.getColumn(i));
+            }
+        }
+        for (int i = 0; i < hashColumnIndexList.size(); ++i) {
+            Pair<Integer, Integer> hashColumnIndex = hashColumnIndexList.get(i);
+            int index = hashColumnIndex.getKey();
+            v.setColumn(nCols+i+1, firstHashRow.getColumn(index+1));
         }
         return v;
     }
