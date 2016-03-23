@@ -27,7 +27,7 @@ public class CountingPipelineMeter implements PipelineMeter{
 
     @Override
     public double throughput(){
-        return successCounter.get()/(System.nanoTime()-startupTimestamp);
+        return ((double)successCounter.get())/(System.nanoTime()-startupTimestamp);
     }
 
     @Override

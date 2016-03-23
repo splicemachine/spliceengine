@@ -179,7 +179,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
              */
             if(ctx.shouldSleep())
                 clock.sleep(PipelineUtils.getWaitTime(ctx.attemptCount,writeConfiguration.getPause()),TimeUnit.MILLISECONDS);
-            if(ctx.directRetry && nextWrite!=null)
+            if(ctx.directRetry)
                 writesToPerform.add(nextWrite);
             else if(ctx.nextWriteSet!=null &&ctx.nextWriteSet.size()>0){
                 //rebuild a new buffer to retry from any records that need retrying

@@ -1,0 +1,11 @@
+<?xml version="1.1"?>
+<FindBugsFilter>
+    <!-- generated code !-->
+
+    <Match>
+        <Class name="~com\.splicemachine\.si\.coprocessor\.TxnMessage.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.coprocessor\.SpliceMessage.*"/>
+    </Match>
+</FindBugsFilter>

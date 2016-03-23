@@ -35,7 +35,7 @@ public class RLServer implements PartitionServer{
 
     @Override
     public PartitionServerLoad getLoad() throws IOException{
-        return null;
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override
@@ -47,5 +47,20 @@ public class RLServer implements PartitionServer{
     public int compareTo(PartitionServer o){
         assert o instanceof RLServer: "Cannot compare to non RegionLocationServer";
         return regionLocation.compareTo(((RLServer)o).regionLocation);
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if(this==o) return true;
+        if(!(o instanceof RLServer)) return false;
+
+        RLServer rlServer=(RLServer)o;
+
+        return regionLocation.equals(rlServer.regionLocation);
+    }
+
+    @Override
+    public int hashCode(){
+        return regionLocation.hashCode();
     }
 }
