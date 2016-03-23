@@ -113,6 +113,7 @@ public class StatisticsAdminIT{
     }
 
     @Test
+    @Ignore("DB-4840")
     public void testTableStatisticsCorrectForOccupiedTable() throws Exception{
         TestConnection conn=methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
