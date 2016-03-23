@@ -48,7 +48,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	private Cell topCell;
 	private List<KeyValueScanner>	memScannerList = new ArrayList<>(1);
 	private boolean flushed;
-//	private Table table;
 	private List<Cell> nextResults = new ArrayList<>();
 	private boolean nextResponse;
 	
@@ -170,7 +169,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     private boolean updateTopCell(boolean response, List<Cell> results) throws IOException {
         if (!results.isEmpty() &&
-                CellUtil.matchingRow(results.get(0),ClientRegionConstants.FLUSH)){
+                CellUtil.matchingFamily(results.get(0),ClientRegionConstants.FLUSH)){
             flushed = true;
             updateScanner();
             results.clear();
