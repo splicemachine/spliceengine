@@ -68,17 +68,18 @@ public class HRegionUtil extends BaseHRegionUtil{
                 end = regionEnd;
             }
         }
+
+
         Pair<byte[], byte[]> range = new Pair<>(start, end);
-        double multiplier = Math.pow(1.05, storeFiles.size());
+//        double multiplier = Math.pow(1.05, storeFiles.size());
         for (StoreFile file : storeFiles) {
             if (file != null) {
                 long storeFileInBytes = file.getFileInfo().getFileStatus().getLen();
                 // If we have many store files, partitions will be harder to estimate and will tend to be bigger, apply a correction factor
-                long adjustedSize = (long) (storeFileInBytes * multiplier);
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
                 fileReader = file.createReader().getHFileReader();
-                carry = addStoreFileCutpoints(cutPoints, fileReader, adjustedSize, carry, range);
+                carry = addStoreFileCutpoints(cutPoints, fileReader, storeFileInBytes, carry, range);
             }
         }
 
