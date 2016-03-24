@@ -277,8 +277,8 @@ public class HRegionUtil extends BaseHRegionUtil{
                 NavigableSet<Cell> memstore = getKvset(hstore);
                 NavigableSet<Cell> snapshot = getSnapshot(hstore);
                 for (int i =0; i<dataAndLocks.length;i++) {
-                    byte[] key = dataAndLocks[i].getFirst().getRowKey();
                     if(dataAndLocks[i]==null) continue;
+                    byte[] key = dataAndLocks[i].getFirst().getRowKey();
                     if(hasConstraintChecker || !KVPair.Type.INSERT.equals(dataAndLocks[i].getFirst().getType())) {
                         if (!bitSet.get(i)) {
                             Cell kv = new KeyValue(key,
