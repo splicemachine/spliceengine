@@ -34,7 +34,7 @@ public class EnvUtils {
         else {
 			try {
 				long tableNumber = Long.parseLong(tableName.getQualifierAsString());
-				if (tableNumber <= FIRST_USER_TABLE_NUMBER)
+				if (tableNumber < FIRST_USER_TABLE_NUMBER)
 					return TableType.DERBY_SYS_TABLE;
 			} catch (Exception e) {
                 SpliceLogUtils.debug(LOG,tableName+" is not a number");
