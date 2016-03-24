@@ -1,5 +1,6 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.access.client.MemStoreFlushAwareScanner;
 import com.splicemachine.access.client.MemstoreAware;
 import com.splicemachine.derby.hbase.*;
@@ -122,6 +123,9 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                         scan.getStopRow(), stopRowInRange(c, scan.getStopRow()));
             }
 
+            byte[] startKey = scan.getAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY);
+            byte[] endKey = scan.getAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY);
+
             // Throw Retry Exception if the region is splitting
 
 
@@ -134,8 +138,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
                     break;
             }
-            if (!startRowInRange(c, scan.getStartRow()) ||
-                    !stopRowInRange(c, scan.getStopRow())) {
+            if (!startRowInRange(c, startKey) ||
+                    !stopRowInRange(c, endKey)) {
                 while (true) {
                     MemstoreAware latest = memstoreAware.get();
                     if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)))

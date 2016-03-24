@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import com.splicemachine.access.client.ClientRegionConstants;
 import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
@@ -73,7 +75,10 @@ public class SplitRegionScanner implements RegionScanner {
 				    			  Bytes.compareTo(regionStopKey, stopRow) <= 0) && regionStopKey.length > 0 ? regionStopKey : stopRow;
 				    	  newScan.setStartRow(splitStart);
 				    	  newScan.setStopRow(splitStop);
-				    	  SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s",splitStart,splitStop);
+                          newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY,regionStartKey);
+                          newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY,regionStopKey);
+                          if (LOG.isDebugEnabled())
+    				    	  SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s", splitStart, splitStop);
 				    	  createAndRegisterClientSideRegionScanner(table,newScan,partitions.get(i));
 				    }
 				 }
