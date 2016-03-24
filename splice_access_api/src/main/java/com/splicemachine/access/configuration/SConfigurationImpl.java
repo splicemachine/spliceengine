@@ -83,6 +83,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int completedTxnConcurrency;
     private final int olapClientWaitTime;
     private final int olapServerBindPort;
+    private final int olapServerThreads;
     private final  int readResolverQueueSize;
     private final  int readResolverThreads;
     private final  int timestampClientWaitTime;
@@ -330,6 +331,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapServerBindPort() {
         return olapServerBindPort;
+    }
+    @Override
+    public int getOlapServerThreads() {
+        return olapServerThreads;
     }
     @Override
     public int getTimestampClientWaitTime() {
@@ -601,6 +606,7 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkIoCompressionCodec = builder.sparkIoCompressionCodec;
         olapClientWaitTime = builder.olapClientWaitTime;
         olapServerBindPort = builder.olapServerBindPort;
+        olapServerThreads = builder.olapServerThreads;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

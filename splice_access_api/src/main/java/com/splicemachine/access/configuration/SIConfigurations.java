@@ -112,6 +112,15 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_BIND_PORT = "splice.olap_server.port";
     private static final int DEFAULT_OLAP_SERVER_BIND_PORT = 60014;
 
+    /**
+     * Number of threads used by the Olap server, determines the maximum number of concurrent
+     * Olap jobs
+     *
+     * Defaults to 16
+     */
+    public static final String OLAP_SERVER_THREADS = "splice.olap_server.threads";
+    private static final int DEFAULT_OLAP_SERVER_THREADS = 16;
+
     public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
     private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
 
@@ -128,6 +137,7 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
         builder.olapClientWaitTime  = configurationSource.getInt(OLAP_CLIENT_WAIT_TIME, DEFAULT_OLAP_CLIENT_WAIT_TIME);
+        builder.olapServerThreads = configurationSource.getInt(OLAP_SERVER_THREADS, DEFAULT_OLAP_SERVER_THREADS);
 
         builder.transactionTimeout = configurationSource.getLong(TRANSACTION_TIMEOUT, DEFAULT_TRANSACTION_TIMEOUT);
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);

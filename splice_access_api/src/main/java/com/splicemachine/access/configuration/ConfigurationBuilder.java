@@ -86,6 +86,7 @@ public class ConfigurationBuilder {
     public int networkBindPort;
     public int olapClientWaitTime;
     public int olapServerBindPort;
+    public int olapServerThreads;
     public int partitionserverJmxPort;
     public int partitionserverPort;
     public long broadcastRegionMbThreshold;

@@ -1,6 +1,7 @@
 package com.splicemachine.olap;
 
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.channel.ChannelHandler;
@@ -13,8 +14,10 @@ import org.jboss.netty.handler.codec.serialization.ObjectEncoder;
 import org.jboss.netty.handler.execution.ExecutionHandler;
 import org.jboss.netty.handler.execution.MemoryAwareThreadPoolExecutor;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 public class OlapPipelineFactory implements ChannelPipelineFactory {
@@ -26,9 +29,9 @@ public class OlapPipelineFactory implements ChannelPipelineFactory {
 
     public OlapPipelineFactory(ChannelHandler handler) {
         olapHandler = handler;
-        executionHandler = new ExecutionHandler(
-                new MemoryAwareThreadPoolExecutor(16, 1048576, 1048576, 30, TimeUnit.SECONDS,
-                        Executors.defaultThreadFactory()));
+        ThreadFactory factory=new ThreadFactoryBuilder().setNameFormat("olapServer-thread-%d").setDaemon(true).build();
+        executionHandler = new ExecutionHandler(Executors.newFixedThreadPool(
+                HConfiguration.getConfiguration().getOlapServerThreads(), factory));
     }
 
     @Override
