@@ -423,6 +423,12 @@ public class RegionPartition implements Partition{
         region.compactStores();
     }
 
+    @Override
+    public void flush() throws IOException{
+        //TODO -jc- is this correct?
+        region.flushcache();
+    }
+
     public HRegion unwrapDelegate(){
         return region;
     }

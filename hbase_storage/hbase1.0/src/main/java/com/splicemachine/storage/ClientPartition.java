@@ -217,6 +217,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         }
     }
 
+    @Override
+    public void flush() throws IOException {
+        try(Admin admin = connection.getAdmin()) {
+            admin.flush(tableName);
+        }
+    }
+
     public <T extends Service,V> Map<byte[],V> coprocessorExec(Class<T> serviceClass,Batch.Call<T,V> call) throws Throwable{
         return table.coprocessorService(serviceClass,getStartKey(),getEndKey(),call);
     }

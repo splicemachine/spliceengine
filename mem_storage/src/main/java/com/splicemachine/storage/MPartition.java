@@ -384,6 +384,11 @@ public class MPartition implements Partition{
         //no-op--memory does not perform compactions
     }
 
+    @Override
+    public void flush() throws IOException{
+        //no-op--memory does not perform flush
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class MemLock implements Lock{

@@ -134,6 +134,14 @@ public interface Partition extends AutoCloseable{
      */
     void compact() throws IOException;
 
+    /**
+     * Optional Method: flush the data in storage.
+     *
+     * If the underlying architecture does not support flush, then this method should do nothing, rather
+     * than throw an error
+     */
+    void flush() throws IOException;
+
 
     /**
      *

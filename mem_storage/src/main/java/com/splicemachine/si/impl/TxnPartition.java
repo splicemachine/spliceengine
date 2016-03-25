@@ -276,6 +276,11 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public void flush() throws IOException{
+        //no-op--memory storage does not perform flush yet
+    }
+
+    @Override
     public String toString(){
         return getName()+"["+getTableName()+"]";
     }

@@ -61,7 +61,7 @@ public class SplitRegionRowCountOperationIT{
         // Important: we need at least three splits (four regions) for good/realistic tests of RowCountOperation.
 
 
-        CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.SYSCS_SPLIT_TABLE(?,?,?)");
+        CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_AT_POINTS(?,?,?)");
         callableStatement.setString(1,SCHEMA);
         callableStatement.setString(2,"A");
         callableStatement.setInt(3,12);

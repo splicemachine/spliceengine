@@ -60,30 +60,35 @@ public class H10PartitionAdmin implements PartitionAdmin{
     @Override
     public void splitTable(String tableName,byte[]... splitPoints) throws IOException{
         TableName tableInfo=tableInfoFactory.getTableInfo(tableName);
-        for(byte[] splitPoint:splitPoints){
-            admin.split(tableInfo,splitPoint);
-        }
-        boolean isSplitting = true;
-        while(isSplitting){
-            isSplitting=false;
-            try {
-                List<HRegionInfo> regions = admin.getTableRegions(tableInfo);
-                if(regions!=null){
-                    for(HRegionInfo region:regions){
-                        if(region.isSplit()){
-                            isSplitting=true;
-                            break;
-                        }
-                    }
-                }else{
-                    isSplitting=true;
-                }
-
-                timeKeeper.sleep(splitSleepInterval,TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                throw new InterruptedIOException();
+        if (splitPoints != null) {
+            for(byte[] splitPoint:splitPoints){
+                admin.split(tableInfo,splitPoint);
             }
+        } else {
+            admin.split(tableInfo);
         }
+        // TODO: JC - find out why we make an asynchronous method synchronous(ish)
+//        boolean isSplitting = true;
+//        while(isSplitting){
+//            isSplitting=false;
+//            try {
+//                List<HRegionInfo> regions = admin.getTableRegions(tableInfo);
+//                if(regions!=null){
+//                    for(HRegionInfo region:regions){
+//                        if(region.isSplit()){
+//                            isSplitting=true;
+//                            break;
+//                        }
+//                    }
+//                }else{
+//                    isSplitting=true;
+//                }
+//
+//                timeKeeper.sleep(splitSleepInterval,TimeUnit.MILLISECONDS);
+//            } catch (InterruptedException e) {
+//                throw new InterruptedIOException();
+//            }
+//        }
     }
 
     @Override

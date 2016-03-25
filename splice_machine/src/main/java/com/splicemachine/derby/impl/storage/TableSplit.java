@@ -56,10 +56,14 @@ public class TableSplit{
             int splitPoint = (int)(range*i/numSplits + Integer.MIN_VALUE);
             splitPointBuilder = splitPointBuilder.append(splitPoint);
         }
-        SYSCS_SPLIT_TABLE(schemaName,tableName,splitPointBuilder.toString());
+        SYSCS_SPLIT_TABLE_AT_POINTS(schemaName,tableName,splitPointBuilder.toString());
     }
 
-    public static void SYSCS_SPLIT_TABLE(String schemaName, String tableName,
+    public static void SYSCS_SPLIT_TABLE(String schemaName, String tableName) throws SQLException{
+        SYSCS_SPLIT_TABLE_AT_POINTS(schemaName, tableName, null);
+    }
+
+        public static void SYSCS_SPLIT_TABLE_AT_POINTS(String schemaName, String tableName,
                                          String splitPoints) throws SQLException{
         Connection conn = getDefaultConn();
 
@@ -95,7 +99,10 @@ public class TableSplit{
 
         SIDriver driver=SIDriver.driver();
         try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
-            byte[][] splits = getSplitPoints(splitPoints);
+            byte[][] splits = null;
+            if (splitPoints != null) {
+                splits = getSplitPoints(splitPoints);
+            }
             pa.splitTable(Long.toString(conglomId),splits);
         }catch(IOException e){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
