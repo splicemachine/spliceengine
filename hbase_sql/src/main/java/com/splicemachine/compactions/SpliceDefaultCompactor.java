@@ -1,13 +1,9 @@
 package com.splicemachine.compactions;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.derby.iapi.sql.olap.OlapResult;
-import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
-import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -15,18 +11,14 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.KeyValueUtil;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -77,11 +69,12 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         for (StoreFile sf : request.getFiles()) {
             files.add(sf.getPath().toString());
         }
-
+        String regionLocation = getRegionLocation(store);
         CompactionResult result = EngineDriver.driver().getOlapClient().submitOlapJob(
                 new OlapCompaction(
                         getCompactionFunction(),
                         files,
+                        regionLocation,
                         getJobDetails(request),
                         getJobGroup(request),
                         getJobDescription(request),
@@ -407,5 +400,26 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"appendMetadataAndCloseWriter");
         super.appendMetadataAndCloseWriter(writer, fd, isMajor);
+    }
+
+    /**
+     * Returns location for an HBase store
+     * @param store
+     * @return
+     * @throws IOException
+     */
+    private String getRegionLocation(Store store) throws IOException {
+        // Get start key for the store
+        HRegionInfo regionInfo = store.getRegionInfo();
+        byte[] startKey = regionInfo.getStartKey();
+
+        // Get an instance of the table
+        SConfiguration conf = SIDriver.driver().getConfiguration();
+        Connection connection = HBaseConnectionFactory.getInstance(conf).getConnection();
+        HTable table = (HTable)connection.getTable(regionInfo.getTable());
+
+        // Get region location using start key
+        HRegionLocation regionLocation = table.getRegionLocation(startKey);
+        return regionLocation.getHostname();
     }
 }

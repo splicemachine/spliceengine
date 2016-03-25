@@ -20,4 +20,6 @@ public class MRConstants {
     // final public static String SPLICE_TBLE_CONTEXT="splice.tableContext";
     final public static String TABLE_WRITER = "table.writer";
     final public static String TABLE_WRITER_TYPE = "table.writer.type";
+    final public static String REGION_LOCATION = "region.location";
+    final public static String COMPACTION_FILES = "compaction.files";
 }

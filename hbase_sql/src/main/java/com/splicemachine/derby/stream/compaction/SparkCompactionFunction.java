@@ -15,22 +15,16 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.ScanType;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
-import org.apache.hadoop.hbase.regionserver.StoreFileScanner;
-import org.apache.hadoop.hbase.regionserver.StoreScanner;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -39,8 +33,9 @@ import com.splicemachine.hbase.ReadOnlyHTableDescriptor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
+import scala.Tuple2;
 
-public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<String>,String> implements Externalizable {
+public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<Integer,Iterator>>,String> implements Externalizable {
     private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
     private long smallestReadPoint;
     private byte[] namespace;
@@ -98,10 +93,9 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterable<String> call(Iterator<String> files) throws Exception {
+    public Iterable<String> call(Iterator it) throws Exception {
 
         ArrayList<StoreFile> readersToClose = new ArrayList<StoreFile>();
-        SConfiguration siConf = SIDriver.driver().getConfiguration();
         Configuration conf = HConfiguration.unwrapDelegate();
         TableName tn = TableName.valueOf(namespace, tableName);
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
@@ -114,15 +108,25 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         HRegion region = HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyHTableDescriptor(htd), null, null, null);
         Store store = region.getStore(storeColumn);
 
+        assert it.hasNext();
+        Tuple2 t = (Tuple2)it.next();
+        Iterator files = (Iterator)t._2;
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("compacting files: ");
+        }
         while (files.hasNext()) {
+            String file = (String)files.next();
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(file + "\n");
+            }
             readersToClose.add(
-                new StoreFile(
-                    fs,
-                    new Path(files.next()),
-                    conf,
-                    store.getCacheConfig(),
-                    store.getFamily().getBloomFilterType()
-                )
+                    new StoreFile(
+                            fs,
+                            new Path(file),
+                            conf,
+                            store.getCacheConfig(),
+                            store.getFamily().getBloomFilterType()
+                    )
             );
         }
 
