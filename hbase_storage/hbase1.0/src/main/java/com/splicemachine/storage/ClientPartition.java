@@ -217,6 +217,10 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         }
     }
 
+    /**
+     * Flush a table. Synchronous operation.
+     * @throws IOException
+     */
     @Override
     public void flush() throws IOException {
         try(Admin admin = connection.getAdmin()) {

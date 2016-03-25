@@ -37,6 +37,11 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     }
 
     @Override
+    public void splitRegion(byte[] regionName, byte[]... splitPoints) throws IOException {
+        admin.splitRegion(regionName, splitPoints);
+    }
+
+    @Override
     public void close() throws IOException{
         admin.close();
     }

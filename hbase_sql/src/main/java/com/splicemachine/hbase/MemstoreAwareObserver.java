@@ -7,6 +7,7 @@ import com.splicemachine.derby.hbase.*;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.utils.BlockingProbe;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Scan;
@@ -37,6 +38,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                                       InternalScanner scanner,
                                       ScanType scanType,
                                       CompactionRequest request) throws IOException{
+        BlockingProbe.blockPreCompact();
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if (latest.scannerCount>0) {
@@ -57,6 +59,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile,CompactionRequest request) throws IOException{
+        BlockingProbe.blockPostCompact();
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)))
@@ -66,6 +69,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
     @Override
     public void preSplit(ObserverContext<RegionCoprocessorEnvironment> c,byte[] splitRow) throws IOException{
+        BlockingProbe.blockPreSplit();
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if (latest.scannerCount>0) {
@@ -83,6 +87,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
     @Override
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e,HRegion l,HRegion r) throws IOException{
+        BlockingProbe.blockPostSplit();
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, false)))
@@ -92,6 +97,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
     @Override
     public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> e,Store store,InternalScanner scanner) throws IOException{
+        BlockingProbe.blockPreFlush();
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementFlushCount(latest)))
@@ -102,6 +108,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
     @Override
     public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile) throws IOException{
+        BlockingProbe.blockPostFlush();
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementFlushCount(latest)))
@@ -139,7 +146,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                     break;
             }
             if (!startRowInRange(c, startKey) ||
-                    !stopRowInRange(c, endKey)) {
+                !stopRowInRange(c, endKey)) {
                 while (true) {
                     MemstoreAware latest = memstoreAware.get();
                     if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)))

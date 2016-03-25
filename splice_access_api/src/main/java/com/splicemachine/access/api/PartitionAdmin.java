@@ -19,6 +19,8 @@ public interface PartitionAdmin extends AutoCloseable{
 
     void splitTable(String tableName,byte[]... splitPoints) throws IOException;
 
+    void splitRegion(byte[] regionName, byte[]... splitPoints) throws IOException;
+
     void close() throws IOException;
 
     Collection<PartitionServer> allServers() throws IOException;

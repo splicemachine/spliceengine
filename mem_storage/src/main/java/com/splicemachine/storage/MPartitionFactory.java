@@ -100,6 +100,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
+        public void splitRegion(byte[] regionName, byte[]... splitPoints) throws IOException {
+            throw new UnsupportedOperationException("Cannot split partitions in an in-memory storage engine!");
+        }
+
+        @Override
         public void close() throws IOException{
         } //no-op
 

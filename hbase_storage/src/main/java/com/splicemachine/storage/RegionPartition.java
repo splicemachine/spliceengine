@@ -2,6 +2,8 @@ package com.splicemachine.storage;
 
 import com.google.common.base.Function;
 import com.splicemachine.si.impl.HRegionTooBusy;
+
+import org.apache.hadoop.hbase.DroppedSnapshotException;
 import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
@@ -423,9 +425,26 @@ public class RegionPartition implements Partition{
         region.compactStores();
     }
 
+    /**
+     * Synchronously flush the caches.
+     *
+     * When this method is called the all caches will be flushed unless:
+     * <ol>
+     *   <li>the cache is empty</li>
+     *   <li>the region is closed.</li>
+     *   <li>a flush is already in progress</li>
+     *   <li>writes are disabled</li>
+     * </ol>
+     *
+     * <p>This method may block for some time, so it should not be called from a
+     * time-sensitive thread.
+     *
+     * @throws IOException general io exceptions
+     * @throws DroppedSnapshotException Thrown when replay of wal is required
+     * because a Snapshot was not properly persisted.
+     */
     @Override
     public void flush() throws IOException{
-        //TODO -jc- is this correct?
         region.flushcache();
     }
 

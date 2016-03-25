@@ -148,9 +148,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
                             .catalog("schemaName")
                             .catalog("tableName")
-                            .varchar("splitPoints", 32672)
                             .build();
                     procedures.add(splitProc);
+
+                    Procedure splitProc1 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_AT_POINTS")
+                            .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("splitPoints", 32672)
+                            .build();
+                    procedures.add(splitProc1);
 
                     Procedure splitProc2 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_EVENLY")
                             .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
@@ -159,6 +166,12 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .integer("numSplits")
                             .build();
                     procedures.add(splitProc2);
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_SPLIT_REGION_AT_POINTS")
+                                           .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                                           .catalog("regionName")
+                                           .varchar("splitPoints", 32672)
+                                           .build());
 
          			/*
         			 * Procedure get all active services
@@ -471,6 +484,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(majorComactionOnTable);
 
         			/*
+        			 * Procedure to perform major flush on a table in a schema
+        			 */
+                    Procedure flushTable = Procedure.newBuilder().name("SYSCS_FLUSH_TABLE")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(flushTable);
+
+        			/*
         			 * Procedure to get all the information related to the execution plans of the stored prepared statements (metadata queries).
         			 */
                     Procedure getStoredStatementPlanInfo = Procedure.newBuilder().name("SYSCS_GET_STORED_STATEMENT_PLAN_INFO")
@@ -608,7 +633,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .returnType(null).isDeterministic(false)
                             .varchar("statement", Limits.DB2_VARCHAR_MAXWIDTH)
                             .build());
-                }
+                }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
 

@@ -1,24 +1,32 @@
 package com.splicemachine.access.hbase;
 
-import com.google.common.base.Function;
-import com.splicemachine.si.impl.driver.SIDriver;
-import org.sparkproject.guava.collect.Collections2;
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.api.PartitionCreator;
-import com.splicemachine.access.api.TableDescriptor;
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.storage.*;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.Table;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Function;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.Table;
+import org.sparkproject.guava.collect.Collections2;
+
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.PartitionCreator;
+import com.splicemachine.access.api.TableDescriptor;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.LazyPartitionServer;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionInfoCache;
+import com.splicemachine.storage.PartitionServer;
+import com.splicemachine.storage.RangedClientPartition;
 
 /**
  * @author Scott Fines
@@ -26,19 +34,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class H10PartitionAdmin implements PartitionAdmin{
     private final Admin admin;
-    private final long splitSleepInterval;
     private final Clock timeKeeper;
     private final HBaseTableInfoFactory tableInfoFactory;
     private final PartitionInfoCache<TableName> partitionInfoCache;
 
     public H10PartitionAdmin(Admin admin,
-                             long splitSleepInterval,
                              Clock timeKeeper,
                              HBaseTableInfoFactory tableInfoFactory,
                              PartitionInfoCache<TableName> partitionInfoCache
                              ){
         this.admin=admin;
-        this.splitSleepInterval = splitSleepInterval;
         this.timeKeeper=timeKeeper;
         this.tableInfoFactory = tableInfoFactory;
         this.partitionInfoCache = partitionInfoCache;
@@ -57,38 +62,34 @@ public class H10PartitionAdmin implements PartitionAdmin{
         admin.deleteTable(tableInfoFactory.getTableInfo(tableName));
     }
 
+    /**
+     * Split a table. Asynchronous operation.
+     *
+     * @param tableName table to split
+     * @param splitPoints the explicit positions to split on. If null, HBase chooses.
+     * @throws IOException if a remote or network exception occurs
+     */
     @Override
     public void splitTable(String tableName,byte[]... splitPoints) throws IOException{
         TableName tableInfo=tableInfoFactory.getTableInfo(tableName);
-        if (splitPoints != null) {
+        if (splitPoints != null && splitPoints.length > 0) {
             for(byte[] splitPoint:splitPoints){
                 admin.split(tableInfo,splitPoint);
             }
         } else {
             admin.split(tableInfo);
         }
-        // TODO: JC - find out why we make an asynchronous method synchronous(ish)
-//        boolean isSplitting = true;
-//        while(isSplitting){
-//            isSplitting=false;
-//            try {
-//                List<HRegionInfo> regions = admin.getTableRegions(tableInfo);
-//                if(regions!=null){
-//                    for(HRegionInfo region:regions){
-//                        if(region.isSplit()){
-//                            isSplitting=true;
-//                            break;
-//                        }
-//                    }
-//                }else{
-//                    isSplitting=true;
-//                }
-//
-//                timeKeeper.sleep(splitSleepInterval,TimeUnit.MILLISECONDS);
-//            } catch (InterruptedException e) {
-//                throw new InterruptedIOException();
-//            }
-//        }
+    }
+
+    @Override
+    public void splitRegion(byte[] regionName, byte[]... splitPoints) throws IOException {
+        if (splitPoints != null && splitPoints.length > 0) {
+            for(byte[] splitPoint:splitPoints){
+                admin.splitRegion(regionName,splitPoint);
+            }
+        } else {
+            admin.splitRegion(regionName);
+        }
     }
 
     @Override

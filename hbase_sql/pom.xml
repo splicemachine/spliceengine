@@ -205,6 +205,12 @@
             <artifactId>hadoop-tools</artifactId>
             <version>1.2.1</version>
         </dependency>
+      <dependency>
+        <groupId>com.splicemachine</groupId>
+        <artifactId>hbase_storage-cdh5.4.8</artifactId>
+        <version>2.0.1-SNAPSHOT</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
     <build>
         <plugins>

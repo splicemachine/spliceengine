@@ -1,16 +1,5 @@
 package com.splicemachine.derby.impl.storage;
 
-import org.sparkproject.guava.base.Splitter;
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.impl.jdbc.Util;
-import com.splicemachine.db.jdbc.InternalDriver;
-import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,6 +7,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.sparkproject.guava.base.Splitter;
+
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.impl.jdbc.Util;
+import com.splicemachine.db.jdbc.InternalDriver;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Utility to split a table.
@@ -59,17 +61,87 @@ public class TableSplit{
         SYSCS_SPLIT_TABLE_AT_POINTS(schemaName,tableName,splitPointBuilder.toString());
     }
 
+    /**
+     * Split a <em>non-primary-key</em> table. Only works if there is data already in the table, else
+     * HBase doesn't perform the split.
+     *
+     * This splitting strategy relies on the assumption that values in the table
+     * are uniformly distributed over the integers (e.g. no primary keys, with a prefix
+     * salt as the row key). If this is not the case, this split strategy is highly unlikely
+     * to be reflective of the data distribution.
+     *
+     * @param schemaName the name of the schema of the table
+     * @param tableName the name of the table
+     * @throws SQLException
+     */
     public static void SYSCS_SPLIT_TABLE(String schemaName, String tableName) throws SQLException{
         SYSCS_SPLIT_TABLE_AT_POINTS(schemaName, tableName, null);
     }
 
-        public static void SYSCS_SPLIT_TABLE_AT_POINTS(String schemaName, String tableName,
-                                         String splitPoints) throws SQLException{
+    /**
+     * Split a <em>non-primary-key</em> table into splits based on the given <code>splitPoints</code>,
+     * if any. Only works if there is data already in the table, else HBase doesn't perform the
+     * split.
+     *
+     * This splitting strategy relies on the assumption that values in the table
+     * are uniformly distributed over the integers (e.g. no primary keys, with a prefix
+     * salt as the row key). If this is not the case, this split strategy is highly unlikely
+     * to be reflective of the data distribution.
+     *
+     * @param schemaName the name of the schema of the table
+     * @param tableName the name of the table
+     * @param splitPoints a comma-separated list of explicit table position to split on. If a split
+     *                    point given, only split that particular region. If null or empty, HBase
+     *                    chooses the split point.
+     * @throws SQLException
+     */
+    public static void SYSCS_SPLIT_TABLE_AT_POINTS(String schemaName, String tableName,
+                                     String splitPoints) throws SQLException{
         Connection conn = getDefaultConn();
 
         try{
             try{
                 splitTable(conn,schemaName,tableName,splitPoints);
+            }catch(SQLException se){
+                try{
+                    conn.rollback();
+                }catch(SQLException e){
+                    se.setNextException(e);
+                }
+                throw se;
+            }
+            conn.commit();
+        }finally{
+            try{
+                if(conn!=null){
+                    conn.close();
+                }
+            }catch(SQLException e){
+                SpliceLogUtils.error(LOG,"Unable to close split connection",e);
+            }
+        }
+
+    }
+
+    /**
+     * Split a region on the given <code>splictpoints</code> or, if null, let HBase determine splitpoint.
+     *
+     * @param regionName the name of the region
+     * @param splitPoints a comma-separated list of explicit region position to split on. If a split
+     *                    point given, only split that particular region If null or empty, HBase chooses
+     *                    the split point.
+     * @throws SQLException
+     */
+    public static void SYSCS_SPLIT_REGION_AT_POINTS(String regionName,
+                                     String splitPoints) throws SQLException{
+        if (regionName == null || regionName.isEmpty()) {
+            return;
+        }
+        Connection conn = getDefaultConn();
+
+        try{
+            try{
+                splitRegion(createRegionName(regionName),splitPoints);
             }catch(SQLException se){
                 try{
                     conn.rollback();
@@ -100,10 +172,25 @@ public class TableSplit{
         SIDriver driver=SIDriver.driver();
         try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
             byte[][] splits = null;
-            if (splitPoints != null) {
+            if (splitPoints != null && ! splitPoints.isEmpty()) {
                 splits = getSplitPoints(splitPoints);
             }
             pa.splitTable(Long.toString(conglomId),splits);
+        }catch(IOException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    public static void splitRegion(byte[] regionName,
+                                   String splitPoints) throws SQLException{
+
+        SIDriver driver=SIDriver.driver();
+        try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
+            byte[][] splits = null;
+            if (splitPoints != null && ! splitPoints.isEmpty()) {
+                splits = getSplitPoints(splitPoints);
+            }
+            pa.splitRegion(regionName,splits);
         }catch(IOException e){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
@@ -161,6 +248,10 @@ public class TableSplit{
         }
     }
 
+
+    private static byte[] createRegionName(String regionName) {
+        return regionName.getBytes();
+    }
 
 
     private static Connection getDefaultConn() throws SQLException {

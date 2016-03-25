@@ -30,6 +30,7 @@ import com.splicemachine.hbase.RegionSizeEndpoint;
 import com.splicemachine.hbase.SpliceMasterObserver;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
+import com.splicemachine.utils.BlockingProbeEndpoint;
 
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
@@ -47,7 +48,8 @@ class SpliceTestPlatformConfig {
             RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class,
-            BackupEndpointObserver.class);
+            BackupEndpointObserver.class,
+            BlockingProbeEndpoint.class);
 
     private static final List<Class<?>> MASTER_COPROCESSORS = ImmutableList.<Class<?>>of(
             SpliceMasterObserver.class);

@@ -23,7 +23,6 @@ import com.splicemachine.storage.PartitionInfoCache;
 public class HBase10TableFactory implements PartitionFactory<TableName>{
     private Connection connection;
     private Clock timeKeeper;
-    private long splitSleepIntervalMs;
     private volatile AtomicBoolean initialized = new AtomicBoolean(false);
     private String namespace;
     private byte[] namespaceBytes;
@@ -40,7 +39,6 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
         this.partitionInfoCache = partitionInfoCache;
         this.tableInfoFactory = HBaseTableInfoFactory.getInstance(configuration);
         this.timeKeeper = timeKeeper;
-        this.splitSleepIntervalMs = configuration.getTableSplitSleepInterval();
         try{
             connection=HBaseConnectionFactory.getInstance(configuration).getConnection();
         }catch(IOException ioe){
@@ -68,7 +66,7 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
 
     @Override
     public PartitionAdmin getAdmin() throws IOException{
-        return new H10PartitionAdmin(connection.getAdmin(),splitSleepIntervalMs,timeKeeper,tableInfoFactory,partitionInfoCache);
+        return new H10PartitionAdmin(connection.getAdmin(),timeKeeper,tableInfoFactory,partitionInfoCache);
     }
 
     public Table getRawTable(TableName tableName) throws IOException{
