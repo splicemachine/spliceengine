@@ -1293,6 +1293,10 @@ public class BinaryRelationalOperatorNode
             } else if (rightFromBaseTable) {
                 return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
             }
+        } else if (leftOperand instanceof ColumnReference && rightOperand instanceof ParameterNode) {
+            return ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
+        } else if (rightOperand instanceof ColumnReference && leftOperand instanceof ParameterNode) {
+            return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
         }
         return -1.0d;
     }
