@@ -4,12 +4,17 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 
-import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -47,6 +52,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
     private long heapConglom;
     private boolean isUpsert;
     private TxnView txn;
+    private static final Logger LOG = Logger.getLogger(InsertDataSetWriter.class);
 
     public InsertDataSetWriter(){
     }
@@ -75,7 +81,6 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public DataSet<LocatedRow> write() throws StandardException{
-        try{
             rdd.saveAsNewAPIHadoopDataset(config);
             if(opContext.getOperation()!=null){
                 opContext.getOperation().fireAfterStatementTriggers();
@@ -90,7 +95,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
-                        FileSystem fileSystem = FileSystem.get(HConfiguration.unwrapDelegate());
+                        DistributedFileSystem fileSystem = SIDriver.driver().fileSystem();
                         path = generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
                         dataSet.saveAsTextFile(path.toString());
                         opContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
@@ -105,9 +110,6 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 }
             }
             return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
-        }catch(IOException ioe){
-            throw Exceptions.parseException(ioe);
-        }
     }
 
     @Override
@@ -134,23 +136,30 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
         return Bytes.toBytes(heapConglom);
     }
 
-    private static Path generateFileSystemPathForWrite(String badDirectory,FileSystem fileSystem,SpliceOperation spliceOperation) throws StandardException{
-        try{
-            String vtiFileName=spliceOperation.getVTIFileName();
-            ImportUtils.validateWritable(badDirectory,true);
-            int i=0;
-            while(true){
-                String fileName=new org.apache.hadoop.fs.Path(vtiFileName).getName();
-                fileName=fileName+(i==0?".bad":"_"+i+".bad");
-                Path fileSystemPathForWrites=new Path(badDirectory,fileName);
-                if(!fileSystem.exists(fileSystemPathForWrites))
-                    return fileSystemPathForWrites;
-                i++;
+    private static Path generateFileSystemPathForWrite(
+        String badDirectory,
+        DistributedFileSystem fileSystem,
+        SpliceOperation spliceOperation) throws StandardException {
+
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "generateFileSystemPathForWrite(): badDirectory=%s", badDirectory);
+
+        String vtiFileName=spliceOperation.getVTIFileName();
+        ImportUtils.validateWritable(badDirectory,true);
+        int i=0;
+        while(true){
+            String fileName=new org.apache.hadoop.fs.Path(vtiFileName).getName();
+            fileName=fileName+(i==0?".bad":"_"+i+".bad");
+            Path fileSystemPathForWrites=new Path(badDirectory,fileName);
+            FileInfo info;
+            try {
+                info=fileSystem.getInfo(fileSystemPathForWrites.toString());
+            }catch(IOException e){
+                // File does not exist already, so we are done
+                return fileSystemPathForWrites;
             }
-        }catch(IOException ioe){
-            throw StandardException.plainWrapException(ioe);
+            if (info == null) return fileSystemPathForWrites;
+            i++;
         }
     }
-
-
 }

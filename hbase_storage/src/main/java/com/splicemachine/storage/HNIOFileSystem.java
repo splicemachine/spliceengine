@@ -119,6 +119,12 @@ public class HNIOFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public OutputStream newOutputStream(String fullPath,OpenOption... options) throws IOException{
+        org.apache.hadoop.fs.Path path=new org.apache.hadoop.fs.Path(fullPath);
+        return fs.create(path);
+    }
+
+    @Override
     public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
         org.apache.hadoop.fs.Path f=toHPath(dir);
         if (LOG.isDebugEnabled())

@@ -117,6 +117,11 @@ public class MemFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public OutputStream newOutputStream(String fullPath,OpenOption... options) throws IOException{
+        return localDelegate.newOutputStream(Paths.get(fullPath),options);
+    }
+
+    @Override
     public FileChannel newFileChannel(Path path,Set<? extends OpenOption> options,FileAttribute<?>... attrs) throws IOException{
         return localDelegate.newFileChannel(path,options,attrs);
     }

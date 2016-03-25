@@ -27,6 +27,8 @@ public abstract class DistributedFileSystem extends FileSystemProvider{
 
     public abstract OutputStream newOutputStream(String dir, String fileName, OpenOption... options) throws IOException;
 
+    public abstract OutputStream newOutputStream(String fullPath, OpenOption... options) throws IOException;
+
     /**
      * Creates the specified directory.
      *

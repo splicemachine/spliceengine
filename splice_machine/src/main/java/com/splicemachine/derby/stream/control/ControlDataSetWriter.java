@@ -19,12 +19,13 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -35,6 +36,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
     private final ControlPairDataSet<K, ExecRow> dataSet;
     private final OperationContext operationContext;
     private final AbstractPipelineWriter<ExecRow> pipelineWriter;
+    private static final Logger LOG = Logger.getLogger(ControlDataSetWriter.class);
 
     public ControlDataSetWriter(ControlPairDataSet<K, ExecRow> dataSet,AbstractPipelineWriter<ExecRow> pipelineWriter,OperationContext opContext){
         this.dataSet=dataSet;
@@ -132,10 +134,14 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
 
     /* ********************************************************************************************/
     /*private helper methods*/
-    private static Path generateFileSystemPathForWrite(String badDirectory,
-                                                       DistributedFileSystem fileSystem,
-                                                       SpliceOperation spliceOperation) throws StandardException{
+    private static Path generateFileSystemPathForWrite(
+        String badDirectory,
+        DistributedFileSystem fileSystem,
+        SpliceOperation spliceOperation) throws StandardException {
+
         Path filePath=fileSystem.getPath(spliceOperation.getVTIFileName()).getFileName();
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "generateFileSystemPathForWrite(): badDirectory=%s, filePath=%s", badDirectory, filePath);
         assert filePath!=null;
         String vtiFileName=filePath.toString();
         ImportUtils.validateWritable(badDirectory,true);

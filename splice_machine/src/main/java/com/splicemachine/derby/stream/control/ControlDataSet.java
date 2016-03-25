@@ -25,8 +25,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.Future;
 
@@ -248,14 +247,12 @@ public class ControlDataSet<V> implements DataSet<V> {
         return new ControlExportDataSetWriter.Builder<>(this);
     }
 
-
     @Override
     public void saveAsTextFile(String path) {
         OutputStream fileOut = null;
         try {
             DistributedFileSystem dfs = SIDriver.driver().fileSystem();
-            Path file = dfs.getPath(path);
-            fileOut = Files.newOutputStream(file);
+            fileOut = dfs.newOutputStream(path, StandardOpenOption.CREATE);
             Iterator iterator = iterable.iterator();
             while (iterator.hasNext()) {
                 fileOut.write(Bytes.toBytes(iterator.next().toString()));
@@ -273,7 +270,6 @@ public class ControlDataSet<V> implements DataSet<V> {
         }
 
     }
-
 
     @Override
     @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization does" +
