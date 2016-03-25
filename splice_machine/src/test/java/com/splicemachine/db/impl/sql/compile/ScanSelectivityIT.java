@@ -4,13 +4,14 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.Test;
+
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
@@ -683,4 +684,36 @@ public class ScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from tns_datetime where ts<timestamp('1962-09-27 03:23:34.234') and ts is not null", "rows=17", methodWatcher);
         firstRowContainsQuery("explain select * from tns_datetime where ts<>timestamp('1962-09-23 03:23:34.234')","rows=2",methodWatcher);
     }
+
+    @Test
+    public void testPreparedStatementSelectivityLeftOperand() throws Exception {
+        String query = "explain select * from tns_int where i = ?";
+        PreparedStatement ps = methodWatcher.prepareStatement(query);
+        ps.setInt(1,2);
+        ResultSet resultSet = ps.executeQuery();
+        resultSet.next();
+        resultSet.next();
+        resultSet.next();
+        String actualString = resultSet.getString(1);
+        String failMessage = String.format("expected result of query '%s' to contain '%s' at row %,d but did not, actual result was '%s'",
+                query, "outputRows=2", 3, actualString);
+        Assert.assertTrue(failMessage, actualString.contains("outputRows=2"));
+    }
+
+    @Test
+    public void testPreparedStatementSelectivityRightOperand() throws Exception {
+        String query = "explain select * from tns_int where ? = i";
+        PreparedStatement ps = methodWatcher.prepareStatement(query);
+        ps.setInt(1,2);
+        ResultSet resultSet = ps.executeQuery();
+        resultSet.next();
+        resultSet.next();
+        resultSet.next();
+        String actualString = resultSet.getString(1);
+        String failMessage = String.format("expected result of query '%s' to contain '%s' at row %,d but did not, actual result was '%s'",
+                query, "outputRows=2", 3, actualString);
+        Assert.assertTrue(failMessage, actualString.contains("outputRows=2"));
+    }
+
+
 }
