@@ -13,7 +13,7 @@ import java.sql.ResultSet;
  * the test should be expanded to show that we only filter the records required.
  *
  */
-public class MultiProbeTableScanOperatonIT {
+public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = MultiProbeTableScanOperatonIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 	protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
@@ -21,6 +21,9 @@ public class MultiProbeTableScanOperatonIT {
 	protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("docs",schemaWatcher.schemaName,"(id varchar(128) not null)");
 	protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("colls",schemaWatcher.schemaName,"(id varchar(128) not null,collid smallint not null)");
 	protected static SpliceTableWatcher t4Watcher = new SpliceTableWatcher("b",schemaWatcher.schemaName,"(d decimal(10))");
+    protected static SpliceTableWatcher t5Watcher = new SpliceTableWatcher("a",schemaWatcher.schemaName,"(d decimal(10,0))");
+    protected static SpliceIndexWatcher i5Watcher = new SpliceIndexWatcher("a",schemaWatcher.schemaName,"i",schemaWatcher.schemaName,"(d)");
+
 
 	private static int size = 10;
 
@@ -31,6 +34,8 @@ public class MultiProbeTableScanOperatonIT {
 			.around(t2Watcher)
 			.around(t3Watcher)
 			.around(t4Watcher)
+            .around(t5Watcher)
+            .around(i5Watcher)
 			.around(new SpliceDataWatcher() {
 				@Override
 				protected void starting(Description description) {
@@ -174,4 +179,11 @@ public class MultiProbeTableScanOperatonIT {
 		Assert.assertTrue(rs.next());
 		Assert.assertTrue("wrong count", rs.getInt(1)==1);
 	}
+
+    // DB-4857
+    @Test
+    public void testMultiProbeWithComputations() throws Exception {
+        this.thirdRowContainsQuery("explain select * from a --splice-properties index=i\n" +
+                " where d in (10.0+10, 11.0+10)","preds=[(D[0:1] IN ((10.0 + 10),(11.0 + 10)))]",methodWatcher);
+    }
 }
