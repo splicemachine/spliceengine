@@ -419,7 +419,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     public final boolean isOrList(){
-        return (andNode.getLeftOperand() instanceof OrNode);
+        return (andNode.getLeftOperand() instanceof OrNode) || (andNode.getLeftOperand() instanceof InListOperatorNode);
     }
 
     /**

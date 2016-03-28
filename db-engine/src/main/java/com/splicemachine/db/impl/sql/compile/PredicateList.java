@@ -2899,31 +2899,38 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             AndNode node=pred.getAndNode();
 
             if(!(node.getLeftOperand() instanceof OrNode)){
-                RelationalOperator relop=(RelationalOperator)node.getLeftOperand();
 
-                int op=relop.getOperator();
+                if (node.getLeftOperand() instanceof RelationalOperator) {
+                    RelationalOperator relop=(RelationalOperator)node.getLeftOperand();
 
-                switch(op){
-                    case RelationalOperator.EQUALS_RELOP:
-                        BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
+                    int op=relop.getOperator();
 
-                        if (brelop.getInListOp() != null) {
-                            sortList[QUALIFIER_IN_LIST].addElement(pred);
-                        }
-                        else {
+                    switch(op){
+                        case RelationalOperator.EQUALS_RELOP:
+                            BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
+
+                            if (brelop.getInListOp() != null) {
+                                sortList[QUALIFIER_IN_LIST].addElement(pred);
+                            }
+                            else {
+                                sortList[QUALIFIER_ORDER_EQUALS].addElement(pred);
+                            }
+                            break;
+                        case RelationalOperator.IS_NULL_RELOP:
                             sortList[QUALIFIER_ORDER_EQUALS].addElement(pred);
-                        }
-                        break;
-                    case RelationalOperator.IS_NULL_RELOP:
-                        sortList[QUALIFIER_ORDER_EQUALS].addElement(pred);
-                        break;
-                    case RelationalOperator.NOT_EQUALS_RELOP:
-                    case RelationalOperator.IS_NOT_NULL_RELOP:
-                        sortList[QUALIFIER_ORDER_NOT_EQUALS].addElement(pred);
-                        break;
-                    default:
-                        sortList[QUALIFIER_ORDER_OTHER_RELOP].addElement(pred);
+                            break;
+                        case RelationalOperator.NOT_EQUALS_RELOP:
+                        case RelationalOperator.IS_NOT_NULL_RELOP:
+                            sortList[QUALIFIER_ORDER_NOT_EQUALS].addElement(pred);
+                            break;
+                        default:
+                            sortList[QUALIFIER_ORDER_OTHER_RELOP].addElement(pred);
+                    }
                 }
+                if (node.getLeftOperand() instanceof InListOperatorNode) {
+                    sortList[QUALIFIER_IN_LIST].addElement(pred);
+                }
+
             }else{
                 sortList[QUALIFIER_ORDER_OR_CLAUSE].addElement(pred);
             }
