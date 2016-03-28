@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.estimate.Distribution;
@@ -52,6 +53,9 @@ public class PartitionAverage implements OverheadManagedPartitionStatistics {
         pa.totalCloseScannerLatency = totalCloseScannerLatency;
         pa.numOpenEvents = numOpenEvents;
         pa.numCloseEvents = numCloseEvents;
+        if (columnStats!=null) {
+            pa.columnStats = Lists.newArrayList(columnStats);
+        }
         return pa;
     }
 
