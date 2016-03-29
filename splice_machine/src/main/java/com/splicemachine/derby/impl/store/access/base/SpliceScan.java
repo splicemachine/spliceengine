@@ -14,6 +14,7 @@ import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.hbase.client.ScanAdjustingResultScanner;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
@@ -477,13 +478,13 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 //			LOG.trace("initialize on the LazyScan interface");
 				if(table==null)
 						table = SpliceAccessManager.getHTable(spliceConglomerate.getConglomerate().getContainerid());
-				try {
-						scanner = table.getScanner(scan);
+//				try {
+						scanner = new ScanAdjustingResultScanner(table,scan);//table.getScanner(scan);
 						this.scannerInitialized = true;
-				} catch (IOException e) {
-						LOG.error("Initializing scanner failed",e);
-						throw new RuntimeException(e);
-				}
+//				} catch (IOException e) {
+//						LOG.error("Initializing scanner failed",e);
+//						throw new RuntimeException(e);
+//				}
 		}
 
 
