@@ -77,16 +77,27 @@ class BinaryRelationalOperatorNodeUtil {
                                    DataValueDescriptor colReferValueDescriptor,
                                    DataValueDescriptor constValueDescriptor) throws StandardException {
 
-        /* If the col ref type is larger, then yes */
-        if (!columnType.getTypeId().isDecimalTypeId() && colReferValueDescriptor.getLength() >= constValueDescriptor.getLength()) {
+        /* If the col ref type is larger, and it is not decimal, return true */
+        if (!columnType.getTypeId().isDecimalTypeId() &&
+                colReferValueDescriptor.getLength() >= constValueDescriptor.getLength()) {
             return true;
         }
         /* Otherwise only if the constant is <= the column's max type. AND >= the column's min type */
         DataValueDescriptor maxValueForColumn = getMaxValueForType(columnType, colReferValueDescriptor);
         DataValueDescriptor minValueForColumn = getMinValueForType(columnType, colReferValueDescriptor);
-        return constValueDescriptor.lessOrEquals(constValueDescriptor, maxValueForColumn).getBoolean()
-                &&
-                constValueDescriptor.greaterOrEquals(constValueDescriptor, minValueForColumn).getBoolean();
+
+        if (columnType.getTypeId().isDecimalTypeId()) {
+            /* If the col is decimal, use it to compare with constant value*/
+            return colReferValueDescriptor.lessOrEquals(constValueDescriptor, maxValueForColumn).getBoolean() &&
+                    colReferValueDescriptor.greaterOrEquals(constValueDescriptor, minValueForColumn).getBoolean();
+        }
+        else {
+            /* In this case, col is not decimal. If they are numeric types, type of const is larger. Use it for
+               comparison. Otherwise, col and const must be the same type.
+             */
+            return constValueDescriptor.lessOrEquals(constValueDescriptor, maxValueForColumn).getBoolean() &&
+                    constValueDescriptor.greaterOrEquals(constValueDescriptor, minValueForColumn).getBoolean();
+        }
     }
 
     /**
