@@ -406,6 +406,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
         }
         if(retryPipingCallBuffer==null)
             retryPipingCallBuffer=new PipingCallBuffer(partitionFactory.getTable(Bytes.toString(tableName)),txn,null,PipelineUtils.noOpFlushHook,writeConfiguration,null,false);
+        if (refreshCache)
+            retryPipingCallBuffer.rebuild();
         retryPipingCallBuffer.addAll(retryBuffer);
     }
 
