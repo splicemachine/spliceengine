@@ -45,12 +45,17 @@ public class PartitionStatsStore {
     public static OverheadManagedTableStatistics getStatistics(long conglomerateId, TransactionController tc) throws StandardException {
         byte[] table = Bytes.toBytes(Long.toString(conglomerateId));
         List<Partition> partitions = new ArrayList<>();
-        getPartitions(table, partitions);
+        getPartitions(table, partitions, false);
         List<String> partitionNames =Lists.transform(partitions,partitionNameTransform);
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
         DataDictionary dd = lcc.getDataDictionary();
         List<PartitionStatisticsDescriptor> partitionStatistics = dd.getPartitionStatistics(conglomerateId, tc);
         Map<String,PartitionStatisticsDescriptor> partitionMap = Maps.uniqueIndex(partitionStatistics,partitionStatisticsTransform);
+        if (partitions.size() < partitionStatistics.size()) {
+            // reload if partition cache contains outdated data for this table
+            partitions.clear();
+            getPartitions(table, partitions, true);
+        }
         List<OverheadManagedPartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
         String tableId = Long.toString(conglomerateId);
         PartitionStatisticsDescriptor tStats;
@@ -129,10 +134,10 @@ public class PartitionStatsStore {
         }
     }
 
-    public static int getPartitions(byte[] table, List<Partition> partitions) throws StandardException {
+    public static int getPartitions(byte[] table, List<Partition> partitions, boolean refresh) throws StandardException {
 
         try {
-            partitions.addAll(SIDriver.driver().getTableFactory().getTable(table).subPartitions());
+            partitions.addAll(SIDriver.driver().getTableFactory().getTable(table).subPartitions(refresh));
             return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
