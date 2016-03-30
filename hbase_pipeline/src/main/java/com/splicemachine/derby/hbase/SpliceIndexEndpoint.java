@@ -47,7 +47,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     private PartitionWritePipeline writePipeline;
     private PipelineWriter pipelineWriter;
     private PipelineCompressor compressor;
-    private PipelineLoadService<TableName> service;
+    private volatile PipelineLoadService<TableName> service;
 
 
 

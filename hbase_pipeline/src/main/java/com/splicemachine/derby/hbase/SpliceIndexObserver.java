@@ -35,6 +35,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
@@ -63,7 +64,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private SConfiguration config;
     private PartitionFactory tableFactory;
     private volatile ContextFactoryLoader factoryLoader;
-    private PipelineLoadService<TableName> service;
+    private volatile PipelineLoadService<TableName> service;
 
     @Override
     public void start(final CoprocessorEnvironment e) throws IOException{
@@ -91,45 +92,47 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
         ServerControl sc = new RegionServerControl(rce.getRegion());
         try{
-            service = new PipelineLoadService<TableName>(sc,baseRegion,cId){
-                @Override
-                public void start() throws Exception{
-                    super.start();
-                    PipelineDriver pipelineDriver=PipelineDriver.driver();
-                    factoryLoader=pipelineDriver.getContextFactoryLoader(cId);
+            if(service==null){
+                service=new PipelineLoadService<TableName>(sc,baseRegion,cId){
+                    @Override
+                    public void start() throws Exception{
+                        super.start();
+                        PipelineDriver pipelineDriver=PipelineDriver.driver();
+                        factoryLoader=pipelineDriver.getContextFactoryLoader(cId);
 
-                    SIDriver siDriver=SIDriver.driver();
+                        SIDriver siDriver=SIDriver.driver();
 
-                    region=siDriver.transactionalPartition(cId,baseRegion);
-                    operationFactory = siDriver.getOperationFactory();
-                    exceptionFactory = pipelineDriver.exceptionFactory();
-                    config = pipelineEnv.configuration();
-                    tableFactory = siDriver.getTableFactory();
-                }
+                        region=siDriver.transactionalPartition(cId,baseRegion);
+                        operationFactory=siDriver.getOperationFactory();
+                        exceptionFactory=pipelineDriver.exceptionFactory();
+                        config=pipelineEnv.configuration();
+                        tableFactory=siDriver.getTableFactory();
+                    }
 
-                @Override
-                public void shutdown() throws Exception{
-                    if(factoryLoader!=null)
-                        factoryLoader.close();
-                    super.shutdown();
-                }
+                    @Override
+                    public void shutdown() throws Exception{
+                        if(factoryLoader!=null)
+                            factoryLoader.close();
+                        super.shutdown();
+                    }
 
-                @Override
-                protected Function<TableName, String> getStringParsingFunction(){
-                    return new Function<TableName, String>(){
-                        @Nullable
-                        @Override
-                        public String apply(TableName tableName){
-                            return tableName.getNameAsString();
-                        }
-                    };
-                }
+                    @Override
+                    protected Function<TableName, String> getStringParsingFunction(){
+                        return new Function<TableName, String>(){
+                            @Nullable
+                            @Override
+                            public String apply(TableName tableName){
+                                return tableName.getNameAsString();
+                            }
+                        };
+                    }
 
-                @Override
-                protected PipelineEnvironment loadPipelineEnvironment(ContextFactoryDriver cfDriver) throws IOException{
-                    return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
-                }
-            };
+                    @Override
+                    protected PipelineEnvironment loadPipelineEnvironment(ContextFactoryDriver cfDriver) throws IOException{
+                        return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
+                    }
+                };
+            }
             DatabaseLifecycleManager.manager().registerGeneralService(service);
         }catch(Exception ex){
             throw new IOException(ex);
@@ -181,6 +184,16 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             mutate(kv,txn);
         }
         super.prePut(e, put, edit, durability);
+    }
+
+    @Override
+    public void postRollBackSplit(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException{
+        RegionCoprocessorEnvironment rce=ctx.getEnvironment();
+        start(rce);
+        RegionCoprocessorHost coprocessorHost=rce.getRegion().getCoprocessorHost();
+        Coprocessor coprocessor=coprocessorHost.findCoprocessor(SpliceIndexEndpoint.class.getName());
+        coprocessor.start(rce);
+        super.postRollBackSplit(ctx);
     }
 
     /**
