@@ -20,7 +20,6 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -608,7 +607,11 @@ public class SITransactor<Data, Table,
                                                  long dataTransactionId) throws IOException {
 
         if (updateTransaction.getTxnId() != dataTransactionId) {
-            final TxnView dataTransaction = transactionStore.getTransaction(dataTransactionId);
+            TxnView dataTransaction = transactionStore.getTransaction(dataTransactionId);
+            if(dataTransaction==null){
+                LOG.error("Unexpected: missing transaction with id "+dataTransactionId+", treating this transaction as rolled back.");
+                dataTransaction = new RolledBackTxn(dataTransactionId);
+            }
             if (dataTransaction.getState() == Txn.State.ROLLEDBACK) {
                 return conflictResults; //can't conflict with a rolled back transaction
             }
@@ -652,7 +655,7 @@ public class SITransactor<Data, Table,
         }
     }
 
-    public static class Builder<SRowLock, Data,
+    public static class Builder<Data,
             Mutation extends OperationWithAttributes,
             Put extends Mutation, Delete extends OperationWithAttributes, Get extends OperationWithAttributes, Scan extends OperationWithAttributes,
             Table> {

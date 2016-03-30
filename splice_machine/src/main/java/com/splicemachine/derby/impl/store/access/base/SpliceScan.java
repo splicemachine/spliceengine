@@ -449,7 +449,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						execRow.setRowArray(row);
 						entryEncoder.setRow(execRow);
 						byte[] data = entryEncoder.encode();
-						put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,data);
+						put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,trans.getActiveStateTxn().getTxnId(),data);
 
 						table.put(put);
 

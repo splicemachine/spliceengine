@@ -169,7 +169,7 @@ public abstract class SpliceController<Data> implements ConglomerateController {
 				rowToEncode.setRowArray(row);
 				entryEncoder.setRow(rowToEncode);
 				byte[] data = entryEncoder.encode();
-				put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,data);
+				put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,trans.getActiveStateTxn().getTxnId(),data);
 		}
 
     protected void elevateTransaction() throws StandardException {

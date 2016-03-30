@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -35,6 +34,7 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  *         Date: 3/28/16
  */
+@SuppressWarnings("deprecation")
 public class ScanAdjustingResultScannerTest{
 
     @Test
@@ -177,8 +177,7 @@ public class ScanAdjustingResultScannerTest{
         byte[] end = s.getStopRow();
         ByteComparator bc=Bytes.basicByteComparator();
         if(start==null || start.length<=0){
-            if(end==null || end.length<=0) return true;
-            else return bc.compare(end,row)>0;
+            return end==null || end.length<=0 || bc.compare(end,row)>0;
         }else if(end==null || end.length<=0){
             return bc.compare(start,row)<=0;
         }else{

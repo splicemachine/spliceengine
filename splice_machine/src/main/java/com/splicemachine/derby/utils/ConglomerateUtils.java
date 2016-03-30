@@ -227,7 +227,7 @@ public class ConglomerateUtils extends SpliceConstants {
             fields.set(0);
             entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1, fields,null,null,null);
             entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
-            put.add(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+            put.add(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, txn.getTxnId(),entryEncoder.encode());
             table.put(put);
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
@@ -257,7 +257,7 @@ public class ConglomerateUtils extends SpliceConstants {
             setFields.set(0);
             entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
             entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
-            put.add(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+            put.add(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES,txn.getTxnId(), entryEncoder.encode());
             table.put(put);
         }catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "update Conglomerate Failed", Exceptions.parseException(e));
