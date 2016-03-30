@@ -126,6 +126,11 @@ public class WriteResult implements Externalizable {
         return NOT_SERVING_REGION;
     }
 
+    public static WriteResult notServingRegion(String contextMessage) {
+        if(contextMessage==null) return notServingRegion();
+        else return new WriteResult(Code.NOT_SERVING_REGION,contextMessage);
+    }
+
     public static WriteResult regionTooBusy() {
         return REGION_TO_BUSY;
     }

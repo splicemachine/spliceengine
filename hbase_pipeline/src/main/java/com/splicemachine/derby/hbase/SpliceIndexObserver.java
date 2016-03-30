@@ -94,6 +94,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             service = new PipelineLoadService<TableName>(sc,baseRegion,cId){
                 @Override
                 public void start() throws Exception{
+                    super.start();
                     PipelineDriver pipelineDriver=PipelineDriver.driver();
                     factoryLoader=pipelineDriver.getContextFactoryLoader(cId);
 
@@ -110,6 +111,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                 public void shutdown() throws Exception{
                     if(factoryLoader!=null)
                         factoryLoader.close();
+                    super.shutdown();
                 }
 
                 @Override
@@ -128,6 +130,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                     return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
                 }
             };
+            DatabaseLifecycleManager.manager().registerGeneralService(service);
         }catch(Exception ex){
             throw new IOException(ex);
         }

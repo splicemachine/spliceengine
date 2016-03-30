@@ -73,14 +73,14 @@ public class PipelineWriter{
             if(pwp==null){
                 if(LOG.isTraceEnabled())
                     LOG.trace("Rejecting "+bulkWrites.numEntries()+" rows in "+ bws.size()+"writes because we aren't serving any of those regions");
-                rejectAll(bws,result,Code.NOT_SERVING_REGION);
+                rejectAll(bws,result,Code.NOT_SERVING_REGION,"No WritePipeline found in registry for BulkWrites "+ bulkWrites);
                 return new BulkWritesResult(result);
             }
             dependent = pwp.isDependent(bulkWrites.getTxn());
         } catch (InterruptedException e1) {
             throw new IOException(e1);
         } catch (IndexNotSetUpException e1) {
-            rejectAll(bws,result,Code.INDEX_NOT_SETUP_EXCEPTION);
+            rejectAll(bws,result,Code.INDEX_NOT_SETUP_EXCEPTION,null);
             return new BulkWritesResult(result);
         }
 
@@ -92,7 +92,7 @@ public class PipelineWriter{
         if (status.equals(SpliceWriteControl.Status.REJECTED)) {
             if(LOG.isTraceEnabled())
                 LOG.trace("Rejecting "+numBulkWrites+" rows in "+ bws.size()+"writes because the pipeline is too busy");
-            rejectAll(bws,result, Code.PIPELINE_TOO_BUSY);
+            rejectAll(bws,result, Code.PIPELINE_TOO_BUSY,null);
             rejectedCount.addAndGet(numBulkWrites);
             return new BulkWritesResult(result);
         }
@@ -188,12 +188,12 @@ public class PipelineWriter{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private void rejectAll(Collection<BulkWrite> writes, Collection<BulkWriteResult> result, Code status) {
+    private void rejectAll(Collection<BulkWrite> writes, Collection<BulkWriteResult> result, Code status,String msg) {
         for(BulkWrite write:writes){
             pipelineMeter.mark(0,write.getSize());
             switch (status) {
                 case NOT_SERVING_REGION:
-                    result.add(new BulkWriteResult(WriteResult.notServingRegion()));
+                    result.add(new BulkWriteResult(WriteResult.notServingRegion(msg)));
                     break;
                 case PIPELINE_TOO_BUSY:
                     result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(write.getEncodedStringName())));
@@ -205,7 +205,7 @@ public class PipelineWriter{
                     break;
                 default:
                     //add in a default pattern here so that we don't accidentally ignore things
-                    result.add(new BulkWriteResult(new WriteResult(status)));
+                    result.add(new BulkWriteResult(new WriteResult(status,msg)));
             }
         }
     }
