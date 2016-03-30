@@ -40,6 +40,8 @@ public class HalfSortMergeJoinIT extends SpliceUnitTest {
     protected static final String A = "A";
     protected static final String B = "B";
     protected static final String A_IDX = "A_IDX";
+    protected static final String T1 = "T1";
+    protected static final String T2 = "T2";
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
@@ -161,6 +163,32 @@ public class HalfSortMergeJoinIT extends SpliceUnitTest {
                 .withRows(rows(
                         row(1, 0, 1, 200)))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table TA (a int, b int, c int, primary key(a))")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table TB (a int, b int)")
+                .withInsert("insert into TB values(?,?)")
+                .withRows(rows(
+                        row(1,1),
+                        row(2,2),
+                        row(3,3),
+                        row(4,4),
+                        row(2000,2000)))
+                .create();
+
+        PreparedStatement ps = conn.prepareStatement("insert into TA values (?,?,?)");
+        for (int i = 0; i < 2048; ++i) {
+            ps.setInt(1, i);
+            ps.setInt(2, i);
+            ps.setInt(3,i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        ps = conn.prepareStatement(String.format("call syscs_util.syscs_split_table('%s', 'TA')", CLASS_NAME));
+        ps.execute();
     }
 
     @Test
@@ -259,4 +287,16 @@ public class HalfSortMergeJoinIT extends SpliceUnitTest {
         Assert.assertEquals(1, count);
     }
 
+    @Test
+    public void testPartitionStartEndRow() throws Exception {
+        String sql = "select count(*)\n" +
+                "from \n" +
+                "tb\n" +
+                ", ta --SPLICE-PROPERTIES joinStrategy=HALFSORTMERGE, useSpark=true\n" +
+                "where ta.a=tb.a and ta.b=tb.b";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals("Returned incorrect count", 5, rs.getInt(1));
+    }
 }
