@@ -197,7 +197,7 @@ public class RowCountOperation extends SpliceBaseOperation {
                     new TakeFunction<SpliceOperation, LocatedRow>(
                         operationContext,
                         (int) (offset + fetchLimit)));
-                DataSet coalesce = takeData.coalesce(1, true);
+                DataSet coalesce = takeData.coalesce(1, false);
                 return coalesce.offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset), true);
             } finally {
                 operationContext.popScope();
