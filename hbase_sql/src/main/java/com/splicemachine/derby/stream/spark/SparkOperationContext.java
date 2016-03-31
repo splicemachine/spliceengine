@@ -12,6 +12,7 @@ import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;
+import org.apache.spark.AccumulatorParam;
 
 import java.sql.SQLException;
 import java.io.IOException;
@@ -32,12 +33,12 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public Activation activation;
     public SpliceOperationContext context;
     public Op op;
-    public Accumulator<Integer> rowsRead;
-    public Accumulator<Integer> rowsJoinedLeft;
-    public Accumulator<Integer> rowsJoinedRight;
-    public Accumulator<Integer> rowsProduced;
-    public Accumulator<Integer> rowsFiltered;
-    public Accumulator<Integer> rowsWritten;
+    public Accumulator<Long> rowsRead;
+    public Accumulator<Long> rowsJoinedLeft;
+    public Accumulator<Long> rowsJoinedRight;
+    public Accumulator<Long> rowsProduced;
+    public Accumulator<Long> rowsFiltered;
+    public Accumulator<Long> rowsWritten;
     public Accumulable<List<String>, String> badRecordsAccumulable;
     public boolean permissive;
     public boolean failed;
@@ -49,30 +50,36 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     }
 
+    @SuppressWarnings("unchecked")
     protected SparkOperationContext(Op spliceOperation,BroadcastedActivation broadcastedActivation){
         this.broadcastedActivation = broadcastedActivation;
         this.op=spliceOperation;
         this.activation=op.getActivation();
         String baseName="("+op.resultSetNumber()+") "+op.getName();
-        this.rowsRead=SpliceSpark.getContext().accumulator(0,baseName+" rows read");
-        this.rowsFiltered=SpliceSpark.getContext().accumulator(0,baseName+" rows filtered");
-        this.rowsWritten=SpliceSpark.getContext().accumulator(0,baseName+" rows written");
-        this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0,baseName+" rows joined left");
-        this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0,baseName+" rows joined right");
-        this.rowsProduced=SpliceSpark.getContext().accumulator(0,baseName+" rows produced");
+        AccumulatorParam param=AccumulatorParam.LongAccumulatorParam$.MODULE$;
+
+        this.rowsRead=SpliceSpark.getContext().accumulator(0L,baseName+" rows read",param);
+        this.rowsFiltered=SpliceSpark.getContext().accumulator(0l,baseName+" rows filtered",param);
+        this.rowsWritten=SpliceSpark.getContext().accumulator(0l,baseName+" rows written",param);
+        this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined left",param);
+        this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined right",param);
+        this.rowsProduced=SpliceSpark.getContext().accumulator(0l,baseName+" rows produced",param);
         this.badRecordsAccumulable=SpliceSpark.getContext().accumulable(new ArrayList<String>(),baseName+" BadRecords",new BadRecordsAccumulator());
         this.operationUUID=spliceOperation.getUniqueSequenceID();
     }
 
+    @SuppressWarnings("unchecked")
     protected SparkOperationContext(Activation activation){
         this.op=null;
         this.activation=activation;
-        this.rowsRead=SpliceSpark.getContext().accumulator(0,"rows read");
-        this.rowsFiltered=SpliceSpark.getContext().accumulator(0,"rows filtered");
-        this.rowsWritten=SpliceSpark.getContext().accumulator(0,"rows written");
-        this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0,"rows joined left");
-        this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0,"rows joined right");
-        this.rowsProduced=SpliceSpark.getContext().accumulator(0,"rows produced");
+        AccumulatorParam param=AccumulatorParam.LongAccumulatorParam$.MODULE$;
+
+        this.rowsRead=SpliceSpark.getContext().accumulator(0L,"rows read",param);
+        this.rowsFiltered=SpliceSpark.getContext().accumulator(0l,"rows filtered",param);
+        this.rowsWritten=SpliceSpark.getContext().accumulator(0l,"rows written",param);
+        this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0l,"rows joined left",param);
+        this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,"rows joined right",param);
+        this.rowsProduced=SpliceSpark.getContext().accumulator(0l,"rows produced",param);
     }
 
     public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException{
@@ -117,9 +124,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         rowsRead=(Accumulator)in.readObject();
         rowsFiltered=(Accumulator)in.readObject();
         rowsWritten=(Accumulator)in.readObject();
-        rowsJoinedLeft=(Accumulator<Integer>)in.readObject();
-        rowsJoinedRight=(Accumulator<Integer>)in.readObject();
-        rowsProduced=(Accumulator<Integer>)in.readObject();
+        rowsJoinedLeft=(Accumulator<Long>)in.readObject();
+        rowsJoinedRight=(Accumulator<Long>)in.readObject();
+        rowsProduced=(Accumulator<Long>)in.readObject();
         badRecordsAccumulable=(Accumulable<List<String>, String>)in.readObject();
         int len=in.readInt();
         if(len>0){
@@ -151,32 +158,32 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void recordRead(){
-        rowsRead.add(1);
+        rowsRead.add(1l);
     }
 
     @Override
     public void recordFilter(){
-        rowsFiltered.add(1);
+        rowsFiltered.add(1l);
     }
 
     @Override
     public void recordWrite(){
-        rowsWritten.add(1);
+        rowsWritten.add(1l);
     }
 
     @Override
     public void recordJoinedLeft(){
-        rowsJoinedLeft.add(1);
+        rowsJoinedLeft.add(1l);
     }
 
     @Override
     public void recordJoinedRight(){
-        rowsJoinedRight.add(1);
+        rowsJoinedRight.add(1l);
     }
 
     @Override
     public void recordProduced(){
-        rowsProduced.add(1);
+        rowsProduced.add(1l);
     }
 
     @Override
