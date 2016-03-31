@@ -128,12 +128,11 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
             // Throw Retry Exception if the region is splitting
 
-
             while (true) {
                 MemstoreAware currentState = memstoreAware.get();
                 if (currentState.splitMerge || currentState.compactionCount>0) {
                     SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
-                    throw new DoNotRetryIOException();
+                    throw new IOException("splitting, merging, or active compaction on scan on " + c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
                 }
                 if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
                     break;
