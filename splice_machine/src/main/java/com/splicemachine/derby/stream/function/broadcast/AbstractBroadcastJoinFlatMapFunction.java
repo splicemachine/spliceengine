@@ -43,7 +43,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
             @Override
             public Stream<ExecRow> call() throws Exception {
                 DataSetProcessorFactory dataSetProcessorFactory=EngineDriver.driver().processorFactory();
-                final DataSetProcessor dsp =dataSetProcessorFactory.localProcessor(getActivation(),operation.getRightOperation());
+                final DataSetProcessor dsp =dataSetProcessorFactory.bulkProcessor(getActivation(),operation.getRightOperation());
                 return Streams.wrap(FluentIterable.from(new Iterable<LocatedRow>(){
                     @Override
                     public Iterator<LocatedRow> iterator(){

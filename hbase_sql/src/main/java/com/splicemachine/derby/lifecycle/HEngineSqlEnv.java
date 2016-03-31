@@ -17,6 +17,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.HSqlExceptionFactory;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.control.CostChoosingDataSetProcessorFactory;
+import com.splicemachine.derby.stream.spark.HregionDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.management.DatabaseAdministrator;
@@ -50,7 +51,9 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         SIDriver driver =SIDriver.driver();
         ControlDataSetProcessor cdsp = new ControlDataSetProcessor(driver.getTxnSupplier(),
                 driver.getTransactor(), driver.getOperationFactory());
-        this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp);
+        HregionDataSetProcessor hdsp = new HregionDataSetProcessor(driver.getTxnSupplier(),
+                driver.getTransactor(), driver.getOperationFactory());
+        this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp, hdsp);
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();
         this.olapClient = initializeOlapClient(config);

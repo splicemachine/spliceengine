@@ -18,13 +18,16 @@ import javax.annotation.Nullable;
 public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFactory{
     private final DistributedDataSetProcessor distributedDataSetProcessor;
     private final DataSetProcessor localProcessor;
+    private final DataSetProcessor bulkProcessor;
 
     private static final Logger LOG = Logger.getLogger(CostChoosingDataSetProcessorFactory.class);
 
     public CostChoosingDataSetProcessorFactory(DistributedDataSetProcessor distributedDataSetProcessor,
-                                               DataSetProcessor localProcessor){
+                                               DataSetProcessor localProcessor,
+                                               DataSetProcessor bulkProcessor){
         this.distributedDataSetProcessor=distributedDataSetProcessor;
         this.localProcessor=localProcessor;
+        this.bulkProcessor=bulkProcessor;
     }
 
     @Override
@@ -59,6 +62,23 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "localProcessor(): localProcessor provided for op %s", op==null?"null":op.getName());
         return localProcessor;
+    }
+
+    @Override
+    public DataSetProcessor bulkProcessor(@Nullable Activation activation, @Nullable SpliceOperation op) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "bulkProcessor(): bulkProcessor provided for op %s", op==null?"null":op.getName());
+        if(!distributedDataSetProcessor.allowsExecution()){
+            /*
+             * We are running in a distributed node, use the bulk processor to avoid saturating HBase
+             */
+            return bulkProcessor;
+        } else {
+            /*
+             * We are running in control node, use a control side processor with less startup cost
+             */
+            return localProcessor;
+        }
     }
 
     @Override
