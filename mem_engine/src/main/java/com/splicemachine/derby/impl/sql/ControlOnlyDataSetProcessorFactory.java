@@ -50,6 +50,11 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
     }
 
     @Override
+    public DataSetProcessor bulkProcessor(@Nullable Activation activation, @Nullable SpliceOperation op) {
+        return cdsp;
+    }
+
+    @Override
     public DistributedDataSetProcessor distributedProcessor(){
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "distributedProcessor(): DistributedWrapper provided");
