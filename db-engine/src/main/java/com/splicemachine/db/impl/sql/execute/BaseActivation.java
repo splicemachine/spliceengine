@@ -207,6 +207,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     protected ExecRow scanStartOverride;
     protected ExecRow scanStopOverride;
+	protected int[] scanKeys;
 
 	private long numRowsSeen = 0l;
 	//
@@ -1674,4 +1675,12 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	public boolean isMaterialized() {
 		return materialized;
 	}
+
+    public int[] getScanKeys() {
+        return scanKeys;
+    }
+
+    public void setScanKeys(int[] keys) {
+        scanKeys = keys;
+    }
 }
