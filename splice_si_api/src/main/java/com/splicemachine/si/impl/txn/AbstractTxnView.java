@@ -10,6 +10,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 /**
@@ -273,10 +275,12 @@ public abstract class AbstractTxnView implements TxnView {
         return false;
     }
 
+    @SuppressFBWarnings("BC_EQUALS_METHOD_SHOULD_WORK_FOR_ALL_OBJECTS")
+    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if(!(o instanceof TxnView))return false;
+        if (o == null) return false;
         return txnId == ((TxnView) o).getTxnId();
     }
 
