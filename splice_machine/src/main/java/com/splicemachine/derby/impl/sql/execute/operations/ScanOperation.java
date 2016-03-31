@@ -79,7 +79,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         );
     }
 
-    protected int[] getColumnOrdering() throws StandardException{
+    public int[] getColumnOrdering() throws StandardException{
         if(columnOrdering==null){
             columnOrdering=scanInformation.getColumnOrdering();
         }
@@ -129,7 +129,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     }
 
     protected void initIsolationLevel(){
-        SpliceLogUtils.trace(LOG,"initIsolationLevel");
+        SpliceLogUtils.trace(LOG, "initIsolationLevel");
     }
 
     public DataScan getNonSIScan() throws StandardException{
@@ -217,8 +217,10 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     }
 
     protected DataScan getScan() throws StandardException{
+
         return scanInformation.getScan(getCurrentTransaction(),
-                ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),null,((BaseActivation)activation).getScanStopOverride());
+                ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),
+                ((BaseActivation)activation).getScanKeys(),((BaseActivation)activation).getScanStopOverride());
     }
 
     @Override

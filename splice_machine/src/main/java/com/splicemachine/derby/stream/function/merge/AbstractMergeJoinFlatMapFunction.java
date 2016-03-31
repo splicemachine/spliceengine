@@ -10,6 +10,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -62,7 +64,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             initialized = true;
             if (!leftPeekingIterator.hasNext())
                 return Collections.EMPTY_LIST;
-            ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(getScanStartOverride(leftPeekingIterator));
+            initRightScan(leftPeekingIterator);
         }
         final SpliceOperation rightSide = joinOperation.getRightOperation();
         DataSetProcessor dsp =EngineDriver.driver().processorFactory().localProcessor(getOperation().getActivation(), rightSide);
@@ -74,6 +76,8 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             }
         });
         ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(null); // reset to null to avoid any side effects
+        ((BaseActivation)joinOperation.getActivation()).setScanKeys(null);
+        ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(null);
         AbstractMergeJoinIterator iterator = createMergeJoinIterator(leftPeekingIterator,
                 Iterators.peekingIterator(rightIterator),
                 joinOperation.getLeftHashKeys(), joinOperation.getRightHashKeys(),
@@ -91,39 +95,90 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         return iterator;
     }
 
-    protected ExecRow getScanStartOverride(PeekingIterator<LocatedRow> leftPeekingIterator) throws StandardException{
+    private int[] getColumnOrdering(SpliceOperation op) throws StandardException {
+        SpliceOperation operation = op;
+        while (operation != null && !(operation instanceof ScanOperation)) {
+            operation = operation.getLeftOperation();
+        }
+        assert operation != null;
+
+        return ((ScanOperation)operation).getColumnOrdering();
+    }
+
+    private boolean isKeyColumn(int[] columnOrdering, int col) {
+        for (int keyCol:columnOrdering) {
+            if (col == keyCol)
+                return true;
+        }
+
+        return false;
+    }
+
+    protected void initRightScan(PeekingIterator<LocatedRow> leftPeekingIterator) throws StandardException{
         ExecRow firstHashRow = joinOperation.getKeyRow(leftPeekingIterator.peek().getRow());
         ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
+        int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
         int nCols = startPosition != null ? startPosition.nColumns():0;
-        int[] rightHashKeys = joinOperation.getRightHashKeys();
-        // Find valid hash column values to narrow down right scan. The valid hash columns must:
-        // 1) not be used as a start key for inner table scan
-        // 2) be consecutive
-        LinkedList<Pair<Integer, Integer>> hashColumnIndexList = new LinkedList<>();
-        for (int i = 0; i < rightHashKeys.length; ++i) {
-            if(rightHashKeys[i] > nCols-1) {
-                if (hashColumnIndexList.isEmpty() || hashColumnIndexList.getLast().getValue() == rightHashKeys[i]-1) {
-                    hashColumnIndexList.add(new ImmutablePair<Integer, Integer>(i, rightHashKeys[i]));
+        ExecRow scanStartOverride = null;
+        int[] scanKeys = null;
+        // If start row of right table scan has as many columns as key colummns of the table, cannot further
+        // narrow down scan space, so return right tabel scan start row.
+        if (nCols == columnOrdering.length) {
+            scanStartOverride = startPosition;
+            scanKeys = columnOrdering;
+        }
+        else {
+            int[] rightHashKeys = joinOperation.getRightHashKeys();
+            // Find valid hash column values to narrow down right scan. The valid hash columns must:
+            // 1) not be used as a start key for inner table scan
+            // 2) be consecutive
+            // 3) be a key column
+            LinkedList<Pair<Integer, Integer>> hashColumnIndexList = new LinkedList<>();
+            for (int i = 0; i < rightHashKeys.length; ++i) {
+                if (rightHashKeys[i] > nCols - 1) {
+                    if ((hashColumnIndexList.isEmpty() || hashColumnIndexList.getLast().getValue() == rightHashKeys[i] - 1) &&
+                            isKeyColumn(columnOrdering, rightHashKeys[i])) {
+                        hashColumnIndexList.add(new ImmutablePair<Integer, Integer>(i, rightHashKeys[i]));
+                    } else {
+                        break;
+                    }
                 }
-                else {
-                    break;
+            }
+
+            scanStartOverride = new ValueRow(nCols + hashColumnIndexList.size());
+            if (startPosition != null) {
+                for (int i = 1; i <= startPosition.nColumns(); ++i) {
+                    scanStartOverride.setColumn(i, startPosition.getColumn(i));
                 }
+            }
+            for (int i = 0; i < hashColumnIndexList.size(); ++i) {
+                Pair<Integer, Integer> hashColumnIndex = hashColumnIndexList.get(i);
+                int index = hashColumnIndex.getKey();
+                scanStartOverride.setColumn(nCols + i + 1, firstHashRow.getColumn(index + 1));
+            }
+
+            // Scan key should include columns
+            // 1) preceding the first hash column, these columns are in the form of "col=constant"
+            // 2) all hash columns that are key columns
+            scanKeys = new int[hashColumnIndexList.size() + rightHashKeys[0]];
+            for (int i = 0; i < rightHashKeys[0]; ++i) {
+                scanKeys[i] = i;
+            }
+            for (int i = 0; i < hashColumnIndexList.size(); ++i) {
+                Pair<Integer, Integer> hashColumnIndex = hashColumnIndexList.get(i);
+                int colPos = hashColumnIndex.getValue();
+                scanKeys[rightHashKeys[0] + i] = colPos;
             }
         }
 
-        ExecRow v = new ValueRow(nCols+hashColumnIndexList.size());
+        ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(scanStartOverride);
+        ((BaseActivation)joinOperation.getActivation()).setScanKeys(scanKeys);
         if (startPosition != null) {
-            for (int i = 1; i <= startPosition.nColumns(); ++i) {
-                v.setColumn(i, startPosition.getColumn(i));
-            }
+            ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(startPosition);
         }
-        for (int i = 0; i < hashColumnIndexList.size(); ++i) {
-            Pair<Integer, Integer> hashColumnIndex = hashColumnIndexList.get(i);
-            int index = hashColumnIndex.getKey();
-            v.setColumn(nCols+i+1, firstHashRow.getColumn(index+1));
-        }
-        return v;
+
     }
+
 
     protected abstract AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator,
                                                                          PeekingIterator<LocatedRow> rightPeekingIterator,

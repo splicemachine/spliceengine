@@ -187,8 +187,12 @@ public class HalfSortMergeJoinIT extends SpliceUnitTest {
             ps.addBatch();
         }
         ps.executeBatch();
-        ps = conn.prepareStatement(String.format("call syscs_util.syscs_split_table('%s', 'TA')", CLASS_NAME));
-        ps.execute();
+        try {
+            ps = conn.prepareStatement(String.format("call syscs_util.syscs_split_table('%s', 'TA')", CLASS_NAME));
+            ps.execute();
+        } catch (Exception e) {
+            // split_table is not supported for mem engine.
+        }
     }
 
     @Test
