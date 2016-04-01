@@ -3,10 +3,8 @@ package com.splicemachine.derby.stream.iapi;
 import com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
@@ -49,5 +47,4 @@ public interface PairDataSet<K,V> {
     UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException;
     DataSetWriterBuilder directWriteData() throws StandardException;
     String toString();
-
 }

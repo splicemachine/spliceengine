@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import java.io.Serializable;
@@ -92,14 +93,14 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
     void close();
 
-    /**
-     * Performs a fetch with offset
-     */
-    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction);
-
-    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction, boolean isLast);
-
-    <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
+//    /**
+//     * Performs a fetch with offset
+//     */
+//    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction);
+//
+//    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction, boolean isLast);
+//
+//    <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
 
     ExportDataSetWriterBuilder writeToDisk();
 
@@ -112,4 +113,6 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     String getAttribute(String name);
 
     void saveAsTextFile(String path);
+
+    PairDataSet<V, Long> zipWithIndex();
 }
