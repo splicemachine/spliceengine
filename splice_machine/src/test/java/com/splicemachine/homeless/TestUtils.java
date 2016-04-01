@@ -19,6 +19,9 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 public class TestUtils {
 
     public static long baseTableConglomerateId(Connection conn, String schema, String table) throws SQLException{
+        schema = schema.toUpperCase();
+        table = table.toUpperCase();
+
         /*
          * This is a needlessly-complicated and annoying way of doing this,
 	     * because *when it was written*, the metadata information was kind of all messed up

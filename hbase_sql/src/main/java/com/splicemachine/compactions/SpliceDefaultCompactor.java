@@ -4,15 +4,24 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.constants.EnvUtils;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
+import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
@@ -62,6 +71,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
 
+        assert request instanceof SpliceCompactionRequest;
+
         smallestReadPoint = store.getSmallestReadPoint();
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
         this.progress = new CompactionProgress(fd.maxKeyCount);
@@ -86,6 +97,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
 
         this.progress.complete();
+
+        ScanType scanType = request.isRetainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
+                : ScanType.COMPACT_DROP_DELETES;
+        // trigger MemstoreAwareObserver
+        postCreateCoprocScanner(request, scanType, null);
+
+        SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
+        scr.preStorefilesRename();
 
         List<Path> paths = new ArrayList();
         for (String spath : sPaths) {
@@ -199,7 +218,13 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 if (scanner == null) {
                     scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
                 }
-                scanner = postCreateCoprocScanner(request, scanType, scanner);
+                if (needsSI(store.getTableName())) {
+                    SIDriver driver=SIDriver.driver();
+                    SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
+                            driver.getRollForward(),
+                            driver.getConfiguration().getActiveTransactionCacheSize());
+                    scanner = new SICompactionScanner(state,scanner);
+                }
                 if (scanner == null) {
                     // NULL scanner returned from coprocessor hooks means skip normal processing.
                     return newFiles;
@@ -253,6 +278,22 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             }
         }
         return newFiles;
+    }
+
+    private boolean needsSI(TableName tableName) {
+        TableType type = EnvUtils.getTableType(HConfiguration.getConfiguration(), tableName);
+        switch (type) {
+            case TRANSACTION_TABLE:
+            case ROOT_TABLE:
+            case META_TABLE:
+            case HBASE_TABLE:
+                return false;
+            case DERBY_SYS_TABLE:
+            case USER_TABLE:
+                return true;
+            default:
+                throw new RuntimeException("Unknow table type " + type);
+        }
     }
 
     @Override

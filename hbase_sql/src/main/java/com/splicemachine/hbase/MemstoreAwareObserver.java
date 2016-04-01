@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.access.client.MemStoreFlushAwareScanner;
 import com.splicemachine.access.client.MemstoreAware;
+import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
@@ -39,23 +40,15 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                                       ScanType scanType,
                                       CompactionRequest request) throws IOException{
         BlockingProbe.blockPreCompact();
-        while (true) {
-            MemstoreAware latest = memstoreAware.get();
-            if (latest.scannerCount>0) {
-                SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",latest.scannerCount);
-                try {
-                    Thread.sleep(1000); // Have Split sleep for a second
-                } catch (InterruptedException e1) {
-                    throw new IOException(e1);
-                }
-            }
-            if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementCompactionCount(latest)))
-                break;
+        if (!(request instanceof SpliceCompactionRequest)) {
+            SpliceLogUtils.error(LOG,"Compaction request must be a SpliceCompactionRequest");
+            throw new DoNotRetryIOException();
         }
+        SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
+        scr.setMemstoreAware(memstoreAware);
+
         return scanner;
     }
-
-
 
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile,CompactionRequest request) throws IOException{
@@ -135,12 +128,11 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
             // Throw Retry Exception if the region is splitting
 
-
             while (true) {
                 MemstoreAware currentState = memstoreAware.get();
                 if (currentState.splitMerge || currentState.compactionCount>0) {
                     SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
-                    throw new DoNotRetryIOException();
+                    throw new IOException("splitting, merging, or active compaction on scan on " + c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
                 }
                 if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
                     break;

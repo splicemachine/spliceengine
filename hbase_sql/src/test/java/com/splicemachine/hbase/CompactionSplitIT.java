@@ -2,14 +2,14 @@ package com.splicemachine.hbase;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
@@ -17,6 +17,8 @@ import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
+import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -33,6 +35,7 @@ import com.splicemachine.test_tools.TableCreator;
  * Test MemstoreAwareObserver behavior during region compactions, splits
  */
 public class CompactionSplitIT {
+    private static final Logger LOG = Logger.getLogger(CompactionSplitIT.class);
     private static final String SCHEMA = CompactionSplitIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
@@ -84,6 +87,24 @@ public class CompactionSplitIT {
             .withCreate("create table D (a bigint)")
             .withInsert("insert into D values(?)")
             .withRows(rows(tableRows)).create();
+
+        // table E
+        // shuffle rows in test tables so tests do no depend on order
+        Collections.shuffle(tableRows);
+
+        new TableCreator(classWatcher.getOrCreateConnection())
+                .withCreate("create table E (a bigint)")
+                .withInsert("insert into E values(?)")
+                .withRows(rows(tableRows)).create();
+
+        // table F
+        // shuffle rows in test tables so tests do no depend on order
+        Collections.shuffle(tableRows);
+
+        new TableCreator(classWatcher.getOrCreateConnection())
+                .withCreate("create table F (a bigint)")
+                .withInsert("insert into F values(?)")
+                .withRows(rows(tableRows)).create();
     }
 
     @Test
@@ -192,6 +213,196 @@ public class CompactionSplitIT {
 
             helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
         }
+    }
+
+    @Test(timeout = 80000)
+    // Tests compactions don't block scans until the storefile renaming step
+    public void testCompactionDoesntBlockScans() throws Throwable {
+        final String tableName = "E";
+        String columnName = "A";
+        final String schema = SCHEMA;
+        String query = String.format("select * from %s --splice-properties useSpark=true \n order by %s", tableName, columnName);
+
+        ResultSet rs = classWatcher.executeQuery(query);
+        String expectedResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+
+        LOG.trace("Blocking preCompact");
+        assertTrue(HBaseTestUtils.setBlockPreCompact(schema, tableName, true, classWatcher.getOrCreateConnection()));
+
+        LOG.trace("preCompact blocked");
+
+        CallableStatement callableStatement = classWatcher.getOrCreateConnection().
+                prepareCall("call SYSCS_UTIL.SYSCS_FLUSH_TABLE(?,?)");
+        callableStatement.setString(1, schema);
+        callableStatement.setString(2, tableName);
+
+
+        LOG.trace("Flushing table");
+        callableStatement.execute();
+
+        Thread compactionThread = new Thread() {
+            @Override
+            public void run() {
+                CallableStatement callableStatement = null;
+                try {
+                    callableStatement = new SpliceWatcher(schema).getOrCreateConnection().
+                            prepareCall("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?,?)");
+                    callableStatement.setString(1, schema);
+                    callableStatement.setString(2, tableName);
+
+
+                    LOG.trace("Compacting table");
+                    callableStatement.execute();
+
+                    LOG.trace("table compacted");
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        compactionThread.start();
+
+        SConfiguration config = HConfiguration.getConfiguration();
+        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+        TableName tn = TableName.valueOf(config.getNamespace(),
+                Long.toString(TestUtils.baseTableConglomerateId(classWatcher.getOrCreateConnection(), SCHEMA, tableName)));
+        boolean compacting = false;
+        while(!compacting) {
+            compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+            Thread.sleep(100);
+        }
+
+        LOG.trace("Table state is compacting");
+
+        rs = classWatcher.executeQuery(query);
+        String actualResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("Failed during compaction", expectedResult, actualResult);
+
+        LOG.trace("Unblocking preCompact");
+        assertTrue(HBaseTestUtils.setBlockPreCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
+
+        while(compacting) {
+            compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+            Thread.sleep(100);
+        }
+        LOG.trace("Table state is not compacting");
+        compactionThread.join();
+
+        rs = classWatcher.executeQuery(query);
+        actualResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("Failed after compaction", expectedResult, actualResult);
+
+    }
+
+    @Test(timeout = 80000)
+    // Tests compactions block scans during the storefile renaming step
+    public void testCompactionFinalizerBlocksScans() throws Throwable {
+        final String tableName = "F";
+        String columnName = "A";
+        final String schema = SCHEMA;
+        final String query = String.format("select * from %s --splice-properties useSpark=true \n order by %s", tableName, columnName);
+
+        ResultSet rs = classWatcher.executeQuery(query);
+        final String expectedResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+
+        LOG.trace("Blocking postCompact");
+        assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, true, classWatcher.getOrCreateConnection()));
+
+        LOG.trace("postCompact blocked");
+
+        CallableStatement callableStatement = classWatcher.getOrCreateConnection().
+                prepareCall("call SYSCS_UTIL.SYSCS_FLUSH_TABLE(?,?)");
+        callableStatement.setString(1, schema);
+        callableStatement.setString(2, tableName);
+
+
+        LOG.trace("Flushing table");
+        callableStatement.execute();
+
+        Thread compactionThread = new Thread() {
+            @Override
+            public void run() {
+                CallableStatement callableStatement = null;
+                try {
+                    callableStatement = new SpliceWatcher(schema).getOrCreateConnection().
+                            prepareCall("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?,?)");
+                    callableStatement.setString(1, schema);
+                    callableStatement.setString(2, tableName);
+
+
+                    LOG.trace("Compacting table");
+                    callableStatement.execute();
+
+                    LOG.trace("table compacted");
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        compactionThread.start();
+
+        SConfiguration config = HConfiguration.getConfiguration();
+        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+        TableName tn = TableName.valueOf(config.getNamespace(),
+                Long.toString(TestUtils.baseTableConglomerateId(classWatcher.getOrCreateConnection(), SCHEMA, tableName)));
+        boolean compacting = false;
+        while(!compacting) {
+            compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+            Thread.sleep(100);
+        }
+
+        LOG.trace("Table state is compacting");
+
+
+        final AtomicReference<String> actualResult = new AtomicReference<>();
+        Thread queryThread = new Thread() {
+            @Override
+            public void run() {
+                ResultSet rs = null;
+                try {
+                    rs = new SpliceWatcher(schema).executeQuery(query);
+                    actualResult.set(TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        };
+        queryThread.start();
+
+        Thread.sleep(10000);
+
+        assertNull("Query didnt block", actualResult.get());
+
+        LOG.trace("Unblocking postCompact");
+        assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
+
+        while(compacting) {
+            compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+            Thread.sleep(100);
+        }
+        LOG.trace("Table state is not compacting");
+        compactionThread.join();
+
+        Thread.sleep(2000);
+
+        assertNotNull("Query continued blocked", actualResult.get());
+
+        assertEquals("Failed after compaction", expectedResult, actualResult.get());
+
+
+        rs = classWatcher.executeQuery(query);
+        actualResult.set(TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("Failed after compaction", expectedResult, actualResult.get());
+
     }
 
     //=========================================================================================================

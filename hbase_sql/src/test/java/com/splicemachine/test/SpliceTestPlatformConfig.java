@@ -10,6 +10,7 @@ import java.util.List;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
@@ -17,6 +18,7 @@ import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
 import org.apache.hadoop.hbase.regionserver.ConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.ConsistencyControlUtils;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 import org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl;
 import com.splicemachine.access.HConfiguration;
@@ -92,6 +94,7 @@ class SpliceTestPlatformConfig {
         config.setInt(SQLConfiguration.NETWORK_BIND_PORT, derbyPort);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTOR_CLASS_KEY, SpliceDefaultCompactor.class, Compactor.class);
         config.setClass(ConsistencyControlUtils.MVCC_IMPL, SIMultiVersionConsistencyControl.class, ConsistencyControl.class);
+        config.setClass(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, SpliceDefaultCompactionPolicy.class, CompactionPolicy.class);
 
         //
         // Networking -- interfaces
