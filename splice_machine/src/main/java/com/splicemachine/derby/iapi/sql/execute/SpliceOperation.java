@@ -31,6 +31,16 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
 
+    /**
+     * Dataset that's going to be consumed right away rather than operated on, transformed, joined... It might have some
+     * optimizations like implementing LIMIT on the control side
+     *
+     * @param dsp
+     * @return Dataset ready to be consumed
+     * @throws StandardException
+     */
+    DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException;
+
     OperationContext getOperationContext();
 
     void setOperationContext(OperationContext operationContext);

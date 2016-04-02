@@ -842,4 +842,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public String getVTIFileName(){
         throw new RuntimeException("Not Supported");
     }
+
+    @Override
+    public DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
+        return getDataSet(dsp);
+    }
 }

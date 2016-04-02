@@ -126,12 +126,9 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .buildDataSet(this);
 
         OperationContext<SpliceOperation> operationContext = dsp.<SpliceOperation>createOperationContext(this);
-        Iterator<LocatedRow> it = scan.toLocalIterator();
-        if (it.hasNext()) {
-            return new ControlDataSet<>(Arrays.asList(scan.toLocalIterator().next()));
-        }   else {
-            return new ControlDataSet<>(Collections.<LocatedRow>emptyList());
-        }
+        return scan.take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))
+                .coalesce(1,false)
+                .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1));
     }
 }
 

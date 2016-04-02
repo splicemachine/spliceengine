@@ -6,7 +6,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.function.OffsetFunction;
-import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -21,7 +20,6 @@ import org.sparkproject.guava.collect.Iterators;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -183,9 +181,18 @@ public class RowCountOperation extends SpliceBaseOperation {
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
+        return sourceSet.zipWithIndex().mapPartitions(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, offset, fetchLimit));
+    }
+
+    @Override
+    public DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
+        final long fetchLimit = getFetchLimit();
+        long offset = getTotalOffset();
         if (offset > 0) {
-              return sourceSet.zipWithIndex().mapPartitions(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, offset, fetchLimit));
+            // no optimization, return getDataSet()
+            return getDataSet(dsp);
         }
+        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         if (fetchLimit > 0) {
             // Apply limit on control side
             final DataSet<LocatedRow> finalSourceSet = sourceSet;

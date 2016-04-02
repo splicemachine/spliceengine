@@ -220,6 +220,15 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> f) {
+        try {
+            return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public ExportDataSetWriterBuilder writeToDisk(){
         return new ControlExportDataSetWriter.Builder<>(this);
     }

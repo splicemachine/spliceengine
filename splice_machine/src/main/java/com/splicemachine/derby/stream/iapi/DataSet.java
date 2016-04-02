@@ -102,6 +102,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 //
 //    <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
 
+    <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op, V> takeFunction);
+
     ExportDataSetWriterBuilder writeToDisk();
 
     ExportDataSetWriterBuilder<String> saveAsTextFile(OperationContext operationContext);
