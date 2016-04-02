@@ -392,7 +392,9 @@ public class CompactionSplitIT {
         LOG.trace("Table state is not compacting");
         compactionThread.join();
 
-        Thread.sleep(2000);
+        while(actualResult.get() == null) {
+            Thread.sleep(1000); // wait for query to unblock
+        }
 
         assertNotNull("Query continued blocked", actualResult.get());
 
