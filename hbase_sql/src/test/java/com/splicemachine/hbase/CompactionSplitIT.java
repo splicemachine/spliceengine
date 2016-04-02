@@ -229,72 +229,77 @@ public class CompactionSplitIT {
         LOG.trace("Blocking preCompact");
         assertTrue(HBaseTestUtils.setBlockPreCompact(schema, tableName, true, classWatcher.getOrCreateConnection()));
 
-        LOG.trace("preCompact blocked");
+        try {
+            LOG.trace("preCompact blocked");
 
-        CallableStatement callableStatement = classWatcher.getOrCreateConnection().
-                prepareCall("call SYSCS_UTIL.SYSCS_FLUSH_TABLE(?,?)");
-        callableStatement.setString(1, schema);
-        callableStatement.setString(2, tableName);
-
-
-        LOG.trace("Flushing table");
-        callableStatement.execute();
-
-        Thread compactionThread = new Thread() {
-            @Override
-            public void run() {
-                CallableStatement callableStatement = null;
-                try {
-                    callableStatement = new SpliceWatcher(schema).getOrCreateConnection().
-                            prepareCall("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?,?)");
-                    callableStatement.setString(1, schema);
-                    callableStatement.setString(2, tableName);
+            CallableStatement callableStatement = classWatcher.getOrCreateConnection().
+                    prepareCall("call SYSCS_UTIL.SYSCS_FLUSH_TABLE(?,?)");
+            callableStatement.setString(1, schema);
+            callableStatement.setString(2, tableName);
 
 
-                    LOG.trace("Compacting table");
-                    callableStatement.execute();
+            LOG.trace("Flushing table");
+            callableStatement.execute();
 
-                    LOG.trace("table compacted");
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                } catch (Exception e) {
-                    e.printStackTrace();
+            Thread compactionThread = new Thread() {
+                @Override
+                public void run() {
+                    CallableStatement callableStatement = null;
+                    try {
+                        callableStatement = new SpliceWatcher(schema).getOrCreateConnection().
+                                prepareCall("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?,?)");
+                        callableStatement.setString(1, schema);
+                        callableStatement.setString(2, tableName);
+
+
+                        LOG.trace("Compacting table");
+                        callableStatement.execute();
+
+                        LOG.trace("table compacted");
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
+            };
+            compactionThread.start();
+
+            SConfiguration config = HConfiguration.getConfiguration();
+            HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+            HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+            TableName tn = TableName.valueOf(config.getNamespace(),
+                    Long.toString(TestUtils.baseTableConglomerateId(classWatcher.getOrCreateConnection(), SCHEMA, tableName)));
+            boolean compacting = false;
+            while (!compacting) {
+                compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+                Thread.sleep(100);
             }
-        };
-        compactionThread.start();
 
-        SConfiguration config = HConfiguration.getConfiguration();
-        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
-        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+            LOG.trace("Table state is compacting");
 
-        TableName tn = TableName.valueOf(config.getNamespace(),
-                Long.toString(TestUtils.baseTableConglomerateId(classWatcher.getOrCreateConnection(), SCHEMA, tableName)));
-        boolean compacting = false;
-        while(!compacting) {
-            compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
-            Thread.sleep(100);
+            rs = classWatcher.executeQuery(query);
+            String actualResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("Failed during compaction", expectedResult, actualResult);
+
+            LOG.trace("Unblocking preCompact");
+            assertTrue(HBaseTestUtils.setBlockPreCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
+
+            while (compacting) {
+                compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+                Thread.sleep(100);
+            }
+            LOG.trace("Table state is not compacting");
+            compactionThread.join();
+
+            rs = classWatcher.executeQuery(query);
+            actualResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("Failed after compaction", expectedResult, actualResult);
+        } finally {
+            // make sure we unblock compactions
+            HBaseTestUtils.setBlockPreCompact(schema, tableName, false, classWatcher.getOrCreateConnection());
         }
-
-        LOG.trace("Table state is compacting");
-
-        rs = classWatcher.executeQuery(query);
-        String actualResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("Failed during compaction", expectedResult, actualResult);
-
-        LOG.trace("Unblocking preCompact");
-        assertTrue(HBaseTestUtils.setBlockPreCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
-
-        while(compacting) {
-            compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
-            Thread.sleep(100);
-        }
-        LOG.trace("Table state is not compacting");
-        compactionThread.join();
-
-        rs = classWatcher.executeQuery(query);
-        actualResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("Failed after compaction", expectedResult, actualResult);
 
     }
 
@@ -312,98 +317,103 @@ public class CompactionSplitIT {
         LOG.trace("Blocking postCompact");
         assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, true, classWatcher.getOrCreateConnection()));
 
-        LOG.trace("postCompact blocked");
+        try {
+            LOG.trace("postCompact blocked");
 
-        CallableStatement callableStatement = classWatcher.getOrCreateConnection().
-                prepareCall("call SYSCS_UTIL.SYSCS_FLUSH_TABLE(?,?)");
-        callableStatement.setString(1, schema);
-        callableStatement.setString(2, tableName);
-
-
-        LOG.trace("Flushing table");
-        callableStatement.execute();
-
-        Thread compactionThread = new Thread() {
-            @Override
-            public void run() {
-                CallableStatement callableStatement = null;
-                try {
-                    callableStatement = new SpliceWatcher(schema).getOrCreateConnection().
-                            prepareCall("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?,?)");
-                    callableStatement.setString(1, schema);
-                    callableStatement.setString(2, tableName);
+            CallableStatement callableStatement = classWatcher.getOrCreateConnection().
+                    prepareCall("call SYSCS_UTIL.SYSCS_FLUSH_TABLE(?,?)");
+            callableStatement.setString(1, schema);
+            callableStatement.setString(2, tableName);
 
 
-                    LOG.trace("Compacting table");
-                    callableStatement.execute();
+            LOG.trace("Flushing table");
+            callableStatement.execute();
 
-                    LOG.trace("table compacted");
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                } catch (Exception e) {
-                    e.printStackTrace();
+            Thread compactionThread = new Thread() {
+                @Override
+                public void run() {
+                    CallableStatement callableStatement = null;
+                    try {
+                        callableStatement = new SpliceWatcher(schema).getOrCreateConnection().
+                                prepareCall("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?,?)");
+                        callableStatement.setString(1, schema);
+                        callableStatement.setString(2, tableName);
+
+
+                        LOG.trace("Compacting table");
+                        callableStatement.execute();
+
+                        LOG.trace("table compacted");
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
+            };
+            compactionThread.start();
+
+            SConfiguration config = HConfiguration.getConfiguration();
+            HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+            HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+            TableName tn = TableName.valueOf(config.getNamespace(),
+                    Long.toString(TestUtils.baseTableConglomerateId(classWatcher.getOrCreateConnection(), SCHEMA, tableName)));
+            boolean compacting = false;
+            while (!compacting) {
+                compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+                Thread.sleep(100);
             }
-        };
-        compactionThread.start();
 
-        SConfiguration config = HConfiguration.getConfiguration();
-        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
-        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+            LOG.trace("Table state is compacting");
 
-        TableName tn = TableName.valueOf(config.getNamespace(),
-                Long.toString(TestUtils.baseTableConglomerateId(classWatcher.getOrCreateConnection(), SCHEMA, tableName)));
-        boolean compacting = false;
-        while(!compacting) {
-            compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
-            Thread.sleep(100);
-        }
+            Thread.sleep(10000); // wait for compaction to block
 
-        LOG.trace("Table state is compacting");
+            final AtomicReference<String> actualResult = new AtomicReference<>();
+            Thread queryThread = new Thread() {
+                @Override
+                public void run() {
+                    ResultSet rs = null;
+                    try {
+                        rs = new SpliceWatcher(schema).executeQuery(query);
+                        actualResult.set(TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
-
-        final AtomicReference<String> actualResult = new AtomicReference<>();
-        Thread queryThread = new Thread() {
-            @Override
-            public void run() {
-                ResultSet rs = null;
-                try {
-                    rs = new SpliceWatcher(schema).executeQuery(query);
-                    actualResult.set(TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
+            };
+            queryThread.start();
 
+            Thread.sleep(10000);
+
+            assertNull("Query didnt block", actualResult.get());
+
+            LOG.trace("Unblocking postCompact");
+            assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
+
+            while (compacting) {
+                compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+                Thread.sleep(100);
             }
-        };
-        queryThread.start();
+            LOG.trace("Table state is not compacting");
+            compactionThread.join();
 
-        Thread.sleep(10000);
+            while (actualResult.get() == null) {
+                Thread.sleep(1000); // wait for query to unblock
+            }
 
-        assertNull("Query didnt block", actualResult.get());
+            assertNotNull("Query continued blocked", actualResult.get());
 
-        LOG.trace("Unblocking postCompact");
-        assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
+            assertEquals("Failed after compaction", expectedResult, actualResult.get());
 
-        while(compacting) {
-            compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
-            Thread.sleep(100);
+
+            rs = classWatcher.executeQuery(query);
+            actualResult.set(TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            assertEquals("Failed after compaction", expectedResult, actualResult.get());
+        } finally {
+            HBaseTestUtils.setBlockPostCompact(schema, tableName, false, classWatcher.getOrCreateConnection());
         }
-        LOG.trace("Table state is not compacting");
-        compactionThread.join();
-
-        while(actualResult.get() == null) {
-            Thread.sleep(1000); // wait for query to unblock
-        }
-
-        assertNotNull("Query continued blocked", actualResult.get());
-
-        assertEquals("Failed after compaction", expectedResult, actualResult.get());
-
-
-        rs = classWatcher.executeQuery(query);
-        actualResult.set(TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        assertEquals("Failed after compaction", expectedResult, actualResult.get());
 
     }
 
