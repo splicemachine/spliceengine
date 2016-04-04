@@ -85,13 +85,9 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
+        init();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
-        try{
-            init(SpliceOperationContext.newContext(activation));
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
-        }
     }
 
     @Override

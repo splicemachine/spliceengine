@@ -74,12 +74,7 @@ public class RowCountOperation extends SpliceBaseOperation {
         this.fetchFirstMethodName = (fetchFirstMethod == null) ? null : fetchFirstMethod.getMethodName();
         this.hasJDBCLimitClause = hasJDBCLimitClause;
         this.source = source;
-        try {
-            init(SpliceOperationContext.newContext(activation));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-
+        init();
         offset = getTotalOffset();
     }
 

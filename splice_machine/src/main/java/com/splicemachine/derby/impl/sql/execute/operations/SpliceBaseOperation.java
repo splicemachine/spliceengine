@@ -50,7 +50,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected String explainPlan="";
     protected double optimizerEstimatedRowCount;
     protected double optimizerEstimatedCost;
-    protected String info;
     protected boolean isTopResultSet=false;
     protected volatile byte[] uniqueSequenceID;
     protected ExecRow currentRow;
@@ -60,7 +59,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected boolean isOpen=true;
     protected int resultSetNumber;
     protected OperationInformation operationInformation;
-    protected long statementId=-1l; //default value if the statementId isn't set
     protected LocatedRow locatedRow;
     protected StatementContext statementContext;
     protected List<AutoCloseable> closeables;
@@ -108,7 +106,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             uniqueSequenceID=new byte[in.readInt()];
             in.readFully(uniqueSequenceID);
         }
-        statementId=in.readLong();
     }
 
     @Override
@@ -123,22 +120,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             out.writeInt(uniqueSequenceID.length);
             out.write(uniqueSequenceID);
         }
-        out.writeLong(statementId);
-
-    }
-
-    @Override
-    public long getStatementId(){
-        return statementId;
-    }
-
-    @Override
-    public void setStatementId(long statementId){
-        this.statementId=statementId;
-        SpliceOperation sub=getLeftOperation();
-        if(sub!=null) sub.setStatementId(statementId);
-        sub=getRightOperation();
-        if(sub!=null) sub.setStatementId(statementId);
     }
 
     @Override
@@ -385,10 +366,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public int[] getAccessedNonPkColumns() throws StandardException{
         // by default return null
         return null;
-    }
-
-    public String getInfo(){
-        return info;
     }
 
     public String getScopeName() {
@@ -797,5 +774,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public String getVTIFileName(){
         throw new RuntimeException("Not Supported");
+    }
+
+    protected void init() throws StandardException {
+        try {
+            init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 }

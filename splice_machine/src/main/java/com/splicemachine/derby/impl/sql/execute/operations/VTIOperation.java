@@ -166,11 +166,7 @@ public class VTIOperation extends SpliceBaseOperation {
 		this.ctcNumber = ctcNumber;
 		compileTimeConstants = (FormatableHashtable) (activation.getPreparedStatement().
 								getSavedObject(ctcNumber));
-        try {
-            init(SpliceOperationContext.newContext(activation));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     @Override

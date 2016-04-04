@@ -38,18 +38,14 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 			    double optimizerEstimatedRowCount,
 			double optimizerEstimatedCost,
 			String userSuppliedOptimizerOverrides) throws StandardException {
-				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
-						activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
-						optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
-				SpliceLogUtils.trace(LOG, "instantiate");
-				emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
-				this.wasRightOuterJoin = wasRightOuterJoin;
+                super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                        activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
+                        optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
+                SpliceLogUtils.trace(LOG, "instantiate");
+                emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+                this.wasRightOuterJoin = wasRightOuterJoin;
                 this.isOuterJoin = true;
-        try {
-					init(SpliceOperationContext.newContext(activation));
-			} catch (IOException e) {
-					throw Exceptions.parseException(e);
-			}
+                init();
 	}
 	
     @Override

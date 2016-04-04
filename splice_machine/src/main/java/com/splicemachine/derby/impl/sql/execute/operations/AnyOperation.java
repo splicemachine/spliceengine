@@ -68,11 +68,7 @@ public class AnyOperation extends SpliceBaseOperation {
 				this.subqueryNumber = subqueryNumber;
 				this.pointOfAttachment = pointOfAttachment;
 				this.emptyRowFunName = emptyRowFun.getMethodName();
-				try {
-						init(SpliceOperationContext.newContext(a));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+                init();
 		}
 
     @Override

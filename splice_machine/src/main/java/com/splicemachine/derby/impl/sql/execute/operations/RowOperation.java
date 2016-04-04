@@ -64,11 +64,7 @@ public class RowOperation extends SpliceBaseOperation{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.canCacheRow=canCacheRow;
         this.rowMethodName=row.getMethodName();
-        try{
-            init(SpliceOperationContext.newContext(activation));
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     public RowOperation(
@@ -81,11 +77,7 @@ public class RowOperation extends SpliceBaseOperation{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.cachedRow=constantRow;
         this.canCacheRow=canCacheRow;
-        try{
-            init(SpliceOperationContext.newContext(activation));
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
 

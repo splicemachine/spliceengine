@@ -67,11 +67,7 @@ public class NormalizeOperation extends SpliceBaseOperation{
         this.source=source;
         this.erdNumber=erdNumber;
         this.forUpdate=forUpdate;
-        try{
-            init(SpliceOperationContext.newContext(activation));
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     @Override

@@ -44,11 +44,7 @@ public class ExplainOperation extends SpliceBaseOperation {
         super(activation, resultSetNumber, 0, 0);
         this.activation = activation;
         this.source = source;
-        try {
-            init(SpliceOperationContext.newContext(activation));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     @Override

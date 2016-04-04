@@ -82,11 +82,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
         this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
-        try{
-            init(SpliceOperationContext.newContext(activation));
-        }catch(IOException ioe){
-            Exceptions.parseException(ioe);
-        }
+        init();
     }
 
     @Override

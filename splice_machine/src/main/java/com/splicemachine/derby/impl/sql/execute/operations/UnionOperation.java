@@ -33,7 +33,6 @@ import java.util.List;
  */
 public class UnionOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 1l;
-		/* Pull rows from firstResultSet, then rightResultSet*/
 		public SpliceOperation leftResultSet;
 		public SpliceOperation rightResultSet;
 	    protected static final String NAME = UnionOperation.class.getSimpleName().replaceAll("Operation","");
@@ -58,11 +57,7 @@ public class UnionOperation extends SpliceBaseOperation {
 				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.leftResultSet = leftResultSet;
 				this.rightResultSet = rightResultSet;
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+				init();
 		}
 
 		@Override

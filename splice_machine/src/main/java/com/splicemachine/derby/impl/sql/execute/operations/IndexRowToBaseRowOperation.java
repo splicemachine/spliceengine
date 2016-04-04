@@ -6,10 +6,8 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Strings;
-
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
@@ -23,7 +21,6 @@ import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -36,7 +33,6 @@ import com.splicemachine.derby.stream.function.IndexToBaseRowFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -68,7 +64,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     protected int heapOnlyColRefItem;
     protected int indexColMapItem;
     private ExecRow compactRow;
-    RowLocation baseRowLocation = null;
     int[] columnOrdering;
     int[] format_ids;
     SpliceConglomerate conglomerate;
@@ -117,11 +112,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         this.indexColMapItem = indexColMapItem;
         this.restrictionMethodName = restriction==null? null: restriction.getMethodName();
         this.tableVersion = tableVersion;
-        try {
-            init(SpliceOperationContext.newContext(activation));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     @Override
@@ -229,12 +220,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             SpliceLogUtils.trace(LOG,"accessedAllCols=%s,accessedHeapCols=%s,heapOnlyCols=%s,accessedCols=%s",accessedAllCols,accessedHeapCols,heapOnlyCols,accessedCols);
             SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
                     Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
-            if (info == null) {
-                info = "baseTable:"+indexName+"";
-            }
-            else if (!info.contains("baseTable")) {
-                info += ",baseTable:"+indexName+"";
-            }
             getConglomerate();
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
@@ -262,12 +247,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         if (columnOrdering == null)
             columnOrdering = getConglomerate().getColumnOrdering();
         return columnOrdering;
-    }
-
-    private int[] getFormatIds() throws StandardException {
-        if (format_ids == null)
-            format_ids = getConglomerate().getFormat_ids();
-        return format_ids;
     }
 
     @Override

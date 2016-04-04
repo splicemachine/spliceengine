@@ -69,7 +69,7 @@ public class UpdateOperation extends DMLWriteOperation{
                            double optimizerEstimatedCost,String tableVersion)
             throws StandardException, IOException{
         super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
-        init(SpliceOperationContext.newContext(activation));
+        init();
     }
 
     @Override

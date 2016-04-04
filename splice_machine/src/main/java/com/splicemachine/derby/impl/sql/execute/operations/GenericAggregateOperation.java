@@ -12,11 +12,9 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -27,22 +25,12 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		protected SpliceOperation source;
 		protected AggregateContext aggregateContext;
 		public SpliceGenericAggregator[] aggregates;
-		protected SpliceMethod<ExecRow> rowAllocator;
 		protected ExecIndexRow sourceExecIndexRow;
 		protected ExecIndexRow sortTemplateRow;
-		protected boolean serializeSource = true;
 
 		public GenericAggregateOperation () {
 				super();
 				SpliceLogUtils.trace(LOG, "instantiated");
-		}
-
-		public GenericAggregateOperation(SpliceOperation source,
-																		 OperationInformation baseOpInformation,
-																		 AggregateContext aggregateContext) throws StandardException{
-				super(baseOpInformation);
-				this.source = source;
-				this.aggregateContext = aggregateContext;
 		}
 
 		public GenericAggregateOperation (SpliceOperation source,
@@ -57,24 +45,12 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 				this.aggregateContext = new DerbyAggregateContext(ra==null? null:ra.getMethodName(),aggregateItem);
 		}
 
-		public GenericAggregateOperation (SpliceOperation source,
-																			Activation activation,
-																			int resultSetNumber,
-																			double optimizerEstimatedRowCount,
-																			double optimizerEstimatedCost,
-																			AggregateContext context) throws StandardException {
-				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-				this.source = source;
-				this.aggregateContext = context;
-		}
-
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				SpliceLogUtils.trace(LOG,"readExternal");
 				super.readExternal(in);
 				this.aggregateContext = (AggregateContext)in.readObject();
-				if(in.readBoolean())
-						source = (SpliceOperation)in.readObject();
+				source = (SpliceOperation)in.readObject();
 		}
 
 		@Override
@@ -82,9 +58,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG,"writeExternal");
 				super.writeExternal(out);
 				out.writeObject(aggregateContext);
-				out.writeBoolean(serializeSource);
-				if(serializeSource)
-						out.writeObject(source);
+				out.writeObject(source);
 		}
 
 		@Override
@@ -123,14 +97,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 
 		public SpliceOperation getSource() {
 				return this.source;
-		}
-
-		public long getRowsInput() {
-        return 0l; //TODO -sf- implement
-		}
-
-		public long getRowsOutput() {
-        return 0l; //TODO -sf- implement
 		}
 
     @Override

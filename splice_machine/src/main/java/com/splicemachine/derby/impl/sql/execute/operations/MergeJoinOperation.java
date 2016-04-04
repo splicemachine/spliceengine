@@ -65,11 +65,7 @@ public class MergeJoinOperation extends JoinOperation {
                  optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
-        try {
-            init(SpliceOperationContext.newContext(activation));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     @Override

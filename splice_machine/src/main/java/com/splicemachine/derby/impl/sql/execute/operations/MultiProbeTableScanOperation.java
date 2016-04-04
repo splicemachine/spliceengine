@@ -10,14 +10,11 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -170,11 +167,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 probingVals,
                 tableVersion
         );
-        try {
-            init(SpliceOperationContext.newContext(activation));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     private void sortProbeValues() {

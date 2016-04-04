@@ -143,19 +143,10 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      * @return a pretty-printed string representation of this operation.
      */
     String prettyPrint(int indentLevel);
-    /**
-     * @return -1l if no statementId has been set on this operation, or the statement
-     * id if one has. Generally, a statementId is only set on the top operation
-     */
-    long getStatementId();
-
-    void setStatementId(long statementId);
 
     int[] getAccessedNonPkColumns() throws StandardException;
 		
 	void setActivation(Activation activation) throws StandardException;
-
-    String getInfo();
 
     double getEstimatedCost();
 

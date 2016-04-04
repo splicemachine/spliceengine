@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.*;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.MergeAllAggregatesFlatMapFunction;
 import com.splicemachine.derby.stream.function.MergeNonDistinctAggregatesFunction;
@@ -10,7 +9,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
@@ -18,9 +16,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -34,7 +30,6 @@ import java.io.ObjectOutput;
  */
 public class DistinctScalarAggregateOperation extends GenericAggregateOperation {
     private static final long serialVersionUID = 1l;
-    private boolean isInSortedOrder;
     private int orderItem;
     private int[] keyColumns;
     private static final Logger LOG = Logger.getLogger(DistinctScalarAggregateOperation.class);
@@ -62,12 +57,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
                                             double optimizerEstimatedCost) throws StandardException {
         super(source, aggregateItem, source.getActivation(), rowAllocator, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.orderItem = orderItem;
-        this.isInSortedOrder = false; // XXX TODO Jleach: Optimize when data is already sorted.
-        try {
-            init(SpliceOperationContext.newContext(source.getActivation()));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     @Override
@@ -83,14 +73,12 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeBoolean(isInSortedOrder);
         out.writeInt(orderItem);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        isInSortedOrder = in.readBoolean();
         orderItem = in.readInt();
     }
 

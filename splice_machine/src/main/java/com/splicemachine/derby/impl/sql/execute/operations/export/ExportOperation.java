@@ -75,7 +75,7 @@ public class ExportOperation extends SpliceBaseOperation {
             ExportPermissionCheck checker = new ExportPermissionCheck(exportParams);
             checker.verify();
             checker.cleanup();
-            init(SpliceOperationContext.newContext(activation));
+            init();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

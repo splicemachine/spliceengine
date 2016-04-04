@@ -12,9 +12,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -30,9 +28,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     private static Logger LOG = Logger.getLogger(ScalarAggregateOperation.class);
     protected boolean isInSortedOrder;
     protected boolean singleInputRow;
-    protected boolean isOpen=false;
-    boolean returnDefault = true;
-    
     protected static final String NAME = ScalarAggregateOperation.class.getSimpleName().replaceAll("Operation","");
     
     @Override
@@ -101,10 +96,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     public String toString() {
         return String.format("ScalarAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
     }
-
-	public boolean isSingleInputRow() {
-		return this.singleInputRow;
-	}
 
 	@Override
 	public String prettyPrint(int indentLevel) {

@@ -71,12 +71,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         this.activation=activation;
         this.tableVersion=tableVersion;
         this.writeInfo=new DerbyDMLWriteInfo();
-        try{
-            init(SpliceOperationContext.newContext(activation));
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
-        }
-
+        init();
     }
 
     public DMLWriteOperation(SpliceOperation source,

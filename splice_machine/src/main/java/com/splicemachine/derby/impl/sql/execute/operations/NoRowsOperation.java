@@ -22,12 +22,8 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	public NoRowsOperation(Activation activation)  throws StandardException {
 		super(activation,-1,0d,0d);
 		this.activation = activation;
-		try {
-			init(SpliceOperationContext.newContext(activation));
-		} catch (IOException e) {
-			throw Exceptions.parseException(e);
-		}
-	}
+        init();
+    }
 	
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException, IOException {

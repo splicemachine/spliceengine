@@ -12,7 +12,6 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 
@@ -33,13 +32,7 @@ public class DeleteOperation extends DMLWriteOperation {
 	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost, String tableVersion) throws StandardException, IOException {
 		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
-        init(SpliceOperationContext.newContext(activation));
-	}
-
-	public DeleteOperation(SpliceOperation source, ConstantAction passedInConstantAction, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost, String tableVersion) throws StandardException, IOException {
-		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
-		init(SpliceOperationContext.newContext(activation));
+        init();
 	}
 
 	@Override

@@ -69,12 +69,7 @@ public class SetOpOperation extends SpliceBaseOperation {
         intermediateOrderByColumns = (int[]) eps.getSavedObject(intermediateOrderByColumnsSavedObject);
         intermediateOrderByDirection = (int[]) eps.getSavedObject(intermediateOrderByDirectionSavedObject);
         intermediateOrderByNullsLow = (boolean[]) eps.getSavedObject(intermediateOrderByNullsLowSavedObject);
-
-        try {
-            init(SpliceOperationContext.newContext(activation));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     @Override

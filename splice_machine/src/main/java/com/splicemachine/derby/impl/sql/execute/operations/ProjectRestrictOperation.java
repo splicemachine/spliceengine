@@ -80,11 +80,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				this.reuseResult = reuseResult;
 				this.doesProjection = doesProjection;
 				this.source = source;
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+				init();
 		}
 
 		public String getRestrictionMethodName() {

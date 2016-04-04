@@ -69,11 +69,7 @@ public class SortOperation extends SpliceBaseOperation{
         this.distinct=distinct;
         this.orderingItem=orderingItem;
         this.numColumns=numColumns;
-        try{
-            init(SpliceOperationContext.newContext(a));
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
-        }
+        init();
     }
 
     @Override
