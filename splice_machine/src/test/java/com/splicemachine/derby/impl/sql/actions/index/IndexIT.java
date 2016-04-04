@@ -305,6 +305,19 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testQueryCustomerByNameWithTpccIndex() throws Exception {
+        // DB-4894: this tpcc index on customer table caused an NPE in AbstractTimeDescriptorSerializer
+        // because of open/close in indexToBaseRow.  The close nulled out the ThreadLocal<Calendar>
+        SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME,CustomerTable.INDEX_NAME_DEF,false);
+        PreparedStatement ps=methodWatcher.prepareStatement(CUSTOMER_BY_NAME);
+        ps.setInt(1,1); // c_w_id
+        ps.setInt(2,7); // c_d_id
+        ps.setString(3,"ESEPRIANTI");  // c_last
+        ResultSet rs=ps.executeQuery();
+        Assert.assertEquals(8,resultSetSize(rs));
+    }
+
+    @Test
     public void testQueryCustomerSinceWithIndex() throws Exception{
         // Test for DB-1620
         SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME,CustomerTable.INDEX_DEF,false);
