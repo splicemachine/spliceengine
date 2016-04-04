@@ -40,8 +40,6 @@ public class HalfSortMergeJoinIT extends SpliceUnitTest {
     protected static final String A = "A";
     protected static final String B = "B";
     protected static final String A_IDX = "A_IDX";
-    protected static final String T1 = "T1";
-    protected static final String T2 = "T2";
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
@@ -291,16 +289,4 @@ public class HalfSortMergeJoinIT extends SpliceUnitTest {
         Assert.assertEquals(1, count);
     }
 
-    @Test
-    public void testPartitionStartEndRow() throws Exception {
-        String sql = "select count(*)\n" +
-                "from \n" +
-                "tb\n" +
-                ", ta --SPLICE-PROPERTIES joinStrategy=HALFSORTMERGE, useSpark=true\n" +
-                "where ta.a=tb.a and ta.b=tb.b";
-
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals("Returned incorrect count", 5, rs.getInt(1));
-    }
 }

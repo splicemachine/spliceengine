@@ -6,7 +6,6 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.stream.function.Partitioner;
@@ -72,19 +71,7 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
         }
         decoder.set(bytesRow, 0, bytesRow.length);
         decoder.decode(template);
-        return trim(template);
-    }
-
-    private ExecRow trim(ExecRow row) throws StandardException{
-        int ncols = 0;
-        while (row.getColumn(ncols+1) != null && !row.getColumn(ncols+1).isNull())
-            ncols++;
-
-        ValueRow result = new ValueRow(ncols);
-        for (int i = 0; i < ncols; ++i) {
-            result.setColumn(i+1, row.getColumn(i+1).cloneValue(false));
-        }
-        return result;
+        return template.getClone();
     }
 
     @Override
