@@ -50,7 +50,6 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 			} catch (IOException e) {
 					throw Exceptions.parseException(e);
 			}
-			recordConstructorTime();
 	}
 	
     @Override

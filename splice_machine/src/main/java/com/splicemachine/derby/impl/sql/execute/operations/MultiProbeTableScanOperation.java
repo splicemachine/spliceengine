@@ -175,7 +175,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        recordConstructorTime();
     }
 
     private void sortProbeValues() {

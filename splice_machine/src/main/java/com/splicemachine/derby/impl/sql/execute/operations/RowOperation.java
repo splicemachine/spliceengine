@@ -69,7 +69,6 @@ public class RowOperation extends SpliceBaseOperation{
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
-        recordConstructorTime();
     }
 
     public RowOperation(
@@ -87,7 +86,6 @@ public class RowOperation extends SpliceBaseOperation{
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
-        recordConstructorTime();
     }
 
 
@@ -95,7 +93,6 @@ public class RowOperation extends SpliceBaseOperation{
     public void init(SpliceOperationContext context) throws StandardException, IOException{
         super.init(context);
         if(rowMethod==null && rowMethodName!=null){
-//						if (rowMethodName != null)
             this.rowMethod=new SpliceMethod<>(rowMethodName,activation);
         }
     }
@@ -192,11 +189,6 @@ public class RowOperation extends SpliceBaseOperation{
 
     public int getRowsReturned(){
         return this.rowsReturned;
-    }
-
-    @Override
-    public long getTimeSpent(int type){
-        return constructorTime+openTime+nextTime+closeTime;
     }
 
     @Override

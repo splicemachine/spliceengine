@@ -5,10 +5,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
@@ -23,9 +21,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 /**
@@ -113,7 +109,6 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		this.sourceRowWidth = sourceRowWidth;
 		this.source = source;
 		this.scrollable = scrollable;
-		recordConstructorTime();
         if (isForUpdate()) {
             target = ((CursorActivation)activation).getTargetResultSet();
         } else {

@@ -8,11 +8,9 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -36,7 +34,6 @@ public class CallStatementOperation extends NoRowsOperation {
 		super(a);
 		methodName = (methodCall!= null) ? methodCall.getMethodName() : null;
 		this.methodCall =new SpliceMethod<>(methodName,activation);
-		recordConstructorTime();
 	}
 
 	public void setOrigMethod(String origClassName, String origMethodName) {
@@ -96,20 +93,11 @@ public class CallStatementOperation extends NoRowsOperation {
 	public void call() throws StandardException{
         SpliceLogUtils.trace(LOG, "open");
         setup();
-        if(timer==null)
-            timer = Metrics.newTimer();
-
-        timer.startTiming();
         Object invoked = methodCall.invoke();
         ResultSet[][] dynamicResults = activation.getDynamicResults();
         if(dynamicResults==null) {
-            timer.stopTiming();
-            stopExecutionTime = System.currentTimeMillis();
             return;
         }
-
-        timer.stopTiming();
-        stopExecutionTime = System.currentTimeMillis();
     }
 
     @Override

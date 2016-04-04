@@ -79,15 +79,15 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 	 * 
 	 * Gets the left Operation for a Operation.  They can be named different things in different operations (Source, LeftResultSet, etc.).  
 	 * This gives a simple method to retrieve that operation.  This needs to be implemented in each operation.
-	 * 
+	 *
 	 * @return
 	 */
     SpliceOperation getLeftOperation();
 	/**
-	 * 
+	 *
 	 * Recursively generates the left operation stack.  This method is implemented properly as long as you inherit from
 	 * the SpliceBaseOperation.
-	 * 
+	 *
 	 * @return
 	 */
     void generateLeftOperationStack(List<SpliceOperation> operations);
@@ -109,7 +109,6 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 	 */
     void generateRightOperationStack(boolean initial,List<SpliceOperation> operations);
 
-    void generateAllOperationStack(List<SpliceOperation> operations);
 	/**
 	 * 
 	 * The outgoing field definition of the record.  Do we need incoming as well?

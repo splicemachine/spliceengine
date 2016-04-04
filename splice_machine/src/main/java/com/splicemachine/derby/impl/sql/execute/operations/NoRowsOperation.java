@@ -27,7 +27,6 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 		} catch (IOException e) {
 			throw Exceptions.parseException(e);
 		}
-		recordConstructorTime();
 	}
 	
 	@Override

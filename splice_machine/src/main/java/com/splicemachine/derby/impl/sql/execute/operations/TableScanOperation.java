@@ -86,13 +86,12 @@ public class TableScanOperation extends ScanOperation{
         this.indexColItem=indexColItem;
         this.indexName=indexName;
         if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"statisticsTimingOn=%s,isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",statisticsTimingOn,isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
+            SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
         try{
             init(SpliceOperationContext.newContext(activation));
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
-        recordConstructorTime();
     }
 
     @Override
@@ -141,7 +140,6 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void close() throws StandardException{
         SpliceLogUtils.trace(LOG,"close in TableScan");
-        beginTime=getCurrentTimeMillis();
         if(forUpdate && scanInformation.isKeyed()){
             activation.clearIndexScanInfo();
         }

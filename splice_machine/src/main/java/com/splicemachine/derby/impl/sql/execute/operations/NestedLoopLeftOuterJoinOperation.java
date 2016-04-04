@@ -49,7 +49,6 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
-				recordConstructorTime();
 		}
 
 

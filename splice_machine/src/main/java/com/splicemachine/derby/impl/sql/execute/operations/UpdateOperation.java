@@ -70,7 +70,6 @@ public class UpdateOperation extends DMLWriteOperation{
             throws StandardException, IOException{
         super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         init(SpliceOperationContext.newContext(activation));
-        recordConstructorTime();
     }
 
     @Override

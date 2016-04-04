@@ -71,8 +71,6 @@ public class WindowOperation extends SpliceBaseOperation {
         this.source = source;
         this.isInSortedOrder = isInSortedOrder;
         this.windowContext = new DerbyWindowContext((rowAllocator==null? null:rowAllocator.getMethodName()), aggregateItem);
-
-        recordConstructorTime();
     }
 
 

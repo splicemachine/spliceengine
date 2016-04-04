@@ -52,7 +52,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        recordConstructorTime();
 		}
 
 		@Override

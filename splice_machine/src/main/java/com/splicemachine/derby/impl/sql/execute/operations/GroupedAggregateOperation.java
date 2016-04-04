@@ -16,10 +16,8 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -76,7 +74,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         this.isInSortedOrder = isInSortedOrder;
         this.isRollup = isRollup;
         this.groupedAggregateContext = groupedAggregateContext;
-        recordConstructorTime();
     }
 
     public GroupedAggregateOperation(SpliceOperation s,

@@ -20,18 +20,14 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-
 import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
-
 		private static Logger LOG = Logger.getLogger(ProjectRestrictOperation.class);
 		protected String restrictionMethodName;
 		protected String projectionMethodName;
@@ -89,7 +85,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
-				recordConstructorTime();
 		}
 
 		public String getRestrictionMethodName() {

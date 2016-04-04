@@ -119,7 +119,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				this.leftResultSet = leftResultSet;
 				this.leftResultSetNumber = leftResultSet.resultSetNumber();
 				this.rightResultSet = rightResultSet;
-				recordConstructorTime();
 		}
 
 		@Override

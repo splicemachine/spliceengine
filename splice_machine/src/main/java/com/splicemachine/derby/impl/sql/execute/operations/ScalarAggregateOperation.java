@@ -57,7 +57,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 		this.isInSortedOrder = isInSortedOrder;
 		this.singleInputRow = singleInputRow;
-		recordConstructorTime();
     }
     
     @Override

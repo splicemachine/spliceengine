@@ -122,7 +122,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        recordConstructorTime();
     }
 
     @Override

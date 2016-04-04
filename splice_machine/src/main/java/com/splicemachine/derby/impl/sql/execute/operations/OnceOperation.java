@@ -12,7 +12,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
@@ -31,8 +30,6 @@ public class OnceOperation extends SpliceBaseOperation {
 		public static final int NO_CARDINALITY_CHECK		= 2;
 		public static final int UNIQUE_CARDINALITY_CHECK	= 3;
 		private ExecRow rowWithNulls;
-		/* Used to cache the StatementContext */
-		private StatementContext statementContext;
 		// set in constructor and not altered during
 		// life of object.
 		public SpliceOperation source;
@@ -41,7 +38,6 @@ public class OnceOperation extends SpliceBaseOperation {
 		private int cardinalityCheck;
 		public int subqueryNumber;
 		public int pointOfAttachment;
-		private RowSource rowSource;
 
 	    protected static final String NAME = OnceOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -70,7 +66,6 @@ public class OnceOperation extends SpliceBaseOperation {
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
-				recordConstructorTime();
 		}
 
 		@Override

@@ -48,12 +48,11 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
         SpliceLogUtils.trace(LOG, "instantiate");
         emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
         this.wasRightOuterJoin = wasRightOuterJoin;
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-				recordConstructorTime();
+        try {
+                init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+                throw Exceptions.parseException(e);
+        }
     }
 
     @Override

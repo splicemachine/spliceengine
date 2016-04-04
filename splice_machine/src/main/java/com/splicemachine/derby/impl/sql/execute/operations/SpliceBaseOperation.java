@@ -17,7 +17,6 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -26,7 +25,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInforma
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.si.api.txn.TxnView;
@@ -35,7 +33,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -48,18 +45,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private static final long serialVersionUID=4l;
     private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
     private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
-    /* Run time statistics variables */
-    public long beginTime;
-    public long constructorTime;
-    public long openTime;
-    public long nextTime;
-    public long closeTime;
-    protected boolean statisticsTimingOn;
     protected Iterator<LocatedRow> locatedRowIterator;
     protected Activation activation;
     protected String explainPlan="";
-    protected Timer timer;
-    protected long stopExecutionTime;
     protected double optimizerEstimatedRowCount;
     protected double optimizerEstimatedCost;
     protected String info;
@@ -125,7 +113,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             uniqueSequenceID=new byte[in.readInt()];
             in.readFully(uniqueSequenceID);
         }
-        statisticsTimingOn=in.readBoolean();
         statementId=in.readLong();
     }
 
@@ -141,7 +128,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             out.writeInt(uniqueSequenceID.length);
             out.write(uniqueSequenceID);
         }
-        out.writeBoolean(statisticsTimingOn);
         out.writeLong(statementId);
 
     }
@@ -187,10 +173,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public Activation getActivation(){
         return activation;
-    }
-
-    public String getExplainPlan(){
-        return explainPlan;
     }
 
     public String getPrettyExplainPlan(){
@@ -379,28 +361,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public long getExecuteTime(){
         return getTimeSpent(ResultSet.ENTIRE_RESULTSET_TREE);
     }
-
-    protected final long getCurrentTimeMillis(){
-        if(statisticsTimingOn)
-            return System.currentTimeMillis();
-        else
-            return 0;
-    }
-
-    protected final long getElapsedMillis(long beginTime){
-        if(statisticsTimingOn)
-            return (System.currentTimeMillis()-beginTime);
-        else
-            return 0;
-    }
-
-    protected final void recordConstructorTime(){
-        if(statisticsTimingOn)
-            constructorTime=getElapsedMillis(beginTime);
-    }
-
+    // Do we need to calculate this, ugh. -- TODO-JL
     public long getTimeSpent(int type){
-        return constructorTime+openTime+nextTime+closeTime;
+        return 0l;
     }
 
     @Override

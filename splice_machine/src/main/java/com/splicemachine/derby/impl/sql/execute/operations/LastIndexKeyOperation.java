@@ -62,7 +62,6 @@ public class LastIndexKeyOperation extends ScanOperation {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        recordConstructorTime();
     }
 
 

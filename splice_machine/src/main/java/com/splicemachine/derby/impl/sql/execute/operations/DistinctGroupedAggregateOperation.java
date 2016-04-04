@@ -49,7 +49,6 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 					boolean isRollup) throws StandardException {
 		super(s, isInSortedOrder, aggregateItem, orderingItem,a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup);
 		SpliceLogUtils.trace(LOG, "instance");
-		recordConstructorTime();
     }
 
 }

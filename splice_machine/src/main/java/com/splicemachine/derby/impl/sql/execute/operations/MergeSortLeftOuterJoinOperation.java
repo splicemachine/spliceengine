@@ -49,8 +49,6 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
-				recordConstructorTime();
-
 		}
 
 		@Override

@@ -22,7 +22,6 @@ import com.splicemachine.pipeline.Exceptions;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 
@@ -238,12 +237,6 @@ public class VTIOperation extends SpliceBaseOperation {
     public boolean isReferencingTable(long tableNumber) {
         return false;
     }
-
-    @Override
-	public long getTimeSpent(int type)
-	{
-		return constructorTime + openTime + nextTime + closeTime;
-	}
 
     @Override
     public String prettyPrint(int indentLevel) {

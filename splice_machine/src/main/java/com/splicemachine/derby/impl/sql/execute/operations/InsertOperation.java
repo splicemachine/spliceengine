@@ -90,7 +90,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         }catch(IOException ioe){
             Exceptions.parseException(ioe);
         }
-        recordConstructorTime();
     }
 
     @Override

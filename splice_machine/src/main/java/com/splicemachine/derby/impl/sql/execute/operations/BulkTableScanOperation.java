@@ -81,7 +81,6 @@ public class BulkTableScanOperation extends TableScanOperation {
 				optimizerEstimatedRowCount,
 				optimizerEstimatedCost,tableVersion);
 			SpliceLogUtils.trace(LOG,"Instantiating");
-			recordConstructorTime(); 
 	}
     private static int adjustBulkFetchSize(Activation activation, int rowsPerRead, boolean disableForHoldable){
         if (disableForHoldable && activation.getResultSetHoldability()) {

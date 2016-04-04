@@ -58,7 +58,6 @@ public class HalfMergeSortLeftOuterJoinOperation extends HalfMergeSortJoinOperat
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        recordConstructorTime();
     }
 
     @Override

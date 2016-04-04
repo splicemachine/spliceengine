@@ -17,7 +17,6 @@ import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -208,21 +207,13 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return keyDecodingMap;
     }
 
-
+    /**
+     * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
+     */
     protected void deSiify(DataScan scan){
-				/*
-				 * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
-				 */
         //exclude this from SI treatment, since we're doing it internally
         scan.addAttribute(SIConstants.SI_NEEDED,null);
         scan.returnAllVersions();
-
-//        Map<byte[], NavigableSet<byte[]>> familyMap=scan.getFamilyMap();
-//        if(familyMap!=null){
-//            NavigableSet<byte[]> bytes=familyMap.get(SpliceConstants.DEFAULT_FAMILY_BYTES);
-//            if(bytes!=null)
-//                bytes.clear(); //make sure we get all columns
-//        }
     }
 
     protected DataScan getScan() throws StandardException{

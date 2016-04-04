@@ -1,14 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.function.merge.MergeAntiJoinFlatMapFunction;
-import com.splicemachine.derby.stream.function.merge.MergeInnerJoinFlatMapFunction;
-import com.splicemachine.derby.stream.function.merge.MergeOuterJoinFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -19,13 +13,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 
 /**
  *
@@ -128,12 +119,11 @@ public class MergeSortJoinOperation extends JoinOperation {
         SpliceLogUtils.trace(LOG, "instantiate");
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-				recordConstructorTime();
+        try {
+                init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+                throw Exceptions.parseException(e);
+        }
     }
 
     @Override

@@ -46,7 +46,6 @@ public class MiscOperation extends NoRowsOperation{
      */
     public MiscOperation(Activation activation) throws StandardException{
         super(activation);
-        recordConstructorTime();
     }
 
     @Override
