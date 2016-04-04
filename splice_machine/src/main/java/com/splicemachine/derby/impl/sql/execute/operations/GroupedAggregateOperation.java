@@ -2,8 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -12,7 +10,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -21,15 +18,12 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Properties;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {
     private static final long serialVersionUID = 1l;
     private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
-    protected boolean isInSortedOrder;
     protected boolean isRollup;
     public GroupedAggregateContext groupedAggregateContext;
-    private boolean[] usedTempBuckets;
     protected static final String NAME = GroupedAggregateOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -41,19 +35,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public GroupedAggregateOperation() {
         super();
         SpliceLogUtils.trace(LOG, "instantiate without parameters");
-    }
-
-    public GroupedAggregateOperation(
-                                        SpliceOperation source,
-                                        OperationInformation baseOpInformation,
-                                        AggregateContext genericAggregateContext,
-                                        GroupedAggregateContext groupedAggregateContext,
-                                        boolean isInSortedOrder,
-                                        boolean isRollup) throws StandardException {
-        super(source, baseOpInformation, genericAggregateContext);
-        this.isRollup = isRollup;
-        this.isInSortedOrder = isInSortedOrder;
-        this.groupedAggregateContext = groupedAggregateContext;
     }
 
     @SuppressWarnings("UnusedParameters")
@@ -71,7 +52,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                         GroupedAggregateContext groupedAggregateContext) throws
                                                                                          StandardException {
         super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-        this.isInSortedOrder = isInSortedOrder;
         this.isRollup = isRollup;
         this.groupedAggregateContext = groupedAggregateContext;
     }
@@ -95,23 +75,15 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public void readExternal(ObjectInput in) throws IOException,
                                                     ClassNotFoundException {
         super.readExternal(in);
-        isInSortedOrder = in.readBoolean();
         isRollup = in.readBoolean();
         groupedAggregateContext = (GroupedAggregateContext) in.readObject();
-        if(in.readBoolean())
-            usedTempBuckets = ArrayUtil.readBooleanArray(in);
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeBoolean(isInSortedOrder);
         out.writeBoolean(isRollup);
         out.writeObject(groupedAggregateContext);
-        out.writeBoolean(usedTempBuckets!=null);
-        if(usedTempBuckets!=null){
-            ArrayUtil.writeBooleanArray(out,usedTempBuckets);
-        }
     }
 
     @Override
@@ -132,22 +104,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public String toString() {
         return String.format("GroupedAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
-    }
-
-
-    public boolean isInSortedOrder() {
-        return this.isInSortedOrder;
-    }
-
-    public boolean hasDistinctAggregate() {
-        return groupedAggregateContext.getNumDistinctAggregates() > 0;
-    }
-
-    public Properties getSortProperties() {
-        Properties sortProperties = new Properties();
-        sortProperties.setProperty("numRowsInput", "" + getRowsInput());
-        sortProperties.setProperty("numRowsOutput", "" + getRowsOutput());
-        return sortProperties;
     }
 
     @Override

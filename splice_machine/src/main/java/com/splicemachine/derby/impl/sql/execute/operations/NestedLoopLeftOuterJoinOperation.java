@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.pipeline.Exceptions;
@@ -16,7 +15,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		private static Logger LOG = Logger.getLogger(NestedLoopLeftOuterJoinOperation.class);
         	protected SpliceMethod<ExecRow> emptyRowFun;
-		protected Qualifier[][] qualifierProbe;
 		public int emptyRightRowsReturned = 0;
 		public NestedLoopLeftOuterJoinOperation() {
 				super();

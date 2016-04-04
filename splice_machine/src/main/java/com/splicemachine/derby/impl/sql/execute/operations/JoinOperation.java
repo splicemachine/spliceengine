@@ -80,11 +80,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		protected ExecRow rightRow;
 		public ExecRow mergedRow;
 		protected int leftResultSetNumber;
-
-		public int rowsSeenLeft;
-		public int rowsSeenRight;
-		public long restrictionTime;
-		public int rowsReturned;
 		protected boolean serializeLeftResultSet = true;
 		protected boolean serializeRightResultSet = true;
         protected ExecRow rightTemplate;
@@ -149,9 +144,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						rightRow = (ExecRow)in.readObject();
                         mergedRowTemplate = (ExecRow)in.readObject();
 				}
-				rowsSeenLeft = in.readInt();
-				rowsSeenRight = in.readInt();
-				rowsReturned = in.readInt();
 		}
 
 		@Override
@@ -179,9 +171,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						out.writeObject(rightRow);
                         out.writeObject(mergedRowTemplate);
 				}
-				out.writeInt(rowsSeenLeft);
-				out.writeInt(rowsSeenRight);
-				out.writeInt(rowsReturned);
 		}
 		@Override
 		public List<SpliceOperation> getSubOperations() {

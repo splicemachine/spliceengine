@@ -57,7 +57,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected RowLocation currentRowLocation;
     protected boolean executed=false;
     protected OperationContext operationContext;
-    protected DataValueDescriptor[] sequence;
     protected boolean isOpen=true;
     protected int resultSetNumber;
     protected OperationInformation operationInformation;
@@ -78,8 +77,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public SpliceBaseOperation(OperationInformation information) throws StandardException{
         this.operationInformation=information;
         this.resultSetNumber=operationInformation.getResultSetNumber();
-        sequence=new DataValueDescriptor[1];
-        sequence[0]=information.getSequenceField(uniqueSequenceID);
     }
 
     @SuppressFBWarnings(value = "UR_UNINIT_READ",justification = "Intentionally creates a Null BitDataField")
@@ -92,8 +89,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.resultSetNumber=resultSetNumber;
         this.optimizerEstimatedRowCount=optimizerEstimatedRowCount;
         this.optimizerEstimatedCost=optimizerEstimatedCost;
-        sequence=new DataValueDescriptor[1];
-        sequence[0]=operationInformation.getSequenceField(uniqueSequenceID);
         if(activation.getLanguageConnectionContext().getStatementContext()==null){
             SpliceLogUtils.trace(LOG,"Cannot get StatementContext from Activation's lcc");
         }
@@ -324,8 +319,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.operationInformation.initialize(context);
         this.resultSetNumber=operationInformation.getResultSetNumber();
         this.uniqueSequenceID=operationInformation.getUUIDGenerator().nextBytes();
-        sequence=new DataValueDescriptor[1];
-        sequence[0]=operationInformation.getSequenceField(uniqueSequenceID);
     }
 
     @Override

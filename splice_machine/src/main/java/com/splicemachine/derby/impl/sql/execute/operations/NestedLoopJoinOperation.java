@@ -21,7 +21,6 @@ import java.io.ObjectOutput;
 public class NestedLoopJoinOperation extends JoinOperation {
 		private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
 		protected boolean isHash;
-        protected byte[] rightResultSetUniqueSequenceID;
         protected static final String NAME = NestedLoopJoinOperation.class.getSimpleName().replaceAll("Operation","");
     	@Override
     	public String getName() {
