@@ -3,10 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -50,7 +48,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     private static final Logger LOG=Logger.getLogger(InsertOperation.class);
     private ExecRow rowTemplate;
     private int[] pkCols;
-    private boolean singleRowResultSet=false;
     private long nextIncrement=-1;
     private RowLocation[] autoIncrementRowLocationArray;
     private SpliceSequence[] spliceSequences;
@@ -101,7 +98,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             writeInfo.initialize(context);
             heapConglom=writeInfo.getConglomerateId();
             pkCols=writeInfo.getPkColumnMap();
-            singleRowResultSet=isSingleRowResultSet();
             autoIncrementRowLocationArray=writeInfo.getConstantAction()!=null &&
                     ((InsertConstantOperation)writeInfo.getConstantAction()).getAutoincRowLocation()!=null?
                     ((InsertConstantOperation)writeInfo.getConstantAction()).getAutoincRowLocation():new RowLocation[0];
