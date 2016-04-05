@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
@@ -51,6 +52,8 @@ public interface ScanSetBuilder<V>{
     ScanSetBuilder<V> tableDisplayName(String tableDisplayName);
 
     ScanSetBuilder<V> tableVersion(String tableVersion);
+
+    ScanSetBuilder<V> region(TransactionalRegion region);
 
     ScanSetBuilder<V> fieldLengths(int[] fieldLengths);
 

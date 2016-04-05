@@ -271,6 +271,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
+    @Override
     public ScanSetBuilder<V> region(TransactionalRegion region){
         this.region=region;
         return this;

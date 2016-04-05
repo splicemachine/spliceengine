@@ -35,6 +35,20 @@ public interface DataSetProcessorFactory{
     DataSetProcessor localProcessor(@Nullable Activation activation,@Nullable SpliceOperation op);
 
     /**
+     * Get the Bulk DataSetProcessor for this architecture. If there are multiple
+     * such processors, then choose the most effective bulk processor for this operation.
+     *
+     * This processor is useful for bulk remote reads that don't need heavy processing on a distributed
+     * engine, but we don't want to saturate the storage engine
+     *
+     * @param activation the activation for this query, or {@code null} if operated
+     *                   outside of a direct query structure.
+     * @param op the Operation for this query.
+     * @return the local DataSetProcessor for this operation and architecture.
+     */
+    DataSetProcessor bulkProcessor(@Nullable Activation activation,@Nullable SpliceOperation op);
+
+    /**
      * @return the distributed DataSetProcessor for this architecture.
      */
     DistributedDataSetProcessor distributedProcessor();

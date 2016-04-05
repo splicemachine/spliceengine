@@ -47,9 +47,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     private static final Logger LOG=Logger.getLogger(ControlDataSetProcessor.class);
 
-    private final TxnSupplier txnSupplier;
-    private final Transactor transactory;
-    private final TxnOperationFactory txnOperationFactory;
+    protected final TxnSupplier txnSupplier;
+    protected final Transactor transactory;
+    protected final TxnOperationFactory txnOperationFactory;
 
     public ControlDataSetProcessor(TxnSupplier txnSupplier,
                                    Transactor transactory,

@@ -23,6 +23,7 @@ import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+
 /*
  * 
  * Split Scanner for multiple region scanners
@@ -30,16 +31,16 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SplitRegionScanner implements RegionScanner {
     protected static final Logger LOG = Logger.getLogger(SplitRegionScanner.class);
-	protected List<RegionScanner> regionScanners =new ArrayList<>(2);
-	protected RegionScanner currentScanner;
+    protected List<RegionScanner> regionScanners = new ArrayList<>(2);
+    protected RegionScanner currentScanner;
     protected HRegion region;
-	protected int scannerPosition = 1;
-	protected int scannerCount = 0;
-	protected Scan scan;
-	protected Table htable;
+    protected int scannerPosition = 1;
+    protected int scannerCount = 0;
+    protected Scan scan;
+    protected Table htable;
     private Connection connection;
-	protected List<Cell> holderResults = new ArrayList<>();
-	protected boolean holderReturn;
+    protected List<Cell> holderResults = new ArrayList<>();
+    protected boolean holderReturn;
     private Clock clock;
 
     public SplitRegionScanner(Scan scan,
@@ -47,136 +48,134 @@ public class SplitRegionScanner implements RegionScanner {
                               Connection connection,
                               Clock clock,
                               Partition partition) throws IOException {
-        List<Partition> partitions = getPartitionsInRange(partition,scan);
-		if (LOG.isDebugEnabled()) {
-			SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, table, partitions.size(), partitions);
-		}
-		this.scan = scan;
-		this.htable = table;
+        List<Partition> partitions = getPartitionsInRange(partition, scan);
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, table, partitions.size(), partitions);
+        }
+        this.scan = scan;
+        this.htable = table;
         this.connection = connection;
         this.clock = clock;
-		boolean hasAdditionalScanners = true;
-		while (hasAdditionalScanners) {
-			try {
+        boolean hasAdditionalScanners = true;
+        while (hasAdditionalScanners) {
+            try {
                 //noinspection ForLoopReplaceableByForEach
-                for (int i = 0; i< partitions.size(); i++) {
-					Scan newScan = new Scan(scan);
-				    byte[] startRow = scan.getStartRow();
-				    byte[] stopRow = scan.getStopRow();
-				    byte[] regionStartKey = partitions.get(i).getStartKey();
-				    byte[] regionStopKey = partitions.get(i).getEndKey();
-				    // determine if the given start an stop key fall into the region
-				    if ((startRow.length == 0 || regionStopKey.length == 0 ||
-				          Bytes.compareTo(startRow, regionStopKey) < 0) && (stopRow.length == 0 ||
-				           Bytes.compareTo(stopRow, regionStartKey) > 0)) { 
-				    	  byte[] splitStart = startRow.length == 0 ||
-				    			  Bytes.compareTo(regionStartKey, startRow) >= 0 ? regionStartKey : startRow;
-				    	  byte[] splitStop = (stopRow.length == 0 ||
-				    			  Bytes.compareTo(regionStopKey, stopRow) <= 0) && regionStopKey.length > 0 ? regionStopKey : stopRow;
-				    	  newScan.setStartRow(splitStart);
-				    	  newScan.setStopRow(splitStop);
-                          newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY,regionStartKey);
-                          newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY,regionStopKey);
-                          if (LOG.isDebugEnabled())
-    				    	  SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s", splitStart, splitStop);
-				    	  createAndRegisterClientSideRegionScanner(table,newScan,partitions.get(i));
-				    }
-				 }
-				 hasAdditionalScanners = false;
-			}
-            catch (Exception ioe ) {
+                for (int i = 0; i < partitions.size(); i++) {
+                    Scan newScan = new Scan(scan);
+                    byte[] startRow = scan.getStartRow();
+                    byte[] stopRow = scan.getStopRow();
+                    byte[] regionStartKey = partitions.get(i).getStartKey();
+                    byte[] regionStopKey = partitions.get(i).getEndKey();
+                    // determine if the given start an stop key fall into the region
+                    if ((startRow.length == 0 || regionStopKey.length == 0 ||
+                            Bytes.compareTo(startRow, regionStopKey) < 0) && (stopRow.length == 0 ||
+                            Bytes.compareTo(stopRow, regionStartKey) > 0)) {
+                        byte[] splitStart = startRow.length == 0 ||
+                                Bytes.compareTo(regionStartKey, startRow) >= 0 ? regionStartKey : startRow;
+                        byte[] splitStop = (stopRow.length == 0 ||
+                                Bytes.compareTo(regionStopKey, stopRow) <= 0) && regionStopKey.length > 0 ? regionStopKey : stopRow;
+                        newScan.setStartRow(splitStart);
+                        newScan.setStopRow(splitStop);
+                        newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY, regionStartKey);
+                        newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY, regionStopKey);
+                        if (LOG.isDebugEnabled())
+                            SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s", splitStart, splitStop);
+                        createAndRegisterClientSideRegionScanner(table, newScan, partitions.get(i));
+                    }
+                }
+                hasAdditionalScanners = false;
+            } catch (Exception ioe) {
                 boolean rethrow = shouldRethrowException(ioe);
                 if (!rethrow) {
                     hasAdditionalScanners = true;
                     regionScanners.clear();
-                    partitions = getPartitionsInRange(partition, scan,true);
+                    partitions = getPartitionsInRange(partition, scan, true);
                     close();
-                }
-                else
+                } else
                     throw new IOException(ioe);
-			}
-		}
-	}
+            }
+        }
+    }
 
-	public void registerRegionScanner(RegionScanner regionScanner) {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "registerRegionScanner %s",regionScanner);
-		if (currentScanner == null)
-			currentScanner = regionScanner;
-		regionScanners.add(regionScanner);
-	}
-	
-	public boolean nextInternal(List<Cell> results) throws IOException {
-		if (holderReturn) {
-			holderReturn = false;
-			results.addAll(holderResults);
-			return true;
-		}
-		boolean next = currentScanner.nextRaw(results);
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "next with results=%s and row count {%d}",results, scannerCount);
-		scannerCount++;
-		if (!next && scannerPosition<regionScanners.size()) {
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "scanner [%d] exhausted after {%d} records",scannerPosition,scannerCount);
-			currentScanner = regionScanners.get(scannerPosition);
-			scannerPosition++;
-			scannerCount = 0;
-			holderResults.clear();
-			holderReturn = nextInternal(holderResults);
-			return holderReturn;
-		}
+    public void registerRegionScanner(RegionScanner regionScanner) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "registerRegionScanner %s", regionScanner);
+        if (currentScanner == null)
+            currentScanner = regionScanner;
+        regionScanners.add(regionScanner);
+    }
 
-		return next;
-	}
+    public boolean nextInternal(List<Cell> results) throws IOException {
+        if (holderReturn) {
+            holderReturn = false;
+            results.addAll(holderResults);
+            return true;
+        }
+        boolean next = currentScanner.nextRaw(results);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "next with results=%s and row count {%d}", results, scannerCount);
+        scannerCount++;
+        if (!next && scannerPosition < regionScanners.size()) {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "scanner [%d] exhausted after {%d} records", scannerPosition, scannerCount);
+            currentScanner = regionScanners.get(scannerPosition);
+            scannerPosition++;
+            scannerCount = 0;
+            holderResults.clear();
+            holderReturn = nextInternal(holderResults);
+            return holderReturn;
+        }
 
-	@Override
-	public void close() throws IOException {
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "close");
-		if (currentScanner != null)
-			currentScanner.close();
-		for (RegionScanner rs: regionScanners) {
-			rs.close();
-		}
-	}
+        return next;
+    }
 
-	@Override
-	public HRegionInfo getRegionInfo() {
-		return currentScanner.getRegionInfo();
-	}
+    @Override
+    public void close() throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "close");
+        if (currentScanner != null)
+            currentScanner.close();
+        for (RegionScanner rs : regionScanners) {
+            rs.close();
+        }
+    }
 
-	@Override
-	public boolean reseek(byte[] row) throws IOException {
-		throw new RuntimeException("Reseek not supported");
-	}
+    @Override
+    public HRegionInfo getRegionInfo() {
+        return currentScanner.getRegionInfo();
+    }
 
-	@Override
-	public long getMvccReadPoint() {
-		return currentScanner.getMvccReadPoint();
-	}
+    @Override
+    public boolean reseek(byte[] row) throws IOException {
+        throw new RuntimeException("Reseek not supported");
+    }
 
-	public HRegion getRegion() {
-		return region;
-	}
+    @Override
+    public long getMvccReadPoint() {
+        return currentScanner.getMvccReadPoint();
+    }
 
-	void createAndRegisterClientSideRegionScanner(Table table, Scan newScan, Partition partition) throws Exception {
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s",table,newScan, table.getConfiguration());
-		Configuration conf = table.getConfiguration();
-		if (System.getProperty("hbase.rootdir") != null)
-			conf.set("hbase.rootdir",System.getProperty("hbase.rootdir"));
+    public HRegion getRegion() {
+        return region;
+    }
 
-			SkeletonClientSideRegionScanner skeletonClientSideRegionScanner=
-					new HBase10ClientSideRegionScanner(table,
-							FSUtils.getCurrentFileSystem(conf),
-							FSUtils.getRootDir(conf),
-							table.getTableDescriptor(),
-                            ((RangedClientPartition) partition).getRegionInfo(),
-							newScan);
-			this.region = skeletonClientSideRegionScanner.getRegion();
-			registerRegionScanner(skeletonClientSideRegionScanner);
-	}
+    void createAndRegisterClientSideRegionScanner(Table table, Scan newScan, Partition partition) throws Exception {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s", table, newScan, table.getConfiguration());
+        Configuration conf = table.getConfiguration();
+        if (System.getProperty("hbase.rootdir") != null)
+            conf.set("hbase.rootdir", System.getProperty("hbase.rootdir"));
+
+        SkeletonClientSideRegionScanner skeletonClientSideRegionScanner =
+                new HBase10ClientSideRegionScanner(table,
+                        FSUtils.getCurrentFileSystem(conf),
+                        FSUtils.getRootDir(conf),
+                        table.getTableDescriptor(),
+                        ((RangedClientPartition) partition).getRegionInfo(),
+                        newScan);
+        this.region = skeletonClientSideRegionScanner.getRegion();
+        registerRegionScanner(skeletonClientSideRegionScanner);
+    }
 
     @Override
     public boolean isFilterDone() throws IOException {
@@ -228,28 +227,27 @@ public class SplitRegionScanner implements RegionScanner {
         if (!rethrow) {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s", StringUtils.stringifyException(e));
-            try{
-                clock.sleep(200l,TimeUnit.MILLISECONDS);
-            }catch(InterruptedException ignored){ }
+            try {
+                clock.sleep(200l, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ignored) {
+            }
         }
 
         return rethrow;
     }
 
     /**
-     *
      * Get Partitions in Range without refreshing the underlying cache.
      *
      * @param partition
      * @param scan
      * @return
      */
-    public List<Partition> getPartitionsInRange(Partition partition, Scan scan) {
+    public List<Partition> getPartitionsInRange(Partition partition, Scan scan) throws IOException {
         return getPartitionsInRange(partition, scan, false);
     }
 
     /**
-     *
      * Get the partitions in range with optional refreshing of the cache
      *
      * @param partition
@@ -257,13 +255,18 @@ public class SplitRegionScanner implements RegionScanner {
      * @param refresh
      * @return
      */
-    public List<Partition> getPartitionsInRange(Partition partition, Scan scan, boolean refresh) {
+    public List<Partition> getPartitionsInRange(Partition partition, Scan scan, boolean refresh) throws IOException {
         List<Partition> partitions;
         while (true) {
-            partitions = partition.subPartitions(scan.getStartRow(), scan.getStopRow(),refresh);
-            if (partitions==null|| partitions.isEmpty()) {
-                refresh = true;
-                continue;
+            partitions = partition.subPartitions(scan.getStartRow(), scan.getStopRow(), refresh);
+            if (partitions == null || partitions.isEmpty()) {
+                if (!refresh) {
+                    // try again with a refresh
+                    refresh = true;
+                    continue;
+                } else {
+                    throw new IOException("Couldn't find subpartitions in range for " + partition + " and scan " + scan);
+                }
             } else {
                 break;
             }
