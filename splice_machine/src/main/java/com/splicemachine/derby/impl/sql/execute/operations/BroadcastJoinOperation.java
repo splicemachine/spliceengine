@@ -125,7 +125,6 @@ public class BroadcastJoinOperation extends JoinOperation{
                 optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides);
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
-        operationInformation.getUUIDGenerator().nextBytes();
         this.sequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
         init();
     }
