@@ -1,0 +1,75 @@
+option java_package = "com.splicemachine.backup";
+option java_outer_classname = "OlapMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message Command{
+    extensions 100 to max;
+    enum Type {
+        SUBMIT = 1;
+        STATUS = 2;
+        CANCEL = 3;
+    }
+
+    required string uniqueName = 1;
+    required Type type = 2;
+}
+
+message Status{
+    extend Command{
+        required Status command = 100;
+    }
+}
+
+message Cancel{
+    extend Command{
+        required Cancel command = 101;
+    }
+}
+
+message Submit{
+    extend Command{
+        required Submit command = 102;
+    }
+    required bytes commandBytes = 1;
+}
+
+message Response{
+    extensions 100 to max;
+    enum Type {
+        NOT_SUBMITTED=0;
+        FAILED = 1;
+        IN_PROGRESS=2;
+        CANCELLED=3;
+        COMPLETED=4;
+    }
+    required Type type = 1;
+}
+
+message FailedResponse{
+    extend Response{
+        required FailedResponse response = 100;
+    }
+    required bytes errorBytes = 1;
+}
+
+message ProgressResponse{
+    extend Response{
+        required ProgressResponse response = 101;
+    }
+    required int64 tickTimeMillis = 1;
+}
+
+message CancelledResponse{
+    extend Response{
+        required CancelledResponse response = 102;
+    }
+}
+
+message Result{
+    extend Response{
+        required Result response = 103;
+    }
+    required bytes resultBytes = 1;
+}

@@ -1,20 +1,18 @@
 package com.splicemachine.compactions;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
-import com.splicemachine.access.HConfiguration;
 import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -35,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 public class SpliceDefaultCompactor extends DefaultCompactor {
     private static final boolean allowSpark = true;
@@ -81,16 +80,21 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             files.add(sf.getPath().toString());
         }
         String regionLocation = getRegionLocation(store);
-        CompactionResult result = EngineDriver.driver().getOlapClient().submitOlapJob(
-                new OlapCompaction(
-                        getCompactionFunction(),
-                        files,
-                        regionLocation,
-                        getJobDetails(request),
-                        getJobGroup(request),
-                        getJobDescription(request),
-                        getPoolName(),
-                        getScope(request)));
+        DistributedCompaction jobRequest=new DistributedCompaction(
+                getCompactionFunction(),
+                files,
+                getJobDetails(request),
+                getJobGroup(request,regionLocation),
+                getJobDescription(request),
+                getPoolName(),
+                getScope(request),
+                regionLocation);
+        CompactionResult result;
+        try{
+            result=EngineDriver.driver().getOlapClient().execute(jobRequest);
+        }catch(TimeoutException e){
+            throw new IOException(e.getMessage());
+        }
         List<String> sPaths = result.getPaths();
 
         if (LOG.isTraceEnabled())
@@ -106,14 +110,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
         scr.preStorefilesRename();
 
-        List<Path> paths = new ArrayList();
+        List<Path> paths = new ArrayList<>();
         for (String spath : sPaths) {
             paths.add(new Path(spath));
         }
         return paths;
     }
 
-    protected SparkCompactionFunction getCompactionFunction() {
+    private SparkCompactionFunction getCompactionFunction() {
         return new SparkCompactionFunction(
             smallestReadPoint,
             store.getTableName().getNamespace(),
@@ -122,13 +126,13 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             store.getFamily().getName());
     }
 
-    protected String getScope(CompactionRequest request) {
+    private String getScope(CompactionRequest request) {
         return String.format("%s Compaction: %s",
             getMajorMinorLabel(request),
             getTableInfoLabel(", "));
     }
 
-    protected String getJobDescription(CompactionRequest request) {
+    private String getJobDescription(CompactionRequest request) {
         int size = request.getFiles().size();
         return String.format("%s Compaction: %s, %d %s",
             getMajorMinorLabel(request),
@@ -137,11 +141,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             (size > 1 ? "Files" : "File"));
     }
 
-    protected String getMajorMinorLabel(CompactionRequest request) {
+    private String getMajorMinorLabel(CompactionRequest request) {
         return request.isMajor() ? "Major" : "Minor";
     }
 
-    protected String getTableInfoLabel(String delim) {
+    private String getTableInfoLabel(String delim) {
         StringBuilder sb = new StringBuilder();
         if (indexDisplayName != null) {
             sb.append(String.format("Index=%s", indexDisplayName));
@@ -154,28 +158,25 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return sb.toString();
     }
 
-    protected String getJobGroup(CompactionRequest request) {
-        // TODO: we can probably do better than this for unique job group
-        return Long.toString(request.getSelectionTime());
+    private String getJobGroup(CompactionRequest request,String regionLocation) {
+        return regionLocation+":"+Long.toString(request.getSelectionTime());
     }
 
-    private static String delim = ",\n";
     private String jobDetails = null;
-    protected String getJobDetails(CompactionRequest request) {
+    private String getJobDetails(CompactionRequest request) {
         if (jobDetails == null) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(getTableInfoLabel(delim));
-            sb.append(delim).append(String.format("Region Name=%s", this.store.getRegionInfo().getRegionNameAsString()));
-            sb.append(delim).append(String.format("Region Id=%d", this.store.getRegionInfo().getRegionId()));
-            sb.append(delim).append(String.format("File Count=%d", request.getFiles().size()));
-            sb.append(delim).append(String.format("Total File Size=%s", FileUtils.byteCountToDisplaySize(request.getSize())));
-            sb.append(delim).append(String.format("Type=%s", getMajorMinorLabel(request)));
-            jobDetails = sb.toString();
+            String delim=",\n";
+            jobDetails =getTableInfoLabel(delim) +delim
+                    +String.format("Region Name=%s",this.store.getRegionInfo().getRegionNameAsString()) +delim
+                    +String.format("Region Id=%d",this.store.getRegionInfo().getRegionId()) +delim
+                    +String.format("File Count=%d",request.getFiles().size()) +delim
+                    +String.format("Total File Size=%s",FileUtils.byteCountToDisplaySize(request.getSize())) +delim
+                    +String.format("Type=%s",getMajorMinorLabel(request));
         }
         return jobDetails;
     }
 
-    protected String getPoolName() {
+    private String getPoolName() {
         return "compaction";
     }
 
@@ -194,7 +195,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         if (this.conf.getBoolean("hbase.regionserver.compaction.private.readers", false)) {
             // clone all StoreFiles, so we'll do the compaction on a independent copy of StoreFiles,
             // HFileFiles, and their readers
-            readersToClose = new ArrayList<StoreFile>(request.getFiles().size());
+            readersToClose =new ArrayList<>(request.getFiles().size());
             for (StoreFile f : request.getFiles()) {
                 readersToClose.add(new StoreFile(f));
             }
@@ -205,7 +206,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
 
         StoreFile.Writer writer = null;
-        List<Path> newFiles = new ArrayList<Path>();
+        List<Path> newFiles =new ArrayList<>();
         boolean cleanSeqId = false;
         IOException e = null;
         try {
@@ -359,7 +360,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
         // Since scanner.next() can return 'false' but still be delivering data,
         // we have to use a do/while loop.
-        List<Cell> cells = new ArrayList<Cell>();
+        List<Cell> cells =new ArrayList<>();
         long closeCheckInterval = HStore.getCloseCheckInterval();
         long lastMillis = 0;
         if (LOG.isDebugEnabled()) {

@@ -1,14 +1,11 @@
 package com.splicemachine.derby.lifecycle;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.backup.BackupManager;
-import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.PropertyManagerService;
@@ -22,9 +19,14 @@ import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
-import com.splicemachine.olap.OlapClientImpl;
+import com.splicemachine.olap.AsyncOlapNIOLayer;
+import com.splicemachine.olap.JobExecutor;
+import com.splicemachine.olap.TimedOlapClient;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
+
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * @author Scott Fines
@@ -56,21 +58,8 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp, hdsp);
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();
-        this.olapClient = initializeOlapClient(config);
+        this.olapClient = initializeOlapClient(config,driver.getClock());
         backupManager = new HBaseBackupManager();
-    }
-
-    private OlapClient initializeOlapClient(SConfiguration config) {
-        int timeoutMillis = config.getOlapClientWaitTime();
-        int port = config.getOlapServerBindPort();
-        HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
-        String host;
-        try {
-            host = hbcf.getMasterServer().getHostname();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return new OlapClientImpl(host, port, timeoutMillis, new SystemClock());
     }
 
     @Override
@@ -106,5 +95,21 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     @Override
     public PropertyManager getPropertyManager(){
         return propertyManager;
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private OlapClient initializeOlapClient(SConfiguration config,Clock clock) {
+        int timeoutMillis = config.getOlapClientWaitTime();
+        int port = config.getOlapServerBindPort();
+        HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
+        String host;
+        try {
+            host = hbcf.getMasterServer().getHostname();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        JobExecutor onl = new AsyncOlapNIOLayer(host,port);
+        return new TimedOlapClient(onl,timeoutMillis);
     }
 }

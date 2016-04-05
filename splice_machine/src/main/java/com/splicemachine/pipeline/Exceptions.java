@@ -43,6 +43,15 @@ public class Exceptions {
         return state.newException(rootCause);
     }
 
+    /*
+     * Wraps the underlying exception in an IOException, WITHOUT regard to retryability.
+     */
+    public static IOException rawIOException(Throwable t){
+        t = Throwables.getRootCause(t);
+        if(t instanceof IOException) return (IOException)t;
+        else return new IOException(t);
+    }
+
     public static IOException getIOException(Throwable t,PipelineExceptionFactory ef){
         t = Throwables.getRootCause(t);
         if(t instanceof StandardException){

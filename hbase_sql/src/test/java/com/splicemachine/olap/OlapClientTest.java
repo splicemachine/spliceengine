@@ -1,8 +1,12 @@
 package com.splicemachine.olap;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
+import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -11,28 +15,34 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
 
 /**
+ * Basic tests around the OlapServer's functionality.
+ *
  * Created by dgomezferro on 3/17/16.
  */
+@SuppressWarnings("unused")
 public class OlapClientTest {
     private static final Logger LOG = Logger.getLogger(OlapClientTest.class);
 
     private static OlapServer olapServer;
     private static OlapClient olapClient;
-    private static Clock clock;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        olapServer = new OlapServer(0); // any port
-        olapServer.startServer();
-        clock = new SystemClock();
-        olapClient = new OlapClientImpl(olapServer.getBoundHost(), olapServer.getBoundPort(), 10000, clock);
+        Logger.getLogger(MappedJobRegistry.class).setLevel(Level.DEBUG);
+        Logger.getLogger(OlapPipelineFactory.class).setLevel(Level.DEBUG);
+        Logger.getLogger("splice.config").setLevel(Level.WARN);
+        Logger.getLogger(OlapRequestHandler.class).setLevel(Level.WARN);
+        setupServer();
     }
+
 
     @AfterClass
     public static void afterClass() throws Exception {
-        ((OlapClientImpl)olapClient).shutdown();
+        olapClient.shutdown();
         olapServer.stopServer();
     }
 
@@ -40,7 +50,7 @@ public class OlapClientTest {
     public void simpleTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = rand.nextInt(200);
-        DumbOlapResult result = olapClient.submitOlapJob(new DumbOlapJob(sleep, 13));
+        DumbOlapResult result = olapClient.execute(new DumbDistributedJob(sleep,13));
         Assert.assertNotNull(result);
         Assert.assertEquals(13, result.order);
     }
@@ -48,16 +58,23 @@ public class OlapClientTest {
     @Test(timeout = 3000)
     public void failingJobTest() throws Exception {
         try {
-            DumbOlapResult result = olapClient.submitOlapJob(new FailingOlapJob());
+            DumbOlapResult result = olapClient.execute(new FailingDistributedJob("failingJob"));
             Assert.fail("Didn't raise exception");
         } catch (IOException e) {
             Assert.assertTrue(e.getMessage().contains("Expected exception"));
         }
     }
 
+    @Test
+    public void repeatedFailingJob() throws Exception{
+        for(int i=0;i<100;i++){
+            failingJobTest();
+        }
+    }
+
     @Test(timeout = 3000)
     public void concurrencyTest() throws Exception {
-        int size = 16;
+        int size = 32;
         Thread[] threads = new Thread[size];
         final DumbOlapResult[] results = new DumbOlapResult[size];
         final Random rand = new Random(size);
@@ -68,10 +85,12 @@ public class OlapClientTest {
                 public void run() {
                     int sleep = rand.nextInt(200);
                     try {
-                        results[j] = olapClient.submitOlapJob(new DumbOlapJob(sleep, j));
+                        results[j] = olapClient.execute(new DumbDistributedJob(sleep,j));
                     } catch (IOException e) {
                         e.printStackTrace();
                         results[j] = null;
+                    }catch(TimeoutException te){
+                        Assert.fail("Timed out");
                     }
                 }
             };
@@ -85,7 +104,8 @@ public class OlapClientTest {
             Assert.assertEquals(i, results[i].order);
         }
     }
-    @Test(timeout = 10000)
+
+    @Test(timeout = 5000)
     public void overflowTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -98,10 +118,12 @@ public class OlapClientTest {
                 public void run() {
                     int sleep = rand.nextInt(2000);
                     try {
-                        results[j] = olapClient.submitOlapJob(new DumbOlapJob(sleep, j));
+                        results[j] = olapClient.execute(new DumbDistributedJob(sleep,j));
                     } catch (IOException e) {
                         e.printStackTrace();
                         results[j] = null;
+                    }catch(TimeoutException te){
+                        Assert.fail("Timed out");
                     }
                 }
             };
@@ -116,47 +138,126 @@ public class OlapClientTest {
         }
     }
 
-    public static class DumbOlapResult extends AbstractOlapResult {
+    @Test(timeout=5000)
+    public void testServerFailureAfterSubmit() throws Exception{
+       /*
+        * Tests what would happen if the server went down after we had successfully submitted, but while
+        * we are waiting. Because this is inherently concurrent, we use multiple threads
+        */
+        final DumbOlapResult[]results = new DumbOlapResult[1];
+        final Throwable[] errors = new Throwable[1];
+        Thread t = new Thread(new Runnable(){
+            @Override
+            public void run(){
+                try{
+                    results[0] = olapClient.execute(new DumbDistributedJob(100000,0));
+                }catch(IOException | TimeoutException e){
+                    errors[0]=e;
+                    results[0] = null;
+                }
+            }
+        });
+        t.start();
+
+        Thread.sleep(1000);
+        //shut down the server
+        olapServer.stopServer();
+
+        try{
+            t.join();
+            Assert.assertNull(results[0]);
+            Assert.assertNotNull(errors[0]);
+        }finally{
+            //restart the server
+            olapClient.shutdown();
+            setupServer();
+        }
+    }
+
+    private static class DumbOlapResult extends AbstractOlapResult {
         int order;
 
         public DumbOlapResult(){
         }
 
-        public DumbOlapResult(int order) {
+        DumbOlapResult(int order) {
             this.order = order;
+        }
+
+        @Override
+        public boolean isSuccess(){
+            return true;
         }
     }
 
-    public static class DumbOlapJob extends AbstractOlapCallable<DumbOlapResult> {
-        private static final Logger LOG = Logger.getLogger(DumbOlapJob.class);
+    private static class DumbDistributedJob implements DistributedJob{
+        private static final Logger LOG = Logger.getLogger(DumbDistributedJob.class);
         int order;
         int sleep;
 
-        public DumbOlapJob(){
-        }
+        public DumbDistributedJob(){ }
 
-        public DumbOlapJob(int sleep, int order) {
+        DumbDistributedJob(int sleep,int order) {
             this.sleep = sleep;
             this.order = order;
         }
 
         @Override
-        public DumbOlapResult call() throws Exception {
-            LOG.trace("started job " + this.getCallerId() + " with order " + order);
-            Thread.sleep(sleep);
-            LOG.trace("finished job " + this.getCallerId() + " with order " + order);
-            return new DumbOlapResult(order);
-        }
-    }
-
-
-    public static class FailingOlapJob extends AbstractOlapCallable<DumbOlapResult> {
-        public FailingOlapJob(){
+        public Callable<Void> toCallable(final OlapStatus jobStatus,Clock clock,long clientTimeoutCheckIntervalMs){
+            return new Callable<Void>(){
+                @Override
+                public Void call() throws Exception{
+                    jobStatus.markRunning();
+                    LOG.trace("started job " + getUniqueName() + " with order " + order);
+                    Thread.sleep(sleep);
+                    LOG.trace("finished job " + getUniqueName() + " with order " + order);
+                    jobStatus.markCompleted(new DumbOlapResult(order));
+                    return null;
+                }
+            };
         }
 
         @Override
-        public DumbOlapResult call() throws Exception {
-            throw new IOException("Expected exception");
+        public String getUniqueName(){
+            return "DumbDistributedJob["+order+","+sleep+"]";
         }
+
+    }
+
+    private static class FailingDistributedJob implements DistributedJob{
+        private String uniqueId;
+
+        public FailingDistributedJob(){
+        }
+
+        FailingDistributedJob(String uniqueId){
+            this.uniqueId=uniqueId;
+        }
+
+        @Override
+        public Callable<Void> toCallable(final OlapStatus jobStatus,Clock clock,long clientTimeoutCheckIntervalMs){
+            return new Callable<Void>(){
+                @Override
+                public Void call() throws Exception{
+                    jobStatus.markRunning();
+                    jobStatus.markCompleted(new FailedOlapResult(new IOException("Expected exception")));
+                    return null;
+                }
+            };
+        }
+
+        @Override
+        public String getUniqueName(){
+            return uniqueId;
+        }
+
+    }
+
+    private static void setupServer(){
+        Clock clock=new SystemClock();
+        olapServer = new OlapServer(0,clock); // any port
+        olapServer.startServer(HConfiguration.getConfiguration());
+        JobExecutor nl = new AsyncOlapNIOLayer(olapServer.getBoundHost(),olapServer.getBoundPort());
+        olapClient = new TimedOlapClient(nl,10000);
     }
 }

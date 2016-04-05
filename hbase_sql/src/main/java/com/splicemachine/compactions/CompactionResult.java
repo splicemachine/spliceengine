@@ -1,11 +1,7 @@
 package com.splicemachine.compactions;
 
-import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.olap.AbstractOlapResult;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.List;
 
 /**
@@ -23,5 +19,10 @@ public class CompactionResult extends AbstractOlapResult {
 
     public List<String> getPaths() {
         return paths;
+    }
+
+    @Override
+    public boolean isSuccess(){
+        return true;
     }
 }

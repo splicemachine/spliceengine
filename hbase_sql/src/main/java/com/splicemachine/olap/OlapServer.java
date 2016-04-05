@@ -1,30 +1,35 @@
 package com.splicemachine.olap;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.timestamp.api.TimestampBlockManager;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class OlapServer {
     private static final Logger LOG = Logger.getLogger(OlapServer.class);
 
     private int port;
+    private Clock clock;
     private ChannelFactory factory;
     private Channel channel;
 
-    public OlapServer(int port) {
+    public OlapServer(int port,Clock clock) {
         this.port = port;
+        this.clock=clock;
     }
 
-    public void startServer() {
+    public void startServer(SConfiguration config) {
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("OlapServer-%d").setDaemon(true).build());
         this.factory = new NioServerSocketChannelFactory(executor, executor);
@@ -34,17 +39,17 @@ public class OlapServer {
         ServerBootstrap bootstrap = new ServerBootstrap(factory);
 
         // Instantiate handler once and share it
-        final OlapServerHandler handler = new OlapServerHandler();
+        OlapJobRegistry registry = new MappedJobRegistry(1L,TimeUnit.SECONDS); //TODO -sf- make this tick time configurable
+        ChannelHandler submitHandler = new OlapRequestHandler(config,
+                registry,clock,config.getOlapClientWaitTime());
+        ChannelHandler statusHandler = new OlapStatusHandler(registry);
+        ChannelHandler cancelHandler = new OlapCancelHandler(registry);
 
-        bootstrap.setPipelineFactory(new OlapPipelineFactory(handler));
-
+        bootstrap.setPipelineFactory(new OlapPipelineFactory(submitHandler,cancelHandler,statusHandler));
         bootstrap.setOption("tcpNoDelay", false);
-        // bootstrap.setOption("child.sendBufferSize", 1048576);
-        // bootstrap.setOption("child.receiveBufferSize", 1048576);
         bootstrap.setOption("child.tcpNoDelay", false);
         bootstrap.setOption("child.keepAlive", true);
         bootstrap.setOption("child.reuseAddress", true);
-        // bootstrap.setOption("child.connectTimeoutMillis", 120000);
 
         this.channel = bootstrap.bind(new InetSocketAddress(getPortNumber()));
         ((InetSocketAddress)channel.getLocalAddress()).getPort();
@@ -52,19 +57,19 @@ public class OlapServer {
         SpliceLogUtils.info(LOG, "Olap Server started.");
     }
 
-    protected int getPortNumber() {
+    private int getPortNumber() {
         return port;
     }
 
-    public int getBoundPort() {
+    int getBoundPort() {
         return ((InetSocketAddress) channel.getLocalAddress()).getPort();
     }
 
-    public String getBoundHost() {
+    String getBoundHost() {
         return ((InetSocketAddress) channel.getLocalAddress()).getHostName();
     }
 
-    public void stopServer() {
+    void stopServer() {
         try {
             this.channel.close().await(5000);
         } catch (Exception e) {

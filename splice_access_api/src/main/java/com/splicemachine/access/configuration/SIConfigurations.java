@@ -103,7 +103,7 @@ public class SIConfigurations implements ConfigurationDefault {
      * Defaults to 60000 (60 seconds)
      */
     public static final String OLAP_CLIENT_WAIT_TIME = "splice.olap_server.clientWaitTime";
-    private static final int DEFAULT_OLAP_CLIENT_WAIT_TIME = 60000;
+    private static final int DEFAULT_OLAP_CLIENT_WAIT_TIME = Integer.MAX_VALUE; //default is disabled
 
     /**
      * The Port to bind the OLAP Server connection to

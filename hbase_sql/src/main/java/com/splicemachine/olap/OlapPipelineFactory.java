@@ -1,49 +1,58 @@
 package com.splicemachine.olap;
 
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.access.HConfiguration;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.backup.OlapMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
-import org.jboss.netty.handler.codec.serialization.ClassResolvers;
-import org.jboss.netty.handler.codec.serialization.ObjectDecoder;
-import org.jboss.netty.handler.codec.serialization.ObjectEncoder;
-import org.jboss.netty.handler.execution.ExecutionHandler;
-import org.jboss.netty.handler.execution.MemoryAwareThreadPoolExecutor;
-import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
-import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder;
+import org.jboss.netty.handler.codec.frame.LengthFieldPrepender;
+import org.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
+import org.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
 
 public class OlapPipelineFactory implements ChannelPipelineFactory {
 
     private static final Logger LOG = Logger.getLogger(OlapPipelineFactory.class);
 
-    private ChannelHandler olapHandler = null;
-    private ExecutionHandler executionHandler;
+    private final ChannelHandler submitHandler;
+    private final ChannelHandler cancelHandler;
+    private final ChannelHandler statusHandler;
 
-    public OlapPipelineFactory(ChannelHandler handler) {
-        olapHandler = handler;
-        ThreadFactory factory=new ThreadFactoryBuilder().setNameFormat("olapServer-thread-%d").setDaemon(true).build();
-        executionHandler = new ExecutionHandler(Executors.newFixedThreadPool(
-                HConfiguration.getConfiguration().getOlapServerThreads(), factory));
+    private final ProtobufDecoder decoder;
+
+    public OlapPipelineFactory(ChannelHandler submitHandler,ChannelHandler cancelHandler,ChannelHandler statusHandler){
+        this.submitHandler=submitHandler;
+        this.cancelHandler=cancelHandler;
+        this.statusHandler=statusHandler;
+
+        this.decoder = new ProtobufDecoder(OlapMessage.Command.getDefaultInstance(),buildExtensionRegistry());
     }
+
 
     @Override
     public ChannelPipeline getPipeline() throws Exception {
-        SpliceLogUtils.debug(LOG, "Creating new channel pipeline...");
+        SpliceLogUtils.trace(LOG, "Creating new channel pipeline...");
         ChannelPipeline pipeline = Channels.pipeline();
-        pipeline.addLast("decoder", new ObjectDecoder(ClassResolvers.weakCachingResolver(null)));
-        pipeline.addLast("encoder", new ObjectEncoder());
-        pipeline.addLast("executor", executionHandler);
-        pipeline.addLast("handler", olapHandler);
-        SpliceLogUtils.debug(LOG, "Done creating channel pipeline");
+        pipeline.addLast("frameDecoder",new LengthFieldBasedFrameDecoder(1<<20,0,4,0,4)); //max frame size is 1MB=2^20 bytes
+        pipeline.addLast("protobufDecoder",decoder);
+        pipeline.addLast("frameEncoder",new LengthFieldPrepender(4));
+        pipeline.addLast("protobufEncoder",new ProtobufEncoder());
+        pipeline.addLast("statusHandler", statusHandler);
+        pipeline.addLast("submitHandler", submitHandler);
+        pipeline.addLast("cancelHandler",cancelHandler);
+        SpliceLogUtils.trace(LOG, "Done creating channel pipeline");
         return pipeline;
     }
-    
+
+
+    private ExtensionRegistry buildExtensionRegistry(){
+        ExtensionRegistry er = ExtensionRegistry.newInstance();
+        er.add(OlapMessage.Submit.command);
+        er.add(OlapMessage.Status.command);
+        er.add(OlapMessage.Cancel.command);
+        return er;
+    }
 }

@@ -64,8 +64,8 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         this.timestampServer.startServer();
 
         int olapPort=configuration.getOlapServerBindPort();
-        this.olapServer = new OlapServer(olapPort);
-        this.olapServer.startServer();
+        this.olapServer = new OlapServer(olapPort,env.systemClock());
+        this.olapServer.startServer(configuration);
 
         /*
          * We create a new instance here rather than referring to the singleton because we have

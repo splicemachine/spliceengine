@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql;
 
-import com.splicemachine.derby.iapi.sql.olap.OlapCallable;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 
@@ -20,7 +19,7 @@ public class LocalOlapClient implements OlapClient{
     private LocalOlapClient(){ }
 
     @Override
-    public <R extends OlapResult> R submitOlapJob(OlapCallable<R> callable) throws IOException {
+    public <R extends OlapResult> R submitOlapJob(OlapJobRequest jobRequest) throws IOException {
         try {
             return callable.call();
         } catch (Exception e) {

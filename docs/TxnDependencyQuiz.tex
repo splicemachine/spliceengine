@@ -1,0 +1,110 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\begin{document}
+
+\title{Deadlock Detection}
+
+\maketitle
+
+\section{Introduction}
+Transactions are essential to the workings of an ACID database, as they provide consistency, atomicity, and isolation at the logical level across multiple rows and multiple tables. In many ways, Transactions can be considered to function much as \emph{locks} on individual rows, wherein a transaction prevents other transactions from modifying the same row of data while the first transaction carries out its modifications. This lock can be thought of as a shared-read, exclusive write lock, in that multiple readers are able to concurrently read that data, but only one transaction is allowed to write it at a time.
+
+We wish to expand on this to provide the concept of Exclusive Read-Write locks, where an individual transaction can prevent writers from modifying that row until a \emph{read} operation completes. In SQL, this would be equivalent to the "SELECT FOR UPDATE" feature. For example, consider two transactions $A$ and $B$:
+
+\begin{enumerate}
+				\item $A$ begins
+				\item $A$ reads row $R$ for update
+				\item $B$ begins
+				\item $B$ attempts to write to row $R$
+\end{enumerate}
+
+In this scenario, $B$ is prevented from writing to $R$ because $A$ has locked it.
+
+So far so good. But what if another transaction wishes to \emph{also} lock the same row? Consider the following scenario:
+
+\begin{enumerate}
+				\item $A$ begins
+				\item $A$ reads row $R$ for update
+				\item $B$ begins
+				\item $B$ attempts to read row $R$ for update
+\end{enumerate}
+
+In this scenario, $B$ is not allowed to lock that record until after $A$ has completed (otherwise, we would not be exclusive-read). Typically, this is performed by forcing $B$ to wait for the lock to be released.  In this scenario we say that $B$ is \emph{dependent} on $A$.
+
+This introduces the possibility of a deadlock:
+
+\begin{enumerate}
+				\item $A$ begins
+				\item $A$ reads row $R$ for update
+				\item $B$ begins
+				\item $B$ reads row $R'$ for update
+				\item $A$ attempts to read row $R'$ for update
+				\item $B$ attempts to read row $R$ for update
+\end{enumerate}
+
+In this event, $A$ cannot proceed because $B$ is blocking access, while $B$ cannot proceed because $A$ is blocking access. This is the classic $A-B$ deadlock, but there are many other forms. 
+
+More theoretically, for each transaction, we can define its \emph{dependency-graph}, which is a directed graph between a transaction and all of its dependencies, then on to its dependencies dependencies and so on. A \emph{deadlock} occurs whenever there is a \emph{cycle} anywhere in the dependency-graph.
+
+To add an extra wrinkle though, a lock is automatically considered released whenever a transaction completes--that is, whever a transaction either commits or rollback. Only active transactions can be part of a deadlock, and any dependency graph ends at a terminated transaction.
+
+\section{The Problem}
+We wish to detect any deadlock which may occur by forcing a transaction to wait. Thus, we will have an interface called \emph{DeadlockDetector} which will look like
+
+\begin{lstlisting}
+public interface DeadlockDetector{
+
+	void initialize(TransactionDependencyManager dependencyManager);
+
+	boolean hasDeadlock(Transaction A, Transaction B) throws IOException;
+}
+\end{lstlisting}
+
+and an interface
+
+\begin{lstlisting}
+public interface TransactionDependencyManager {
+
+	Collection<Transaction> getDependencies(Transaction txn) throws IOException;
+}
+\end{lstlisting}
+
+Your job is to provide an implementation of DeadlockDetector which 
+
+\begin{enumerate}
+				\item Returns $true$ whenever there is a deadlock in the dependency graph starting with $A$ and $B$. This includes $A-B-A$, $A-B-C-A$, and so on
+				\item Returns $true$ whenever the dependency $A-B$ would mean that $A$ would depend on a deadlocked transaction (that is, if $B$ were deadlocked, and $A$ were to depend on $B$, then $A$ is also deadlocked
+				\item Returns $false$ whenever there is no cycle in the dependency graph
+				\item Returns $false$ whenever the cycle includes a committed or rolled back transaction
+\end{enumerate}
+
+a TransactionDependencyManager will be provided as part of the test suite and is not your responsibility to implement. We love tests, so feel free to include any test code that you write to check your response!
+
+\end{document}

@@ -10,4 +10,9 @@ public class FailedOlapResult extends AbstractOlapResult {
     public FailedOlapResult(Throwable t) {
         this.throwable = t;
     }
+
+    @Override
+    public boolean isSuccess(){
+        return false;
+    }
 }
