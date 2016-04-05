@@ -1,31 +1,20 @@
 package com.splicemachine.derby.stream.spark;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.example.ExecRowUtils;
 import com.splicemachine.mrio.api.core.SMSplit;
-import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.kryo.KryoObjectInput;
-import com.splicemachine.utils.kryo.KryoObjectOutput;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
-import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.spark.Partition;
 import org.apache.spark.rdd.NewHadoopPartition;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,14 +26,16 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
     DataSet dataSet;
     transient KeyHashDecoder decoder;
     ExecRow template;
-    List<RowPartition> rowPartitions = new ArrayList<>();
+    List<RowPartition> rowPartitions;
+    List<TableSplit> tableSplits;
 
     public HBasePartitioner(DataSet dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
+        assert keyDecodingMap !=null:"Key Decoding Map is Null";
+        assert template !=null:"Template is Null";
         this.dataSet = dataSet;
         this.template = template;
         this.keyDecodingMap = keyDecodingMap;
         this.keyOrder = keyOrder;
-        initDecoder();
     }
 
     public HBasePartitioner() {
@@ -53,15 +44,11 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
     @Override
     public void initialize() {
         List<Partition> partitions = ((SparkDataSet) dataSet).rdd.partitions();
+        tableSplits = new ArrayList<>(partitions.size());
         for (Partition p : partitions) {
             NewHadoopPartition nhp = (NewHadoopPartition) p;
             SMSplit sms = (SMSplit) nhp.serializableHadoopSplit().value();
-            TableSplit ts = sms.getSplit();
-            try {
-                rowPartitions.add(new RowPartition(getRow(ts.getStartRow()), getRow(ts.getEndRow()), template.nColumns()));
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
-            }
+            tableSplits.add(sms.getSplit());
         }
     }
 
@@ -91,47 +78,44 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeObject(keyDecodingMap);
-        out.writeObject(keyOrder);
-        out.writeObject(rowPartitions);
-        KryoPool kryoPool=SpliceKryoRegistry.getInstance();
-        Kryo kryo=kryoPool.get();
-        Output output=new Output(4096,-1);
-        try{
-            kryo.writeClassAndObject(output, template);
-        }finally{
-            output.flush();
-            kryoPool.returnInstance(kryo);
+        try {
+            assert keyDecodingMap != null : "Key Decoding Map is Null";
+            ArrayUtil.writeIntArray(out, keyDecodingMap);
+            out.writeBoolean(keyOrder != null);
+            if (keyOrder != null)
+                ArrayUtil.writeBooleanArray(out, keyOrder);
+            ArrayUtil.writeIntArray(out, WriteReadUtils.getExecRowTypeFormatIds(template));
+            out.writeInt(tableSplits.size());
+            for (TableSplit ts : tableSplits)
+                out.writeObject(ts);
+        } catch (StandardException se) {
+            throw new IOException(se);
         }
-        byte[] data = output.toBytes();
-        out.writeInt(data.length);
-        out.write(data);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        keyDecodingMap = (int[]) in.readObject();
-        keyOrder = (boolean[]) in.readObject();
-        rowPartitions = (List<RowPartition>) in.readObject();
-        int size = in.readInt();
-        byte[] data = new byte[size];
-        in.readFully(data);
-        KryoPool kryoPool= SpliceKryoRegistry.getInstance();
-        Kryo kryo=kryoPool.get();
-        Input input = new Input(data);
-        try{
-            template = (ExecRow) kryo.readClassAndObject(input);
-        } finally {
-            kryoPool.returnInstance(kryo);
-            input.close();
+        try {
+            keyDecodingMap = ArrayUtil.readIntArray(in);
+            if (in.readBoolean())
+                keyOrder = ArrayUtil.readBooleanArray(in);
+            int size = in.readInt();
+            template = WriteReadUtils.getExecRowFromTypeFormatIds(ArrayUtil.readIntArray(in));
+            rowPartitions = new ArrayList<>(size);
+            getDecoder();
+            for (int i = 0; i < size; i++) {
+                TableSplit ts = (TableSplit) in.readObject();
+                rowPartitions.add(new RowPartition(getRow(ts.getStartRow()), getRow(ts.getEndRow()), template.nColumns()));
+            }
+        } catch (StandardException se) {
+            throw new IOException(se);
         }
-        initDecoder();
     }
 
-    private void initDecoder() {
+    private KeyHashDecoder getDecoder() {
         DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template.getRowArray());
         DataHash encoder = BareKeyHash.encoder(keyDecodingMap, keyOrder, serializers);
-        this.decoder = encoder.getDecoder();
+        return encoder.getDecoder();
     }
 
 

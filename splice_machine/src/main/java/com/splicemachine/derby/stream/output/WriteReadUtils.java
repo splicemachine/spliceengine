@@ -14,22 +14,6 @@ import com.splicemachine.utils.Pair;
  * Created by jleach on 5/6/15.
  */
 public class WriteReadUtils {
-    /*
-    public static void getStartAndIncrementFromSystemTables(DataDictionary metaDictionary, int columnNum, long seqConglomId,
-                                                            long autoIncStart, long autoIncrement) throws StandardException {
-        ConglomerateDescriptor conglomerateDescriptor = metaDictionary.getConglomerateDescriptor(seqConglomId);
-        TableDescriptor tableDescriptor = metaDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
-        ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
-        for (Object o : columnDescriptorList) {
-            ColumnDescriptor cd = (ColumnDescriptor) o;
-            if (cd.getPosition() == columnNum) {
-                autoIncStart = cd.getAutoincStart();
-                autoIncrement = cd.getAutoincInc();
-                break;
-            }
-        }
-    }
-    */
 
     public static int[] getExecRowTypeFormatIds(ExecRow currentTemplate) throws StandardException {
        int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
