@@ -55,8 +55,6 @@ public interface OperationInformation {
 
         public NoPutResultSet[] getSubqueryTrackingArray() throws StandardException;
 
-        DataValueDescriptor getSequenceField(byte[] uuidBytes) throws StandardException;
-
         void setCurrentRow(ExecRow row);
 
         UUIDGenerator getUUIDGenerator();

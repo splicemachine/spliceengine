@@ -13,10 +13,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
-
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
@@ -65,7 +63,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
             }
         };
         ExecRow leftTemplate = operation.getLeftOperation().getExecRowDefinition();
-        joinTable = broadcastJoinCache.get(operationContext.getOperationUUID(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), leftTemplate).newTable();
+        joinTable = broadcastJoinCache.get(operationContext.getOperation().getSequenceId(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), leftTemplate).newTable();
 
         return call(locatedRows, joinTable);
     }

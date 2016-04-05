@@ -30,7 +30,6 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void setFailBadRecordCount(int failBadRecordCount);
     boolean isFailed();
     List<String> getBadRecords();
-    byte[] getOperationUUID();
 
     enum Scope{
         READ_TEXT_FILE("Read File"),

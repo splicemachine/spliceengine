@@ -13,6 +13,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -92,6 +93,7 @@ public class BroadcastJoinOperation extends JoinOperation{
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
     protected List<ExecRow> rights;
+    protected long sequenceId;
     protected static final String NAME = BroadcastJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -123,6 +125,8 @@ public class BroadcastJoinOperation extends JoinOperation{
                 optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides);
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
+        operationInformation.getUUIDGenerator().nextBytes();
+        this.sequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
         init();
     }
 
@@ -132,6 +136,11 @@ public class BroadcastJoinOperation extends JoinOperation{
         super.readExternal(in);
         leftHashKeyItem=in.readInt();
         rightHashKeyItem=in.readInt();
+        sequenceId = in.readLong();
+    }
+
+    public long getSequenceId() {
+        return sequenceId;
     }
 
     @Override
@@ -139,6 +148,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         super.writeExternal(out);
         out.writeInt(leftHashKeyItem);
         out.writeInt(rightHashKeyItem);
+        out.writeLong(sequenceId);
     }
 
     @Override

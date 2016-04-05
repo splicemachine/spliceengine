@@ -14,7 +14,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -183,11 +182,6 @@ public class DerbyOperationInformation implements OperationInformation,Externali
         }
 
         return compactRow;
-    }
-
-    @Override
-    public DataValueDescriptor getSequenceField(byte[] uniqueSequenceId) throws StandardException {
-        return activation.getDataValueFactory().getBitDataValue(uniqueSequenceId);
     }
 
     @Override

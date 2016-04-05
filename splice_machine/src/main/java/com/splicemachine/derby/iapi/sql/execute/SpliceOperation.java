@@ -80,12 +80,6 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     void init(SpliceOperationContext context) throws IOException, StandardException;
 
 	/**
-	 * Unique node sequence id.  Should move from Zookeeper to uuid generator.
-	 * 
-	 */
-    byte[] getUniqueSequenceID();
-
-	/**
 	 * 
 	 * Gets the left Operation for a Operation.  They can be named different things in different operations (Source, LeftResultSet, etc.).  
 	 * This gives a simple method to retrieve that operation.  This needs to be implemented in each operation.

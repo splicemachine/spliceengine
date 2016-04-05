@@ -24,9 +24,7 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -51,7 +49,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected double optimizerEstimatedRowCount;
     protected double optimizerEstimatedCost;
     protected boolean isTopResultSet=false;
-    protected volatile byte[] uniqueSequenceID;
     protected ExecRow currentRow;
     protected RowLocation currentRowLocation;
     protected boolean executed=false;
@@ -102,10 +99,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.optimizerEstimatedRowCount=in.readDouble();
         this.operationInformation=(OperationInformation)in.readObject();
         isTopResultSet=in.readBoolean();
-        if(in.readBoolean()){
-            uniqueSequenceID=new byte[in.readInt()];
-            in.readFully(uniqueSequenceID);
-        }
     }
 
     @Override
@@ -115,11 +108,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         out.writeDouble(optimizerEstimatedRowCount);
         out.writeObject(operationInformation);
         out.writeBoolean(isTopResultSet);
-        out.writeBoolean(uniqueSequenceID!=null);
-        if(uniqueSequenceID!=null){
-            out.writeInt(uniqueSequenceID.length);
-            out.write(uniqueSequenceID);
-        }
     }
 
     @Override
@@ -244,7 +232,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         if(LOG.isTraceEnabled())
             LOG.trace(String.format("open operation %s",this));
         openCore();
-        this.uniqueSequenceID=operationInformation.getUUIDGenerator().nextBytes();
     }
 
     //	@Override
@@ -299,18 +286,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.activation=context.getActivation();
         this.operationInformation.initialize(context);
         this.resultSetNumber=operationInformation.getResultSetNumber();
-        this.uniqueSequenceID=operationInformation.getUUIDGenerator().nextBytes();
-    }
-
-    @Override
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
-    public byte[] getUniqueSequenceID(){
-        return uniqueSequenceID;
-    }
-
-
-    public RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
-        return bufferToTransform;
     }
 
     protected ExecRow getFromResultDescription(ResultDescription resultDescription) throws StandardException{

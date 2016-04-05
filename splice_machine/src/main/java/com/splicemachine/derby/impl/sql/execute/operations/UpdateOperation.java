@@ -156,7 +156,6 @@ public class UpdateOperation extends DMLWriteOperation{
         return modifiedPrimaryKeys;
     }
 
-    @Override
     public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
         if(modifiedPrimaryKeys(getHeapList())){
             TxnView txn=bufferToTransform.getTxn();

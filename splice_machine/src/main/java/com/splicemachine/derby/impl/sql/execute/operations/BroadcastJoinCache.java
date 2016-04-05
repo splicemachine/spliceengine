@@ -46,17 +46,15 @@ public class BroadcastJoinCache{
                 .build();
     }
 
-    public JoinTable.Factory get(byte[] operationId,
+    public JoinTable.Factory get(Long operationId,
                          Callable<Stream<ExecRow>> loader,
                          int[] rightHashKeys,
                          int[] leftHashKeys,
                          ExecRow leftTemplateRow) throws IOException, StandardException{
         try{
-            Long k=Bytes.toLong(operationId);
-            Loader callable=new Loader(k,tableLoader,rightHashKeys,leftHashKeys,leftTemplateRow,loader);
-            ReferenceCountingFactory joinTable=cache.get(k,callable);
+            Loader callable=new Loader(operationId,tableLoader,rightHashKeys,leftHashKeys,leftTemplateRow,loader);
+            ReferenceCountingFactory joinTable=cache.get(operationId,callable);
             joinTable.refCount.incrementAndGet();
-
             return joinTable;
         }catch(ExecutionException e){
             Throwable c = e.getCause();

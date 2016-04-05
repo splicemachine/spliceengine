@@ -13,7 +13,6 @@ import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;
 import org.apache.spark.AccumulatorParam;
-
 import java.sql.SQLException;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -44,7 +43,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public boolean failed;
     public int numberBadRecords=0;
     private int failBadRecordCount=-1;
-    private byte[] operationUUID;
 
     public SparkOperationContext(){
 
@@ -65,7 +63,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined right",param);
         this.rowsProduced=SpliceSpark.getContext().accumulator(0l,baseName+" rows produced",param);
         this.badRecordsAccumulable=SpliceSpark.getContext().accumulable(new ArrayList<String>(),baseName+" BadRecords",new BadRecordsAccumulator());
-        this.operationUUID=spliceOperation.getUniqueSequenceID();
     }
 
     @SuppressWarnings("unchecked")
@@ -101,12 +98,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         out.writeObject(rowsJoinedRight);
         out.writeObject(rowsProduced);
         out.writeObject(badRecordsAccumulable);
-        if(operationUUID!=null){
-            out.writeInt(operationUUID.length);
-            out.write(operationUUID);
-        }else{
-            out.writeInt(-1);
-        }
     }
 
     @Override
@@ -128,11 +119,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         rowsJoinedRight=(Accumulator<Long>)in.readObject();
         rowsProduced=(Accumulator<Long>)in.readObject();
         badRecordsAccumulable=(Accumulable<List<String>, String>)in.readObject();
-        int len=in.readInt();
-        if(len>0){
-            operationUUID=new byte[len];
-            in.readFully(operationUUID);
-        }
     }
 
     @Override
@@ -260,12 +246,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         }
         return badRecords;
     }
-
-    @Override
-    public byte[] getOperationUUID(){
-        return operationUUID;
-    }
-
 
     @Override
     public boolean isPermissive(){
