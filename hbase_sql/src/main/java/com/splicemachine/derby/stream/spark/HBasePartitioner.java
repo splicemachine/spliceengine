@@ -12,7 +12,6 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.mrio.api.core.SMSplit;
-import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.spark.Partition;
 import org.apache.spark.rdd.NewHadoopPartition;
@@ -106,10 +105,13 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
             decoder = getDecoder();
             for (int i = 0; i < size; i++) {
                 TableSplit ts = (TableSplit) in.readObject();
-                byte[] start = ts.getStartRow();
-                byte[] stop = ts.getEndRow();
-                if (start == null || !Bytes.equals(start,stop))
-                    rowPartitions.add(new RowPartition(getRow(start), getRow(stop), template.nColumns()));
+                ExecRow start = getRow(ts.getStartRow());
+                ExecRow end = getRow(ts.getEndRow());
+                if (start != null && start.equals(end)) {
+                    // this would be an empty partition, with the same start and end key, so don't add it
+                    continue;
+                }
+                rowPartitions.add(new RowPartition(start, end, template.nColumns()));
             }
         } catch (StandardException se) {
             throw new IOException(se);
