@@ -220,20 +220,6 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> f) {
-        try {
-            return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> f, boolean isLast) {
-        return offset(f);
-    }
-
-    @Override
     public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> f) {
         try {
             return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
@@ -269,6 +255,18 @@ public class ControlDataSet<V> implements DataSet<V> {
             }
         }
 
+    }
+
+    @Override
+    public PairDataSet<V, Long> zipWithIndex() {
+        return new ControlPairDataSet<V, Long>(Iterables.transform(iterable, new Function<V, Tuple2<V, Long>>() {
+            long counter = 0;
+            @Nullable
+            @Override
+            public Tuple2<V, Long> apply(@Nullable V v) {
+                return new Tuple2<>(v, counter++);
+            }
+        }));
     }
 
     @Override

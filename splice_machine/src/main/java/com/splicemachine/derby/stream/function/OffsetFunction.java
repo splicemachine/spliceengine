@@ -1,75 +1,82 @@
 package com.splicemachine.derby.stream.function;
 
+import com.google.common.base.Function;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterators;
+import org.sparkproject.guava.collect.PeekingIterator;
+import scala.Tuple2;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
-import static org.sparkproject.guava.base.Preconditions.checkArgument;
-import static org.sparkproject.guava.base.Preconditions.checkNotNull;
 
 /**
  * Created by jleach on 11/3/15.
  */
-public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapFunction<Op,Iterator<V>,V> {
-    int offset;
+public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapFunction<Op, Iterator<Tuple2<V, Long>>, V> {
+    private long limit;
+    private long offset;
     public OffsetFunction() {
         super();
     }
 
-    public OffsetFunction(OperationContext<Op> operationContext, int offset) {
+    public OffsetFunction(OperationContext<Op> operationContext, long offset, long limit) {
         super(operationContext);
         this.offset = offset;
+        this.limit = limit;
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeInt(offset);
-
+        out.writeLong(offset);
+        out.writeLong(limit);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        offset = in.readInt();
+        offset = in.readLong();
+        limit = in.readLong();
     }
 
     @Override
-    public Iterable<V> call(final Iterator<V> locatedRowIterator) throws Exception {
-        return new Iterable<V>() {
-            @Override
-            public Iterator<V> iterator() {
-                int actualOffset = advance(locatedRowIterator,offset);
-                if (offset != actualOffset)
-                    return Collections.<V>emptyList().iterator();
-                return locatedRowIterator;
+    public Iterable<V> call(Iterator<Tuple2<V, Long>> in) throws Exception {
+        final PeekingIterator<Tuple2<V, Long>> peeking = Iterators.peekingIterator(in);
+        while(peeking.hasNext()) {
+            Tuple2<V, Long> tuple = peeking.peek();
+            long index = tuple._2();
+            if (index < offset) {
+                peeking.next();
+                continue; //skip until index >= offset
             }
-        };
-    }
 
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    /**
-     * Copied here out of {@link org.sparkproject.guava.collect.Iterators}, because the name
-     * changed from version 12.0.1 to 13.
-     *
-     * Calls {@code next()} on {@code iterator}, either {@code numberToAdvance} times
-     * or until {@code hasNext()} returns {@code false}, whichever comes first.
-     *
-     * @return the number of elements the iterator was advanced
-     * @since 13.0 (since 3.0 as {@code Iterators.skip})
-     */
-    private static int advance(Iterator<?> iterator, int numberToAdvance) {
-        assert iterator !=null: "No iterator provided!";
-        assert numberToAdvance>=0: "Cannot be negative advance!";
-
-        int i;
-        for (i = 0; i < numberToAdvance && iterator.hasNext(); i++) {
-            iterator.next();
+            // create iterator with offset applied
+            Iterable<Tuple2<V, Long>> result = new Iterable<Tuple2<V, Long>>() {
+                @Override
+                public Iterator<Tuple2<V, Long>> iterator() {
+                    return peeking;
+                }
+            };
+            // if limit, apply it
+            if (limit > 0) {
+                result = Iterables.limit(result, (int) (offset - index + limit));
+            }
+            // take only the values
+            return Iterables.transform(result, new Function<Tuple2<V, Long>, V>() {
+                @Nullable
+                @Override
+                public V apply(@Nullable Tuple2<V, Long> tuple) {
+                    return tuple._1();
+                }
+            });
         }
-        return i;
+        // consumed
+        return Collections.emptyList();
     }
 }

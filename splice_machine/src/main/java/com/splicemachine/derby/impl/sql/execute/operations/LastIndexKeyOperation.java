@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -18,6 +19,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class LastIndexKeyOperation extends ScanOperation {
@@ -120,7 +122,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 
         OperationContext<SpliceOperation> operationContext = dsp.<SpliceOperation>createOperationContext(this);
         return scan.take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))
-                .coalesce(1,true)
+                .coalesce(1,false)
                 .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1));
     }
 }

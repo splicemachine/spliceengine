@@ -224,8 +224,8 @@ public class OnceOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        // Not Lazy?
-        DataSet<LocatedRow> raw = source.getDataSet(dsp);
+        // We are consuming the dataset, get a resultDataSet
+        DataSet<LocatedRow> raw = source.getResultDataSet(dsp);
         final Iterator<LocatedRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {

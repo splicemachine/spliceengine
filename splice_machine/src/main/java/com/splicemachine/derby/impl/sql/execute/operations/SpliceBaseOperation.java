@@ -783,4 +783,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             throw Exceptions.parseException(e);
         }
     }
+
+    @Override
+    public DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
+        return getDataSet(dsp);
+    }
 }

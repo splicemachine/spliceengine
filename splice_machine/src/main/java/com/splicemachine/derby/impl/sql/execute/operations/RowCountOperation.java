@@ -1,11 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.stream.control.ControlDataSet;
 import org.sparkproject.guava.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.function.OffsetFunction;
-import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -15,12 +15,13 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import org.sparkproject.guava.collect.Iterators;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -171,33 +172,33 @@ public class RowCountOperation extends SpliceBaseOperation {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        long fetchLimit = getFetchLimit();
+        final long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
-        
-        if (fetchLimit == 0) { // No Fetch, just offset
-            operationContext.pushScopeForOp(String.format("Offset %d", offset));
-            try {
-                return sourceSet.coalesce(1, true)
-                        .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset), true);
-            } finally {
-                operationContext.popScope();
-            }
-        } else {
-            fetchLimit = fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE;
-            operationContext.pushScopeForOp(String.format("Fetch Limit %d", (int)(offset + fetchLimit)));
-            try {
-                DataSet takeData = sourceSet.take(
-                    new TakeFunction<SpliceOperation, LocatedRow>(
-                        operationContext,
-                        (int) (offset + fetchLimit)));
-                DataSet coalesce = takeData.coalesce(1, false);
-                return coalesce.offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset), true);
-            } finally {
-                operationContext.popScope();
-            }
+        return sourceSet.zipWithIndex().mapPartitions(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, offset, fetchLimit));
+    }
+
+    @Override
+    public DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
+        final long fetchLimit = getFetchLimit();
+        long offset = getTotalOffset();
+        if (offset > 0) {
+            // no optimization, return getDataSet()
+            return getDataSet(dsp);
         }
+        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
+        if (fetchLimit > 0) {
+            // Apply limit on control side
+            final DataSet<LocatedRow> finalSourceSet = sourceSet;
+            sourceSet = new ControlDataSet<>(new Iterable<LocatedRow>() {
+                @Override
+                public Iterator<LocatedRow> iterator() {
+                    return  Iterators.limit(finalSourceSet.toLocalIterator(), (int) fetchLimit);
+                }
+            });
+        }
+        return sourceSet;
     }
     
     @Override

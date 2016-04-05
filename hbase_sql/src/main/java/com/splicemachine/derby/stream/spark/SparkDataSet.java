@@ -247,27 +247,17 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction) {
-        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(offsetFunction)),offsetFunction.getSparkName());
-    }
-
-    @Override
-    public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction, boolean isLast) {
-        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(offsetFunction)),planIfLast(offsetFunction,isLast));
-    }
-
-    @Override
     public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction) {
         JavaRDD<V> rdd1 = rdd.mapPartitions(new SparkFlatMapFunction<>(takeFunction));
         rdd1.setName(takeFunction.getSparkName());
-        
+
         JavaRDD<V> rdd2 = rdd1.coalesce(1, false);
         rdd2.setName("Coalesce 1 partition");
         RDDUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
-        
+
         JavaRDD<V> rdd3 = rdd2.mapPartitions(new SparkFlatMapFunction<>(takeFunction));
         rdd3.setName(takeFunction.getSparkName());
-        
+
         return new SparkDataSet<>(rdd3);
     }
 
@@ -330,6 +320,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public void saveAsTextFile(String path) {
         rdd.saveAsTextFile(path);
+    }
+
+    @Override
+    public PairDataSet<V, Long> zipWithIndex() {
+        return new SparkPairDataSet<>(rdd.zipWithIndex());
     }
 
     @Override
