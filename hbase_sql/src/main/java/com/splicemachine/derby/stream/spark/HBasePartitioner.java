@@ -12,6 +12,7 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.mrio.api.core.SMSplit;
+import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.spark.Partition;
 import org.apache.spark.rdd.NewHadoopPartition;
@@ -48,7 +49,12 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
         for (Partition p : partitions) {
             NewHadoopPartition nhp = (NewHadoopPartition) p;
             SMSplit sms = (SMSplit) nhp.serializableHadoopSplit().value();
-            tableSplits.add(sms.getSplit());
+            TableSplit ts = sms.getSplit();
+            if (ts.getStartRow() != null && Bytes.equals(ts.getStartRow(),ts.getEndRow())) {
+                // this would be an empty partition, with the same start and end key, so don't add it
+                continue;
+            }
+            tableSplits.add(ts);
         }
     }
 
@@ -63,7 +69,7 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
 
     @Override
     public int numPartitions() {
-        return rowPartitions.size();
+        return rowPartitions!=null?rowPartitions.size():tableSplits.size();
     }
 
     @Override
@@ -86,8 +92,10 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
                 ArrayUtil.writeBooleanArray(out, keyOrder);
             ArrayUtil.writeIntArray(out, WriteReadUtils.getExecRowTypeFormatIds(template));
             out.writeInt(tableSplits.size());
-            for (TableSplit ts : tableSplits)
-                out.writeObject(ts);
+            for (TableSplit ts : tableSplits) {
+                writeNullableByteArray(out,ts.getStartRow());
+                writeNullableByteArray(out,ts.getEndRow());
+            }
         } catch (StandardException se) {
             throw new IOException(se);
         }
@@ -99,18 +107,13 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
             keyDecodingMap = ArrayUtil.readIntArray(in);
             if (in.readBoolean())
                 keyOrder = ArrayUtil.readBooleanArray(in);
-            int size = in.readInt();
             template = WriteReadUtils.getExecRowFromTypeFormatIds(ArrayUtil.readIntArray(in));
+            int size = in.readInt();
             rowPartitions = new ArrayList<>(size);
             decoder = getDecoder();
             for (int i = 0; i < size; i++) {
-                TableSplit ts = (TableSplit) in.readObject();
-                ExecRow start = getRow(ts.getStartRow());
-                ExecRow end = getRow(ts.getEndRow());
-                if (start != null && start.equals(end)) {
-                    // this would be an empty partition, with the same start and end key, so don't add it
-                    continue;
-                }
+                ExecRow start = getRow(readNullableByteArray(in));
+                ExecRow end = getRow(readNullableByteArray(in));
                 rowPartitions.add(new RowPartition(start, end, template.nColumns()));
             }
         } catch (StandardException se) {
@@ -177,4 +180,20 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
             initKeys();
         }
     }
+
+    private static void writeNullableByteArray(ObjectOutput out, byte[] value) throws IOException {
+        out.writeBoolean(value!=null);
+        if (value!=null) {
+            out.writeInt(value.length);
+            out.write(value);
+        }
+    }
+    private static byte[] readNullableByteArray(ObjectInput in) throws IOException {
+        if (!in.readBoolean())
+            return null;
+        byte[] value = new byte[in.readInt()];
+        in.readFully(value);
+        return value;
+    }
+
 }
