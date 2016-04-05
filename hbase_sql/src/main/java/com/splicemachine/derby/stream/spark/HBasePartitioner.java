@@ -102,7 +102,7 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
             int size = in.readInt();
             template = WriteReadUtils.getExecRowFromTypeFormatIds(ArrayUtil.readIntArray(in));
             rowPartitions = new ArrayList<>(size);
-            getDecoder();
+            decoder = getDecoder();
             for (int i = 0; i < size; i++) {
                 TableSplit ts = (TableSplit) in.readObject();
                 rowPartitions.add(new RowPartition(getRow(ts.getStartRow()), getRow(ts.getEndRow()), template.nColumns()));
