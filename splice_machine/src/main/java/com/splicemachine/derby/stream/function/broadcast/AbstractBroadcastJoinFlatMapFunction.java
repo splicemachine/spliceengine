@@ -63,7 +63,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
             }
         };
         ExecRow leftTemplate = operation.getLeftOperation().getExecRowDefinition();
-        joinTable = broadcastJoinCache.get(operationContext.getOperation().getSequenceId(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), leftTemplate).newTable();
+        joinTable = broadcastJoinCache.get(operation.getSequenceId(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), leftTemplate).newTable();
 
         return call(locatedRows, joinTable);
     }
