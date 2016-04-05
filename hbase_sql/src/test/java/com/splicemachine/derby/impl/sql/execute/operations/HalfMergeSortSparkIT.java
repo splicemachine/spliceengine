@@ -22,11 +22,8 @@ import java.sql.Statement;
 import static org.junit.Assert.assertTrue;
 
 /**
- * A Collection of ITs oriented around scanning and inserting into our own table.
- *
- * Similar to SelfInsertIT but with dependencies on HBase/Spark
+ * ITs for HalfMergeSort on Spark, exercise HBasePartitioner etc.
  */
-@Category(SlowTest.class)
 public class HalfMergeSortSparkIT {
     private static Logger LOG=Logger.getLogger(HalfMergeSortSparkIT.class);
 
