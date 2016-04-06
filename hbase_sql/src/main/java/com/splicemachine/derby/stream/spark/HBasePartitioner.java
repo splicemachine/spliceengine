@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.spark;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
@@ -29,14 +30,16 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
     ExecRow template;
     List<RowPartition> rowPartitions;
     List<TableSplit> tableSplits;
+    private int[] rightHashKeys;
 
-    public HBasePartitioner(DataSet dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
+    public HBasePartitioner(DataSet dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         assert keyDecodingMap !=null:"Key Decoding Map is Null";
         assert template !=null:"Template is Null";
         this.dataSet = dataSet;
         this.template = template;
         this.keyDecodingMap = keyDecodingMap;
         this.keyOrder = keyOrder;
+        this.rightHashKeys = rightHashKeys;
     }
 
     public HBasePartitioner() {
@@ -50,7 +53,7 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
             NewHadoopPartition nhp = (NewHadoopPartition) p;
             SMSplit sms = (SMSplit) nhp.serializableHadoopSplit().value();
             TableSplit ts = sms.getSplit();
-            if (ts.getStartRow() != null && Bytes.equals(ts.getStartRow(),ts.getEndRow())) {
+            if (ts.getStartRow() != null && Bytes.equals(ts.getStartRow(),ts.getEndRow()) && ts.getStartRow().length > 0) {
                 // this would be an empty partition, with the same start and end key, so don't add it
                 continue;
             }
@@ -64,7 +67,12 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
         }
         decoder.set(bytesRow, 0, bytesRow.length);
         decoder.decode(template);
-        return template.getClone();
+        // Decode to template and then move towards a key based comparison
+        ExecRow hashRow = new ValueRow(rightHashKeys.length);
+        for (int i =0;i<rightHashKeys.length;i++) {
+            hashRow.setColumn(i+1,template.cloneColumn(rightHashKeys[i]+1));
+        }
+        return hashRow;
     }
 
     @Override
@@ -79,6 +87,8 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
 
     public int getPartition(ExecRow row) {
         int result = Collections.binarySearch(rowPartitions, row);
+        if (result < 0)
+            return 0;
         return result;
     }
 
@@ -86,37 +96,40 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
     public void writeExternal(ObjectOutput out) throws IOException {
         try {
             assert keyDecodingMap != null : "Key Decoding Map is Null";
+            assert rightHashKeys != null : "Right Hash Keys are Null";
             ArrayUtil.writeIntArray(out, keyDecodingMap);
             out.writeBoolean(keyOrder != null);
             if (keyOrder != null)
                 ArrayUtil.writeBooleanArray(out, keyOrder);
             ArrayUtil.writeIntArray(out, WriteReadUtils.getExecRowTypeFormatIds(template));
+            ArrayUtil.writeIntArray(out,rightHashKeys);
             out.writeInt(tableSplits.size());
             for (TableSplit ts : tableSplits) {
                 writeNullableByteArray(out,ts.getStartRow());
                 writeNullableByteArray(out,ts.getEndRow());
             }
-        } catch (StandardException se) {
+        } catch (Exception se) {
             throw new IOException(se);
         }
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal(ObjectInput in) throws IOException {
         try {
             keyDecodingMap = ArrayUtil.readIntArray(in);
             if (in.readBoolean())
                 keyOrder = ArrayUtil.readBooleanArray(in);
             template = WriteReadUtils.getExecRowFromTypeFormatIds(ArrayUtil.readIntArray(in));
+            rightHashKeys = ArrayUtil.readIntArray(in);
             int size = in.readInt();
             rowPartitions = new ArrayList<>(size);
             decoder = getDecoder();
             for (int i = 0; i < size; i++) {
                 ExecRow start = getRow(readNullableByteArray(in));
                 ExecRow end = getRow(readNullableByteArray(in));
-                rowPartitions.add(new RowPartition(start, end, template.nColumns()));
+                rowPartitions.add(new RowPartition(start, end));
             }
-        } catch (StandardException se) {
+        } catch (Exception se) {
             throw new IOException(se);
         }
     }
@@ -125,60 +138,6 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
         DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template.getRowArray());
         DataHash encoder = BareKeyHash.encoder(keyDecodingMap, keyOrder, serializers);
         return encoder.getDecoder();
-    }
-
-
-    private static class RowPartition implements Comparable<ExecRow>, Externalizable {
-        ExecRow firstRow;
-        ExecRow lastRow;
-        int nCols;
-        int[] keys;
-
-        public RowPartition(ExecRow firstRow, ExecRow lastRow, int nCols) {
-            this.firstRow = firstRow;
-            this.lastRow = lastRow;
-            this.nCols = nCols;
-            initKeys();
-        }
-
-        public RowPartition() {
-        }
-
-        private void initKeys() {
-            keys = new int[nCols];
-            for (int i = 0; i<nCols; ++i) {
-                keys[i] = i + 1;
-            }
-        }
-
-        @Override
-        public int compareTo(ExecRow o) {
-            int comparison;
-            if (lastRow != null) {
-                comparison = lastRow.compareTo(keys, o);
-                if (comparison <= 0) return comparison;
-            }
-            if (firstRow != null) {
-                comparison = firstRow.compareTo(keys, o);
-                if (comparison >= 0) return 1;
-            }
-            return 0;
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeObject(firstRow);
-            out.writeObject(lastRow);
-            out.writeInt(nCols);
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            firstRow = (ExecRow) in.readObject();
-            lastRow = (ExecRow) in.readObject();
-            nCols = in.readInt();
-            initKeys();
-        }
     }
 
     private static void writeNullableByteArray(ObjectOutput out, byte[] value) throws IOException {

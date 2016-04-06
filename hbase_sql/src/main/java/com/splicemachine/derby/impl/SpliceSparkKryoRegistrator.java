@@ -28,7 +28,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.Derb
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stream.ActivationHolder;import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.spark.HBasePartitioner;
+import com.splicemachine.derby.stream.spark.RowPartition;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.kvpair.KVPair;
@@ -638,5 +641,9 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         });
 
         instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(HBasePartitioner.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(RowPartition.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(HalfMergeSortJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(HalfMergeSortLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
     }
 }

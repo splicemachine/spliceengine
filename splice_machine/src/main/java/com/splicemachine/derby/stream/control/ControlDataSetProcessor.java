@@ -285,7 +285,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
+    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         return NOOP_PARTITIONER;
     }
 

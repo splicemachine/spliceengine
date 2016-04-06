@@ -103,5 +103,5 @@ public interface DataSetProcessor {
      */
     void stopJobGroup(String jobName);
 
-    Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder);
+    Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys);
 }

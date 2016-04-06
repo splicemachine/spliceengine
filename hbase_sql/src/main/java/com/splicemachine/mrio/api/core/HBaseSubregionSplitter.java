@@ -11,6 +11,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -49,13 +50,13 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                                 instance.computeSplits(controller, message, rpcCallback);
                                 SpliceMessage.SpliceSplitServiceResponse response = rpcCallback.get();
                                 List<InputSplit> result =new ArrayList<>();
-                                byte[] first = startKey;
-                                for (ByteString cutpoint : response.getCutPointList()) {
-                                    byte[] end = cutpoint.toByteArray();
+                                Iterator<ByteString> it = response.getCutPointList().iterator();
+                                byte[] first = it.next().toByteArray();
+                                while (it.hasNext()) {
+                                    byte[] end = it.next().toByteArray();
                                     result.add(new SMSplit(new TableSplit(tableSplit.getTable(), first, end, tableSplit.getRegionLocation())));
                                     first = end;
                                 }
-                                result.add(new SMSplit(new TableSplit(tableSplit.getTable(), first, stopKey, tableSplit.getRegionLocation())));
                                 return result;
                             }
                         });

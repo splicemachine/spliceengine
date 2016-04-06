@@ -240,16 +240,9 @@ public class Scans extends SpliceUtils {
                         generateStartKey = false; // if any null encountered, don't make a start key
                         break;
                     }
-                    // for merge join scan it can happen that we are joining by not all of the accessed columns
-                    // and we need to consider hashkeys positions for picked startKeyValues
-                    if(!isEmpty(startScanKeys) && !isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[startScanKeys[i]]];
-                        if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
-                            startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
-                        }
-                    }
-                    // for other scans we just rely on key table positions
-                    else if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0) {
+
+                    // we just rely on key table positions
+                    if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0) {
                         int targetColFormatId = columnTypes[keyDecodingMap[i]];
                         if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
@@ -268,16 +261,9 @@ public class Scans extends SpliceUtils {
                         generateStopKey = false; // if any null encountered, don't make a stop key
                         break;
                     }
-                    // for merge join scan it can happen that we are joining by not all of the accessed columns
-                    // and we need to consider hashkeys positions for picked stopKeyValues
-                    if(!isEmpty(startScanKeys) && !isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[startScanKeys[i]]];
-                        if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
-                            stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
-                        }
-                    }
-                    // for other scans we just rely on key table positions
-                    else if (!isEmpty(keyDecodingMap)) {
+
+                    //  we just rely on key table positions
+                    if (!isEmpty(keyDecodingMap)) {
                         int targetColFormatId = columnTypes[keyDecodingMap[i]];
                         if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);

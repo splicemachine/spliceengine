@@ -65,6 +65,7 @@ public class HRegionUtil extends BaseHRegionUtil{
         HFile.Reader fileReader;
         List<byte[]> cutPoints = new ArrayList<byte[]>();
         int carry = 0;
+
         byte[] regionStart = store.getRegionInfo().getStartKey();
         byte[] regionEnd = store.getRegionInfo().getEndKey();
         if (regionStart != null && regionStart.length > 0) {
@@ -100,6 +101,12 @@ public class HRegionUtil extends BaseHRegionUtil{
                 }
             });
         }
+
+        // add region start key at beginning
+        cutPoints.add(0, store.getRegionInfo().getStartKey());
+        // add region end key at end
+        cutPoints.add(store.getRegionInfo().getEndKey());
+
         if (LOG.isTraceEnabled()) {
             HRegionInfo regionInfo = store.getRegionInfo();
             String startKey = "\"" + Bytes.toStringBinary(regionInfo.getStartKey()) + "\"";

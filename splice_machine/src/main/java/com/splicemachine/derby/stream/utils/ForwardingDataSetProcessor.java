@@ -7,8 +7,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-
 import java.io.InputStream;
 
 /**
@@ -138,8 +136,8 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
-        return delegate.getPartitioner(dataSet, template, keyDecodingMap, keyOrder);
+    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
+        return delegate.getPartitioner(dataSet, template, keyDecodingMap, keyOrder,rightHashKeys);
     }
 }
 

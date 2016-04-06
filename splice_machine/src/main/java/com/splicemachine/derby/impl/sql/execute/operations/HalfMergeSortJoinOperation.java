@@ -19,7 +19,10 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.utils.IntArrays;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.primitives.Ints;
+
 import java.util.Arrays;
 
 /**
@@ -99,33 +102,19 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
         ScanOperation scanOperation = getScanOperation(rightResultSet);
 
         boolean[] ascDescInfo = scanOperation.getAscDescInfo();
-        boolean[] result = new boolean[rightHashKeys.length];
+        boolean[] result = new boolean[scanOperation.getKeyDecodingMap().length];
         if (ascDescInfo == null) {
             // primary-key, all ascending
             Arrays.fill(result, true);
             return result;
         }
-        for (int i = 0; i < rightHashKeys.length; i++) {
-            result[i] = ascDescInfo[i];
-        }
-        return result;
+        return ascDescInfo;
     }
 
     private Partitioner getPartitioner(DataSetProcessor dsp) throws StandardException {
-        ExecRow right = rightResultSet.getExecRowDefinition();
         ScanOperation scanOperation = getScanOperation(rightResultSet);
-        DataValueDescriptor[] rightArray = right.getNewNullRow().getRowArray();
-        DataValueDescriptor[] dvds;
-        if (rightArray.length == rightHashKeys.length) {
-            dvds = rightArray;
-        } else {
-            dvds = new DataValueDescriptor[rightHashKeys.length];
-            for (int i = 0; i < dvds.length; ++i) {
-                dvds[i] = rightArray[i];
-            }
-        }
-        ValueRow template = new ValueRow(dvds.length);
-        template.setRowArray(dvds);
-        return dsp.getPartitioner(rightResultSet.getDataSet(dsp), template, scanOperation.getKeyDecodingMap(), getRightOrder());
+        scanOperation.getExecRowDefinition().getNewNullRow();
+        return dsp.getPartitioner(rightResultSet.getDataSet(dsp),scanOperation.getExecRowDefinition().getNewNullRow()
+                , scanOperation.getKeyDecodingMap(), getRightOrder(),rightHashKeys);
     }
 }
