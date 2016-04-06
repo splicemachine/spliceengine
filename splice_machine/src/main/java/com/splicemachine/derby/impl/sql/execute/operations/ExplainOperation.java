@@ -1,6 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Function;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import org.sparkproject.guava.collect.Iterables;
 import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -103,7 +106,8 @@ public class ExplainOperation extends SpliceBaseOperation {
         String sql = activation.getPreparedStatement().getSource();
         Collection<QueryTreeNode> opPlanMap = m.get(sql);
         if(opPlanMap!=null){
-            explainStringIter = PlanPrinter.planToIterator(opPlanMap);
+            boolean useSpark = PlanPrinter.shouldUseSpark(opPlanMap);
+            explainStringIter = PlanPrinter.planToIterator(opPlanMap, useSpark);
         }else
             explainStringIter =Iterators.emptyIterator();
     }

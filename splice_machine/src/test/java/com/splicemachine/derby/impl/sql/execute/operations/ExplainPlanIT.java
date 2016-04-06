@@ -7,9 +7,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
+import java.math.BigDecimal;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.RowId;
+
+import static java.lang.String.format;
 
 /**
  * Created by jyuan on 10/7/14.
@@ -27,7 +32,32 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher);
+            .around(spliceTableWatcher)
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description){
+                    try{
+                        PreparedStatement ps=spliceClassWatcher.prepareStatement(format("insert into %s.%s values (?)",CLASS_NAME,TABLE_NAME));
+                        for(int i=0;i<10;i++){
+                            ps.setInt(1, i);
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+                        ps = spliceClassWatcher.prepareStatement(
+                                format("insert into %s.%s select * from %s.%s", CLASS_NAME,TABLE_NAME, CLASS_NAME,TABLE_NAME));
+                        for (int i = 0; i < 11; ++i) {
+                            ps.execute();
+                        }
+                        ps = spliceClassWatcher.prepareStatement(format("analyze schema %s", CLASS_NAME));
+                        ps.execute();
+                    }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }finally{
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+
+            });
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -83,5 +113,19 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             ++count2;
         }
         Assert.assertTrue(count1 == count2);
+    }
+
+    @Test
+    public void testUseSpark() throws Exception {
+        String sql = format("explain select * from %s.%s --SPLICE-PROPERTIES useSpark=false", CLASS_NAME, TABLE_NAME);
+        ResultSet rs  = methodWatcher.executeQuery(sql);
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+
+        sql = format("explain select * from %s.%s", CLASS_NAME, TABLE_NAME);
+        rs  = methodWatcher.executeQuery(sql);
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan contains useSpark=true", rs.getString(1).contains("engine=Spark"));
+
     }
 }
