@@ -43,7 +43,7 @@ public class FileFunction extends AbstractFileFunction<String> {
      */
     @Override
     public Iterable<LocatedRow> call(final String s) throws Exception {
-        if (operationContext.isFailed() && ! operationContext.isPermissive())
+        if (operationContext.isFailed())
             return Collections.EMPTY_LIST;
         if (!initialized) {
             Reader reader = new StringReader(s);
