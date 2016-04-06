@@ -2,6 +2,7 @@ package com.splicemachine.db.impl.ast;
 
 import com.google.common.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -60,7 +61,9 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             Map<String, Collection<QueryTreeNode>> m=planMap.get();
             m.put(query,orderedNodes);
             if (LOG.isDebugEnabled()){
-                Iterator<String> nodes = planToIterator(orderedNodes);
+                CompilerContext.DataSetProcessorType currentType = rsn.getCompilerContext().getDataSetProcessorType();
+                boolean useSpark = shouldUseSpark(orderedNodes);
+                Iterator<String> nodes = planToIterator(orderedNodes, useSpark);
                 StringBuffer sb = new StringBuffer();
                 while (nodes.hasNext())
                     sb.append(nodes.next()+"\n");
@@ -72,6 +75,22 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return node;
     }
 
+    public static boolean shouldUseSpark(Collection<QueryTreeNode> opPlanMap) {
+        boolean useSpark = false;
+        for (QueryTreeNode node : opPlanMap) {
+            if (node instanceof FromBaseTable) {
+                CompilerContext.DataSetProcessorType dataSetProcessorType
+                        = ((FromBaseTable) node).getDataSetProcessorType();
+                if (dataSetProcessorType == CompilerContext.DataSetProcessorType.FORCED_SPARK ||
+                        dataSetProcessorType == CompilerContext.DataSetProcessorType.SPARK) {
+                    useSpark = true;
+                    break;
+                }
+            }
+        }
+
+        return useSpark;
+    }
 
     public static Map without(Map m, Object... keys){
         for (Object k: keys){
@@ -358,14 +377,14 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
 
-    public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes) throws StandardException {
+    public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final boolean useSpark) throws StandardException {
         return Iterators.transform(orderedNodes.iterator(), new Function<QueryTreeNode, String>() {
             int i = 0;
 
             @Override
             public String apply(QueryTreeNode queryTreeNode) {
                 try {
-                    return queryTreeNode.printExplainInformation(orderedNodes.size() - i);
+                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, useSpark);
                 } catch (StandardException se) {
                     throw new RuntimeException(se);
                 } finally {

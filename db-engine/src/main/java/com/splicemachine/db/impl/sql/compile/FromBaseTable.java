@@ -2187,10 +2187,11 @@ public class FromBaseTable extends FromTable {
         }
         // Set Spark Baby...
         if (dataSetProcessorType.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
-            getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000)
-            acb.setDataSetProcessorType(CompilerContext.DataSetProcessorType.SPARK);
-        else
-            acb.setDataSetProcessorType(dataSetProcessorType);
+            getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000) {
+            dataSetProcessorType = CompilerContext.DataSetProcessorType.SPARK;
+        }
+
+        acb.setDataSetProcessorType(dataSetProcessorType);
 
         //
         int indexColItem=-1;
@@ -3335,5 +3336,9 @@ public class FromBaseTable extends FromTable {
                 "existsBaseTable: " + existsBaseTable + "<br/>" +
                 "dependencyMap: " + Objects.toString(dependencyMap) +
                 super.toHTMLString();
+    }
+
+    public CompilerContext.DataSetProcessorType getDataSetProcessorType() {
+        return dataSetProcessorType;
     }
 }
