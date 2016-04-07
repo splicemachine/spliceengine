@@ -21,14 +21,27 @@ package com.splicemachine.db.iapi.services.loader;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.LinkedHashMap;
-import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import org.sparkproject.guava.cache.CacheBuilder;
+import org.sparkproject.guava.cache.CacheLoader;
+import org.sparkproject.guava.cache.LoadingCache;
 
 public class ClassInfo implements InstanceGetter {
 
     private static final Class[] NO_PARAMETERS = new Class[0];
     private static final Object[] NO_ARGUMENTS = new Object[0];
-    private static final NoArgumentConstructorMap CONSTRUCTOR_CACHE = new NoArgumentConstructorMap(100);
+    private static final LoadingCache<Class, Constructor> CONSTRUCTOR_CACHE = CacheBuilder.newBuilder().concurrencyLevel(64).
+    maximumSize(100).expireAfterAccess(5, TimeUnit.MINUTES).build(new ConstructorCacheLoader());
+
+    private static class ConstructorCacheLoader extends CacheLoader<Class, Constructor> {
+
+        @Override
+        public Constructor load(Class clazz) throws Exception {
+            return clazz.getConstructor(NO_PARAMETERS);
+        }
+    }
 
     private final Class clazz;
     private boolean useConstructor = true;
@@ -72,8 +85,8 @@ public class ClassInfo implements InstanceGetter {
         if (noArgConstructor == null) {
 
             try {
-                noArgConstructor = CONSTRUCTOR_CACHE.getNoArgConstructor(clazz);
-            } catch (NoSuchMethodException nsme) {
+                noArgConstructor = CONSTRUCTOR_CACHE.get(clazz);
+            } catch (ExecutionException e) {
                 // let Class.newInstance() generate the exception
                 useConstructor = false;
                 return clazz.newInstance();
@@ -91,30 +104,4 @@ public class ClassInfo implements InstanceGetter {
             return null;
         }
     }
-
-
-    // LRU CACHE
-    private static class NoArgumentConstructorMap extends LinkedHashMap<String, Constructor<?>> {
-        private int maxCapacity;
-
-        public NoArgumentConstructorMap(int maxCapacity) {
-            super(0, 0.75F, true);
-            this.maxCapacity = maxCapacity;
-        }
-
-        @Override
-        protected boolean removeEldestEntry(Entry eldest) {
-            return size() >= this.maxCapacity;
-        }
-
-        public synchronized Constructor<?> getNoArgConstructor(Class<?> clazz) throws NoSuchMethodException {
-            String cacheKey = clazz.getCanonicalName();
-            if (!this.containsKey(cacheKey)) {
-                this.put(cacheKey, clazz.getConstructor(NO_PARAMETERS));
-            }
-            return this.get(cacheKey);
-        }
-
-    }
-
 }
