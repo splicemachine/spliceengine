@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
  * @author P Trolard
  *         Date: 26/11/2013
  */
+@Ignore("DB-4913")
 public class HalfSortMergeJoinIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(HalfSortMergeJoinIT.class);
 

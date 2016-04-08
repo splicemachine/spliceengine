@@ -247,7 +247,8 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
-    public static final List<String> STRATEGIES = Arrays.asList("SORTMERGE", "NESTEDLOOP", "BROADCAST", "MERGE", "HALFSORTMERGE");
+    // TODO Add HalfSortMerge when re-enabled DB-4913
+    public static final List<String> STRATEGIES = Arrays.asList("SORTMERGE", "NESTEDLOOP", "BROADCAST", "MERGE");
 
     @BeforeClass
     public static void createDataSet() throws Exception {

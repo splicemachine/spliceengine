@@ -30,6 +30,7 @@ import static org.junit.Assert.fail;
 /**
  * ITs for HalfMergeSort on Spark, exercise HBasePartitioner etc.
  */
+@Ignore("DB-4913")
 public class HalfMergeSortSparkIT {
     private static Logger LOG=Logger.getLogger(HalfMergeSortSparkIT.class);
 
