@@ -2,11 +2,12 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import java.io.IOException;
 
+import com.splicemachine.access.api.SnowflakeFactory;
+import com.splicemachine.access.hbase.HSnowflakeFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
@@ -58,6 +59,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final HOperationFactory opFactory;
     private final Clock clock;
     private final DistributedFileSystem fileSystem;
+    private final SnowflakeFactory snowflakeFactory;
     private SIDriver siDriver;
 
 
@@ -92,6 +94,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.opFactory =HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
+        this.snowflakeFactory = new HSnowflakeFactory();
         this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
         this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
                 config.getTransactionTimeout(),
@@ -117,6 +120,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
         this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
+        this.snowflakeFactory = new HSnowflakeFactory();
 
 
         this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
@@ -213,4 +217,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.siDriver = siDriver;
     }
 
+    @Override
+    public SnowflakeFactory snowflakeFactory() {
+        return snowflakeFactory;
+    }
 }

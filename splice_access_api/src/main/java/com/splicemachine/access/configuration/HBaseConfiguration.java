@@ -28,6 +28,12 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(false);
     public static final byte[] BACKUP_DONE = Bytes.toBytes(true);
 
+
+    /**
+     * Path in Zookeeper for storing ongoing backup
+     */
+    public static final String SNOWFLAKE_PATH = "/splice_snowflake";
+
     /**
      * The Path in zookeeper for manipulating transactional information.
      * Set to [SpliceRootPath]/transactions
@@ -105,7 +111,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
         TRANSACTION_PATH,
         MAX_RESERVED_TIMESTAMP_PATH,
         DDL_CHANGE_PATH,
-        DDL_PATH
+        DDL_PATH,
+        SNOWFLAKE_PATH
     ));
 
     // Splice Internal Tables
@@ -138,5 +145,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.spliceRootPath = configurationSource.getString(SPLICE_ROOT_PATH, DEFAULT_ROOT_PATH);
         builder.namespace = configurationSource.getString(NAMESPACE, DEFAULT_NAMESPACE);
         builder.backupPath = configurationSource.getString(BACKUP_PATH, DEFAULT_BACKUP_PATH);
+
     }
 }

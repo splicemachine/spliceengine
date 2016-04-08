@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import java.io.IOException;
 import java.util.List;
 
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -14,7 +15,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
-
 import com.splicemachine.access.HConfiguration;
 
 /**
@@ -117,6 +117,20 @@ public class ZkUtils{
             else
                 return true;
         }
+    }
+
+    public static short assignSnowFlakeSequence() throws Exception {
+        ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath()+ HBaseConfiguration.SNOWFLAKE_PATH);
+        for (short i =1; i< 4096;i++) {
+            try {
+                ZkUtils.create(HConfiguration.getConfiguration().getSpliceRootPath()+HBaseConfiguration.SNOWFLAKE_PATH+ "/" + i, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                return i;
+            }catch(KeeperException e){
+                if(e.code()!=KeeperException.Code.NODEEXISTS)
+                    throw new Exception("Error assigning snowflake sequence, catastrophic",e);
+            }
+        }
+        throw new Exception("Cannot assign snowflake sequence, catastrophic");
     }
 
     public static String create(String path,byte[] bytes,List<ACL> acls,CreateMode createMode) throws KeeperException, InterruptedException{
@@ -360,7 +374,7 @@ public class ZkUtils{
     public static void safeInitializeZooKeeper() throws InterruptedException, KeeperException{
         String rootPath=HConfiguration.getConfiguration().getSpliceRootPath();
         for(String path : HConfiguration.zookeeperPaths){
-            recursiveSafeCreate(rootPath+path,Bytes.toBytes(0L),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+            recursiveSafeCreate(rootPath + path, Bytes.toBytes(0L), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         }
     }
 

@@ -5,6 +5,7 @@ import java.nio.file.FileSystems;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.configuration.ConfigurationBuilder;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.concurrent.Clock;
@@ -29,13 +30,7 @@ import com.splicemachine.si.impl.data.MExceptionFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.storage.DataFilterFactory;
-import com.splicemachine.storage.MFilterFactory;
-import com.splicemachine.storage.MPartitionCache;
-import com.splicemachine.storage.MPartitionFactory;
-import com.splicemachine.storage.MTxnPartitionFactory;
-import com.splicemachine.storage.MemFileSystem;
-import com.splicemachine.storage.PartitionInfoCache;
+import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -52,12 +47,14 @@ public class MemSIEnvironment implements SIEnvironment{
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
     private final PartitionFactory tableFactory;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
+    private final SnowflakeFactory snowflakeFactory = MSnowflakeFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
     private final OperationFactory opFactory = new MOperationFactory(clock);
     private final TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
     private final KeepAliveScheduler kaScheduler = new ManualKeepAliveScheduler(txnStore);
     private final MPartitionCache partitionCache = new MPartitionCache();
     private final SConfiguration config;
+
 
     private transient SIDriver siDriver;
     private final DistributedFileSystem fileSystem = new MemFileSystem(FileSystems.getDefault().provider());
@@ -156,5 +153,10 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public OperationFactory baseOperationFactory(){
         return opFactory;
+    }
+
+    @Override
+    public SnowflakeFactory snowflakeFactory() {
+        return snowflakeFactory;
     }
 }

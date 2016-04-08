@@ -82,8 +82,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			ExecRow nextRow = siTableScanner.next();
             RowLocation nextLocation = siTableScanner.getCurrentRowLocation();
 			if (nextRow != null) {
-				currentRow = nextRow.getClone(); 
-				rowLocation = new HBaseRowLocation(nextLocation.getBytes());
+				currentRow = nextRow.getClone();
+                if (nextLocation!=null)
+    				rowLocation = new HBaseRowLocation(nextLocation.getBytes());
 			} else {
 				currentRow = null;
 				rowLocation = null;

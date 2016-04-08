@@ -32,7 +32,6 @@ import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
-import com.splicemachine.uuid.SnowflakeLoader;
 import com.splicemachine.uuid.UUIDService;
 
 /**
@@ -48,7 +47,6 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     private final Properties dbProperties = new Properties();
 
     private Snowflake snowflake;
-    private SnowflakeLoader snowflakeLoader;
     private Connection internalConnection;
     private DatabaseVersion spliceVersion;
     private ManifestReader manifestReader;
@@ -71,8 +69,9 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         new SpliceAccessManager();
         // Since SPLICE_SEQUENCES table is set up, initialize the UUID generator, so the new Derby connection below
         // can execute an upgrade process if requested and create and store new system objects in the data dictionary tables.
-        loadUUIDGenerator(configuration.getPartitionserverPort());
 
+        snowflake = SIDriver.driver().getSnowflakeFactory().getSnowFlake();
+        UUIDService.setSnowflake(snowflake);
         // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
         // External connections to Derby are created later when the Derby network server is started.
         EmbedConnectionMaker maker = new EmbedConnectionMaker();
@@ -129,12 +128,6 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     @Override
     public void shutdown() throws Exception{
         try{
-            if(snowflakeLoader!=null)
-                snowflakeLoader.unload();
-        }catch(Exception e){
-            LOG.error("Unexpected error during shutdown",e);
-        }
-        try{
             if(internalConnection!=null)
                 internalConnection.close();
         }catch(Exception e){
@@ -148,21 +141,6 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         }catch(Exception e){
             LOG.error("Unexpected error during shutdown",e);
         }
-    }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private void loadUUIDGenerator(int port) throws IOException{
-        SIDriver driver = SIDriver.driver();
-        assert driver!=null: "Must boot SI before the database!";
-        snowflakeLoader= new SnowflakeLoader(driver.getTableFactory(),driver.getOperationFactory(),driver.filterFactory());
-
-        snowflake = snowflakeLoader.load(port);
-        /*
-         * In order to make snowflake available for derby classes during the boot sequence, we have to set snowflake
-         * first.
-         */
-        UUIDService.setSnowflake(snowflake);
     }
 
     private void loadManifest(){

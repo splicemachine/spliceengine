@@ -3,6 +3,7 @@ package com.splicemachine.si.impl.driver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
@@ -60,6 +61,7 @@ public class SIDriver {
     private final DistributedFileSystem fileSystem;
     private final OperationFactory baseOpFactory;
     private final PartitionInfoCache partitionInfoCache;
+    private final SnowflakeFactory snowflakeFactory;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -74,6 +76,7 @@ public class SIDriver {
         this.filterFactory = env.filterFactory();
         this.clock = env.systemClock();
         this.partitionInfoCache = env.partitionInfoCache();
+        this.snowflakeFactory = env.snowflakeFactory();
 
         //noinspection unchecked
         this.transactor = new SITransactor(
@@ -103,6 +106,10 @@ public class SIDriver {
 
     public ExceptionFactory getExceptionFactory(){
         return exceptionFactory;
+    }
+
+    public SnowflakeFactory getSnowflakeFactory() {
+        return snowflakeFactory;
     }
 
     /**

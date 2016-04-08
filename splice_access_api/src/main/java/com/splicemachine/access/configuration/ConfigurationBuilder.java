@@ -67,6 +67,7 @@ public class ConfigurationBuilder {
     public int timestampBlockSize;
     public long regionLoadUpdateInterval;
     public String backupPath;
+    public String snowflakePath;
     public String compressionAlgorithm;
     public String namespace;
     public String spliceRootPath;

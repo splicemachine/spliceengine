@@ -5,6 +5,7 @@ import java.io.IOException;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.hbase.ZkUtils;
@@ -161,5 +162,11 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override
     public OperationFactory baseOperationFactory(){
         return delegate.baseOperationFactory();
+    }
+
+
+    @Override
+    public SnowflakeFactory snowflakeFactory() {
+        return delegate.snowflakeFactory();
     }
 }
