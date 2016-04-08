@@ -65,7 +65,6 @@ public class StatisticsScanner<Data> extends SITableScanner<Data>{
         }
         if(rows.size()==0)
             return null;
-        currentRowLocation=new HBaseRowLocation(EngineDriver.driver().newUUIDGenerator(1).nextBytes());
         return rows.remove(0);
     }
 
