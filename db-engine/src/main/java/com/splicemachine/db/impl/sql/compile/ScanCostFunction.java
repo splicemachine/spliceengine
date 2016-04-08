@@ -210,42 +210,64 @@ public class ScanCostFunction{
 
         // Total Row Count from the Base Conglomerate
         double totalRowCount = scc.baseRowCount();
+        assert totalRowCount >= 0 : "totalRowCount cannot be negative -> " + totalRowCount;
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
 
         double baseTableAverageRowWidth = scc.getBaseTableAvgRowWidth();
         double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(totalColumns);
+
         // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
         double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
+        assert baseTableAverageRowWidth >= 0 : "baseTableAverageRowWidth cannot be negative -> " + baseTableAverageRowWidth;
+        assert baseTableColumnSizeFactor >= 0 : "baseTableColumnSizeFactor cannot be negative -> " + baseTableColumnSizeFactor;
 
+        double openLatency = scc.getOpenLatency();
+        double closeLatency = scc.getCloseLatency();
+        double localLatency = scc.getLocalLatency();
+        double remoteLatency = scc.getRemoteLatency();
+        double remoteCost = openLatency + closeLatency + totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/100d);
+        assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
+        assert closeLatency >= 0 : "closeLatency cannot be negative -> " + closeLatency;
+        assert localLatency >= 0 : "localLatency cannot be negative -> " + localLatency;
+        assert remoteLatency >= 0 : "remoteLatency cannot be negative -> " + remoteLatency;
+        assert remoteCost >= 0 : "remoteCost cannot be negative -> " + remoteCost;
         // Heap Size is the avg row width of the columns for the base table*total rows
         // Average Row Width
         // This should be the same for every conglomerate path
         scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
         // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*totalSelectivity*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
+        scanCost.setRemoteCost((long)remoteCost);
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*baseTableSelectivity*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
+        double baseCost = openLatency+closeLatency+(totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
+        assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
+        assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(filterBaseTableSelectivity * totalRowCount);
         scanCost.setFromBaseTableCost(baseCost);
         double lookupCost;
         if (lookupColumns == null)
             lookupCost = 0.0d;
         else {
-            lookupCost = totalRowCount*filterBaseTableSelectivity*(scc.getOpenLatency()+scc.getCloseLatency());
+            lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
             scanCost.setIndexLookupRows(filterBaseTableSelectivity*totalRowCount);
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
+        assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
+
         double projectionCost;
         if (projectionSelectivity == 1.0d)
             projectionCost = 0.0d;
         else {
-            projectionCost = totalRowCount * filterBaseTableSelectivity * scc.getLocalLatency() * colSizeFactor*1d/1000d;
+            projectionCost = totalRowCount * filterBaseTableSelectivity * localLatency * colSizeFactor*1d/1000d;
             scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
-        scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
+        assert projectionCost >= 0 : "projectionCost cannot be negative -> " + projectionCost;
+
+        double localCost = baseCost+lookupCost+projectionCost;
+        assert localCost >= 0 : "localCost cannot be negative -> " + localCost;
+        scanCost.setLocalCost(localCost);
         scanCost.setNumPartitions(scc.getNumPartitions());
         scanCost.setLocalCostPerPartition((baseCost + lookupCost + projectionCost)/scc.getNumPartitions());
     }
