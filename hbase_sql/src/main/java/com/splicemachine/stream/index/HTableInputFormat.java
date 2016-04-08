@@ -155,7 +155,7 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
         }
         rr.setHTable(table);
         //if (!conf.getBoolean("splice.spark", false))
-        rr.init(config, split);
+//        rr.init(config, split);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "returning record reader");
         return rr;

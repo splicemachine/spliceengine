@@ -10,6 +10,7 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSplit;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -109,9 +110,8 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
             SpliceLogUtils.debug(LOG, "close");
         try {
             directScanner.close();
-
         } catch (StandardException e) {
-            throw new IOException(e);
+            throw Exceptions.getIOException(e);
         }
     }
 
@@ -128,6 +128,13 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
         newscan.setStartRow(firstRow);
         scan = newscan;
         if(htable != null) {
+            if(directScanner!=null){
+                try{
+                    directScanner.close();
+                }catch(StandardException e){
+                    throw Exceptions.getIOException(e);
+                }
+            }
             SIDriver driver=SIDriver.driver();
             HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(driver.getConfiguration());
             Clock clock = driver.getClock();
