@@ -123,6 +123,8 @@ public class ZkUtils{
         ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath()+ HBaseConfiguration.SNOWFLAKE_PATH);
         for (short i =1; i< 4096;i++) {
             try {
+                // Notice the ephemeral node, will be gone once the process exits...
+                // TODO -JL Can be more sophisticated when we get closer, multiple pass as well.
                 ZkUtils.create(HConfiguration.getConfiguration().getSpliceRootPath()+HBaseConfiguration.SNOWFLAKE_PATH+ "/" + i, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
                 return i;
             }catch(KeeperException e){
