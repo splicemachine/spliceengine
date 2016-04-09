@@ -119,9 +119,17 @@ public class ZkUtils{
         }
     }
 
+    /**
+     *
+     * Attempts to grab a squence numbered 1 - 1024 as an ephemeral node in zookeeper.  This is used to keep
+     * the unqiue key number of bytes to a minimum.
+     *
+     * @return
+     * @throws Exception
+     */
     public static short assignSnowFlakeSequence() throws Exception {
         ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath()+ HBaseConfiguration.SNOWFLAKE_PATH);
-        for (short i =1; i< 4096;i++) {
+        for (short i =1; i<= 1024;i++) {
             try {
                 // Notice the ephemeral node, will be gone once the process exits...
                 // TODO -JL Can be more sophisticated when we get closer, multiple pass as well.
