@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="2.8" jmeter="2.13 r1665067">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="tpch1" enabled="true">
       <stringProp name="TestPlan.comments"></stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
@@ -83,6 +83,21 @@
         <stringProp name="ThreadGroup.delay"></stringProp>
       </SetupThreadGroup>
       <hashTree>
+        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="get version info" enabled="true"/>
+        <hashTree>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="get_version_info" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Callable Statement</stringProp>
+            <stringProp name="query">CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO()</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
+          <hashTree/>
+        </hashTree>
         <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="drop tables" enabled="false"/>
         <hashTree>
           <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="drop lineitem" enabled="true">
@@ -491,20 +506,18 @@
         </hashTree>
         <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="count tables" enabled="true"/>
         <hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="count lineitem" enabled="true"/>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count lineitem" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS LINEITEM FROM ${SCHEMA}.LINEITEM</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
           <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count lineitem" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="query">SELECT COUNT(*) AS LINEITEM FROM ${SCHEMA}.LINEITEM</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="queryTimeout"></stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-            </JDBCSampler>
-            <hashTree/>
             <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-1609320814">LINEITEM
@@ -517,20 +530,18 @@
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="count orders" enabled="true"/>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count orders" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS ORDERS FROM ${SCHEMA}.ORDERS</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
           <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count orders" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="query">SELECT COUNT(*) AS ORDERS FROM ${SCHEMA}.ORDERS</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="queryTimeout"></stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-            </JDBCSampler>
-            <hashTree/>
             <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="1536449987">ORDERS
@@ -543,20 +554,18 @@
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="count customer" enabled="true"/>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count customer" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS CUSTOMER FROM ${SCHEMA}.CUSTOMER</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
           <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count customer" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="query">SELECT COUNT(*) AS CUSTOMER FROM ${SCHEMA}.CUSTOMER</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="queryTimeout"></stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-            </JDBCSampler>
-            <hashTree/>
             <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="1732876026">CUSTOMER
@@ -569,20 +578,18 @@
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="count partsupp" enabled="true"/>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count partsupp" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS PARTSUPP FROM ${SCHEMA}.PARTSUPP</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
           <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count partsupp" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="query">SELECT COUNT(*) AS PARTSUPP FROM ${SCHEMA}.PARTSUPP</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="queryTimeout"></stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-            </JDBCSampler>
-            <hashTree/>
             <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="2063487517">PARTSUPP
@@ -595,20 +602,18 @@
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="count supplier" enabled="true"/>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count supplier" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS SUPPLIER FROM ${SCHEMA}.SUPPLIER</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
           <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count supplier" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="query">SELECT COUNT(*) AS SUPPLIER FROM ${SCHEMA}.SUPPLIER</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="queryTimeout"></stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-            </JDBCSampler>
-            <hashTree/>
             <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-1845726281">SUPPLIER
@@ -621,20 +626,18 @@
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="count part" enabled="true"/>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count part" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS PART FROM ${SCHEMA}.PART </stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
           <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count part" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="query">SELECT COUNT(*) AS PART FROM ${SCHEMA}.PART </stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="queryTimeout"></stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-            </JDBCSampler>
-            <hashTree/>
             <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-738812363">PART
@@ -647,20 +650,18 @@
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="count region" enabled="true"/>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count region" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS REGION FROM ${SCHEMA}.REGION</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
           <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count region" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="query">SELECT COUNT(*) AS REGION FROM ${SCHEMA}.REGION</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="queryTimeout"></stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-            </JDBCSampler>
-            <hashTree/>
             <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-1434076021">REGION
@@ -673,20 +674,18 @@
             </ResponseAssertion>
             <hashTree/>
           </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="count nation" enabled="true"/>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count nation" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS NATION FROM ${SCHEMA}.NATION</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
           <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count nation" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="query">SELECT COUNT(*) AS NATION FROM ${SCHEMA}.NATION</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="queryTimeout"></stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-            </JDBCSampler>
-            <hashTree/>
             <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
               <collectionProp name="Asserion.test_strings">
                 <stringProp name="-899050076">NATION
@@ -772,6 +771,105 @@
             <stringProp name="resultSetHandler">Store as Object</stringProp>
           </JDBCSampler>
           <hashTree/>
+        </hashTree>
+        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="count tables with indexes" enabled="true"/>
+        <hashTree>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count orders on O_CUST_IDX" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS ORDERS FROM ${SCHEMA}.ORDERS --SPLICE-PROPERTIES index=O_CUST_IDX</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
+          <hashTree>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="1536449987">ORDERS
+1500000
+</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">8</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+          </hashTree>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count orders on O_DATE_PRI_KEY_IDX" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS ORDERS FROM ${SCHEMA}.ORDERS --SPLICE-PROPERTIES index=O_DATE_PRI_KEY_IDX</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
+          <hashTree>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="1536449987">ORDERS
+1500000
+</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">8</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+          </hashTree>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count lineitem on L_SHIPDATE_IDX" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS LINEITEM FROM ${SCHEMA}.LINEITEM --SPLICE-PROPERTIES index=L_SHIPDATE_IDX</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
+          <hashTree>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="-1609320814">LINEITEM
+6001215
+</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">8</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+          </hashTree>
+          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="count lineitem on L_PART_IDX" enabled="true">
+            <stringProp name="dataSource">testDatabase</stringProp>
+            <stringProp name="queryType">Select Statement</stringProp>
+            <stringProp name="query">SELECT COUNT(*) AS LINEITEM FROM ${SCHEMA}.LINEITEM --SPLICE-PROPERTIES index=L_PART_IDX</stringProp>
+            <stringProp name="queryArguments"></stringProp>
+            <stringProp name="queryArgumentsTypes"></stringProp>
+            <stringProp name="variableNames"></stringProp>
+            <stringProp name="resultVariable"></stringProp>
+            <stringProp name="queryTimeout"></stringProp>
+            <stringProp name="resultSetHandler">Store as Object</stringProp>
+          </JDBCSampler>
+          <hashTree>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="-1609320814">LINEITEM
+6001215
+</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">8</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+          </hashTree>
         </hashTree>
         <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="collect statistics" enabled="true"/>
         <hashTree>
@@ -928,11 +1026,9 @@
         <stringProp name="ThreadGroup.delay"></stringProp>
       </ThreadGroup>
       <hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain01" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain01" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 01
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain01" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 01
 explain select
 	l_returnflag,
 	l_linestatus,
@@ -955,21 +1051,18 @@ order by
 	l_returnflag,
 	l_linestatus
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain02" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain02" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 02
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain02" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 02
 explain select
 	s_acctbal,
 	s_name,
@@ -1015,21 +1108,18 @@ order by
 	p_partkey
 {limit 100}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain03" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain03" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 03
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain03" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 03
 explain select
 	l_orderkey,
 	sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -1054,21 +1144,18 @@ order by
 	o_orderdate 
 {limit 10}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain04" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain04" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 04
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain04" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 04
 explain select
 	o_orderpriority,
 	count(*) as order_count
@@ -1091,21 +1178,18 @@ group by
 order by
 	o_orderpriority
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain05" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain05" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 05
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain05" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 05
 explain select
 	n_name,
 	sum(l_extendedprice * (1 - l_discount)) as revenue
@@ -1131,21 +1215,18 @@ group by
 order by
 	revenue desc
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain06" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain06" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 06
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain06" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 06
 explain select
 	sum(l_extendedprice * l_discount) as revenue
 from
@@ -1156,21 +1237,18 @@ where
 	and l_discount between .06 - 0.01 and .06 + 0.01
 	and l_quantity &lt; 24
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain07" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain07" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 07
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain07" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 07
 explain select
 	supp_nation,
 	cust_nation,
@@ -1211,21 +1289,18 @@ order by
 	cust_nation,
 	l_year
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain08" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain08" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 08
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain08" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 08
 explain select
 	o_year,
 	sum(case
@@ -1264,21 +1339,18 @@ group by
 order by
 	o_year
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain09" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain09" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 09
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain09" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 09
 explain select
 	nation,
 	o_year,
@@ -1312,21 +1384,18 @@ order by
 	nation,
 	o_year desc
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain10" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain10" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 10
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain10" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 10
 explain select
 	c_custkey,
 	c_name,
@@ -1360,21 +1429,18 @@ order by
 	revenue desc
 {limit 20}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain11" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain11" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 11
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain11" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 11
 explain select
 	ps_partkey,
 	sum(ps_supplycost * ps_availqty) as value
@@ -1403,21 +1469,18 @@ group by
 order by
 	value desc
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain12" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain12" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 12
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain12" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 12
 explain select
 	l_shipmode,
 	sum(case
@@ -1447,21 +1510,18 @@ group by
 order by
 	l_shipmode
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain13" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain13" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 13
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain13" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 13
 explain select
 	c_count,
 	count(*) as custdist
@@ -1483,21 +1543,18 @@ order by
 	custdist desc,
 	c_count desc
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain14" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain14" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 14
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain14" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 14
 explain select
 	100.00 * sum(case
 		when p_type like &apos;PROMO%&apos;
@@ -1512,23 +1569,18 @@ where
 	and l_shipdate &gt;= date(&apos;1995-09-01&apos;)
 	and l_shipdate &lt; add_months(&apos;1995-09-01&apos;,1)
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain15" enabled="true"/>
-        <hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="create view" enabled="true"/>
-          <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain15_create_view" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="query">-- EXPLAIN QUERY 15
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain15_create_view" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 15
 create view ${SCHEMA}.revenue0 (supplier_no, total_revenue) as
 	select
 		l_suppkey,
@@ -1541,21 +1593,18 @@ create view ${SCHEMA}.revenue0 (supplier_no, total_revenue) as
 	group by
 		l_suppkey
 -- END OF QUERY</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-              <stringProp name="queryType">Update Statement</stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-            </JDBCSampler>
-            <hashTree/>
-          </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="select from view" enabled="true"/>
-          <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain15" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="query">-- EXPLAIN QUERY 15
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Update Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain15" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 15
 explain select
 	s_suppkey,
 	s_name,
@@ -1576,39 +1625,32 @@ where
 order by
 	s_suppkey
 -- END OF QUERY</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-            </JDBCSampler>
-            <hashTree/>
-          </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="drop view" enabled="true"/>
-          <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain15_drop_view" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="query">-- EXPLAIN QUERY 15
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain15_drop_view" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 15
 drop view ${SCHEMA}.revenue0
 -- END OF QUERY</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-              <stringProp name="queryType">Update Statement</stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-            </JDBCSampler>
-            <hashTree/>
-          </hashTree>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain16" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain16" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 16
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Update Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain16" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 16
 explain select
 	p_brand,
 	p_type,
@@ -1640,21 +1682,18 @@ order by
 	p_type,
 	p_size
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain17" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain17" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 17
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain17" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 17
 explain select
 	sum(l_extendedprice) / 7.0 as avg_yearly
 from
@@ -1673,21 +1712,18 @@ where
 			l_partkey = p_partkey
 	)
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain18" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain18" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 18
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain18" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 18
 explain select
 	c_name,
 	c_custkey,
@@ -1722,21 +1758,18 @@ order by
 	o_orderdate
 {limit 100}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain19" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain19" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 19
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain19" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 19
 explain select
 	sum(l_extendedprice* (1 - l_discount)) as revenue
 from
@@ -1774,21 +1807,18 @@ where
 	)
 -- END OF QUERY
 </stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain20" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain20" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 20
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain20" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 20
 explain select
 	s_name,
 	s_address
@@ -1827,21 +1857,18 @@ where
 order by
 	s_name
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain21" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain21" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 21
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain21" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 21
 explain select
 	s_name,
 	count(*) as numwait
@@ -1883,21 +1910,18 @@ order by
 	s_name
 {limit 100}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="explain22" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain22" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- EXPLAIN QUERY 22
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="explain22" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- EXPLAIN QUERY 22
 explain select
 	cntrycode,
 	count(*) as numcust,
@@ -1936,16 +1960,15 @@ group by
 order by
 	cntrycode
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
-        </hashTree>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
         <Summariser guiclass="SummariserGui" testclass="Summariser" testname="explains" enabled="true"/>
         <hashTree/>
         <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
@@ -2071,11 +2094,9 @@ order by
         <stringProp name="ThreadGroup.delay"></stringProp>
       </ThreadGroup>
       <hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query01" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query01" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 01
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query01" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 01
 select
 	l_returnflag,
 	l_linestatus,
@@ -2098,15 +2119,15 @@ order by
 	l_returnflag,
 	l_linestatus
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-1511144821">L_RETURNFLAG	L_LINESTATUS	SUM_QTY	SUM_BASE_PRICE	SUM_DISC_PRICE	SUM_CHARGE	AVG_QTY	AVG_PRICE	AVG_DISC	COUNT_ORDER
@@ -2122,11 +2143,9 @@ R	F	37719753.00	56568041380.90	53741292684.6040	55889619119.831932	25.5057	38250
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query02" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query02" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 02
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query02" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 02
 select
 	s_acctbal,
 	s_name,
@@ -2172,15 +2191,15 @@ order by
 	p_partkey
 {limit 100}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="2106540210">S_ACCTBAL	S_NAME	N_NAME	P_PARTKEY	P_MFGR	S_ADDRESS	S_PHONE	S_COMMENT
@@ -2292,11 +2311,9 @@ order by
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query03" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query03" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 03
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query03" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 03
 select
 	l_orderkey,
 	sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -2321,15 +2338,15 @@ order by
 	o_orderdate 
 {limit 10}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-1474514134">L_ORDERKEY	REVENUE	O_ORDERDATE	O_SHIPPRIORITY
@@ -2351,11 +2368,9 @@ order by
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query04" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query04" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 04
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query04" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 04
 select
 	o_orderpriority,
 	count(*) as order_count
@@ -2378,15 +2393,15 @@ group by
 order by
 	o_orderpriority
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="13384469">O_ORDERPRIORITY	ORDER_COUNT
@@ -2403,11 +2418,9 @@ order by
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query05" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query05" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 05
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query05" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 05
 select
 	n_name,
 	sum(l_extendedprice * (1 - l_discount)) as revenue
@@ -2433,15 +2446,15 @@ group by
 order by
 	revenue desc
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="760699745">N_NAME	REVENUE
@@ -2458,11 +2471,9 @@ JAPAN	45410175.6954
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query06" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query06" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 06
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query06" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 06
 select
 	sum(l_extendedprice * l_discount) as revenue
 from
@@ -2473,15 +2484,15 @@ where
 	and l_discount between .06 - 0.01 and .06 + 0.01
 	and l_quantity &lt; 24
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="2073896008">REVENUE
@@ -2494,11 +2505,9 @@ where
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query07" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query07" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 07
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query07" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 07
 select
 	supp_nation,
 	cust_nation,
@@ -2539,15 +2548,15 @@ order by
 	cust_nation,
 	l_year
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-1224999635">SUPP_NATION	CUST_NATION	L_YEAR	REVENUE
@@ -2563,11 +2572,9 @@ GERMANY	FRANCE	1996	52520549.0224
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query08" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query08" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 08
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query08" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 08
 select
 	o_year,
 	sum(case
@@ -2606,15 +2613,15 @@ group by
 order by
 	o_year
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="1776068021">O_YEAR	MKT_SHARE
@@ -2628,11 +2635,9 @@ order by
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query09" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query09" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 09
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query09" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 09
 select
 	nation,
 	o_year,
@@ -2666,15 +2671,15 @@ order by
 	nation,
 	o_year desc
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="449204932">NATION	O_YEAR	SUM_PROFIT
@@ -2861,11 +2866,9 @@ VIETNAM	1992	47846355.6485
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query10" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query10" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 10
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query10" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 10
 select
 	c_custkey,
 	c_name,
@@ -2899,15 +2902,15 @@ order by
 	revenue desc
 {limit 20}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-30879826">C_CUSTKEY	C_NAME	REVENUE	C_ACCTBAL	N_NAME	C_ADDRESS	C_PHONE	C_COMMENT
@@ -2939,11 +2942,9 @@ order by
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query11" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query11" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 11
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query11" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 11
 select
 	ps_partkey,
 	sum(ps_supplycost * ps_availqty) as value
@@ -2972,15 +2973,15 @@ group by
 order by
 	value desc
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-2094893940">PS_PARTKEY	VALUE
@@ -4040,11 +4041,9 @@ order by
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query12" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query12" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 12
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query12" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 12
 select
 	l_shipmode,
 	sum(case
@@ -4074,15 +4073,15 @@ group by
 order by
 	l_shipmode
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="908781948">L_SHIPMODE	HIGH_LINE_COUNT	LOW_LINE_COUNT
@@ -4096,11 +4095,9 @@ SHIP	6200	9262
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query13" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query13" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 13
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query13" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 13
 select
 	c_count,
 	count(*) as custdist
@@ -4122,15 +4119,15 @@ order by
 	custdist desc,
 	c_count desc
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-1349404214">C_COUNT	CUSTDIST
@@ -4184,11 +4181,9 @@ order by
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query14" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query14" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 14
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query14" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 14
 select
 	100.00 * sum(case
 		when p_type like &apos;PROMO%&apos;
@@ -4203,15 +4198,15 @@ where
 	and l_shipdate &gt;= date(&apos;1995-09-01&apos;)
 	and l_shipdate &lt; add_months(&apos;1995-09-01&apos;,1)
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="1800425523">PROMO_REVENUE
@@ -4224,13 +4219,9 @@ where
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query15" enabled="true"/>
-        <hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="create view" enabled="true"/>
-          <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query15_create_view" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="query">-- QUERY 15
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query15_create_view" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 15
 create view ${SCHEMA}.revenue0 (supplier_no, total_revenue) as
 	select
 		l_suppkey,
@@ -4243,21 +4234,18 @@ create view ${SCHEMA}.revenue0 (supplier_no, total_revenue) as
 	group by
 		l_suppkey
 -- END OF QUERY</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-              <stringProp name="queryType">Update Statement</stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-            </JDBCSampler>
-            <hashTree/>
-          </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="select from view" enabled="true"/>
-          <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query15" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="query">-- QUERY 15
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Update Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query15" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 15
 select
 	s_suppkey,
 	s_name,
@@ -4278,50 +4266,44 @@ where
 order by
 	s_suppkey
 -- END OF QUERY</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-              <stringProp name="queryType">Select Statement</stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-            </JDBCSampler>
-            <hashTree/>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
-              <collectionProp name="Asserion.test_strings">
-                <stringProp name="-1008952565">S_SUPPKEY	S_NAME	S_ADDRESS	S_PHONE	TOTAL_REVENUE
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="-1008952565">S_SUPPKEY	S_NAME	S_ADDRESS	S_PHONE	TOTAL_REVENUE
 8449	Supplier#000008449	Wp34zim9qYFbVctdW	20-469-856-8873	1772627.2087
 </stringProp>
-              </collectionProp>
-              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
-              <boolProp name="Assertion.assume_success">false</boolProp>
-              <intProp name="Assertion.test_type">8</intProp>
-            </ResponseAssertion>
-            <hashTree/>
-          </hashTree>
-          <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="drop view" enabled="true"/>
-          <hashTree>
-            <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query15_drop_view" enabled="true">
-              <stringProp name="dataSource">testDatabase</stringProp>
-              <stringProp name="query">-- QUERY 15
+            </collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query15_drop_view" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 15
 drop view ${SCHEMA}.revenue0
 -- END OF QUERY</stringProp>
-              <stringProp name="queryArguments"></stringProp>
-              <stringProp name="queryArgumentsTypes"></stringProp>
-              <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-              <stringProp name="queryType">Update Statement</stringProp>
-              <stringProp name="resultSetHandler">Store as Object</stringProp>
-              <stringProp name="resultVariable"></stringProp>
-              <stringProp name="variableNames"></stringProp>
-            </JDBCSampler>
-            <hashTree/>
-          </hashTree>
-        </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query16" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query16" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 16
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Update Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree/>
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query16" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 16
 select
 	p_brand,
 	p_type,
@@ -4353,15 +4335,15 @@ order by
 	p_type,
 	p_size
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-1380844870">P_BRAND	P_TYPE	P_SIZE	SUPPLIER_CNT
@@ -22687,11 +22669,9 @@ Brand#55	STANDARD PLATED TIN	49	3
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query17" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query17" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 17
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query17" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 17
 select
 	sum(l_extendedprice) / 7.0 as avg_yearly
 from
@@ -22710,15 +22690,15 @@ where
 			l_partkey = p_partkey
 	)
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="2140744975">AVG_YEARLY
@@ -22731,11 +22711,9 @@ where
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query18" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query18" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 18
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query18" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 18
 select
 	c_name,
 	c_custkey,
@@ -22770,15 +22748,15 @@ order by
 	o_orderdate
 {limit 100}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="1301495086">C_NAME	C_CUSTKEY	O_ORDERKEY	O_ORDERDATE	O_TOTALPRICE	6
@@ -22847,11 +22825,9 @@ Customer#000088703	88703	2995076	1994-01-30	363812.12	302.00
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query19" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query19" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 19
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query19" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 19
 select
 	sum(l_extendedprice* (1 - l_discount)) as revenue
 from
@@ -22889,15 +22865,15 @@ where
 	)
 -- END OF QUERY
 </stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-1542755001">REVENUE
@@ -22910,11 +22886,9 @@ where
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query20" enabled="false"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query20" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- DB-4300
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query20" enabled="false">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- DB-4300
 -- QUERY 20
 select
 	s_name,
@@ -22954,15 +22928,15 @@ where
 order by
 	s_name
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-1513935295">S_NAME	S_ADDRESS
@@ -22975,11 +22949,9 @@ Supplier#000000020	iybAE,RmTymrZVYaFZva2SH,j
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query21" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query21" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 21
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query21" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 21
 select
 	s_name,
 	count(*) as numwait
@@ -23021,15 +22993,15 @@ order by
 	s_name
 {limit 100}
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="2136527616">S_NAME	NUMWAIT
@@ -23141,11 +23113,9 @@ Supplier#000002483	12
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <GenericController guiclass="LogicControllerGui" testclass="GenericController" testname="query22" enabled="true"/>
-        <hashTree>
-          <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query22" enabled="true">
-            <stringProp name="dataSource">testDatabase</stringProp>
-            <stringProp name="query">-- QUERY 22
+        <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="query22" enabled="true">
+          <stringProp name="dataSource">testDatabase</stringProp>
+          <stringProp name="query">-- QUERY 22
 select
 	cntrycode,
 	count(*) as numcust,
@@ -23184,15 +23154,15 @@ group by
 order by
 	cntrycode
 -- END OF QUERY</stringProp>
-            <stringProp name="queryArguments"></stringProp>
-            <stringProp name="queryArgumentsTypes"></stringProp>
-            <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
-            <stringProp name="queryType">Select Statement</stringProp>
-            <stringProp name="resultSetHandler">Store as Object</stringProp>
-            <stringProp name="resultVariable"></stringProp>
-            <stringProp name="variableNames"></stringProp>
-          </JDBCSampler>
-          <hashTree/>
+          <stringProp name="queryArguments"></stringProp>
+          <stringProp name="queryArgumentsTypes"></stringProp>
+          <stringProp name="queryTimeout">${QUERY_TIMEOUT}</stringProp>
+          <stringProp name="queryType">Select Statement</stringProp>
+          <stringProp name="resultSetHandler">Store as Object</stringProp>
+          <stringProp name="resultVariable"></stringProp>
+          <stringProp name="variableNames"></stringProp>
+        </JDBCSampler>
+        <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="response assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-57892994">CNTRYCODE	NUMCUST	TOTACCTBAL
@@ -23321,6 +23291,38 @@ order by
         </ResultCollector>
         <hashTree/>
       </hashTree>
+      <ResultCollector guiclass="AssertionVisualizer" testclass="ResultCollector" testname="Assertion Results" enabled="true">
+        <boolProp name="ResultCollector.error_logging">true</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>false</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>false</message>
+            <threadName>true</threadName>
+            <dataType>false</dataType>
+            <encoding>false</encoding>
+            <assertions>true</assertions>
+            <subresults>false</subresults>
+            <responseData>false</responseData>
+            <samplerData>false</samplerData>
+            <xml>true</xml>
+            <fieldNames>false</fieldNames>
+            <responseHeaders>false</responseHeaders>
+            <requestHeaders>false</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <threadCounts>true</threadCounts>
+          </value>
+        </objProp>
+        <stringProp name="filename">${LOGDIR}/assertion-results.xml</stringProp>
+      </ResultCollector>
+      <hashTree/>
     </hashTree>
   </hashTree>
 </jmeterTestPlan>
