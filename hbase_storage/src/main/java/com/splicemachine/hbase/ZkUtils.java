@@ -128,7 +128,6 @@ public class ZkUtils{
      * @throws Exception
      */
     public static short assignSnowFlakeSequence() throws Exception {
-        ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath()+ HBaseConfiguration.SNOWFLAKE_PATH);
         for (short i =1; i<= 1024;i++) {
             try {
                 // Notice the ephemeral node, will be gone once the process exits...
