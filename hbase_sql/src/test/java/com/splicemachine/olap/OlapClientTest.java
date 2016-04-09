@@ -12,6 +12,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.Random;
@@ -56,6 +57,7 @@ public class OlapClientTest {
     }
 
     @Test(timeout = 3000)
+    @Ignore // per sf
     public void failingJobTest() throws Exception {
         try {
             DumbOlapResult result = olapClient.execute(new FailingDistributedJob("failingJob"));
@@ -66,6 +68,7 @@ public class OlapClientTest {
     }
 
     @Test
+    @Ignore // per sf
     public void repeatedFailingJob() throws Exception{
         for(int i=0;i<100;i++){
             failingJobTest();
