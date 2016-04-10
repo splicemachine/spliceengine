@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -272,9 +273,14 @@ public class TernaryOperatorNode extends OperatorNode
 	 * @exception StandardException	thrown on error
 	 */
 	protected int getOrderableVariantType() throws StandardException {
+
+        return Qualifier.VARIANT;
+      /*
       int leftType = leftOperand.getOrderableVariantType();
       return rightOperand == null ?
                leftType : Math.min(leftType, rightOperand.getOrderableVariantType());
+
+      */
 	}
 	
 	/**
