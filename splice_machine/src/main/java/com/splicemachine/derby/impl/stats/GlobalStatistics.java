@@ -137,8 +137,12 @@ public class GlobalStatistics implements OverheadManagedTableStatistics {
         int rc = 0;
         if(partitionStatistics.size()<=0) return 0;
 
-        for(PartitionStatistics statistics: partitionStatistics)
-            rc+=statistics.avgRowWidth();
+        for(PartitionStatistics statistics: partitionStatistics) {
+            int avg = statistics.avgRowWidth();
+            assert avg >= 0 : "avgRowWidth cannot be negative -> totalSize=" + statistics.totalSize() +
+                    " rowCount=" + statistics.rowCount() + " className=" + statistics.getClass().getName();
+            rc += avg;
+        }
         return rc/partitionStatistics.size();
     }
 
