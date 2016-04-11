@@ -251,5 +251,153 @@ public class SQLVarchar
         return stringCompare(char1.getString(), char2.getString());
     }
 
+    /**
+     @exception StandardException thrown on error
+     */
+    public int compare(DataValueDescriptor other) throws StandardException {
+        /* Use compare method from dominant type, negating result
+         * to reflect flipping of sides.
+         */
+        if (typePrecedence() < other.typePrecedence()) {
+            return - (other.compare(this));
+        }
+        // stringCompare deals with null as comparable and smallest
+        return stringCompare(this, (StringDataValue)other);
+    }
+
+    /**
+     * The = operator as called from the language module, as opposed to
+     * the storage module.
+     *
+     * @param left          The value on the left side of the =
+     * @param right         The value on the right side of the =
+     *
+     * @return  A SQL boolean value telling whether the two parameters are equal
+     *
+     * @exception StandardException     Thrown on error
+     */
+
+    public BooleanDataValue equals(DataValueDescriptor left,
+                                   DataValueDescriptor right)
+            throws StandardException {
+        boolean  comparison = stringCompare(left.getString(), right.getString()) == 0;
+        return SQLBoolean.truthValue(left,
+                right,
+                comparison);
+    }
+
+    /**
+     * The <> operator as called from the language module, as opposed to
+     * the storage module.
+     *
+     * @param left          The value on the left side of the <>
+     * @param right         The value on the right side of the <>
+     *
+     * @return  A SQL boolean value telling whether the two parameters
+     * are not equal
+     *
+     * @exception StandardException     Thrown on error
+     */
+
+    public BooleanDataValue notEquals(DataValueDescriptor left,
+                                      DataValueDescriptor right)
+            throws StandardException {
+        boolean comparison = stringCompare(left.getString(), right.getString()) != 0;
+        return SQLBoolean.truthValue(left,
+                right,
+                comparison);
+    }
+
+    /**
+     * The < operator as called from the language module, as opposed to
+     * the storage module.
+     *
+     * @param left          The value on the left side of the <
+     * @param right         The value on the right side of the <
+     *
+     * @return  A SQL boolean value telling whether the first operand is
+     *          less than the second operand
+     *
+     * @exception StandardException     Thrown on error
+     */
+
+    public BooleanDataValue lessThan(DataValueDescriptor left,
+                                     DataValueDescriptor right)
+            throws StandardException {
+        boolean comparison = stringCompare(left.getString(), right.getString()) < 0;
+        return SQLBoolean.truthValue(left,
+                right,
+                comparison);
+    }
+
+    /**
+     * The > operator as called from the language module, as opposed to
+     * the storage module.
+     *
+     * @param left          The value on the left side of the >
+     * @param right         The value on the right side of the >
+     *
+     * @return  A SQL boolean value telling whether the first operand is
+     *          greater than the second operand
+     *
+     * @exception StandardException     Thrown on error
+     */
+
+    public BooleanDataValue greaterThan(DataValueDescriptor left,
+                                        DataValueDescriptor right)
+            throws StandardException
+    {
+        boolean comparison = stringCompare(left.getString(), right.getString()) > 0;
+        return SQLBoolean.truthValue(left,
+                right,
+                comparison);
+    }
+
+    /**
+     * The <= operator as called from the language module, as opposed to
+     * the storage module.
+     *
+     * @param left          The value on the left side of the <=
+     * @param right         The value on the right side of the <=
+     *
+     * @return  A SQL boolean value telling whether the first operand is
+     *          less than or equal to the second operand
+     *
+     * @exception StandardException     Thrown on error
+     */
+
+    public BooleanDataValue lessOrEquals(DataValueDescriptor left,
+                                         DataValueDescriptor right)
+            throws StandardException
+    {
+        boolean comparison = stringCompare(left.getString(), right.getString()) <= 0;
+        return SQLBoolean.truthValue(left,
+                right,
+                comparison);
+    }
+
+    /**
+     * The >= operator as called from the language module, as opposed to
+     * the storage module.
+     *
+     * @param left          The value on the left side of the >=
+     * @param right         The value on the right side of the >=
+     *
+     * @return  A SQL boolean value telling whether the first operand is
+     *          greater than or equal to the second operand
+     *
+     * @exception StandardException     Thrown on error
+     */
+
+    public BooleanDataValue greaterOrEquals(DataValueDescriptor left,
+                                            DataValueDescriptor right)
+            throws StandardException
+    {
+        boolean comparison = stringCompare(left.getString(), right.getString()) >= 0;
+        return SQLBoolean.truthValue(left,
+                right,
+                comparison);
+    }
+
 
 }
