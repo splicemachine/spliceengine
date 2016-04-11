@@ -142,7 +142,7 @@ public class JoinWithTrimIT {
     }
 
     @Test
-    public void testLeftOpMergeSort() throws Exception {
+    public void testLeftOpTrimMergeSort() throws Exception {
         assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, MERGE_SORT), 2));
     }
 

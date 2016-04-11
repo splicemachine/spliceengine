@@ -68,7 +68,8 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
         return TestUtils.FormattedResult.ResultFactory.toString(rs);
     }
 
-    // DB-4833 (Wells)
+    // DB-4883 (Wells)
+    // See JoinWithTrimIT for additional coverage
     @Test
     public void validateNoTrimOnVarchar() throws Exception {
         methodWatcher.executeUpdate("create table left1 (col1 int, col2 varchar(25))");
