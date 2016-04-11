@@ -93,7 +93,7 @@ public class JoinWithTrimIT {
     //
     // testNoTrimNestedLoop, testNoTrimBroadcast, testNoTrimMergeSort
 
-    @Ignore("Need fixes for DB-4883, DB-4923, DB-4922")
+    @Test
     public void testNoTrimNestedLoop() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_NO_TRIM, "NESTEDLOOP"), 2);
         assertEquals(ROWS_MSG, 1, result.size());
@@ -120,7 +120,7 @@ public class JoinWithTrimIT {
     //
     // testLeftOpTrimNestedLoop, testLeftOpTrimBroadcast, testLeftOpMergeSort
 
-    @Ignore("Need fixes for DB-4883, DB-4923, DB-4922")
+    @Test
     public void testLeftOpTrimNestedLoop() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, "NESTEDLOOP"), 2);
         assertEquals(ROWS_MSG, 2, result.size());
@@ -128,7 +128,7 @@ public class JoinWithTrimIT {
         assertRow(2, result, "4     ", "4");
     }
 
-    @Ignore("Will pass when wells fargo issue DB-4924 is fixed")
+    @Test
     public void testLeftOpTrimBroadcast() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, "BROADCAST"), 2);
         assertEquals(ROWS_MSG, 2, result.size());
@@ -136,7 +136,7 @@ public class JoinWithTrimIT {
         assertRow(2, result, "4     ", "4");
     }
 
-    @Ignore("Will pass when wells fargo issue DB-4924 is fixed")
+    @Test
     public void testLeftOpMergeSort() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, "SORTMERGE"), 2);
         assertEquals(ROWS_MSG, 2, result.size());
@@ -170,7 +170,7 @@ public class JoinWithTrimIT {
     }
     */
 
-    @Ignore("Need fixes for DB-4883, DB-4923, DB-4922")
+    @Test
     public void testBothTrimNestedLoop() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, "NESTEDLOOP"), 2);
         assertEquals(ROWS_MSG, 4, result.size());
