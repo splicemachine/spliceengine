@@ -9,6 +9,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.*;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
@@ -59,7 +60,7 @@ public class PredicateBuilder {
                             serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(columnTypes);
                         byte[] bytes = serializers[qualifier.getColumnId()].encodeDirect(dvd, sort);
 
-						if(dvd instanceof StringDataValue){
+						if(dvd.getTypeFormatId() == StoredFormatIds.SQL_CHAR_ID){
 								return new CharValuePredicate(getHBaseCompareOp(qualifier.getOperator(),
 												qualifier.negateCompareResult()),qualifier.getColumnId(),bytes,true,sort);
 						}else{

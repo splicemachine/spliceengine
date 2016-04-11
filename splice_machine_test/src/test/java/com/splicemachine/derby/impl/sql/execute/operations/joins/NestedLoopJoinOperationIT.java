@@ -5,6 +5,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -18,7 +19,7 @@ import static org.junit.Assert.assertEquals;
  * Integration tests for NestedLoopJoinOperation.
  */
 @Category(SerialTest.class) //in Serial category because of the NestedLoopIteratorClosesStatements test
-public class NestedLoopJoinOperationIT {
+public class NestedLoopJoinOperationIT extends SpliceUnitTest {
 
     private static final String SCHEMA = NestedLoopJoinOperationIT.class.getSimpleName().toUpperCase();
     @ClassRule
@@ -85,6 +86,23 @@ public class NestedLoopJoinOperationIT {
 
     private String toString(ResultSet rs) throws Exception {
         return TestUtils.FormattedResult.ResultFactory.toString(rs);
+    }
+
+    // DB-4833 (Wells)
+    @Test
+    public void validateNoTrimOnVarchar() throws Exception {
+        methodWatcher.executeUpdate("create table left1 (col1 int, col2 varchar(25))");
+        methodWatcher.executeUpdate("create table right1 (col1 int, col2 varchar(25))");
+        methodWatcher.executeUpdate("insert into left1 values (1,'123')");
+        methodWatcher.executeUpdate("insert into right1 values (1,'123')");
+        methodWatcher.executeUpdate("insert into right1 values (1,'123 ')");
+        methodWatcher.executeUpdate("insert into right1 values (1,'123  ')");
+        ResultSet rs = methodWatcher.executeQuery("select * from left1 left outer join right1 --splice-properties joinStrategy=NESTEDLOOP\n" +
+            " on left1.col2 = right1.col2");
+        Assert.assertEquals("NestedLoop Returned Extra Row",1,SpliceUnitTest.resultSetSize(rs)); //DB-4883
+        rs = methodWatcher.executeQuery("select * from left1 left outer join right1 --splice-properties joinStrategy=BROADCAST\n" +
+            " on left1.col2 = right1.col2");
+        Assert.assertEquals("Broadcast Returned Extra Row",1,SpliceUnitTest.resultSetSize(rs)); //DB-4883
     }
 
 }

@@ -191,6 +191,21 @@ public class SpliceWatcher extends TestWatcher {
     }
 
     /**
+     * Return columns from all rows.
+     */
+    public <T> List<Object[]> queryListMulti(String sql, int columns) throws Exception {
+        List<Object[]> resultList = Lists.newArrayList();
+        ResultSet rs = executeQuery(sql);
+        while (rs.next()) {
+            Object[] row = new Object[columns];
+            for (int i = 0; i < columns; i++) {
+                row[i] = rs.getObject(i + 1);
+            }
+            resultList.add(row);
+        }
+        return resultList;
+    }
+    /**
      * Return column one from the first row.  Asserts that one and only one row is returned.
      */
     public <T> T query(String sql) throws Exception {
