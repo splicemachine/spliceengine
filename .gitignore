@@ -16,6 +16,7 @@
 **/*.log.*
 
 clean.sh
+hbase_sql/splicedb
 
 
 
