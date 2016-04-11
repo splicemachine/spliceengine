@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -17,16 +18,16 @@ import static com.splicemachine.test_tools.Rows.rows;
  *
  */
 @RunWith(Parameterized.class)
-public class JoinOperationIT {
+public class JoinOperationIT extends SpliceUnitTest{
     private static final String SCHEMA = JoinOperationIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
-//        params.add(new Object[]{"NESTEDLOOP"});
+        params.add(new Object[]{"NESTEDLOOP"});
         params.add(new Object[]{"SORTMERGE"});
-//        params.add(new Object[]{"BROADCAST"});
+        params.add(new Object[]{"BROADCAST"});
 //        params.add(new Object[]{"MERGE"});
         return params;
     }
@@ -54,6 +55,17 @@ public class JoinOperationIT {
                 .withInsert("insert into FOO2 values(?,?)")
                 .withRows(rows(row(1,5), row(3,7), row(5,9))).create();
 
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("create table a (v varchar(12))")
+                .withInsert("insert into a values(?)")
+                .withRows(rows(row("1"), row("2"), row("3 "), row("4 "))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("create table b (v varchar(12))")
+                .withInsert("insert into b values(?)")
+                .withRows(rows(row("1"), row("2 "), row("3"), row("4 "))).create();
+
+
     }
     @Test
     public void testInnerJoinNoRestriction() throws Exception {
@@ -63,8 +75,8 @@ public class JoinOperationIT {
                 "where foo.col1 = foo2.col1",this.joinStrategy
         ));
         rs.next();
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy),3,rs.getInt(1));
-        Assert.assertEquals(String.format("Wrong max for %s", joinStrategy),5,rs.getInt(2));
+        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(1));
+        Assert.assertEquals(String.format("Wrong max for %s", joinStrategy), 5, rs.getInt(2));
     }
     @Test
     public void testInnerJoinRestriction() throws Exception {
@@ -107,7 +119,7 @@ public class JoinOperationIT {
                         "on foo.col1 = foo2.col1",this.joinStrategy
         ));
         rs.next();
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy),5,rs.getInt(1));
+        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 5, rs.getInt(1));
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy),3,rs.getInt(2));
     }
     @Test
@@ -121,4 +133,20 @@ public class JoinOperationIT {
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy),5,rs.getInt(1));
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy),2,rs.getInt(2));
     }
+    @Test
+    public void testTrimJoinFunctionCall() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(String.format(
+                "select * from --Splice-properties joinOrder=FIXED\n" +
+                        " a, b --Splice-properties joinStrategy=%s\n" +
+                        "where rtrim(a.v) = b.v order by a.v",this.joinStrategy
+        ));
+        Assert.assertTrue("First Row Not Returned",rs.next());
+        Assert.assertEquals("1",rs.getString(1));
+        Assert.assertEquals("1",rs.getString(2));
+        Assert.assertTrue("Second Row Not Returned",rs.next());
+        Assert.assertEquals("3 ",rs.getString(1));
+        Assert.assertEquals("3",rs.getString(2));
+        Assert.assertFalse("Third Row Returned",rs.next());
+    }
+
 }
