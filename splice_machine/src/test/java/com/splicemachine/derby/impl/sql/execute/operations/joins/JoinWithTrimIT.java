@@ -93,7 +93,7 @@ public class JoinWithTrimIT {
     //
     // testNoTrimNestedLoop, testNoTrimBroadcast, testNoTrimMergeSort
 
-    @Test
+    @Ignore("Need fixes for DB-4883, DB-4923, DB-4922")
     public void testNoTrimNestedLoop() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_NO_TRIM, "NESTEDLOOP"), 2);
         assertEquals(ROWS_MSG, 1, result.size());
@@ -120,7 +120,7 @@ public class JoinWithTrimIT {
     //
     // testLeftOpTrimNestedLoop, testLeftOpTrimBroadcast, testLeftOpMergeSort
 
-    @Test
+    @Ignore("Need fixes for DB-4883, DB-4923, DB-4922")
     public void testLeftOpTrimNestedLoop() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, "NESTEDLOOP"), 2);
         assertEquals(ROWS_MSG, 2, result.size());
@@ -143,8 +143,8 @@ public class JoinWithTrimIT {
         assertRow(1, result, "2",      "2");
         assertRow(2, result, "4     ", "4");
     }
-    
-    @Test
+
+    @Ignore("Need fixes for DB-4883, DB-4923, DB-4922")
     public void testRightOpTrimNestedLoop() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, "NESTEDLOOP"), 2);
         assertEquals(ROWS_MSG, 2, result.size());
@@ -170,7 +170,7 @@ public class JoinWithTrimIT {
     }
     */
 
-    @Test
+    @Ignore("Need fixes for DB-4883, DB-4923, DB-4922")
     public void testBothTrimNestedLoop() throws Exception {
         List<Object[]> result = methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, "NESTEDLOOP"), 2);
         assertEquals(ROWS_MSG, 4, result.size());
