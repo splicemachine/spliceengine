@@ -215,5 +215,41 @@ public class SQLVarchar
     public Format getFormat() {
     	return Format.VARCHAR;
     }
-    
+
+
+    /**
+     * Compare two Strings using standard SQL semantics.
+     *
+     * @param op1               The first String
+     * @param op2               The second String
+     *
+     * @return  -1 - op1 <  op2
+     *           0 - op1 == op2
+     *           1 - op1 > op2
+     */
+    protected static int stringCompare(String op1, String op2) {
+        /*
+        ** By convention, nulls sort High, and null == null
+        */
+        if (op1 == null || op2 == null) {
+            if (op1 != null)    // op2 == null
+                return -1;
+            if (op2 != null)    // op1 == null
+                return 1;
+            return 0;           // both null
+        }
+        return op1.compareTo(op2);
+    }
+
+    /**
+     * Compare two SQLChars.
+     *
+     * @exception StandardException     Thrown on error
+     */
+    protected int stringCompare(StringDataValue char1, StringDataValue char2)
+            throws StandardException {
+        return stringCompare(char1.getString(), char2.getString());
+    }
+
+
 }
