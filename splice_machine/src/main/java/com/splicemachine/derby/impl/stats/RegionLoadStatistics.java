@@ -48,7 +48,7 @@ public class RegionLoadStatistics{
             if(regionLoad==null){
                 heapSize =partitionMaxFileSize;
             }else {
-                heapSize = (regionLoad.getStorefileSizeMB()+regionLoad.getMemStoreSizeMB())*1024*1024;
+                heapSize = ((long)(regionLoad.getStorefileSizeMB()+regionLoad.getMemStoreSizeMB()))*1024*1024;
                 rowSizeRatio = ((double)heapSize)/partitionMaxFileSize;
             }
             long fbRegionRowCount = config.getFallbackRegionRowCount();
