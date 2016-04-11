@@ -32,6 +32,9 @@ public class JoinWithTrimIT {
     private static final String BROADCAST = "--SPLICE-PROPERTIES joinStrategy=BROADCAST";
     private static final String MERGE_SORT = "--SPLICE-PROPERTIES joinStrategy=SORTMERGE";
 
+    private static final String RTRIM = "RTRIM";
+    private static final String TRIM = "TRIM";
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
         .around(spliceSchemaWatcher);
@@ -85,22 +88,22 @@ public class JoinWithTrimIT {
     String SQL_TRIM_LEFT_OP =
         "select t1.id, t2.id from --SPLICE-PROPERTIES joinOrder=fixed\n" +
         "t1 inner join t2 %s\n" +
-        "on RTRIM(t1.id) = t2.id order by t1.id";
+        "on %s(t1.id) = t2.id order by t1.id";
 
     String SQL_TRIM_RIGHT_OP =
         "select t1.id, t2.id from --SPLICE-PROPERTIES joinOrder=fixed\n" +
         "t1 inner join t2 %s\n" +
-        "on t1.id = RTRIM(t2.id) order by t1.id";
+        "on t1.id = %s(t2.id) order by t1.id";
 
     String SQL_TRIM_BOTH =
         "select t1.id, t2.id from --SPLICE-PROPERTIES joinOrder=fixed\n" +
         "t1 inner join t2 %s\n" +
-        "on RTRIM(t1.id) = RTRIM(t2.id) order by t1.id";
+        "on %s(t1.id) = %s(t2.id) order by t1.id";
 
     String SQL_TRIM_BOTH_REVERSE_TABLE_ORDER =
         "select t1.id, t2.id from --SPLICE-PROPERTIES joinOrder=fixed\n" +
         "t2 inner join t1 %s\n" +
-        "on RTRIM(t1.id) = RTRIM(t2.id) order by t1.id";
+        "on %s(t1.id) = %s(t2.id) order by t1.id";
 
     @Test
     public void testNoTrimNoHint() throws Exception {
@@ -128,92 +131,110 @@ public class JoinWithTrimIT {
     public void testLeftOpTrimNoHint() throws Exception {
         // Needed because occasionally an explicit join hint will cause infeasible plan error,
         // but if we remove hint, optimizer picks that join strategy anyway.
-        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, ""), 2));
+        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, "", RTRIM), 2));
+        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, "", TRIM), 2));
     }
 
     @Test
     public void testLeftOpTrimNestedLoop() throws Exception {
-        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, NESTED_LOOP), 2));
+        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, NESTED_LOOP, RTRIM), 2));
+        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, NESTED_LOOP, TRIM), 2));
     }
 
     @Test
     public void testLeftOpTrimBroadcast() throws Exception {
-        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, BROADCAST), 2));
+        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, BROADCAST, RTRIM), 2));
+        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, BROADCAST, TRIM), 2));
     }
 
     @Test
     public void testLeftOpTrimMergeSort() throws Exception {
-        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, MERGE_SORT), 2));
+        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, MERGE_SORT, RTRIM), 2));
+        assertLeftOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_LEFT_OP, MERGE_SORT, TRIM), 2));
     }
 
     @Test
     public void testRightOpTrimNoHint() throws Exception {
         // Needed because occasionally an explicit join hint will cause infeasible plan error,
         // but if we remove hint, optimizer picks that join strategy anyway.
-        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, ""), 2));
+        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, "", RTRIM), 2));
+        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, "", TRIM), 2));
     }
 
     @Test
     public void testRightOpTrimNestedLoop() throws Exception {
-        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, NESTED_LOOP), 2));
+        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, NESTED_LOOP, RTRIM), 2));
+        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, NESTED_LOOP, TRIM), 2));
     }
 
 // Commented out rather then skipped because plan is not valid. Keep here for reference.
 //    @Test
 //    public void testRightOpTrimBroadcast() throws Exception {
-//        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, BROADCAST), 2));
+//        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, BROADCAST, RTRIM), 2));
 //    }
 //
 // Commented out rather then skipped because plan is not valid. Keep here for reference.
 //    @Test
 //    public void testRightOpTrimSortMerge() throws Exception {
-//        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, MERGE_SORT), 2));
+//        assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, MERGE_SORT, RTRIM), 2));
 //    }
 
     @Test
     public void testBothTrimNoHint() throws Exception {
         // Needed because occasionally an explicit join hint will cause infeasible plan error,
         // but if we remove hint, optimizer picks that join strategy anyway.
-        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, ""), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, "", RTRIM, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, "", TRIM, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, "", RTRIM, TRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, "", TRIM, TRIM), 2));
     }
 
     @Test
     public void testBothTrimNestedLoop() throws Exception {
-        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, NESTED_LOOP), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, NESTED_LOOP, RTRIM, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, NESTED_LOOP, RTRIM, TRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, NESTED_LOOP, TRIM, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, NESTED_LOOP, TRIM, TRIM), 2));
     }
 
 // Commented out rather then skipped because plan is not valid. Keep here for reference.
 //    @Test
 //    public void testBothTrimBroadcast() throws Exception {
-//        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, BROADCAST), 2));
+//        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, BROADCAST, RTRIM, RTRIM), 2));
 //    }
 //
 // Commented out rather then skipped because plan is not valid. Keep here for reference.
 //    @Test
 //    public void testBothTrimMergeSort() throws Exception {
-//        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, MERGE_SORT), 2));
+//        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, MERGE_SORT, RTRIM, RTRIM), 2));
 //    }
 
     @Test
     public void testBothTrimNoHintReverse() throws Exception {
-        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, ""), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, "", RTRIM, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, "", RTRIM, TRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, "", TRIM, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, "", TRIM, TRIM), 2));
     }
 
     @Test
     public void testBothTrimNestedLoopReverse() throws Exception {
-        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, NESTED_LOOP), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, NESTED_LOOP, RTRIM, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, NESTED_LOOP, RTRIM, TRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, NESTED_LOOP, TRIM, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, NESTED_LOOP, TRIM, TRIM), 2));
     }
 
 // Commented out rather then skipped because plan is not valid. Keep here for reference.
 //    @Test
 //    public void testBothTrimBroadcastReverse() throws Exception {
-//        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, BROADCAST), 2));
+//        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, BROADCAST, RTRIM), 2));
 //    }
 //
 // Commented out rather then skipped because plan is not valid. Keep here for reference.
 //    @Test
 //    public void testBothTrimMergeSortReverse() throws Exception {
-//        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, MERGE_SORT), 2));
+//        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, MERGE_SORT, RTRIM), 2));
 //    }
 
     private void assertNoTrimResult(List<Object[]> result) throws Exception {
