@@ -63,7 +63,8 @@ public class SpliceOutputCommitter extends OutputCommitter {
     public void setupTask(TaskAttemptContext taskContext) throws IOException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"setupTask");
-        TxnView childTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn,destinationTable);
+        // Create child additive transaction so we don't read rows inserted by ourselves in this operation
+        TxnView childTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, destinationTable);
         taskAttemptMap.put(taskContext.getTaskAttemptID(),childTxn);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"beginTxn=%s and destinationTable=%s",childTxn,destinationTable);

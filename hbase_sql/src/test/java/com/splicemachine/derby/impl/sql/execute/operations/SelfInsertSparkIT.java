@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.test.HBaseTestUtils;
+import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
@@ -31,7 +32,7 @@ import static org.junit.Assert.assertTrue;
  *
  * Similar to SelfInsertIT but with dependencies on HBase/Spark
  */
-@Category(SlowTest.class)
+@Category({SlowTest.class, SerialTest.class})
 public class SelfInsertSparkIT {
     private static Logger LOG=Logger.getLogger(SelfInsertSparkIT.class);
 
@@ -120,8 +121,7 @@ public class SelfInsertSparkIT {
     }
 
 
-    @Ignore("DB-4877")
-    @Test(timeout = 300000)
+    @Test(timeout = 240000)
     public void testInsertsMatchDuringFlushes() throws Throwable {
         final int maxLevel = 22;
 
@@ -136,8 +136,7 @@ public class SelfInsertSparkIT {
 
             HBaseAdmin admin = new HBaseAdmin(HConfiguration.unwrapDelegate());
 
-
-            try (PreparedStatement ps = methodWatcher.prepareStatement("select count(*) from foo2")) {
+            try (PreparedStatement ps = methodWatcher.prepareStatement("select count(*) from foo2 --splice-properties useSpark=true")) {
                 try (Statement s = methodWatcher.getOrCreateConnection().createStatement()) {
                     String sql = "insert into foo2 (col1, col2) values (0,'234234324324sdfjkjdfsjksdjkfjkjksdjkfjksdjkfjkjksdjkfjksdkjfkjkjsdkjfkjsjkdjkfjksdjkfkjskjdkjfkjskjdjkfjksdjkjkfjksjkdf')";
                     int updateCount = s.executeUpdate(sql);
@@ -157,12 +156,14 @@ public class SelfInsertSparkIT {
                             Assert.assertTrue("No rows returned from count query!", rs.next());
                             Assert.assertEquals("Incorrect table count!", newSize << 1, rs.getLong(1));
                         }
+                        LOG.trace("inserted " + newSize + " records");
                         admin.flush(tableName);
                     }
                 }
             }
         } finally {
             assertTrue(HBaseTestUtils.setBlockPreCompact(CLASS_NAME, "foo2", false, methodWatcher.getOrCreateConnection()));
+            assertTrue(HBaseTestUtils.setBlockPreFlush(CLASS_NAME, "foo2", false, methodWatcher.getOrCreateConnection()));
         }
     }
 }

@@ -11,6 +11,8 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.api.server.TransactionalRegion;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -41,6 +43,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	protected RowLocation rowLocation;
 	private List<AutoCloseable> closeables = new ArrayList<>();
     private boolean statisticsRun = false;
+	private Txn localTxn;
 
 	public SMRecordReaderImpl(Configuration config) {
 		this.config = config;
@@ -115,12 +118,27 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 		IOException lastThrown = null;
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "close");
+		if (localTxn != null) {
+			try {
+				localTxn.commit();
+			} catch (IOException ioe) {
+				try {
+					localTxn.rollback();
+				} catch (Exception e) {
+					ioe.addSuppressed(e);
+				}
+				lastThrown = ioe;
+			}
+		}
 		for (AutoCloseable c : closeables) {
 			if (c != null) {
 				try {
 					c.close();
 				} catch (Exception e) {
-					lastThrown = e instanceof IOException ? (IOException) e : new IOException(e);
+					if (lastThrown != null)
+						lastThrown.addSuppressed(e);
+					else
+						lastThrown = e instanceof IOException ? (IOException) e : new IOException(e);
 				}
 			}
 		}
@@ -162,8 +180,11 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
             assert this.hregion !=null:"Returned null HRegion for htable "+htable.getName();
 			long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getQualifierAsString());
             TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));
+            TxnView parentTxn = builder.getTxn();
+            this.localTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, null);
             builder.region(region)
                     .template(template)
+                    .transaction(localTxn)
                     .scan(new HScan(scan))
                     .scanner(new RegionDataScanner(new RegionPartition(hregion),mrs,statisticsRun?Metrics.basicMetricFactory():Metrics.noOpMetricFactory()));
 			if (LOG.isTraceEnabled())
