@@ -1449,8 +1449,8 @@ public class BinaryRelationalOperatorNode
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
         DataValueDescriptor endKey = getKeyBoundary(maxInnerColumn, maxOuterColumn, false);
 
-        if (startKey!= null && startKey.compare(minInnerColumn) > 0 ||
-                endKey!= null && endKey.compare(maxInnerColumn)< 0) {
+        if (startKey!= null && minInnerColumn != null && startKey.compare(minInnerColumn) > 0 ||
+                endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
             selectivity *= innerTableCostController.getSelectivity(innerColumn.getSource().getColumnPosition(),
                     startKey, true, endKey, true);
         }
