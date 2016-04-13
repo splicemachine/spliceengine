@@ -42,7 +42,8 @@ import com.splicemachine.utils.BlockingProbeEndpoint;
 class SpliceTestPlatformConfig {
 
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
-            RegionServerLifecycleObserver.class
+            RegionServerLifecycleObserver.class,
+            BlockingProbeEndpoint.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
@@ -52,8 +53,7 @@ class SpliceTestPlatformConfig {
             RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class,
-            BackupEndpointObserver.class,
-            BlockingProbeEndpoint.class);
+            BackupEndpointObserver.class);
 
     private static final List<Class<?>> MASTER_COPROCESSORS = ImmutableList.<Class<?>>of(
             SpliceMasterObserver.class);

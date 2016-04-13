@@ -58,7 +58,7 @@ public class SelfInsertSparkIT {
     public void testCountMatchesAfterSplit() throws Throwable {
         int maxLevel = 20;
         // block flushes
-        assertTrue(HBaseTestUtils.setBlockPreFlush(CLASS_NAME, "foo", true, methodWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPreFlush(true));
         try(PreparedStatement ps = methodWatcher.prepareStatement("select count(*) from foo")){
             try(Statement s =methodWatcher.getOrCreateConnection().createStatement()){
                 String sql = "insert into foo (col1, col2) values (0,'234234324324sdfjkjdfsjksdjkfjkjksdjkfjksdjkfjkjksdjkfjksdkjfkjkjsdkjfkjsjkdjkfjksdjkfkjskjdkjfkjskjdjkfjksdjkjkfjksjkdf')";
@@ -84,7 +84,7 @@ public class SelfInsertSparkIT {
         }
 
         // unblock flushes
-        assertTrue(HBaseTestUtils.setBlockPreFlush(CLASS_NAME, "foo", false, methodWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPreFlush(false));
 
         final long expectedRows = 1l<<maxLevel;
         // flush table
@@ -97,7 +97,7 @@ public class SelfInsertSparkIT {
         Thread.sleep(5000); // let it flush
 
         // block compactions
-        assertTrue(HBaseTestUtils.setBlockPreCompact(CLASS_NAME, "foo", true, methodWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPreCompact(true));
 
         LOG.trace("Splitting table");
         hBaseAdmin.split(tableName);
@@ -117,7 +117,7 @@ public class SelfInsertSparkIT {
         }
 
         // unblock compactions
-        assertTrue(HBaseTestUtils.setBlockPreCompact(CLASS_NAME, "foo", false, methodWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPreCompact(false));
     }
 
 
@@ -126,9 +126,9 @@ public class SelfInsertSparkIT {
         final int maxLevel = 22;
 
         //  flushes not blocked
-        assertTrue(HBaseTestUtils.setBlockPreFlush(CLASS_NAME, "foo2", false, methodWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPreFlush(false));
         // no compactions
-        assertTrue(HBaseTestUtils.setBlockPreCompact(CLASS_NAME, "foo2", true, methodWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPreCompact(true));
 
         try {
             String conglomerateNumber = TestUtils.lookupConglomerateNumber(CLASS_NAME, "foo2", methodWatcher);
@@ -162,8 +162,8 @@ public class SelfInsertSparkIT {
                 }
             }
         } finally {
-            assertTrue(HBaseTestUtils.setBlockPreCompact(CLASS_NAME, "foo2", false, methodWatcher.getOrCreateConnection()));
-            assertTrue(HBaseTestUtils.setBlockPreFlush(CLASS_NAME, "foo2", false, methodWatcher.getOrCreateConnection()));
+            assertTrue(HBaseTestUtils.setBlockPreCompact(false));
+            assertTrue(HBaseTestUtils.setBlockPreFlush(false));
         }
     }
 }

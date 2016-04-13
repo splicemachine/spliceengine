@@ -124,11 +124,11 @@ public class CompactionSplitIT {
         callableStatement.setString(1, schema);
         callableStatement.setString(2, tableName);
 
-        assertTrue(HBaseTestUtils.setBlockPostFlush(schema, tableName, true, classWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPostFlush(true));
 
         helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
 
-        assertTrue(HBaseTestUtils.setBlockPostFlush(schema, tableName, false, classWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPostFlush(false));
 
         helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
     }
@@ -149,11 +149,11 @@ public class CompactionSplitIT {
         callableStatement.setString(1, schema);
         callableStatement.setString(2, tableName);
 
-        assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, true, classWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPostCompact(true));
 
         helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
 
-        assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPostCompact(false));
 
         helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
     }
@@ -174,11 +174,11 @@ public class CompactionSplitIT {
         callableStatement.setString(1, schema);
         callableStatement.setString(2, tableName);
 
-        assertTrue(HBaseTestUtils.setBlockPostSplit(schema, tableName, true, classWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPostSplit(true));
 
         helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
 
-        assertTrue(HBaseTestUtils.setBlockPostSplit(schema, tableName, false, classWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPostSplit(false));
 
         helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
     }
@@ -205,17 +205,17 @@ public class CompactionSplitIT {
             callableStatement.setString(1, info.getEncodedName());
             callableStatement.setString(2, "");  // empty splitpoints will be turned into null arg (hbase will decide)
 
-            assertTrue(HBaseTestUtils.setBlockPostSplit(schema, tableName, true, classWatcher.getOrCreateConnection()));
+            assertTrue(HBaseTestUtils.setBlockPostSplit(true));
 
             helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
 
-            assertTrue(HBaseTestUtils.setBlockPostSplit(schema, tableName, false, classWatcher.getOrCreateConnection()));
+            assertTrue(HBaseTestUtils.setBlockPostSplit(false));
 
             helpTestProc(callableStatement, 10, classWatcher, query, actualResult);
         }
     }
 
-    @Test(timeout = 80000)
+    @Test(timeout = 120000)
     // Tests compactions don't block scans until the storefile renaming step
     public void testCompactionDoesntBlockScans() throws Throwable {
         final String tableName = "E";
@@ -227,7 +227,7 @@ public class CompactionSplitIT {
         String expectedResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
 
         LOG.trace("Blocking preCompact");
-        assertTrue(HBaseTestUtils.setBlockPreCompact(schema, tableName, true, classWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPreCompact(true));
 
         try {
             LOG.trace("preCompact blocked");
@@ -284,7 +284,7 @@ public class CompactionSplitIT {
             assertEquals("Failed during compaction", expectedResult, actualResult);
 
             LOG.trace("Unblocking preCompact");
-            assertTrue(HBaseTestUtils.setBlockPreCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
+            assertTrue(HBaseTestUtils.setBlockPreCompact(false));
 
             while (compacting) {
                 compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
@@ -298,12 +298,12 @@ public class CompactionSplitIT {
             assertEquals("Failed after compaction", expectedResult, actualResult);
         } finally {
             // make sure we unblock compactions
-            HBaseTestUtils.setBlockPreCompact(schema, tableName, false, classWatcher.getOrCreateConnection());
+            HBaseTestUtils.setBlockPreCompact(false);
         }
 
     }
 
-    @Test(timeout = 80000)
+    @Test(timeout = 180000)
     // Tests compactions block scans during the storefile renaming step
     public void testCompactionFinalizerBlocksScans() throws Throwable {
         final String tableName = "F";
@@ -315,7 +315,7 @@ public class CompactionSplitIT {
         final String expectedResult = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
 
         LOG.trace("Blocking postCompact");
-        assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, true, classWatcher.getOrCreateConnection()));
+        assertTrue(HBaseTestUtils.setBlockPostCompact(true));
 
         try {
             LOG.trace("postCompact blocked");
@@ -390,7 +390,7 @@ public class CompactionSplitIT {
             assertNull("Query didnt block", actualResult.get());
 
             LOG.trace("Unblocking postCompact");
-            assertTrue(HBaseTestUtils.setBlockPostCompact(schema, tableName, false, classWatcher.getOrCreateConnection()));
+            assertTrue(HBaseTestUtils.setBlockPostCompact(false));
 
             while (compacting) {
                 compacting = !admin.getCompactionState(tn).equals(AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
@@ -412,7 +412,7 @@ public class CompactionSplitIT {
             actualResult.set(TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
             assertEquals("Failed after compaction", expectedResult, actualResult.get());
         } finally {
-            HBaseTestUtils.setBlockPostCompact(schema, tableName, false, classWatcher.getOrCreateConnection());
+            HBaseTestUtils.setBlockPostCompact(false);
         }
 
     }

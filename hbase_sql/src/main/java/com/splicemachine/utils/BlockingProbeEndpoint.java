@@ -10,12 +10,13 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 
 import com.splicemachine.coprocessor.SpliceMessage;
+import org.apache.hadoop.hbase.coprocessor.SingletonCoprocessorService;
 
 /**
  * An HBase coprocessor used in testing to activate a {@link BlockingProbe} for a given administration stage
  * on all regions.
  */
-public class BlockingProbeEndpoint extends SpliceMessage.BlockingProbeEndpoint implements CoprocessorService,Coprocessor {
+public class BlockingProbeEndpoint extends SpliceMessage.BlockingProbeEndpoint implements SingletonCoprocessorService,Coprocessor {
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException {

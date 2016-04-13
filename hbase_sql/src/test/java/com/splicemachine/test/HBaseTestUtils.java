@@ -2,10 +2,18 @@ package com.splicemachine.test;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.protobuf.RpcCallback;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
@@ -15,208 +23,79 @@ import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.SpliceRpcController;
 import com.splicemachine.homeless.TestUtils;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 
 /**
  * Test utilities requiring HBase
  */
 public class HBaseTestUtils {
 
-    public static boolean setBlockPreFlush(String schemaName, String tableName, final boolean onOff, Connection connection) throws Throwable {
-        String conglomerateId = Long.toString(TestUtils.baseTableConglomerateId(connection,
-                                                                                schemaName, tableName));
-
-        Map<byte[], Boolean> ret;
-        try (Table table = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection().
-            getTable(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(), conglomerateId))) {
-            ret = table.coprocessorService(SpliceMessage.BlockingProbeEndpoint.class,
-                                           HConstants.EMPTY_START_ROW,
-                                           HConstants.EMPTY_END_ROW,
-                                           new Batch.Call<SpliceMessage.BlockingProbeEndpoint, Boolean>() {
-                                               @Override
-                                               public Boolean call(SpliceMessage.BlockingProbeEndpoint instance) throws IOException {
-                                                   SpliceRpcController controller = new SpliceRpcController();
-                                                   SpliceMessage.BlockingProbeRequest message = SpliceMessage.BlockingProbeRequest.newBuilder().setDoBlock(onOff).build();
-                                                   BlockingRpcCallback<SpliceMessage.BlockingProbeResponse> rpcCallback = new BlockingRpcCallback<>();
-                                                   instance.blockPreFlush(controller, message, rpcCallback);
-                                                   SpliceMessage.BlockingProbeResponse response = rpcCallback.get();
-                                                   return response.getDidBlock();
-                                               }
-                                           });
-        }
-        if (ret != null) {
-            for(Boolean rsVal : ret.values()) {
-                if (rsVal != onOff) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
+    enum CallType {
+        POST_COMPACT,
+        PRE_COMPACT,
+        POST_FLUSH,
+        PRE_FLUSH,
+        POST_SPLIT,
+        PRE_SPLIT,
     }
 
-    public static boolean setBlockPostFlush(String schemaName, String tableName, final boolean onOff, Connection connection) throws Throwable {
-        String conglomerateId = Long.toString(TestUtils.baseTableConglomerateId(connection,
-                                                                                schemaName, tableName));
-
-        Map<byte[], Boolean> ret;
-        try (Table table = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection().
-            getTable(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(), conglomerateId))) {
-            ret = table.coprocessorService(SpliceMessage.BlockingProbeEndpoint.class,
-                                           HConstants.EMPTY_START_ROW,
-                                           HConstants.EMPTY_END_ROW,
-                                           new Batch.Call<SpliceMessage.BlockingProbeEndpoint, Boolean>() {
-                                               @Override
-                                               public Boolean call(SpliceMessage.BlockingProbeEndpoint instance) throws IOException {
-                                                   SpliceRpcController controller = new SpliceRpcController();
-                                                   SpliceMessage.BlockingProbeRequest message = SpliceMessage.BlockingProbeRequest.newBuilder().setDoBlock(onOff).build();
-                                                   BlockingRpcCallback<SpliceMessage.BlockingProbeResponse> rpcCallback = new BlockingRpcCallback<>();
-                                                   instance.blockPostFlush(controller, message, rpcCallback);
-                                                   SpliceMessage.BlockingProbeResponse response = rpcCallback.get();
-                                                   return response.getDidBlock();
-                                               }
-                                           });
-        }
-        if (ret != null) {
-            for(Boolean rsVal : ret.values()) {
-                if (rsVal != onOff) {
-                    return false;
+    private static boolean setBlock(final boolean onOff, CallType type) throws Throwable {
+        org.apache.hadoop.hbase.client.Connection hbaseConnection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
+        Admin admin = hbaseConnection.getAdmin();
+        SpliceRpcController controller = new SpliceRpcController();
+        SpliceMessage.BlockingProbeRequest message = SpliceMessage.BlockingProbeRequest.newBuilder().setDoBlock(onOff).build();
+        final AtomicBoolean success = new AtomicBoolean(true);
+        Collection<ServerName> servers = admin.getClusterStatus().getServers();
+        final CountDownLatch latch = new CountDownLatch(servers.size());
+        for (ServerName server : servers) {
+            CoprocessorRpcChannel channel = admin.coprocessorService(server);
+            SpliceMessage.BlockingProbeEndpoint.Stub service = SpliceMessage.BlockingProbeEndpoint.newStub(channel);
+            RpcCallback<SpliceMessage.BlockingProbeResponse> callback = new RpcCallback<SpliceMessage.BlockingProbeResponse>() {
+                @Override
+                public void run(SpliceMessage.BlockingProbeResponse response) {
+                    if (response.getDidBlock() != onOff) {
+                        success.set(false);
+                    }
+                    latch.countDown();
                 }
+            };
+            switch (type) {
+                case POST_COMPACT: service.blockPostCompact(controller, message, callback); break;
+                case PRE_COMPACT: service.blockPreCompact(controller, message, callback); break;
+                case POST_FLUSH: service.blockPostFlush(controller, message, callback); break;
+                case PRE_FLUSH: service.blockPreFlush(controller, message, callback); break;
+                case POST_SPLIT: service.blockPostSplit(controller, message, callback); break;
+                case PRE_SPLIT: service.blockPreSplit(controller, message, callback); break;
             }
-            return true;
         }
-        return false;
+        if (!latch.await(10000, TimeUnit.SECONDS)){
+            return false;
+        }
+        return success.get();
     }
 
-    public static boolean setBlockPreCompact(String schemaName, String tableName, final boolean onOff, Connection connection) throws Throwable {
-        String conglomerateId = Long.toString(TestUtils.baseTableConglomerateId(connection,
-                                                                                schemaName, tableName));
-
-        Map<byte[], Boolean> ret;
-        try (Table table = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection().
-            getTable(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(), conglomerateId))) {
-            ret = table.coprocessorService(SpliceMessage.BlockingProbeEndpoint.class,
-                                           HConstants.EMPTY_START_ROW,
-                                           HConstants.EMPTY_END_ROW,
-                                           new Batch.Call<SpliceMessage.BlockingProbeEndpoint, Boolean>() {
-                                               @Override
-                                               public Boolean call(SpliceMessage.BlockingProbeEndpoint instance) throws IOException {
-                                                   SpliceRpcController controller = new SpliceRpcController();
-                                                   SpliceMessage.BlockingProbeRequest message = SpliceMessage.BlockingProbeRequest.newBuilder().setDoBlock(onOff).build();
-                                                   BlockingRpcCallback<SpliceMessage.BlockingProbeResponse> rpcCallback = new BlockingRpcCallback<>();
-                                                   instance.blockPreCompact(controller, message, rpcCallback);
-                                                   SpliceMessage.BlockingProbeResponse response = rpcCallback.get();
-                                                   return response.getDidBlock();
-                                               }
-                                           });
-        }
-        if (ret != null) {
-            for(Boolean rsVal : ret.values()) {
-                if (rsVal != onOff) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
+    public static boolean setBlockPreFlush(final boolean onOff) throws Throwable {
+        return setBlock(onOff, CallType.PRE_FLUSH);
     }
 
-    public static boolean setBlockPostCompact(String schemaName, String tableName, final boolean onOff, Connection connection) throws Throwable {
-        String conglomerateId = Long.toString(TestUtils.baseTableConglomerateId(connection,
-                                                                                schemaName, tableName));
-
-        Map<byte[], Boolean> ret;
-        try (Table table = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection().
-            getTable(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(), conglomerateId))) {
-            ret = table.coprocessorService(SpliceMessage.BlockingProbeEndpoint.class,
-                                           HConstants.EMPTY_START_ROW,
-                                           HConstants.EMPTY_END_ROW,
-                                           new Batch.Call<SpliceMessage.BlockingProbeEndpoint, Boolean>() {
-                                               @Override
-                                               public Boolean call(SpliceMessage.BlockingProbeEndpoint instance) throws IOException {
-                                                   SpliceRpcController controller = new SpliceRpcController();
-                                                   SpliceMessage.BlockingProbeRequest message = SpliceMessage.BlockingProbeRequest.newBuilder().setDoBlock(onOff).build();
-                                                   BlockingRpcCallback<SpliceMessage.BlockingProbeResponse> rpcCallback = new BlockingRpcCallback<>();
-                                                   instance.blockPostCompact(controller, message, rpcCallback);
-                                                   SpliceMessage.BlockingProbeResponse response = rpcCallback.get();
-                                                   return response.getDidBlock();
-                                               }
-                                           });
-        }
-        if (ret != null) {
-            for(Boolean rsVal : ret.values()) {
-                if (rsVal != onOff) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
+    public static boolean setBlockPostFlush(final boolean onOff) throws Throwable {
+        return setBlock(onOff, CallType.POST_FLUSH);
     }
 
-    public static boolean setBlockPreSplit(String schemaName, String tableName, final boolean onOff, Connection connection) throws Throwable {
-        String conglomerateId = Long.toString(TestUtils.baseTableConglomerateId(connection,
-                                                                                schemaName, tableName));
-
-        Map<byte[], Boolean> ret;
-        try (Table table = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection().
-            getTable(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(), conglomerateId))) {
-            ret = table.coprocessorService(SpliceMessage.BlockingProbeEndpoint.class,
-                                           HConstants.EMPTY_START_ROW,
-                                           HConstants.EMPTY_END_ROW,
-                                           new Batch.Call<SpliceMessage.BlockingProbeEndpoint, Boolean>() {
-                                               @Override
-                                               public Boolean call(SpliceMessage.BlockingProbeEndpoint instance) throws IOException {
-                                                   SpliceRpcController controller = new SpliceRpcController();
-                                                   SpliceMessage.BlockingProbeRequest message = SpliceMessage.BlockingProbeRequest.newBuilder().setDoBlock(onOff).build();
-                                                   BlockingRpcCallback<SpliceMessage.BlockingProbeResponse> rpcCallback = new BlockingRpcCallback<>();
-                                                   instance.blockPreSplit(controller, message, rpcCallback);
-                                                   SpliceMessage.BlockingProbeResponse response = rpcCallback.get();
-                                                   return response.getDidBlock();
-                                               }
-                                           });
-        }
-        if (ret != null) {
-            for(Boolean rsVal : ret.values()) {
-                if (rsVal != onOff) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
+    public static boolean setBlockPreCompact(final boolean onOff) throws Throwable {
+        return setBlock(onOff, CallType.PRE_COMPACT);
     }
 
-    public static boolean setBlockPostSplit(String schemaName, String tableName, final boolean onOff, Connection connection) throws Throwable {
-        String conglomerateId = Long.toString(TestUtils.baseTableConglomerateId(connection,
-                                                                                schemaName, tableName));
+    public static boolean setBlockPostCompact(final boolean onOff) throws Throwable {
+        return setBlock(onOff, CallType.POST_COMPACT);
+    }
 
-        Map<byte[], Boolean> ret;
-        try (Table table = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection().
-            getTable(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(), conglomerateId))) {
-            ret = table.coprocessorService(SpliceMessage.BlockingProbeEndpoint.class,
-                                           HConstants.EMPTY_START_ROW,
-                                           HConstants.EMPTY_END_ROW,
-                                           new Batch.Call<SpliceMessage.BlockingProbeEndpoint, Boolean>() {
-                                               @Override
-                                               public Boolean call(SpliceMessage.BlockingProbeEndpoint instance) throws IOException {
-                                                   SpliceRpcController controller = new SpliceRpcController();
-                                                   SpliceMessage.BlockingProbeRequest message = SpliceMessage.BlockingProbeRequest.newBuilder().setDoBlock(onOff).build();
-                                                   BlockingRpcCallback<SpliceMessage.BlockingProbeResponse> rpcCallback = new BlockingRpcCallback<>();
-                                                   instance.blockPostSplit(controller, message, rpcCallback);
-                                                   SpliceMessage.BlockingProbeResponse response = rpcCallback.get();
-                                                   return response.getDidBlock();
-                                               }
-                                           });
-        }
-        if (ret != null) {
-            for(Boolean rsVal : ret.values()) {
-                if (rsVal != onOff) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
+    public static boolean setBlockPreSplit(final boolean onOff) throws Throwable {
+        return setBlock(onOff, CallType.PRE_SPLIT);
+    }
+
+    public static boolean setBlockPostSplit(final boolean onOff) throws Throwable {
+        return setBlock(onOff, CallType.POST_SPLIT);
     }
 
 }
