@@ -1,5 +1,7 @@
 package com.splicemachine.timestamp.hbase;
 
+import java.io.IOException;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -26,7 +28,7 @@ public class ZkTimestampSource implements TimestampSource {
     private static final Logger LOG = Logger.getLogger(ZkTimestampSource.class);
 
     private RecoverableZooKeeper _rzk;
-    private TimestampClient _tc = null;
+    private volatile TimestampClient _tc = null;
     private String rootZkPath;
 
     public ZkTimestampSource(SConfiguration config,RecoverableZooKeeper rzk) {
@@ -52,6 +54,10 @@ public class ZkTimestampSource implements TimestampSource {
     }
     
     protected TimestampClient getTimestampClient() {
+        if (_tc == null) {
+            LOG.error("The timestamp source has been closed.");
+            throw new RuntimeException("The timestamp source has been closed.");
+        }
     	return _tc;
     }
     
