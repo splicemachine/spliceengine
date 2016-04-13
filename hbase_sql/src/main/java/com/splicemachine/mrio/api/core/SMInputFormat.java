@@ -96,7 +96,8 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     public SMRecordReaderImpl getRecordReader(InputSplit split, Configuration config) throws IOException,
             InterruptedException {
         config.addResource(conf);
-            SpliceLogUtils.info(LOG, "getRecordReader with table=%s, inputTable=%s," +
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "getRecordReader with table=%s, inputTable=%s," +
                     "conglomerate=%s",
                     table,
                     config.get(TableInputFormat.INPUT_TABLE),
@@ -107,8 +108,6 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
             table=new HTable(HBaseConfiguration.create(config),tableInfo);
         }
         rr.setHTable(table);
-        //if (!conf.getBoolean("splice.spark", false))
-//        rr.init(config, split);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "returning record reader");
         return rr;
@@ -118,8 +117,8 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     public RecordReader<RowLocation, ExecRow> createRecordReader(
             InputSplit split, TaskAttemptContext context) throws IOException,
             InterruptedException {
-//        if (LOG.isDebugEnabled())
-            SpliceLogUtils.info(LOG, "createRecordReader for split=%s, context %s",split,context);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createRecordReader for split=%s, context %s",split,context);
         if (rr != null)
             return rr;
         return getRecordReader(split,context.getConfiguration());
