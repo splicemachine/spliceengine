@@ -19,13 +19,27 @@ import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- * 
- * 
+ *
+ * Flush Aware Scanner that handles memstore only scans.
+ *
+ * The scan needs to send
+ *
+ * (1) begin message
+ * (rowkey=null,timestamp=0l,H,H,H)
+ *
+ * (2) any records
+ * (normal SI Formatted rowkeys)
+ *
+ * (3) terminate message(s)  It can never return null because that automatically terminates the scan.
+ * (rowkey=null,timestamp=MAX_TIMESTAMP,H,H,H)
+ *
+ * If a flush occurs, it needs to send a flush message
+ *
+ * (rowkey=null,timestamp=0l,F,F,F)
  * 
  */
 public class MemStoreFlushAwareScanner extends StoreScanner {
 	 protected static final Logger LOG = Logger.getLogger(MemStoreFlushAwareScanner.class);
-//	   public final static String FLUSH_EVENT = "FLUSH";
 	   protected AtomicReference<MemstoreAware> memstoreAware;
 	   protected MemstoreAware initialValue;
 	   protected HRegion region;
@@ -45,7 +59,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			this.region = region;
 		}
 
-//		@Override
+		@Override
 		public KeyValue peek() {
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "peek -->" + super.peek());
