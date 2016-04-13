@@ -6,6 +6,10 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.io.RawComparator;
 
 /**
+ *
+ * KeyValueComparator used by the Client Side Merge of Store File Scanners and MemstoreKeyValueScanner.  This
+ * class handles the special key values returned from the MemstoreFlushAwareScanner.
+ *
  * Created by jleach on 4/12/16.
  */
 public class SpliceKVComparator extends KeyValue.KVComparator implements RawComparator<Cell>, KeyValue.SamePrefixComparator<byte[]> {
