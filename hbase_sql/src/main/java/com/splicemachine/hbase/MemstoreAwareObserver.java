@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Scott Fines
  *         Date: 12/28/15
  */
-//TODO -sf- fix the concurrency on this thing
 public class MemstoreAwareObserver extends BaseRegionObserver implements CompactionObserver,
         SplitObserver,
         FlushObserver,
@@ -65,8 +64,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         BlockingProbe.blockPreSplit();
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if (latest.scannerCount>0) {
-                SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",latest.scannerCount);
+            if (latest.currentScannerCount>0) {
+                SpliceLogUtils.warn(LOG, "preSplit Delayed waiting for scanners to complete scannersRemaining=%d",latest.currentScannerCount);
                 try {
                     Thread.sleep(1000); // Have Split sleep for a second
                 } catch (InterruptedException e1) {
@@ -126,14 +125,15 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
             byte[] startKey = scan.getAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY);
             byte[] endKey = scan.getAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY);
 
-            // Throw Retry Exception if the region is splitting
+            // Throw Retry Exception if the region is splittingI real
 
             while (true) {
                 MemstoreAware currentState = memstoreAware.get();
-                if (currentState.splitMerge || currentState.compactionCount>0) {
+                if (currentState.splitMerge || currentState.currentCompactionCount>0 || currentState.currentFlushCount>0) {
                     SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
                     throw new IOException("splitting, merging, or active compaction on scan on " + c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
                 }
+
                 if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
                     break;
             }
@@ -144,7 +144,14 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                     if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)))
                         break;
                 }
-                SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow(), scan.getStopRow(),c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
+                SpliceLogUtils.warn(LOG, "scan missed do to split after task creation " +
+                        "scan [%s,%s], partition[%s,%s], region=[%s,%s]",
+                        displayByteArray(scan.getStartRow()),
+                        displayByteArray(scan.getStopRow()),
+                        displayByteArray(startKey),
+                        displayByteArray(endKey),
+                        displayByteArray(c.getEnvironment().getRegionInfo().getStartKey()),
+                        displayByteArray(c.getEnvironment().getRegionInfo().getEndKey()));
                 throw new DoNotRetryIOException();
             }
 
@@ -169,4 +176,11 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     private long getReadpoint(HRegion region){
         return region.getMVCC().memstoreReadPoint();
     }
+
+    public static  String displayByteArray(byte[] key) {
+        if (key==null || key.length==0)
+            return "NULL";
+        return Bytes.toHex(key);
+    }
+
 }

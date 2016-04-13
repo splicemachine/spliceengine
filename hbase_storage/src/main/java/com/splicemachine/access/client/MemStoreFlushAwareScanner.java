@@ -6,6 +6,7 @@ import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -30,7 +31,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 	   protected HRegion region;
 	   protected boolean beginRow = true;
 	   protected boolean endRowNeedsToBeReturned = false;
-	   protected boolean endRowAlreadyReturned = false;
 	   protected boolean flushAlreadyReturned = false;
 	   protected int counter = 0;
 
@@ -55,7 +55,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 				if (flushAlreadyReturned) {
 					if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG, "returning counter");				
-					return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH);
+					return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
 				}
 				else {
 					if (LOG.isTraceEnabled())
@@ -66,9 +66,11 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			if (beginRow)
 				return ClientRegionConstants.MEMSTORE_BEGIN;
 			Cell peek = super.peek();
-			if (peek == null && !endRowAlreadyReturned) {
+			if (peek == null) {
 				endRowNeedsToBeReturned = true;
-				return ClientRegionConstants.MEMSTORE_END;
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "endRow -->" + counter);
+                return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.HOLD,ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP,ClientRegionConstants.HOLD);
 			}
 			return (KeyValue)peek;
 		}
@@ -95,32 +97,39 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 		}
 
 		public boolean internalNext(List<Cell> outResult) throws IOException {
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "next kv=%s",outResult);
-			if (beginRow) {
-				beginRow = false;
-				return outResult.add(ClientRegionConstants.MEMSTORE_BEGIN);
-			}
-			if (endRowNeedsToBeReturned) {
-				endRowAlreadyReturned = true;
-				return outResult.add(ClientRegionConstants.MEMSTORE_END);
-			}
-			if (didWeFlush()) {
-				if (flushAlreadyReturned) {
-					if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG, "flush already returned");
-					counter++;
-					outResult.add(new KeyValue(Bytes.toBytes(counter),
-							ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH,Long.MAX_VALUE,ClientRegionConstants.FLUSH));
-				} else {
-					if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG, "Flush has not returned");
-						flushAlreadyReturned = true;
-						outResult.add(ClientRegionConstants.MEMSTORE_BEGIN_FLUSH);
-				}
-				return true;
-			}
-			return directInternalNext(outResult);
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "next kv=%s", outResult);
+                if (beginRow) {
+                    beginRow = false;
+                    return outResult.add(ClientRegionConstants.MEMSTORE_BEGIN);
+                }
+                if (endRowNeedsToBeReturned) {
+                    try {
+                        if (LOG.isTraceEnabled())
+                            SpliceLogUtils.trace(LOG, "next -->" + counter);
+
+                        return outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
+                    } finally {
+                        counter++;
+                    }
+                }
+                if (didWeFlush()) {
+                    if (flushAlreadyReturned) {
+                        LOG.warn("flush already returned");
+                        if (LOG.isTraceEnabled())
+                            SpliceLogUtils.trace(LOG, "flush already returned");
+                        outResult.add(new KeyValue(Bytes.toBytes(counter),
+                                ClientRegionConstants.FLUSH, ClientRegionConstants.FLUSH, Long.MAX_VALUE, ClientRegionConstants.FLUSH));
+                    } else {
+                        LOG.warn("Flush has not returned");
+                        if (LOG.isTraceEnabled())
+                            SpliceLogUtils.trace(LOG, "Flush has not returned");
+                        flushAlreadyReturned = true;
+                        outResult.add(ClientRegionConstants.MEMSTORE_BEGIN_FLUSH);
+                    }
+                    return true;
+                }
+                return directInternalNext(outResult);
 		}
 
 		@Override
@@ -136,7 +145,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 		}
 		
 		private boolean didWeFlush() {
-			return memstoreAware.get().flushCount != initialValue.flushCount;
+			return memstoreAware.get().totalFlushCount != initialValue.totalFlushCount;
 		}
 
 	

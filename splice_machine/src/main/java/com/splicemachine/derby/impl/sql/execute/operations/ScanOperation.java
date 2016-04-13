@@ -210,7 +210,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     /**
      * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
      */
-    protected void deSiify(DataScan scan){
+    public static void deSiify(DataScan scan){
         //exclude this from SI treatment, since we're doing it internally
         scan.addAttribute(SIConstants.SI_NEEDED,null);
         scan.returnAllVersions();

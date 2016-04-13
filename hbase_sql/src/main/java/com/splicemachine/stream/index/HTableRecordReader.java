@@ -125,6 +125,7 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
 
     public void restart(byte[] firstRow) throws IOException {
         Scan newscan = new Scan(scan);
+        newscan.setFilter(null); // Not Supposed to filter here...
         newscan.setStartRow(firstRow);
         scan = newscan;
         if(htable != null) {

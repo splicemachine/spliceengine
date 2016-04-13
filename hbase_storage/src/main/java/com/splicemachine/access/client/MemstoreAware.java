@@ -7,60 +7,62 @@ package com.splicemachine.access.client;
  */
 public class MemstoreAware {
     public boolean splitMerge = false;
-    public int flushCount;
-    public int compactionCount;
-    public int scannerCount;
+    public int totalFlushCount;
+    public int currentCompactionCount;
+    public int currentScannerCount;
+    public int currentFlushCount;
 
     public MemstoreAware() {
         this.splitMerge = false;
-        this.flushCount = 0;
-        this.compactionCount = 0;
-        this.scannerCount = 0;
+        this.totalFlushCount = 0;
+        this.currentCompactionCount = 0;
+        this.currentScannerCount = 0;
+        this.currentFlushCount = 0;
     }
     
-    public MemstoreAware(boolean splitMerge, int flushCount, int compactionCount, int scannerCount) {
+    public MemstoreAware(boolean splitMerge, int totalFlushCount, int currentCompactionCount, int currentScannerCount, int currentFlushCount) {
         this.splitMerge = splitMerge;
-        this.flushCount = flushCount;
-        this.compactionCount = compactionCount;
-        this.scannerCount = scannerCount;
+        this.totalFlushCount = totalFlushCount;
+        this.currentCompactionCount = currentCompactionCount;
+        this.currentScannerCount = currentScannerCount;
+        this.currentFlushCount = currentFlushCount;
     }
     
     
 
         public static MemstoreAware changeSplitMerge(MemstoreAware clone, boolean splitMerge) {
-            return new MemstoreAware(splitMerge, clone.flushCount,
-                    clone.compactionCount, clone.scannerCount);
+            return new MemstoreAware(splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
+                    clone.currentScannerCount,clone.currentFlushCount);
         }
 
         public static MemstoreAware incrementFlushCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.flushCount+1,
-                    clone.compactionCount, clone.scannerCount);
+            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount+1, clone.currentCompactionCount,
+                    clone.currentScannerCount,clone.currentFlushCount+1);
         }
 
         public static MemstoreAware decrementFlushCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.flushCount-1,
-                    clone.compactionCount, clone.scannerCount);
+            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
+                    clone.currentScannerCount,clone.currentFlushCount-1);
         }
        
         public static MemstoreAware incrementCompactionCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.flushCount,
-                    clone.compactionCount+1, clone.scannerCount);
+            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount+1,
+                    clone.currentScannerCount,clone.currentFlushCount);
         }
 
         public static MemstoreAware decrementCompactionCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.flushCount,
-                    clone.compactionCount-1, clone.scannerCount);
+            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount-1,
+                    clone.currentScannerCount,clone.currentFlushCount);
         }
 
         public static MemstoreAware incrementScannerCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.flushCount,
-                    clone.compactionCount, clone.scannerCount+1);
+            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
+                    clone.currentScannerCount+1,clone.currentFlushCount);
         }
 
         public static MemstoreAware decrementScannerCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.flushCount,
-                    clone.compactionCount, clone.scannerCount-1);
+            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
+                    clone.currentScannerCount-1,clone.currentFlushCount);
         }
-
 	
 }

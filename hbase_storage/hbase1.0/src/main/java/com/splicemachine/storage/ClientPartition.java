@@ -1,6 +1,9 @@
 package com.splicemachine.storage;
 
 import com.google.common.base.Function;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.ImmutableList;
 import org.sparkproject.guava.collect.Iterables;
 import org.sparkproject.guava.collect.Iterators;
@@ -29,6 +32,7 @@ import java.util.concurrent.locks.Lock;
  */
 @NotThreadSafe
 public class ClientPartition extends SkeletonHBaseClientPartition{
+    protected static final Logger LOG = Logger.getLogger(ClientPartition.class);
     private TableName tableName;
     private final Table table;
     private final Connection connection;
@@ -128,13 +132,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
             if (!refresh) {
                 partitions = partitionInfoCache.getIfPresent(tableName);
                 if (partitions == null) {
-                    partitions = formatPartitions(getAllRegionLocations());
+                    partitions = formatPartitions(getAllRegionLocations(false));
                     assert partitions!=null:"partitions are null";
                     partitionInfoCache.put(tableName, partitions);
                 }
                 return partitions;
             }
-            partitions = formatPartitions(getAllRegionLocations());
+            partitions = formatPartitions(getAllRegionLocations(true));
             partitionInfoCache.invalidate(tableName);
             assert partitions!=null:"partitions are null";
             partitionInfoCache.put(tableName,partitions);
@@ -237,7 +241,9 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     }
 
 
-    private List<HRegionLocation> getAllRegionLocations() throws IOException {
+    private List<HRegionLocation> getAllRegionLocations(boolean refresh) throws IOException {
+        if (refresh)
+           ((HConnection) connection).clearRegionCache(tableName);
         try(RegionLocator regionLocator=connection.getRegionLocator(tableName)){
             return regionLocator.getAllRegionLocations();
         }

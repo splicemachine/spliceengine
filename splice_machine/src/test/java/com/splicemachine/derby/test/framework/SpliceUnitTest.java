@@ -113,9 +113,48 @@ public class SpliceUnitTest {
 		return getBaseDirectory()+"/src/test/test-data/";
 	}
 
+    public static String getHbaseRootDirectory() {
+        return getHBaseDirectory()+"/target/hbase";
+    }
+
     public static String getHBaseDirectory() {
-		return getBaseDirectory()+"/target/hbase";
-	}
+        String userDir = System.getProperty("user.dir");
+        /*
+         * The ITs can run in multiple different locations based on the different architectures
+         * that are available, but the actual test data files are located in the splice_machine directory; thus,
+         * to find the source file, we have to do a little looking around. Implicitely, the ITs run
+         * in a sibling directory to splice_machine (like mem_engine or hbase_sql), so we need to make
+         * sure that we go up and over to the splice_machine directory.
+         *
+         * Of course, if we are in the correct location to begin with, then we are good to go.
+         */
+        if(userDir.endsWith("hbase_sql")) return userDir;
+
+        Path nioPath = Paths.get(userDir);
+        while(nioPath!=null){
+            /*
+             * Look for splice_machine in our parent hierarchy. If we can find it, then we are good
+             */
+            if(nioPath.endsWith("hbase_sql")) break;
+            nioPath = nioPath.getParent();
+        }
+        if(nioPath==null){
+            /*
+             * We did not find it in our parent hierarchy.  It's possible that it's in a child
+             * directory of us, so look around at it directly
+             */
+            Path us = Paths.get(userDir);
+            nioPath = Paths.get(us.toString(),"hbase_sql");
+            if(!Files.exists(nioPath)){
+             /* Try to go up and to the left. If it's not
+             * there, then we are screwed anyway, so just go with it
+             */
+                Path parent=Paths.get(userDir).getParent();
+                nioPath=Paths.get(parent.toString(),"hbase_sql");
+            }
+        }
+        return nioPath.toString();
+    }
     
     public static String getHiveWarehouseDirectory() {
 		return getBaseDirectory()+"/user/hive/warehouse";

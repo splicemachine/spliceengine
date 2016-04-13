@@ -20,8 +20,8 @@ public class SpliceCompactionRequest extends CompactionRequest {
         assert memstoreAware != null;
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if (latest.scannerCount>0) {
-                SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",latest.scannerCount);
+            if (latest.currentScannerCount>0) {
+                SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",latest.currentScannerCount);
                 try {
                     Thread.sleep(1000); // Have Split sleep for a second
                 } catch (InterruptedException e1) {

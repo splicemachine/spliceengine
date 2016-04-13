@@ -10,10 +10,7 @@ import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -50,7 +47,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	private boolean flushed;
 	private List<Cell> nextResults = new ArrayList<>();
 	private boolean nextResponse;
-	
+	private long numberOfRows = 0;
+
 	
 	public SkeletonClientSideRegionScanner(Configuration conf,
                                            FileSystem fs,
@@ -65,7 +63,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 		this.fs = fs;
 		this.rootDir = rootDir;
 		this.htd = htd;
-		this.hri = hri;
+		this.hri = new SpliceHRegionInfo(hri);
 		this.scan = scan;
 	}
 
@@ -123,7 +121,10 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	public boolean nextRaw(List<Cell> result) throws IOException {
 		boolean res = nextMerged(result, true);
         Collections.sort(result,timeComparator);
-		return updateTopCell(res,result);
+        boolean returnValue = updateTopCell(res,result);
+        if (returnValue)
+            numberOfRows++;
+		return returnValue;
 	}
 
 
@@ -170,6 +171,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private boolean updateTopCell(boolean response, List<Cell> results) throws IOException {
         if (!results.isEmpty() &&
                 CellUtil.matchingFamily(results.get(0),ClientRegionConstants.FLUSH)){
+            SpliceLogUtils.warn(LOG,"received flush message " + results.get(0));
             flushed = true;
             updateScanner();
             results.clear();
@@ -206,8 +208,14 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             res = scanner.nextRaw(result);
         }
         if (matchingFamily(result,ClientRegionConstants.HOLD)) {
-            result.clear();
-            return nextMerged(result, recurse);
+            if (result.get(0).getTimestamp()== HConstants.LATEST_TIMESTAMP) {
+                result.clear();
+                return false;
+            }
+            else {
+                result.clear();
+                return nextMerged(result, recurse);
+            }
         }
         if (res && recurse) {
             nextResponse = nextMerged(nextResults, false);
@@ -242,5 +250,10 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         public boolean isReadOnly() {
             return true;
         }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("SkeletonClienSideregionScanner[scan=%s,region=%s,numberOfRows=%d",scan,region.getRegionInfo(),numberOfRows);
     }
 }
