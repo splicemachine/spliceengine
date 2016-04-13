@@ -132,8 +132,12 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
                         LOG.warn("flush already returned");
                         if (LOG.isTraceEnabled())
                             SpliceLogUtils.trace(LOG, "flush already returned");
-                        outResult.add(new KeyValue(Bytes.toBytes(counter),
-                                ClientRegionConstants.FLUSH, ClientRegionConstants.FLUSH, Long.MAX_VALUE, ClientRegionConstants.FLUSH));
+                        try {
+                            outResult.add(new KeyValue(Bytes.toBytes(counter),
+                                    ClientRegionConstants.FLUSH, ClientRegionConstants.FLUSH, Long.MAX_VALUE, ClientRegionConstants.FLUSH));
+                        } finally {
+                            counter++;
+                        }
                     } else {
                         LOG.warn("Flush has not returned");
                         if (LOG.isTraceEnabled())
