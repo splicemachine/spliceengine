@@ -73,6 +73,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
 
     @Override
     public boolean next(List<Cell> results) throws IOException{
+        // TODO JL Remove this once good code coverage exists...
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"next with results passed=%s",results);
         boolean returnValue=currentResult!=null;
