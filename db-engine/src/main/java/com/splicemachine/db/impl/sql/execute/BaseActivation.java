@@ -1369,18 +1369,16 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 *	@param	rs	input result set
 	 *	@return	materialized resultset, or original rs if it can't be materialized
 	 */
-	public NoPutResultSet materializeResultSetIfPossible(NoPutResultSet rs)
+	public NoPutResultSet materializeResultSetIfPossible(NoPutResultSet rs, int resultSetNumber)
 		throws StandardException
 	{
 		int maxMemoryPerTable = getLanguageConnectionContext().getOptimizerFactory().getMaxMemoryPerTable();
 		if(maxMemoryPerTable<=0)
 			return rs;
-		int rsNum = ((CompilerContext)cm.getContext(CompilerContext.CONTEXT_ID)).getNextResultSetNumber();
 
         // since we create a new result set after row was created, resize row to make sure it can
         // accommodate CacheResultSet
-        row = new ExecRow[rsNum + 1];
-		return getResultSetFactory().getCachedResultSet(this, rs, rsNum);
+		return getResultSetFactory().getCachedResultSet(this, rs, resultSetNumber);
 	}
 
 

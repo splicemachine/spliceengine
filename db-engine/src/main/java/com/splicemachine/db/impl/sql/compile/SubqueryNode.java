@@ -171,6 +171,7 @@ public class SubqueryNode extends ValueNode{
     private ValueNode offset;
     private ValueNode fetchFirst;
     private boolean hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
+    protected int resultSetNumber=-1;
 
     /**
      * Initializer.
@@ -1068,6 +1069,9 @@ public class SubqueryNode extends ValueNode{
         if(!isMaterializable()){
             MethodBuilder executeMB=acb.getExecuteMethod();
             if(pushedNewPredicate && (!hasCorrelatedCRs())){
+                if(resultSetNumber==-1){
+                    resultSetNumber=cc.getNextResultSetNumber();
+                }
 				/* We try to materialize the subquery if it can fit in the memory.  We
 				 * evaluate the subquery first.  If the result set fits in the memory,
 				 * we replace the resultset with in-memory cache of row result sets.
@@ -1091,12 +1095,13 @@ public class SubqueryNode extends ValueNode{
                 ((ProjectRestrictNode)resultSet).setChildResult(materialSubNode);
 
                 // add materialize...() call to execute() method
-                subNode.generate(acb,executeMB);
+                subNode.generate(acb, executeMB);
                 executeMB.setField(subRS);
 
                 acb.pushThisAsActivation(executeMB);
                 executeMB.getField(subRS);
-                executeMB.callMethod(VMOpcode.INVOKEVIRTUAL,ClassName.BaseActivation,"materializeResultSetIfPossible",ClassName.NoPutResultSet,1);
+                executeMB.push(resultSetNumber);
+                executeMB.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "materializeResultSetIfPossible",ClassName.NoPutResultSet,2);
                 executeMB.setField(subRS);
             }
 
