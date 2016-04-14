@@ -137,7 +137,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
                     break;
             }
-            if (Bytes.equals(startKey,c.getEnvironment().getRegionInfo().getStartKey()) ||
+            if (Bytes.equals(startKey,c.getEnvironment().getRegionInfo().getStartKey()) &&
                 Bytes.equals(endKey,c.getEnvironment().getRegionInfo().getEndKey())) {
                 // Partition Hit
                 InternalScan iscan = new InternalScan(scan);
