@@ -7,6 +7,7 @@ import com.splicemachine.test_dao.SchemaDAO;
 import org.junit.*;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -150,7 +151,17 @@ public class Subquery_Table_IT {
     // JIRA 1121
     @Test
     public void inSubqueryTooBigToMaterialize() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select count(*) from parentT where i < 10 and i not in (select i from childT)");
+        String sql = "select count(*) from parentT where i < 10 and i not in (select i from childT)";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertUnorderedResult(rs, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+
+        // DB-4494: re-run the query using a different connection
+        Connection connection = methodWatcher.createConnection();
+        Statement s = connection.createStatement();
+        rs = s.executeQuery(sql);
         assertUnorderedResult(rs, "" +
                 "1 |\n" +
                 "----\n" +
