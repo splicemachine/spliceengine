@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -150,7 +151,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
                 //noinspection deprecation
-                scan.setStartRow(topCell.getRow());
+                scan.setStartRow(Bytes.add(topCell.getRow(), new byte[] {0}));
             }
         }
 	    memScannerList.add(getMemStoreScanner());
