@@ -138,7 +138,10 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                     break;
             }
             if (!startRowInRange(c, startKey) ||
-                !stopRowInRange(c, endKey)) {
+                !stopRowInRange(c, endKey) ||
+                    startKey.length==0 && c.getEnvironment().getRegionInfo().getStartKey().length!=0 ||
+                    endKey.length==0 && c.getEnvironment().getRegionInfo().getEndKey().length!=0
+                    ) {
                 while (true) {
                     MemstoreAware latest = memstoreAware.get();
                     if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)))

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
-
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.Clock;
@@ -43,7 +42,11 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
     protected static SpliceTableWatcher spliceTableWatcherE = new SpliceTableWatcher("E",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherF = new SpliceTableWatcher("F",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherG = new SpliceTableWatcher("G",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static final long ITERATIONS = 2000;
+    protected static SpliceTableWatcher spliceTableWatcherH = new SpliceTableWatcher("H",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherI = new SpliceTableWatcher("I",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherJ = new SpliceTableWatcher("J",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
+
+    protected static final long ITERATIONS = 20000;
     protected static SIDriver driver;
     protected static SConfiguration config;
     protected static HBaseConnectionFactory instance;
@@ -75,14 +78,15 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
             .around(spliceTableWatcherE)
             .around(spliceTableWatcherF)
             .around(spliceTableWatcherG)
+            .around(spliceTableWatcherH)
+            .around(spliceTableWatcherI)
+            .around(spliceTableWatcherJ)
 
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
 				try {
 					PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SplitRegionScannerIT.class.getSimpleName() + ".A (col1,col2) values (?,?)");
-					PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ SplitRegionScannerIT.class.getSimpleName() + ".B (col1,col2) values (?,?)");
-
 					for (int i = 0; i< ITERATIONS; i++) {
 						psA.setInt(1,i);
 						psA.setString(2, "dataset"+i);
@@ -100,6 +104,8 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
                             ,SplitRegionScannerIT.class.getSimpleName() + ".F",SplitRegionScannerIT.class.getSimpleName() + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
                             ,SplitRegionScannerIT.class.getSimpleName() + ".G",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                    spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
+                            ,SplitRegionScannerIT.class.getSimpleName() + ".H",SplitRegionScannerIT.class.getSimpleName() + ".A"));
 
 
 
@@ -172,21 +178,18 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         Partition partition = driver.getTableFactory()
                 .getTable(tableName);
         Table htable = ((ClientPartition) partition).unwrapDelegate();
-        List<Partition> partitions = partition.subPartitions();
         int i = 0;
         driver.getTableFactory().getAdmin().splitTable(tableName);
         List<Cell> newCells = new ArrayList<>();
-        for (Partition subPartition: partitions){
-            Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
-            SplitRegionScanner srs = new SplitRegionScanner(scan,
-                    htable,instance.getConnection(),
-                    clock,subPartition);
-            while (srs.next(newCells)) {
-                i++;
-                newCells.clear();
-            }
-            srs.close();
+        Scan scan = new Scan();
+        SplitRegionScanner srs = new SplitRegionScanner(scan,
+                htable,instance.getConnection(),
+                clock,partition);
+        while (srs.next(newCells)) {
+            i++;
+            newCells.clear();
         }
+        srs.close();
         htable.close();
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
     }
@@ -280,11 +283,71 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",2*ITERATIONS,i);
     }
 
+    @Test
+    public void multipleSplits() throws Exception {
+        System.out.println("Before Write -->");
+        spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
+                ,SplitRegionScannerIT.class.getSimpleName() + ".G",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+        String tableName = sqlUtil.getConglomID(spliceTableWatcherG.toString());
+        Partition partition = driver.getTableFactory()
+                .getTable(tableName);
+        partition.flush();
+        driver.getTableFactory().getAdmin().splitTable(tableName);
+        Thread.sleep(2000);
+        driver.getTableFactory().getAdmin().splitTable(tableName);
+        Table htable = ((ClientPartition) partition).unwrapDelegate();
+        int i = 0;
+        driver.getTableFactory().getAdmin().splitTable(tableName);
+        List<Cell> newCells = new ArrayList<>();
+            Scan scan = new Scan();
+            SplitRegionScanner srs = new SplitRegionScanner(scan,
+                    htable,instance.getConnection(),
+                    clock,partition);
+            while (srs.next(newCells)) {
+                i++;
+                if (i==ITERATIONS/2) {
+                    driver.getTableFactory().getAdmin().splitTable(tableName);
+                }
+                Assert.assertTrue("Empty Cells Should Not Be Returned",newCells!=null&&!newCells.isEmpty());
+                newCells.clear();
+            }
+            srs.close();
+        htable.close();
+        Assert.assertEquals("Did not return all rows ",2*ITERATIONS,i);
+    }
 
     @Test
-    public void testStats() throws Exception {
-        methodWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS + ", col2 from %s"
-                , SplitRegionScannerIT.class.getSimpleName() + ".G", SplitRegionScannerIT.class.getSimpleName() + ".A"));
-        methodWatcher.executeUpdate(String.format("analyze table %s", SplitRegionScannerIT.class.getSimpleName() + ".G"));
+    public void testSplitRegionScannerReinit() throws Exception {
+        System.out.println("Before Write -->");
+        String tableName = sqlUtil.getConglomID(spliceTableWatcherH.toString());
+        Partition partition = driver.getTableFactory()
+                .getTable(tableName);
+        partition.subPartitions(); // Grabs the latest partitions in cache... / Key to force a split issue
+        partition.flush();
+        driver.getTableFactory().getAdmin().splitTable(tableName);
+        Thread.sleep(2000);
+        driver.getTableFactory().getAdmin().splitTable(tableName);
+        Thread.sleep(2000);
+        Table htable = ((ClientPartition) partition).unwrapDelegate();
+        int i = 0;
+        driver.getTableFactory().getAdmin().splitTable(tableName);
+        List<Cell> newCells = new ArrayList<>();
+        Scan scan = new Scan();
+        SplitRegionScanner srs = new SplitRegionScanner(scan,
+                htable,instance.getConnection(),
+                clock,partition);
+        while (srs.next(newCells)) {
+            i++;
+            if (i==ITERATIONS/2) {
+                driver.getTableFactory().getAdmin().splitTable(tableName);
+            }
+            Assert.assertTrue("Empty Cells Should Not Be Returned",newCells!=null&&!newCells.isEmpty());
+            newCells.clear();
+        }
+        srs.close();
+        htable.close();
+        Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
     }
+
+
 }

@@ -40,8 +40,8 @@ public class SplitRegionScanner implements RegionScanner {
     protected Scan scan;
     protected Table htable;
     private Connection connection;
-    protected List<Cell> holderResults = new ArrayList<>();
-    protected boolean holderReturn;
+//    protected List<Cell> holderResults = new ArrayList<>();
+//    protected boolean holderReturn;
     private Clock clock;
 
     public SplitRegionScanner(Scan scan,
@@ -53,7 +53,6 @@ public class SplitRegionScanner implements RegionScanner {
         if (LOG.isDebugEnabled()) {
             SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, table, partitions.size(), partitions);
         }
-//        SpliceLogUtils.warn(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, table, partitions.size(), partitions);
         this.scan = scan;
         this.htable = table;
         this.connection = connection;
@@ -111,24 +110,17 @@ public class SplitRegionScanner implements RegionScanner {
     }
 
     public boolean nextInternal(List<Cell> results) throws IOException {
-        if (holderReturn) {
-            holderReturn = false;
-            results.addAll(holderResults);
-            return true;
-        }
         boolean next = currentScanner.nextRaw(results);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "next with results=%s and row count {%d}", results, scannerCount);
         scannerCount++;
         if (!next && scannerPosition < regionScanners.size()) {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "scanner [%d] exhausted after {%d} records", scannerPosition, scannerCount);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "scanner [%d] exhausted after {%d} records with results=%s", scannerPosition, scannerCount,results);
             currentScanner = regionScanners.get(scannerPosition);
             scannerPosition++;
             scannerCount = 0;
-            holderResults.clear();
-            holderReturn = nextInternal(holderResults);
-            return holderReturn;
+            return nextInternal(results);
         }
 
         return next;
@@ -138,12 +130,11 @@ public class SplitRegionScanner implements RegionScanner {
     public void close() throws IOException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "close");
-        if (currentScanner != null)
-            currentScanner.close();
         for (RegionScanner rs : regionScanners) {
             rs.close();
         }
         regionScanners.clear();
+        currentScanner = null;
     }
 
     @Override

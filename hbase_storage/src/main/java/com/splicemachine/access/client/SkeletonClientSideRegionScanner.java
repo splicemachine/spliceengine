@@ -26,7 +26,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * 
  */
 public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
-
+    private boolean isClosed = false;
     private static final Logger LOG = Logger.getLogger(SkeletonClientSideRegionScanner.class);
     private static final Comparator<Cell> timeComparator=new Comparator<Cell>(){
         @Override
@@ -69,13 +69,16 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     @Override
 	public void close() throws IOException {
+        if (isClosed)
+            return;
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "close");
 		if (scanner != null)
 			scanner.close();
 		memScannerList.get(0).close();
 		region.close();
-	}
+        isClosed = true;
+    }
 
     @Override
 	public HRegionInfo getRegionInfo() {
