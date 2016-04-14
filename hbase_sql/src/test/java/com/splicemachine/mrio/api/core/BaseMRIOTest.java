@@ -25,6 +25,7 @@ public class BaseMRIOTest extends SpliceUnitTest{
 		config.set(HConstants.HBASE_DIR,getHbaseRootDirectory());
         config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
     	config.set(MRConstants.SPLICE_JDBC_STR, SpliceNetConnection.getDefaultLocalURL());
+        System.setProperty(HConstants.HBASE_DIR, getHbaseRootDirectory());
     	System.setProperty("hive.metastore.warehouse.dir", getHiveWarehouseDirectory());
     	System.setProperty("mapred.job.tracker", "local");
     	System.setProperty("mapreduce.framework.name", "local-chicken");
