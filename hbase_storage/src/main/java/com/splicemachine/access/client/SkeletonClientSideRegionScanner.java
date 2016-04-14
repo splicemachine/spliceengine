@@ -141,27 +141,21 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                     "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
                     hri,htd.getNameAsString(),rootDir,scan);
         }
-		if (!flushed)
-			memScannerList.add(getMemStoreScanner());
-		this.region = openHRegion();		
 		if (flushed) {
-			if (LOG.isDebugEnabled())
-				SpliceLogUtils.debug(LOG, "Flush occurred");
-			if (scanner != null)
-				scanner.close();
-			if (this.topCell != null) {
-				if (LOG.isDebugEnabled())
-					SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "Flush occurred");
+            if (scanner != null)
+                scanner.close();
+            if (this.topCell != null) {
+                if (LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
                 //noinspection deprecation
                 scan.setStartRow(topCell.getRow());
-			}
-			scan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.FALSE_BYTES);
-			this.scanner = BaseHRegionUtil.getScanner(region,scan,null);
-		}
-		else {
-			this.scanner = BaseHRegionUtil.getScanner(region, scan,memScannerList);			
-		}
-		
+            }
+        }
+	    memScannerList.add(getMemStoreScanner());
+		this.region = openHRegion();		
+		this.scanner = BaseHRegionUtil.getScanner(region, scan,memScannerList);
 	}
 
     public HRegion getRegion(){

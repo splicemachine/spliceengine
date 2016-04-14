@@ -137,18 +137,21 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
                     break;
             }
-            if (!startRowInRange(c, startKey) ||
-                !stopRowInRange(c, endKey) ||
-                    startKey.length==0 && c.getEnvironment().getRegionInfo().getStartKey().length!=0 ||
-                    endKey.length==0 && c.getEnvironment().getRegionInfo().getEndKey().length!=0
-                    ) {
+            if (Bytes.equals(startKey,c.getEnvironment().getRegionInfo().getStartKey()) ||
+                Bytes.equals(endKey,c.getEnvironment().getRegionInfo().getEndKey())) {
+                // Partition Hit
+                InternalScan iscan = new InternalScan(scan);
+                iscan.checkOnlyMemStore();
+                HRegion region = c.getEnvironment().getRegion();
+                return new MemStoreFlushAwareScanner(region, store, store.getScanInfo(), iscan, targetCols, getReadpoint(region), memstoreAware, memstoreAware.get());
+            } else { // Partition Miss
                 while (true) {
                     MemstoreAware latest = memstoreAware.get();
                     if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)))
                         break;
                 }
                 SpliceLogUtils.warn(LOG, "scan missed do to split after task creation " +
-                        "scan [%s,%s], partition[%s,%s], region=[%s,%s]",
+                                "scan [%s,%s], partition[%s,%s], region=[%s,%s]",
                         displayByteArray(scan.getStartRow()),
                         displayByteArray(scan.getStopRow()),
                         displayByteArray(startKey),
@@ -156,12 +159,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                         displayByteArray(c.getEnvironment().getRegionInfo().getStartKey()),
                         displayByteArray(c.getEnvironment().getRegionInfo().getEndKey()));
                 throw new DoNotRetryIOException();
-            }
 
-            InternalScan iscan = new InternalScan(scan);
-            iscan.checkOnlyMemStore();
-            HRegion region=c.getEnvironment().getRegion();
-            return new MemStoreFlushAwareScanner(region,store,store.getScanInfo(),iscan,targetCols,getReadpoint(region),memstoreAware,memstoreAware.get());
+            }
         }else return s;
 
     }

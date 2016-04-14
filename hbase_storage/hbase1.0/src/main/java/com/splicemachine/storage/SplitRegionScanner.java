@@ -69,23 +69,19 @@ public class SplitRegionScanner implements RegionScanner {
                     byte[] regionStartKey = partition.getStartKey();
                     byte[] regionStopKey = partition.getEndKey();
                     // determine if the given start an stop key fall into the region
-                    if ((startRow.length == 0 || regionStopKey.length == 0 ||
-                            Bytes.compareTo(startRow, regionStopKey) < 0) && (stopRow.length == 0 ||
-                            Bytes.compareTo(stopRow, regionStartKey) > 0)) {
-                        byte[] splitStart = startRow.length == 0 ||
-                                Bytes.compareTo(regionStartKey, startRow) >= 0 ? regionStartKey : startRow;
-                        byte[] splitStop = (stopRow.length == 0 ||
-                                Bytes.compareTo(regionStopKey, stopRow) <= 0) && regionStopKey.length > 0 ? regionStopKey : stopRow;
-                        newScan.setStartRow(splitStart);
-                        newScan.setStopRow(splitStop);
-                        newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY, regionStartKey);
-                        newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY, regionStopKey);
-                        newScan.setAttribute(SIConstants.SI_NEEDED,null);
-                        newScan.setMaxVersions();
-                        if (LOG.isDebugEnabled())
-                            SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s", splitStart, splitStop);
-                        createAndRegisterClientSideRegionScanner(table, newScan, partitions.get(i));
-                    }
+                    byte[] splitStart = startRow.length == 0 ||
+                            Bytes.compareTo(regionStartKey, startRow) >= 0 ? regionStartKey : startRow;
+                    byte[] splitStop = (stopRow.length == 0 ||
+                            Bytes.compareTo(regionStopKey, stopRow) <= 0) && regionStopKey.length > 0 ? regionStopKey : stopRow;
+                    newScan.setStartRow(splitStart);
+                    newScan.setStopRow(splitStop);
+                    newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY, regionStartKey);
+                    newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY, regionStopKey);
+                    newScan.setAttribute(SIConstants.SI_NEEDED,null);
+                    newScan.setMaxVersions();
+                    if (LOG.isDebugEnabled())
+                        SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s", splitStart, splitStop);
+                    createAndRegisterClientSideRegionScanner(table, newScan, partitions.get(i));
                 }
                 hasAdditionalScanners = false;
             } catch (Exception ioe) {
