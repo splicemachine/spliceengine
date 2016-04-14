@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -15,7 +14,6 @@ import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -51,9 +49,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 		public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
 				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
 			super(store, scanInfo, scan, columns, readPt);
-			if (LOG.isDebugEnabled()) {
+			if (LOG.isDebugEnabled())
 				SpliceLogUtils.debug(LOG, "init for region=%s, scan=%s", region.getRegionNameAsString(),scan);
-			}
 			this.memstoreAware = memstoreAware;
 			this.initialValue = initialValue;
 			this.region = region;
@@ -61,8 +58,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 
 		@Override
 		public KeyValue peek() {
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "peek -->" + super.peek());
 			if (didWeFlush()) {
 				if (LOG.isTraceEnabled())
 					SpliceLogUtils.trace(LOG, "already Flushed");
@@ -111,17 +106,12 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 		}
 
 		public boolean internalNext(List<Cell> outResult) throws IOException {
-                if (LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG, "next kv=%s", outResult);
                 if (beginRow) {
                     beginRow = false;
                     return outResult.add(ClientRegionConstants.MEMSTORE_BEGIN);
                 }
                 if (endRowNeedsToBeReturned) {
                     try {
-                        if (LOG.isTraceEnabled())
-                            SpliceLogUtils.trace(LOG, "next -->" + counter);
-
                         return outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
                     } finally {
                         counter++;
@@ -129,9 +119,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
                 }
                 if (didWeFlush()) {
                     if (flushAlreadyReturned) {
-                        LOG.warn("flush already returned");
-                        if (LOG.isTraceEnabled())
-                            SpliceLogUtils.trace(LOG, "flush already returned");
                         try {
                             outResult.add(new KeyValue(Bytes.toBytes(counter),
                                     ClientRegionConstants.FLUSH, ClientRegionConstants.FLUSH, Long.MAX_VALUE, ClientRegionConstants.FLUSH));
@@ -139,9 +126,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
                             counter++;
                         }
                     } else {
-                        LOG.warn("Flush has not returned");
-                        if (LOG.isTraceEnabled())
-                            SpliceLogUtils.trace(LOG, "Flush has not returned");
                         flushAlreadyReturned = true;
                         outResult.add(ClientRegionConstants.MEMSTORE_BEGIN_FLUSH);
                     }

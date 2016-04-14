@@ -21,7 +21,6 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     protected KeyValue peakKeyValue;
     protected Cell[] cells;
     int cellScannerIndex=0;
-
     private boolean closed=false;
 
     public MemstoreKeyValueScanner(ResultScanner resultScanner) throws IOException{
@@ -73,15 +72,12 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
 
     @Override
     public boolean next(List<Cell> results) throws IOException{
-        // TODO JL Remove this once good code coverage exists...
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"next with results passed=%s",results);
-        boolean returnValue=currentResult!=null;
-        if(returnValue){
+        if(currentResult!=null){
             results.addAll(currentResult.listCells());
             nextResult();
+            return true;
         }
-        return returnValue;
+        return false;
     }
 
     @Override
@@ -126,8 +122,6 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
 
     @Override
     public long getSequenceID(){
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getSequenceID");
         return Long.MAX_VALUE; // Set the max value - we have the most recent data
     }
 
@@ -143,9 +137,6 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     @Override
     public boolean shouldUseScanner(Scan scan,SortedSet<byte[]> columns,
                                     long oldestUnexpiredTS){
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"shouldUseScanner");
-        // TODO: true or false?
         return true;
     }
 
@@ -160,8 +151,6 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
 
     @Override
     public boolean isFileScanner(){
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"isFileScanner");
         return false;
     }
 

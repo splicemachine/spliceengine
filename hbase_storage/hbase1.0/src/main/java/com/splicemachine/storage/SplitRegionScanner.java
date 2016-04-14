@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.si.constants.SIConstants;
 import org.sparkproject.guava.base.Throwables;
@@ -40,8 +39,6 @@ public class SplitRegionScanner implements RegionScanner {
     protected Scan scan;
     protected Table htable;
     private Connection connection;
-//    protected List<Cell> holderResults = new ArrayList<>();
-//    protected boolean holderReturn;
     private Clock clock;
 
     public SplitRegionScanner(Scan scan,
@@ -107,8 +104,6 @@ public class SplitRegionScanner implements RegionScanner {
 
     public boolean nextInternal(List<Cell> results) throws IOException {
         boolean next = currentScanner.nextRaw(results);
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "next with results=%s and row count {%d}", results, scannerCount);
         scannerCount++;
         if (!next && scannerPosition < regionScanners.size()) {
             if (LOG.isDebugEnabled())
@@ -258,7 +253,8 @@ public class SplitRegionScanner implements RegionScanner {
                     refresh = true;
                     continue;
                 } else {
-                    throw new IOException("Couldn't find subpartitions in range for " + partition + " and scan " + scan);
+                    // Not Good, partition missing...
+                    SpliceLogUtils.warn(LOG,"Couldn't find subpartitions in range for %s and scan %s",partition,scan);
                 }
             } else {
                 break;
