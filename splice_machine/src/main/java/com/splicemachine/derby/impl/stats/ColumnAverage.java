@@ -5,7 +5,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.stats.*;
-import com.splicemachine.stats.cardinality.FixedCardinalityEstimate;
+import com.splicemachine.stats.cardinality.*;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.UniformShortDistribution;
 import com.splicemachine.stats.frequency.*;
@@ -22,24 +22,30 @@ import java.util.GregorianCalendar;
  * @author Scott Fines
  *         Date: 3/9/15
  */
-public abstract class ColumnAverage implements ColumnStatistics<DataValueDescriptor>{
+public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
     protected final int columnId;
     private long sumNonNull;
     private long sumNull;
     private long sumCard;
     private long sumWidth;
     protected int mergeCount;
+    protected CardinalityEstimator cardinalityEstimator;
 
     public ColumnAverage(int columnId) {
         this.columnId = columnId;
     }
 
-    public ColumnStatistics<DataValueDescriptor> merge(ColumnStatistics<DataValueDescriptor> stats){
+    public ColumnStatistics<T> merge(ColumnStatistics<T> stats){
         sumNonNull +=stats.nonNullCount();
         sumNull +=stats.nullCount();
         sumCard +=stats.cardinality();
         sumWidth +=stats.avgColumnWidth()*stats.nonNullCount();
-        mergeExtrema(stats);
+        if(stats instanceof ColumnAverage) {
+            mergeExtrema(stats);
+        }
+        else if (stats instanceof BaseDvdStatistics) {
+            mergeExtrema(((BaseDvdStatistics) stats).baseStats);
+        }
         mergeCount++;
 
         return this;
@@ -80,13 +86,13 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         return columnId;
     }
 
-    protected abstract void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats);
+    protected abstract void mergeExtrema(ColumnStatistics<T> stats);
 
-    protected long totalBytes() {
+    public long totalBytes() {
         return avgColumnWidth()*nonNullCount();
     }
 
-    public static ColumnStatistics<DataValueDescriptor> avgStats(int columnId,int typeFormatId, int maxLength){
+    public static ColumnStatistics avgStats(int columnId,int typeFormatId, int maxLength){
         switch(typeFormatId){
             case StoredFormatIds.SQL_BOOLEAN_ID:
                 return new BooleanAverage(columnId);
@@ -120,36 +126,39 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
     }
 
     public static ColumnStatistics fromExisting(ColumnStatistics toMerge) {
+        ColumnStatistics ret = null;
         int columnId=toMerge.columnId();
         if(toMerge instanceof BooleanStats){
-            return new BooleanAverage(columnId);
+            ret = new BooleanAverage(columnId);
         } else if (toMerge instanceof SmallintStats){
-            return new ShortAverage(columnId);
+            ret = new ShortAverage(columnId);
         } else if(toMerge instanceof IntStats){
-            return new IntAverage(columnId);
+            ret = new IntAverage(columnId);
         } else if(toMerge instanceof BigintStats){
-            return new LongAverage(columnId);
+            ret = new LongAverage(columnId);
         } else if(toMerge instanceof RealStats){
-            return new FloatAverage(columnId);
+            ret = new FloatAverage(columnId);
         } else if(toMerge instanceof DoubleStats){
-            return new DoubleAverage(columnId);
+            ret = new DoubleAverage(columnId);
         } else if(toMerge instanceof NumericStats){
-            return new DecimalAverage(columnId);
+            ret = new DecimalAverage(columnId);
         } else if(toMerge instanceof VarcharStats){
-            return new VarcharAverage(columnId,((VarcharStats)toMerge).maxLength());
+            ret = new VarcharAverage(columnId,((VarcharStats)toMerge).maxLength());
         } else if(toMerge instanceof CharStats){
-            return new CharAverage(columnId,((CharStats)toMerge).maxLength());
+            ret = new CharAverage(columnId,((CharStats)toMerge).maxLength());
         } else if(toMerge instanceof DateStatistics){
-            return new DateAverage(columnId);
+            ret = new DateAverage(columnId);
         } else if(toMerge instanceof TimeStats){
-            return new TimeAverage(columnId);
+            ret = new TimeAverage(columnId);
         } else if(toMerge instanceof TimestampStatistics){
-            return new TimestampAverage(columnId);
+            ret = new TimestampAverage(columnId);
         }else
              throw new IllegalArgumentException("Programmer error: unknown Column Statistics type: "+toMerge.getClass().getCanonicalName());
+        ret.merge(toMerge);
+        return ret;
     }
 
-    private static class BooleanAverage extends ColumnAverage{
+    private static class BooleanAverage extends ColumnAverage<Boolean>{
         long trueCount;
         long falseCount;
 
@@ -158,20 +167,20 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
 
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            FrequentElements<DataValueDescriptor> topK = stats.topK();
-            trueCount+=topK.equal(SQLBoolean.trueTruthValue()).count();
-            falseCount+=topK.equal(SQLBoolean.falseTruthValue()).count();
+        protected void mergeExtrema(ColumnStatistics<Boolean> stats) {
+            FrequentElements<Boolean> topK = stats.topK();
+            trueCount+=topK.equal(Boolean.TRUE).count();
+            falseCount+=topK.equal(Boolean.FALSE).count();
         }
 
         @Override
-        public FrequentElements<DataValueDescriptor> topK() {
+        public FrequentElements<Boolean> topK() {
             BooleanFrequentElements freqs = adjustedFrequencies();
-            return new BooleanStats.BooleanFreqs(freqs);
+            return freqs;
         }
 
-        @Override public DataValueDescriptor minValue() { return SQLBoolean.trueTruthValue(); }
-        @Override public DataValueDescriptor maxValue() { return SQLBoolean.falseTruthValue(); }
+        @Override public Boolean minValue() { return Boolean.TRUE; }
+        @Override public Boolean maxValue() { return Boolean.FALSE; }
 
         @Override
         public long minCount() {
@@ -180,16 +189,21 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
 
         @Override
-        public ColumnStatistics<DataValueDescriptor> getClone() {
+        public ColumnStatistics<Boolean> getClone() {
             return new BooleanAverage(columnId);
         }
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             BooleanFrequentElements bfe = adjustedFrequencies();
             BooleanColumnStatistics stats = new BooleanColumnStatistics(columnId,bfe,
                     avgColumnWidth()*nonNullCount(),nonNullCount(),nullCount());
             return new BooleanStats.BooleanDist(stats);
+        }
+
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            throw new RuntimeException("getCardinalityEstimator not implemented for BooleanAverage");
         }
 
         private BooleanFrequentElements adjustedFrequencies() {
@@ -202,47 +216,44 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             }
             return FrequencyCounters.booleanValues(tc, fc);
         }
-
     }
 
-    private static class ShortAverage extends ColumnAverage{
+    private static class ShortAverage extends ColumnAverage<Short>{
         private short min;
         private long minCount;
         private short max;
-        private final FrequentElements<DataValueDescriptor> empty;
+        private final ShortFrequentElements empty;
 
         public ShortAverage(int columnId) {
             super(columnId);
-            ShortFrequentElements freqs = ShortFrequentElements.topK(0, 0, Collections.<ShortFrequencyEstimate>emptyList());
-            this.empty = new SmallintStats.ShortFreqs(freqs);
+            this.empty = ShortFrequentElements.topK(0, 0, Collections.<ShortFrequencyEstimate>emptyList());
         }
 
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            DataValueDescriptor minDvd = stats.minValue();
-            short minV = safeShort(minDvd);
+        protected void mergeExtrema(ColumnStatistics<Short> stats) {
+            short minV = stats.minValue();
             if(min>minV){
                 min = minV;
                 minCount = stats.minCount();
             }
-            short maxV = safeShort(stats.maxValue());
+            short maxV = stats.maxValue();
             if(max<maxV){
                 max = maxV;
             }
         }
 
         @Override public long minCount() { return minCount; }
-        @Override public ColumnStatistics<DataValueDescriptor> getClone() { return new ShortAverage(columnId); }
-        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+        @Override public ColumnStatistics<Short> getClone() { return new ShortAverage(columnId); }
+        @Override public FrequentElements<Short> topK() { return empty; }
 
-        @Override public DataValueDescriptor minValue() { return new SQLSmallint(min); }
-        @Override public DataValueDescriptor maxValue() { return new SQLSmallint(max); }
+        @Override public Short minValue() { return min; }
+        @Override public Short maxValue() { return max; }
 
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             ShortColumnStatistics scs = new CombinedShortColumnStatistics(columnId,
-                    FixedCardinalityEstimate.shortEstimate(cardinality()),
+                            (ShortCardinalityEstimator)getCardinalityEstimator(),
                             ShortFrequentElements.topK(0,0,Collections.<ShortFrequencyEstimate>emptyList()),
                             min,
                             max,
@@ -254,52 +265,51 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             return new SmallintStats.ShortDist(nullCount(),new UniformShortDistribution(scs));
         }
 
-        private short safeShort(DataValueDescriptor min)  {
-            try {
-                return min.getShort();
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            if (cardinalityEstimator == null) {
+                cardinalityEstimator = FixedCardinalityEstimate.shortEstimate(cardinality());
             }
+            return cardinalityEstimator;
         }
     }
 
-    private static class IntAverage extends ColumnAverage{
+    private static class IntAverage extends ColumnAverage<Integer>{
         private int min;
         private long minCount;
         private int max;
-        private final FrequentElements<DataValueDescriptor> empty;
+        private final IntFrequentElements empty;
 
         public IntAverage(int columnId) {
             super(columnId);
-            this.empty = new IntStats.IntFreqs(IntFrequentElements.topK(0,0, Collections.<IntFrequencyEstimate>emptyList()));
+            this.empty = IntFrequentElements.topK(0,0, Collections.<IntFrequencyEstimate>emptyList());
         }
 
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            DataValueDescriptor minDvd = stats.minValue();
-            int minV = safeInt(minDvd);
+        protected void mergeExtrema(ColumnStatistics<Integer> stats) {
+            int minV = stats.minValue();
             if(min>minV){
                 min = minV;
                 minCount = stats.minCount();
             }
-            int maxV = safeInt(stats.maxValue());
+            int maxV = stats.maxValue();
             if(max<maxV){
                 max = maxV;
             }
         }
 
         @Override public long minCount() { return minCount; }
-        @Override public ColumnStatistics<DataValueDescriptor> getClone() { return new IntAverage(columnId); }
-        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+        @Override public ColumnStatistics<Integer> getClone() { return new IntAverage(columnId); }
+        @Override public FrequentElements<Integer> topK() { return empty; }
 
-        @Override public DataValueDescriptor minValue() { return new SQLInteger(min); }
-        @Override public DataValueDescriptor maxValue() { return new SQLInteger(max); }
+        @Override public Integer minValue() { return min; }
+        @Override public Integer maxValue() { return max; }
 
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             IntColumnStatistics scs = new IntColumnStatistics(columnId,
-                    FixedCardinalityEstimate.intEstimate(cardinality()),
+                    (IntCardinalityEstimator)getCardinalityEstimator(),
                     IntFrequentElements.topK(0,0,Collections.<IntFrequencyEstimate>emptyList()),
                     min,
                     max,
@@ -311,6 +321,14 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             return new IntStats.IntDist(scs);
         }
 
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            if (cardinalityEstimator == null) {
+                cardinalityEstimator = FixedCardinalityEstimate.intEstimate(cardinality());
+            }
+            return cardinalityEstimator;
+        }
+
         private int safeInt(DataValueDescriptor min)  {
             try {
                 return min.getInt();
@@ -320,43 +338,42 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
     }
 
-    private static class LongAverage extends ColumnAverage{
+    private static class LongAverage extends ColumnAverage<Long>{
         private long min;
         private long minCount;
         private long max;
-        private final FrequentElements<DataValueDescriptor> empty;
+        private final LongFrequentElements empty;
 
         public LongAverage(int columnId) {
             super(columnId);
-            this.empty = new BigintStats.LongFreqs(LongFrequentElements.topK(0,0, Collections.<LongFrequencyEstimate>emptyList()));
+            this.empty = LongFrequentElements.topK(0,0, Collections.<LongFrequencyEstimate>emptyList());
         }
 
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            DataValueDescriptor minDvd = stats.minValue();
-            long minV = safeLong(minDvd);
+        protected void mergeExtrema(ColumnStatistics<Long> stats) {
+            long minV = stats.minValue();
             if(min>minV){
                 min = minV;
                 minCount = stats.minCount();
             }
-            long maxV = safeLong(stats.maxValue());
+            long maxV = stats.maxValue();
             if(max<maxV){
                 max = maxV;
             }
         }
 
         @Override public long minCount() { return minCount; }
-        @Override public ColumnStatistics<DataValueDescriptor> getClone() { return new LongAverage(columnId); }
-        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+        @Override public ColumnStatistics<Long> getClone() { return new LongAverage(columnId); }
+        @Override public FrequentElements<Long> topK() { return empty; }
 
-        @Override public DataValueDescriptor minValue() { return new SQLLongint(min); }
-        @Override public DataValueDescriptor maxValue() { return new SQLLongint(max); }
+        @Override public Long minValue() { return min; }
+        @Override public Long maxValue() { return max; }
 
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             LongColumnStatistics scs = new LongColumnStatistics(columnId,
-                    FixedCardinalityEstimate.longEstimate(cardinality()),
+                    (LongCardinalityEstimator)getCardinalityEstimator(),
                     LongFrequentElements.topK(0,0,Collections.<LongFrequencyEstimate>emptyList()),
                     min,
                     max,
@@ -368,6 +385,14 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             return new BigintStats.LongDist(scs);
         }
 
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            if (cardinalityEstimator == null) {
+                cardinalityEstimator = FixedCardinalityEstimate.longEstimate(cardinality());
+            }
+            return  cardinalityEstimator;
+        }
+
         private long safeLong(DataValueDescriptor min)  {
             try {
                 return min.getLong();
@@ -377,55 +402,46 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
     }
 
-    private static class FloatAverage extends ColumnAverage{
+    private static class FloatAverage extends ColumnAverage<Float>{
         private float min;
         private long minCount;
         private float max;
-        private final FrequentElements<DataValueDescriptor> empty;
+        private final FloatFrequentElements empty;
 
         public FloatAverage(int columnId) {
             super(columnId);
-            this.empty = new RealStats.FloatFreqs(FloatFrequentElements.topK(0,0, Collections.<FloatFrequencyEstimate>emptyList()));
+            this.empty = FloatFrequentElements.topK(0,0, Collections.<FloatFrequencyEstimate>emptyList());
         }
 
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            DataValueDescriptor minDvd = stats.minValue();
-            float minV = safeFloat(minDvd);
+        protected void mergeExtrema(ColumnStatistics<Float> stats) {
+            float minV = stats.minValue();
             if(min>minV){
                 min = minV;
                 minCount = stats.minCount();
             }
-            float maxV = safeFloat(stats.maxValue());
+            float maxV = stats.maxValue();
             if(max<maxV){
                 max = maxV;
             }
         }
 
         @Override public long minCount() { return minCount; }
-        @Override public ColumnStatistics<DataValueDescriptor> getClone() { return new FloatAverage(columnId); }
-        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+        @Override public ColumnStatistics<Float> getClone() { return new FloatAverage(columnId); }
+        @Override public FrequentElements<Float> topK() { return empty; }
 
-        @Override public DataValueDescriptor minValue() {
-            try {
-                return new SQLReal(min);
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
-            }
+        @Override public Float minValue() {
+            return min;
         }
-        @Override public DataValueDescriptor maxValue() {
-            try {
-                return new SQLReal(max);
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
-            }
+        @Override public Float maxValue() {
+            return max;
         }
 
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             FloatColumnStatistics scs = new FloatColumnStatistics(columnId,
-                    FixedCardinalityEstimate.floatEstimate(cardinality()),
+                    (FloatCardinalityEstimator)getCardinalityEstimator(),
                     FloatFrequentElements.topK(0,0,Collections.<FloatFrequencyEstimate>emptyList()),
                     min,
                     max,
@@ -437,64 +453,55 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             return new RealStats.RealDist(scs);
         }
 
-        private float safeFloat(DataValueDescriptor min)  {
-            try {
-                return min.getFloat();
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            if (cardinalityEstimator == null) {
+                cardinalityEstimator = FixedCardinalityEstimate.floatEstimate(cardinality());
             }
+            return cardinalityEstimator;
         }
     }
 
-    private static class DoubleAverage extends ColumnAverage{
+    private static class DoubleAverage extends ColumnAverage<Double>{
         private double min;
         private long minCount;
         private double max;
-        private final FrequentElements<DataValueDescriptor> empty;
+        private final DoubleFrequentElements empty;
 
         public DoubleAverage(int columnId) {
             super(columnId);
-            this.empty = new DoubleStats.DoubleFreqs(DoubleFrequentElements.topK(0,0, Collections.<DoubleFrequencyEstimate>emptyList()));
+            this.empty = DoubleFrequentElements.topK(0,0, Collections.<DoubleFrequencyEstimate>emptyList());
         }
 
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            DataValueDescriptor minDvd = stats.minValue();
-            double minV = safeDouble(minDvd);
+        protected void mergeExtrema(ColumnStatistics<Double> stats) {
+            double minV = stats.minValue();
             if(min>minV){
                 min = minV;
                 minCount = stats.minCount();
             }
-            double maxV = safeDouble(stats.maxValue());
+            double maxV = stats.maxValue();
             if(max<maxV){
                 max = maxV;
             }
         }
 
         @Override public long minCount() { return minCount; }
-        @Override public ColumnStatistics<DataValueDescriptor> getClone() { return new DoubleAverage(columnId); }
-        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+        @Override public ColumnStatistics<Double> getClone() { return new DoubleAverage(columnId); }
+        @Override public FrequentElements<Double> topK() { return empty; }
 
-        @Override public DataValueDescriptor minValue() {
-            try {
-                return new SQLDouble(min);
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
-            }
+        @Override public Double minValue() {
+            return min;
         }
-        @Override public DataValueDescriptor maxValue() {
-            try {
-                return new SQLDouble(max);
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
-            }
+        @Override public Double maxValue() {
+           return max;
         }
 
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             DoubleColumnStatistics scs = new DoubleColumnStatistics(columnId,
-                    FixedCardinalityEstimate.doubleEstimate(cardinality()),
+                    (DoubleCardinalityEstimator)getCardinalityEstimator(),
                     DoubleFrequentElements.topK(0,0,Collections.<DoubleFrequencyEstimate>emptyList()),
                     min,
                     max,
@@ -506,54 +513,53 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             return new DoubleStats.DoubleDist(scs);
         }
 
-        private double safeDouble(DataValueDescriptor min)  {
-            try {
-                return min.getDouble();
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            if (cardinalityEstimator == null) {
+                cardinalityEstimator = FixedCardinalityEstimate.doubleEstimate(cardinality());
             }
+            return cardinalityEstimator;
         }
     }
 
-    private static class DecimalAverage extends ColumnAverage{
+    private static class DecimalAverage extends ColumnAverage<BigDecimal>{
         private BigDecimal min;
         private long minCount;
         private BigDecimal max;
-        private final FrequentElements<DataValueDescriptor> empty;
+        private final ObjectFrequentElements empty;
 
         public DecimalAverage(int columnId) {
             super(columnId);
-            this.empty = new NumericStats.Freqs(ObjectFrequentElements.topK(0,0,
-                    Collections.<FrequencyEstimate<BigDecimal>>emptyList(),ComparableComparator.<BigDecimal>newComparator()));
+            this.empty = ObjectFrequentElements.topK(0,0,
+                    Collections.<FrequencyEstimate<BigDecimal>>emptyList(),ComparableComparator.<BigDecimal>newComparator());
         }
 
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            DataValueDescriptor minDvd = stats.minValue();
-            BigDecimal minV = safeDecimal(minDvd);
+        protected void mergeExtrema(ColumnStatistics<BigDecimal> stats) {
+            BigDecimal minV = stats.minValue();
             if(min==null || min.compareTo(minV)>0){
                 min = minV;
                 minCount = stats.minCount();
             }
-            BigDecimal maxV = safeDecimal(stats.maxValue());
+            BigDecimal maxV = stats.maxValue();
             if(max==null||max.compareTo(maxV)<0){
                 max = maxV;
             }
         }
 
         @Override public long minCount() { return minCount; }
-        @Override public ColumnStatistics<DataValueDescriptor> getClone() { return new DecimalAverage(columnId); }
-        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+        @Override public ColumnStatistics<BigDecimal> getClone() { return new DecimalAverage(columnId); }
+        @Override public FrequentElements<BigDecimal> topK() { return empty; }
 
-        @Override public DataValueDescriptor minValue() { return new SQLDecimal(min); }
-        @Override public DataValueDescriptor maxValue() { return new SQLDecimal(max); }
+        @Override public BigDecimal minValue() { return min; }
+        @Override public BigDecimal maxValue() { return max; }
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             ObjectFrequentElements<BigDecimal> fe = ObjectFrequentElements.topK(0, 0,
                     Collections.<FrequencyEstimate<BigDecimal>>emptyList(), ComparableComparator.<BigDecimal>newComparator());
             ColumnStatistics<BigDecimal> scs = new ComparableColumnStatistics<>(columnId,
-                    new FixedCardinalityEstimate<BigDecimal>(cardinality()),
+                    (FixedCardinalityEstimate<BigDecimal>)getCardinalityEstimator(),
                     fe,
                     min,
                     max,
@@ -565,62 +571,56 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             return new NumericStats.NumericDistribution(scs);
         }
 
-        private BigDecimal safeDecimal(DataValueDescriptor dvd)  {
-            try {
-                return (BigDecimal)dvd.getObject();
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            if (cardinalityEstimator == null) {
+                cardinalityEstimator = new FixedCardinalityEstimate<BigDecimal>(cardinality());
             }
+            return cardinalityEstimator;
         }
     }
 
-    private abstract static class StringAverage extends ColumnAverage{
+    private abstract static class StringAverage extends ColumnAverage<String>{
         private String min;
         private long minCount;
         private String max;
-        private final FrequentElements<DataValueDescriptor> empty;
+        private final FrequentElements<String> empty;
         protected int maxLength;
 
         public StringAverage(int columnId,int maxLength,
                              Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction) {
             super(columnId);
-            FrequentElements<String> empty = ObjectFrequentElements.topK(0,0,
-                    Collections.<FrequencyEstimate<String>>emptyList(),ComparableComparator.<String>newComparator());
-            this.empty = newFreqs(empty,conversionFunction);
+            this.empty = ObjectFrequentElements.topK(0, 0,
+                    Collections.<FrequencyEstimate<String>>emptyList(), ComparableComparator.<String>newComparator());
             this.maxLength = maxLength;
         }
 
-        protected FrequentElements<DataValueDescriptor> newFreqs(FrequentElements<String> empty,Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>> conversionFunction){
-            return new StringStatistics.Freqs(empty,conversionFunction);
-        }
-
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            DataValueDescriptor minDvd = stats.minValue();
-            String minV = safeString(minDvd);
+        protected void mergeExtrema(ColumnStatistics<String> stats) {
+            String minV = stats.minValue();
             if(min==null||min.compareTo(minV)>0){
                 min = minV;
                 minCount = stats.minCount();
             }
-            String maxV = safeString(stats.maxValue());
+            String maxV = stats.maxValue();
             if(max==null||max.compareTo(maxV)<0){
                 max = maxV;
             }
         }
 
         @Override public long minCount() { return minCount; }
-        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+        @Override public FrequentElements<String> topK() { return empty; }
 
-        @Override public DataValueDescriptor maxValue() { return getDvd(max); }
-        @Override public DataValueDescriptor minValue() { return getDvd(min); }
+        @Override public String maxValue() { return max; }
+        @Override public String minValue() { return min; }
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             ObjectFrequentElements<String> fe = ObjectFrequentElements.topK(0, 0,
                     Collections.<FrequencyEstimate<String>>emptyList(),
                     ComparableComparator.<String>newComparator());
             ColumnStatistics<String> scs = new ComparableColumnStatistics<>(columnId,
-                    new FixedCardinalityEstimate<String>(cardinality()),
+                    (FixedCardinalityEstimate<String>)getCardinalityEstimator(),
                     fe,
                     min,
                     max,
@@ -630,6 +630,14 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
                     minCount,DvdStatsCollector.stringDistributionFactory(maxLength)
             );
             return newDistribution(scs);
+        }
+
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            if (cardinalityEstimator == null) {
+                cardinalityEstimator = new FixedCardinalityEstimate<String>(cardinality());
+            }
+            return cardinalityEstimator;
         }
 
         protected abstract Distribution<DataValueDescriptor> newDistribution(ColumnStatistics<String> scs);
@@ -648,7 +656,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
     private static class CharAverage extends StringAverage{
         public CharAverage(int columnId, int maxLength) { super(columnId, maxLength,CharStats.conversionFunction); }
         @Override protected DataValueDescriptor getDvd(String value) { return new SQLChar(value); }
-        @Override public ColumnStatistics<DataValueDescriptor> getClone() {return new CharAverage(columnId,maxLength);}
+        @Override public ColumnStatistics<String> getClone() {return new CharAverage(columnId,maxLength);}
 
         @Override
         protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics<String> scs){
@@ -661,13 +669,8 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         public VarcharAverage(int columnId, int maxLength) { super(columnId, maxLength,VarcharStats.conversionFunction); }
         @Override protected DataValueDescriptor getDvd(String value) { return new SQLVarchar(value); }
 
-        @Override public ColumnStatistics<DataValueDescriptor> getClone() {
+        @Override public ColumnStatistics<String> getClone() {
             return new VarcharAverage(columnId,maxLength);
-        }
-
-        @Override
-        protected FrequentElements<DataValueDescriptor> newFreqs(FrequentElements<String> empty,Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>> conversionFunction){
-            return new VarcharStats.Freqs(empty,conversionFunction);
         }
 
         @Override
@@ -681,50 +684,44 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
     }
 
-    private abstract static class BaseTimeAverage extends ColumnAverage{
+    private abstract static class BaseTimeAverage extends ColumnAverage<Long>{
         private long min;
         private long minCount;
         private long max;
-        private final FrequentElements<DataValueDescriptor> empty;
+        private final FrequentElements<Long> empty;
         private transient Calendar calendar; //stashed for performance reasons
 
         public BaseTimeAverage(int columnId) {
             super(columnId);
-            this.empty = emptyFreqs();
+            this.empty = LongFrequentElements.topK(0,0, Collections.<LongFrequencyEstimate>emptyList());
         }
 
 
         @Override
-        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
-            DataValueDescriptor minDvd = stats.minValue();
-            if(minDvd!=null && !minDvd.isNull()){
-                long minV=safeLong(minDvd);
-                if(min>minV){
-                    min=minV;
-                    minCount=stats.minCount();
-                }
+        protected void mergeExtrema(ColumnStatistics<Long> stats) {
+            long minV=stats.minValue();
+            if(min>minV){
+                min=minV;
+                minCount=stats.minCount();
             }
-            DataValueDescriptor maxDvd=stats.maxValue();
-            if(maxDvd!=null && !maxDvd.isNull()){
-                long maxV=safeLong(maxDvd);
-                if(max<maxV){
-                    max=maxV;
-                }
+            long maxV=stats.maxValue();
+            if(max<maxV) {
+                max = maxV;
             }
         }
 
         @Override public long minCount() { return minCount; }
-        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+        @Override public FrequentElements<Long> topK() { return empty; }
 
-        @Override public DataValueDescriptor maxValue() { return getDvd(max); }
-        @Override public DataValueDescriptor minValue() { return getDvd(min); }
+        @Override public Long maxValue() { return max; }
+        @Override public Long minValue() { return min; }
 
         @Override
-        public Distribution<DataValueDescriptor> getDistribution() {
+        public Distribution getDistribution() {
             LongFrequentElements fe = LongFrequentElements.topK(0, 0,
                     Collections.<LongFrequencyEstimate>emptyList());
             LongColumnStatistics lcs = new LongColumnStatistics(columnId,
-                    FixedCardinalityEstimate.longEstimate(cardinality()),
+                    (LongCardinalityEstimator)getCardinalityEstimator(),
                     fe,
                     min,
                     max,
@@ -733,6 +730,14 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
                     nullCount(),
                     minCount);
             return newDistribution(lcs);
+        }
+
+        @Override
+        public CardinalityEstimator getCardinalityEstimator() {
+            if (cardinalityEstimator == null) {
+                cardinalityEstimator = FixedCardinalityEstimate.longEstimate(cardinality());
+            }
+            return  cardinalityEstimator;
         }
 
         protected abstract Distribution<DataValueDescriptor> newDistribution(LongColumnStatistics lcs);
@@ -788,7 +793,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
 
         @Override
-        public ColumnStatistics<DataValueDescriptor> getClone(){
+        public ColumnStatistics<Long> getClone(){
             return new TimeAverage(columnId);
         }
     }
@@ -831,7 +836,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
 
         @Override
-        public ColumnStatistics<DataValueDescriptor> getClone(){
+        public ColumnStatistics<Long> getClone(){
             return new DateAverage(columnId);
         }
     }
@@ -864,7 +869,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
 
         @Override
-        public ColumnStatistics<DataValueDescriptor> getClone(){
+        public ColumnStatistics<Long> getClone(){
             return new TimestampAverage(columnId);
         }
     }
