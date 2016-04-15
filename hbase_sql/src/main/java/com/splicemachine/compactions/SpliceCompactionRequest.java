@@ -34,6 +34,15 @@ public class SpliceCompactionRequest extends CompactionRequest {
         }
     }
 
+    @Override
+    public void afterExecute(){
+        while (true) {
+            MemstoreAware latest = memstoreAware.get();
+            if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)))
+                break;
+        }
+    }
+
     public void setMemstoreAware(AtomicReference<MemstoreAware> memstoreAware) {
         this.memstoreAware = memstoreAware;
     }

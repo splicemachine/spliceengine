@@ -11,6 +11,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.BlockingProbe;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.client.ConnectionUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -52,11 +53,6 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     @Override
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile,CompactionRequest request) throws IOException{
         BlockingProbe.blockPostCompact();
-        while (true) {
-            MemstoreAware latest = memstoreAware.get();
-            if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)))
-                break;
-        }
     }
 
     @Override
@@ -185,4 +181,12 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         return Bytes.toHex(key);
     }
 
+
+    public static void main(String...args) throws Exception{
+        long timeWaited = 0l;
+        for(int i=1;i<=40;i++){
+           timeWaited+=ConnectionUtils.getPauseTime(90,i);
+        }
+        System.out.printf("timeWaited: %d sec%n",timeWaited);
+    }
 }
