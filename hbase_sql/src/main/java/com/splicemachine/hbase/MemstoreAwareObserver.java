@@ -45,6 +45,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
             throw new DoNotRetryIOException();
         }
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
+        // memstoreAware is injected into the request, where the blocking logic lives, and where compaction
+        // count will be incremented and decremented.
         scr.setMemstoreAware(memstoreAware);
 
         return scanner;
@@ -181,12 +183,16 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         return Bytes.toHex(key);
     }
 
-
-    public static void main(String...args) throws Exception{
+    public static void main(String...args) throws Exception {
         long timeWaited = 0l;
-        for(int i=1;i<=40;i++){
-           timeWaited+=ConnectionUtils.getPauseTime(90,i);
+        for (int i = 1; i <= 40; i++) {
+            timeWaited += ConnectionUtils.getPauseTime(90, i);
         }
-        System.out.printf("timeWaited: %d sec%n",timeWaited);
+        System.out.printf("timeWaited: %d sec%n", timeWaited);
+    }
+
+    MemstoreAware getMemstoreAware() {
+        // for testing only!
+        return memstoreAware.get();
     }
 }
