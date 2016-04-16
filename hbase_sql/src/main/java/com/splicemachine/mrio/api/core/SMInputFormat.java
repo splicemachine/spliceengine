@@ -26,8 +26,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     protected static final Logger LOG = Logger.getLogger(SMInputFormat.class);
-    protected Table table;
-    protected Scan scan;
     protected SMSQLUtil util;
     protected SMRecordReaderImpl rr;
     protected boolean spark;

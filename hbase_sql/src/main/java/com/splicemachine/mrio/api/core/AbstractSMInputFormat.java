@@ -1,12 +1,23 @@
 package com.splicemachine.mrio.api.core;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.si.impl.HMissedSplit;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.HScan;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -25,14 +36,20 @@ import java.util.List;
  */
 public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(AbstractSMInputFormat.class);
+    private static int MAX_RETRIES = 30;
     protected Configuration conf;
     protected Table table;
 
-    private List<InputSplit> toSMSplits (List<InputSplit> splits) throws IOException {
+    private List<InputSplit> toSMSplits (List<Partition> splits) throws IOException {
         List<InputSplit> sMSplits = Lists.newArrayList();
-        for(InputSplit split:splits) {
-            final TableSplit tableSplit = (TableSplit) split;
-            SMSplit smSplit= new SMSplit(new TableSplit(tableSplit.getTable(), tableSplit.getStartRow(), tableSplit.getEndRow(), tableSplit.getRegionLocation()));
+        HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
+        for(Partition split:splits) {
+            SMSplit smSplit = new SMSplit(
+                    new TableSplit(
+                            infoFactory.getTableInfo(split.getTableName()),
+                            split.getStartKey(),
+                            split.getEndKey(),
+                            split.owningServer().getHostname()));
             sMSplits.add(smSplit);
         }
         return sMSplits;
@@ -44,29 +61,46 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         setConf(context.getConfiguration());
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
-        TableInputFormat tableInputFormat = new TableInputFormat();
-        conf.set(TableInputFormat.INPUT_TABLE,"splice:"+conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
-        tableInputFormat.setConf(conf);
+        Scan s;
         try {
             TableScannerBuilder tsb = TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
-            Scan s = ((HScan)tsb.getScan()).unwrapDelegate();
-            tableInputFormat.setScan(s);
-        } catch (com.splicemachine.db.iapi.error.StandardException e) {
+            s = ((HScan)tsb.getScan()).unwrapDelegate();
+        } catch (StandardException e) {
             SpliceLogUtils.error(LOG, e);
             throw new IOException(e);
         }
-        List<InputSplit> splits = tableInputFormat.getSplits(context);
-        if (oneSplitPerRegion(conf))
-            return toSMSplits(splits);
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "getSplits " + splits);
-            for (InputSplit split: splits) {
-                SpliceLogUtils.debug(LOG, "split -> " + split);
+        SIDriver driver = SIDriver.driver();
+        HBaseConnectionFactory instance = HBaseConnectionFactory.getInstance(driver.getConfiguration());
+        Clock clock = driver.getClock();
+        Connection connection = instance.getConnection();
+        Partition clientPartition = new ClientPartition(connection, table.getName(), table, clock, driver.getPartitionInfoCache());
+        int retryCounter = 0;
+        boolean refresh = false;
+        while (true) {
+            try {
+                List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
+
+                if (oneSplitPerRegion(conf))
+                    return toSMSplits(splits);
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "getSplits " + splits);
+                    for (Partition split : splits) {
+                        SpliceLogUtils.debug(LOG, "split -> " + split);
+                    }
+                }
+                SubregionSplitter splitter = new HBaseSubregionSplitter();
+                List<InputSplit> results = splitter.getSubSplits(table, splits);
+                return results;
+            } catch (HMissedSplit e) {
+                // retry;
+                refresh = true;
+                LOG.warn("Missed split computing subtasks for region " + clientPartition);
+                retryCounter++;
+                if (retryCounter > MAX_RETRIES) {
+                    throw e;
+                }
             }
         }
-        SubregionSplitter splitter = new HBaseSubregionSplitter();
-        List<InputSplit> results = splitter.getSubSplits(table, splits);
-        return results;
     }
 
     /**

@@ -126,7 +126,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
             while (true) {
                 MemstoreAware currentState = memstoreAware.get();
                 if (currentState.splitMerge || currentState.currentCompactionCount>0 || currentState.currentFlushCount>0) {
-                    SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
+                    SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s : %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString(), currentState);
                     throw new IOException("splitting, merging, or active compaction on scan on " + c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
                 }
 

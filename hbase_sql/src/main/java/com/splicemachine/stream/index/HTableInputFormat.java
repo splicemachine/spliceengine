@@ -2,20 +2,14 @@ package com.splicemachine.stream.index;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 
-import org.apache.hadoop.conf.Configurable;
+import com.splicemachine.mrio.api.core.AbstractSMInputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.StringUtils;
@@ -23,25 +17,17 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.core.HBaseSubregionSplitter;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
-import com.splicemachine.mrio.api.core.SubregionSplitter;
-import com.splicemachine.storage.HScan;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  *
  * Created by jyuan on 10/19/15.
  */
-public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Configurable{
+public class HTableInputFormat extends AbstractSMInputFormat<byte[], KVPair> {
     protected static final Logger LOG = Logger.getLogger(HTableInputFormat.class);
-    protected Configuration conf;
-    protected Table table;
-    protected Scan scan;
     protected SMSQLUtil util;
     protected HTableRecordReader rr;
     protected boolean spark;
@@ -84,9 +70,6 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
             }
         }
         try {
-//            if (spark)
-//                setHTable(SpliceAccessManager.getHTable(conglomerate));
-//            else
             TableName tableInfo=HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(conglomerate);
             setHTable(new HTable(conf,tableInfo));
         } catch (Exception e) {
@@ -107,41 +90,6 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "finishingSetConf");
         this.conf = conf;
-    }
-
-    @Override
-    public Configuration getConf() {
-        return conf;
-    }
-
-    @Override
-    public List<InputSplit> getSplits(JobContext context) throws IOException,
-            InterruptedException {
-        setConf(context.getConfiguration());
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
-        TableInputFormat tableInputFormat = new TableInputFormat();
-        String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
-        TableName hTableName = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(conglomerate);
-        conf.set(TableInputFormat.INPUT_TABLE, hTableName.getNameAsString());
-        tableInputFormat.setConf(conf);
-        try {
-            IndexScanSetBuilder isb=HTableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
-            Scan s = ((HScan)isb.getScan()).unwrapDelegate();
-            tableInputFormat.setScan(s);
-        } catch (StandardException e) {
-            SpliceLogUtils.error(LOG, e);
-            throw new IOException(e);
-        }
-        List<InputSplit> splits = tableInputFormat.getSplits(context);
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "getSplits " + splits);
-            for (InputSplit split: splits) {
-                SpliceLogUtils.debug(LOG, "split -> " + split);
-            }
-        }
-        SubregionSplitter splitter = new HBaseSubregionSplitter();
-        return splitter.getSubSplits(table, splits);
     }
 
     public HTableRecordReader getRecordReader(InputSplit split, Configuration config) throws IOException,
@@ -172,19 +120,4 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
         return getRecordReader(split,context.getConfiguration());
     }
 
-    /**
-     * Allows subclasses to get the {@link HTable}.
-     */
-    protected Table getHTable() {
-        return this.table;
-    }
-
-    /**
-     * Allows subclasses to set the {@link HTable}.
-     *
-     * @param table  The table to get the data from.
-     */
-    protected void setHTable(Table table) {
-        this.table = table;
-    }
 }
