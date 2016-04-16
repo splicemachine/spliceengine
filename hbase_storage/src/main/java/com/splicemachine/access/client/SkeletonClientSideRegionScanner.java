@@ -173,6 +173,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                 SpliceLogUtils.debug(LOG,"received flush message " + results.get(0));
             flushed = true;
             updateScanner();
+            nextResults.clear();
             results.clear();
             return nextRaw(results);
         } else
