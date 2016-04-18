@@ -256,7 +256,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                                             writeResponse,id,bulkWriteResult);
                                 } else if(ctx.attemptCount>100 && ctx.attemptCount%50==0){
                                     SpliceLogUtils.warn(LOG,
-                                            "Retrying write after receiving global RETRY response: id=%d, bulkWriteResult=%s, bulkWrite=%s",
+                                            "Retrying write after receiving partial RETRY response: id=%d, bulkWriteResult=%s, bulkWrite=%s",
                                             id,bulkWriteResult,currentBulkWrite);
                                 }
 
