@@ -97,7 +97,7 @@ public class DirectPipelineExceptionFactory extends MExceptionFactory implements
     }
 
     @Override
-    public Throwable processErrorResult(WriteResult result){
+    public Exception processErrorResult(WriteResult result){
         Code writeErrorCode = result.getCode();
 
         if(writeErrorCode!=null){
