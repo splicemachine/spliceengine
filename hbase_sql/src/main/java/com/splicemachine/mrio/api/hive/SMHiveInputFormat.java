@@ -2,6 +2,8 @@ package com.splicemachine.mrio.api.hive;
 
 import java.io.IOException;
 import java.util.List;
+
+import com.splicemachine.mrio.api.core.SMRecordReaderImpl;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -54,7 +56,10 @@ public class SMHiveInputFormat implements InputFormat<RowLocationWritable, ExecR
 			InputSplit split, JobConf job, Reporter reporter)
 			throws IOException {
 		try {
-			return new SMHiveRecordReader(inputFormat.getRecordReader( ((SMHiveSplit)split).getSMSplit(), job));
+			SMSplit smSplit = ((SMHiveSplit)split).getSMSplit();
+			SMRecordReaderImpl delegate = inputFormat.getRecordReader(((SMHiveSplit) split).getSMSplit(), job);
+			delegate.init(job, smSplit);
+			return new SMHiveRecordReader(delegate);
 		} catch (InterruptedException e) {
 			throw new IOException(e);
 		}

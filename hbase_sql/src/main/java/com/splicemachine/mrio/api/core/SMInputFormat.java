@@ -106,7 +106,6 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
             table=new HTable(HBaseConfiguration.create(config),tableInfo);
         }
         rr.setHTable(table);
-        rr.init(config, split);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "returning record reader");
         return rr;
