@@ -20,6 +20,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.Lists;
+
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -53,6 +54,9 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private final PartitionFactory partitionFactory;
     private PipingCallBuffer retryPipingCallBuffer=null; // retryCallBuffer
 
+    private final int maxRejectedAttempts;
+    private final int maxFailedAttempts;
+
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public BulkWriteAction(byte[] tableName,
@@ -79,6 +83,9 @@ public class BulkWriteAction implements Callable<WriteStats>{
         this.writeTimer=metricFactory.newTimer();
         this.pipelineExceptionFactory = pipelineExceptionFactory;
         this.partitionFactory = partitionFactory;
+        this.maxFailedAttempts = writeConfiguration.getMaximumRetries();
+        //allow twice the number of rejections as base writes
+        this.maxRejectedAttempts = maxFailedAttempts<<1;
     }
 
     @Override
@@ -190,7 +197,10 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 writesToPerform.addAll(retryPipingCallBuffer.getBulkWrites());
                 retryPipingCallBuffer=null;
             }
-        }while(writesToPerform.size()>0);
+        }while(ctx.canRetry() && writesToPerform.size()>0);
+        if(!ctx.canRetry()){
+            ctx.throwWriteFailed();
+        }
     }
 
     private void executeSingle(BulkWrites nextWrite,WriteAttemptContext ctx) throws Exception{
@@ -239,6 +249,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                         ctx.sleep=true; //always sleep due to rejection, even if we don't need to refresh the cache
                         continue;
                     case PARTIAL:
+                        ctx.failed();
                         partialFailureCounter.increment();
                         WriteResponse writeResponse=writeConfiguration.partialFailure(bulkWriteResult,currentBulkWrite);
                         switch(writeResponse){
@@ -292,6 +303,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 throw new ExecutionException(e);
             //noinspection ThrowableResultOfMethodCallIgnored
             if(pipelineExceptionFactory.processPipelineException(e) instanceof PipelineTooBusy){
+                ctx.rejected();
                 /*
                  * the pipeline has indicated that it is too busy to accept any writes just now. So we need
                  * to retry the entire BulkWrites that we were send. But since it's too busy (and not some other error),
@@ -314,6 +326,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                     throw new ExecutionException(e);
                 case RETRY:
                     errors.add(e);
+                    ctx.rejected();
                     if(RETRY_LOG.isDebugEnabled()){
                         SpliceLogUtils.debug(RETRY_LOG,"Retrying write after receiving global error: id=%d, class=%s, message=%s",id,e.getClass(),e.getMessage());
                         if(RETRY_LOG.isTraceEnabled()){
@@ -322,7 +335,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
                     }else if(ctx.attemptCount>100 && ctx.attemptCount%50==0){
                         SpliceLogUtils.debug(LOG,"Retrying write after receiving global error: id=%d, class=%s, message=%s",id,e.getClass(),e.getMessage());
                     }
-                    ctx.rejected();
                     ctx.sleep=true;
                     for(BulkWrite bw : nextWrite.getBulkWrites()){
                         ctx.addBulkWrites(bw.getMutations());
@@ -423,8 +435,23 @@ public class BulkWriteAction implements Callable<WriteStats>{
         boolean directRetry;
         int attemptCount = 0;
 
+        int rejectedCount;
+        int failedCount;
+
+
         public boolean shouldSleep(){
             return sleep || refreshCache;
+        }
+
+        public boolean canRetry(){
+            return rejectedCount<maxRejectedAttempts && failedCount < maxFailedAttempts;
+        }
+
+        public void throwWriteFailed() throws Exception{
+            if(rejectedCount>=maxRejectedAttempts)
+                throw pipelineExceptionFactory.processErrorResult(WriteResult.regionTooBusy());
+            else //TODO -sf- can we include a good error message here?
+                throw pipelineExceptionFactory.processErrorResult(WriteResult.failed("Unable to complete write after "+ maxFailedAttempts));
         }
 
         void reset(){
@@ -447,8 +474,13 @@ public class BulkWriteAction implements Callable<WriteStats>{
         }
 
         void rejected(){
+            rejectedCount++;
             rejectedCounter.increment();
             statusReporter.rejectedCount.incrementAndGet();
+        }
+
+        void failed(){
+            failedCount++;
         }
     }
 }
