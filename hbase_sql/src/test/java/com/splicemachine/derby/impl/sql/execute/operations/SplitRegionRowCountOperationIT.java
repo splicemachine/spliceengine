@@ -18,6 +18,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+@Ignore("DB-4930")
 public class SplitRegionRowCountOperationIT{
 
     private static final String SCHEMA = RowCountOperationIT.class.getSimpleName().toUpperCase();

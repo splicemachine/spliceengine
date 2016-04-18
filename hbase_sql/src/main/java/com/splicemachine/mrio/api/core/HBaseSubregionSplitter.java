@@ -1,14 +1,10 @@
 package com.splicemachine.mrio.api.core;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.RpcCallback;
-import com.google.protobuf.RpcController;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.hbase.SpliceRpcController;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.impl.HMissedSplit;
+import com.splicemachine.si.impl.HMissedSplitException;
 import com.splicemachine.storage.Partition;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -29,7 +25,7 @@ import java.util.Map;
  */
 public class HBaseSubregionSplitter implements SubregionSplitter{
     @Override
-    public List<InputSplit> getSubSplits(Table table, List<Partition> splits) throws HMissedSplit {
+    public List<InputSplit> getSubSplits(Table table, List<Partition> splits) throws HMissedSplitException {
         List<InputSplit> results = new ArrayList<>();
         for (final Partition split : splits) {
             try {
@@ -79,7 +75,7 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                 for (List<InputSplit> value : splitResults.values()) {
                     results.addAll(value);
                 }
-            } catch (HMissedSplit ms) {
+            } catch (HMissedSplitException ms) {
                 throw ms;
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);

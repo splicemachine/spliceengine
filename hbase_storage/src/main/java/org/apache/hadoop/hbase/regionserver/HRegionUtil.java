@@ -12,7 +12,7 @@ import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.Lock;
 
-import com.splicemachine.si.impl.HMissedSplit;
+import com.splicemachine.si.impl.HMissedSplitException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.hfile.BlockType;
 import org.apache.hadoop.hbase.io.hfile.HFile;
@@ -68,7 +68,7 @@ public class HRegionUtil extends BaseHRegionUtil{
 
         if ((end.length == 0 && regionEnd.length != 0)
             || Bytes.compareTo(end, regionEnd) > 0) {
-            throw new HMissedSplit("Subplit computation missed region split");
+            throw new HMissedSplitException("Subplit computation missed region split");
         }
 
         if (regionStart != null && regionStart.length > 0) {

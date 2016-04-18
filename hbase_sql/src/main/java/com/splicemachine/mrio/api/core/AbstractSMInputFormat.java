@@ -8,7 +8,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.si.impl.HMissedSplit;
+import com.splicemachine.si.impl.HMissedSplitException;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.HScan;
@@ -16,7 +16,6 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
@@ -91,7 +90,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                 SubregionSplitter splitter = new HBaseSubregionSplitter();
                 List<InputSplit> results = splitter.getSubSplits(table, splits);
                 return results;
-            } catch (HMissedSplit e) {
+            } catch (HMissedSplitException e) {
                 // retry;
                 refresh = true;
                 LOG.warn("Missed split computing subtasks for region " + clientPartition);
