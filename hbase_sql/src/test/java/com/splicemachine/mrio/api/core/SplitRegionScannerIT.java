@@ -133,7 +133,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         for (Partition subPartition: partitions){
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
-                    htable,instance.getConnection(),
+                    htable,
                     clock,subPartition);
             while (srs.next(newCells)) {
                 i++;
@@ -158,7 +158,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         for (Partition subPartition: partitions){
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
-                    htable,instance.getConnection(),
+                    htable,
                     clock,subPartition);
             while (srs.next(newCells)) {
                 i++;
@@ -183,7 +183,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         List<Cell> newCells = new ArrayList<>();
         Scan scan = new Scan();
         SplitRegionScanner srs = new SplitRegionScanner(scan,
-                htable,instance.getConnection(),
+                htable,
                 clock,partition);
         while (srs.next(newCells)) {
             i++;
@@ -213,7 +213,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         for (Partition subPartition: partitions){
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
-                    htable,instance.getConnection(),
+                    htable,
                     clock,subPartition);
             while (srs.next(newCells)) {
                 i++;
@@ -240,7 +240,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         for (Partition subPartition: partitions){
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
-                    htable,instance.getConnection(),
+                    htable,
                     clock,subPartition);
             while (srs.next(newCells)) {
                 i++;
@@ -269,7 +269,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         for (Partition subPartition: partitions){
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
-                    htable,instance.getConnection(),
+                    htable,
                     clock,subPartition);
             while (srs.next(newCells)) {
                 i++;
@@ -301,7 +301,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         List<Cell> newCells = new ArrayList<>();
             Scan scan = new Scan();
             SplitRegionScanner srs = new SplitRegionScanner(scan,
-                    htable,instance.getConnection(),
+                    htable,
                     clock,partition);
             while (srs.next(newCells)) {
                 i++;
@@ -334,7 +334,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         List<Cell> newCells = new ArrayList<>();
         Scan scan = new Scan();
         SplitRegionScanner srs = new SplitRegionScanner(scan,
-                htable,instance.getConnection(),
+                htable,
                 clock,partition);
         while (srs.next(newCells)) {
             i++;

@@ -38,12 +38,10 @@ public class SplitRegionScanner implements RegionScanner {
     protected int scannerCount = 0;
     protected Scan scan;
     protected Table htable;
-    private Connection connection;
     private Clock clock;
 
     public SplitRegionScanner(Scan scan,
                               Table table,
-                              Connection connection,
                               Clock clock,
                               Partition clientPartition) throws IOException {
         List<Partition> partitions = getPartitionsInRange(clientPartition, scan);
@@ -52,7 +50,6 @@ public class SplitRegionScanner implements RegionScanner {
         }
         this.scan = scan;
         this.htable = table;
-        this.connection = connection;
         this.clock = clock;
         boolean hasAdditionalScanners = true;
         while (hasAdditionalScanners) {

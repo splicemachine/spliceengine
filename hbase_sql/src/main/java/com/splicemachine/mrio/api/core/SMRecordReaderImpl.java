@@ -171,7 +171,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
             Partition clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
 			SplitRegionScanner srs = new SplitRegionScanner(scan,
 					htable,
-					instance.getConnection(),
 					clock,
                     clientPartition);
 			this.hregion = srs.getRegion();
