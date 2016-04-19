@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -20,6 +22,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.parquet.bytes.BytesUtils;
 
 /**
  * 

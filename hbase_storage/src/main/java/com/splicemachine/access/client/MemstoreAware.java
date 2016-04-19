@@ -64,5 +64,15 @@ public class MemstoreAware {
             return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
                     clone.currentScannerCount-1,clone.currentFlushCount);
         }
-	
+
+    @Override
+    public String toString() {
+        return "MemstoreAware{" +
+                "splitMerge=" + splitMerge +
+                ", totalFlushCount=" + totalFlushCount +
+                ", currentCompactionCount=" + currentCompactionCount +
+                ", currentScannerCount=" + currentScannerCount +
+                ", currentFlushCount=" + currentFlushCount +
+                '}';
+    }
 }

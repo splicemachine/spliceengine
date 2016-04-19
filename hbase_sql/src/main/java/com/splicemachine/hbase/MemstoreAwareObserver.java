@@ -179,8 +179,10 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     }
 
     public static  String displayByteArray(byte[] key) {
-        if (key==null || key.length==0)
+        if (key==null)
             return "NULL";
+        if (key.length == 0)
+            return "";
         return Bytes.toHex(key);
     }
 

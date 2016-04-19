@@ -159,4 +159,9 @@ public class CellUtils {
 				(stop.length == 0 || Bytes.compareTo(stop, 0, stop.length, kvBuffer, rowKeyOffset, rowKeyLength) >= 0);
 	}
 
+	public static String toHex(byte[] bytes) {
+		if (bytes == null) return "NULL";
+		if (bytes.length == 0) return "";
+		return Bytes.toHex(bytes);
+	}
 }

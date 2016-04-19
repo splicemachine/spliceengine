@@ -127,4 +127,11 @@ public class RangedClientPartition extends ClientPartition implements Comparable
     public HRegionInfo getRegionInfo() {
         return regionInfo;
     }
+
+    @Override
+    public String toString() {
+        return "RangedClientPartition{" +
+                "regionInfo=" + regionInfo.toString() +
+                '}';
+    }
 }

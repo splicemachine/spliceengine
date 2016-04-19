@@ -4,6 +4,7 @@ import com.google.protobuf.ByteString;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.impl.HMissedSplitException;
 import com.splicemachine.storage.Partition;
 import org.apache.hadoop.hbase.client.Table;
@@ -12,6 +13,7 @@ import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,6 +26,7 @@ import java.util.Map;
  *         Date: 1/6/16
  */
 public class HBaseSubregionSplitter implements SubregionSplitter{
+    private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
     public List<InputSplit> getSubSplits(Table table, List<Partition> splits) throws HMissedSplitException {
         List<InputSplit> results = new ArrayList<>();
@@ -47,7 +50,12 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                                 byte[] startKey = split.getStartKey();
                                 byte[] stopKey = split.getEndKey();
 
-                                SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder().setBeginKey(ByteString.copyFrom(startKey)).setEndKey(ByteString.copyFrom(stopKey)).build();
+                                if (LOG.isDebugEnabled()) {
+                                    LOG.debug(String.format("Original split [%s,%s]", CellUtils.toHex(startKey), CellUtils.toHex(stopKey)));
+                                }
+
+                                SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
+                                        .setBeginKey(ByteString.copyFrom(startKey)).setEndKey(ByteString.copyFrom(stopKey)).build();
 
                                 BlockingRpcCallback<SpliceMessage.SpliceSplitServiceResponse> rpcCallback = new BlockingRpcCallback<>();
                                 instance.computeSplits(controller, message, rpcCallback);
@@ -67,6 +75,10 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                                                     first,
                                                     end,
                                                     split.owningServer().getHostname())));
+
+                                    if (LOG.isDebugEnabled()) {
+                                        LOG.debug(String.format("New split [%s,%s]", CellUtils.toHex(first), CellUtils.toHex(end)));
+                                    }
                                     first = end;
                                 }
                                 return result;

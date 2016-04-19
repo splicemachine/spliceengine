@@ -11,6 +11,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
+import com.splicemachine.hbase.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
@@ -27,11 +28,6 @@ import com.splicemachine.backup.BackupHFileCleaner;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
-import com.splicemachine.hbase.BackupEndpointObserver;
-import com.splicemachine.hbase.MemstoreAwareObserver;
-import com.splicemachine.hbase.RegionServerLifecycleObserver;
-import com.splicemachine.hbase.RegionSizeEndpoint;
-import com.splicemachine.hbase.SpliceMasterObserver;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import com.splicemachine.utils.BlockingProbeEndpoint;
@@ -53,7 +49,8 @@ class SpliceTestPlatformConfig {
             RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class,
-            BackupEndpointObserver.class);
+            BackupEndpointObserver.class
+    );
 
     private static final List<Class<?>> MASTER_COPROCESSORS = ImmutableList.<Class<?>>of(
             SpliceMasterObserver.class);

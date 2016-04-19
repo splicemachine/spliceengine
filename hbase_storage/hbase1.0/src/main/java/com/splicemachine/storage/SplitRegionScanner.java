@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import com.splicemachine.access.client.ClientRegionConstants;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.constants.SIConstants;
 import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
@@ -74,7 +75,9 @@ public class SplitRegionScanner implements RegionScanner {
                     newScan.setAttribute(SIConstants.SI_NEEDED,null);
                     newScan.setMaxVersions();
                     if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s", splitStart, splitStop);
+                            SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey='%s', endKey='%s' on partition ['%s', '%s']",
+                                    CellUtils.toHex(splitStart), CellUtils.toHex(splitStop),
+                                    CellUtils.toHex(regionStartKey), CellUtils.toHex(regionStopKey));
                     createAndRegisterClientSideRegionScanner(table, newScan, partitions.get(i));
                 }
                 hasAdditionalScanners = false;

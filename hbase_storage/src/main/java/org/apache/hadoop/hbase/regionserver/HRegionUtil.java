@@ -110,13 +110,13 @@ public class HRegionUtil extends BaseHRegionUtil{
         // add region end key at end
         cutPoints.add(store.getRegionInfo().getEndKey());
 
-        if (LOG.isTraceEnabled()) {
+        if (LOG.isDebugEnabled()) {
             HRegionInfo regionInfo = store.getRegionInfo();
-            String startKey = "\"" + Bytes.toStringBinary(regionInfo.getStartKey()) + "\"";
-            String endKey = "\"" + Bytes.toStringBinary(regionInfo.getEndKey()) + "\"";
-            LOG.trace("Cutpoints for " + regionInfo.getRegionNameAsString() + " [" + startKey + "," + endKey + "]: ");
+            String startKey = "\"" + CellUtils.toHex(regionInfo.getStartKey()) + "\"";
+            String endKey = "\"" + CellUtils.toHex(regionInfo.getEndKey()) + "\"";
+            LOG.debug("Cutpoints for " + regionInfo.getRegionNameAsString() + " [" + startKey + "," + endKey + "]: ");
             for (byte[] cutpoint : cutPoints) {
-                LOG.trace("\t" + Bytes.toStringBinary(cutpoint));
+                LOG.debug("\t" + CellUtils.toHex(cutpoint));
             }
         }
         return cutPoints;

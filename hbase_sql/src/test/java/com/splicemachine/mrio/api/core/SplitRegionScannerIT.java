@@ -8,12 +8,14 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SplitRegionScanner;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.Cell;
@@ -137,7 +139,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
                     clock,subPartition);
             while (srs.next(newCells)) {
                 i++;
-                simpleScan.add(Bytes.toHex(newCells.get(0).getRow()));
+                simpleScan.add(CellUtils.toHex(newCells.get(0).getRow()));
                 newCells.clear();
             }
             srs.close();
