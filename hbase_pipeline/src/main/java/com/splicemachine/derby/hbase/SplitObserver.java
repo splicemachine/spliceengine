@@ -16,6 +16,6 @@ public interface SplitObserver{
     void preSplit(ObserverContext<RegionCoprocessorEnvironment> c,
                   @Nullable byte[] splitRow) throws IOException;
 
-    void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException;
+    void postCompleteSplit(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException;
 
 }

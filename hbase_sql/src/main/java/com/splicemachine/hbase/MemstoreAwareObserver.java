@@ -74,7 +74,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     }
 
     @Override
-    public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e,HRegion l,HRegion r) throws IOException{
+    public void postCompleteSplit(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException{
         BlockingProbe.blockPostSplit();
         while (true) {
             MemstoreAware latest = memstoreAware.get();
