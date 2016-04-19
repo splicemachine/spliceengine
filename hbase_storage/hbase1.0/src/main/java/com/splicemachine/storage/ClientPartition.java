@@ -1,7 +1,10 @@
 package com.splicemachine.storage;
 
 import com.google.common.base.Function;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.si.data.HExceptionFactory;
+import com.splicemachine.si.impl.HNotServingRegion;
+import com.splicemachine.si.impl.HRegionTooBusy;
+import com.splicemachine.si.impl.HWrongRegion;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.ImmutableList;
@@ -204,19 +207,41 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         return new HPartitionLoad(getName(),totalStoreFileSizeMB,totalMemstoreSieMB,storefileIndexSizeMB);
     }
 
+    /**
+     * Major compacts the table. Synchronous operation.
+     * @throws IOException
+     */
     @Override
     public void compact() throws IOException{
-        //TODO -sf- this is inherently synchronous
+        HExceptionFactory exceptionFactory = HExceptionFactory.INSTANCE;
         try(Admin admin = connection.getAdmin()){
             admin.majorCompact(tableName);
-            AdminProtos.GetRegionInfoResponse.CompactionState compactionState;
+            AdminProtos.GetRegionInfoResponse.CompactionState compactionState=null;
             do{
                 try{
                     clock.sleep(500l,TimeUnit.MILLISECONDS);
                 }catch(InterruptedException e){
                     throw new InterruptedIOException();
                 }
-                compactionState=admin.getCompactionState(tableName);
+
+                try {
+                    compactionState = admin.getCompactionState(tableName);
+                }catch(Exception e){
+                    // Catch and ignore the typical region errors while checking compaction state.
+                    // Otherwise the client compaction request will fail which we don't want.
+                    IOException ioe = exceptionFactory.processRemoteException(e);
+                    if (ioe instanceof HNotServingRegion ||
+                        ioe instanceof HWrongRegion ||
+                        ioe instanceof HRegionTooBusy) {
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG,
+                                "Can not fetch compaction state for table %s but we will keep trying: %s.",
+                                tableName.getQualifierAsString(), ioe);
+                        }
+                    } else {
+                        throw e;
+                    }
+                }
             }while(compactionState!=AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
         }
     }
