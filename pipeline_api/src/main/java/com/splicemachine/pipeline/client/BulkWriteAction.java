@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class BulkWriteAction implements Callable<WriteStats>{
     private static final Logger LOG=Logger.getLogger(BulkWriteAction.class);
     private static final Logger RETRY_LOG=Logger.getLogger(BulkWriteAction.class.getName()+".retries");
-    private static final AtomicLong idGen=new AtomicLong(0l);
+    private static final AtomicLong idGen=new AtomicLong(0L);
     private BulkWrites bulkWrites;
     private final List<Throwable> errors= Lists.newArrayListWithExpectedSize(0);
     private final WriteConfiguration writeConfiguration;
@@ -83,9 +83,10 @@ public class BulkWriteAction implements Callable<WriteStats>{
         this.writeTimer=metricFactory.newTimer();
         this.pipelineExceptionFactory = pipelineExceptionFactory;
         this.partitionFactory = partitionFactory;
-        this.maxFailedAttempts = writeConfiguration.getMaximumRetries();
+        int maximumRetries=writeConfiguration.getMaximumRetries();
+        this.maxFailedAttempts = maximumRetries;
         //allow twice the number of rejections as base writes
-        this.maxRejectedAttempts = maxFailedAttempts<<1;
+        this.maxRejectedAttempts = maximumRetries*2;
     }
 
     @Override
@@ -180,15 +181,23 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 LOG.warn("Attempting bulk write "+nextWrite);
             }
             executeSingle(nextWrite,ctx);
+
+            if(!ctx.canRetry())
+                ctx.throwWriteFailed();
+
             /*
              * We need to do an exponential backoff to ensure that our cache has a chance to invalidate, or
              * simply because we were told to wait a bit by the write pipeline (i.e. we were rejected).
              */
-            if(ctx.shouldSleep())
-                clock.sleep(PipelineUtils.getWaitTime(ctx.attemptCount,writeConfiguration.getPause()),TimeUnit.MILLISECONDS);
-            if(ctx.directRetry)
+            if(ctx.shouldSleep()){
+                long pause = writeConfiguration.getPause();
+                if(ctx.rejected)
+                    pause/=2;
+                clock.sleep(PipelineUtils.getWaitTime(ctx.attemptCount,pause),TimeUnit.MILLISECONDS);
+            }if(ctx.directRetry)
                 writesToPerform.add(nextWrite);
             else if(ctx.nextWriteSet!=null &&ctx.nextWriteSet.size()>0){
+                ctx.failed();
                 //rebuild a new buffer to retry from any records that need retrying
                 addToRetryCallBuffer(ctx.nextWriteSet,bulkWrites.getTxn(),ctx.refreshCache);
             }
@@ -198,9 +207,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 retryPipingCallBuffer=null;
             }
         }while(ctx.canRetry() && writesToPerform.size()>0);
-        if(!ctx.canRetry()){
-            ctx.throwWriteFailed();
-        }
     }
 
     private void executeSingle(BulkWrites nextWrite,WriteAttemptContext ctx) throws Exception{
@@ -247,9 +253,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
                         ctx.addBulkWrites(currentBulkWrite.getMutations());
                         ctx.refreshCache = ctx.refreshCache || bulkWriteResult.getGlobalResult().refreshCache();
                         ctx.sleep=true; //always sleep due to rejection, even if we don't need to refresh the cache
-                        continue;
+                        break;
                     case PARTIAL:
-                        ctx.failed();
                         partialFailureCounter.increment();
                         WriteResponse writeResponse=writeConfiguration.partialFailure(bulkWriteResult,currentBulkWrite);
                         switch(writeResponse){
@@ -271,11 +276,14 @@ public class BulkWriteAction implements Callable<WriteStats>{
                                             id,bulkWriteResult,currentBulkWrite);
                                 }
 
-                                ctx.addBulkWrites(PipelineUtils.doPartialRetry(currentBulkWrite,bulkWriteResult,id));
-                                // only redo cache if you have a failure not a lock contention issue
-                                boolean isFailure=bulkWriteResult.getFailedRows()!=null && bulkWriteResult.getFailedRows().size()>0;
-                                ctx.refreshCache = ctx.refreshCache || isFailure;
-                                ctx.sleep =true; //always sleep
+                                Collection<KVPair> writes=PipelineUtils.doPartialRetry(currentBulkWrite,bulkWriteResult,id);
+                                if(writes.size()>0){
+                                    ctx.addBulkWrites(writes);
+                                    // only redo cache if you have a failure not a lock contention issue
+                                    boolean isFailure=bulkWriteResult.getFailedRows()!=null && bulkWriteResult.getFailedRows().size()>0;
+                                    ctx.refreshCache=ctx.refreshCache || isFailure;
+                                    ctx.sleep=true; //always sleep
+                                }
                                 break;
                             case IGNORE:
                                 SpliceLogUtils.debug(RETRY_LOG,
@@ -426,6 +434,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private class WriteAttemptContext{
         boolean refreshCache = false;
         boolean sleep = false;
+        boolean rejected= false;
         /*
          * Either directRetrySet !=null or nextWriteSet !=null. Otherwise, it's an error (since nextWriteSet is
          * necessarily a subset of the rows contained in directWriteSet).
@@ -439,19 +448,19 @@ public class BulkWriteAction implements Callable<WriteStats>{
         int failedCount;
 
 
-        public boolean shouldSleep(){
+        boolean shouldSleep(){
             return sleep || refreshCache;
         }
 
-        public boolean canRetry(){
+        boolean canRetry(){
             return rejectedCount<maxRejectedAttempts && failedCount < maxFailedAttempts;
         }
 
-        public void throwWriteFailed() throws Exception{
+        void throwWriteFailed() throws Exception{
             if(rejectedCount>=maxRejectedAttempts)
                 throw pipelineExceptionFactory.processErrorResult(WriteResult.regionTooBusy());
             else //TODO -sf- can we include a good error message here?
-                throw pipelineExceptionFactory.processErrorResult(WriteResult.failed("Unable to complete write after "+ maxFailedAttempts));
+                throw new WriteFailedException(Bytes.toString(tableName),writeConfiguration.getMaximumRetries());
         }
 
         void reset(){
@@ -459,6 +468,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             sleep = false;
             nextWriteSet = null;
             directRetry = false;
+            rejected=false;
         }
 
         void addBulkWrites(Collection<KVPair> writes){
@@ -474,6 +484,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         }
 
         void rejected(){
+            rejected=true;
             rejectedCount++;
             rejectedCounter.increment();
             statusReporter.rejectedCount.incrementAndGet();
