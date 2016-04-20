@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.dvd;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.types.*;
@@ -644,7 +645,7 @@ public abstract class LazyDataValueDescriptor extends NullValueData implements D
                         off = 0;
                         len = d.length;
                     }
-                    return Bytes.basicByteComparator().compare(d,off,len,lOther.bytes,lOther.offset,lOther.length);
+                    return ByteComparisons.comparator().compare(d,off,len,lOther.bytes,lOther.offset,lOther.length);
                 }else{
                     forceDeserialization();
                 }

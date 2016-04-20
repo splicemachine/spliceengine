@@ -4,6 +4,7 @@ import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineTooBusy;
+import com.splicemachine.pipeline.client.WriteFailedException;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
@@ -1833,9 +1834,17 @@ public enum ErrorState {
     SPLICE_WRITE_RETRIES_EXHAUSTED("SE003"){
         @Override
         public boolean accepts(Throwable t) {
-            return super.accepts(t);
-//            throw new UnsupportedOperationException("UnSUPPORTED");
-//            return t instanceof RetriesExhaustedException || super.accepts(t);
+            return super.accepts(t) || t instanceof WriteFailedException;
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof WriteFailedException))
+                return super.newException(rootCause);
+
+            WriteFailedException wfe = (WriteFailedException)rootCause;
+
+            return StandardException.newException(getSqlState(),wfe.getDestinationTableName(),wfe.getNumAttempts());
         }
     },
     SPLICE_REGION_OFFLINE("SE004"){

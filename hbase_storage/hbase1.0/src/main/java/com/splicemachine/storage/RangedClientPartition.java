@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
@@ -104,7 +105,7 @@ public class RangedClientPartition extends ClientPartition implements Comparable
 
     @Override
     public int compareTo(RangedClientPartition o){
-        return Bytes.basicByteComparator().compare(getStartKey(),o.getStartKey());
+        return ByteComparisons.comparator().compare(getStartKey(),o.getStartKey());
     }
 
     @Override
@@ -113,8 +114,9 @@ public class RangedClientPartition extends ClientPartition implements Comparable
         else if(!(obj instanceof Partition)) return false;
 
         Partition p = (Partition)obj;
-        return Bytes.basicByteComparator().compare(getStartKey(),p.getStartKey())==0
-                &&Bytes.basicByteComparator().compare(getEndKey(),p.getEndKey())==0;
+        ByteComparator comparator=ByteComparisons.comparator();
+        return comparator.compare(getStartKey(),p.getStartKey())==0
+                && comparator.compare(getEndKey(),p.getEndKey())==0;
     }
 
     @Override

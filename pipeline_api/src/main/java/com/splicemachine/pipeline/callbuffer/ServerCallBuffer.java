@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.callbuffer;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWrites;
@@ -59,7 +60,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
         this.writeStats = writeStats;
         this.server= server;
         this.writer = writer;
-        this.buffers = new TreeMap<>(Bytes.basicByteComparator());
+        this.buffers = new TreeMap<>(ByteComparisons.comparator());
     }
 
     /**

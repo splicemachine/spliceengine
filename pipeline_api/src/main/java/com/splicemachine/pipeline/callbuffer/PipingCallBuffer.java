@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.callbuffer;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -74,7 +75,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         this.skipIndexWrites = skipIndexWrites;
         this.txn = txn;
         this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this);
-        this.startKeyToRegionCBMap = new TreeMap<>(Bytes.basicByteComparator()); //TODO -sf- replace with HBase comparator through configuration
+        this.startKeyToRegionCBMap = new TreeMap<>(ByteComparisons.comparator());
         this.serverNameToRegionServerCBMap = new TreeMap<>();
         this.bufferConfiguration = bufferConfiguration;
         this.preFlushHook = preFlushHook;
@@ -159,7 +160,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
                 buffer.close();
             }
         }
-        this.startKeyToRegionCBMap = new TreeMap<>(Bytes.basicByteComparator());
+        this.startKeyToRegionCBMap = new TreeMap<>(ByteComparisons.comparator());
         this.serverNameToRegionServerCBMap = new TreeMap<>();
         currentHeapSize=0;
         currentKVPairSize=0;
