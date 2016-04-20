@@ -1,10 +1,6 @@
 package com.splicemachine.pipeline.impl;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
-
 import java.io.IOException;
-import java.util.Collection;
 
 /**
  * @author Scott Fines
@@ -12,30 +8,34 @@ import java.util.Collection;
  */
 public class WriteFailedException extends IOException {
 
+    private String tableName;
+    private int attemptCount;
 
-    public WriteFailedException(Collection<String> errorMessages){
-        super(parseIntoErrorMessage(errorMessages));
+
+    public WriteFailedException(){ }
+
+    public WriteFailedException(String tableName, int attemptCount){
+        this.tableName = tableName;
+        this.attemptCount = attemptCount;
     }
 
-    public static WriteFailedException create(Collection<Throwable> errors){
-        return new WriteFailedException(Collections2.transform(errors,new Function<Throwable, String>() {
-            @Override
-            public String apply(Throwable input) {
-                return input.getMessage();
-            }
-        }));
+    public WriteFailedException(String message){
+        super(message);
     }
 
-    private static String parseIntoErrorMessage(Collection<String> errorMessages) {
-        StringBuilder sb = new StringBuilder("Failed ").append(errorMessages.size()).append(" writes:");
-        for(String errorMessage:errorMessages){
-            sb.append(errorMessage);
-            sb.append(",");
-            break;
-        }
-        sb.append(" + ").append(errorMessages.size() - 1).append(" additional errors");
-        return sb.toString();
+    public WriteFailedException(String message,Throwable cause){
+        super(message,cause);
     }
 
+    public WriteFailedException(Throwable cause){
+        super(cause);
+    }
 
+    public String getTableName(){
+        return tableName;
+    }
+
+    public int getAttemptCount(){
+        return attemptCount;
+    }
 }
