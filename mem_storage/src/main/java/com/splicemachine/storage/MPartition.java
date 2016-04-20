@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.access.util.ByteComparisons;
 import org.sparkproject.guava.base.Predicate;
 import org.sparkproject.guava.collect.BiMap;
 import org.sparkproject.guava.collect.HashBiMap;
@@ -156,7 +157,7 @@ public class MPartition implements Partition{
             if(latest!=null&& latest.size()>0){
                 DataCell dc = latest.latestCell(family,qualifier);
                 if(dc!=null){
-                    if(Bytes.basicByteComparator().compare(dc.valueArray(),dc.valueOffset(),dc.valueLength(),expectedValue,0,expectedValue.length)==0){
+                    if(ByteComparisons.comparator().compare(dc.valueArray(),dc.valueOffset(),dc.valueLength(),expectedValue,0,expectedValue.length)==0){
                         put(put);
                         return true;
                     }else return false;

@@ -43,7 +43,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = 31;
 
     public static final String CLIENT_PAUSE = "splice.client.pause";
-    public static final long DEFAULT_CLIENT_PAUSE = 100;
+    public static final long DEFAULT_CLIENT_PAUSE = 1000;
 
     /**
      * The maximum number of concurrent buffer flushes that are allowed to be directed to a single

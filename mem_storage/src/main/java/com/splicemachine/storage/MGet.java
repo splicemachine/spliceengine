@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -19,7 +20,7 @@ public class MGet implements DataGet{
     private long highTs;
     private long lowTs;
 
-    private Map<byte[],NavigableSet<byte[]>> familyQualifierMap = new TreeMap<>(Bytes.basicByteComparator());
+    private Map<byte[],NavigableSet<byte[]>> familyQualifierMap = new TreeMap<>(ByteComparisons.comparator());
 
     public MGet(){ }
 
@@ -75,7 +76,7 @@ public class MGet implements DataGet{
     public void addColumn(byte[] family,byte[] qualifier){
         NavigableSet<byte[]> bytes=familyQualifierMap.get(family);
         if(bytes==null){
-            bytes = new TreeSet<>(Bytes.basicByteComparator());
+            bytes = new TreeSet<>(ByteComparisons.comparator());
             familyQualifierMap.put(family,bytes);
         }
         bytes.add(qualifier);

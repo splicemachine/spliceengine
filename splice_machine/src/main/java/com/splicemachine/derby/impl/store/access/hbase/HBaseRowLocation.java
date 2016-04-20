@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
@@ -147,7 +148,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
     @Override
     public int compare(DataValueDescriptor other) throws StandardException {
-        return Bytes.basicByteComparator().compare(getBytes(),other.getBytes());
+        return ByteComparisons.comparator().compare(getBytes(),other.getBytes());
     }
 
     /**

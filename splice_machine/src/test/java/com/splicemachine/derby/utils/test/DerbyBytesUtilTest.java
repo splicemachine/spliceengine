@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.test;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
@@ -11,6 +12,7 @@ import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
@@ -38,11 +40,12 @@ public class DerbyBytesUtilTest{
 
     @Test
     public void generateIndexKeyTest() throws Exception{
+        ByteComparator byteComparator=ByteComparisons.comparator();
         byte[] indexKey1=DerbyBytesUtil.generateIndexKey(
                 generateDataValueDescriptors("John","Leach",1l),null,null,false);
         byte[] indexKey2=DerbyBytesUtil.generateIndexKey(
                 generateDataValueDescriptors("John","Leach",2l),null,null,false);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(indexKey1,indexKey2)<0);
+        Assert.assertTrue(byteComparator.compare(indexKey1,indexKey2)<0);
         byte[] indexKey3=DerbyBytesUtil.generateIndexKey(
                 generateDataValueDescriptors("John","Leach",1l),null,null,false);
         byte[] indexKey4=DerbyBytesUtil.generateIndexKey(
@@ -51,8 +54,8 @@ public class DerbyBytesUtilTest{
                 generateDataValueDescriptors("John","Leach",1l),1,null,null,false);
         byte[] indexKey6=DerbyBytesUtil.generateScanKeyForIndex(
                 generateDataValueDescriptors("John","Leach",1l),-1,null,null,false);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(indexKey3,indexKey4)<0);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(indexKey5,indexKey6)<0);
+        Assert.assertTrue(byteComparator.compare(indexKey3,indexKey4)<0);
+        Assert.assertTrue(byteComparator.compare(indexKey5,indexKey6)<0);
 
     }
 
@@ -61,12 +64,13 @@ public class DerbyBytesUtilTest{
             StandardException{
         DataValueDescriptor[] descriptors=generateDataValueDescriptors("John","Leach");
         byte[] correct=DerbyBytesUtil.generateIndexKey(descriptors,null,null,false);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(correct,
+        ByteComparator byteComparator=ByteComparisons.comparator();
+        Assert.assertTrue(byteComparator.compare(correct,
                 DerbyBytesUtil.generateScanKeyForIndex(descriptors,ScanController.GE,null,null,false))==0);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(correct,DerbyBytesUtil.generateScanKeyForIndex(descriptors,ScanController.GT,null,null,false))<0);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(correct,
+        Assert.assertTrue(byteComparator.compare(correct,DerbyBytesUtil.generateScanKeyForIndex(descriptors,ScanController.GT,null,null,false))<0);
+        Assert.assertTrue(byteComparator.compare(correct,
                 DerbyBytesUtil.generateScanKeyForIndex(descriptors,ScanController.GE,null,null,false))==0);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(correct,
+        Assert.assertTrue(byteComparator.compare(correct,
                 DerbyBytesUtil.generateScanKeyForIndex(descriptors,ScanController.GT,null,null,false))<0);
     }
 
@@ -111,13 +115,13 @@ public class DerbyBytesUtilTest{
         encoder.reset();
         byte[] testKey2=encoder.encodeNext("Monte").encodeNext(11).build();
 
-        Assert.assertTrue(Bytes.basicByteComparator().compare(testKey,testKey2)<0);
+        Assert.assertTrue(ByteComparisons.comparator().compare(testKey,testKey2)<0);
 
         encoder.reset();
         testKey=encoder.encodeNext("John",true).encodeNext(11,true).build();
         encoder.reset();
         testKey2=encoder.encodeNext("Monte",true).encodeNext(11,true).build();
-        Assert.assertTrue(Bytes.basicByteComparator().compare(testKey,testKey2)>0);
+        Assert.assertTrue(ByteComparisons.comparator().compare(testKey,testKey2)>0);
     }
 
     @Test
@@ -135,8 +139,8 @@ public class DerbyBytesUtilTest{
         byte[] beginKey=DerbyBytesUtil.generateScanKeyForIndex(descArray,1,null,null,false);
         byte[] endKey=DerbyBytesUtil.generateScanKeyForIndex(descArray,-1,null,null,false);
         byte[] baseline=DerbyBytesUtil.generateIndexKey(descArray,null,null,false);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(beginKey,baseline)==0);
-        Assert.assertTrue(Bytes.basicByteComparator().compare(beginKey,endKey)<0);
+        Assert.assertTrue(ByteComparisons.comparator().compare(beginKey,baseline)==0);
+        Assert.assertTrue(ByteComparisons.comparator().compare(beginKey,endKey)<0);
     }
 
     public DataValueDescriptor[] generateDataValueDescriptors(Object... objects)

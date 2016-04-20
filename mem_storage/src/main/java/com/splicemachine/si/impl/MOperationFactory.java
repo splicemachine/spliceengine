@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.ByteComparator;
@@ -62,7 +63,7 @@ public class MOperationFactory implements OperationFactory{
     @Override
     public DataCell newCell(byte[] key,byte[] family,byte[] qualifier,long timestamp,byte[] value){
         CellType c;
-        ByteComparator byteComparator=Bytes.basicByteComparator();
+        ByteComparator byteComparator=ByteComparisons.comparator();
         if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,qualifier)){
            c = CellType.COMMIT_TIMESTAMP;
         }else if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,qualifier)){
