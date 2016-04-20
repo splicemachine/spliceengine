@@ -11,6 +11,7 @@ import com.google.common.io.Closeables;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
+import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
@@ -60,11 +61,15 @@ public class PipelineUtils extends PipelineConstants{
             i++;
         }
         if(LOG.isTraceEnabled()){
-            int[] errorCounts=new int[11];
+            Map<Code,Integer> errorCounts =new EnumMap<>(Code.class);
             for(IntObjectCursor<WriteResult> failedCursor : failedRows){
-                errorCounts[failedCursor.value.getCode().ordinal()]++;
+                Code code=failedCursor.value.getCode();
+                if(!errorCounts.containsKey(code)){
+                    errorCounts.put(code,1);
+                }else
+                    errorCounts.put(code,errorCounts.get(code)+1);
             }
-            SpliceLogUtils.trace(LOG,"[%d] %d failures with types: %s",id,failedRows.size(),Arrays.toString(errorCounts));
+            SpliceLogUtils.trace(LOG,"[%d] %d failures with types: %s",id,failedRows.size(),errorCounts);
         }
 
         return toRetry;

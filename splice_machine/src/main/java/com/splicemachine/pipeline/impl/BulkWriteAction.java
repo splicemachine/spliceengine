@@ -522,7 +522,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private boolean shouldWrite(BulkWrites nextWrite){
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"[%d] next bulkWrites %s",id,nextWrite);
-        if(nextWrite.getBulkWrites().size()==0){
+        if(nextWrite.numEntries()==0){
             if(LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"No actual writes in BulkWrites %s",nextWrite);
             return false;
@@ -566,7 +566,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         boolean directRetry;
         int attemptCount=0;
 
-        public boolean shouldSleep(){
+        boolean shouldSleep(){
             return sleep || refreshCache;
         }
 
