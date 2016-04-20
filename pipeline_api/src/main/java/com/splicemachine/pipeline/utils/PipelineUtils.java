@@ -69,11 +69,36 @@ public class PipelineUtils{
          * interval to avoid having a bunch retry at identical times. The randomness is limited
          * to the maximum wait for the last interval and the minimum wait for the current attempt count;
          */
-        if(retryCount>10) return 10l*pauseInterval;
-        else{
-            long minWait = retryCount>0?(retryCount-1)*pauseInterval:0;
-            long maxWait = retryCount>0?retryCount*pauseInterval:pauseInterval;
-            return ThreadLocalRandom.current().nextLong(minWait,maxWait);
+        int maxWaitFactor = 32;
+        long waitTime;
+        long jitter;
+        if(retryCount==0||retryCount==1){
+            waitTime=pauseInterval;
+            jitter=pauseInterval/8; //~12.5% of the interval is out jitter window
+        }else if(retryCount>maxWaitFactor){
+            waitTime=(maxWaitFactor>>1)*pauseInterval;
+            jitter = maxWaitFactor>>3; //~12.5% of the scale factor
+        }else{
+            int wf = maxWaitFactor;
+            //find the highest set 1-bit less than the maxWaitFactor
+            while(wf>0){
+                if((retryCount&wf)!=0){
+                    break;
+                }else
+                    wf>>=1;
+            }
+            waitTime = (wf>>1)*pauseInterval;
+            jitter = Math.max(wf>>4,pauseInterval/8);
         }
+        long jitterTime = ThreadLocalRandom.current().nextLong(-jitter,jitter);
+        return waitTime+jitterTime;
+    }
+
+    public static void main(String...args) throws Exception{
+        long totalSleepTime = 0l;
+        for(int i=0;i<40;i++){
+           totalSleepTime+=getWaitTime(i,1000L);
+        }
+        System.out.println(totalSleepTime);
     }
 }
