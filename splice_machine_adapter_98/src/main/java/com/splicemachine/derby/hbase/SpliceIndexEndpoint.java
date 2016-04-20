@@ -1,14 +1,6 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-
 import com.google.protobuf.ByteString;
-import com.yammer.metrics.core.Meter;
-import com.yammer.metrics.core.MetricName;
-import org.apache.commons.logging.impl.Log4JLogger;
-import org.apache.hadoop.hbase.Coprocessor;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
@@ -17,7 +9,14 @@ import com.splicemachine.coprocessor.SpliceMessage.SpliceIndexService;
 import com.splicemachine.pipeline.coprocessor.BatchProtocol;
 import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.impl.BulkWritesResult;
+import com.yammer.metrics.core.Meter;
+import com.yammer.metrics.core.MetricName;
+import org.apache.hadoop.hbase.Coprocessor;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 public class SpliceIndexEndpoint extends SpliceIndexService implements BatchProtocol, Coprocessor, IndexEndpoint{
 		private static final Logger LOG = Logger.getLogger(SpliceIndexEndpoint.class);

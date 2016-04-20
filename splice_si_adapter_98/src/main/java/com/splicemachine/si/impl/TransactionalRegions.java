@@ -3,27 +3,22 @@ package com.splicemachine.si.impl;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.ReadResolver;
+import com.splicemachine.si.api.RollForward;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.impl.readresolve.AsyncReadResolver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardManagement;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
-import com.splicemachine.storage.EntryPredicateFilter;
-
-import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.GreenLight;
 import com.splicemachine.utils.TrafficControl;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * @author Scott Fines
@@ -36,7 +31,6 @@ public class TransactionalRegions {
 		private static volatile AsyncReadResolver readResolver;
 
 		private static final ScheduledExecutorService rollForwardScheduler;
-    private static final ConcurrentMap<String,DiscardingTransactionalRegion> regionMap = new ConcurrentHashMap<String, DiscardingTransactionalRegion>();
     private static volatile ActionFactory actionFactory = ActionFactory.NOOP_ACTION_FACTORY;
     private static volatile TrafficControl trafficControl = GreenLight.INSTANCE;
 
@@ -55,16 +49,7 @@ public class TransactionalRegions {
     public static void setTrafficControl(TrafficControl control) {trafficControl = control;}
 
     public static TransactionalRegion get(HRegion region){
-        String regionNameAsString = region.getRegionNameAsString();
-        DiscardingTransactionalRegion txnRegion = regionMap.get(regionNameAsString);
-        if(txnRegion==null){
-            txnRegion = new DiscardingTransactionalRegion(get(region,actionFactory.newAction(region)),regionNameAsString);
-            DiscardingTransactionalRegion old = regionMap.putIfAbsent(regionNameAsString, txnRegion);
-            if(old!=null)
-                txnRegion = old;
-        }
-        txnRegion.addReference();
-        return txnRegion;
+        return get(region,actionFactory.newAction(region));
     }
 
     public static TransactionalRegion nonTransactionalRegion(HRegion region){
@@ -130,89 +115,5 @@ public class TransactionalRegions {
         return status;
     }
 
-
-    private static class DiscardingTransactionalRegion implements TransactionalRegion{
-        private final TransactionalRegion delegate;
-        private final String name;
-        private final AtomicInteger referenceCount = new AtomicInteger(0);
-
-        private DiscardingTransactionalRegion(TransactionalRegion delegate, String name) {
-            this.delegate = delegate;
-            this.name = name;
-            referenceCount.incrementAndGet();
-        }
-
-        public void addReference(){
-            referenceCount.incrementAndGet();
-        }
-
-        @Override
-        public TxnFilter unpackedFilter(TxnView txn) throws IOException {
-            return delegate.unpackedFilter(txn);
-        }
-
-        @Override
-        public TxnFilter packedFilter(TxnView txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
-            return delegate.packedFilter(txn, predicateFilter, countStar);
-        }
-
-        @Override public DDLFilter ddlFilter(Txn ddlTxn) throws IOException { return delegate.ddlFilter(ddlTxn); }
-        @Override public SICompactionState compactionFilter() throws IOException { return delegate.compactionFilter(); }
-        @Override public boolean isClosed() { return delegate.isClosed(); }
-        @Override public boolean rowInRange(byte[] row) { return delegate.rowInRange(row); }
-
-        @Override
-        public boolean rowInRange(ByteSlice slice) {
-            return delegate.rowInRange(slice);
-        }
-
-        @Override public boolean containsRange(byte[] start, byte[] stop) { return delegate.containsRange(start, stop); }
-        @Override public String getTableName() { return delegate.getTableName(); }
-        @Override public void updateWriteRequests(long writeRequests) { delegate.updateWriteRequests(writeRequests); }
-        @Override public void updateReadRequests(long readRequests) { delegate.updateReadRequests(readRequests); }
-
-        @Override
-        public OperationStatus[] bulkWrite(TxnView txn, byte[] family, byte[] qualifier, ConstraintChecker constraintChecker, Collection<KVPair> data) throws IOException {
-            return delegate.bulkWrite(txn, family, qualifier, constraintChecker, data);
-        }
-
-        @Override
-        public boolean verifyForeignKeyReferenceExists(TxnView txnView, byte[] rowKey) throws IOException {
-            return delegate.verifyForeignKeyReferenceExists(txnView, rowKey);
-        }
-
-        @Override public String getRegionName() { return delegate.getRegionName(); }
-        @Override public TxnSupplier getTxnSupplier() { return delegate.getTxnSupplier(); }
-        @Override public ReadResolver getReadResolver() { return delegate.getReadResolver(); }
-        @Override public DataStore getDataStore() { return delegate.getDataStore(); }
-
-        @Override
-        public void close() {
-            /*
-             * This isn't perfectly thread-safe. It's possible that someone
-             * could come in and increment the reference count after we decrement
-             * the reference count. In this case, we will have removed the entry
-             * from the map and discarded the underlying delegate, but we won't
-             * have in the other thread.
-             *
-             * While this is a problem, in practice, we only discard() when a region
-             * closes, so there's no real reason to expect that this happens in real-life.
-             * Further, we know that the delegate doesn't actually need to discard anything,
-             * so the consequences is just that someone will potentially remove entries from
-             * the cache too soon. Oh well
-             */
-            int count = referenceCount.decrementAndGet();
-            if(count==0){
-                delegate.close();
-                //remove from cache--don't remove if it's not you it's pointing at
-                regionMap.remove(name,this);
-            }
-        }
-
-        @Override
-        public InternalScanner compactionScanner(InternalScanner scanner) {
-            return delegate.compactionScanner(scanner);
-        }
-    }
 
 }
