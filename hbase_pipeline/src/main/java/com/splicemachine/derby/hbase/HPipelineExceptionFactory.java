@@ -19,7 +19,6 @@ import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HWriteConflict;
 import com.splicemachine.si.impl.HWrongRegion;
-import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.ipc.RemoteException;
 
 import java.io.IOException;
@@ -106,7 +105,7 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
     }
 
     @Override
-    public Throwable processErrorResult(WriteResult result){
+    public Exception processErrorResult(WriteResult result){
         Code writeErrorCode=result.getCode();
 
         if(writeErrorCode!=null){

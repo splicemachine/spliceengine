@@ -2,7 +2,6 @@ package com.splicemachine.pipeline.client;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -21,7 +20,6 @@ import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
-import com.splicemachine.utils.Sleeper;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Before;
@@ -102,7 +100,7 @@ public class BulkWriteActionTest{
         when(pf.getTable(any(String.class))).thenReturn(p);
 
 
-        WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,0,10l,0),pef);
+        WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,10,10L,0),pef);
         IncrementingClock clock = new IncrementingClock();
         BulkWriteAction bwa = new BulkWriteAction(table,
                 bw,
@@ -162,7 +160,7 @@ public class BulkWriteActionTest{
         when(pf.getTable(any(String.class))).thenReturn(p);
 
 
-        WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,0,10l,0),pef);
+        WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,10,10L,0),pef);
         IncrementingClock clock = new IncrementingClock();
         BulkWriteAction bwa = new BulkWriteAction(table,
                 bw,
@@ -223,7 +221,7 @@ public class BulkWriteActionTest{
 		when(pf.getTable(any(String.class))).thenReturn(p);
 
 
-		WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,0,10l,0),pef);
+		WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,10,10L,0),pef);
 		IncrementingClock clock = new IncrementingClock();
 		BulkWriteAction bwa = new BulkWriteAction(table,
 				bw,
@@ -236,7 +234,7 @@ public class BulkWriteActionTest{
 
 		bwa.call();
 
-        Assert.assertTrue("Waited for the incorrect amount of time!",clock.currentTimeMillis()<10);
+        Assert.assertTrue("Waited for the incorrect amount of time!",clock.currentTimeMillis()<10*10);
 		Assert.assertEquals("Incorrect number of calls!",2,writer.callCount);
 		Collection<KVPair> allData = writer.data;
 		Set<KVPair> deduped = new HashSet<>(allData);
@@ -248,6 +246,150 @@ public class BulkWriteActionTest{
 				Assert.assertTrue("Missing write!",allData.contains(mutation));
 			}
 		}
+    }
+
+    @Test
+    public void testCorrectlyRetriesPartialResults() throws Exception{
+        byte[] table=Bytes.toBytes("1424");
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        Collection<BulkWrite> bwList=new ArrayList<>(2);
+        bwList.add(new BulkWrite(addData(0,10),"region1"));
+        bwList.add(new BulkWrite(addData(100,10),"region2"));
+
+        BulkWrites bw=new BulkWrites(bwList,txn);
+        ActionStatusReporter asr=new ActionStatusReporter();
+        final PartialTestBulkWriter writer = new PartialTestBulkWriter();
+        BulkWriterFactory bwf=new BulkWriterFactory(){
+            @Override
+            public BulkWriter newWriter(byte[] tableName){
+                return writer;
+            }
+
+            @Override
+            public void invalidateCache(byte[] tableName) throws IOException{
+                //no-op
+            }
+
+            @Override
+            public void setPipeline(WritePipelineFactory writePipelineFactory){
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void setWriter(PipelineWriter pipelineWriter){
+                throw new UnsupportedOperationException();
+            }
+        };
+
+        PartitionServer ts = mock(PartitionServer.class);
+
+        Partition p = mock(Partition.class);
+        when(p.subPartitions()).thenReturn(Collections.singletonList(p));
+        when(p.owningServer()).thenReturn(ts);
+        when(p.getName()).thenReturn("region2");
+        when(p.getStartKey()).thenReturn(new byte[]{});
+
+        PartitionFactory pf = mock(PartitionFactory.class);
+        when(pf.getTable(any(String.class))).thenReturn(p);
+
+
+        WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,10,10L,0),pef);
+        IncrementingClock clock = new IncrementingClock();
+        BulkWriteAction bwa = new BulkWriteAction(table,
+                bw,
+                config,
+                asr,
+                bwf,
+                pef,
+                pf,
+                clock);
+
+        bwa.call();
+
+        Assert.assertTrue("Waited for the incorrect amount of time!",clock.currentTimeMillis()<10*10);
+        Assert.assertEquals("Incorrect number of calls!",2,writer.callCount);
+        Collection<KVPair> allData = writer.data;
+        Set<KVPair> deduped = new HashSet<>(allData);
+        Assert.assertEquals("Duplicate rows were inserted!",allData.size(),deduped.size());
+
+        for(BulkWrite write:bwList){
+            Collection<KVPair> toWrite = write.getMutations();
+            for(KVPair mutation:toWrite){
+                Assert.assertTrue("Missing write!",allData.contains(mutation));
+            }
+        }
+    }
+
+    @Test
+    public void testCorrectlyRetriesWhenOneRegionStopsButReturnsResult() throws Exception{
+        byte[] table=Bytes.toBytes("1424");
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        Collection<BulkWrite> bwList=new ArrayList<>(2);
+        bwList.add(new BulkWrite(addData(0,10),"region1"));
+        bwList.add(new BulkWrite(addData(100,10),"region2"));
+
+        BulkWrites bw=new BulkWrites(bwList,txn);
+        ActionStatusReporter asr=new ActionStatusReporter();
+        final TestBulkWriter writer = new TestBulkWriter();
+        BulkWriterFactory bwf=new BulkWriterFactory(){
+            @Override
+            public BulkWriter newWriter(byte[] tableName){
+                return writer;
+            }
+
+            @Override
+            public void invalidateCache(byte[] tableName) throws IOException{
+                //no-op
+            }
+
+            @Override
+            public void setPipeline(WritePipelineFactory writePipelineFactory){
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void setWriter(PipelineWriter pipelineWriter){
+                throw new UnsupportedOperationException();
+            }
+        };
+
+        PartitionServer ts = mock(PartitionServer.class);
+
+        Partition p = mock(Partition.class);
+        when(p.subPartitions()).thenReturn(Collections.singletonList(p));
+        when(p.owningServer()).thenReturn(ts);
+        when(p.getName()).thenReturn("region2");
+        when(p.getStartKey()).thenReturn(new byte[]{});
+
+        PartitionFactory pf = mock(PartitionFactory.class);
+        when(pf.getTable(any(String.class))).thenReturn(p);
+
+
+        WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,10,10L,0),pef);
+        IncrementingClock clock = new IncrementingClock();
+        BulkWriteAction bwa = new BulkWriteAction(table,
+                bw,
+                config,
+                asr,
+                bwf,
+                pef,
+                pf,
+                clock);
+
+        bwa.call();
+
+        Assert.assertTrue("Waited for the incorrect amount of time!",clock.currentTimeMillis()<10*10);
+        Assert.assertEquals("Incorrect number of calls!",2,writer.callCount);
+        Collection<KVPair> allData = writer.data;
+        Set<KVPair> deduped = new HashSet<>(allData);
+        Assert.assertEquals("Duplicate rows were inserted!",allData.size(),deduped.size());
+
+        for(BulkWrite write:bwList){
+            Collection<KVPair> toWrite = write.getMutations();
+            for(KVPair mutation:toWrite){
+                Assert.assertTrue("Missing write!",allData.contains(mutation));
+            }
+        }
     }
 
     /* ****************************************************************************************************************/
@@ -327,6 +469,53 @@ public class BulkWriteActionTest{
 			return new BulkWritesResult(results);
 		}
 	}
+
+    private static class PartialTestBulkWriter implements BulkWriter{
+        int callCount=0;
+        Set<KVPair> data=new HashSet<>();
+
+        @Override
+        public BulkWritesResult write(BulkWrites write,boolean refreshCache) throws IOException{
+            Collection<BulkWrite> bulkWrites=write.getBulkWrites();
+            Collection<BulkWriteResult> results=new ArrayList<>(bulkWrites.size());
+            if(callCount==0){
+                Assert.assertTrue("Not enough data was written!",bulkWrites.size()>=2);
+                for(BulkWrite bw : bulkWrites){
+                    BulkWriteResult bwr = new BulkWriteResult(WriteResult.partial());
+                    int i = 0;
+                    for(KVPair kvp: bw.getMutations()){
+                        if(i%2==0){
+                            Assert.assertFalse("Row is already contained!",data.contains(kvp));
+                            bwr.addResult(i,WriteResult.wrongRegion());
+                        }else{
+                            data.add(kvp);
+                            bwr.addResult(i,WriteResult.success());
+                        }
+                        i++;
+                    }
+                    results.add(bwr);
+                }
+                callCount++;
+            }else if(callCount==1){
+                Assert.assertEquals("Incorrect number of BulkWrites attempted retry!",1,bulkWrites.size());
+                for(BulkWrite bw : bulkWrites){
+                    BulkWriteResult bwr = new BulkWriteResult(WriteResult.success());
+                    Assert.assertEquals("Data sent to incorrect region!","region2",bw.getEncodedStringName());
+                    int i=0;
+                    for(KVPair kvp:bw.getMutations()){
+                        Assert.assertFalse("Row was sent twice!",data.contains(kvp));
+                        data.add(kvp);
+                        bwr.addResult(i,WriteResult.success());
+                    }
+                    results.add(bwr);
+                }
+                callCount++;
+            }else{
+                Assert.fail("Retried too many times!");
+            }
+            return new BulkWritesResult(results);
+        }
+    }
 
 	/*
         @Test

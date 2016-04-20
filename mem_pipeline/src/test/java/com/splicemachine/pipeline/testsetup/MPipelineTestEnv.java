@@ -60,7 +60,7 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
                 DirectPipelineExceptionFactory.INSTANCE,NoOpPipelineMeter.INSTANCE);
         Writer writer = new SynchronousBucketingWriter(bwf,DirectPipelineExceptionFactory.INSTANCE,
                 getTableFactory(),getClock());
-        Monitor monitor = new Monitor(Long.MAX_VALUE,Integer.MAX_VALUE,0,10l,Integer.MAX_VALUE);
+        Monitor monitor = new Monitor(Long.MAX_VALUE,Integer.MAX_VALUE,10,10L,Integer.MAX_VALUE);
         writeCoordinator = new WriteCoordinator(writer,writer,monitor,getTableFactory(),
                 DirectPipelineExceptionFactory.INSTANCE,null);
         bwf.setWriteCoordinator(writeCoordinator);

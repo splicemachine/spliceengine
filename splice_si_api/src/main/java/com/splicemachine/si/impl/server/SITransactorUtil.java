@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.server;
 
+import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -114,6 +115,6 @@ class SITransactorUtil{
 
     private static boolean getDeletePutAttribute(Attributable operation){
         byte[] neededValue=operation.getAttribute(SIConstants.SI_DELETE_PUT);
-        return neededValue!=null && Bytes.basicByteComparator().equals(neededValue,SIConstants.TRUE_BYTES);
+        return neededValue!=null && ByteComparisons.comparator().equals(neededValue,SIConstants.TRUE_BYTES);
     }
 }

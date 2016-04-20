@@ -1,5 +1,8 @@
 package com.splicemachine.pipeline.traffic;
 
+import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.primitives.Bytes;
+
 /**
  * @author Scott Fines
  *         Date: 1/15/16
@@ -112,5 +115,11 @@ public class SynchronousWriteControl implements SpliceWriteControl{
     @Override
     public void setMaxDependentWriteCount(int newMaxDependentWriteCount){
         this.maxDependentWriteCount = newMaxDependentWriteCount;
+    }
+
+    public static void main(String...args) throws Exception{
+        byte[] b1 = new byte[]{0x00,0x01,0x02};
+        byte[] b2 = new byte[]{0x00,0x20,0x02};
+        System.out.println(ByteComparisons.comparator().compare(b1,b2));
     }
 }

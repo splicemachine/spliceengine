@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.access.util.ByteComparisons;
 import org.sparkproject.guava.base.Predicate;
 import org.sparkproject.guava.collect.Iterables;
 import com.splicemachine.primitives.Bytes;
@@ -98,7 +99,7 @@ public class MResult implements DataResult{
     @Override
     public Map<byte[], byte[]> familyCellMap(byte[] userColumnFamily){
         if(dataCells==null||dataCells.size()<=0) return Collections.emptyMap();
-        Map<byte[],byte[]> familyCellMap = new TreeMap<>(Bytes.basicByteComparator());
+        Map<byte[],byte[]> familyCellMap = new TreeMap<>(ByteComparisons.comparator());
         for(DataCell dc:dataCells){
             familyCellMap.put(dc.family(),dc.qualifier());
         }

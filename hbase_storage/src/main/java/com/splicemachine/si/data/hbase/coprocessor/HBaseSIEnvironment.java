@@ -4,9 +4,11 @@ import java.io.IOException;
 
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
+import com.splicemachine.access.util.ByteComparisons;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DistributedFileSystem;
@@ -81,6 +83,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     }
 
     public HBaseSIEnvironment(TimestampSource timeSource,Clock clock) throws IOException{
+        ByteComparisons.setComparator(HBaseComparator.INSTANCE);
         this.config=HConfiguration.getConfiguration();
         this.timestampSource =timeSource;
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
@@ -105,6 +108,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
 
     @SuppressWarnings("unchecked")
     public HBaseSIEnvironment(RecoverableZooKeeper rzk,Clock clock) throws IOException{
+        ByteComparisons.setComparator(HBaseComparator.INSTANCE);
         this.config=HConfiguration.getConfiguration();
 
         this.timestampSource =new ZkTimestampSource(config,rzk);
