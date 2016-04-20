@@ -842,6 +842,22 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                             .build());
+
+                    /*
+                     * Data fix procedure to create missing role definitions for which role grants exist.
+                     * Argument 'mode':
+                     *     0 = dry run mode - identify missing role definitions but don't create them
+                     *     1 = repair mode - create the missing role definitions
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_CREATE_MISSING_ROLE_DEFS")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA)
+                        .returnType(null)
+                        .isDeterministic(false)
+                        .integer("mode")
+                        .build());
                 }
 
             } // End iteration through map keys (schema UUIDs)
