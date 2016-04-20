@@ -3,6 +3,7 @@ package com.splicemachine.stats;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.stats.cardinality.BytesCardinalityEstimator;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.BytesFrequentElements;
@@ -57,6 +58,11 @@ public class BytesColumnStatistics extends BaseColumnStatistics<ByteBuffer> {
     public byte[] max(){ return max; }
 
     @Override
+    public CardinalityEstimator getCardinalityEstimator() {
+        return cardinalityEstimator;
+    }
+
+    @Override
     public ColumnStatistics<ByteBuffer> getClone() {
         return new BytesColumnStatistics(columnId,cardinalityEstimator.getClone(),
                 frequentElements.getClone(),
@@ -71,17 +77,16 @@ public class BytesColumnStatistics extends BaseColumnStatistics<ByteBuffer> {
 
     @Override
     public ColumnStatistics<ByteBuffer> merge(ColumnStatistics<ByteBuffer> other) {
-        assert other instanceof BytesColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
-        BytesColumnStatistics o = (BytesColumnStatistics)other;
-        cardinalityEstimator = cardinalityEstimator.merge(o.cardinalityEstimator);
-        frequentElements = frequentElements.merge(o.frequentElements);
-        if(byteComparator.compare(o.min,min)>0)
-            min = o.min;
-        if(byteComparator.compare(o.max, max)>0)
-            max = o.max;
-        totalBytes+=o.totalBytes;
-        totalCount+=o.totalCount;
-        nullCount+=o.nullCount;
+        assert other.getCardinalityEstimator() instanceof BytesCardinalityEstimator: "Cannot merge statistics of type "+ other.getClass();
+        cardinalityEstimator = cardinalityEstimator.merge((BytesCardinalityEstimator)other.getCardinalityEstimator());
+        frequentElements = frequentElements.merge((BytesFrequentElements)other.topK());
+        if(byteComparator.compare(other.minValue().array(),min)>0)
+            min = other.minValue().array();
+        if(byteComparator.compare(other.maxValue().array(), max)>0)
+            max = other.maxValue().array();
+        totalBytes+=other.totalBytes();
+        totalCount+=other.nullCount()+other.nonNullCount();
+        nullCount+=other.nullCount();
         return this;
     }
 

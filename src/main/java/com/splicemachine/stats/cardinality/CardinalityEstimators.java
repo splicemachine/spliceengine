@@ -170,8 +170,9 @@ public class CardinalityEstimators {
 
         @Override
         public BytesCardinalityEstimator merge(BytesCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof BytesHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge(((BytesHyperLogLog)otherEstimator).counter);
+            if (otherEstimator instanceof BytesHyperLogLog) {
+                counter.merge(((BytesHyperLogLog) otherEstimator).counter);
+            }
             return this;
         }
 
@@ -213,8 +214,9 @@ public class CardinalityEstimators {
 
         @Override
         public DoubleCardinalityEstimator merge(DoubleCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof DoubleHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge(((DoubleHyperLogLog)otherEstimator).counter);
+            if (otherEstimator instanceof DoubleHyperLogLog) {
+                counter.merge(((DoubleHyperLogLog) otherEstimator).counter);
+            }
             return this;
         }
     }
@@ -250,8 +252,9 @@ public class CardinalityEstimators {
 
         @Override
         public FloatCardinalityEstimator merge(FloatCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof FloatHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge(((FloatHyperLogLog)otherEstimator).counter);
+            if (otherEstimator instanceof FloatHyperLogLog) {
+                counter.merge(((FloatHyperLogLog) otherEstimator).counter);
+            }
             return this;
         }
     }
@@ -287,8 +290,9 @@ public class CardinalityEstimators {
 
         @Override
         public LongCardinalityEstimator merge(LongCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof LongHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge(((LongHyperLogLog)otherEstimator).counter);
+            if (otherEstimator instanceof LongHyperLogLog) {
+                counter.merge(((LongHyperLogLog) otherEstimator).counter);
+            }
             return this;
         }
     }
@@ -325,8 +329,9 @@ public class CardinalityEstimators {
 
         @Override
         public IntCardinalityEstimator merge(IntCardinalityEstimator other) {
-            assert other instanceof IntHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge(((IntHyperLogLog)other).counter);
+            if (other instanceof IntHyperLogLog) {
+                counter.merge(((IntHyperLogLog) other).counter);
+            }
             return this;
         }
     }
@@ -366,8 +371,9 @@ public class CardinalityEstimators {
 
         @Override
         public ShortCardinalityEstimator merge(ShortCardinalityEstimator otherEstimator) {
-            assert otherEstimator instanceof ShortHyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge(((ShortHyperLogLog)otherEstimator).counter);
+            if (otherEstimator instanceof ShortHyperLogLog) {
+                counter.merge(((ShortHyperLogLog) otherEstimator).counter);
+            }
             return this;
         }
     }
@@ -397,8 +403,9 @@ public class CardinalityEstimators {
 
         @Override
         public CardinalityEstimator<T> merge(CardinalityEstimator<T> otherEstimator) {
-            assert otherEstimator instanceof HyperLogLog: "Cannot merge with a non-loglog cardinality estimator";
-            counter.merge(((HyperLogLog)otherEstimator).counter);
+            if (otherEstimator instanceof HyperLogLog) {
+                counter.merge(((HyperLogLog) otherEstimator).counter);
+            }
             return this;
         }
     }

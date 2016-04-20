@@ -142,8 +142,10 @@ public abstract class LongFrequentElements implements FrequentElements<Long> {
 
     @Override
     public FrequentElements<Long> merge(FrequentElements<Long> other) {
-        assert other instanceof LongFrequentElements: "Cannot merge instance of type "+ other.getClass();
-        return merge((LongFrequentElements)other);
+        if(other instanceof LongFrequentElements) {
+            return merge((LongFrequentElements) other);
+        }
+        return this;
     }
 
     public LongFrequentElements merge(LongFrequentElements other) {

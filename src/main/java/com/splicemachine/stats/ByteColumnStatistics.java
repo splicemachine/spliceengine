@@ -2,6 +2,7 @@ package com.splicemachine.stats;
 
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.cardinality.ByteCardinalityEstimator;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.estimate.ByteDistribution;
 import com.splicemachine.stats.estimate.Distribution;
@@ -60,23 +61,29 @@ public class ByteColumnStatistics extends BaseColumnStatistics<Byte> {
     @Override public Distribution<Byte> getDistribution() { return distribution; }
 
     @Override
-    public ColumnStatistics<Byte> merge(ColumnStatistics<Byte> other) {
-        assert other instanceof ByteColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
-        ByteColumnStatistics o = (ByteColumnStatistics)other;
-        cardinalityEstimator = cardinalityEstimator.merge(o.cardinalityEstimator);
-        frequentElements = (ByteFrequentElements)frequentElements.merge(o.frequentElements);
-        if(o.min<min){
-            min=o.min;
-            minCount = o.minCount;
-        }else if(o.min==min){
-            minCount+=o.minCount;
-        }
-        if(o.max>max)
-            max = o.max;
+    public CardinalityEstimator getCardinalityEstimator() {
+        return cardinalityEstimator;
+    }
 
-        totalBytes+=o.totalBytes;
-        totalCount+=o.totalCount;
-        nullCount+=o.nullCount;
+    @Override
+    public ColumnStatistics<Byte> merge(ColumnStatistics<Byte> other) {
+
+        assert other.getCardinalityEstimator() instanceof ByteCardinalityEstimator : "cannot merge statistics with " + other.getClass();
+
+        cardinalityEstimator = cardinalityEstimator.merge((ByteCardinalityEstimator)other.getCardinalityEstimator());
+        frequentElements = (ByteFrequentElements)frequentElements.merge(other.topK());
+        if(other.minValue()<min){
+            min=other.minValue();
+            minCount = other.minCount();
+        }else if(other.minValue()==min){
+            minCount+=other.minCount();
+        }
+        if(other.maxValue()>max)
+            max = other.maxValue();
+
+        totalBytes+=other.totalBytes();
+        totalCount+=other.nullCount() + nonNullCount();
+        nullCount+=other.nullCount();
         return this;
     }
     public static Encoder<ByteColumnStatistics> encoder(){

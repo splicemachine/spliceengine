@@ -1,6 +1,7 @@
 package com.splicemachine.stats;
 
 import com.splicemachine.encoding.Encoder;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.LongCardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
@@ -62,18 +63,22 @@ public class LongColumnStatistics extends BaseColumnStatistics<Long> {
     }
 
     @Override
+    public CardinalityEstimator getCardinalityEstimator() {
+        return cardinalityEstimator;
+    }
+
+    @Override
     public ColumnStatistics<Long> merge(ColumnStatistics<Long> other) {
-        assert other instanceof LongColumnStatistics: "Cannot merge instance of type "+ other.getClass();
-        LongColumnStatistics lo = (LongColumnStatistics)other;
-        cardinalityEstimator = cardinalityEstimator.merge(lo.cardinalityEstimator);
-        frequentElements = frequentElements.merge(lo.frequentElements);
-        if(min>lo.min)
-            min = lo.min;
-        if(max<lo.max)
-            max = lo.max;
-        totalBytes+=lo.totalBytes;
-        totalCount+=lo.totalCount;
-        nullCount+=lo.nullCount;
+        assert other.getCardinalityEstimator() instanceof LongCardinalityEstimator: "Cannot merge instance of type "+ other.getClass();
+        cardinalityEstimator = cardinalityEstimator.merge((LongCardinalityEstimator)other.getCardinalityEstimator());
+        frequentElements = (LongFrequentElements)frequentElements.merge(other.topK());
+        if(min>other.minValue())
+            min = other.minValue();
+        if(max<other.maxValue())
+            max = other.maxValue();
+        totalBytes+=other.totalBytes();
+        totalCount+=other.nullCount()+other.nonNullCount();
+        nullCount+=other.nullCount();
         return this;
     }
 

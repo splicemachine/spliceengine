@@ -1,5 +1,6 @@
 package com.splicemachine.stats;
 
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.FrequentElements;
 
@@ -74,5 +75,12 @@ public interface ColumnStatistics<T> extends Mergeable<ColumnStatistics<T>> {
     /**
      * @return a Distribution of values for the column
      */
-    Distribution<T> getDistribution();
+    Distribution getDistribution();
+
+    /**
+     * @return total number of bytes for this column
+     */
+    long totalBytes();
+
+    CardinalityEstimator getCardinalityEstimator();
 }

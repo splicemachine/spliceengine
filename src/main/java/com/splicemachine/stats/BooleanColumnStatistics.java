@@ -1,6 +1,7 @@
 package com.splicemachine.stats;
 
 import com.splicemachine.encoding.Encoder;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.BooleanDistribution;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.BooleanFrequencyEstimate;
@@ -79,13 +80,16 @@ public class BooleanColumnStatistics extends BaseColumnStatistics<Boolean> {
     }
 
     @Override
+    public CardinalityEstimator getCardinalityEstimator() {
+        throw new RuntimeException("getCardinalityEstimator not implemented for BooleanColumnStatistics");
+    }
+    @Override
     public ColumnStatistics<Boolean> merge(ColumnStatistics<Boolean> other) {
-        assert other instanceof BooleanColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
-        BooleanColumnStatistics o = (BooleanColumnStatistics)other;
-        frequentElements = (BooleanFrequentElements)frequentElements.merge(o.frequentElements);
-        totalBytes+=o.totalBytes;
-        totalCount+=o.totalCount;
-        nullCount+=o.nullCount;
+
+        frequentElements = (BooleanFrequentElements)frequentElements.merge(other.topK());
+        totalBytes+=other.totalBytes();
+        totalCount+=other.nonNullCount() + other.nullCount();
+        nullCount+=other.nullCount();
         return this;
     }
 

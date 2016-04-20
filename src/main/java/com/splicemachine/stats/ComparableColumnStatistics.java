@@ -69,23 +69,27 @@ public class ComparableColumnStatistics<T extends Comparable<T>> extends BaseCol
     }
 
     @Override
+    public CardinalityEstimator getCardinalityEstimator() {
+        return cardinalityEstimator;
+    }
+
+    @Override
     public ColumnStatistics<T> merge(ColumnStatistics<T> other) {
-        assert other instanceof ComparableColumnStatistics : "Cannot merge statistics of type "+ other.getClass();
-        ComparableColumnStatistics<T> o = (ComparableColumnStatistics<T>)other;
-        cardinalityEstimator = cardinalityEstimator.merge(o.cardinalityEstimator);
-        frequentElements = frequentElements.merge(o.frequentElements);
+        assert other.minValue() instanceof Object : "Cannot merge statistics of type "+ other.getClass();
+        cardinalityEstimator = cardinalityEstimator.merge(other.getCardinalityEstimator());
+        frequentElements = frequentElements.merge(other.topK());
         /*
          * We need to check for null here, because it's possible that an entire partition consists
          * of nothing but null values. It's unlikely, but hey! you never know, and when it happens,
          * we don't want a NullPointer to be thrown.
          */
-        if(min==null || (o.min!=null && o.min.compareTo(min)>0))
-            min = o.min;
-        if(max==null || (o.max !=null && o.max.compareTo(max)<0))
-            max = o.max;
-        totalBytes+=o.totalBytes;
-        totalCount+=o.totalCount;
-        nullCount+=o.nullCount;
+        if(min==null || (other.minValue()!=null && other.minValue().compareTo(min)>0))
+            min = other.minValue();
+        if(max==null || (other.maxValue() !=null && other.maxValue().compareTo(max)<0))
+            max = other.maxValue();
+        totalBytes+=other.totalBytes();
+        totalCount+=other.nullCount()+other.nonNullCount();
+        nullCount+=other.nullCount();
         return this;
     }
 

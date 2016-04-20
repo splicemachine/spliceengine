@@ -2,6 +2,7 @@ package com.splicemachine.stats;
 
 import com.google.common.io.ByteArrayDataOutput;
 import com.splicemachine.encoding.Encoder;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.FloatCardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
@@ -68,20 +69,23 @@ public class FloatColumnStatistics extends BaseColumnStatistics<Float> {
                 minCount);
     }
 
+    @Override
+    public CardinalityEstimator getCardinalityEstimator() {
+        return cardinalityEstimator;
+    }
 
     @Override
     public ColumnStatistics<Float> merge(ColumnStatistics<Float> other) {
-        assert other instanceof FloatColumnStatistics: "Cannot merge statistics of type "+ other.getClass();
-        FloatColumnStatistics o = (FloatColumnStatistics)other;
-        cardinalityEstimator = cardinalityEstimator.merge(o.cardinalityEstimator);
-        frequentElements = frequentElements.merge(o.frequentElements);
-        if(o.min<min)
-            min = o.min;
-        if(o.max>max)
-            max = o.max;
-        totalBytes+=o.totalBytes;
-        totalCount+=o.totalCount;
-        nullCount+=o.nullCount;
+        assert other.getCardinalityEstimator() instanceof FloatCardinalityEstimator: "Cannot merge statistics of type "+ other.getClass();
+        cardinalityEstimator = (FloatCardinalityEstimator)cardinalityEstimator.merge(other.getCardinalityEstimator());
+        frequentElements = (FloatFrequentElements)frequentElements.merge(other.topK());
+        if(other.minValue()<min)
+            min = other.minValue();
+        if(other.maxValue()>max)
+            max = other.maxValue();
+        totalBytes+=other.totalBytes();
+        totalCount+=other.nonNullCount()+other.nullCount();
+        nullCount+=other.nullCount();
         return this;
     }
 

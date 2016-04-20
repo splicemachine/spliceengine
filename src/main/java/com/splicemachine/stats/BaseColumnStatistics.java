@@ -44,6 +44,11 @@ public abstract class BaseColumnStatistics<T extends Comparable<T>> implements C
         return ((float)nullCount)/totalCount;
     }
 
+    @Override
+    public long totalBytes() {
+        return totalBytes;
+    }
+
     protected static void write(ColumnStatistics<?> item,DataOutput output) throws IOException {
         assert item instanceof BaseColumnStatistics: "Cannot encode non-BaseColumnStatistics";
         BaseColumnStatistics bsc = (BaseColumnStatistics)item;
