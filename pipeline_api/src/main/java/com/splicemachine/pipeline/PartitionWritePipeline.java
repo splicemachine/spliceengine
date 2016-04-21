@@ -166,4 +166,8 @@ public class PartitionWritePipeline{
     public boolean isDependent(TxnView txn) throws IOException, InterruptedException{
         return ctxFactory.hasDependentWrite(txn);
     }
+
+    public WriteContextFactory<TransactionalRegion> getContextFactory(){
+        return ctxFactory;
+    }
 }

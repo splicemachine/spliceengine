@@ -2,21 +2,20 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.base.Function;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.PipelineLoadService;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
-import com.splicemachine.pipeline.contextfactory.WriteContextFactoryManager;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
@@ -27,8 +26,6 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.RegionServerControl;
 import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.PipelineEnvironment;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
@@ -38,6 +35,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -51,20 +49,14 @@ import java.util.List;
  */
 public class SpliceIndexObserver extends BaseRegionObserver {
     private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
-    private static final Function<TableName,String> TABLE_INFO_PARSER= new Function<TableName, String>(){
-        @Override public String apply(TableName input){
-            assert input!=null: "input cannot be null!";
-            return input.getNameAsString(); }
-    };
 
-    private long conglomId=-1l;
+    private long conglomId=-1L;
     private TransactionalRegion region;
     private TxnOperationFactory operationFactory;
     private PipelineExceptionFactory exceptionFactory;
-    private SConfiguration config;
-    private PartitionFactory tableFactory;
     private volatile ContextFactoryLoader factoryLoader;
     private volatile PipelineLoadService<TableName> service;
+    private volatile WriteContextFactory<TransactionalRegion> ctxFactory;
 
     @Override
     public void start(final CoprocessorEnvironment e) throws IOException{
@@ -79,7 +71,6 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             case HBASE_TABLE:
                 return; //disregard table environments which are not user or system tables
         }
-        long conglomId;
         try{
             conglomId=Long.parseLong(tableName);
         }catch(NumberFormatException nfe){
@@ -99,14 +90,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                         super.start();
                         PipelineDriver pipelineDriver=PipelineDriver.driver();
                         factoryLoader=pipelineDriver.getContextFactoryLoader(cId);
+                        ctxFactory = getWritePipeline().getContextFactory();
 
                         SIDriver siDriver=SIDriver.driver();
 
                         region=siDriver.transactionalPartition(cId,baseRegion);
                         operationFactory=siDriver.getOperationFactory();
                         exceptionFactory=pipelineDriver.exceptionFactory();
-                        config=pipelineEnv.configuration();
-                        tableFactory=siDriver.getTableFactory();
                     }
 
                     @Override
@@ -200,17 +190,16 @@ public class SpliceIndexObserver extends BaseRegionObserver {
      * ***************************************************************************************************************
      */
     /*private helper methods*/
-
-    protected void mutate(KVPair mutation,TxnView txn) throws IOException {
+    private void mutate(KVPair mutation,TxnView txn) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "mutate %s", mutation);
         //we've already done our write path, so just pass it through
-        WriteContextFactory<TransactionalRegion> ctxFactory = WriteContextFactoryManager.getWriteContext(conglomId,
-                config,
-                tableFactory,
-                exceptionFactory,
-                TABLE_INFO_PARSER,
-                factoryLoader);
+//        WriteContextFactory<TransactionalRegion> ctxFactory = WriteContextFactoryManager.getWriteContext(conglomId,
+//                config,
+//                tableFactory,
+//                exceptionFactory,
+//                TABLE_INFO_PARSER,
+//                factoryLoader);
 
         try {
             WriteContext context = ctxFactory.createPassThrough(null, txn, region, 1, null);
