@@ -128,7 +128,9 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
      * @param table  The table to get the data from.
      */
     protected void setHTable(Table table) {
+        if (table == null) throw new IllegalArgumentException("Unexpected null value for 'table'.");
         this.table = table;
+        if (conf == null) throw new RuntimeException("Unexpected null value for 'conf'");
         conf.set(TableInputFormat.INPUT_TABLE, table.getName().getNameAsString());
     }
 

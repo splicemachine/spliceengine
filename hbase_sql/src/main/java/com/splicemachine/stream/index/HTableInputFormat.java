@@ -40,6 +40,7 @@ public class HTableInputFormat extends AbstractSMInputFormat<byte[], KVPair> {
     public void setConf(Configuration conf) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf conf=%s", conf);
+        this.conf = conf;
         String tableName = conf.get(MRConstants.SPLICE_INPUT_TABLE_NAME);
         String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
         String tableScannerAsString = conf.get(MRConstants.SPLICE_SCAN_INFO);
@@ -94,7 +95,6 @@ public class HTableInputFormat extends AbstractSMInputFormat<byte[], KVPair> {
         }
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "finishingSetConf");
-        this.conf = conf;
     }
 
     public HTableRecordReader getRecordReader(InputSplit split, Configuration config) throws IOException,
