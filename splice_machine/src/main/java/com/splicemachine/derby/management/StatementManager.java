@@ -6,9 +6,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
-
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -68,7 +66,6 @@ public class StatementManager implements StatementManagement{
         if (!isNullSql(statementInfo) && LOG.isTraceEnabled()) {
 			LOG.trace(String.format("Added to executing stmts (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
         }
-        return;
 	}
 
     private void removeStatementInfo(StatementInfo statementInfo) {
@@ -104,8 +101,13 @@ public class StatementManager implements StatementManagement{
     }
 
 	@Override
-	public Set<StatementInfo> getExecutingStatementInfo() {
-		return executingStatements;
+	public List<StatementInfo> getExecutingStatementInfo() {
+        List<StatementInfo> executing = Lists.newArrayListWithCapacity(executingStatements.size());
+        for(StatementInfo info:executingStatements) {
+            if (info != null)
+                executing.add(info);
+        }
+        return executing;
 	}
 
 	@Override

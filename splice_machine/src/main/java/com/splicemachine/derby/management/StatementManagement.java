@@ -4,7 +4,6 @@ import javax.management.MXBean;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -13,7 +12,7 @@ import java.util.Set;
 @MXBean
 public interface StatementManagement {
 
-		Set<StatementInfo> getExecutingStatementInfo();
+		List<StatementInfo> getExecutingStatementInfo();
 
 		List<StatementInfo> getRecentCompletedStatements();
 
