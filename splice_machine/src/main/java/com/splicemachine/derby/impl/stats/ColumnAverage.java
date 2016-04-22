@@ -219,9 +219,9 @@ public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
     }
 
     private static class ShortAverage extends ColumnAverage<Short>{
-        private short min;
+        private short min=Short.MAX_VALUE;
         private long minCount;
-        private short max;
+        private short max= Short.MIN_VALUE;
         private final ShortFrequentElements empty;
 
         public ShortAverage(int columnId) {
@@ -275,9 +275,9 @@ public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
     }
 
     private static class IntAverage extends ColumnAverage<Integer>{
-        private int min;
+        private int min=Integer.MAX_VALUE;
         private long minCount;
-        private int max;
+        private int max=Integer.MIN_VALUE;
         private final IntFrequentElements empty;
 
         public IntAverage(int columnId) {
@@ -339,9 +339,9 @@ public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
     }
 
     private static class LongAverage extends ColumnAverage<Long>{
-        private long min;
+        private long min=Long.MAX_VALUE;
         private long minCount;
-        private long max;
+        private long max=Long.MIN_VALUE;
         private final LongFrequentElements empty;
 
         public LongAverage(int columnId) {
@@ -403,9 +403,9 @@ public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
     }
 
     private static class FloatAverage extends ColumnAverage<Float>{
-        private float min;
+        private float min=Float.MAX_VALUE;
         private long minCount;
-        private float max;
+        private float max=Float.MIN_VALUE;
         private final FloatFrequentElements empty;
 
         public FloatAverage(int columnId) {
@@ -463,9 +463,9 @@ public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
     }
 
     private static class DoubleAverage extends ColumnAverage<Double>{
-        private double min;
+        private double min=Double.MAX_VALUE;
         private long minCount;
-        private double max;
+        private double max=Double.MIN_VALUE;
         private final DoubleFrequentElements empty;
 
         public DoubleAverage(int columnId) {
@@ -685,9 +685,9 @@ public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
     }
 
     private abstract static class BaseTimeAverage extends ColumnAverage<Long>{
-        private long min;
+        private long min=Long.MAX_VALUE;
         private long minCount;
-        private long max;
+        private long max=Long.MIN_VALUE;
         private final FrequentElements<Long> empty;
         private transient Calendar calendar; //stashed for performance reasons
 

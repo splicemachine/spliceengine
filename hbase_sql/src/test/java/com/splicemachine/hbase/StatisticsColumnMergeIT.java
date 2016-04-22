@@ -75,10 +75,6 @@ public class StatisticsColumnMergeIT extends SpliceUnitTest{
             }
             ps.executeBatch();
         }
-        ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_SPLIT_TABLE(?,?)");
-        ps.setString(1, CLASS_NAME);
-        ps.setString(2, "T");
-        ps.execute();
 
         //split the table
         Configuration config = HConfiguration.unwrapDelegate();
