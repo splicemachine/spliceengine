@@ -15,7 +15,10 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SplitRegionScanner;
-import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
+
+import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.Cell;
@@ -23,6 +26,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -33,20 +37,21 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-public class SplitRegionScannerIT extends BaseMRIOTest {
+public class SplitRegionScannerIT  extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SplitRegionScannerIT.class);
+    private static final String SCHEMA = SplitRegionScannerIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SplitRegionScannerIT.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-	protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherD = new SpliceTableWatcher("D",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherE = new SpliceTableWatcher("E",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherF = new SpliceTableWatcher("F",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherG = new SpliceTableWatcher("G",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherH = new SpliceTableWatcher("H",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherI = new SpliceTableWatcher("I",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherJ = new SpliceTableWatcher("J",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+	protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherD = new SpliceTableWatcher("D",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherE = new SpliceTableWatcher("E",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherF = new SpliceTableWatcher("F",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherG = new SpliceTableWatcher("G",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherH = new SpliceTableWatcher("H",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherI = new SpliceTableWatcher("I",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherJ = new SpliceTableWatcher("J",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
 
     protected static final long ITERATIONS = 20000;
     protected static SIDriver driver;
@@ -88,26 +93,30 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
 			@Override
 			protected void starting(Description description) {
 				try {
-					PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SplitRegionScannerIT.class.getSimpleName() + ".A (col1,col2) values (?,?)");
+					PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA + ".A (col1,col2) values (?,?)");
 					for (int i = 0; i< ITERATIONS; i++) {
 						psA.setInt(1,i);
 						psA.setString(2, "dataset"+i);
                         psA.executeUpdate();
 					}
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
-                    ,SplitRegionScannerIT.class.getSimpleName() + ".B",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                    ,SCHEMA + ".B",SCHEMA + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
-                    ,SplitRegionScannerIT.class.getSimpleName() + ".C",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                    ,SCHEMA + ".C",SCHEMA + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
-                            ,SplitRegionScannerIT.class.getSimpleName() + ".D",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                            ,SCHEMA + ".D",SCHEMA + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
-                            ,SplitRegionScannerIT.class.getSimpleName() + ".E",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                            ,SCHEMA + ".E",SCHEMA + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
-                            ,SplitRegionScannerIT.class.getSimpleName() + ".F",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                            ,SCHEMA + ".F",SCHEMA + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
-                            ,SplitRegionScannerIT.class.getSimpleName() + ".G",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                            ,SCHEMA + ".G",SCHEMA + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
-                            ,SplitRegionScannerIT.class.getSimpleName() + ".H",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                            ,SCHEMA + ".H",SCHEMA + ".A"));
+                    spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
+                            ,SCHEMA + ".I",SCHEMA + ".A"));
+                    spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
+                            ,SCHEMA + ".J",SCHEMA + ".A"));
 
 
 
@@ -200,9 +209,9 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
     public void simpleMergeTest() throws Exception {
         // Test Records at end
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
-                ,SplitRegionScannerIT.class.getSimpleName() + ".D",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                ,SCHEMA + ".D",SCHEMA + ".A"));
         spliceClassWatcher.executeUpdate(String.format("insert into %s values (-1,'foo')" // Test A Record before
-                ,SplitRegionScannerIT.class.getSimpleName() + ".D"));
+                ,SCHEMA + ".D"));
 
         String tableName = sqlUtil.getConglomID(spliceTableWatcherD.toString());
         Partition partition = driver.getTableFactory()
@@ -230,7 +239,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
     @Test
     public void simpleMergeWithConcurrentSplitTest() throws Exception {
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
-                ,SplitRegionScannerIT.class.getSimpleName() + ".E",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                ,SCHEMA + ".E",SCHEMA + ".A"));
         String tableName = sqlUtil.getConglomID(spliceTableWatcherE.toString());
         Partition partition = driver.getTableFactory()
                 .getTable(tableName);
@@ -259,7 +268,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
     @Test
     public void simpleMergeWithConcurrentFlushTest() throws Exception {
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
-                ,SplitRegionScannerIT.class.getSimpleName() + ".F",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                ,SCHEMA + ".F",SCHEMA + ".A"));
         String tableName = sqlUtil.getConglomID(spliceTableWatcherF.toString());
         Partition partition = driver.getTableFactory()
                 .getTable(tableName);
@@ -286,10 +295,39 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
     }
 
     @Test
+    public void simpleMergeWithConcurrentFlushAndSplitTest() throws Exception {
+        String tableName = sqlUtil.getConglomID(spliceTableWatcherJ.toString());
+        Partition partition = driver.getTableFactory()
+                                    .getTable(tableName);
+        Table htable = ((ClientPartition) partition).unwrapDelegate();
+        List<Partition> partitions = partition.subPartitions();
+        int i = 0;
+        List<Cell> newCells = new ArrayList<>();
+        for (Partition subPartition: partitions){
+            Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
+            SplitRegionScanner srs = new SplitRegionScanner(scan,
+                                                            htable,
+                                                            clock,subPartition);
+            while (srs.next(newCells)) {
+                i++;
+                if (i==ITERATIONS/2) {
+                    partition.flush();
+                    driver.getTableFactory().getAdmin().splitTable(tableName);
+                }
+                newCells.clear();
+            }
+            srs.close();
+        }
+        htable.close();
+        System.out.println("Iterations: "+i);
+        Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
+    }
+
+    @Test
     public void multipleSplits() throws Exception {
         System.out.println("Before Write -->");
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
-                ,SplitRegionScannerIT.class.getSimpleName() + ".G",SplitRegionScannerIT.class.getSimpleName() + ".A"));
+                ,SCHEMA + ".G",SCHEMA + ".A"));
         String tableName = sqlUtil.getConglomID(spliceTableWatcherG.toString());
         Partition partition = driver.getTableFactory()
                 .getTable(tableName);
@@ -351,5 +389,35 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
     }
 
+    @Test
+    @Ignore("Still working on this - JC")
+    public void simpleScanPostMove() throws SQLException, IOException, InterruptedException {
+        String tableNameStr = sqlUtil.getConglomID(spliceTableWatcherI.toString());
+        Partition partition = driver.getTableFactory().getTable(tableNameStr);
+        Table htable = ((ClientPartition) partition).unwrapDelegate();
+
+        int i = 0;
+        try (HBaseAdmin admin = getHBaseAdmin()) {
+            HRegionLocation regionLocation = getRegionLocation(tableNameStr, admin);
+            Collection<ServerName> allServers = getAllServers(admin);
+            ServerName newServer = getNotIn(allServers, regionLocation.getServerName());
+
+            move(spliceTableWatcherI.toString(), null);
+            List<Cell> newCells = new ArrayList<>();
+            Scan scan = new Scan();
+            SplitRegionScanner srs = new SplitRegionScanner(scan, htable, clock, partition);
+            while (srs.next(newCells)) {
+                i++;
+                if (i == ITERATIONS / 2) {
+                    System.out.println("Moving table "+tableNameStr);
+                    admin.move(regionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(newServer.getServerName()));
+                }
+                newCells.clear();
+            }
+            srs.close();
+            htable.close();
+        }
+        Assert.assertEquals("Did not return all rows ", ITERATIONS, i);
+    }
 
 }
