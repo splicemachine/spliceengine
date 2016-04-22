@@ -92,11 +92,11 @@ public class HBaseSITestEnv implements SITestEnv{
     @Override
     public void initialize() throws IOException{
         try(HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin()){
-            hBaseAdmin.createTable(generateDefaultSIGovernedTable("person"));
+            hBaseAdmin.createTable(generateDefaultSIGovernedTable("1440"));
         }
     }
 
-    @Override public String getPersonTableName(){ return "person"; }
+    @Override public String getPersonTableName(){ return "1440"; }
     @Override public ExceptionFactory getExceptionFactory(){ return HExceptionFactory.INSTANCE; }
     @Override public OperationStatusFactory getOperationStatusFactory(){ return HOperationStatusFactory.INSTANCE; }
 
