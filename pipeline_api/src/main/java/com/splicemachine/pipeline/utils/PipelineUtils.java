@@ -90,7 +90,7 @@ public class PipelineUtils{
             waitTime = (wf>>1)*pauseInterval;
             jitter = Math.max(wf>>4,pauseInterval/8);
         }
-        long jitterTime = ThreadLocalRandom.current().nextLong(-jitter,jitter);
+        long jitterTime = jitter>0?ThreadLocalRandom.current().nextLong(-jitter,jitter):0;
         return waitTime+jitterTime;
     }
 
