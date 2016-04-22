@@ -208,22 +208,22 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException{
-        return new SparkDeleteTableWriterBuilder<>(rdd);
+        return new SparkDeleteTableWriterBuilder<>(wrapExceptions(rdd));
     }
 
     @Override
     public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
-        return new SparkInsertTableWriterBuilder<>(rdd);
+        return new SparkInsertTableWriterBuilder<>(wrapExceptions(rdd));
     }
 
     @Override
     public UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException{
-        return new SparkUpdateTableWriterBuilder<>(rdd);
+        return new SparkUpdateTableWriterBuilder<>(wrapExceptions(rdd));
     }
 
     @Override
     public DataSetWriterBuilder directWriteData() throws StandardException{
-        return new SparkDirectWriterBuilder<>(rdd);
+        return new SparkDirectWriterBuilder<>(wrapExceptions(rdd));
     }
 
     private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
@@ -235,11 +235,14 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
         }
     }
 
+    private <K> JavaPairRDD<K,Object> wrapExceptions(JavaPairRDD<K, V> rdd) {
+        return ((JavaPairRDD<K, Object>)rdd).mapPartitionsToPair(new ExceptionWrapperFunction<K>());
+    }
+
     @SuppressWarnings("rawtypes")
     private String planIfLast(AbstractSpliceFunction f,boolean isLast){
         if(!isLast) return f.getSparkName();
         String plan = (f.getOperation() != null ? f.getOperation().getPrettyExplainPlan() : null);
         return (plan!=null && !plan.isEmpty()?plan:f.getSparkName());
     }
-
 }

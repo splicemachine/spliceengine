@@ -17,7 +17,7 @@ import java.io.IOException;
 /**
  * Created by jleach on 5/18/15.
  */
-public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements Configurable {
+public class SMOutputFormat extends OutputFormat<RowLocation,Object> implements Configurable {
     private static Logger LOG = Logger.getLogger(SMOutputFormat.class);
     protected Configuration conf;
     protected SpliceOutputCommitter outputCommitter;

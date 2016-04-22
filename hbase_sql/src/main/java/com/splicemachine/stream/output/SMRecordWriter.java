@@ -1,9 +1,11 @@
 package com.splicemachine.stream.output;
 
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.iapi.TableWriter;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -14,7 +16,7 @@ import java.io.IOException;
 /**
  * Created by jleach on 5/18/15.
  */
-public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
+public class SMRecordWriter extends RecordWriter<RowLocation,Object> {
     private static Logger LOG = Logger.getLogger(SMRecordWriter.class);
     boolean initialized = false;
     TableWriter tableWriter;
@@ -28,7 +30,16 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
     }
 
     @Override
-    public void write(RowLocation rowLocation, ExecRow execRow) throws IOException, InterruptedException {
+    public void write(RowLocation rowLocation, Object value) throws IOException, InterruptedException {
+        if (value instanceof Exception) {
+            Exception e = (Exception) value;
+            // failure
+            failure = true;
+            SpliceLogUtils.error(LOG,"Error Reading",e);
+            throw new IOException(e);
+        }
+        assert value instanceof ExecRow;
+        ExecRow execRow = (ExecRow) value;
         try {
             if (!initialized) {
                 initialized = true;

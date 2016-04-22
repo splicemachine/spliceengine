@@ -5,6 +5,7 @@ import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
@@ -14,25 +15,39 @@ import java.io.IOException;
 /**
  * Created by jyuan on 10/19/15.
  */
-public class HTableRecordWriter extends RecordWriter<byte[],KVPair> {
+public class HTableRecordWriter extends RecordWriter<byte[],Object> {
     private static Logger LOG = Logger.getLogger(HTableRecordWriter.class);
     boolean initialized = false;
     TableWriter tableWriter;
-    public HTableRecordWriter(TableWriter tableWriter) {
+    OutputCommitter outputCommitter;
+    private boolean failure = false;
+
+    public HTableRecordWriter(TableWriter tableWriter, OutputCommitter outputCommitter) {
         SpliceLogUtils.trace(LOG, "init");
         this.tableWriter = tableWriter;
+        this.outputCommitter = outputCommitter;
     }
 
     @Override
-    public void write(byte[] rowKey, KVPair kvPair) throws IOException, InterruptedException {
+    public void write(byte[] rowKey, Object value) throws IOException, InterruptedException {
+        if (value instanceof Exception) {
+            Exception e = (Exception) value;
+            // failure
+            failure = true;
+            SpliceLogUtils.error(LOG,"Error Reading",e);
+            throw new IOException(e);
+        }
+        assert value instanceof KVPair;
+        KVPair kvPair = (KVPair) value;
         try {
             if (!initialized) {
                 initialized = true;
                 tableWriter.open();
             }
             tableWriter.write(kvPair);
-        } catch (StandardException se) {
+        } catch (Exception se) {
             SpliceLogUtils.error(LOG,"Error Writing",se);
+            failure = true;
             throw new IOException(se);
         }
     }
@@ -45,7 +60,11 @@ public class HTableRecordWriter extends RecordWriter<byte[],KVPair> {
                 tableWriter.close();
             }
         } catch (Exception e) {
+            failure = true;
             throw new IOException(e);
+        } finally {
+            if (failure)
+                outputCommitter.abortTask(taskAttemptContext);
         }
     }
 }

@@ -17,7 +17,7 @@ import java.io.IOException;
 /**
  * Created by jyuan on 10/19/15.
  */
-public class HTableOutputFormat extends OutputFormat<byte[],KVPair> implements Configurable {
+public class HTableOutputFormat extends OutputFormat<byte[],Object> implements Configurable {
     private static Logger LOG = Logger.getLogger(HTableOutputFormat.class);
     protected Configuration conf;
     protected SpliceOutputCommitter outputCommitter;
@@ -45,7 +45,7 @@ public class HTableOutputFormat extends OutputFormat<byte[],KVPair> implements C
             if (childTxn == null)
                 throw new IOException("child transaction lookup failed");
             tableWriter.txn(childTxn);
-            return new HTableRecordWriter(tableWriter.buildTableWriter());
+            return new HTableRecordWriter(tableWriter.buildTableWriter(), outputCommitter);
         } catch (Exception e) {
             throw new IOException(e);
         }
