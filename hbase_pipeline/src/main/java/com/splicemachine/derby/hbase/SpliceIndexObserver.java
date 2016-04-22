@@ -65,18 +65,14 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
         TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),rce);
         switch(table){
-            case TRANSACTION_TABLE:
-            case ROOT_TABLE:
-            case META_TABLE:
-            case HBASE_TABLE:
+            case DERBY_SYS_TABLE:
+                conglomId=-1; //bypass index management on derby system tables
+                break;
+            case USER_TABLE:
+                conglomId=Long.parseLong(tableName);
+                break;
+            default:
                 return; //disregard table environments which are not user or system tables
-        }
-        try{
-            conglomId=Long.parseLong(tableName);
-        }catch(NumberFormatException nfe){
-            SpliceLogUtils.warn(LOG,"Unable to parse conglomerate id for table %s, "+
-                    "index management for batch operations will be disabled",tableName);
-            conglomId=-1;
         }
 
         final long cId = conglomId;
@@ -147,6 +143,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "prePut %s",put);
         if(conglomId>0){
+            if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
             if(factoryLoader==null){
                 try{
                     DatabaseLifecycleManager.manager().awaitStartup();
@@ -154,8 +151,6 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                     throw new InterruptedIOException();
                 }
             }
-            if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
-
             //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
             byte[] row = put.getRow();
             List<Cell> data = put.get(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);

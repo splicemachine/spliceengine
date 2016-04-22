@@ -126,6 +126,7 @@ public class PipelineTest{
             }
             callBuffer.flushBufferAndWait();
 
+            //make sure that all the rows are present
             DataGet dg= null;
             DataResult result = null;
             for(KVPair d : data){

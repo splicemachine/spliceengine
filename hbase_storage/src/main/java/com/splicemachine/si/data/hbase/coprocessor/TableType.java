@@ -10,6 +10,7 @@ public enum TableType{
     META_TABLE,
     DERBY_SYS_TABLE,
     USER_TABLE,
+    DDL_TABLE,
     HBASE_TABLE
 }
 

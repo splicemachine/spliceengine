@@ -31,12 +31,16 @@ public class EnvUtils {
             }
         }else if (tableName.getQualifierAsString().equals(HConfiguration.TRANSACTION_TABLE))
             return TableType.TRANSACTION_TABLE;
+        else if(tableName.getQualifierAsString().equals(HConfiguration.TENTATIVE_TABLE))
+            return TableType.DDL_TABLE;
         else {
 			try {
 				long tableNumber = Long.parseLong(tableName.getQualifierAsString());
 				if (tableNumber < FIRST_USER_TABLE_NUMBER)
 					return TableType.DERBY_SYS_TABLE;
-			} catch (Exception e) {
+			} catch(NumberFormatException nfe){
+                return TableType.HBASE_TABLE;
+            } catch (Exception e) {
                 SpliceLogUtils.debug(LOG,tableName+" is not a number");
 			}
 			return TableType.USER_TABLE;
