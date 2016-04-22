@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.EmptyDistribution;
 
@@ -28,6 +29,8 @@ public abstract class BaseDvdStatistics implements ColumnStatistics<DataValueDes
     @Override public long nonNullCount() { return baseStats.nonNullCount(); }
     @Override public long minCount() { return baseStats.minCount(); }
     @Override public int columnId() { return baseStats.columnId(); }
+    @Override public CardinalityEstimator getCardinalityEstimator() { return baseStats.getCardinalityEstimator();}
+    @Override public long totalBytes() { return baseStats.totalBytes(); }
 
     @Override public Distribution<DataValueDescriptor> getDistribution() {
         return newDistribution(baseStats);
@@ -36,8 +39,13 @@ public abstract class BaseDvdStatistics implements ColumnStatistics<DataValueDes
     @Override
     @SuppressWarnings("unchecked")
     public ColumnStatistics<DataValueDescriptor> merge(ColumnStatistics<DataValueDescriptor> other) {
-        assert other instanceof BaseDvdStatistics: "Cannot merge statistics of type "+ other.getClass();
-        baseStats = (ColumnStatistics)baseStats.merge(((BaseDvdStatistics) other).baseStats);
+        if (other instanceof ColumnAverage) {
+            baseStats = (ColumnStatistics) baseStats.merge(other);
+        }
+        else if (other instanceof BaseDvdStatistics){
+            baseStats = (ColumnStatistics) baseStats.merge(((BaseDvdStatistics) other).baseStats);
+        }
+
         return this;
     }
 

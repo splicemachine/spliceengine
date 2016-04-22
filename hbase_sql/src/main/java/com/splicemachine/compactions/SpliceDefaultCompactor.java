@@ -2,6 +2,7 @@ package com.splicemachine.compactions;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.constants.EnvUtils;
@@ -12,6 +13,8 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.SICompactionState;
+import com.splicemachine.storage.ClientPartition;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -20,6 +23,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
@@ -456,12 +460,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         byte[] startKey = regionInfo.getStartKey();
 
         // Get an instance of the table
-        SConfiguration conf = SIDriver.driver().getConfiguration();
-        Connection connection = HBaseConnectionFactory.getInstance(conf).getConnection();
-        HTable table = (HTable)connection.getTable(regionInfo.getTable());
+        PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+        Partition table = tableFactory.getTable(regionInfo.getTable());
 
         // Get region location using start key
-        HRegionLocation regionLocation = table.getRegionLocation(startKey);
-        return regionLocation.getHostname();
+        List<Partition> partitions = table.subPartitions(startKey, HConstants.EMPTY_END_ROW, true);
+        if (partitions.isEmpty()) {
+            throw new IOException("Couldn't find region location for " + regionInfo);
+        }
+        return partitions.get(0).owningServer().getHostname();
     }
 }

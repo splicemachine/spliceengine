@@ -3,7 +3,11 @@ package com.splicemachine.stream.index;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.mrio.api.core.AbstractSMInputFormat;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.ClientPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -36,6 +40,7 @@ public class HTableInputFormat extends AbstractSMInputFormat<byte[], KVPair> {
     public void setConf(Configuration conf) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf conf=%s", conf);
+        this.conf = conf;
         String tableName = conf.get(MRConstants.SPLICE_INPUT_TABLE_NAME);
         String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
         String tableScannerAsString = conf.get(MRConstants.SPLICE_SCAN_INFO);
@@ -70,8 +75,9 @@ public class HTableInputFormat extends AbstractSMInputFormat<byte[], KVPair> {
             }
         }
         try {
-            TableName tableInfo=HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(conglomerate);
-            setHTable(new HTable(conf,tableInfo));
+            if (SIDriver.driver() == null) SpliceSpark.setupSpliceStaticComponents();
+            PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+            setHTable(((ClientPartition)tableFactory.getTable(conglomerate)).unwrapDelegate());
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
         }
@@ -89,7 +95,6 @@ public class HTableInputFormat extends AbstractSMInputFormat<byte[], KVPair> {
         }
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "finishingSetConf");
-        this.conf = conf;
     }
 
     public HTableRecordReader getRecordReader(InputSplit split, Configuration config) throws IOException,
@@ -99,11 +104,10 @@ public class HTableInputFormat extends AbstractSMInputFormat<byte[], KVPair> {
             SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,tableName);
         rr = new HTableRecordReader(config);
         if(table == null){
-            table=new HTable(HBaseConfiguration.create(config),tableName);
+            PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+            table = ((ClientPartition)tableFactory.getTable(tableName)).unwrapDelegate();
         }
         rr.setHTable(table);
-        //if (!conf.getBoolean("splice.spark", false))
-//        rr.init(config, split);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "returning record reader");
         return rr;

@@ -142,7 +142,6 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
             Partition clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                     htable,
-                    instance.getConnection(),
                     clock,
                     clientPartition);
             this.hregion = srs.getRegion();

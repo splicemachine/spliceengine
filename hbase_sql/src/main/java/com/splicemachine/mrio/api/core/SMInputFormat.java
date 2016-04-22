@@ -103,7 +103,8 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
         rr = new SMRecordReaderImpl(conf);
         if(table == null){
             TableName tableInfo = TableName.valueOf(config.get(TableInputFormat.INPUT_TABLE));
-            table=new HTable(HBaseConfiguration.create(config),tableInfo);
+            PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+            table = ((ClientPartition)tableFactory.getTable(tableInfo)).unwrapDelegate();
         }
         rr.setHTable(table);
         if (LOG.isDebugEnabled())

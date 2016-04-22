@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.store.access;
 import java.util.BitSet;
 import java.util.List;
 
+import com.splicemachine.derby.impl.stats.ColumnAverage;
+import com.splicemachine.derby.impl.stats.PartitionAverage;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
@@ -215,33 +217,28 @@ public class StatsStoreCostController extends GenericController implements Store
                                          DataValueDescriptor stop,boolean includeStop){
         List<? extends PartitionStatistics> partStats = stats.partitionStatistics();
         long rowCount = 0l;
+        long baseRowCount = 0l;
         int missingStatsCount = partStats.size();
         for(PartitionStatistics pStats:partStats){
+            if (pStats instanceof PartitionAverage)
+                continue;
             ColumnStatistics<DataValueDescriptor> cStats = pStats.columnStatistics(columnNumber);
             if(cStats!=null){
                 rowCount+= cStats.getDistribution().rangeSelectivity(start,stop,includeStart,includeStop);
                 missingStatsCount--;
+                baseRowCount += pStats.rowCount();
             }
         }
-        double rc = 0d;
         if(missingStatsCount==partStats.size()){
             /*
              * we have no statistics for this column, so fall back to an abitrarily configured
              * selectivity criteria
              */
             return extraQualifierMultiplier;
-        }else if(missingStatsCount>0){
-            /*
-             * We are missing some statistics, but not others. Fill in the missing
-             * partitions with the average row count from all the other partitions
-             */
-            rc = ((double)rowCount)/(partStats.size()-missingStatsCount);
-            rc*=missingStatsCount;
         }
-        if (stats.rowCount() == 0)
-            return 0.0d;
-        rc+=rowCount;
-        double returnValue =rc/stats.rowCount();
+        if(baseRowCount == 0)
+            return 0d;
+        double returnValue =1.0*rowCount/baseRowCount;
         assert returnValue >= 0.0d && returnValue <= 1.0d:"Incorrect Selectivity Fraction Returned from Statistics: Critical Error (DB-3729)";
         return returnValue;
     }
