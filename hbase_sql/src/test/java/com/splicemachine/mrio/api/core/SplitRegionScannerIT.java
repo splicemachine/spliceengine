@@ -296,6 +296,11 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
 
     @Test
     public void simpleMergeWithConcurrentFlushAndSplitTest() throws Exception {
+        // Currently fails with:
+        // org.apache.hadoop.hbase.DoNotRetryIOException: org.apache.hadoop.hbase.DoNotRetryIOException
+        // at com.splicemachine.hbase.MemstoreAwareObserver.preStoreScannerOpen(MemstoreAwareObserver.java:159)
+        // at org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost$51.call(RegionCoprocessorHost.java:1291)
+
         String tableName = sqlUtil.getConglomID(spliceTableWatcherJ.toString());
         Partition partition = driver.getTableFactory()
                                     .getTable(tableName);
@@ -390,8 +395,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
     }
 
     @Test
-    @Ignore("Still working on this - JC")
-    public void simpleScanPostMove() throws SQLException, IOException, InterruptedException {
+    public void moveRegionDuringScan() throws SQLException, IOException, InterruptedException {
         String tableNameStr = sqlUtil.getConglomID(spliceTableWatcherI.toString());
         Partition partition = driver.getTableFactory().getTable(tableNameStr);
         Table htable = ((ClientPartition) partition).unwrapDelegate();
@@ -402,18 +406,72 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Collection<ServerName> allServers = getAllServers(admin);
             ServerName newServer = getNotIn(allServers, regionLocation.getServerName());
 
-            move(spliceTableWatcherI.toString(), null);
             List<Cell> newCells = new ArrayList<>();
             Scan scan = new Scan();
             SplitRegionScanner srs = new SplitRegionScanner(scan, htable, clock, partition);
             while (srs.next(newCells)) {
-                i++;
-                if (i == ITERATIONS / 2) {
-                    System.out.println("Moving table "+tableNameStr);
+                if (i++ == ITERATIONS / 2) {
+                    System.out.println("Moving region from "+regionLocation.getServerName().getServerName()+" to "+newServer.getServerName());
                     admin.move(regionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(newServer.getServerName()));
                 }
                 newCells.clear();
             }
+            srs.close();
+            htable.close();
+        }
+        Assert.assertEquals("Did not return all rows ", ITERATIONS, i);
+    }
+
+    @Test
+    public void moveRegionDuringScanMoveBack() throws SQLException, IOException, InterruptedException {
+        // Currently failing with:
+        // java.lang.AssertionError: Did not return all rows
+        // Expected :20000
+        // Actual   :3399
+
+        //
+        // Should see something like:
+        // 16:57:25,894 (main) TRACE [c.s.s.SplitRegionScanner] - registerRegionScanner SkeletonClienSideregionScanner[scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":1,"cacheBlocks":true,"families":{"V":["ALL"]},"maxResultSize":-1,"maxVersions":2147483647,"caching":-1},region={ENCODED => 501b4581b218c3cbc4709d67eef3a7e5, NAME => 'splice:2416,,1461362232847.501b4581b218c3cbc4709d67eef3a7e5.', STARTKEY => '', ENDKEY => ''},numberOfRows=0
+        // .  .  .
+        // Moving region from  10.0.1.32,57303,1461354123498 to 10.0.1.32,57242,1461354072040
+        // .  .  .
+        // Moving region from  10.0.1.32,57242,1461354072040 to 10.0.1.32,57303,1461354123498
+        // .  .  .  .  .  .  .  .  .  .  .  .  .  .
+        // 16:57:29,949 (main) DEBUG [c.s.s.SplitRegionScanner] - close
+
+        String tableNameStr = sqlUtil.getConglomID(spliceTableWatcherI.toString());
+        Partition partition = driver.getTableFactory().getTable(tableNameStr);
+        Table htable = ((ClientPartition) partition).unwrapDelegate();
+
+        int i = 0;
+        try (HBaseAdmin admin = getHBaseAdmin()) {
+            HRegionLocation regionLocation = getRegionLocation(tableNameStr, admin);
+            ServerName oldServer = regionLocation.getServerName();
+            ServerName newServer = getNotIn(getAllServers(admin), oldServer);
+
+            List<Cell> newCells = new ArrayList<>();
+            Scan scan = new Scan();
+            SplitRegionScanner srs = new SplitRegionScanner(scan, htable, clock, partition);
+            while (srs.next(newCells)) {
+                System.out.print(" . ");
+                if (i++ == (int)ITERATIONS / 6) {
+                    System.out.println("\n"+i+" - Moving region from  "+regionLocation.getServerName().getServerName()+" to "+newServer.getServerName());
+                    admin.move(regionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(newServer.getServerName()));
+                    // give it a little time for the metadata to be refreshed
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        // do nothing
+                    }
+                }
+                if (i == (int)ITERATIONS / 3) {
+                    HRegionLocation newRegionLocation = getRegionLocation(tableNameStr, admin);
+                    System.out.println("\n"+i+" - Moving region from  "+newRegionLocation.getServerName().getServerName()+" to "+oldServer.getServerName());
+                    admin.move(newRegionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(oldServer.getServerName()));
+                }
+                newCells.clear();
+            }
+            System.out.println();
             srs.close();
             htable.close();
         }

@@ -85,8 +85,8 @@ public class BaseMRIOTest extends SpliceUnitTest{
 			}
 	}
 
-    protected static HRegionLocation getRegionLocation(String tableNameAsString, HBaseAdmin hBaseAdmin) throws IOException, SQLException {
-        TableName tableName = TableName.valueOf("splice",sqlUtil.getConglomID(tableNameAsString));
+    protected static HRegionLocation getRegionLocation(String conglomId, HBaseAdmin hBaseAdmin) throws IOException, SQLException {
+        TableName tableName = TableName.valueOf("splice",conglomId);
         List<HRegionInfo> tableRegions = hBaseAdmin.getTableRegions(tableName);
         if (tableRegions == null || tableRegions.isEmpty()) {
             return null;
@@ -98,71 +98,6 @@ public class BaseMRIOTest extends SpliceUnitTest{
     protected static Collection<ServerName> getAllServers(HBaseAdmin hBaseAdmin) throws IOException, SQLException {
         return hBaseAdmin.getClusterStatus().getServers();
     }
-
-	protected static void move(String tableNameAsString, HBaseAdmin hBaseAdmin) throws SQLException, IOException {
-        String conglomId = sqlUtil.getConglomID(tableNameAsString);
-        TableName tableName1 = TableName.valueOf("splice",conglomId);
-		HBaseAdmin admin = hBaseAdmin;
-		try {
-            if (admin == null) {
-                admin = new HBaseAdmin(config);
-            }
-            List<HRegionInfo> tableRegions = admin.getTableRegions(tableName1);
-            byte[] encodedRegionNameBytes = null;
-            byte[] encodedRegionNameStr = null;
-            String serverNameStr = null;
-            System.out.println();
-            for (HRegionInfo r : tableRegions) {
-                System.out.println("=================");
-                System.out.println(r.getRegionNameAsString());
-                System.out.println(r.getEncodedName());
-                encodedRegionNameStr = r.getRegionName();
-                encodedRegionNameBytes = r.getEncodedNameAsBytes();
-                System.out.println(r.getRegionId());
-                System.out.println(r.getTable().getNameAsString());
-                System.out.println("=================");
-            }
-            Collection<ServerName> rs = admin.getClusterStatus().getServers();
-            for (ServerName s : rs) {
-                System.out.println(s.getHostname());
-                System.out.println(s.getHostAndPort());
-                System.out.println(s.getServerName());
-                serverNameStr = s.getServerName();
-                System.out.println(s.getStartcode());
-                System.out.println("+++++++++++++++++");
-            }
-
-            HRegionLocation loc =MetaTableAccessor.getRegionLocation(admin.getConnection(), encodedRegionNameStr);
-            System.out.println(loc.toString());
-            System.out.println(loc.getRegionInfo());
-            System.out.println(loc.getRegionInfo().getRegionNameAsString());
-            System.out.println(loc.getServerName().getServerName());
-
-            System.out.println("Requesting flush...");
-            admin.flush(tableName1);
-            System.out.println("Flush finished...");
-
-            System.out.println("Requesting move...");
-            admin.move(encodedRegionNameBytes, Bytes.toBytes(serverNameStr));
-            System.out.println("Move finished");
-
-            tableRegions = admin.getTableRegions(tableName1);
-            System.out.println();
-            for (HRegionInfo r : tableRegions) {
-                System.out.println("*****************");
-                System.out.println(r.getRegionNameAsString());
-                System.out.println(r.getEncodedName());
-                System.out.println(r.getRegionId());
-                System.out.println(r.getTable().getNameAsString());
-                System.out.println("*****************");
-            }
-
-        } finally {
-    		if (admin != null)
-    			admin.close();
-
-			}
-	}
 
     protected static ServerName getNotIn(Collection<ServerName> allServers, ServerName regionServer) {
         ServerName firstNonMatch = null;
