@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -137,29 +136,29 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	 * created by MemStore flushes or current scanner fails due to compaction
 	 */
 	public void updateScanner() throws IOException {
-		if (LOG.isDebugEnabled()){
-            SpliceLogUtils.debug(LOG,
-                    "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
-                    hri,htd.getNameAsString(),rootDir,scan);
-        }
-		if (flushed) {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "Flush occurred");
-            if (this.topCell != null) {
-                if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
-                //noinspection deprecation
-                scan.setStartRow(Bytes.add(topCell.getRow(), new byte[] {0}));
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG,
+                        "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
+                        hri, htd.getNameAsString(), rootDir, scan);
             }
-        }
-	    memScannerList.add(getMemStoreScanner());
-		this.region = openHRegion();		
-		RegionScanner regionScanner = BaseHRegionUtil.getScanner(region, scan,memScannerList);
-        if (flushed) {
-            if (scanner != null)
-                scanner.close();
-        }
-        scanner = regionScanner;
+            if (flushed) {
+                if (LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG, "Flush occurred");
+                if (this.topCell != null) {
+                    if (LOG.isDebugEnabled())
+                        SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
+                    //noinspection deprecation
+                    scan.setStartRow(Bytes.add(topCell.getRow(), new byte[]{0}));
+                }
+            }
+            memScannerList.add(getMemStoreScanner());
+            this.region = openHRegion();
+            RegionScanner regionScanner = BaseHRegionUtil.getScanner(region, scan, memScannerList);
+            if (flushed) {
+                if (scanner != null)
+                    scanner.close();
+            }
+            scanner = regionScanner;
 	}
 
     public HRegion getRegion(){
@@ -176,6 +175,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                 SpliceLogUtils.debug(LOG,"received flush message " + results.get(0));
             flushed = true;
             updateScanner();
+            flushed = false;
             nextResults.clear();
             results.clear();
             return nextRaw(results);
