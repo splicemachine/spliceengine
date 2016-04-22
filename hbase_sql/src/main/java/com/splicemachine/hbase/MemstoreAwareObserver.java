@@ -69,9 +69,10 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 } catch (InterruptedException e1) {
                     throw new IOException(e1);
                 }
+            } else {
+                if (memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, true)))
+                    break;
             }
-            if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, true)))
-                break;
         }
     }
 

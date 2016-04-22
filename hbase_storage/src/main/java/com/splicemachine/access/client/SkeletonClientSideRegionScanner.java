@@ -145,8 +145,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 		if (flushed) {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "Flush occurred");
-            if (scanner != null)
-                scanner.close();
             if (this.topCell != null) {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
@@ -156,7 +154,12 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         }
 	    memScannerList.add(getMemStoreScanner());
 		this.region = openHRegion();		
-		this.scanner = BaseHRegionUtil.getScanner(region, scan,memScannerList);
+		RegionScanner regionScanner = BaseHRegionUtil.getScanner(region, scan,memScannerList);
+        if (flushed) {
+            if (scanner != null)
+                scanner.close();
+        }
+        scanner = regionScanner;
 	}
 
     public HRegion getRegion(){
