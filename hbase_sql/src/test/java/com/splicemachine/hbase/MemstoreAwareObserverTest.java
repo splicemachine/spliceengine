@@ -104,6 +104,16 @@ public class MemstoreAwareObserverTest {
         assertEquals(pre.currentCompactionCount, post.currentCompactionCount);
     }
 
+    @Test
+    public void compactionEarlyFailureWorks() throws Exception {
+        SpliceCompactionRequest compactionRequest = new SpliceCompactionRequest();
+
+        // there's been an exception, preCompact() and preStorefilesRename() are not called
+
+        // afterExecute() won't do anything
+        compactionRequest.afterExecute();
+    }
+
     //==============================================================================================================
     // tests - splits
     //==============================================================================================================

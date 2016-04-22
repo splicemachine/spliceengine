@@ -36,6 +36,10 @@ public class SpliceCompactionRequest extends CompactionRequest {
 
     @Override
     public void afterExecute(){
+        if (memstoreAware == null) {
+            // memstoreAware hasn't been set, the compaction failed before it could block and increment the counter, so don't do anything
+            return;
+        }
         while (true) {
             MemstoreAware latest = memstoreAware.get();
             if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)))
