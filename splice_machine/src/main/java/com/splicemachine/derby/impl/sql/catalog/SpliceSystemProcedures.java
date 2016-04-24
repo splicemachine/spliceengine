@@ -525,7 +525,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(1)
                             .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                            .bigint("hour")
+                            .bigint("jobId")
                             .build());
 
                     /*

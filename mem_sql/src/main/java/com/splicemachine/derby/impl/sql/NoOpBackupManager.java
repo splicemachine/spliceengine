@@ -44,4 +44,14 @@ public class NoOpBackupManager implements BackupManager{
     public void removeBackup(long backupId) throws StandardException{
 
     }
+
+    @Override
+    public void scheduleDailyBackup(String directory, String type, int hour) throws StandardException {
+
+    }
+
+    @Override
+    public void cancelDailyBackup(long jobId) throws StandardException {
+
+    }
 }

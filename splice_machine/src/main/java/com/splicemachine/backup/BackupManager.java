@@ -18,4 +18,8 @@ public interface BackupManager{
     void restoreDatabase(String directory,long backupId)throws StandardException;
 
     void removeBackup(long backupId) throws StandardException;
+
+    void scheduleDailyBackup(String directory, String type, int hour) throws StandardException;
+
+    void cancelDailyBackup(long jobId) throws StandardException;
 }
