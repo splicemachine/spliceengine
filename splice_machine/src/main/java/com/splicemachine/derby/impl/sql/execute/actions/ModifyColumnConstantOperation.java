@@ -708,15 +708,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName,tableDescriptor.getQualifiedName());
         }
 
-        try {
+//        try {
             tc.dropColumnFromConglomerate(tableDescriptor.getHeapConglomerateId(), columnDescriptor.getPosition());
-        } catch (StandardException e) {
-            if (ErrorState.WRITE_WRITE_CONFLICT.getSqlState().equals(e.getSQLState())) {
-                throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("DropColumn("+tableDescriptor.getQualifiedName()+"."+columnName+")",
-                                                                      e.getMessage());
-            }
-            throw e;
-        }
+//        } catch (StandardException e) {
+//            if (ErrorState.WRITE_WRITE_CONFLICT.getSqlState().equals(e.getSQLState())) {
+//                throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("DropColumn("+tableDescriptor.getQualifiedName()+"."+columnName+")",
+//                                                                      e.getMessage());
+//            }
+//            throw e;
+//        }
 
         int size = tableDescriptor.getColumnDescriptorList().size();
         int droppedColumnPosition = columnDescriptor.getPosition();

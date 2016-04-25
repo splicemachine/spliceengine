@@ -327,6 +327,11 @@ public class ConglomerateUtils{
     }
 
     public static int[] dropValueFromArray(int[] initialArray,int position){
+        if(initialArray.length==1){
+            assert position==1: "Position not correct";
+            return new int[]{};
+        }
+
         int[] droppedArray=new int[initialArray.length-1];
         System.arraycopy(initialArray,0,droppedArray,0,position);
         if(position!=initialArray.length)

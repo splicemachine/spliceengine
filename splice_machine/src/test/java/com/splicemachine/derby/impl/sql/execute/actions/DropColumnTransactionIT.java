@@ -108,8 +108,14 @@ public class DropColumnTransactionIT {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        conn1.close();
-        conn2.close();
+        if(!conn1.isClosed()){
+            conn1.rollback();
+            conn1.close();
+        }
+        if(!conn2.isClosed()){
+            conn2.rollback();
+            conn2.close();
+        }
     }
 
     @After
@@ -122,6 +128,11 @@ public class DropColumnTransactionIT {
 
     @Before
     public void setUp() throws Exception {
+        if(conn1.isClosed())
+            conn1 = classWatcher.createConnection();
+        if(conn2.isClosed())
+            conn2 = classWatcher.createConnection();
+
         conn1.setAutoCommit(false);
         conn2.setAutoCommit(false);
         conn1Txn = conn1.getCurrentTransactionId();
@@ -300,7 +311,7 @@ public class DropColumnTransactionIT {
             Assert.fail("No write conflict detected!");
         }catch(SQLException se){
             Assert.assertEquals("Incorrect error type: "+ se.getMessage(),
-                                ErrorState.DDL_ACTIVE_TRANSACTIONS.getSqlState(),se.getSQLState());
+                                ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
         }
 
         // conn1 sees column B dropped
