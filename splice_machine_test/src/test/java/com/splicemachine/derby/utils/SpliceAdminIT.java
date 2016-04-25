@@ -448,4 +448,44 @@ public class SpliceAdminIT {
         Assert.assertEquals(0, count);
         DbUtils.closeQuietly(cs);
     }
+
+    @Test
+    public void testUpdateSchemaOwner() throws Exception {
+        String schemaName = "SPLICEADMINITSCHEMAFOO";
+        String userName = "SPLICEADMINITUSERFRED";
+
+        try {
+            methodWatcher.executeUpdate(String.format("CREATE SCHEMA %s", schemaName));
+        } catch (Exception e) {
+            // Allow schema exists error
+        }
+        CallableStatement cs = null;
+        try {
+            cs = methodWatcher.prepareCall(
+                String.format("call SYSCS_UTIL.SYSCS_CREATE_USER('%s', '%s')", userName, userName));
+            cs.execute();
+        } catch (Exception e) {
+            // Allow user exists error
+        } finally {
+            DbUtils.closeQuietly(cs);
+        }
+        CallableStatement cs2 = null;
+        ResultSet rs = null;
+        try {
+            cs2 = methodWatcher.prepareCall(
+                String.format("call SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('%s', '%s')", schemaName, userName));
+            cs2.execute();
+            rs = methodWatcher.executeQuery(
+               String.format("SELECT AUTHORIZATIONID FROM SYS.SYSSCHEMAS WHERE SCHEMANAME='%s'", schemaName));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(userName, rs.getString(1));
+        } finally {
+            DbUtils.closeQuietly(rs);
+        }
+        try {
+            methodWatcher.executeUpdate(String.format("DROP SCHEMA %s RESTRICT", schemaName));
+        } catch (Exception e) {
+            // Allow error
+        }
+    }
 }

@@ -11,7 +11,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.hbase.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.db.catalog.UUID;
@@ -24,11 +23,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 
-import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * System procedure generator implementation class that extends
@@ -854,6 +849,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .isDeterministic(false)
                         .varchar("roleId", 128)
                         .integer("mode")
+                        .build());
+
+                    // Stored procedure that updates the owner (authorization id) of an existing schema.
+                    procedures.add(Procedure.newBuilder().name("SYSCS_UPDATE_SCHEMA_OWNER")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA)
+                        .returnType(null)
+                        .isDeterministic(false)
+                        .varchar("schemaName", 128)
+                        .varchar("ownerName", 128)
                         .build());
                 }
 
