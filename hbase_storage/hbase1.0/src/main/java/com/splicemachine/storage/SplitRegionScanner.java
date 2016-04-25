@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.si.constants.SIConstants;
 import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
@@ -35,23 +33,31 @@ public class SplitRegionScanner implements RegionScanner {
     protected List<RegionScanner> regionScanners = new ArrayList<>(2);
     protected RegionScanner currentScanner;
     protected HRegion region;
-    protected int scannerPosition = 1;
-    protected int scannerCount = 0;
+    protected int scannerPosition;
+    protected int scannerCount;
     protected Scan scan;
     protected Table htable;
     private Clock clock;
+    private Partition clientPartition;
 
     public SplitRegionScanner(Scan scan,
                               Table table,
                               Clock clock,
                               Partition clientPartition) throws IOException {
-        List<Partition> partitions = getPartitionsInRange(clientPartition, scan);
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, table, partitions.size(), partitions);
-        }
         this.scan = scan;
         this.htable = table;
         this.clock = clock;
+        this.clientPartition = clientPartition;
+        init(false);
+    }
+
+    private void init(boolean refresh) throws IOException {
+        scannerPosition = 1;
+        scannerCount = 0;
+        List<Partition> partitions = getPartitionsInRange(clientPartition, scan, refresh);
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, htable, partitions.size(), partitions);
+        }
         boolean hasAdditionalScanners = true;
         while (hasAdditionalScanners) {
             try {
@@ -70,15 +76,11 @@ public class SplitRegionScanner implements RegionScanner {
                             Bytes.compareTo(regionStopKey, stopRow) <= 0) && regionStopKey.length > 0 ? regionStopKey : stopRow;
                     newScan.setStartRow(splitStart);
                     newScan.setStopRow(splitStop);
-                    newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY, regionStartKey);
-                    newScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY, regionStopKey);
-                    newScan.setAttribute(SIConstants.SI_NEEDED,null);
-                    newScan.setMaxVersions();
                     if (LOG.isDebugEnabled())
-                            SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey='%s', endKey='%s' on partition ['%s', '%s']",
-                                    CellUtils.toHex(splitStart), CellUtils.toHex(splitStop),
-                                    CellUtils.toHex(regionStartKey), CellUtils.toHex(regionStopKey));
-                    createAndRegisterClientSideRegionScanner(table, newScan, partitions.get(i));
+                        SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey='%s', endKey='%s' on partition ['%s', '%s']",
+                                CellUtils.toHex(splitStart), CellUtils.toHex(splitStop),
+                                CellUtils.toHex(regionStartKey), CellUtils.toHex(regionStopKey));
+                    createAndRegisterClientSideRegionScanner(htable, newScan, partitions.get(i));
                 }
                 hasAdditionalScanners = false;
             } catch (Exception ioe) {
@@ -87,7 +89,7 @@ public class SplitRegionScanner implements RegionScanner {
                     hasAdditionalScanners = true;
                     close();
                     partitions = getPartitionsInRange(clientPartition, scan, true);
-                    SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, table, partitions.size(), partitions);
+                    SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, htable, partitions.size(), partitions);
                 } else
                     throw new IOException(ioe);
             }
@@ -103,18 +105,33 @@ public class SplitRegionScanner implements RegionScanner {
     }
 
     public boolean nextInternal(List<Cell> results) throws IOException {
-        boolean next = currentScanner.nextRaw(results);
-        scannerCount++;
-        if (!next && scannerPosition < regionScanners.size()) {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "scanner [%d] exhausted after {%d} records with results=%s", scannerPosition, scannerCount,results);
-            currentScanner = regionScanners.get(scannerPosition);
-            scannerPosition++;
-            scannerCount = 0;
-            return nextInternal(results);
+        try {
+            boolean next = currentScanner.nextRaw(results);
+            scannerCount++;
+            if (!next && scannerPosition < regionScanners.size()) {
+                if (LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG, "scanner [%d] exhausted after {%d} records with results=%s", scannerPosition, scannerCount, results);
+                currentScanner = regionScanners.get(scannerPosition);
+                scannerPosition++;
+                scannerCount = 0;
+                return nextInternal(results);
+            }
+            return next;
+        } catch (IOException ioe) {
+            boolean rethrow = shouldRethrowException(ioe);
+            if (!rethrow) {
+                Cell topCell = ((SkeletonClientSideRegionScanner) this.currentScanner).getTopCell();
+                if (topCell != null) {
+                    scan.setStartRow(Bytes.add(topCell.getRow(), new byte[]{0})); // set to previous start row
+                }
+                close();
+                SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s",scan,htable);
+                init(true); // Refresh
+                results.clear();
+                return nextInternal(results);
+            } else
+                throw new IOException(ioe);
         }
-
-        return next;
     }
 
     @Override
@@ -160,7 +177,7 @@ public class SplitRegionScanner implements RegionScanner {
                         FSUtils.getRootDir(conf),
                         table.getTableDescriptor(),
                         ((RangedClientPartition) partition).getRegionInfo(),
-                        newScan);
+                        newScan, partition.owningServer().getHostAndPort());
         this.region = skeletonClientSideRegionScanner.getRegion();
         registerRegionScanner(skeletonClientSideRegionScanner);
     }

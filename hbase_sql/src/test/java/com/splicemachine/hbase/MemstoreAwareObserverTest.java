@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.when;
 /**
  * Basic concurrency testing on MemstoreAwareObserver
  */
+@Ignore
 public class MemstoreAwareObserverTest {
 
     private static final String REGION_NAME = "NetherRegion";

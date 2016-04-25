@@ -25,8 +25,8 @@ public class HBase10ClientSideRegionScanner extends SkeletonClientSideRegionScan
                                           Path rootDir,
                                           HTableDescriptor htd,
                                           HRegionInfo hri,
-                                          Scan scan) throws IOException{
-        super(table.getConfiguration(),fs,rootDir,htd,hri,scan);
+                                          Scan scan, String hostAndPort) throws IOException{
+        super(table.getConfiguration(),fs,rootDir,htd,hri,scan,hostAndPort);
         this.table = table;
         updateScanner();
     }

@@ -34,6 +34,7 @@ import com.splicemachine.test.Transactions;
  * @author Scott Fines
  * Date: 9/3/14
  */
+@Ignore
 @Category({Transactions.class})
 public class DropColumnTransactionIT {
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropColumnTransactionIT.class.getSimpleName().toUpperCase());

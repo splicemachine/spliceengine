@@ -95,7 +95,9 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
                                 FSUtils.getRootDir(htable.getConfiguration()),
                                 htable.getTableDescriptor(),
                                 htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
-                                scan)){
+                                scan,
+                                htable.getRegionLocation(scan.getStartRow()).getHostnamePort()
+                                )){
                 List results=new ArrayList();
                 while(clientSideRegionScanner.nextRaw(results)){
                     i++;
@@ -130,7 +132,8 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
                                 FSUtils.getRootDir(htable.getConfiguration()),
                                 htable.getTableDescriptor(),
                                 htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
-                                scan)){
+                                scan,
+                                htable.getRegionLocation(scan.getStartRow()).getHostnamePort())){
                 List results=new ArrayList();
                 while(clientSideRegionScanner.nextRaw(results)){
                     i++;

@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
-import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -22,7 +20,6 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.parquet.bytes.BytesUtils;
 
 /**
  * 
@@ -45,6 +42,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	private HTableDescriptor htd;
 	private HRegionInfo hri;
 	private Scan scan;
+    private String hostAndPort;
 	private Cell topCell;
 	private List<KeyValueScanner>	memScannerList = new ArrayList<>(1);
 	private boolean flushed;
@@ -58,7 +56,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                                            Path rootDir,
                                            HTableDescriptor htd,
                                            HRegionInfo hri,
-                                           Scan scan) throws IOException {
+                                           Scan scan, String hostAndPort) throws IOException {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "init for regionInfo=%s, scan=%s", hri,scan);
 		scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
@@ -68,6 +66,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 		this.htd = htd;
 		this.hri = new SpliceHRegionInfo(hri);
 		this.scan = scan;
+        this.hostAndPort = hostAndPort;
 	}
 
     @Override
@@ -125,7 +124,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     @Override
 	public boolean nextRaw(List<Cell> result) throws IOException {
-		boolean res = nextMerged(result, true);
+    	boolean res = nextMerged(result, true);
         Collections.sort(result,timeComparator);
         boolean returnValue = updateTopCell(res,result);
         if (returnValue)
@@ -211,7 +210,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             nextResults.clear();
             res = nextResponse;
         } else {
-            res = scanner.nextRaw(result);
+                res = scanner.nextRaw(result);
         }
         if (matchingFamily(result,ClientRegionConstants.HOLD)) {
             if (result.get(0).getTimestamp()== HConstants.LATEST_TIMESTAMP) {
@@ -241,6 +240,10 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private KeyValueScanner getMemStoreScanner() throws IOException {
         Scan memScan = new Scan(scan);
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.TRUE_BYTES);
+        memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY, hri.getStartKey());
+        memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY, hri.getEndKey());
+        memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_SERVER,Bytes.toBytes(hostAndPort));
+        memScan.setAttribute(SIConstants.SI_NEEDED,null);
         ResultScanner scanner=newScanner(memScan);
         return new MemstoreKeyValueScanner(scanner);
     }
@@ -262,4 +265,9 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     public String toString() {
         return String.format("SkeletonClienSideregionScanner[scan=%s,region=%s,numberOfRows=%d",scan,region.getRegionInfo(),numberOfRows);
     }
+
+    public Cell getTopCell() {
+        return topCell;
+    }
+
 }

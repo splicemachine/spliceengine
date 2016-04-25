@@ -324,13 +324,11 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             srs.close();
         }
         htable.close();
-        System.out.println("Iterations: "+i);
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
     }
 
     @Test
     public void multipleSplits() throws Exception {
-        System.out.println("Before Write -->");
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
                 ,SCHEMA + ".G",SCHEMA + ".A"));
         String tableName = sqlUtil.getConglomID(spliceTableWatcherG.toString());
@@ -363,7 +361,6 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
 
     @Test
     public void testSplitRegionScannerReinit() throws Exception {
-        System.out.println("Before Write -->");
         String tableName = sqlUtil.getConglomID(spliceTableWatcherH.toString());
         Partition partition = driver.getTableFactory()
                 .getTable(tableName);
@@ -411,7 +408,6 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             SplitRegionScanner srs = new SplitRegionScanner(scan, htable, clock, partition);
             while (srs.next(newCells)) {
                 if (i++ == ITERATIONS / 2) {
-                    System.out.println("Moving region from "+regionLocation.getServerName().getServerName()+" to "+newServer.getServerName());
                     admin.move(regionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(newServer.getServerName()));
                 }
                 newCells.clear();
@@ -424,21 +420,6 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
 
     @Test
     public void moveRegionDuringScanMoveBack() throws SQLException, IOException, InterruptedException {
-        // Currently failing with:
-        // java.lang.AssertionError: Did not return all rows
-        // Expected :20000
-        // Actual   :3399
-
-        //
-        // Should see something like:
-        // 16:57:25,894 (main) TRACE [c.s.s.SplitRegionScanner] - registerRegionScanner SkeletonClienSideregionScanner[scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":1,"cacheBlocks":true,"families":{"V":["ALL"]},"maxResultSize":-1,"maxVersions":2147483647,"caching":-1},region={ENCODED => 501b4581b218c3cbc4709d67eef3a7e5, NAME => 'splice:2416,,1461362232847.501b4581b218c3cbc4709d67eef3a7e5.', STARTKEY => '', ENDKEY => ''},numberOfRows=0
-        // .  .  .
-        // Moving region from  10.0.1.32,57303,1461354123498 to 10.0.1.32,57242,1461354072040
-        // .  .  .
-        // Moving region from  10.0.1.32,57242,1461354072040 to 10.0.1.32,57303,1461354123498
-        // .  .  .  .  .  .  .  .  .  .  .  .  .  .
-        // 16:57:29,949 (main) DEBUG [c.s.s.SplitRegionScanner] - close
-
         String tableNameStr = sqlUtil.getConglomID(spliceTableWatcherI.toString());
         Partition partition = driver.getTableFactory().getTable(tableNameStr);
         Table htable = ((ClientPartition) partition).unwrapDelegate();
@@ -453,9 +434,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Scan scan = new Scan();
             SplitRegionScanner srs = new SplitRegionScanner(scan, htable, clock, partition);
             while (srs.next(newCells)) {
-                System.out.print(" . ");
                 if (i++ == (int)ITERATIONS / 6) {
-                    System.out.println("\n"+i+" - Moving region from  "+regionLocation.getServerName().getServerName()+" to "+newServer.getServerName());
                     admin.move(regionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(newServer.getServerName()));
                     // give it a little time for the metadata to be refreshed
                     try {
@@ -466,12 +445,10 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
                 }
                 if (i == (int)ITERATIONS / 3) {
                     HRegionLocation newRegionLocation = getRegionLocation(tableNameStr, admin);
-                    System.out.println("\n"+i+" - Moving region from  "+newRegionLocation.getServerName().getServerName()+" to "+oldServer.getServerName());
                     admin.move(newRegionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(oldServer.getServerName()));
                 }
                 newCells.clear();
             }
-            System.out.println();
             srs.close();
             htable.close();
         }

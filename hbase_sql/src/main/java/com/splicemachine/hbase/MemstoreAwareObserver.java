@@ -10,6 +10,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.BlockingProbe;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.ConnectionUtils;
 import org.apache.hadoop.hbase.client.Scan;
@@ -123,6 +124,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
             byte[] startKey = scan.getAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY);
             byte[] endKey = scan.getAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY);
+            byte[] serverName = scan.getAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_SERVER);
+
 
             // Throw Retry Exception if the region is splittingI real
 
@@ -137,7 +140,9 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                     break;
             }
             if (Bytes.equals(startKey,c.getEnvironment().getRegionInfo().getStartKey()) &&
-                Bytes.equals(endKey,c.getEnvironment().getRegionInfo().getEndKey())) {
+                Bytes.equals(endKey,c.getEnvironment().getRegionInfo().getEndKey()) &&
+                Bytes.equals(serverName,Bytes.toBytes(c.getEnvironment().getRegionServerServices().getServerName().getHostAndPort()))
+                ) {
                 // Partition Hit
                 InternalScan iscan = new InternalScan(scan);
                 iscan.checkOnlyMemStore();
@@ -150,15 +155,19 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                         break;
                 }
                 SpliceLogUtils.warn(LOG, "scan missed do to split after task creation " +
-                                "scan [%s,%s], partition[%s,%s], region=[%s,%s]",
+                                "scan [%s,%s], partition[%s,%s], region=[%s,%s]," +
+                                "server=[%s,%s]",
                         displayByteArray(scan.getStartRow()),
                         displayByteArray(scan.getStopRow()),
                         displayByteArray(startKey),
                         displayByteArray(endKey),
                         displayByteArray(c.getEnvironment().getRegionInfo().getStartKey()),
-                        displayByteArray(c.getEnvironment().getRegionInfo().getEndKey()));
-                throw new DoNotRetryIOException();
+                        displayByteArray(c.getEnvironment().getRegionInfo().getEndKey()),
+                        Bytes.toString(serverName),
+                        c.getEnvironment().getRegionServerServices().getServerName().getHostAndPort()
+                        );
 
+                throw new DoNotRetryIOException();
             }
         }else return s;
 
@@ -197,5 +206,19 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     MemstoreAware getMemstoreAware() {
         // for testing only!
         return memstoreAware.get();
+    }
+
+    @Override
+    public void start(CoprocessorEnvironment e) throws IOException {
+        super.start(e);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"starting [%s]",((RegionCoprocessorEnvironment) e).getRegion().getRegionNameAsString());
+    }
+
+    @Override
+    public void stop(CoprocessorEnvironment e) throws IOException {
+        super.stop(e);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"stopping [%s]", ((RegionCoprocessorEnvironment) e).getRegion().getRegionNameAsString());
     }
 }
