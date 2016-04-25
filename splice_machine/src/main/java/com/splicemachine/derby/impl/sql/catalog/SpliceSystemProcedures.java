@@ -599,6 +599,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .returnType(null).isDeterministic(false)
                             .varchar("statement", Limits.DB2_VARCHAR_MAXWIDTH)
                             .build());
+
+                    // Stored procedure that updates the owner (authorization id) of an existing schema.
+                    procedures.add(Procedure.newBuilder().name("SYSCS_UPDATE_SCHEMA_OWNER")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA)
+                        .returnType(null)
+                        .isDeterministic(false)
+                        .varchar("schemaName", 128)
+                        .varchar("ownerName", 128)
+                        .build());
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
