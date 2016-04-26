@@ -2,139 +2,167 @@ package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.TaskFuture;
-
 import org.apache.hadoop.hbase.util.Bytes;
 
-import javax.management.openmbean.*;
-
 import java.beans.ConstructorProperties;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Scott Fines
- * Date: 1/6/14
+ *         Date: 1/6/14
  */
-public class JobInfo implements JobFuture.StatusHook {
+public class JobInfo implements JobFuture.StatusHook{
 
 
-		public static enum JobState{
-				RUNNING,
-				CANCELLED,
-				FAILED,
-				COMPLETED
-		}
-		private final String jobId;
+    public static enum JobState{
+        RUNNING,
+        CANCELLED,
+        FAILED,
+        COMPLETED
+    }
 
-		private final long[] taskIds;
-		private int taskPos = 0;
-		private final long jobStartMs;
-		private volatile long jobFinishMs;
+    private final String jobId;
 
-		private final AtomicInteger tasksPending = new AtomicInteger(0);
-		private final AtomicInteger tasksCompleted = new AtomicInteger(0);
-		private final AtomicInteger tasksFailed = new AtomicInteger(0);
-		private volatile JobState jobState;
+    private final long[] taskIds;
+    private int taskPos=0;
+    private final long jobStartMs;
+    private volatile long jobFinishMs;
 
-		protected volatile JobFuture jobFuture;
+    private final AtomicInteger tasksPending=new AtomicInteger(0);
+    private final AtomicInteger tasksCompleted=new AtomicInteger(0);
+    private final AtomicInteger tasksFailed=new AtomicInteger(0);
+    private volatile JobState jobState;
 
-		public JobInfo(String jobId,int numTasks,long jobStartMs) {
-				this.jobId = jobId;
+    protected volatile JobFuture jobFuture;
 
-				this.jobStartMs = jobStartMs;
-				this.taskIds = new long[numTasks];
-				this.jobState = JobState.RUNNING;
-		}
+    public JobInfo(String jobId,int numTasks,long jobStartMs){
+        this.jobId=jobId;
 
-		@ConstructorProperties({"jobId","taskIds","jobStartMs","jobFinishMs","tasksPending","tasksCompleted","tasksFailed","jobState"})
-		public JobInfo(String jobId, long[] taskIds, long jobStartMs, long jobFinishMs, int tasksPending, int tasksCompleted, int tasksFailed,JobState jobState){
-				this.jobId = jobId;
-				this.taskIds = taskIds;
-				this.jobStartMs = jobStartMs;
-				this.jobFinishMs = jobFinishMs;
-				this.tasksPending.set(tasksPending);
-				this.tasksCompleted.set(tasksCompleted);
-				this.tasksFailed.set(tasksFailed);
-				this.jobState = jobState;
-		}
+        this.jobStartMs=jobStartMs;
+        this.taskIds=new long[numTasks];
+        this.jobState=JobState.RUNNING;
+    }
 
-		public String getJobId() { return jobId; }
-		public long[] getTaskIds() { return taskIds; }
-		public int getTaskPos() { return taskPos; }
-		public long getJobStartMs() { return jobStartMs; }
-		public long getJobFinishMs() { return jobFinishMs; }
-		public int getTasksPending() { return tasksPending.get(); }
-		public int getTasksCompleted() { return tasksCompleted.get(); }
-		public int getTasksFailed() { return tasksFailed.get(); }
-		public JobState getJobState() { return jobState; }
+    @ConstructorProperties({"jobId","taskIds","jobStartMs","jobFinishMs","tasksPending","tasksCompleted","tasksFailed","jobState"})
+    public JobInfo(String jobId,long[] taskIds,long jobStartMs,long jobFinishMs,int tasksPending,int tasksCompleted,int tasksFailed,JobState jobState){
+        this.jobId=jobId;
+        this.taskIds=taskIds;
+        this.jobStartMs=jobStartMs;
+        this.jobFinishMs=jobFinishMs;
+        this.tasksPending.set(tasksPending);
+        this.tasksCompleted.set(tasksCompleted);
+        this.tasksFailed.set(tasksFailed);
+        this.jobState=jobState;
+    }
 
-		public JobInfo(String jobId,int numTasks) {
-				this.jobId = jobId;
+    public String getJobId(){
+        return jobId;
+    }
 
-				this.jobStartMs = System.currentTimeMillis();
-				this.taskIds = new long[numTasks];
-		}
+    public long[] getTaskIds(){
+        return taskIds;
+    }
 
-		public void taskRunning(byte[] taskId){
-				synchronized (taskIds){
-						taskIds[taskPos] = Bytes.toLong(taskId);
-						taskPos++;
-				}
-				tasksPending.incrementAndGet();
-		}
+    public int getTaskPos(){
+        return taskPos;
+    }
 
-		@Override
-		public void success(TaskFuture taskFuture) {
-				int completedCount = tasksCompleted.incrementAndGet();
-				tasksPending.decrementAndGet();
-				if(completedCount>=taskIds.length){
-						//we are finished! whoo!
-						jobFuture=null;
-						jobFinishMs = System.currentTimeMillis();
-						jobState=JobState.COMPLETED;
-				}
-		}
+    public long getJobStartMs(){
+        return jobStartMs;
+    }
 
-		@Override
-		public void failure(TaskFuture taskFuture) {
-				tasksFailed.incrementAndGet();
-		}
+    public long getJobFinishMs(){
+        return jobFinishMs;
+    }
 
-		@Override
-		public void cancelled(TaskFuture taskFuture) {
-			//no-op
-		}
+    public int getTasksPending(){
+        return tasksPending.get();
+    }
 
-		@Override
-		public void invalidated(TaskFuture taskFuture) {
-				tasksFailed.incrementAndGet();
-		}
+    public int getTasksCompleted(){
+        return tasksCompleted.get();
+    }
 
-		public void failJob(){
-				this.jobState = JobState.FAILED;
-				jobFuture=null;
-		}
+    public int getTasksFailed(){
+        return tasksFailed.get();
+    }
 
-		public int totalTaskCount() {
-				return taskIds.length;
-		}
+    public JobState getJobState(){
+        return jobState;
+    }
 
-		public void tasksRunning(byte[][] allTaskIds) {
-			for(byte[] tId:allTaskIds){
-					taskRunning(tId);
-			}
-		}
+    public JobInfo(String jobId,int numTasks){
+        this.jobId=jobId;
 
-		public void setJobFuture(JobFuture jobFuture) {
-				this.jobFuture = jobFuture;
-		}
+        this.jobStartMs=System.currentTimeMillis();
+        this.taskIds=new long[numTasks];
+    }
 
-		public void cancel() throws ExecutionException {
-				if(jobFuture==null) return; //nothing to do, we're already done
-				this.jobState = JobState.CANCELLED;
-				jobFuture.cancel();
-		}
+    public void taskRunning(byte[] taskId){
+        synchronized(taskIds){
+            taskIds[taskPos]=Bytes.toLong(taskId);
+            taskPos++;
+        }
+        tasksPending.incrementAndGet();
+    }
+
+    public int getRunningTaskCount(){
+        return tasksPending.get();
+    }
+
+
+    @Override
+    public void success(TaskFuture taskFuture){
+        int completedCount=tasksCompleted.incrementAndGet();
+        tasksPending.decrementAndGet();
+        if(completedCount>=taskIds.length){
+            //we are finished! whoo!
+            jobFuture=null;
+            jobFinishMs=System.currentTimeMillis();
+            jobState=JobState.COMPLETED;
+        }
+    }
+
+    @Override
+    public void failure(TaskFuture taskFuture){
+        tasksFailed.incrementAndGet();
+    }
+
+    @Override
+    public void cancelled(TaskFuture taskFuture){
+        //no-op
+    }
+
+    @Override
+    public void invalidated(TaskFuture taskFuture){
+        tasksFailed.incrementAndGet();
+    }
+
+    public void failJob(){
+        this.jobState=JobState.FAILED;
+        jobFuture=null;
+    }
+
+    public int totalTaskCount(){
+        return taskIds.length;
+    }
+
+    public void tasksRunning(byte[][] allTaskIds){
+        for(byte[] tId : allTaskIds){
+            taskRunning(tId);
+        }
+    }
+
+    public void setJobFuture(JobFuture jobFuture){
+        this.jobFuture=jobFuture;
+    }
+
+    public void cancel() throws ExecutionException{
+        if(jobFuture==null) return; //nothing to do, we're already done
+        this.jobState=JobState.CANCELLED;
+        jobFuture.cancel();
+    }
+
 }
 

@@ -334,7 +334,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getCompletedStatements);
 
-        			/* Procedure to get running statements summary */
+                    Procedure getStatementDetails = Procedure.newBuilder().name("SYSCS_GET_STATEMENT_DETAILS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .bigint("statementUuid")
+                            .ownerClass(StatementAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getStatementDetails);
+
+        			/*Procedure to get running statement's summary*/
                     Procedure getRunningStatements = Procedure.newBuilder().name("SYSCS_GET_STATEMENT_SUMMARY")
                             .numOutputParams(0)
                             .numResultSets(1)

@@ -19,6 +19,11 @@ public class WriteFailedException extends IOException {
         this.attemptCount = attemptCount;
     }
 
+    public WriteFailedException(String tableName, Integer attemptCount){
+        this.tableName = tableName;
+        this.attemptCount = attemptCount;
+    }
+
     public WriteFailedException(String message){
         super(message);
     }

@@ -148,10 +148,12 @@ public class SynchronousReadResolver {
         delete.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         try{
             region.delete(delete);
-        }catch(IOException ioe){
-            LOG.info("Exception encountered when attempting to resolve a row as rolled back",ioe);
-            if(failOnError)
-                throw new RuntimeException(ioe);
+        }catch(IOException e){
+            if (!(e instanceof RegionTooBusyException) && !(e instanceof NotServingRegionException)) {
+                LOG.info("Exception encountered when attempting to resolve a row as committed",e);
+                if(failOnError)
+                    throw new RuntimeException(e);
+            }
         }
     }
 }

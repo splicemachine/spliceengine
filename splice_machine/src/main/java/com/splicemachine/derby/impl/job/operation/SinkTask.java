@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -10,8 +12,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSinkFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -25,9 +29,6 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -274,14 +275,22 @@ public class SinkTask extends ZkTask {
         return status.getStatus()==Status.CANCELLED;
     }
 
-		@Override
-		public int getPriority() {
-				if(instructions==null)
-						instructions = SpliceUtils.getSpliceObserverInstructions(scan);
-				//TODO -sf- make this also add priority values to favor shorter tasks over longer ones
-				//TODO -sf- detect system table operations and give them a different priority
-				return SchedulerPriorities.INSTANCE.getBasePriority(instructions.getTopOperation().getClass());
-		}
+    private static final double COST_SCALE_FACTOR=99/Math.log(1000000000000d);
+
+    @Override
+    public int getPriority(){
+        if(instructions==null)
+            instructions=SpliceUtils.getSpliceObserverInstructions(scan);
+        SpliceOperation topOperation=instructions.getTopOperation();
+        double cost=topOperation.getEstimatedCost();
+        if(cost<=1)
+            return 0;
+        else
+            return (int)(Math.log(cost)*COST_SCALE_FACTOR+1);
+//            //TODO -sf- make this also add priority values to favor shorter tasks over longer ones
+//				//TODO -sf- detect system table operations and give them a different priority
+//				return SchedulerPriorities.INSTANCE.getBasePriority(instructions.getTopOperation().getClass());
+    }
 
 		public HRegion getRegion() {
         return region;

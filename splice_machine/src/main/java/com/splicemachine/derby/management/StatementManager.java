@@ -225,6 +225,21 @@ public class StatementManager implements StatementManagement{
 		SpliceLogUtils.info(LOG, "Successfully emptied statement cache.");
 	}
 
+	@Override
+	public StatementInfo findStatement(long statementUuid){
+		List<StatementInfo> executing=getExecutingStatementInfo();
+		List<StatementInfo> completed = getRecentCompletedStatements();
+		for(StatementInfo si:executing){
+			if(si.getStatementUuid()==statementUuid) return si;
+		}
+
+		for(StatementInfo si:completed){
+			if(si.getStatementUuid()==statementUuid) return si;
+		}
+
+		return null;
+	}
+
 	private Connection getConnection() throws SQLException {
 		EmbedConnectionMaker connMaker = new EmbedConnectionMaker();
 		return connMaker.createNew();

@@ -2,6 +2,7 @@ package com.splicemachine.job;
 
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.impl.WriteFailedException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.reflect.ConstructorUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -91,6 +92,9 @@ public class ErrorTransport implements Externalizable {
             return newTransport((StandardException) t);
         }
 
+        if(t instanceof WriteFailedException)
+            return new ErrorTransport(t.getMessage(),false,true,new Object[]{WriteFailedException.class.getName(),((WriteFailedException)t).getTableName(),((WriteFailedException)t).getAttemptCount()});
+
         boolean shouldRetry = Exceptions.shouldRetry(t);
         if (!shouldRetry) {
             if (t instanceof DoNotRetryIOException) {
@@ -124,6 +128,16 @@ public class ErrorTransport implements Externalizable {
             String className = args[0].toString();
             // Async Hbase Error Handling
             Class<? extends Throwable> errorClazz = (Class<? extends Throwable>) Class.forName(className);
+            if(args.length>1){
+                Object[] newConstructorArgs = new Object[args.length-1];
+                System.arraycopy(args,1,newConstructorArgs,0,newConstructorArgs.length);
+                Class[] paramTypes = new Class[newConstructorArgs.length];
+                for(int i=0;i<newConstructorArgs.length;i++){
+                    paramTypes[i] = newConstructorArgs[i].getClass();
+                }
+                Constructor constructor = ConstructorUtils.getAccessibleConstructor(errorClazz,paramTypes);
+                return (Throwable)constructor.newInstance(newConstructorArgs);
+            }
 
             /* one-arg string constructor */
             Constructor constructor = ConstructorUtils.getAccessibleConstructor(errorClazz, String.class);

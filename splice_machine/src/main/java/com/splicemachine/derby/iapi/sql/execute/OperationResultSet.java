@@ -116,7 +116,8 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
         stmtInfo.setOperationInfo(operationInfo);
         topOperation.setStatementId(stmtInfo.getStatementUuid());
 
-        SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
+        if(sql!=null && !sql.equals("null")) //don't display statement info if we aren't actually a statement
+            SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
 
         return stmtInfo;
     }

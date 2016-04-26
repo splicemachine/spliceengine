@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.exception;
 
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.ExceptionTranslator;
+import com.splicemachine.pipeline.impl.WriteFailedException;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
@@ -1809,7 +1810,19 @@ public enum ErrorState {
     SPLICE_WRITE_RETRIES_EXHAUSTED("SE003"){
         @Override
         public boolean accepts(Throwable t) {
-            return t instanceof RetriesExhaustedException || t instanceof AttemptsExhaustedException || super.accepts(t);
+            return t instanceof RetriesExhaustedException
+                    || t instanceof WriteFailedException
+                    || t instanceof AttemptsExhaustedException
+                    || super.accepts(t);
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause){
+            if(rootCause instanceof WriteFailedException){
+                WriteFailedException wfe = (WriteFailedException)rootCause;
+                return StandardException.newException(getSqlState(),wfe.getTableName(),wfe.getAttemptCount());
+            }
+            return super.newException(rootCause);
         }
     },
     SPLICE_REGION_OFFLINE("SE004"){
