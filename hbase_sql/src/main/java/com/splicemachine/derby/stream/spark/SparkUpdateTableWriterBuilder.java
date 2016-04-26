@@ -10,18 +10,19 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.stream.output.SMOutputFormat;
+import scala.util.Either;
 
 /**
  * @author Scott Fines
  *         Date: 1/25/16
  */
 public class SparkUpdateTableWriterBuilder<K,V> extends UpdateTableWriterBuilder{
-    private transient JavaPairRDD<K,V> rdd;
+    private transient JavaPairRDD<K,Either<Exception, V>> rdd;
 
     public SparkUpdateTableWriterBuilder(){
     }
 
-    public SparkUpdateTableWriterBuilder(JavaPairRDD<K, V> rdd){
+    public SparkUpdateTableWriterBuilder(JavaPairRDD<K, Either<Exception, V>> rdd){
         this.rdd=rdd;
     }
 

@@ -9,13 +9,14 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
+import scala.util.Either;
 
 import java.io.IOException;
 
 /**
  * Created by jyuan on 10/19/15.
  */
-public class HTableRecordWriter extends RecordWriter<byte[],Object> {
+public class HTableRecordWriter extends RecordWriter<byte[],Either<Exception, KVPair>> {
     private static Logger LOG = Logger.getLogger(HTableRecordWriter.class);
     boolean initialized = false;
     TableWriter tableWriter;
@@ -29,16 +30,16 @@ public class HTableRecordWriter extends RecordWriter<byte[],Object> {
     }
 
     @Override
-    public void write(byte[] rowKey, Object value) throws IOException, InterruptedException {
-        if (value instanceof Exception) {
-            Exception e = (Exception) value;
+    public void write(byte[] rowKey, Either<Exception, KVPair> value) throws IOException, InterruptedException {
+        if (value.isLeft()) {
+            Exception e = value.left().get();
             // failure
             failure = true;
             SpliceLogUtils.error(LOG,"Error Reading",e);
             throw new IOException(e);
         }
-        assert value instanceof KVPair;
-        KVPair kvPair = (KVPair) value;
+        assert value.isRight();
+        KVPair kvPair = value.right().get();
         try {
             if (!initialized) {
                 initialized = true;

@@ -15,6 +15,7 @@ import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import org.apache.spark.api.java.JavaPairRDD;
 import scala.Tuple2;
+import scala.util.Either;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -208,22 +209,22 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException{
-        return new SparkDeleteTableWriterBuilder<>(wrapExceptions(rdd));
+        return new SparkDeleteTableWriterBuilder<>(wrapExceptions());
     }
 
     @Override
     public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
-        return new SparkInsertTableWriterBuilder<>(wrapExceptions(rdd));
+        return new SparkInsertTableWriterBuilder<>(wrapExceptions());
     }
 
     @Override
     public UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException{
-        return new SparkUpdateTableWriterBuilder<>(wrapExceptions(rdd));
+        return new SparkUpdateTableWriterBuilder<>(wrapExceptions());
     }
 
     @Override
     public DataSetWriterBuilder directWriteData() throws StandardException{
-        return new SparkDirectWriterBuilder<>(wrapExceptions(rdd));
+        return new SparkDirectWriterBuilder<>(wrapExceptions());
     }
 
     private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
@@ -235,8 +236,8 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
         }
     }
 
-    private <K> JavaPairRDD<K,Object> wrapExceptions(JavaPairRDD<K, V> rdd) {
-        return ((JavaPairRDD<K, Object>)rdd).mapPartitionsToPair(new ExceptionWrapperFunction<K>());
+    JavaPairRDD<K,Either<Exception, V>> wrapExceptions() {
+        return rdd.mapPartitionsToPair(new ExceptionWrapperFunction<K, V>());
     }
 
     @SuppressWarnings("rawtypes")

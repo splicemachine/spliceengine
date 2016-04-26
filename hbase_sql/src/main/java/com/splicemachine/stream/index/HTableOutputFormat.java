@@ -11,13 +11,14 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.log4j.Logger;
+import scala.util.Either;
 
 import java.io.IOException;
 
 /**
  * Created by jyuan on 10/19/15.
  */
-public class HTableOutputFormat extends OutputFormat<byte[],Object> implements Configurable {
+public class HTableOutputFormat extends OutputFormat<byte[],Either<Exception, KVPair>> implements Configurable {
     private static Logger LOG = Logger.getLogger(HTableOutputFormat.class);
     protected Configuration conf;
     protected SpliceOutputCommitter outputCommitter;
@@ -38,7 +39,7 @@ public class HTableOutputFormat extends OutputFormat<byte[],Object> implements C
     }
 
     @Override
-    public RecordWriter getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+    public RecordWriter<byte[],Either<Exception, KVPair>> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         try {
             DataSetWriterBuilder tableWriter =TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());

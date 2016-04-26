@@ -13,15 +13,16 @@ import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.stream.output.SMOutputFormat;
+import scala.util.Either;
 
 /**
  * @author Scott Fines
  *         Date: 1/25/16
  */
 public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder{
-    private transient JavaPairRDD<K,V> rdd;
+    private transient JavaPairRDD<K,Either<Exception, V>> rdd;
 
-    public SparkInsertTableWriterBuilder(JavaPairRDD<K,V> rdd){
+    public SparkInsertTableWriterBuilder(JavaPairRDD<K,Either<Exception, V>> rdd){
         this.rdd=rdd;
     }
 

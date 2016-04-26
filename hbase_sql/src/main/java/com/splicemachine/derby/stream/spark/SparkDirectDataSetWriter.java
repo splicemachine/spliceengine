@@ -14,6 +14,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import scala.util.Either;
 
 import java.util.Collections;
 
@@ -22,7 +23,7 @@ import java.util.Collections;
  *         Date: 1/25/16
  */
 public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
-    private final JavaPairRDD<K, V> rdd;
+    private final JavaPairRDD<K, Either<Exception, V>> rdd;
     private final JavaSparkContext context;
     private final OperationContext opContext;
     private final Configuration conf;
@@ -30,7 +31,7 @@ public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
     private long destConglom;
     private TxnView txn;
 
-    public SparkDirectDataSetWriter(JavaPairRDD<K, V> rdd,
+    public SparkDirectDataSetWriter(JavaPairRDD<K, Either<Exception, V>> rdd,
                                     JavaSparkContext context,
                                     OperationContext opContext,
                                     Configuration conf,

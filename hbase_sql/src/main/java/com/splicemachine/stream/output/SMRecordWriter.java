@@ -11,12 +11,14 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
+import scala.util.Either;
+
 import java.io.IOException;
 
 /**
  * Created by jleach on 5/18/15.
  */
-public class SMRecordWriter extends RecordWriter<RowLocation,Object> {
+public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, ExecRow>> {
     private static Logger LOG = Logger.getLogger(SMRecordWriter.class);
     boolean initialized = false;
     TableWriter tableWriter;
@@ -30,16 +32,16 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Object> {
     }
 
     @Override
-    public void write(RowLocation rowLocation, Object value) throws IOException, InterruptedException {
-        if (value instanceof Exception) {
-            Exception e = (Exception) value;
+    public void write(RowLocation rowLocation, Either<Exception, ExecRow> value) throws IOException, InterruptedException {
+        if (value.isLeft()) {
+            Exception e = value.left().get();
             // failure
             failure = true;
             SpliceLogUtils.error(LOG,"Error Reading",e);
             throw new IOException(e);
         }
-        assert value instanceof ExecRow;
-        ExecRow execRow = (ExecRow) value;
+        assert value.isRight();
+        ExecRow execRow = value.right().get();
         try {
             if (!initialized) {
                 initialized = true;

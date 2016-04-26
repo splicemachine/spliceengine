@@ -16,6 +16,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
+import scala.util.Either;
 
 import java.util.Collections;
 
@@ -24,7 +25,7 @@ import java.util.Collections;
  *         Date: 1/25/16
  */
 public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
-    private JavaPairRDD<K,V> rdd;
+    private JavaPairRDD<K,Either<Exception, V>> rdd;
     private final OperationContext operationContext;
     private final Configuration conf;
     private long heapConglom;
@@ -37,7 +38,7 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
     private FormatableBitSet heapList;
     private transient TxnView txn;
 
-    public SparkUpdateDataSetWriter(JavaPairRDD<K, V> rdd,
+    public SparkUpdateDataSetWriter(JavaPairRDD<K, Either<Exception, V>> rdd,
                                     OperationContext operationContext,
                                     Configuration conf,
                                     long heapConglom,

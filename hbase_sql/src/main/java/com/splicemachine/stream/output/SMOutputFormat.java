@@ -12,12 +12,14 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.log4j.Logger;
+import scala.util.Either;
+
 import java.io.IOException;
 
 /**
  * Created by jleach on 5/18/15.
  */
-public class SMOutputFormat extends OutputFormat<RowLocation,Object> implements Configurable {
+public class SMOutputFormat extends OutputFormat<RowLocation,Either<Exception, ExecRow>> implements Configurable {
     private static Logger LOG = Logger.getLogger(SMOutputFormat.class);
     protected Configuration conf;
     protected SpliceOutputCommitter outputCommitter;
@@ -37,7 +39,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,Object> implements 
     }
 
     @Override
-    public RecordWriter getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+    public RecordWriter<RowLocation,Either<Exception, ExecRow>> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         try {
             DataSetWriterBuilder dsWriter = TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());

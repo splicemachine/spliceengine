@@ -17,18 +17,19 @@ import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.stream.index.HTableOutputFormat;
+import scala.util.Either;
 
 /**
  * @author Scott Fines
  *         Date: 1/25/16
  */
 public class SparkDirectWriterBuilder<K,V> extends DirectTableWriterBuilder{
-    private JavaPairRDD<K, V> rdd;
+    private JavaPairRDD<K, Either<Exception, V>> rdd;
 
     public SparkDirectWriterBuilder(){
     }
 
-    public SparkDirectWriterBuilder(JavaPairRDD<K, V> rdd){
+    public SparkDirectWriterBuilder(JavaPairRDD<K, Either<Exception, V>> rdd){
         this.rdd=rdd;
     }
 

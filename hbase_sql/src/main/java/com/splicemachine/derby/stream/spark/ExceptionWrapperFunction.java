@@ -1,7 +1,11 @@
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import scala.Tuple2;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -10,24 +14,24 @@ import java.util.Iterator;
  * This function wraps any Exception caused by the read stack in Spark in a Tuple2, for consumption by the
  * RecordWriter implementation.
  */
-public class ExceptionWrapperFunction<K> implements PairFlatMapFunction<Iterator<Tuple2<K,Object>>, K,Object>, Serializable {
+public class ExceptionWrapperFunction<K,V> implements PairFlatMapFunction<Iterator<Tuple2<K,V>>, K,Either<Exception,V>>, Serializable {
     @Override
-    public Iterable<Tuple2<K, Object>> call(final Iterator<Tuple2<K, Object>> tuple2Iterator) throws Exception {
-        return new Iterable<Tuple2<K, Object>>() {
+    public Iterable<Tuple2<K, Either<Exception, V>>> call(final Iterator<Tuple2<K, V>> tuple2Iterator) throws Exception {
+        return new Iterable<Tuple2<K, Either<Exception, V>>>() {
             @Override
-            public Iterator<Tuple2<K, Object>> iterator() {
+            public Iterator<Tuple2<K, Either<Exception, V>>> iterator() {
                 return new IteratorExceptionWrapper(tuple2Iterator);
             }
         };
     }
 }
 
-class IteratorExceptionWrapper<K> implements Iterator<Tuple2<K, Object>> {
-    Iterator<Tuple2<K, Object>> delegate;
+class IteratorExceptionWrapper<K,V> implements Iterator<Tuple2<K, ? extends Either<Exception, V>>> {
+    Iterator<Tuple2<K, V>> delegate;
     Exception caught;
     boolean consumed = false;
 
-    public IteratorExceptionWrapper(Iterator<Tuple2<K, Object>> delegate) {
+    public IteratorExceptionWrapper(Iterator<Tuple2<K, V>> delegate) {
         this.delegate = delegate;
     }
 
@@ -44,16 +48,17 @@ class IteratorExceptionWrapper<K> implements Iterator<Tuple2<K, Object>> {
     }
 
     @Override
-    public Tuple2<K, Object> next() {
+    public Tuple2<K, ? extends Either<Exception, V>> next() {
         if (caught != null) {
             consumed = true;
-            return new Tuple2<>(null, (Object) caught);
+            return new Tuple2<>(null, new Left<Exception, V>(caught));
         }
         try {
-            return delegate.next();
+            Tuple2<K, V> result = delegate.next();
+            return new Tuple2<>(result._1(), new Right<Exception, V>(result._2()));
         } catch (Exception e) {
             consumed = true;
-            return new Tuple2<>(null, (Object) e);
+            return new Tuple2<>(null, new Left<Exception, V>(e));
         }
     }
 
