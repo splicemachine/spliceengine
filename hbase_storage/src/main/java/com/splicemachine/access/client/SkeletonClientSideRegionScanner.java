@@ -2,8 +2,6 @@ package com.splicemachine.access.client;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
@@ -28,12 +26,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private boolean isClosed = false;
     private static final Logger LOG = Logger.getLogger(SkeletonClientSideRegionScanner.class);
-    private static final Comparator<Cell> timeComparator=new Comparator<Cell>(){
-        @Override
-        public int compare(Cell o1,Cell o2){
-            return Long.compare(o2.getTimestamp(),o1.getTimestamp());
-        }
-    };
 	private HRegion region;
 	private RegionScanner scanner;
 	private Configuration conf;
@@ -46,8 +38,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	private Cell topCell;
 	private List<KeyValueScanner>	memScannerList = new ArrayList<>(1);
 	private boolean flushed;
-	private List<Cell> nextResults = new ArrayList<>();
-	private boolean nextResponse;
 	private long numberOfRows = 0;
 
 	
@@ -124,8 +114,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     @Override
 	public boolean nextRaw(List<Cell> result) throws IOException {
-    	boolean res = nextMerged(result, true);
-        Collections.sort(result,timeComparator);
+    	boolean res = nextMerged(result);
         boolean returnValue = updateTopCell(res,result);
         if (returnValue)
             numberOfRows++;
@@ -178,7 +167,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             flushed = true;
             updateScanner();
             flushed = false;
-            nextResults.clear();
             results.clear();
             return nextRaw(results);
         } else
@@ -199,19 +187,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         return false;
     }
 
-    private boolean nextMerged(List<Cell> result, boolean recurse) throws IOException {
-        boolean res;
-        if (!nextResults.isEmpty()) {
-            // Removed AddAll in an attempt to not perform an array copy
-            // result.addAll(nextResults);
-            for (int i = 0; i<nextResults.size();i++) {
-                result.add(nextResults.get(i));
-            }
-            nextResults.clear();
-            res = nextResponse;
-        } else {
-                res = scanner.nextRaw(result);
-        }
+    private boolean nextMerged(List<Cell> result) throws IOException {
+        boolean res = scanner.nextRaw(result);
         if (matchingFamily(result,ClientRegionConstants.HOLD)) {
             if (result.get(0).getTimestamp()== HConstants.LATEST_TIMESTAMP) {
                 result.clear();
@@ -219,16 +196,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             }
             else {
                 result.clear();
-                return nextMerged(result, recurse);
+                return nextMerged(result); // Go another level...
             }
-        }
-        if (res && recurse) {
-            nextResponse = nextMerged(nextResults, false);
-            if (!nextResults.isEmpty() && CellUtil.matchingRow(nextResults.get(0),result.get(0))){
-                result.addAll(nextResults);
-                nextResults.clear();
-            }
-            return true;
         }
         return res;
     }

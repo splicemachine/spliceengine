@@ -35,19 +35,27 @@ public class SplitRegionScanner implements RegionScanner {
     protected HRegion region;
     protected int scannerPosition;
     protected int scannerCount;
+    protected int reInitCount;
+    protected int scanExceptionCount;
+    protected int totalScannerCount;
     protected Scan scan;
     protected Table htable;
     private Clock clock;
     private Partition clientPartition;
+    private Scan initialScan;
 
     public SplitRegionScanner(Scan scan,
                               Table table,
                               Clock clock,
                               Partition clientPartition) throws IOException {
         this.scan = scan;
+        this.initialScan = new Scan(scan);
         this.htable = table;
         this.clock = clock;
         this.clientPartition = clientPartition;
+        totalScannerCount = 0;
+        reInitCount = 0;
+        scanExceptionCount = 0;
         init(false);
     }
 
@@ -86,6 +94,7 @@ public class SplitRegionScanner implements RegionScanner {
             } catch (Exception ioe) {
                 boolean rethrow = shouldRethrowException(ioe);
                 if (!rethrow) {
+                    reInitCount++;
                     hasAdditionalScanners = true;
                     close();
                     partitions = getPartitionsInRange(clientPartition, scan, true);
@@ -108,6 +117,7 @@ public class SplitRegionScanner implements RegionScanner {
         try {
             boolean next = currentScanner.nextRaw(results);
             scannerCount++;
+            totalScannerCount++;
             if (!next && scannerPosition < regionScanners.size()) {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "scanner [%d] exhausted after {%d} records with results=%s", scannerPosition, scannerCount, results);
@@ -117,9 +127,10 @@ public class SplitRegionScanner implements RegionScanner {
                 return nextInternal(results);
             }
             return next;
-        } catch (IOException ioe) {
+        } catch (IOException ioe) { // Move Issue
             boolean rethrow = shouldRethrowException(ioe);
             if (!rethrow) {
+                scanExceptionCount++;
                 Cell topCell = ((SkeletonClientSideRegionScanner) this.currentScanner).getTopCell();
                 if (topCell != null) {
                     scan.setStartRow(Bytes.add(topCell.getRow(), new byte[]{0})); // set to previous start row
@@ -130,19 +141,20 @@ public class SplitRegionScanner implements RegionScanner {
                 results.clear();
                 return nextInternal(results);
             } else
+                close(); // Close Scans
                 throw new IOException(ioe);
         }
     }
 
     @Override
     public void close() throws IOException {
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "close");
+        SpliceLogUtils.warn(LOG, "close table [%s], scan [%s] with rowCount=%d, reinitCount=%d, scannerExceptionCount=%d",htable.getName().toString(),initialScan,totalScannerCount,reInitCount,scanExceptionCount);
         for (RegionScanner rs : regionScanners) {
             rs.close();
         }
         regionScanners.clear();
         currentScanner = null;
+
     }
 
     @Override
