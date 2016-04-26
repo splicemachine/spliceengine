@@ -54,9 +54,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private final PartitionFactory partitionFactory;
     private PipingCallBuffer retryPipingCallBuffer=null; // retryCallBuffer
 
-    private final int maxRejectedAttempts;
-    private final int maxFailedAttempts;
-
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public BulkWriteAction(byte[] tableName,
@@ -83,10 +80,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
         this.writeTimer=metricFactory.newTimer();
         this.pipelineExceptionFactory = pipelineExceptionFactory;
         this.partitionFactory = partitionFactory;
-        int maximumRetries=writeConfiguration.getMaximumRetries();
-        this.maxFailedAttempts = maximumRetries;
-        //allow twice the number of rejections as base writes
-        this.maxRejectedAttempts = maximumRetries*2;
     }
 
     @Override
@@ -182,18 +175,12 @@ public class BulkWriteAction implements Callable<WriteStats>{
             }
             executeSingle(nextWrite,ctx);
 
-            if(!ctx.canRetry())
-                ctx.throwWriteFailed();
-
             /*
              * We need to do an exponential backoff to ensure that our cache has a chance to invalidate, or
              * simply because we were told to wait a bit by the write pipeline (i.e. we were rejected).
              */
             if(ctx.shouldSleep()){
-                long pause = writeConfiguration.getPause();
-                if(ctx.rejected)
-                    pause/=2;
-                clock.sleep(PipelineUtils.getWaitTime(ctx.attemptCount,pause),TimeUnit.MILLISECONDS);
+                clock.sleep(PipelineUtils.getPauseTime(ctx.attemptCount,10),TimeUnit.MILLISECONDS);
             }if(ctx.directRetry)
                 writesToPerform.add(nextWrite);
             else if(ctx.nextWriteSet!=null &&ctx.nextWriteSet.size()>0){
@@ -206,7 +193,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 writesToPerform.addAll(retryPipingCallBuffer.getBulkWrites());
                 retryPipingCallBuffer=null;
             }
-        }while(ctx.canRetry() && writesToPerform.size()>0);
+        }while(writesToPerform.size()>0);
     }
 
     private void executeSingle(BulkWrites nextWrite,WriteAttemptContext ctx) throws Exception{
@@ -450,17 +437,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
 
         boolean shouldSleep(){
             return sleep || refreshCache;
-        }
-
-        boolean canRetry(){
-            return rejectedCount<maxRejectedAttempts && failedCount < maxFailedAttempts;
-        }
-
-        void throwWriteFailed() throws Exception{
-            if(rejectedCount>=maxRejectedAttempts)
-                throw pipelineExceptionFactory.processErrorResult(WriteResult.regionTooBusy());
-            else //TODO -sf- can we include a good error message here?
-                throw new WriteFailedException(Bytes.toString(tableName),writeConfiguration.getMaximumRetries());
         }
 
         void reset(){

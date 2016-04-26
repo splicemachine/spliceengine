@@ -12,10 +12,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.Lists;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -24,7 +21,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class PipelineUtils{
     private static final Logger LOG=Logger.getLogger(PipelineUtils.class);
-
+    public static final int RETRY_BACKOFF[] = {1, 2, 3, 5, 10, 20, 40, 100, 100, 100, 100, 200, 200};
+    private static final Random RANDOM = new Random();
     public static final PreFlushHook noOpFlushHook = new PreFlushHook() {
         @Override
         public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception {
@@ -63,42 +61,24 @@ public class PipelineUtils{
         return toRetry;
     }
 
-    public static long getWaitTime(int retryCount,long pauseInterval){
-        /*
-         * Exponential backoff here to avoid over-forcing the retry. Use a random
-         * interval to avoid having a bunch retry at identical times. The randomness is limited
-         * to the maximum wait for the last interval and the minimum wait for the current attempt count;
-         */
-        int maxWaitFactor = 32;
-        long waitTime;
-        long jitter;
-        if(retryCount==0||retryCount==1){
-            waitTime=pauseInterval;
-            jitter=pauseInterval/8; //~12.5% of the interval is out jitter window
-        }else if(retryCount>maxWaitFactor){
-            waitTime=(maxWaitFactor>>1)*pauseInterval;
-            jitter = maxWaitFactor>>3; //~12.5% of the scale factor
-        }else{
-            int wf = maxWaitFactor;
-            //find the highest set 1-bit less than the maxWaitFactor
-            while(wf>0){
-                if((retryCount&wf)!=0){
-                    break;
-                }else
-                    wf>>=1;
-            }
-            waitTime = (wf>>1)*pauseInterval;
-            jitter = Math.max(wf>>4,pauseInterval/8);
+
+    /**
+     *
+     * Get Pause time in millis (Mirrors Hbase)
+     *
+     * @param pause
+     * @param tries
+     * @return
+     */
+
+    public static long getPauseTime(final long pause, final int tries) {
+        int ntries = tries;
+        if (ntries >= RETRY_BACKOFF.length) {
+            ntries = RETRY_BACKOFF.length - 1;
         }
-        long jitterTime = jitter>0?ThreadLocalRandom.current().nextLong(-jitter,jitter):0;
-        return waitTime+jitterTime;
+        long normalPause = pause * RETRY_BACKOFF[ntries];
+        long jitter =  (long)(normalPause * RANDOM.nextFloat() * 0.01f); // 1% possible jitter
+        return normalPause + jitter;
     }
 
-    public static void main(String...args) throws Exception{
-        long totalSleepTime = 0l;
-        for(int i=0;i<40;i++){
-           totalSleepTime+=getWaitTime(i,1000L);
-        }
-        System.out.println(totalSleepTime);
-    }
 }
