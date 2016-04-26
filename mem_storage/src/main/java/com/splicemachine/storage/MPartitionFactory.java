@@ -133,5 +133,10 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         public Iterable<TableDescriptor> listTables() throws IOException {
             throw new UnsupportedOperationException("Cannot list table descriptors in an in-memory storage engine!");
         }
+
+        @Override
+        public void move(String partition, String server) throws IOException {
+            throw new UnsupportedOperationException("Cannot move partitions in an in-memory storage engine!");
+        }
     }
 }

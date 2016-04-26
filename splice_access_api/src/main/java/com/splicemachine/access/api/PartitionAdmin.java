@@ -30,4 +30,6 @@ public interface PartitionAdmin extends AutoCloseable{
     Iterable<TableDescriptor> listTables() throws IOException;
 
     TableDescriptor[] getTableDescriptors(List<String> tables) throws IOException;
+
+    void move(String partition,String server) throws IOException;
 }

@@ -85,7 +85,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
     public void splitRegion(byte[] regionName, byte[]... splitPoints) throws IOException {
         if (splitPoints != null && splitPoints.length > 0) {
             for(byte[] splitPoint:splitPoints){
-                admin.splitRegion(regionName,splitPoint);
+                admin.splitRegion(regionName, splitPoint);
             }
         } else {
             admin.splitRegion(regionName);
@@ -142,5 +142,10 @@ public class H10PartitionAdmin implements PartitionAdmin{
         }
         List<TableDescriptor> tableDescriptorList = Arrays.asList(tableDescriptors);
         return tableDescriptorList;
+    }
+
+    @Override
+    public void move(String partition, String server) throws IOException {
+        admin.move(partition.getBytes(), server!=null && server.length()>0?server.getBytes():null);
     }
 }

@@ -65,4 +65,9 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public Iterable<TableDescriptor> listTables() throws IOException {
         return admin.listTables();
     }
+
+    @Override
+    public void move(String partition, String server) throws IOException {
+        admin.move(partition, server);
+    }
 }
