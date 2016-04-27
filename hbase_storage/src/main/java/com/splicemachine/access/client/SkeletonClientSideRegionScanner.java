@@ -176,27 +176,21 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
     private boolean matchingFamily(List<Cell> result, byte[] family) {
-        if (result.isEmpty())
-            return false;
-        int size = result.size();
-        //noinspection ForLoopReplaceableByForEach
-        for (int i = 0; i<size; i++) {
-            if(CellUtil.matchingFamily(result.get(i),family))
-                return true;
-        }
-        return false;
+        return result.isEmpty()?false:CellUtil.matchingFamily(result.get(0),family);
     }
 
     private boolean nextMerged(List<Cell> result) throws IOException {
         boolean res = scanner.nextRaw(result);
+        // Drain HoldTimestamps
         if (matchingFamily(result,ClientRegionConstants.HOLD)) {
+            // Second Hold, null out scanner
             if (result.get(0).getTimestamp()== HConstants.LATEST_TIMESTAMP) {
                 result.clear();
                 return false;
             }
-            else {
+            else { // First Hold, traverse to real records.
                 result.clear();
-                return nextMerged(result); // Go another level...
+                return nextMerged(result);
             }
         }
         return res;
