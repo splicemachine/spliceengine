@@ -404,9 +404,8 @@ public class StatisticsTask extends ZkTask{
     private long[] getStatsConglomerateIds() throws ExecutionException {
         try (SpliceTransactionResourceImpl txn = new SpliceTransactionResourceImpl()){
             txn.marshallTransaction(getTxn());
+            LanguageConnectionContext lcc = txn.getLcc();
 
-            EmbedConnection dbConn = (EmbedConnection) SpliceDriver.driver().getInternalConnection();
-            LanguageConnectionContext lcc = dbConn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
             SchemaDescriptor sysSchema = dd.getSystemSchemaDescriptor();
 
