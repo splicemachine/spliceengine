@@ -92,7 +92,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
 		}
 
-		@Override
+
+	@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				HashPrefix prefix;
 				DataHash dataHash;
