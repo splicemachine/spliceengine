@@ -1123,11 +1123,11 @@ public class TernaryOperatorNode extends OperatorNode
 
     @Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        long c1 = leftOperand.nonZeroCardinality(numberOfRows);
-        long c2 = rightOperand.nonZeroCardinality(numberOfRows);
-        long c3 = receiver.nonZeroCardinality(numberOfRows);
+		long c1 = leftOperand != null ? leftOperand.nonZeroCardinality(numberOfRows) : 0;
+		long c2 = rightOperand != null ? rightOperand.nonZeroCardinality(numberOfRows) : 0;
+		long c3 = receiver!= null ? receiver.nonZeroCardinality(numberOfRows) : 0;
 
-        return Math.max(Math.max(c1, c2), c3);
+		return Math.max(Math.max(c1, c2), c3);
     }
 
 }
