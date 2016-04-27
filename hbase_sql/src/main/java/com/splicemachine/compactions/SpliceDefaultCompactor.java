@@ -6,9 +6,11 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.constants.EnvUtils;
+import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.olap.DistributedCompaction;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -37,6 +39,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class SpliceDefaultCompactor extends DefaultCompactor {
@@ -93,12 +98,29 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 getPoolName(),
                 getScope(request),
                 regionLocation);
-        CompactionResult result;
-        try{
-            result=EngineDriver.driver().getOlapClient().execute(jobRequest);
-        }catch(TimeoutException e){
-            throw new IOException(e.getMessage());
+        CompactionResult result = null;
+        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().executeAsync(jobRequest);
+        SConfiguration config = HConfiguration.getConfiguration();
+        while(result == null) {
+            try {
+                result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            } catch (ExecutionException e) {
+                throw Exceptions.rawIOException(e.getCause());
+            } catch (TimeoutException e) {
+                // check region write status
+                if (!store.areWritesEnabled()) {
+                    futureResult.cancel(true);
+                    progress.cancel();
+                    // TODO should we cleanup files written by Spark?
+                    throw new IOException("Region has been closed, compaction aborted");
+                }
+            }
         }
+
         List<String> sPaths = result.getPaths();
 
         if (LOG.isTraceEnabled())

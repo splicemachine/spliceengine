@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.olap;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -24,6 +25,8 @@ public interface OlapClient {
      * @throws TimeoutException if the operations timed out and needs to be aborted
      */
     <R extends OlapResult> R execute(@Nonnull DistributedJob jobRequest) throws IOException,TimeoutException;
+
+    <R extends OlapResult> Future<R> executeAsync(@Nonnull DistributedJob jobRequest) throws IOException;
 
     void shutdown();
 }

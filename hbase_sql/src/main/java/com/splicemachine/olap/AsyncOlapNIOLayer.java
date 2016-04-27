@@ -160,7 +160,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
 
         @Override
         public boolean isDone(){
-            return failed || finalResult!=null;
+            return cancelled || failed || finalResult!=null;
         }
 
         @Override
@@ -182,6 +182,8 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                     return finalResult;
                 else if(failed)
                     throw new ExecutionException(cause);
+                else if(cancelled)
+                    throw new ExecutionException(new IOException("Job was cancelled"));
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();
 
@@ -205,8 +207,6 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             else if(failed)
                 throw new ExecutionException(cause);
 
-//            LOG.error("nanosRemaining="+nanosRemaining+",timeNanos="+unit.toNanos(timeout)+",timeout="+timeout+",unit="+unit);
-            doCancel();
             throw new TimeoutException();
         }
 
@@ -391,6 +391,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx,Throwable cause) throws Exception{
             future.fail(cause);
+            ctx.pipeline().remove(this); //we don't want this in the pipeline anymore
             channelPool.release(ctx.channel());
             future.signal();
         }
@@ -428,6 +429,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx,Throwable cause) throws Exception{
             future.fail(cause);
+            ctx.pipeline().remove(this); //we don't want this in the pipeline anymore
             channelPool.release(ctx.channel());
             future.signal();
         }

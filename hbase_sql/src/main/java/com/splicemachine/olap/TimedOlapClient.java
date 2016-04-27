@@ -48,6 +48,11 @@ public class TimedOlapClient implements OlapClient{
     }
 
     @Override
+    public <R extends OlapResult> Future<R> executeAsync(@Nonnull DistributedJob jobRequest) throws IOException {
+        return (Future<R>) networkLayer.submit(jobRequest);
+    }
+
+    @Override
     public void shutdown(){
         networkLayer.shutdown();
     }

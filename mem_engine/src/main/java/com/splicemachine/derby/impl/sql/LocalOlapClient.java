@@ -10,6 +10,8 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -36,6 +38,16 @@ public class LocalOlapClient implements OlapClient{
             throw new IOException(e);
         }
         return (R)status.getResult();
+    }
+
+    @Override
+    public <R extends OlapResult> Future<R> executeAsync(@Nonnull final DistributedJob jobRequest) throws IOException {
+        return new FutureTask<R>(new Callable<R>() {
+            @Override
+            public R call() throws Exception {
+                return execute(jobRequest);
+            }
+        });
     }
 
     @Override public void shutdown(){ }
