@@ -100,6 +100,7 @@ public class StatementManager implements StatementManagement{
 				LOG.trace(String.format("Removed executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
 	        }
 		}
+        return isContained;
     }
 	
 	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
