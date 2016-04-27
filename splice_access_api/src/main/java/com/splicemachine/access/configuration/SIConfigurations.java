@@ -99,11 +99,18 @@ public class SIConfigurations implements ConfigurationDefault {
 
 
     /**
-     * The number of milliseconds the timestamp client should wait for the response.
-     * Defaults to 60000 (60 seconds)
+     * The number of milliseconds the OLAP client should wait for a result.
+     * Defaults to Integer.MAX_VALUE (wait forever)
      */
     public static final String OLAP_CLIENT_WAIT_TIME = "splice.olap_server.clientWaitTime";
-    private static final int DEFAULT_OLAP_CLIENT_WAIT_TIME = Integer.MAX_VALUE; //default is disabled
+    private static final int DEFAULT_OLAP_CLIENT_WAIT_TIME = Integer.MAX_VALUE;
+
+    /**
+     * The number of milliseconds the OLAP client should wait for performing a status check.
+     * Defaults to 1000 (1 s)
+     */
+    public static final String OLAP_CLIENT_TICK_TIME = "splice.olap_server.clientTickTime";
+    private static final int DEFAULT_OLAP_CLIENT_TICK_TIME = 1000;
 
     /**
      * The Port to bind the OLAP Server connection to
@@ -137,6 +144,7 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
         builder.olapClientWaitTime  = configurationSource.getInt(OLAP_CLIENT_WAIT_TIME, DEFAULT_OLAP_CLIENT_WAIT_TIME);
+        builder.olapClientTickTime  = configurationSource.getInt(OLAP_CLIENT_TICK_TIME, DEFAULT_OLAP_CLIENT_TICK_TIME);
         builder.olapServerThreads = configurationSource.getInt(OLAP_SERVER_THREADS, DEFAULT_OLAP_SERVER_THREADS);
 
         builder.transactionTimeout = configurationSource.getLong(TRANSACTION_TIMEOUT, DEFAULT_TRANSACTION_TIMEOUT);

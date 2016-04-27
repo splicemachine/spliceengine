@@ -82,6 +82,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int completedTxnCacheSize;
     private final  int completedTxnConcurrency;
     private final int olapClientWaitTime;
+    private final int olapClientTickTime;
     private final int olapServerBindPort;
     private final int olapServerThreads;
     private final  int readResolverQueueSize;
@@ -327,6 +328,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapClientWaitTime() {
         return olapClientWaitTime;
+    }
+    @Override
+    public int getOlapClientTickTime() {
+        return olapClientTickTime;
     }
     @Override
     public int getOlapServerBindPort() {
@@ -605,6 +610,7 @@ public final class SConfigurationImpl implements SConfiguration {
         batchOnceBatchSize = builder.batchOnceBatchSize;
         sparkIoCompressionCodec = builder.sparkIoCompressionCodec;
         olapClientWaitTime = builder.olapClientWaitTime;
+        olapClientTickTime = builder.olapClientTickTime;
         olapServerBindPort = builder.olapServerBindPort;
         olapServerThreads = builder.olapServerThreads;
     }

@@ -116,6 +116,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         private final Lock checkLock=new ReentrantLock();
         private final Condition signal=checkLock.newCondition();
         private final ChannelHandler resultHandler = new ResultHandler(this);
+        private final ChannelHandler submitHandler = new SubmitHandler(this);
 
         private final GenericFutureListener<Future<Void>> failListener=new GenericFutureListener<Future<Void>>(){
             @Override
@@ -131,6 +132,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         private volatile OlapResult finalResult;
         private volatile boolean cancelled=false;
         private volatile boolean failed=false;
+        private volatile boolean submitted=false;
         private volatile Throwable cause=null;
         private volatile long tickTimeNanos=TimeUnit.MILLISECONDS.toNanos(1000L);
 
@@ -183,8 +185,11 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();
 
-                Future<Channel> cFut=channelPool.acquire();
-                cFut.addListener(new StatusListener(this)).sync();
+                if (submitted) {
+                    // don't request status until submitted
+                    Future<Channel> cFut = channelPool.acquire();
+                    cFut.addListener(new StatusListener(this)).sync();
+                }
                 checkLock.lock();
                 try{
                     long window=Math.min(tickTimeNanos,nanosRemaining);
@@ -256,7 +261,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             }
             final Channel c=channelFuture.getNow();
             ChannelPipeline writePipeline=c.pipeline();
-            writePipeline.addLast("handler",olapFuture.resultHandler);
+            writePipeline.addLast("handler",olapFuture.submitHandler);
 
             ByteString data=OlapSerializationUtils.encode(olapFuture.job);
             OlapMessage.Submit submit=OlapMessage.Submit.newBuilder().setCommandBytes(data).build();
@@ -364,14 +369,54 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         protected void channelRead0(ChannelHandlerContext ctx,OlapMessage.Response olapResult) throws Exception{
             OlapResult or=parseFromResponse(olapResult);
             //TODO -sf- deal with a OlapServer failover here (i.e. a move to NOT_SUBMITTED from any other state
-            if(or instanceof SubmittedResult){
-                future.tickTimeNanos=TimeUnit.MILLISECONDS.toNanos(((SubmittedResult)or).getTickTime());
+            if(or instanceof SubmittedResult) {
+                future.tickTimeNanos = TimeUnit.MILLISECONDS.toNanos(((SubmittedResult) or).getTickTime());
+            }else if(future.submitted && !future.isDone() && or instanceof NotSubmittedResult) {
+                // The job is no longer submitted, assume aborted
+                future.fail(new IOException("Status not available, assuming aborted due to client timeout"));
             }else if(or.isSuccess()){
                 future.finalResult=or;
             }else{
                 Throwable t=or.getThrowable();
                 if(t!=null){
                     future.fail(t);
+                }
+            }
+            ctx.pipeline().remove(this); //we don't want this in the pipeline anymore
+            Channel channel=ctx.channel();
+            channelPool.release(channel); //release the underlying channel back to the pool cause we're done
+            future.signal();
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx,Throwable cause) throws Exception{
+            future.fail(cause);
+            channelPool.release(ctx.channel());
+            future.signal();
+        }
+    }
+
+    @ChannelHandler.Sharable
+    private final class SubmitHandler extends SimpleChannelInboundHandler<OlapMessage.Response>{
+        private final OlapFuture future;
+
+        SubmitHandler(OlapFuture future){
+            this.future=future;
+        }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx,OlapMessage.Response olapResult) throws Exception{
+            OlapResult or=parseFromResponse(olapResult);
+            if(or instanceof SubmittedResult) {
+                future.tickTimeNanos = TimeUnit.MILLISECONDS.toNanos(((SubmittedResult) or).getTickTime());
+                future.submitted = true;
+            }else{
+                Throwable t=or.getThrowable();
+                LOG.error("Job wasn't submitted, result: " + or);
+                if(t!=null){
+                    future.fail(t);
+                }else{
+                    future.fail(new IOException("Job wasn't submitted, result: "+or));
                 }
             }
             ctx.pipeline().remove(this); //we don't want this in the pipeline anymore

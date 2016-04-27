@@ -85,6 +85,7 @@ public class ConfigurationBuilder {
     public int kryoPoolSize;
     public int networkBindPort;
     public int olapClientWaitTime;
+    public int olapClientTickTime;
     public int olapServerBindPort;
     public int olapServerThreads;
     public int partitionserverJmxPort;

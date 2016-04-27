@@ -122,6 +122,8 @@ public interface SConfiguration {
 
     int getOlapClientWaitTime();
 
+    int getOlapClientTickTime();
+
     int getOlapServerBindPort();
 
     int getOlapServerThreads();

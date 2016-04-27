@@ -56,7 +56,11 @@ public class MappedJobRegistry implements OlapJobRegistry{
     public void clear(String jobId){
         if(LOG.isTraceEnabled())
             LOG.trace("Clearing job "+ jobId);
-        registry.remove(jobId);
+
+        OlapJobStatus jobStatus = registry.remove(jobId);
+        if (jobStatus != null) {
+            jobStatus.cancel();
+        }
     }
 
     @Override
@@ -74,6 +78,7 @@ public class MappedJobRegistry implements OlapJobRegistry{
                     if(LOG.isTraceEnabled())
                         LOG.trace("Job with id "+ entry.getKey()+" does not have an available client, removing");
                     regIterator.remove();
+                    entry.getValue().cancel();
                 }
             }
         }

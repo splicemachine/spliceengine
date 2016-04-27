@@ -41,7 +41,7 @@ public class OlapServer {
         // Instantiate handler once and share it
         OlapJobRegistry registry = new MappedJobRegistry(1L,TimeUnit.SECONDS); //TODO -sf- make this tick time configurable
         ChannelHandler submitHandler = new OlapRequestHandler(config,
-                registry,clock,config.getOlapClientWaitTime());
+                registry,clock,config.getOlapClientTickTime());
         ChannelHandler statusHandler = new OlapStatusHandler(registry);
         ChannelHandler cancelHandler = new OlapCancelHandler(registry);
 
