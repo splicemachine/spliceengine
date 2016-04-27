@@ -54,9 +54,23 @@ public class StatementManager implements StatementManagement{
     private boolean isNullSql(StatementInfo statementInfo) {
     	return statementInfo.getSql() == null || statementInfo.getSql().equals("null") || statementInfo.getSql().isEmpty();
     }
-    
+
+    protected boolean isStatementAdmin(StatementInfo statementInfo) {
+        if (statementInfo.getSql() != null) {
+            String sql = statementInfo.getSql().toUpperCase();
+            if (sql.contains("SYSCS_GET_STATEMENT_SUMMARY") ||
+                sql.contains("SYSCS_GET_PAST_STATEMENT_SUMMARY")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void addStatementInfo(StatementInfo statementInfo) {
-		if (!executingStatements.add(statementInfo)) {
+        if (isStatementAdmin(statementInfo)) {
+            return;
+        }
+        if (!executingStatements.add(statementInfo)) {
         	// Even this 'failure' is logged at trace level, because it's normal
 	        if (!isNullSql(statementInfo) && LOG.isTraceEnabled()) {
 			    LOG.trace(String.format("Failed to add executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
@@ -68,8 +82,12 @@ public class StatementManager implements StatementManagement{
         }
 	}
 
-    private void removeStatementInfo(StatementInfo statementInfo) {
-	    if (!executingStatements.remove(statementInfo)) {
+    private boolean removeStatementInfo(StatementInfo statementInfo) {
+        if (isStatementAdmin(statementInfo)) {
+            return false;
+        }
+		boolean isContained = executingStatements.remove(statementInfo);
+	    if (!isContained) {
 	    	// Even this 'failure' is logged at trace level, because it's normal
 	        if (!isNullSql(statementInfo) && LOG.isTraceEnabled()) {
 	        	LOG.trace(String.format("Failed to remove executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
@@ -83,21 +101,20 @@ public class StatementManager implements StatementManagement{
 	
 	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
 		statementInfo.markCompleted(); //make sure the stop time is set
-        int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
-        completedStatements.set(position, statementInfo);
-
-        removeStatementInfo(statementInfo);
-        		
-        if (shouldTrace) {
-            setupXplainReporters();
-            if (!"null".equalsIgnoreCase(statementInfo.getSql())){
-                statementReporter.report(statementInfo,txn);
-            }
-            Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
-            for (OperationInfo info : operationInfo) {
-                operationReporter.report(info,txn);
-            }
-        }
+		if(removeStatementInfo(statementInfo)){
+			int position=statementInfoPointer.getAndIncrement()%completedStatements.length();
+			completedStatements.set(position,statementInfo);
+		}
+		if(shouldTrace){
+			setupXplainReporters();
+			if(!"null".equalsIgnoreCase(statementInfo.getSql())){
+				statementReporter.report(statementInfo,txn);
+			}
+			Set<OperationInfo> operationInfo=statementInfo.getOperationInfo();
+			for(OperationInfo info : operationInfo){
+				operationReporter.report(info,txn);
+			}
+		}
     }
 
 	@Override
@@ -160,6 +177,7 @@ public class StatementManager implements StatementManagement{
 		}
 	}
 
+    /*
 	public StatementInfo getExecutingStatementByTxnId(String txnId) {
 		if (txnId != null) {
 			for (StatementInfo info:executingStatements) {
@@ -170,6 +188,7 @@ public class StatementManager implements StatementManagement{
 		}
 		return null;
 	}
+    */
 
 	@Override
 	public void emptyStatementCache() throws SQLException {
@@ -184,11 +203,8 @@ public class StatementManager implements StatementManagement{
 		
 		SpliceLogUtils.info(LOG, "Emptying statement cache on this server...");
 		Connection dbConn = getConnection();
-		CallableStatement stmt = dbConn.prepareCall("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
-		try {
+		try(CallableStatement stmt = dbConn.prepareCall("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()")) {
 			stmt.executeUpdate();
-		} finally {
-			stmt.close();
 		}
 		SpliceLogUtils.info(LOG, "Successfully emptied statement cache.");
 	}
