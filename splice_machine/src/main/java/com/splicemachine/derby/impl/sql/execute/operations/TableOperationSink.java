@@ -3,10 +3,17 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import static com.google.common.base.Throwables.propagateIfInstanceOf;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 import com.google.common.base.Throwables;
 import com.google.common.io.Closeables;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.pipeline.api.WriteConfiguration;
+import com.splicemachine.pipeline.api.WriteResponse;
+import com.splicemachine.pipeline.writeconfiguration.ForwardingWriteConfiguration;
+import org.apache.hadoop.hbase.ipc.CallTimeoutException;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -163,16 +170,40 @@ public class TableOperationSink implements OperationSink {
     /**
      * init RecordingCallBuffer
      */
-    private RecordingCallBuffer<KVPair> intCallBuffer(SpliceRuntimeContext context) throws StandardException {
+    private RecordingCallBuffer<KVPair> intCallBuffer(final SpliceRuntimeContext context) throws StandardException {
         TxnView txn = this.txn;
+        WriteConfiguration configuration = writeCoordinator.defaultWriteConfiguration();
         if (destinationIsTemp) {
             /* We are writing to the TEMP Table. The timestamp has a useful meaning in the TEMP table, which is that
              * it should be the longified version of the job id (to facilitate dropping data from TEMP efficiently.
              * However, timestamps can't be negative, so we just  take the time portion of the uuid out and stringify */
             long txnId = Snowflake.timestampFromUUID(Bytes.toLong(operation.getUniqueSequenceId()));
             txn = new ActiveWriteTxn(txnId, txnId, Txn.ROOT_TRANSACTION);
+            configuration = new ForwardingWriteConfiguration(configuration){
+                @Override
+                public WriteResponse globalError(Throwable t) throws ExecutionException{
+                    /*
+                     * When writing to TEMP, it's okay if we re-write our own rows a few times, which means that
+                     * we are able to retry in the event of CallTimeout and SocketTimeout exceptions.
+                     */
+                    if(t instanceof CallTimeoutException ||
+                            t instanceof SocketTimeoutException)
+                        return WriteResponse.RETRY;
+                    else
+                        return super.globalError(t);
+                }
+
+                @Override public MetricFactory getMetricFactory(){ return context; }
+            };
+        }else if(context.isActive()){
+            configuration = new ForwardingWriteConfiguration(configuration){
+                @Override
+                public MetricFactory getMetricFactory(){
+                    return context;
+                }
+            };
         }
-        RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(destinationTable, txn, context);
+        RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(destinationTable, txn,configuration);
         return operation.transformWriteBuffer(bufferToTransform);
     }
 
