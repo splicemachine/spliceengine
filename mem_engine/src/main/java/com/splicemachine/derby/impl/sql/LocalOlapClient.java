@@ -6,6 +6,8 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.sparkproject.guava.util.concurrent.Futures;
+import org.sparkproject.guava.util.concurrent.SettableFuture;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -41,13 +43,14 @@ public class LocalOlapClient implements OlapClient{
     }
 
     @Override
-    public <R extends OlapResult> Future<R> executeAsync(@Nonnull final DistributedJob jobRequest) throws IOException {
-        return new FutureTask<R>(new Callable<R>() {
-            @Override
-            public R call() throws Exception {
-                return execute(jobRequest);
-            }
-        });
+    public <R extends OlapResult> Future<R> submit(@Nonnull final DistributedJob jobRequest) throws IOException {
+        try {
+            SettableFuture result = SettableFuture.create();
+            result.set(execute(jobRequest));
+            return result;
+        } catch (TimeoutException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override public void shutdown(){ }

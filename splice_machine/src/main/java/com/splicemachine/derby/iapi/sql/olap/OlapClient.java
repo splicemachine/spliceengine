@@ -26,7 +26,16 @@ public interface OlapClient {
      */
     <R extends OlapResult> R execute(@Nonnull DistributedJob jobRequest) throws IOException,TimeoutException;
 
-    <R extends OlapResult> Future<R> executeAsync(@Nonnull DistributedJob jobRequest) throws IOException;
+    /**
+     *
+     * Submits a job for asynchronous execution.
+     *
+     * @param jobRequest the job to run. Cannot be null
+     * @param <R> the Type of OlapResult expected back from the server, which will be wrapped in a Future
+     * @return a cancellable Future that, when completed, contains the result of this job.
+     * @throws IOException if something goes wrong communicating with the OlapServer
+     */
+    <R extends OlapResult> Future<R> submit(@Nonnull DistributedJob jobRequest) throws IOException;
 
     void shutdown();
 }

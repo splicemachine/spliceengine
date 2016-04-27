@@ -25,6 +25,7 @@ import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -183,7 +184,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 else if(failed)
                     throw new ExecutionException(cause);
                 else if(cancelled)
-                    throw new ExecutionException(new IOException("Job was cancelled"));
+                    throw new CancellationException("Job " + job.getUniqueName() +" was cancelled.");
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();
 

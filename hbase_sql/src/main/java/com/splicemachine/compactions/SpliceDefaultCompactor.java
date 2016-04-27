@@ -4,9 +4,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.olap.DistributedCompaction;
@@ -15,17 +13,13 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
@@ -99,7 +93,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 getScope(request),
                 regionLocation);
         CompactionResult result = null;
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().executeAsync(jobRequest);
+        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest);
         SConfiguration config = HConfiguration.getConfiguration();
         while(result == null) {
             try {
