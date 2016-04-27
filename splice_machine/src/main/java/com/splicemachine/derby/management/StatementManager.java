@@ -58,10 +58,11 @@ public class StatementManager implements StatementManagement{
     }
 
     protected boolean isStatementAdmin(StatementInfo statementInfo) {
-        if (statementInfo.getSql() != null) {
+        if (statementInfo != null && statementInfo.getSql() != null) {
             String sql = statementInfo.getSql().toUpperCase();
             if (sql.contains("SYSCS_GET_STATEMENT_SUMMARY") ||
-                sql.contains("SYSCS_GET_PAST_STATEMENT_SUMMARY")) {
+                sql.contains("SYSCS_GET_PAST_STATEMENT_SUMMARY") ||
+                sql.contains("SYSCS_GET_STATEMENT_DETAILS")) {
                 return true;
             }
         }
