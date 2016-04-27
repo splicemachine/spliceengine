@@ -228,15 +228,13 @@ public class StatementManager implements StatementManagement{
 	@Override
 	public StatementInfo findStatement(long statementUuid){
 		List<StatementInfo> executing=getExecutingStatementInfo();
-		List<StatementInfo> completed = getRecentCompletedStatements();
+		List<StatementInfo> completed=getRecentCompletedStatements();
 		for(StatementInfo si:executing){
 			if(si.getStatementUuid()==statementUuid) return si;
 		}
-
 		for(StatementInfo si:completed){
 			if(si.getStatementUuid()==statementUuid) return si;
 		}
-
 		return null;
 	}
 
