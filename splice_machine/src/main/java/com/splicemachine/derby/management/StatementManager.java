@@ -1,6 +1,7 @@
 package com.splicemachine.derby.management;
 
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Longs;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.tools.EmbedConnectionMaker;
@@ -12,6 +13,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,7 +39,7 @@ public class StatementManager implements StatementManagement{
 	private volatile XplainOperationReporter operationReporter;
 
 	public StatementManager() throws StandardException {
-		this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
+		this.completedStatements = new AtomicReferenceArray<>(SpliceConstants.pastStatementBufferSize);
 	}
 
     private void setupXplainReporters() throws StandardException {
@@ -103,6 +105,8 @@ public class StatementManager implements StatementManagement{
 		statementInfo.markCompleted(); //make sure the stop time is set
 		if(removeStatementInfo(statementInfo)){
 			int position=statementInfoPointer.getAndIncrement()%completedStatements.length();
+            if (LOG.isTraceEnabled())
+                LOG.trace(String.format("Incrementing completed statement list position to %d", position));
 			completedStatements.set(position,statementInfo);
 		}
 		if(shouldTrace){
@@ -117,13 +121,21 @@ public class StatementManager implements StatementManagement{
 		}
     }
 
-	@Override
+    private static final Comparator<StatementInfo> infoComparator = new Comparator<StatementInfo>() {
+        @Override public int compare(StatementInfo o1, StatementInfo o2) {
+            return Longs.compare(o2.getStartTimeMs(), o1.getStartTimeMs());
+        }
+    };
+
+    @Override
 	public List<StatementInfo> getExecutingStatementInfo() {
         List<StatementInfo> executing = Lists.newArrayListWithCapacity(executingStatements.size());
-        for(StatementInfo info:executingStatements) {
-            if (info != null)
+        for(StatementInfo info: executingStatements) {
+            if (info != null) {
                 executing.add(info);
+            }
         }
+        Collections.sort(executing, infoComparator);
         return executing;
 	}
 
@@ -132,9 +144,11 @@ public class StatementManager implements StatementManagement{
 		List<StatementInfo> recentCompleted = Lists.newArrayListWithCapacity(completedStatements.length());
 		for(int i=0;i<completedStatements.length();i++){
 			StatementInfo e = completedStatements.get(i);
-			if(e!=null)
-				recentCompleted.add(e);
+			if (e != null) {
+                recentCompleted.add(e);
+            }
 		}
+        Collections.sort(recentCompleted, infoComparator);
 		return recentCompleted;
 	}
 	

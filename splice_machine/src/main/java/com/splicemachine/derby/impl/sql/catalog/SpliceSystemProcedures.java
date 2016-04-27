@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
-import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
@@ -326,18 +325,20 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getActiveJobIds);
                     
-        			/*Procedure to get the completed statement's summary*/
+        			/* Procedure to get the completed statements summary */
                     Procedure getCompletedStatements = Procedure.newBuilder().name("SYSCS_GET_PAST_STATEMENT_SUMMARY")
                             .numOutputParams(0)
                             .numResultSets(1)
+                            .integer("maxStatements")
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getCompletedStatements);
 
-        			/*Procedure to get running statement's summary*/
+        			/* Procedure to get running statements summary */
                     Procedure getRunningStatements = Procedure.newBuilder().name("SYSCS_GET_STATEMENT_SUMMARY")
                             .numOutputParams(0)
                             .numResultSets(1)
+                            .integer("maxStatements")
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getRunningStatements);
