@@ -221,9 +221,9 @@ final class ScalarEncoding{
      */
     public static byte[] writeBoolean(boolean value,boolean desc){
         if(value)
-            return desc?new byte[]{0x02}:new byte[]{0x01};
+            return !desc?new byte[]{0x02}:new byte[]{0x01};
         else
-            return desc?new byte[]{0x01}:new byte[]{0x02};
+            return !desc?new byte[]{0x01}:new byte[]{0x02};
     }
 
     /**
@@ -247,8 +247,8 @@ final class ScalarEncoding{
      */
     public static boolean readBoolean(byte[] data,int offset,boolean desc){
         if(desc)
-            return data[offset]==0x02;
-        else return data[offset]==0x01;
+            return data[offset]==0x01;
+        else return data[offset]==0x02;
     }
 
     /**

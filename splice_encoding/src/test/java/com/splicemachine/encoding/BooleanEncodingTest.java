@@ -39,10 +39,10 @@ public class BooleanEncodingTest {
         byte[] trueBytes = ScalarEncoding.writeBoolean(true,false);
         byte[] falseBytes = ScalarEncoding.writeBoolean(false,false);
 
-        Assert.assertTrue("Incorrect sort--false before true!", Bytes.BASE_COMPARATOR.compare(trueBytes, falseBytes)<0);
+        Assert.assertTrue("Incorrect sort--false before true!", Bytes.BASE_COMPARATOR.compare(trueBytes, falseBytes)>0);
         trueBytes = ScalarEncoding.writeBoolean(true,true);
         falseBytes = ScalarEncoding.writeBoolean(false,true);
 
-        Assert.assertTrue("Incorrect sort--false after true!", Bytes.BASE_COMPARATOR.compare(trueBytes,falseBytes)>0);
+        Assert.assertTrue("Incorrect sort--false after true!", Bytes.BASE_COMPARATOR.compare(trueBytes,falseBytes)<0);
     }
 }
