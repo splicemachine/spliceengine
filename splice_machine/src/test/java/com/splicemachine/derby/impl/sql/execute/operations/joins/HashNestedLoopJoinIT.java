@@ -226,54 +226,5 @@ public class HashNestedLoopJoinIT {
         assertEquals(EXPECTED, ResultFactory.toString(rs));
     }
 
-
-    @Test
-    @Ignore("probably obsolete test - uses derby stats and task history")
-    public void joinWithStatistics() throws Exception {
-
-        Connection conn = watcher.getOrCreateConnection();
-        StatementHistoryDAO statementHistoryDAO = new StatementHistoryDAO(conn);
-        TaskHistoryDAO taskHistoryDAO = new TaskHistoryDAO(conn);
-
-        final String RANDOM_LONG = RandomStringUtils.randomNumeric(9);
-
-//        watcher.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)").execute();
-//        watcher.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)").execute();
-
-        // primary keys are 0,1,2...99
-        new TableCreator(conn).withCreate("create table tableA (c1 int, primary key(c1))")
-                .withInsert("insert into tableA values(?)")
-                .withRows(new IntegerRows(100, 1)).create();
-
-        // primary keys are 75,76,77...300
-        new TableCreator(conn).withCreate("create table tableB (c1 int, primary key(c1))")
-                .withInsert("insert into tableB values(?)")
-                .withRows(new IntegerRows(300, 1, 75)).create();
-
-        String JOIN_SQL = "select count(*) as \"Row Count\" from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-                "tableA a inner join tableB b --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
-                "on a.c1 = b.c1 and " + RANDOM_LONG + "=" + RANDOM_LONG;
-
-        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
-
-        String EXPECTED = "" +
-                "Row Count |\n" +
-                "------------\n" +
-                "    25     |";
-
-        assertEquals(EXPECTED, ResultFactory.toString(rs));
-
-        // Assert that there are task history rows with stats: REMOTE_SCAN_ROWS=26, LOCAL_SCAN_ROWS=100, OUTPUT_ROWS=26
-        // Stats are inserted into SYS.SYSTASKHISTORY asynchronously.
-
-        // The rest of this test is commented out because we no longer have task
-//        StatementHistory statement = statementHistoryDAO.findStatement(RANDOM_LONG, 20, TimeUnit.SECONDS);
-//        List<TaskHistory> taskHistoryList = taskHistoryDAO.getByStatementId(statement.getStatementId(), 20, TimeUnit.SECONDS);
-//        Assert.fail("IMPLEMENT USING JDBC");
-//        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(REMOTE_SCAN_ROWS, 25L))));
-//        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(LOCAL_SCAN_ROWS, 100L))));
-//        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(OUTPUT_ROWS, 25L))));
-    }
-
 }
 

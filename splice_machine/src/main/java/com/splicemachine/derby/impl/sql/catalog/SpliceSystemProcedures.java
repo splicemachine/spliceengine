@@ -33,6 +33,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     public static final String RESTORE_DATABASE_NAME = "SYSCS_RESTORE_DATABASE";
     public static final String BACKUP_DATABASE_NAME = "SYSCS_BACKUP_DATABASE";
 
+
     /** Flag to ensure the list of procedures is only initialized once. */
     private static volatile boolean initialized = false;
 
@@ -194,22 +195,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getRequests);
 
-        			/*
-        			 * Procedure get info for the write pipeline
-        			 */
-                    Procedure getWritePipelineInfo = Procedure.newBuilder().name("SYSCS_GET_WRITE_PIPELINE_INFO")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getWritePipelineInfo);
-
-                    Procedure getWriteOutputInfo = Procedure.newBuilder().name("SYSCS_GET_WRITE_OUTPUT_INFO")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(PipelineAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getWriteOutputInfo);
 
         			/*
         			 * Procedure get stats info for region servers
@@ -427,28 +412,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getLoggers);
-
-
-        			/*
-        			 * Procedure set max write thread pool count
-        			 */
-                    Procedure setWritePool = Procedure.newBuilder().name("SYSCS_SET_WRITE_POOL")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .integer("writePool")
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(setWritePool);
-
-        			/*
-        			 * Procedure get the max write pool threads
-        			 */
-                    Procedure getWritePool = Procedure.newBuilder().name("SYSCS_GET_WRITE_POOL")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getWritePool);
 
         			/*
         			 * Procedure get table info in all schema

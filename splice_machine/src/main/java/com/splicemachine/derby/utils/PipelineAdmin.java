@@ -38,10 +38,6 @@ public class PipelineAdmin extends BaseAdminProcedures{
             new GenericColumnDescriptor("indThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("depCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("indCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),            
-            new GenericColumnDescriptor("avgThroughput",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
-            new GenericColumnDescriptor("oneMinAvgThroughput",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
-            new GenericColumnDescriptor("fiveMinAvgThroughput",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
-            new GenericColumnDescriptor("fifteenMinAvgThroughput",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
             new GenericColumnDescriptor("totalRejected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
     };
     public static void SYSCS_GET_WRITE_INTAKE_INFO(final ResultSet[] resultSet) throws SQLException {
@@ -61,11 +57,7 @@ public class PipelineAdmin extends BaseAdminProcedures{
                         dvds[2].setValue(writeHandler.getIndependentWriteThreads());
                         dvds[3].setValue(writeHandler.getDependentWriteCount());
                         dvds[4].setValue(writeHandler.getIndependentWriteCount());
-                        dvds[5].setValue(writeHandler.getOverallAvgThroughput());
-                        dvds[6].setValue(writeHandler.get1MThroughput());
-                        dvds[7].setValue(writeHandler.get5MThroughput());
-                        dvds[8].setValue(writeHandler.get15MThroughput());
-                        dvds[9].setValue(writeHandler.getTotalRejected());
+                        dvds[5].setValue(writeHandler.getTotalRejected());
                     }catch(StandardException se){
                         throw PublicAPI.wrapStandardException(se);
                     }
@@ -82,134 +74,9 @@ public class PipelineAdmin extends BaseAdminProcedures{
                     throw PublicAPI.wrapStandardException(e);
                 }
                 EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
                 resultSet[0] = ers;
             }
         });
     }
 
-    private static final ResultColumnDescriptor[] WRITE_PIPELINE_COLUMNS = new ResultColumnDescriptor[]{
-            new GenericColumnDescriptor("host", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-            new GenericColumnDescriptor("actDepThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("actIndThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("maxOutputThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("activeOutputThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("rejectedIntakeWriteRequests",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
-            new GenericColumnDescriptor("rejectedOutputWriteRequests",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
-            new GenericColumnDescriptor("avgIntakeThroughput",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE))
-    };
-    public static void SYSCS_GET_WRITE_PIPELINE_INFO(final ResultSet[] resultSet) throws SQLException{
-        final Map<String,ExecRow> hostRows = Maps.newHashMap();
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException {
-                List<ThreadPoolStatus> threadPools = JMXUtils.getMonitoredThreadPools(jmxConnector);
-                ExecRow template = buildExecRow(WRITE_PIPELINE_COLUMNS);
-                int i=0;
-                for(ThreadPoolStatus threadPool:threadPools){
-                    template.resetRowArray();
-                    DataValueDescriptor[] dvds = template.getRowArray();
-                    String host = jmxConnector.get(i++).getFirst();
-                    try{
-                        dvds[0].setValue(host);
-                        dvds[3].setValue(threadPool.getMaxThreadCount());
-                        dvds[4].setValue(threadPool.getActiveThreadCount());
-                        dvds[6].setValue(threadPool.getTotalRejectedTasks());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
-                    }
-                    hostRows.put(host,template.getClone());
-                }
-            }
-        });
-
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException {
-                List<PipelineDriver.ActiveWriteHandlersIface> activeWriteHandlers = JMXUtils.getActiveWriteHandlers(jmxConnector);
-                int i=0;
-                for(PipelineDriver.ActiveWriteHandlersIface writeHandler:activeWriteHandlers){
-                    String host = jmxConnector.get(i++).getFirst();
-                    ExecRow row = hostRows.get(host);
-                    if(row==null)
-                        row = buildExecRow(WRITE_PIPELINE_COLUMNS);
-                    DataValueDescriptor[] dvds = row.getRowArray();
-                    try{
-                        dvds[1].setValue(writeHandler.getDependentWriteThreads());
-                        dvds[2].setValue(writeHandler.getIndependentWriteThreads());
-                        dvds[5].setValue(writeHandler.getTotalRejected());
-                        dvds[7].setValue(writeHandler.getOverallAvgThroughput());
-                    } catch (StandardException e) {
-                        throw PublicAPI.wrapStandardException(e);
-                    }
-                }
-            }
-        });
-
-        List<ExecRow> rows = Lists.newArrayList(hostRows.values());
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, WRITE_PIPELINE_COLUMNS,lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-        resultSet[0] = ers;
-    }
-
-    private static final ResultColumnDescriptor []WRITE_OUTPUT_COLUMNS = new ResultColumnDescriptor[]{
-            new GenericColumnDescriptor("host", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-            new GenericColumnDescriptor("maxThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("activeThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("pendingWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("totalSubmittedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
-            new GenericColumnDescriptor("totalSuccessfulWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
-            new GenericColumnDescriptor("totalFailedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
-            new GenericColumnDescriptor("totalRejectedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
-    };
-
-    public static void SYSCS_GET_WRITE_OUTPUT_INFO(final ResultSet[] resultSet) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<ThreadPoolStatus> threadPools = JMXUtils.getMonitoredThreadPools(connections);
-                ExecRow template = buildExecRow(WRITE_OUTPUT_COLUMNS);
-                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(threadPools.size());
-                int i=0;
-                for (ThreadPoolStatus threadPool : threadPools) {
-                    template.resetRowArray();
-                    DataValueDescriptor[] dvds = template.getRowArray();
-                    try{
-                        dvds[0].setValue(connections.get(i).getFirst());
-                        dvds[1].setValue(threadPool.getMaxThreadCount());
-                        dvds[2].setValue(threadPool.getActiveThreadCount());
-                        dvds[3].setValue(threadPool.getPendingTaskCount());
-                        dvds[4].setValue(threadPool.getTotalSubmittedTasks());
-                        dvds[5].setValue(threadPool.getTotalSuccessfulTasks());
-                        dvds[6].setValue(threadPool.getTotalFailedTasks());
-                        dvds[7].setValue(threadPool.getTotalRejectedTasks());
-                    }catch(StandardException se){
-                        throw PublicAPI.wrapStandardException(se);
-                    }
-                    rows.add(template.getClone());
-                    i++;
-                }
-
-                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, WRITE_OUTPUT_COLUMNS,lastActivation);
-                try {
-                    resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
-                }
-                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-                resultSet[0] = ers;
-            }
-        });
-    }
 }
