@@ -1,6 +1,8 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.si.testenv.ArchitectureIndependent;
+
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -254,12 +256,38 @@ public class SpliceDateFunctionsTest {
     @Test
     public void testLargeTimestamps() throws Exception {
 
-        SpliceDateFunctions.TO_TIMESTAMP("2013-11-26 23:28:55.22","yyyy-MM-dd HH:mm:ss.SSSSSS");
-        SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:27.135","yyyy-MM-dd HH:mm:ss.SSSSSS");
-        SpliceDateFunctions.TO_TIMESTAMP("2013-11-26 23:28:55.386","yyyy-MM-dd HH:mm:ss.SSSSSS");
-        SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:27.135","yyyy-MM-dd HH:mm:ss.SSSSSS");
-        SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:40.287469","yyyy-MM-dd HH:mm:ss.SSSSSS");
+        assertEquals("2013-11-26 23:28:55.22", SpliceDateFunctions.TO_TIMESTAMP("2013-11-26 23:28:55.22","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
+        assertEquals("2014-03-08 20:33:27.135", SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:27.135","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
+        assertEquals("2013-11-26 23:28:55.386", SpliceDateFunctions.TO_TIMESTAMP("2013-11-26 23:28:55.386","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
+        assertEquals("2014-03-08 20:33:27.135", SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:27.135","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
+        assertEquals("2014-03-08 20:33:40.287469", SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:40.287469","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
+        // DB-4678
+        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
+        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.ssssss").toString());
+        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.NNNNNN").toString());
+        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.nnnnnn").toString());
+        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.FFFFFF").toString());
+        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.ffffff").toString());
 
+        // Note: we have to format the java.sql.Timestamp here to get the output we want.  The information is there, it's just that the default format is w/o timezone
+        assertEquals("2013-03-23 19:45:00.987-0500", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ").format(SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987-05","yyyy-MM-dd HH:mm:ss.SSSZ")));
     }
 
+    @Test @Ignore("DB-5033")
+    public void testSupportMultipleTimestampFormats() throws Exception {
+        // Jodatime does not support microseconds?
+        assertEquals("2013-03-23 19:45:00.987654-05", SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987654-05","yyyy-MM-dd HH:mm:ss.ssssssZ").toString());
+        // Jodatime does not support microseconds?
+        assertEquals("2013-03-23 19:45:00.987654-0200", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSSZ").format(SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987654-02","yyyy-MM-dd HH:mm:ss.SSSSSSZ")));
+    }
+
+    @Test @Ignore("DB-5033")
+    public void test_IBM_SAP_timestampFormats() throws Exception {
+        // IBM/SAP format (TIMESTAMP_B)
+        assertEquals("2013-03-23 19:45:00.987654", SpliceDateFunctions.TO_TIMESTAMP("2013-03-23-19:45:00.987654","YYYY-MM-DD-HH.MM.SS.NNNNNN").toString());
+        // IBM/SAP format (TIMESTAMP_E)
+        assertEquals("2013-03-23 19:45:00.987654", SpliceDateFunctions.TO_TIMESTAMP("20130323194500987654","YYYYMMDDHHMMSSNNNNNN").toString());
+        // IBM/SAP format (TIMESTAMP_F)
+        assertEquals("2013-03-23 19:45:00.987654", SpliceDateFunctions.TO_TIMESTAMP("130323194500987654","YYMMDDHHMMSSNNNNNN").toString());
+    }
 }

@@ -102,27 +102,13 @@ public class HdfsImportIT extends SpliceUnitTest {
             .schemaName, "(d date, t time)");
     protected static SpliceTableWatcher spliceTableWatcher13 = new SpliceTableWatcher(TABLE_13, spliceSchemaWatcher
             .schemaName,
-            "( CUSTOMER_PRODUCT_ID INTEGER " +
-                    "NOT NULL PRIMARY KEY, " +
-                    "SHIPPED_DATE TIMESTAMP " +
-                    "WITH DEFAULT " +
-                    "CURRENT_TIMESTAMP, " +
-                    "SOURCE_SYS_CREATE_DTS " +
-                    "TIMESTAMP WITH DEFAULT " +
-                    "CURRENT_TIMESTAMP NOT " +
-                    "NULL,SOURCE_SYS_UPDATE_DTS" +
-                    " TIMESTAMP WITH DEFAULT " +
-                    "CURRENT_TIMESTAMP NOT " +
-                    "NULL," +
-                    "SDR_CREATE_DATE TIMESTAMP " +
-                    "WITH DEFAULT " +
-                    "CURRENT_TIMESTAMP, " +
-                    "SDR_UPDATE_DATE TIMESTAMP " +
-                    "WITH DEFAULT " +
-                    "CURRENT_TIMESTAMP," +
-                    "DW_SRC_EXTRC_DTTM " +
-                    "TIMESTAMP WITH DEFAULT " +
-                    "CURRENT_TIMESTAMP)");
+            "( CUSTOMER_PRODUCT_ID INTEGER NOT NULL PRIMARY KEY, " +
+                    "SHIPPED_DATE TIMESTAMP WITH DEFAULT CURRENT_TIMESTAMP, " +
+                    "SOURCE_SYS_CREATE_DTS TIMESTAMP WITH DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
+                    "SOURCE_SYS_UPDATE_DTS  TIMESTAMP WITH DEFAULT CURRENT_TIMESTAMP NOT NULL," +
+                    "SDR_CREATE_DATE TIMESTAMP WITH DEFAULT CURRENT_TIMESTAMP, " +
+                    "SDR_UPDATE_DATE TIMESTAMP WITH DEFAULT CURRENT_TIMESTAMP," +
+                    "DW_SRC_EXTRC_DTTM TIMESTAMP WITH DEFAULT CURRENT_TIMESTAMP)");
     protected static SpliceTableWatcher spliceTableWatcher14 = new SpliceTableWatcher(TABLE_14, spliceSchemaWatcher
             .schemaName,
             "( C_CUSTKEY INTEGER NOT NULL " +
@@ -931,9 +917,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     }
 
 
-    @Test @Ignore("DB-4346 - change in behavior from Lassen - empty (,,) CSV columns get NULL even when defaulted.")
-    public void testNullTimestampsWithMillisecondAccuracy() throws Exception {
-        //  FIXME: JC - default values problem. Expecting CSV empty column default to CURRENT_TIMESTAMP
+    @Test
+    public void testTimestampsWithMillisecondAccuracy() throws Exception {
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
@@ -952,13 +937,14 @@ public class HdfsImportIT extends SpliceUnitTest {
                 getResourceDirectory() + "datebug.tbl", 0,
                 temporaryFolder.newFolder().getCanonicalPath()));
         ps.execute();
-        ResultSet rs = methodWatcher.executeQuery(format("select SHIPPED_DATE from %s.%s", spliceSchemaWatcher
+        ResultSet rs = methodWatcher.executeQuery(format("select DW_SRC_EXTRC_DTTM from %s.%s", spliceSchemaWatcher
                 .schemaName, TABLE_13));
         int i = 0;
         while (rs.next()) {
             i++;
-            // file has some null fields in it but schema is created with "WITH DEFAULT CURRENT_TIMESTAMP"
-            Assert.assertTrue("Date is still null", rs.getDate(1) != null);
+            Assert.assertNotNull("Timestamp is null", rs.getTimestamp(1));
+            String ts = rs.getTimestamp(1).toString();
+            Assert.assertEquals("Microsecond error.", "287469", ts.substring(ts.lastIndexOf('.')+1));
         }
         Assert.assertEquals("10 Records not imported", 10, i);
     }
