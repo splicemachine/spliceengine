@@ -109,6 +109,35 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     }
 
     @Override
+    public void preClose(ObserverContext<RegionCoprocessorEnvironment> c, boolean abortRequested) throws IOException {
+        while (true) {
+            MemstoreAware latest = memstoreAware.get();
+            if (latest.currentScannerCount>0) {
+                SpliceLogUtils.warn(LOG, "preClose Delayed waiting for scanners to complete scannersRemaining=%d",latest.currentScannerCount);
+                try {
+                    Thread.sleep(1000); // Have Split sleep for a second
+                } catch (InterruptedException e1) {
+                    throw new IOException(e1);
+                }
+            } else {
+                if (memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, true)))
+                    break;
+            }
+        }
+        super.preClose(c, abortRequested);
+    }
+
+    @Override
+    public void postClose(ObserverContext<RegionCoprocessorEnvironment> e, boolean abortRequested) {
+            while (true) {
+                MemstoreAware latest = memstoreAware.get();
+                if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, false)))
+                    break;
+            }
+        super.postClose(e, abortRequested);
+    }
+
+    @Override
     public KeyValueScanner preStoreScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c,Store store,Scan scan,NavigableSet<byte[]> targetCols,KeyValueScanner s) throws IOException{
         if (scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY) != null &&
                 Bytes.equals(scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY),SIConstants.TRUE_BYTES)) {
