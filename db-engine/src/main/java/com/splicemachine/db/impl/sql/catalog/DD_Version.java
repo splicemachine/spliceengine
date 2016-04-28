@@ -429,8 +429,6 @@ public	class DD_Version implements	Formatable
             // make sure we flag that we need to add permissions to the
             // following pre-existing routines:
             newlyCreatedRoutines.add( "SYSCS_INPLACE_COMPRESS_TABLE" );
-            newlyCreatedRoutines.add( "SYSCS_GET_RUNTIMESTATISTICS" );
-            newlyCreatedRoutines.add( "SYSCS_SET_RUNTIMESTATISTICS" );
             newlyCreatedRoutines.add( "SYSCS_COMPRESS_TABLE" );
             newlyCreatedRoutines.add( "SYSCS_SET_STATISTICS_TIMING" );
 			

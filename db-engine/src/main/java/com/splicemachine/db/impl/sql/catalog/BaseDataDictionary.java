@@ -156,20 +156,15 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	 * List of procedures in SYSCS_UTIL schema with PUBLIC access
 	 */
 	protected static final String[] sysUtilProceduresWithPublicAccess = { 
-												"SYSCS_SET_RUNTIMESTATISTICS", 
-												"SYSCS_SET_STATISTICS_TIMING", 
 												"SYSCS_INPLACE_COMPRESS_TABLE",
 												"SYSCS_COMPRESS_TABLE",
-												"SYSCS_UPDATE_STATISTICS",
 												"SYSCS_MODIFY_PASSWORD",
-												"SYSCS_DROP_STATISTICS", 
 												};
 	
 	/**
 	 * List of functions in SYSCS_UTIL schema with PUBLIC access
 	 */
 	protected static final String[] sysUtilFunctionsWithPublicAccess = { 
-												"SYSCS_GET_RUNTIMESTATISTICS", 
 												"SYSCS_PEEK_AT_SEQUENCE",
 												};
 

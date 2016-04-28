@@ -63,21 +63,6 @@ public class CallStatementNode extends DMLStatementNode {
 
     static {
         xplainTraceProcedures = new TreeSet<String>();
-
-        xplainTraceProcedures.add("SYSCS_SET_RUNTIMESTATISTICS");
-        xplainTraceProcedures.add("SYSCS_GET_RUNTIME_STATISTICS");
-
-        xplainTraceProcedures.add("SYSCS_SET_STATISTICS_TIMING");
-        xplainTraceProcedures.add("SYSCS_GET_STATISTICS_TIMING");
-
-        xplainTraceProcedures.add("SYSCS_SET_XPLAIN_TRACE");
-        xplainTraceProcedures.add("SYSCS_GET_XPLAIN_TRACE");
-        xplainTraceProcedures.add("SYSCS_PURGE_XPLAIN_TRACE");
-        xplainTraceProcedures.add("SYSCS_GET_XPLAIN_STATEMENTID");
-
-        xplainTraceProcedures.add("SYSCS_GET_AUTO_TRACE");
-        xplainTraceProcedures.add("SYSCS_SET_AUTO_TRACE");
-
         xplainTraceProcedures.add("SQLCAMESSAGE");
     }
 
