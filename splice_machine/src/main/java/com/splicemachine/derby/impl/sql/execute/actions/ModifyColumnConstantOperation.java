@@ -374,6 +374,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         ColumnInfo colInfo = columnInfo[ix];
         ColumnDescriptor columnDescriptor = td.getColumnDescriptor(colInfo.name);
         int columnPosition = columnDescriptor.getPosition();
+        int storagePosition = columnDescriptor.getStoragePosition();
 
         DependencyManager dm = dd.getDependencyManager();
         TransactionController tc = lcc.getTransactionExecute();
@@ -402,8 +403,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         /* Get a ColumnDescriptor reflecting the new default */
         columnDescriptor = new ColumnDescriptor(
                 colInfo.name,
-                ix,
                 columnPosition,
+                storagePosition,
                 colInfo.dataType,
                 colInfo.defaultValue,
                 colInfo.defaultInfo,
