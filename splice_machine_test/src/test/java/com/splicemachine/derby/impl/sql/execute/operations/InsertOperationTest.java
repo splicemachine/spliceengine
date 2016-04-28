@@ -27,6 +27,7 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
@@ -331,7 +332,8 @@ public class InsertOperationTest {
         }).when(outputBuffer).add(any(KVPair.class));
         final WriteCoordinator writeCoordinator = mock(WriteCoordinator.class);
         when(writeCoordinator.writeBuffer(any(byte[].class), any(Txn.class))).thenReturn(outputBuffer);
-				when(writeCoordinator.writeBuffer(any(byte[].class), any(Txn.class),any(MetricFactory.class))).thenReturn(outputBuffer);
+        when(writeCoordinator.writeBuffer(any(byte[].class), any(Txn.class),any(MetricFactory.class))).thenReturn(outputBuffer);
+        when(writeCoordinator.writeBuffer(any(byte[].class), any(Txn.class),any(WriteConfiguration.class))).thenReturn(outputBuffer);
 
         RowProvider mockProvider = mock(RowProvider.class);
         when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobResults>(){

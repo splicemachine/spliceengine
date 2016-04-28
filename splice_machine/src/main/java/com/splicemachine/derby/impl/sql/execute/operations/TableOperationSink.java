@@ -9,11 +9,12 @@ import java.util.concurrent.ExecutionException;
 
 import com.google.common.base.Throwables;
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.writeconfiguration.ForwardingWriteConfiguration;
-import org.apache.hadoop.hbase.ipc.CallTimeoutException;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -186,7 +187,9 @@ public class TableOperationSink implements OperationSink {
                      * When writing to TEMP, it's okay if we re-write our own rows a few times, which means that
                      * we are able to retry in the event of CallTimeout and SocketTimeout exceptions.
                      */
-                    if(t instanceof CallTimeoutException ||
+
+                    ExceptionTranslator exceptionHandler=DerbyFactoryDriver.derbyFactory.getExceptionHandler();
+                    if(exceptionHandler.isCallTimeoutException(t) ||
                             t instanceof SocketTimeoutException)
                         return WriteResponse.RETRY;
                     else
