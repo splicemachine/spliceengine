@@ -73,48 +73,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 for(int i=0;i<procedures.size();i++){
                     Procedure sysProc = procedures.get(i);
                     if(IMPORT_DATA_NAME.equalsIgnoreCase(sysProc.getName())){
-                        Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
-                                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                                .catalog("schemaName")
-                                .catalog("tableName")
-                                .varchar("insertColumnList",32672)
-                                .varchar("fileName",32672)
-                                .varchar("columnDelimiter",5)
-                                .varchar("characterDelimiter", 5)
-                                .varchar("timestampFormat",32672)
-                                .varchar("dateFormat",32672)
-                                .varchar("timeFormat",32672)
-                                .bigint("maxBadRecords")
-                                .varchar("badRecordDirectory",32672)
-                                .varchar("oneLineRecords",5)
-                                .varchar("charset",32672)
-                                .build();
-                        procedures.add(importWithBadRecords);
-
-                        Procedure upport = Procedure.newBuilder().name("UPSERT_DATA_FROM_FILE")
-                                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                                .catalog("schemaName")
-                                .catalog("tableName")
-                                .varchar("insertColumnList",32672)
-                                .varchar("fileName",32672)
-                                .varchar("columnDelimiter",5)
-                                .varchar("characterDelimiter", 5)
-                                .varchar("timestampFormat",32672)
-                                .varchar("dateFormat",32672)
-                                .varchar("timeFormat",32672)
-                                .bigint("maxBadRecords")
-                                .varchar("badRecordDirectory",32672)
-                                .varchar("oneLineRecords",5)
-                                .varchar("charset",32672)
-                                .build();
-                        procedures.add(upport);
-
-                        Procedure getAutoIncLocs = Procedure.newBuilder().name("SYSCS_GET_AUTO_INCREMENT_ROW_LOCATIONS")
-                                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                                .catalog("schemaName")
-                                .catalog("tableName")
-                                .build();
-                        procedures.add(getAutoIncLocs);
                     } else if(RESTORE_DATABASE_NAME.equals(sysProc.getName())) {
                         Procedure restore = Procedure.newBuilder().name(RESTORE_DATABASE_NAME)
                                 .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
@@ -293,6 +251,51 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(StatisticsAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(collectStatsForTable);
+
+
+                    Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("insertColumnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .build();
+                    procedures.add(importWithBadRecords);
+
+                    Procedure upport = Procedure.newBuilder().name("UPSERT_DATA_FROM_FILE")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("insertColumnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .build();
+                    procedures.add(upport);
+
+                    Procedure getAutoIncLocs = Procedure.newBuilder().name("SYSCS_GET_AUTO_INCREMENT_ROW_LOCATIONS")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .build();
+                    procedures.add(getAutoIncLocs);
+
 
                     Procedure dropStatsForSchema = Procedure.newBuilder().name("DROP_SCHEMA_STATISTICS")
                             .numOutputParams(0)
