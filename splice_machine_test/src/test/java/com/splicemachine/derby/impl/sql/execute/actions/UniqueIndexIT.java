@@ -491,7 +491,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
         methodWatcher.getOrCreateConnection().commit();
     }
 
-    @Test(timeout = 10000)
+    @Test(timeout = 20000)
     public void testCanInsertThenDeleteEntryInTransaction() throws Exception {
         new SpliceIndexWatcher(TABLE_M, CLASS_NAME, INDEX_M, CLASS_NAME, "(name)", true).starting(null);
         insertThenDelete(TABLE_M);
