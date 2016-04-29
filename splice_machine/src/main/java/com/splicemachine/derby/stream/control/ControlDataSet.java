@@ -270,6 +270,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization does" +
             "not happen with control-side execution")
     public ExportDataSetWriterBuilder saveAsTextFile(OperationContext operationContext) {

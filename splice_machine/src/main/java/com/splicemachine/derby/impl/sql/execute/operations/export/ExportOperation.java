@@ -176,10 +176,14 @@ public class ExportOperation extends SpliceBaseOperation {
             .build();
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getDataSet(): writing");
-        DataSet<LocatedRow> resultDs = writer.write();
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getDataSet(): done");
-        return resultDs;
+        operationContext.pushScope();
+        try {
+            DataSet<LocatedRow> resultDs = writer.write();
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "getDataSet(): done");
+            return resultDs;
+        } finally {
+            operationContext.popScope();
+        }
     }
-
 }
