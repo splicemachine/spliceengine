@@ -16,12 +16,12 @@ public class OperationInfo{
     private final String operationTypeName;
     private final boolean isRight;
     private final long parentOperationUuid; //-1 for no parent
-    private AtomicInteger numJobs=new AtomicInteger(0);
-    private AtomicInteger numTasks=new AtomicInteger(0);
+    private final AtomicInteger numJobs=new AtomicInteger(0);
+    private final AtomicInteger numTasks=new AtomicInteger(0);
+    private final AtomicInteger numFailedTasks=new AtomicInteger(0);
+    private final AtomicInteger numCompletedTasks=new AtomicInteger(0);
     private long statementId;
-    private volatile int numFailedTasks=-1;
     private String info;
-    private Set<JobInfo> jobs=new CopyOnWriteArraySet<JobInfo>();
 
     public OperationInfo(long operationUuid,
                          long statementId,
@@ -40,10 +40,16 @@ public class OperationInfo{
     @ConstructorProperties({"right",
             "numTasks","numJobs",
             "parentOperationUuid","operationTypeName",
-            "operationUuid","statementId","numFailedTasks"})
-    public OperationInfo(boolean isRight,int numTasks,int numJobs,
-                         long parentOperationUuid,String operationTypeName,long operationUuid,
-                         long statementUuid,int numFailedTasks){
+            "operationUuid","statementId","numFailedTasks","numCompletedTasks"})
+    public OperationInfo(boolean isRight,
+                         int numTasks,
+                         int numJobs,
+                         long parentOperationUuid,
+                         String operationTypeName,
+                         long operationUuid,
+                         long statementUuid,
+                         int numFailedTasks,
+                         int numCompletedTasks){
         this.isRight=isRight;
         this.numJobs.set(numJobs);
         this.numTasks.set(numTasks);
@@ -51,27 +57,18 @@ public class OperationInfo{
         this.operationTypeName=operationTypeName;
         this.operationUuid=operationUuid;
         this.statementId=statementUuid;
-        this.numFailedTasks=numFailedTasks;
+        this.numFailedTasks.set(numFailedTasks);
+        this.numCompletedTasks.set(numCompletedTasks);
     }
 
     public int getNumFailedTasks(){
-        synchronized(this){
-            if(numFailedTasks<0){
-                numFailedTasks=0;
-                for(JobInfo job : jobs){
-                    numFailedTasks+=job.getTasksFailed();
-                }
-            }
-        }
-        return numFailedTasks;
+        return numFailedTasks.get();
     }
 
+    public int getNumCompletedTasks(){ return numCompletedTasks.get(); }
+
     public int getRunningTasks(){
-        int numRunning=0;
-        for(JobInfo job : jobs){
-            numRunning+=job.getRunningTaskCount();
-        }
-        return numRunning;
+        return numTasks.get()-numCompletedTasks.get()-numFailedTasks.get();
     }
 
     public long getOperationUuid(){ return operationUuid; }
@@ -82,11 +79,19 @@ public class OperationInfo{
     public String getInfo(){ return info; }
     public boolean isRight(){ return isRight; }
 
-    public void addJob(JobInfo jobInfo){
+    public void initializeJob(JobInfo jobInfo){
         this.numJobs.incrementAndGet();
         this.numTasks.addAndGet(jobInfo.totalTaskCount());
-        numFailedTasks=0;
-        this.jobs.add(jobInfo);
+        numFailedTasks.set(jobInfo.getTasksFailed());
+        numCompletedTasks.set(jobInfo.getTasksCompleted());
+    }
+
+    public void taskCompleted(){
+        numCompletedTasks.incrementAndGet();
+    }
+
+    public void taskFailed(){
+        numFailedTasks.incrementAndGet();
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job;
 
+import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.TaskFuture;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -35,6 +36,7 @@ public class JobInfo implements JobFuture.StatusHook{
     private volatile JobState jobState;
 
     protected volatile JobFuture jobFuture;
+    private volatile OperationInfo operationInfo;
 
     public JobInfo(String jobId,int numTasks,long jobStartMs){
         this.jobId=jobId;
@@ -115,6 +117,8 @@ public class JobInfo implements JobFuture.StatusHook{
     @Override
     public void success(TaskFuture taskFuture){
         int completedCount=tasksCompleted.incrementAndGet();
+        if(operationInfo!=null)
+            operationInfo.taskCompleted();
         tasksPending.decrementAndGet();
         if(completedCount>=taskIds.length){
             //we are finished! whoo!
@@ -122,11 +126,14 @@ public class JobInfo implements JobFuture.StatusHook{
             jobFinishMs=System.currentTimeMillis();
             jobState=JobState.COMPLETED;
         }
+
     }
 
     @Override
     public void failure(TaskFuture taskFuture){
         tasksFailed.incrementAndGet();
+        if(operationInfo!=null)
+            operationInfo.taskFailed();
     }
 
     @Override
@@ -164,5 +171,8 @@ public class JobInfo implements JobFuture.StatusHook{
         jobFuture.cancel();
     }
 
+    public void setOperationInfo(OperationInfo operationInfo){
+        this.operationInfo=operationInfo;
+    }
 }
 

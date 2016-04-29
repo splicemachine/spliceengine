@@ -181,7 +181,8 @@ public class StatementAdmin extends BaseAdminProcedures{
             int jobs = getNumJobs(true);
 
             String prefix = isRunning?"-> ":"xx ";
-            String val = prefix+info.getOperationTypeName()+"["+(isRunning?"RUNNING":"COMPLETE")+"]";
+            String state=getState(isRunning,jobs);
+            String val = prefix+info.getOperationTypeName()+"["+state+"]";
             if(jobs<=0) return val;
             else return val +
                     "(numJobs="+jobs+
@@ -189,6 +190,31 @@ public class StatementAdmin extends BaseAdminProcedures{
                     ",failedTasks="+failed+
                     ",runningTasks="+running+
                     ")";
+        }
+
+        private String getState(boolean isRunning, int jobCount){
+            if(jobCount<=0){
+                /*
+                 * We are not necessarily a sequential operation; something
+                 * below is might still be running, in which case we are in the PENDING
+                 * state. Otherwise, either running or complete based on the isRunning criteria
+                 */
+                if(hasRunningChildJobs())
+                    return "PENDING";
+            }
+            //we can only be in the RUNNING or COMPLETE state
+            return isRunning?"RUNNING":"COMPLETE";
+        }
+
+        private boolean hasRunningChildJobs(){
+            if(info.getNumJobs()>0)
+                if(info.getRunningTasks()>0) return true;
+
+            for(OperationTreeNode otn:children){
+                if(otn.hasRunningChildJobs())
+                    return true;
+            }
+            return false;
         }
 
         private int getRunningTasks(boolean isTop){
