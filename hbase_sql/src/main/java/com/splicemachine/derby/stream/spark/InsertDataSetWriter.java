@@ -93,19 +93,15 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 opContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
                 if (badRecords.size() > 0) {
                     DataSet dataSet = new ControlDataSet<>(badRecords);
-                    Path path = null;
-                    if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
-                        DistributedFileSystem fileSystem = SIDriver.driver().fileSystem();
-                        path = generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
-                        dataSet.saveAsTextFile(path.toString());
-                        opContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
-                    }
+                    DistributedFileSystem fileSystem = SIDriver.driver().fileSystem();
+                    Path path = generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
+                    dataSet.saveAsTextFile(path.toString());
+                    opContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
                     if (insertOperation.isAboveFailThreshold(badRecords.size())) {
                         if (badRecords.size() == 1) {
                             throw ErrorState.fromBadRecord(badRecords.get(0));
                         }
-                        throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(
-                                path == null ? "--No Output File Provided--" : path.toString());
+                        throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path.toString());
                     }
                 }
             }
@@ -136,15 +132,21 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
         return Bytes.toBytes(heapConglom);
     }
 
-    private static Path generateFileSystemPathForWrite(
-        String badDirectory,
-        DistributedFileSystem fileSystem,
-        SpliceOperation spliceOperation) throws StandardException {
+    private static Path generateFileSystemPathForWrite(String badDirectory,
+                                                       DistributedFileSystem fileSystem,
+                                                       SpliceOperation spliceOperation) throws StandardException {
 
+
+        java.nio.file.Path inputFilePath = fileSystem.getPath(spliceOperation.getVTIFileName());
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "generateFileSystemPathForWrite(): badDirectory=%s", badDirectory);
+            SpliceLogUtils.trace(LOG, "generateFileSystemPathForWrite(): badDirectory=%s, filePath=%s", badDirectory, inputFilePath);
+        assert inputFilePath !=null;
+        String vtiFileName=inputFilePath.getFileName().toString();
 
-        String vtiFileName=spliceOperation.getVTIFileName();
+        if (badDirectory == null || badDirectory.isEmpty() || badDirectory.toUpperCase().equals("NULL")) {
+            badDirectory = inputFilePath.getParent().toString();
+        }
+
         ImportUtils.validateWritable(badDirectory,true);
         int i=0;
         while(true){

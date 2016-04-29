@@ -67,6 +67,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static String TABLE_17 = "Q";
     protected static String TABLE_18 = "R";
     protected static String TABLE_19 = "S";
+    protected static String TABLE_20 = "T";
     private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 
@@ -83,6 +84,8 @@ public class HdfsImportIT extends SpliceUnitTest {
             .schemaName, "(cust_city_id int, cust_city_name varchar(64), cust_state_id int)");
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_5, spliceSchemaWatcher
             .schemaName, "(i int, j varchar(20))");
+    protected static SpliceTableWatcher spliceTableWatcher20 = new SpliceTableWatcher(TABLE_20, spliceSchemaWatcher
+            .schemaName, "(i int, j int check (j<15))");
     protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_6, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_7, spliceSchemaWatcher
@@ -191,6 +194,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher17)
             .around(spliceTableWatcher18)
             .around(spliceTableWatcher19)
+            .around(spliceTableWatcher20)
             .around(autoIncTableWatcher);
 
     @Rule
@@ -414,6 +418,38 @@ public class HdfsImportIT extends SpliceUnitTest {
         Assert.assertEquals("wrong row count imported!", 2, results.size());
         Assert.assertEquals("first row wrong", "i:1,j:Hello", results.get(0));
         Assert.assertEquals("second row wrong", "i:2,j:There", results.get(1));
+    }
+
+    @Test
+    public void testFailedImportNullBadDir() throws Exception {
+        // DB-5017: When bad record dir is null or empty, the input file dir becomes the bad record dir
+        String inputFileName =  "constraintViolation.csv";
+        String inputFile = getBaseDirectory()+"/target/test-classes/" +inputFileName;
+        String badFileName = getBaseDirectory()+"/target/test-classes/" +inputFileName+".bad";
+
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "null," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, TABLE_20,
+                inputFile,                    0));
+        try {
+            ps.execute();
+            fail("Expected constraint violation.");
+        } catch (SQLException e) {
+            assertEquals("Expected constraint violation, but got: "+e.getLocalizedMessage(), "23513", e.getSQLState());
+        }
+        assertTrue(new File(badFileName).exists());
     }
 
     @Test
