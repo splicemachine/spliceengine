@@ -258,7 +258,7 @@
                         <configuration>
                             <!--<groups>com.splicemachine.test.SerialTest</groups>-->
                             <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g -XX:MaxPermSize=128m</argLine>
+                            <argLine>-Xmx3g -XX:MaxPermSize=256m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -651,7 +651,7 @@
                                 <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
                                 <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
                                 <argument>-XX:MaxGCPauseMillis=100</argument>
-                                <argument>-XX:MaxPermSize=256M</argument>
+                                <argument>-XX:MaxPermSize=512M</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>-XX:MaxDirectMemorySize=1g</argument>
                                 <argument>-enableassertions</argument>
@@ -716,7 +716,7 @@
                                 <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
                                 <argument>-XX:MaxGCPauseMillis=100</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
-                                <argument>-XX:MaxPermSize=256M</argument>
+                                <argument>-XX:MaxPermSize=512M</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>-XX:MaxDirectMemorySize=1g</argument>
                                 <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>

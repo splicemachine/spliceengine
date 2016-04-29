@@ -15,6 +15,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 @Category(value = {SerialTest.class, SlowTest.class})
+@Ignore("DB-5034")
 public class BackupIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static String TABLE_NAME1 = "A";
