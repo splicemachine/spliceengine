@@ -71,7 +71,7 @@ public class PipelineUtils{
      * @return
      */
 
-    public static long getPauseTime(final long pause, final int tries) {
+    public static long getPauseTime(final int tries, final long pause) {
         int ntries = tries;
         if (ntries >= RETRY_BACKOFF.length) {
             ntries = RETRY_BACKOFF.length - 1;
