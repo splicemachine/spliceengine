@@ -59,6 +59,10 @@ public class MemFileSystem extends DistributedFileSystem{
         localDelegate.delete(getPath(dir,fileName));
     }
 
+    public String[] getExistingFiles(String dir, String filePattern) throws IOException {
+        return new String[]{};
+    };
+
     @Override
     public Path getPath(String directory,String fileName){
         return Paths.get(directory,fileName);

@@ -19,8 +19,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
+import org.apache.hadoop.mapred.InvalidJobConfException;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.storage.StorageLevel;
@@ -268,6 +271,26 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     public static class EOutputFormat extends FileOutputFormat<Void, LocatedRow> {
 
+        /**
+         * Overridden to avoid throwing an exception if the specified directory
+         * for export already exists.
+         */
+        @Override
+        public void checkOutputSpecs(JobContext job) throws FileAlreadyExistsException, IOException {
+            Path outDir = getOutputPath(job);
+            if(outDir == null) {
+                throw new InvalidJobConfException("Output directory not set.");
+            } else {
+                TokenCache.obtainTokensForNamenodes(job.getCredentials(), new Path[]{outDir}, job.getConfiguration());
+                /*
+                if(outDir.getFileSystem(job.getConfiguration()).exists(outDir)) {
+                    System.out.println("Output dir already exists, no problem");
+                    throw new FileAlreadyExistsException("Output directory " + outDir + " already exists");
+                }
+                */
+            }
+        }
+
         @Override
         public RecordWriter<Void, LocatedRow> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
             Configuration conf = taskAttemptContext.getConfiguration();
@@ -327,6 +350,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkPairDataSet<>(rdd.zipWithIndex());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public ExportDataSetWriterBuilder<String> saveAsTextFile(OperationContext operationContext){
         return new SparkExportDataSetWriter.Builder<>(rdd);

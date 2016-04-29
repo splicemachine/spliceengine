@@ -177,6 +177,7 @@ public class ExportOperation extends SpliceBaseOperation {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getDataSet(): writing");
         DataSet<LocatedRow> resultDs = writer.write();
+        if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getDataSet(): done");
         return resultDs;
     }

@@ -2,7 +2,6 @@ package com.splicemachine.access.api;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
@@ -18,6 +17,17 @@ public abstract class DistributedFileSystem extends FileSystemProvider{
     public abstract void delete(String directory,boolean recursive) throws IOException;
 
     public abstract void delete(String directory,String fileName,boolean recursive) throws IOException;
+
+    /**
+     * Fetches the names of files in the specified directory that match the specified pattern,
+     * which can include wildcards.
+     *
+     * @param dir directory to search for files
+     * @param filePattern pattern to use for matching files
+     * @return array of file names (just the names, not the full paths)
+     * @throws IOException
+     */
+    public abstract String[] getExistingFiles(String dir, String filePattern) throws IOException;
 
     public abstract Path getPath(String directory,String fileName);
 

@@ -69,6 +69,9 @@ class ExportPermissionCheck {
 
     public void cleanup() throws IOException {
         testFile.delete();
-        testFile.deleteDirectory();
+        // DB-5027: DO NOT delete the directory. The directory might contain important files
+        // unrelated to export. Instead, just "clear" the directory of prior export files.
+        // testFile.deleteDirectory();
+        testFile.clearDirectory();
     }
 }

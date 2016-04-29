@@ -50,14 +50,33 @@ public class HNIOFileSystem extends DistributedFileSystem{
 
     @Override
     public void delete(String dir,boolean recursive) throws IOException{
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "delete(): dir=%s, recursive=%s", dir, recursive);
         org.apache.hadoop.fs.Path p=new org.apache.hadoop.fs.Path(dir);
-        fs.delete(p,recursive);
+        boolean result = fs.delete(p,recursive);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "delete(): dir=%s, recursive=%s, result=%s", dir, recursive, result);
     }
 
     @Override
     public void delete(String dir,String fileName,boolean recursive) throws IOException{
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "delete(): dir=%s, fileName=%s, recursive=%s", dir, fileName, recursive);
         org.apache.hadoop.fs.Path p=new org.apache.hadoop.fs.Path(dir,fileName);
-        fs.delete(p,recursive);
+        boolean result = fs.delete(p,recursive);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "delete(): dir=%s, fileName=%s, recursive=%s, result=%s", dir, fileName, recursive, result);
+    }
+
+    public String[] getExistingFiles(String dir, String filePattern) throws IOException {
+        FileStatus[] statuses = fs.globStatus(new org.apache.hadoop.fs.Path(dir, filePattern));
+        String[] files = new String[statuses.length];
+        int index = 0;
+        for (FileStatus status : statuses) {
+            if (status != null && status.getPath() != null)
+                files[index++] = status.getPath().getName();
+        }
+        return files;
     }
 
     @Override
@@ -127,8 +146,8 @@ public class HNIOFileSystem extends DistributedFileSystem{
     @Override
     public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
         org.apache.hadoop.fs.Path f=toHPath(dir);
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "createDirectory(): path=%s", f);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "createDirectory(): path=%s", f);
         try{
             FileStatus fileStatus=fs.getFileStatus(f);
             throw new FileAlreadyExistsException(dir.toString());
@@ -140,8 +159,8 @@ public class HNIOFileSystem extends DistributedFileSystem{
     @Override
     public boolean createDirectory(Path path,boolean errorIfExists) throws IOException{
         org.apache.hadoop.fs.Path f=toHPath(path);
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "createDirectory(): path=%s", f);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "createDirectory(): path=%s", f);
         try{
             FileStatus fileStatus=fs.getFileStatus(f);
             return !errorIfExists && fileStatus.isDirectory();
@@ -152,21 +171,22 @@ public class HNIOFileSystem extends DistributedFileSystem{
 
     @Override
     public boolean createDirectory(String fullPath,boolean errorIfExists) throws IOException{
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "createDirectory(): path string=%s", fullPath);
+        boolean isTrace = LOG.isTraceEnabled();
+        if (isTrace)
+            SpliceLogUtils.trace(LOG, "createDirectory(): path string=%s", fullPath);
         org.apache.hadoop.fs.Path f=new org.apache.hadoop.fs.Path(fullPath);
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "createDirectory(): hdfs path=%s", f);
+        if (isTrace)
+            SpliceLogUtils.trace(LOG, "createDirectory(): hdfs path=%s", f);
         try{
             FileStatus fileStatus=fs.getFileStatus(f);
-            if (LOG.isTraceEnabled())
+            if (isTrace)
                 SpliceLogUtils.trace(LOG, "createDirectory(): file status=%s", fileStatus);
             return !errorIfExists && fileStatus.isDirectory();
         }catch(FileNotFoundException fnfe){
-            if (LOG.isDebugEnabled())
+            if (isTrace)
                 SpliceLogUtils.trace(LOG, "createDirectory(): directory not found so we will create it: %s", f);
             boolean created = fs.mkdirs(f);
-            if (LOG.isDebugEnabled())
+            if (isTrace)
                 SpliceLogUtils.trace(LOG, "createDirectory(): created=%s", created);
             return created;
         }

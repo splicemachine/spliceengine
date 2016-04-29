@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
@@ -64,6 +65,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         try{
             final DistributedFileSystem dfs=SIDriver.driver().fileSystem();
             dfs.createDirectory(path,false);
+            // The 'part-r-00000' naming convention is what spark uses so we are consistent on control side
             try(OutputStream fileOut =dfs.newOutputStream(path /*directory*/,"part-r-00000"+extension/*file*/,StandardOpenOption.CREATE)){
                 OutputStream toWrite=fileOut;
                 if(isCompressed){
@@ -71,7 +73,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
                 }
                 count=exportFunction.call(toWrite,dataSet.toLocalIterator());
             }
-            dfs.touchFile(path, "_SUCCESS");
+            dfs.touchFile(path, ExportFile.SUCCESS_FILE);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

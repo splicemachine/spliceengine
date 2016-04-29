@@ -53,10 +53,15 @@ public class TestingFileSystem extends DistributedFileSystem{
     public void delete(String dir,boolean recursive) throws IOException{
         localDelegate.delete(getPath(dir));
     }
+
     @Override
     public void delete(String dir,String fileName,boolean recursive) throws IOException{
         localDelegate.delete(getPath(dir,fileName));
     }
+
+    public String[] getExistingFiles(String dir, String filePattern) throws IOException {
+        return new String[]{};
+    };
 
     @Override
     public Path getPath(String directory,String fileName){

@@ -48,14 +48,13 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         this.exportFunction=exportFunction;
     }
 
-//    @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         out.writeUTF(directory);
         out.writeObject(exportFunction);
         out.writeObject(rdd);
     }
 
-//    @Override
+    @SuppressWarnings("unchecked")
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         directory = in.readUTF();
         exportFunction = (SpliceFunction2)in.readObject();
@@ -73,7 +72,6 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
             bdo.writeObject(exportFunction);
             encoded=Base64.encodeBase64String(bdo.toByteArray());
             conf.set("exportFunction",encoded);
-
             job=Job.getInstance(conf);
         }catch(IOException e){
             throw new RuntimeException(e);
@@ -130,12 +128,12 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
             return this;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
-        public /*<Op extends SpliceOperation>*/ ExportDataSetWriterBuilder exportFunction(SpliceFunction2/*<Op,OutputStream,Iterator<V>, Integer>*/ exportFunction){
+        public ExportDataSetWriterBuilder exportFunction(SpliceFunction2 exportFunction){
             this.exportFunction = exportFunction;
             return this;
         }
-
 
         @Override
         public DataSetWriter build(){

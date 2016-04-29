@@ -17,8 +17,9 @@ import java.util.zip.GZIPOutputStream;
  * Encapsulates logic about how taskId + ExportParams are translated into target file path, how file (and directory)
  * are created, etc.
  */
-class ExportFile {
+public class ExportFile {
 
+    public static final String SUCCESS_FILE = "_SUCCESS";
     private final DistributedFileSystem fileSystem;
     private final ExportParams exportParams;
     private final byte[] taskId;
@@ -45,7 +46,6 @@ class ExportFile {
         return exportParams.isCompression() ? new GZIPOutputStream(rawOutputStream) : rawOutputStream;
     }
 
-    // Create the directory if it doesn't exist.
     public boolean createDirectory() {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "createDirectory(): export directory=%s", exportParams.getDirectory());
@@ -70,13 +70,41 @@ class ExportFile {
     }
 
     public boolean deleteDirectory() throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "deleteDirectory()");
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "deleteDirectory()");
         try{
             fileSystem.delete(exportParams.getDirectory(), true);
             return true;
         }catch(NoSuchFileException fnfe){
             return false;
+        }
+    }
+
+    public boolean clearDirectory() throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "clearDirectory(): dir=%s", exportParams.getDirectory());
+        try{
+            // Delete the empty SUCCESS file and any prior exported data files
+            fileSystem.delete(exportParams.getDirectory(), SUCCESS_FILE, false);
+            deletePriorExportFiles();
+            return true;
+        }catch(NoSuchFileException e){
+            return false;
+        }
+    }
+
+    private void deletePriorExportFiles() throws IOException {
+        boolean isTrace = LOG.isTraceEnabled();
+        String[] files = fileSystem.getExistingFiles(exportParams.getDirectory(), "part-r-*");
+        for (String file : files) {
+            if (isTrace)
+                SpliceLogUtils.trace(LOG, "Deleting file: %s/%s", exportParams.getDirectory(), file);
+            try {
+                if (file != null && !file.isEmpty())
+                    fileSystem.delete(exportParams.getDirectory(), file, false);
+            } catch(NoSuchFileException e) {
+                SpliceLogUtils.warn(LOG, "Unable to delete file %s, but that won't prevent export.");
+            }
         }
     }
 
@@ -98,5 +126,4 @@ class ExportFile {
     protected String buildFilenameFromTaskId(byte[] taskId) {
         return "export_" + Bytes.toHex(taskId) + ".csv" + (exportParams.isCompression() ? ".gz" : "");
     }
-
 }
