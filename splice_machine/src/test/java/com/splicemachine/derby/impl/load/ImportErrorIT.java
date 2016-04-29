@@ -12,8 +12,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -77,7 +75,7 @@ public class ImportErrorIT extends SpliceUnitTest {
     public void testNoSuchTable() throws Exception {
         runImportTest("NO_SUCH_TABLE","file_doesnt_exist.csv",new ErrorCheck() {
             @Override
-            public void check(String table, String location, SQLException se) {
+            public void check(String table, String location, SQLException se) throws Exception {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", "XIE0M",se.getSQLState());
 
@@ -93,7 +91,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         final String fileName = "file_doesnt_exist.csv";
         runImportTest(fileName,new ErrorCheck() {
             @Override
-            public void check(String table, String location, SQLException se) {
+            public void check(String table, String location, SQLException se) throws Exception {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!","XIE04",se.getSQLState());
                 String retval = se.getMessage();
@@ -106,212 +104,151 @@ public class ImportErrorIT extends SpliceUnitTest {
 
     @Test
     public void testCannotInsertNullFieldIntoNonNullColumn() throws Exception {
-        runImportTest("null_col.csv", new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "23502", se.getSQLState());
-
-                String correctErrorMessage = "Column 'A' cannot accept a NULL value.";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
-            }
-        });
+        final String importFileName = "null_col.csv";
+        final String expectedErrorCode = "23502";
+        final String expectedErrorMsg = "Column 'A' cannot accept a NULL value.";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertStringOverCharacterLimits() throws Exception {
-        runImportTest("long_string.csv",new ErrorCheck(){
-            @Override
-            public void check(String table, String location, SQLException se) {
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22001", se.getSQLState());
-
-                String correctErrorMessage = "A truncation error was encountered trying to shrink VARCHAR " +
-                        "'thisstringhasmorethanfivecharacters' to length 5.";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
-            }
-        });
+        final String importFileName = "long_string.csv";
+        final String expectedErrorCode = "22001";
+        final String expectedErrorMsg = "A truncation error was encountered trying to shrink VARCHAR " +
+            "'thisstringhasmorethanfivecharacters' to length 5.";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertALongIntoAnIntegerField() throws Exception {
-        runImportTest("long_int.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-//                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertALongIntoAnIntegerField",se));
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22018", se.getSQLState());
-
-                String correctErrorMessage = "Invalid character string format for type INTEGER.";
-                assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
-            }
-        });
+        final String importFileName = "long_int.csv";
+        final String expectedErrorCode = "22018";
+        final String expectedErrorMsg = "Invalid character string format for type INTEGER.";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertAFloatIntoAnIntegerField() throws Exception {
-        runImportTest("float_int.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-//                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertAFloatIntoAnIntegerField",se));
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22018", se.getSQLState());
-
-                String correctErrorMessage = "Invalid character string format for type INTEGER.";
-                assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
-            }
-        });
+        final String importFileName = "float_int.csv";
+        final String expectedErrorCode = "22018";
+        final String expectedErrorMsg = "Invalid character string format for type INTEGER.";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertADoubleIntoALongField() throws Exception {
-        runImportTest("double_long.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-//                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertADoubleIntoALongField",se));
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22018", se.getSQLState());
-
-                String correctErrorMessage = "Invalid character string format for type BIGINT.";
-                assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
-            }
-        });
+        final String importFileName = "double_long.csv";
+        final String expectedErrorCode = "22018";
+        final String expectedErrorMsg = "Invalid character string format for type BIGINT.";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertADoubleIntoAFloatField() throws Exception {
-        runImportTest("double_float.csv", new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-//                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertADoubleIntoAFloatField",se));
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22003", se.getSQLState());
-
-                String correctErrorMessage = "The resulting value is outside the range for the data type REAL.";
-                assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
-            }
-        });
+        final String importFileName = "double_float.csv";
+        final String expectedErrorCode = "22003";
+        final String expectedErrorMsg = "The resulting value is outside the range for the data type REAL.";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertAPoorlyFormattedDate() throws Exception {
-        runImportTest("bad_date.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-//                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertAPoorlyFormattedDate",se));
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
-
-                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect";
-                assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
-            }
-        });
+        final String importFileName = "bad_date.csv";
+        final String expectedErrorCode = "22007";
+        final String expectedErrorMsg = "Error parsing datetime 201301-01 with pattern: yyyy-MM-dd";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertAPoorlyFormattedTime() throws Exception {
-        runImportTest("bad_time.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-//                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertAPoorlyFormattedTime",se));
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
+        final String importFileName = "bad_time.csv";
+        final String expectedErrorCode = "22007";
+        final String expectedErrorMsg = "Error parsing datetime 0000:00 with pattern: HH:mm:ss";
 
-                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect";
-                assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
-            }
-        });
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertNullDateIntoDateField() throws Exception{
-        runImportTest("null_date.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-//                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertNullDateIntoDateField",se));
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "23502", se.getSQLState());
+        final String importFileName = "null_date.csv";
+        final String expectedErrorCode = "23502";
+        final String expectedErrorMsg = "Column 'F' cannot accept a NULL value.";
 
-                String correctErrorMessage = "Column 'F' cannot accept a NULL value.";
-                assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
-            }
-        });
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertNullTimeIntoTimeField() throws Exception{
-        runImportTest("null_time.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "23502", se.getSQLState());
-
-                String correctErrorMessage = "Column 'G' cannot accept a NULL value.";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
-            }
-        });
+        final String importFileName = "null_time.csv";
+        final String expectedErrorCode = "23502";
+        final String expectedErrorMsg = "Column 'G' cannot accept a NULL value.";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertNullTimestampIntoTimestampField() throws Exception{
-        runImportTest("null_timestamp.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "23502", se.getSQLState());
-
-                String correctErrorMessage = "Column 'H' cannot accept a NULL value.";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
-            }
-        });
+        final String importFileName = "null_timestamp.csv";
+        final String expectedErrorCode = "23502";
+        final String expectedErrorMsg = "Column 'H' cannot accept a NULL value.";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test
     public void testCannotInsertAPoorlyFormatedTimestamp() throws Exception {
-        runImportTest("bad_timestamp.csv",new ErrorCheck() {
-            @Override
-            public void check(String table, String location, SQLException se) {
-//                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertAPoorlyFormatedTimestamp",se));
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
-
-                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect";
-                assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
-            }
-        });
+        final String importFileName = "bad_timestamp.csv";
+        final String expectedErrorCode = "22007";
+        final String expectedErrorMsg = "Error parsing datetime 2013-01-0100:00:00 with pattern: yyyy-MM-dd HH:mm:ss";
+        helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
     @Test @Ignore("DB-4341: Import of improper decimal gives overflow when selected")
     public void testDecimalTable() throws Exception {
-        runImportTest("DECIMALTABLE","bad_decimal.csv",new ErrorCheck() {
+        final String importFileName = "bad_decimal.csv";
+        final String expectedErrorCode = "XIE0A";
+        final String expectedErrorMsg = "The resulting value is outside the range for the data type DECIMAL/NUMERIC(2,0).";
+        runImportTest("DECIMALTABLE",importFileName, new ErrorCheck() {
             @Override
-            public void check(String table, String location, SQLException se) {
+            public void check(String table, String location, SQLException se) throws Exception {
+                // "too many records" error
+                Assert.assertEquals("Incorrect sql state!", "SE009", se.getSQLState());
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "SE009" ,se.getSQLState());
-
-                String correctErrorMessage = "Too many bad records in import"; //"The resulting value is outside the range for the data type DECIMAL/NUMERIC(2,0).";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+                SpliceUnitTest.assertBadFileContainsError(BADDIR, importFileName, expectedErrorCode, expectedErrorMsg);
             }
         });
     }
 
-    /*
-		@Test(expected = SQLException.class)
-		public void testNonNullIntoIncrement() throws Exception {
-				runImportTest("INCREMENT","simple_column.txt",new ErrorCheck() {
-						@Override
-						public void check(String table, String location, SQLException se) {
-								//make sure the error code is correct
-								Assert.assertEquals("Incorrect sql state!",ErrorState.LANG_AI_CANNOT_MODIFY_AI.getSqlState(),se.getSQLState());
 
-								String correctErrorMessage = "Attempt to modify an identity column 'A'.";
-								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage().trim());
-						}
-				});
-		}
-    */
+    @Test @Ignore("This error, 42Z23, gets detected before import begins in statement bind.")
+    public void testNonNullIntoIncrement() throws Exception {
+        final String importFileName = "simple_column.txt";
+        final String expectedErrorCode = "42Z23";
+        final String expectedErrorMsg = "Attempt to modify an identity column 'A'.";
+        runImportTest("INCREMENT",importFileName, new ErrorCheck() {
+            @Override
+            public void check(String table, String location, SQLException se) throws Exception {
+                // "too many records" error
+                Assert.assertEquals("Incorrect sql state!", "SE009", se.getSQLState());
+                //make sure the error code is correct
+                SpliceUnitTest.assertBadFileContainsError(BADDIR, importFileName, expectedErrorCode, expectedErrorMsg);
+            }
+        });
+    }
+
+    private void helpTestImportError(final String importFileName, final String expectedErrorCode, final String
+        expectedErrorMsg) throws Exception {
+        runImportTest(importFileName, new ErrorCheck() {
+            @Override
+            public void check(String table, String location, SQLException se) throws Exception {
+                // "too many records" error
+                Assert.assertEquals("Incorrect sql state!", "SE009", se.getSQLState());
+                //make sure the error code is correct
+                SpliceUnitTest.assertBadFileContainsError(BADDIR, importFileName, expectedErrorCode, expectedErrorMsg);
+            }
+        });
+    }
+
     private interface ErrorCheck{
-        void check(String table, String location, SQLException se);
+        void check(String table, String location, SQLException se) throws Exception;
     }
 
     private void runImportTest(String file, ErrorCheck check) throws Exception {

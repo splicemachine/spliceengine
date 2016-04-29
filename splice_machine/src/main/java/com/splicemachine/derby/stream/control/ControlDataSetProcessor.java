@@ -1,6 +1,24 @@
 package com.splicemachine.derby.stream.control;
 
+import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.util.zip.GZIPInputStream;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Charsets;
+import scala.Tuple2;
+
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -10,11 +28,15 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.IndexTableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iterator.DirectScanner;
 import com.splicemachine.derby.stream.iterator.DirectScannerIterator;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -25,16 +47,6 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.storage.Partition;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
-import scala.Tuple2;
-
-import javax.annotation.Nonnull;import java.io.IOException;
-import java.io.InputStream;
-import java.io.SequenceInputStream;
-import java.nio.file.*;
-import java.util.*;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Local control side DataSetProcessor.

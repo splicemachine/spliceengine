@@ -78,7 +78,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         try {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
-            if(insertOperation!=null && insertOperation.isPermissive())
+            if(insertOperation!=null && operationContext.isPermissive())
                     writeConfiguration = new PermissiveInsertWriteConfiguration(writeConfiguration,
                             operationContext,
                             encoder.getDecoder(execRowDefinition));

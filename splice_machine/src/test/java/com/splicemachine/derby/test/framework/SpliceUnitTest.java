@@ -17,6 +17,9 @@ import org.sparkproject.guava.base.Joiner;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import com.splicemachine.utils.Pair;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -320,37 +323,53 @@ public class SpliceUnitTest {
         return importFileDirectory;
     }
 
-    public static void assertBadFileContainsError(File directory, String errorFile, String errorCode) throws IOException {
-        printBadFile(directory, errorFile, errorCode);
+    public static void assertBadFileContainsError(File directory, String importFileName,
+                                                  String errorCode, String errorMsg) throws IOException {
+        printBadFile(directory, importFileName, errorCode, errorMsg, true);
     }
 
-    public static String printBadFile(File directory, String fileName) throws IOException {
-        return printBadFile(directory, fileName, null);
+    public static String printBadFile(File directory, String importFileName) throws IOException {
+        return printBadFile(directory, importFileName, null, null, false);
     }
 
-    public static String printBadFile(File directory, String fileName, String errorCode) throws IOException {
+    public static String printBadFile(File directory, String importFileName, String errorCode, String errorMsg, boolean assertTrue) throws IOException {
         // look for file in the "baddir" directory with same name as import file ending in ".bad"
-        Path path = Paths.get(fileName);
+        Path path = Paths.get(importFileName);
         File badFile = new File(directory, path.getFileName() + ".bad");
         if (badFile.exists()) {
-//            System.err.println(badFile.getAbsolutePath());
             List<String> badLines = Files.readAllLines(badFile.toPath(), Charset.defaultCharset());
             if (errorCode != null && ! errorCode.isEmpty()) {
                 // make sure at least one error entry contains the errorCode
                 boolean found = false;
+                Set<String> codes = new HashSet<>();
                 for (String line : badLines) {
+                    addCode(line, codes);
                     if (line.startsWith(errorCode)) {
                         found = true;
+                        if (assertTrue && errorMsg != null) {
+                            assertThat("Incorrect error message!", line, containsString(errorMsg));
+                        }
                         break;
                     }
                 }
-                if (! found ) {
-                    fail("Didn't find expected SQLState '"+errorCode+"' in bad file: "+badFile.getCanonicalPath());
+                if (! found && assertTrue) {
+                    fail("Didn't find expected SQLState '"+errorCode+"' in bad file: "+badFile.getCanonicalPath()+" Found: "+codes);
                 }
             }
             return "Error file contents: "+badLines.toString();
+        } else if (assertTrue) {
+            fail("Bad file ["+badFile.getCanonicalPath()+"] does not exist.");
         }
         return "File does not exist: "+badFile.getCanonicalPath();
+    }
+
+    private static void addCode(String line, Set<String> codes) {
+        if (line != null && ! line.isEmpty()) {
+            String[] parts = line.split("\\s");
+            if (parts.length > 0) {
+                codes.add(parts[0]);
+            }
+        }
     }
 
     public static String printImportFile(File directory, String fileName) throws IOException {

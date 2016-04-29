@@ -125,10 +125,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
     }
 
-    public boolean isPermissive() {
-        return this.failBadRecordCount == -1;
-    }
-
     public boolean isAboveFailThreshold(long numberOfErrors) {
         return this.failBadRecordCount >= 0 && numberOfErrors > this.failBadRecordCount;
     }

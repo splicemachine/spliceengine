@@ -78,9 +78,6 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                     dataSet.saveAsTextFile(path.toString());
                     operationContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
                     if(insertOperation.isAboveFailThreshold(badRecords.size())){
-                        if(badRecords.size()==1){
-                            throw ErrorState.fromBadRecord(badRecords.get(0));
-                        }
                         throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path.toString());
                     }
                 }

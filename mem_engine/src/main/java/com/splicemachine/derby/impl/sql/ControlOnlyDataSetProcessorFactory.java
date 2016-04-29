@@ -22,43 +22,44 @@ import javax.annotation.Nullable;
  *         Date: 1/12/16
  */
 public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFactory{
-    private final ControlDataSetProcessor cdsp;
-    private final DistributedWrapper dist;
+    private final SIDriver driver;
 
     private static final Logger LOG = Logger.getLogger(ControlOnlyDataSetProcessorFactory.class);
 
     public ControlOnlyDataSetProcessorFactory(){
-        final SIDriver driver=SIDriver.driver();
-        cdsp = new ControlDataSetProcessor(driver.getTxnSupplier(),
-                driver.getTransactor(),
-                driver.getOperationFactory());
-        this.dist = new DistributedWrapper(cdsp);
+        driver=SIDriver.driver();
+    }
+
+    private ControlDataSetProcessor createControlDataSetProcessor() {
+        return new ControlDataSetProcessor(driver.getTxnSupplier(),
+                                           driver.getTransactor(),
+                                           driver.getOperationFactory());
     }
 
     @Override
     public DataSetProcessor chooseProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "chooseProcessor(): ControlDataSetProcessor provided for op %s", op);
-        return cdsp;
+        return createControlDataSetProcessor();
     }
 
     @Override
     public DataSetProcessor localProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "localProcessor(): ControlDataSetProcessor provided for op %s", op);
-        return cdsp;
+        return createControlDataSetProcessor();
     }
 
     @Override
     public DataSetProcessor bulkProcessor(@Nullable Activation activation, @Nullable SpliceOperation op) {
-        return cdsp;
+        return createControlDataSetProcessor();
     }
 
     @Override
     public DistributedDataSetProcessor distributedProcessor(){
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "distributedProcessor(): DistributedWrapper provided");
-        return dist;
+        return new DistributedWrapper(createControlDataSetProcessor());
     }
 
     private static class DistributedWrapper extends ForwardingDataSetProcessor implements DistributedDataSetProcessor{

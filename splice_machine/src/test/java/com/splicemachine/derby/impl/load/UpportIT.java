@@ -104,9 +104,9 @@ public class UpportIT extends SpliceUnitTest {
 
         try{
             statement.execute();
-            Assert.fail("Did not thow exception");
+            Assert.fail("Did not throw exception");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect SQL State!", "23502", se.getSQLState());
+            SpliceUnitTest.assertBadFileContainsError(BADDIR, fullTestFile.getFileName(), "23502", null);
         }
     }
 
@@ -122,9 +122,9 @@ public class UpportIT extends SpliceUnitTest {
 
         try{
             statement.execute();
-            Assert.fail("Did not thow exception");
+            Assert.fail("Did not throw exception");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect SQL State!", "23502", se.getSQLState());
+            SpliceUnitTest.assertBadFileContainsError(BADDIR, fullTestFile.getFileName(), "23502", null);
         }
     }
 
@@ -139,7 +139,7 @@ public class UpportIT extends SpliceUnitTest {
 
         try{
             statement.execute();
-            Assert.fail("Did not thow exception");
+            Assert.fail("Did not throw exception");
         }catch(SQLException se){
             Assert.assertEquals("Incorrect SQL State!", "SE018", se.getSQLState());
         }

@@ -5,7 +5,6 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -25,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import org.sparkproject.guava.collect.Lists;
-import org.sparkproject.guava.collect.Maps;
 import org.hamcrest.Matcher;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -35,8 +32,9 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -186,9 +184,6 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
     @BeforeClass
     public static void beforeClass() throws Exception {
         createDataSet();
@@ -261,7 +256,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         // docs
         testNewImport(spliceSchemaWatcher.schemaName, TABLE_2, getResourceDirectory() + "importdir/importsubdir",
                 "NAME,TITLE," +
-                        "AGE", temporaryFolder.newFolder().getCanonicalPath(), 0, 5);
+                        "AGE", BADDIR.getCanonicalPath(), 0, 5);
     }
 
     // more tests to write:
@@ -285,7 +280,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",   // char set
                 schemaName,            tableName, colList,
                 location,              badRecordsAllowed,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
 
 
         ps.execute();
@@ -351,7 +346,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_12,
                 getResourceDirectory() + "dateAndTime.in", 0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
                 TABLE_12));
@@ -389,7 +384,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_5,
                 csvLocation,                    0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select i, j from %s.%s order by i", spliceSchemaWatcher
                 .schemaName, TABLE_5));
@@ -404,6 +399,47 @@ public class HdfsImportIT extends SpliceUnitTest {
         Assert.assertEquals("wrong row count imported!", 2, results.size());
         Assert.assertEquals("first row wrong", "i:1,j:Hello", results.get(0));
         Assert.assertEquals("second row wrong", "i:2,j:There", results.get(1));
+    }
+
+    @Test @Ignore("DB-4004: IMPORT/UPSERT: Graceful message instead of connection termination needed in case if quoteChar and delimiterChar is the same char")
+    public void testImportPipeSeparatedFile() throws Exception {
+        String tableName = "PIPE_SEPARATED";
+        TableDAO td = new TableDAO(methodWatcher.getOrCreateConnection());
+        td.drop(spliceSchemaWatcher.schemaName, tableName);
+
+        methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
+            format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+
+                "(firstc int primary key, secondc char(30), thirdc int, fourthc double)");
+        String csvLocation = getResourceDirectory() + "pipeSeparator.csv";
+
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "'|'," +   // column delimiter
+                        "'|'," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "false," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, tableName,
+                csvLocation,                    0,
+                BADDIR.getCanonicalPath()));
+        ps.execute();
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName, TABLE_5));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            Integer i = rs.getInt(1);
+            String j = rs.getString(2);
+            assertNotNull("i is null!", i);
+            assertNotNull("j is null!", j);
+            results.add(String.format("i:%d,j:%s", i, j));
+        }
+        Assert.assertEquals("wrong row count imported! "+results, 2, results.size());
     }
 
     @Test
@@ -431,9 +467,9 @@ public class HdfsImportIT extends SpliceUnitTest {
                 inputFile,                    0));
         try {
             ps.execute();
-            fail("Expected constraint violation.");
+            fail("Too many bad records.");
         } catch (SQLException e) {
-            assertEquals("Expected constraint violation, but got: "+e.getLocalizedMessage(), "23513", e.getSQLState());
+            assertEquals("Expected too many bad records, but got: "+e.getLocalizedMessage(), "SE009", e.getSQLState());
         }
         assertTrue(new File(badFileName).exists());
     }
@@ -464,7 +500,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_3,
                 getResourceDirectory() + "order_detail_small.csv",
                 0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
 
         ps.execute();
 
@@ -523,7 +559,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "iso_order_date.csv",
                 "\"",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -559,7 +595,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "tz_ms_order_date.csv",
                 "\"",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
 
         ps.execute();
 
@@ -600,7 +636,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_19,
                 getResourceDirectory() + "tz_micro_order_date.csv",
                 "\"",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
 
         ps.execute();
 
@@ -638,7 +674,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "tz_order_date.cs",
                 "\"",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
 
         ps.execute();
 
@@ -677,7 +713,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_10,
                 getResourceDirectory() + "null_field.csv",
                 "\"",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -722,7 +758,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName,
                 TABLE_4,
                 getResourceDirectory() + "lu_cust_city.txt", 0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s", this.getTableReference(TABLE_4)));
@@ -757,7 +793,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_tab.txt",
                 "\t",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -792,7 +828,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_ctrl_A.txt",
                 "^A",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -827,7 +863,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_backspace.txt",
                 "\b",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -862,7 +898,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_form_feed.txt",
                 "\f",                           0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -898,7 +934,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 getResourceDirectory() + "lu_cust_city_tab.txt",
                 "\t",                           "\0",
                 0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -985,7 +1021,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName,
                 TABLE_11,
                 getResourceDirectory() + "default_column.txt", 0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -1015,7 +1051,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName,
                 AUTO_INCREMENT_TABLE,
                 getResourceDirectory() + "default_column.txt", 0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
@@ -1045,7 +1081,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_13,
                 getResourceDirectory() + "datebug.tbl", 0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select DW_SRC_EXTRC_DTTM from %s.%s", spliceSchemaWatcher
                 .schemaName, TABLE_13));
@@ -1078,7 +1114,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_15,
                 getResourceDirectory() + "datebug.tbl", 0,
-                temporaryFolder.newFolder().getCanonicalPath()));
+                BADDIR.getCanonicalPath()));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select DW_SRCC_EXTRC_DTTM from %s.%s", spliceSchemaWatcher
                 .schemaName, TABLE_15));
@@ -1098,7 +1134,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithUnixNewlines() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
-                        "embedded-newlines/unix/newlines-absent.tsv", null, 0, temporaryFolder.newFolder().getCanonicalPath(),
+                        "embedded-newlines/unix/newlines-absent.tsv", null, 0, BADDIR.getCanonicalPath(),
                 "true", 3);
     }
 
@@ -1110,8 +1146,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithEmbeddedUnixNewlinesInsideDoubleQuotes() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
-                        "embedded-newlines/unix/newlines-with-double-quotes.tsv", null, 0, temporaryFolder
-                        .newFolder().getCanonicalPath(),
+                        "embedded-newlines/unix/newlines-with-double-quotes.tsv", null, 0, BADDIR.getCanonicalPath(),
                 "false", 3);
     }
 
@@ -1123,8 +1158,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithEmbeddedUnixNewlinesInsideSingleQuotes() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
-                        "embedded-newlines/unix/newlines-with-single-quotes.tsv", "''", 0, temporaryFolder
-                        .newFolder().getCanonicalPath(),
+                        "embedded-newlines/unix/newlines-with-single-quotes.tsv", "''", 0, BADDIR.getCanonicalPath(),
                 "false", 3);
     }
 
@@ -1137,7 +1171,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithWindowsNewlines() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
-                        "embedded-newlines/windows/newlines-absent.tsv", null, 0, temporaryFolder.newFolder().getCanonicalPath(),
+                        "embedded-newlines/windows/newlines-absent.tsv", null, 0, BADDIR.getCanonicalPath(),
                 "true", 3);
     }
 
@@ -1149,8 +1183,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithEmbeddedWindowsNewlinesInsideDoubleQuotes() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
-                        "embedded-newlines/windows/newlines-with-double-quotes.tsv", null, 0, temporaryFolder
-                        .newFolder().getCanonicalPath(),
+                        "embedded-newlines/windows/newlines-with-double-quotes.tsv", null, 0, BADDIR.getCanonicalPath(),
                 "false", 3);
     }
 
@@ -1162,8 +1195,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithEmbeddedWindowsNewlinesInsideSingleQuotes() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
-                "embedded-newlines/windows/newlines-with-single-quotes.tsv", "''", 0, temporaryFolder.newFolder()
-                .getCanonicalPath
+                "embedded-newlines/windows/newlines-with-single-quotes.tsv", "''", 0, BADDIR.getCanonicalPath
                         (), "false", 3);
     }
 
@@ -1176,7 +1208,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithClassicMacNewlines() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
-                        "embedded-newlines/classic-mac/newlines-absent.tsv", null, 0, temporaryFolder.newFolder()
+                        "embedded-newlines/classic-mac/newlines-absent.tsv", null, 0, BADDIR
                         .getCanonicalPath(), "true",
                 3);
     }
@@ -1190,7 +1222,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     public void testImportWithEmbeddedClassicMacNewlinesInsideDoubleQuotes() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
                         "embedded-newlines/classic-mac/newlines-with-double-quotes.tsv", null, 0,
-                temporaryFolder.newFolder().getCanonicalPath(), "false", 3);
+                BADDIR.getCanonicalPath(), "false", 3);
     }
 
     /**
@@ -1201,7 +1233,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithEmbeddedClassicMacNewlinesInsideSingleQuotes() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
-                "embedded-newlines/classic-mac/newlines-with-single-quotes.tsv", "''", 0, temporaryFolder.newFolder()
+                "embedded-newlines/classic-mac/newlines-with-single-quotes.tsv", "''", 0, BADDIR
                 .getCanonicalPath(), "false", 3);
     }
 
@@ -1251,16 +1283,16 @@ public class HdfsImportIT extends SpliceUnitTest {
      */
     @Test
     public void testMissingEndQuoteForQuotedColumnEOF() throws Exception {
-        String badDirPath = temporaryFolder.newFolder().getCanonicalPath();
+        String badDirPath = BADDIR.getCanonicalPath();
         String csvPath = getResourceDirectory() + "import/missing-end-quote/employees.csv";
         try {
             testMissingEndQuoteForQuotedColumn(spliceSchemaWatcher.schemaName, TABLE_18, csvPath, "NAME,TITLE,AGE",
                     badDirPath, 0, 1, "false");
-            fail("This CSV file must raise XIE10 exception");
+            fail("Expected to many bad records.");
         } catch (SQLException e) {
-            assertEquals("XIE11", e.getSQLState());
-            assertThat("Incorrect error message!", e.getMessage(),
-                    containsString("unexpected end of file while reading quoted column beginning on line 2 and ending on line 6"));
+            assertEquals("Expected too many bad records but got: "+e.getLocalizedMessage(), "SE009", e.getSQLState());
+            SpliceUnitTest.assertBadFileContainsError(new File(badDirPath), "employees.csv",
+                                                      null, "unexpected end of file while reading quoted column beginning on line 2 and ending on line 6");
         }
     }
 
@@ -1272,16 +1304,16 @@ public class HdfsImportIT extends SpliceUnitTest {
      */
     @Test
     public void testMissingEndQuoteForQuotedColumnMax() throws Exception {
-        String badDirPath = temporaryFolder.newFolder().getCanonicalPath();
+        String badDirPath = BADDIR.getCanonicalPath();
         String csvPath = getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv";
         try {
             testMissingEndQuoteForQuotedColumn(spliceSchemaWatcher.schemaName, TABLE_18, csvPath, "NAME,TITLE,AGE",
                     badDirPath, 0, 199999, "false");
-            fail("This CSV file must raise XIE10 exception");
+            fail("Expected to many bad records.");
         } catch (SQLException e) {
-            assertEquals("XIE11", e.getSQLState());
-            assertThat("Incorrect error message!", e.getMessage(),
-                    containsString("Quoted column beginning on line 3 has exceed the maximum allowed lines"));
+            assertEquals("Expected too many bad records but got: "+e.getLocalizedMessage(), "SE009", e.getSQLState());
+            SpliceUnitTest.assertBadFileContainsError(new File(badDirPath), "employeesMaxQuotedColumnLines.csv",
+                                                      null, "Quoted column beginning on line 3 has exceed the maximum allowed lines");
         }
     }
 

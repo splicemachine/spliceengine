@@ -106,7 +106,9 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
                 sb = sb.append("PRIMARYKEY");
                 break;
             case UNIQUE_VIOLATION:
-                sb = sb.append("UNIQUE");
+                String[] ctxMsgs = result.getConstraintContext().getMessages();
+                sb = sb.append(result.getCode()).append("(").append(ctxMsgs != null && ctxMsgs.length > 0 ? ctxMsgs[0] : "")
+                       .append(" ").append(ctxMsgs != null && ctxMsgs.length > 1 ? ctxMsgs[1] : "").append(")");
                 break;
             case FOREIGN_KEY_VIOLATION:
                 sb = sb.append("FOREIGNKEY");

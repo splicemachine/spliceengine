@@ -443,8 +443,11 @@ public class HdfsImport {
                 throw new SQLException(e);
             }
         } finally {
-            if (conn != null)
+            if (conn != null) {
+                ((EmbedConnection) conn).getLanguageConnection().resetBadFile();
+                ((EmbedConnection) conn).getLanguageConnection().resetFailedRecords();
                 conn.close();
+            }
         }
     }
 
