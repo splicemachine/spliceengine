@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import com.splicemachine.access.api.FileInfo;
@@ -340,6 +341,23 @@ public class HdfsImport {
         if (charset == null)
             charset = StandardCharsets.UTF_8.name();
 
+
+        // unescape separator chars if need be
+        try {
+            characterDelimiter = unescape(characterDelimiter);
+        } catch (IOException e) {
+            throw new SQLException("Illegal character delimiter char '"+characterDelimiter+"'", e);
+        }
+        try {
+            columnDelimiter = unescape(columnDelimiter);
+        } catch (IOException e) {
+            throw new SQLException("Illegal column delimiter char '"+columnDelimiter+"'", e);
+        }
+
+        if (columnDelimiter != null && ! columnDelimiter.equals("NULL") && columnDelimiter.equals(characterDelimiter)) {
+            throw new SQLException("Character delimiter cannot be the same as the column delimiter.");
+        }
+
         Connection conn = null;
         try {
             schemaName = EngineUtils.validateSchema(schemaName);
@@ -429,4 +447,102 @@ public class HdfsImport {
         }
         return StringUtil.quoteStringLiteral(string);
     }
+
+    static String unescape(String str) throws IOException {
+        if (str == null || str.toUpperCase().equals("NULL")) {
+            return str;
+        }
+        StringBuilder unescaped = new StringBuilder(4);
+        int sz = str.length();
+        StringBuilder unicode = new StringBuilder(4);
+        boolean hadControl = false;
+        boolean hadSlash = false;
+        boolean inUnicode = false;
+        for (int i = 0; i < sz; i++) {
+            char ch = str.charAt(i);
+            if (inUnicode) {
+                // if in unicode, then we're reading unicode
+                unicode.append(ch);
+                if (unicode.length() == 4) {
+                    // unicode now contains the four hex digits which represents our unicode character
+                    try {
+                        int value = Integer.parseInt(unicode.toString(), 16);
+                        unescaped.append((char) value);
+                        unicode.setLength(0);
+                        inUnicode = false;
+                        hadSlash = false;
+                    } catch (NumberFormatException nfe) {
+                        throw new IOException("Unable to parse unicode value: " + unicode, nfe);
+                    }
+                }
+                continue;
+            }
+            if (hadControl) {
+                // support ctrl chars
+                switch (ch) {
+                    case 'A':
+                    case 'a':
+                        unescaped.append('\u0001');
+                        break;
+                    case 'M':
+                    case 'm':
+                        unescaped.append('\n');
+                        break;
+                    default:
+                        unescaped.append(ch);
+                        break;
+                }
+                continue;
+            } else if (hadSlash) {
+                // handle an escaped value
+                hadSlash = false;
+                switch (ch) {
+                    case '\\':
+                        unescaped.append('\\');
+                        break;
+                    case '\'':
+                        unescaped.append('\'');
+                        break;
+                    case '\"':
+                        unescaped.append('"');
+                        break;
+                    case 'r':
+                        unescaped.append('\r');
+                        break;
+                    case 'f':
+                        unescaped.append('\f');
+                        break;
+                    case 't':
+                        unescaped.append('\t');
+                        break;
+                    case 'n':
+                        unescaped.append('\n');
+                        break;
+                    case 'b':
+                        unescaped.append('\b');
+                        break;
+                    case 'u':
+                    {
+                        // unicode
+                        inUnicode = true;
+                        break;
+                    }
+                    default :
+                        unescaped.append(ch);
+                        break;
+                }
+                continue;
+            } else if (ch == '\\') {
+                hadSlash = true;
+                continue;
+            } else if (ch == '^') {
+                hadControl = true;
+                continue;
+            }
+            unescaped.append(ch);
+        }
+
+        return unescaped.toString();
+    }
+
 }

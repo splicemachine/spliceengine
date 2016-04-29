@@ -734,10 +734,12 @@ public class HdfsImportIT extends SpliceUnitTest {
 
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
+        assertEquals("Wrong row count. Actual: "+results,3, results.size());
     }
 
     @Test
     public void testImportTabDelimited() throws Exception {
+        methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
         PreparedStatement ps = methodWatcher.prepareStatement(format( "call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
@@ -767,10 +769,117 @@ public class HdfsImportIT extends SpliceUnitTest {
             int stateId = rs.getInt(3);
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
+        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+    }
+
+    @Test
+    public void testImportCtrlADelimited() throws Exception {
+        methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
+        PreparedStatement ps = methodWatcher.prepareStatement(format( "call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "'%s'," +  // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",                    // char set
+                spliceSchemaWatcher.schemaName, TABLE_8,
+                getResourceDirectory() + "lu_cust_city_ctrl_A.txt",
+                "^A",                           0,
+                temporaryFolder.newFolder().getCanonicalPath()));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_8));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            String name = rs.getString(2);
+            int stateId = rs.getInt(3);
+            results.add(String.format("%d\t%s\t%d", id, name, stateId));
+        }
+        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+    }
+
+    @Test
+    public void testImportBackspaceDelimited() throws Exception {
+        methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
+        PreparedStatement ps = methodWatcher.prepareStatement(format( "call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "'%s'," +  // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "false," +  // has one line records
+                        "null)",                    // char set
+                spliceSchemaWatcher.schemaName, TABLE_8,
+                getResourceDirectory() + "lu_cust_city_backspace.txt",
+                "\b",                           0,
+                temporaryFolder.newFolder().getCanonicalPath()));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_8));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            String name = rs.getString(2);
+            int stateId = rs.getInt(3);
+            results.add(String.format("%d\t%s\t%d", id, name, stateId));
+        }
+        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+    }
+
+    @Test
+    public void testImportFormFeedDelimited() throws Exception {
+        methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
+        PreparedStatement ps = methodWatcher.prepareStatement(format( "call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "'%s'," +  // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",                    // char set
+                spliceSchemaWatcher.schemaName, TABLE_8,
+                getResourceDirectory() + "lu_cust_city_form_feed.txt",
+                "\f",                           0,
+                temporaryFolder.newFolder().getCanonicalPath()));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_8));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            String name = rs.getString(2);
+            int stateId = rs.getInt(3);
+            results.add(String.format("%d\t%s\t%d", id, name, stateId));
+        }
+        assertEquals("Wrong row count. Actual: "+results,3, results.size());
     }
 
     @Test
     public void testImportTabDelimitedNullSeparator() throws Exception {
+        methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
@@ -801,6 +910,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             int stateId = rs.getInt(3);
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
+        assertEquals("Wrong row count. Actual: "+results,3, results.size());
     }
 
     @Test

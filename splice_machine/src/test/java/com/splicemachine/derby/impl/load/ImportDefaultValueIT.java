@@ -559,17 +559,17 @@ public class ImportDefaultValueIT {
         try {
             ps.execute();
             if (sqlStateCode != null && ! sqlStateCode.isEmpty()) {
-                fail("Expected import exception: "+sqlStateCode+ " but didn't get it.  Check the \"bad\" file: "+
+                fail("Expected import exception: "+sqlStateCode+ " but didn't get it.  Printing \"bad\" file: "+
                          SpliceUnitTest.printBadFile(BADDIR, fileName));
             }
         } catch (SQLException e) {
             if (sqlStateCode == null || sqlStateCode.isEmpty()) {
-                fail("Didn't expect exception but got: "+e.getSQLState()+" "+e.getLocalizedMessage()+".  Check the \"bad\" file: "+
+                fail("Didn't expect exception but got: "+e.getSQLState()+" "+e.getLocalizedMessage()+".  Printing \"bad\" file: "+
                         SpliceUnitTest.printBadFile(BADDIR, fileName));
             } else if (sqlStateCodeInErrorFile != null && ! sqlStateCodeInErrorFile.isEmpty()) {
                 SpliceUnitTest.assertBadFileContainsError(BADDIR, fileName, sqlStateCodeInErrorFile);
             }
-            assertEquals("Expected different error: "+e.getLocalizedMessage()+".  Check the \"bad\" file: "+
+            assertEquals("Expected different error but got: ["+e.getSQLState()+" "+e.getLocalizedMessage()+"].  Printing \"bad\" file: "+
                              SpliceUnitTest.printBadFile(BADDIR, fileName), sqlStateCode, e.getSQLState());
             // we got the error we expected. Done.
             return;
