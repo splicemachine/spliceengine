@@ -115,7 +115,7 @@ public class SortOperation extends SpliceBaseOperation{
 
         for(int i=0;i<order.length;i++){
             keyColumns[i]=order[i].getColumnId();
-            descColumns[i]=order[i].getIsAscending();
+            descColumns[i]=!order[i].getIsAscending();
             nullsOrderedLow=order[i].getIsNullsOrderedLow();
         }
         if(LOG.isTraceEnabled())

@@ -73,6 +73,13 @@ public class UpdateOperationIT {
                 .withCreate("create table NULL_TABLE2 (col1 varchar(50), col2 char(5), col3 int)")
                 .create();
 
+        new TableCreator(connection)
+                .withCreate("create table BOOL_TABLE(c boolean, i int)")
+                .withIndex("create index idx_bool on BOOL_TABLE(c desc)")
+                .withInsert("insert into bool_table values(?,?)")
+                .withRows(rows(row(null, 0), row(true, 1), row(false, 2)))
+                .create();
+
         try(CallableStatement cs = connection.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
             cs.setString(1,SCHEMA);
             cs.execute();
@@ -459,6 +466,15 @@ public class UpdateOperationIT {
     public void testUpdateMultiColumnOneSubSyntaxWithOuterWhere() throws Exception {
         int rows = doTestUpdateMultiColumnOneSubSyntax(" where customer.cust_id <> 105");
         Assert.assertEquals("incorrect num rows updated!", 4, rows);
+    }
+
+    @Test
+    public void testUpdateUsingBoolDescIndex() throws Exception {
+
+        String sql =  "update bool_table --SPLICE-PROPERTIES index=idx_bool\n" +
+                "set c=false where c=true";
+        int n = methodWatcher.executeUpdate(sql);
+        Assert.assertEquals("Incorrect number of rows updated", 1, n);
     }
 
     // Used by previous tests (testUpdateMultiColumnOneSub*)

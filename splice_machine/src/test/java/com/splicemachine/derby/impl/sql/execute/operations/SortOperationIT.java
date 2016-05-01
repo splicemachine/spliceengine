@@ -21,17 +21,21 @@ public class SortOperationIT extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME_1 = "FOOD";
 	public static final String TABLE_NAME_2 = "PERSON";
+    public static final String TABLE_NAME_3 = "BOOL_TABLE";
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(255),value1 varchar(255),value2 varchar(255))");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(255), age float,created_time timestamp)");
-    private static long startTime;
+	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(col boolean)");
+
+	private static long startTime;
 
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher1)
 		.around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -82,23 +86,31 @@ public class SortOperationIT extends SpliceUnitTest {
 
 				// add row to person
                     startTime = System.currentTimeMillis();
-                    ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher2+" values (?,?,?)");
+                    ps = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher2 + " values (?,?,?)");
                     ps.setString(1,"joe");
-                    ps.setFloat(2,5.5f);
-                    ps.setTimestamp(3,new Timestamp(System.currentTimeMillis()));
+                    ps.setFloat(2, 5.5f);
+                    ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
                     ps.execute();
 
-                    ps.setString(1,"bob");
-                    ps.setFloat(2,1.2f);
-                    ps.setTimestamp(3,new Timestamp(System.currentTimeMillis()));
+                    ps.setString(1, "bob");
+                    ps.setFloat(2, 1.2f);
+                    ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
                     ps.execute();
 
-                    ps.setString(1,"tom");
-                    ps.setFloat(2,13.4667f);
-                    ps.setTimestamp(3,new Timestamp(System.currentTimeMillis()));
+                    ps.setString(1, "tom");
+                    ps.setFloat(2, 13.4667f);
+                    ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
                     ps.execute();
 
-				spliceClassWatcher.commit();
+				    ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher3+" values (?)");
+                    ps.setObject(1, null);
+                    ps.addBatch();
+                    ps.setBoolean(1, true);
+                    ps.addBatch();
+                    ps.setBoolean(1, false);
+                    ps.addBatch();
+                    ps.executeBatch();
+                    spliceClassWatcher.commit();
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -352,6 +364,73 @@ public class SortOperationIT extends SpliceUnitTest {
 
         Assert.assertArrayEquals(expected.toArray(), result.toArray());
     }
+
+    @Test
+    public void testSortAsc() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from bool_table order by 1");
+        Assert.assertTrue(rs.next());
+        Assert.assertFalse("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertNull("unexpected sort order", rs.getObject(1));
+    }
+
+    @Test
+    public void testSortDesc() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from bool_table order by 1 desc");
+        Assert.assertTrue(rs.next());
+        Assert.assertNull("unexpected sort order", rs.getObject(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertFalse("unexpected sort order", rs.getBoolean(1));
+    }
+
+    @Test
+    public void testSortAscNullFirst() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from bool_table order by 1 asc nulls first");
+        Assert.assertTrue(rs.next());
+        Assert.assertNull("unexpected sort order", rs.getObject(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertFalse("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("unexpected sort order", rs.getBoolean(1));
+    }
+
+    @Test
+    public void testSortDescNullFirst() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from bool_table order by 1 desc nulls first");
+        Assert.assertTrue(rs.next());
+        Assert.assertNull("unexpected sort order", rs.getObject(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertFalse("unexpected sort order", rs.getBoolean(1));
+    }
+
+    @Test
+    public void testSortAscNullLast() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from bool_table order by 1 asc nulls last");
+        Assert.assertTrue(rs.next());
+        Assert.assertFalse("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertNull("unexpected sort order", rs.getObject(1));
+    }
+
+    @Test
+    public void testSortDescNullLast() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from bool_table order by 1 desc nulls last");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertFalse("unexpected sort order", rs.getBoolean(1));
+        Assert.assertTrue(rs.next());
+        Assert.assertNull("unexpected sort order", rs.getObject(1));
+    }
+
 
     private static class Triplet implements Comparable<Triplet>{
 		private final String k1;

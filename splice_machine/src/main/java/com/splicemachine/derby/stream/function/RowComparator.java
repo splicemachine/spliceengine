@@ -62,9 +62,7 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
                 throw new RuntimeException(e);
             }
             if (result != 0) {
-                if (nullsOrderedLow && (c1.isNull() || c2.isNull()))
-                    return result; // nulls go first independently of descColumns
-                return (descColumns==null ||descColumns[i]) ? result : -result;
+                return (descColumns==null ||!descColumns[i]) ? result : -result;
             }
         }
         return 0;
