@@ -253,7 +253,7 @@ public class SpliceDateFunctionsTest {
         return new Timestamp(DFT.parse(dateString).getTime());
     }
 
-    @Test
+    @Ignore("DB-4678")
     public void testLargeTimestamps() throws Exception {
 
         assertEquals("2013-11-26 23:28:55.22", SpliceDateFunctions.TO_TIMESTAMP("2013-11-26 23:28:55.22","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
