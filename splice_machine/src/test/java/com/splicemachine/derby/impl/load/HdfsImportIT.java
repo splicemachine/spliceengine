@@ -949,9 +949,9 @@ public class HdfsImportIT extends SpliceUnitTest {
         Assert.assertEquals("10 Records not imported", 10, i);
     }
 
-    @Test @Ignore("DB-4346 - change in behavior from Lassen - empty (,,) CSV columns get NULL even when defaulted.")
+    @Test
     public void testNullDatesWithMixedCaseAccuracy() throws Exception {
-        //  FIXME: JC - default values problem. Expecting CSV empty column default to CURRENT_TIMESTAMP
+        //  TODO: JC - was expecting CSV empty column default to CURRENT_TIMESTAMP (old empty column import behavior). Not sure how useful this test is anymore.
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
@@ -970,7 +970,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 getResourceDirectory() + "datebug.tbl", 0,
                 temporaryFolder.newFolder().getCanonicalPath()));
         ps.execute();
-        ResultSet rs = methodWatcher.executeQuery(format("select SHIPPED_DATE from %s.%s", spliceSchemaWatcher
+        ResultSet rs = methodWatcher.executeQuery(format("select DW_SRCC_EXTRC_DTTM from %s.%s", spliceSchemaWatcher
                 .schemaName, TABLE_15));
         int i = 0;
         while (rs.next()) {
@@ -1131,42 +1131,6 @@ public class HdfsImportIT extends SpliceUnitTest {
             results.add(String.format("id:%d,description:%s,name:%s", id, description, name));
         }
         Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
-    }
-
-    @Test @Ignore("DB-4347")
-    public void testNewImportCheckDirectory() throws Exception {
-        // FIXME: JC - SYSCS_UTIL.IMPORT_CHECK_DATA is no longer implemented
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_CHECK_DATA(" +
-                        "'%s'," +  // schema name
-                        "'%s'," +  // table name
-                        "'%s'," +  // insert column list
-                        "'%s'," +  // file path
-                        "null," +  // column delimiter
-                        "null," +  // character delimiter
-                        "null," +  // timestamp format
-                        "null," +  // date format
-                        "null," +  // time format
-                        "%d," +    // max bad records
-                        "'%s'," +  // bad record dir
-                        "null," +  // has one line records
-                        "null)",   // char set
-                spliceSchemaWatcher.schemaName, TABLE_17, "NAME,TITLE,AGE",
-                getResourceDirectory() + "importdir/importsubdir",
-                0, temporaryFolder.newFolder().getCanonicalPath()));
-        ps.execute();
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s", spliceTableWatcher17.toString()));
-        List<String> results = Lists.newArrayList();
-        while (rs.next()) {
-            String name = rs.getString(1);
-            String title = rs.getString(2);
-            int age = rs.getInt(3);
-            Assert.assertTrue("age was null!", !rs.wasNull());
-            assertNotNull("Name is null!", name);
-            assertNotNull("Title is null!", title);
-            assertNotNull("Age is null!", age);
-            results.add(String.format("name:%s,title:%s,age:%d", name, title, age));
-        }
-        Assert.assertTrue("Incorrect number of rows imported", results.size() == 0);
     }
 
     /**
