@@ -1224,9 +1224,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 */
 	public SQLSessionContext getSQLSessionContextForChildren() {
         SQLSessionContext sessionContext = this.sqlSessionContextForChildren;
-        if (sessionContext == null && parentActivation != null) {
+        if (sessionContext == null) {
             // if child session context not existent here, try parent.
-            sessionContext = parentActivation.getSQLSessionContextForChildren();
+			sessionContext = setupSQLSessionContextForChildren(false);
         }
 		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT
