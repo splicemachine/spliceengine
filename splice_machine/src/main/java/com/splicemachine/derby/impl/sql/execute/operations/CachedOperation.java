@@ -167,7 +167,7 @@ public class CachedOperation extends SpliceBaseOperation {
         return RDDUtils.toSparkRows(SpliceSpark.getContext().parallelize(rows));
     }
     @Override
-    public String getOptimizerOverrides(){
+    public String getOptimizerOverrides(SpliceRuntimeContext ctx){
         return null;
     }
 }

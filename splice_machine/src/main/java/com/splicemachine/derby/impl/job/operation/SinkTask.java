@@ -47,99 +47,104 @@ import java.util.concurrent.ExecutionException;
  * instances, which are invoked by this class.
  *
  * @author Scott Fines
- * Created on: 4/3/13
+ *         Created on: 4/3/13
  */
-public class SinkTask extends ZkTask {
-	private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-    private static final long serialVersionUID = 3l;
-    private static final Logger LOG = Logger.getLogger(SinkTask.class);
+public class SinkTask extends ZkTask{
+    private static final DerbyFactory derbyFactory=DerbyFactoryDriver.derbyFactory;
+    private static final long serialVersionUID=3l;
+    private static final Logger LOG=Logger.getLogger(SinkTask.class);
     private HRegion region;
 
     private Scan scan;
     private SpliceObserverInstructions instructions;
 
-		/*
-		 * Hash bucket to use for sink operations which do not spread data themselves.
-		 *
-		 * For example, the SortOperation can't spread data around multiple buckets, so
-		 * it will use this hashBucket to determine which bucket to go to. The
-		 * bucket itself will be generated randomly, to (hopefully) spread data from multiple
-		 * concurrent operations across multiple buckets.
-		 */
-		private byte hashBucket;
-		private SpliceRuntimeContext spliceRuntimeContext;
-		private SpliceTransactionResourceImpl transactionResource;
-		private SpliceOperationContext opContext;
-    private boolean isTraced = false;
+    /*
+     * Hash bucket to use for sink operations which do not spread data themselves.
+     *
+     * For example, the SortOperation can't spread data around multiple buckets, so
+     * it will use this hashBucket to determine which bucket to go to. The
+     * bucket itself will be generated randomly, to (hopefully) spread data from multiple
+     * concurrent operations across multiple buckets.
+     */
+    private byte hashBucket;
+    private SpliceRuntimeContext spliceRuntimeContext;
+    private SpliceTransactionResourceImpl transactionResource;
+    private SpliceOperationContext opContext;
+    private boolean isTraced=false;
 
 		/*Stats stuff*/
 
-		/**
+    /**
      * Serialization Constructor.
      */
     @SuppressWarnings("UnusedDeclaration")
-		public SinkTask(){ super(); }
+    public SinkTask(){
+        super();
+    }
 
     public SinkTask(String jobId,
                     Scan scan,
                     byte[] parentTaskId,
-                    int priority) {
-        super(jobId, priority);
-        this.scan = scan;
-        this.parentTaskId = parentTaskId;
+                    int priority){
+        super(jobId,priority);
+        this.scan=scan;
+        this.parentTaskId=parentTaskId;
     }
 
-		@Override
-		public RegionTask getClone() {
-				Scan scanCopy = new Scan();
-				scanCopy.setStopRow(scan.getStopRow());
-				scanCopy.setStartRow(scan.getStartRow());
-				scanCopy.setFamilyMap(scan.getFamilyMap());
-				scanCopy.setBatch(scan.getBatch());
-				scanCopy.setCaching(scan.getCaching());
-				scanCopy.setCacheBlocks(scan.getCacheBlocks());
-				for(Map.Entry<String,byte[]>attribute:scan.getAttributesMap().entrySet()){
-						scanCopy.setAttribute(attribute.getKey(),attribute.getValue());
-				}
-        SinkTask sinkTask = new SinkTask(jobId, scanCopy, parentTaskId, getPriority());
+    @Override
+    public RegionTask getClone(){
+        Scan scanCopy=new Scan();
+        scanCopy.setStopRow(scan.getStopRow());
+        scanCopy.setStartRow(scan.getStartRow());
+        scanCopy.setFamilyMap(scan.getFamilyMap());
+        scanCopy.setBatch(scan.getBatch());
+        scanCopy.setCaching(scan.getCaching());
+        scanCopy.setCacheBlocks(scan.getCacheBlocks());
+        for(Map.Entry<String, byte[]> attribute : scan.getAttributesMap().entrySet()){
+            scanCopy.setAttribute(attribute.getKey(),attribute.getValue());
+        }
+        SinkTask sinkTask=new SinkTask(jobId,scanCopy,parentTaskId,getPriority());
         sinkTask.setParentTxnInformation(getParentTxn());
         return sinkTask;
-		}
-
-
-    @Override public boolean isSplittable() { return true; }
-
-		@Override
-    public void prepareTask(byte[] start, byte[] end,RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        //make sure that our task id is properly set
-				adjustScan(start,end);
-
-        this.region = rce.getRegion();
-        super.prepareTask(start,end,rce, zooKeeper);
     }
 
 
-		private void adjustScan(byte[] start, byte[] end) {
-				byte[] scanStart =scan.getStartRow();
-				if(scanStart==null||scanStart.length<=0||Bytes.compareTo(scanStart,start)<0){
-						scan.setStartRow(start);
-				}
+    @Override
+    public boolean isSplittable(){
+        return true;
+    }
 
-				byte[] scanStop = scan.getStopRow();
-				if(scanStop==null||scanStop.length<=0||Bytes.compareTo(end,scanStop)>0)
-						scan.setStopRow(end);
+    @Override
+    public void prepareTask(byte[] start,byte[] end,RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException{
+        //make sure that our task id is properly set
+        adjustScan(start,end);
 
-		}
+        this.region=rce.getRegion();
+        super.prepareTask(start,end,rce,zooKeeper);
+    }
 
-		@Override
-    public boolean invalidateOnClose() {
+
+    private void adjustScan(byte[] start,byte[] end){
+        byte[] scanStart=scan.getStartRow();
+        if(scanStart==null || scanStart.length<=0 || Bytes.compareTo(scanStart,start)<0){
+            scan.setStartRow(start);
+        }
+
+        byte[] scanStop=scan.getStopRow();
+        if(scanStop==null || scanStop.length<=0 || Bytes.compareTo(end,scanStop)>0)
+            scan.setStopRow(end);
+
+    }
+
+    @Override
+    public boolean invalidateOnClose(){
         return true;
     }
 
 
-		@Override
-		public void execute() throws ExecutionException, InterruptedException {
-				/*
+    @Override
+    public void execute() throws ExecutionException, InterruptedException{
+                /*
 				 * we initialize so that later, if we need to use initialization information
 				 * during, say, transaction creation, then we are sufficiently initialized
 				 * to do it without being weird.
@@ -150,59 +155,59 @@ public class SinkTask extends ZkTask {
 				 * 2. create the child transaction
 				 * 3. execute work
 				 */
-				boolean prepared = false;
-				Activation activation;
-        TransactionalRegion txnRegion = TransactionalRegions.get(region);
-				try{
-						transactionResource = new SpliceTransactionResourceImpl();
-						transactionResource.prepareContextManager();
-						prepared=true;
-						if(instructions==null)
-								instructions = SpliceUtils.getSpliceObserverInstructions(scan);
+        boolean prepared=false;
+        Activation activation;
+        TransactionalRegion txnRegion=TransactionalRegions.get(region);
+        try{
+            transactionResource=new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            prepared=true;
+            if(instructions==null)
+                instructions=SpliceUtils.getSpliceObserverInstructions(scan);
             setupTransaction();
-            transactionResource.marshallTransaction(getTxn(), instructions);
-            activation = instructions.getActivation(transactionResource.getLcc());
+            transactionResource.marshallTransaction(getTxn(),instructions);
+            activation=instructions.getActivation(transactionResource.getLcc());
             if(activation.isTraced()){
-                Txn txn = getTxn();
+                Txn txn=getTxn();
                 if(!txn.allowsWrites()){
                     elevateTransaction("xplain".getBytes());
                 }
             }
             instructions.setTxn(getTxn());
-            SpliceTransactionManager stm = (SpliceTransactionManager)transactionResource.getLcc().getTransactionExecute();
+            SpliceTransactionManager stm=(SpliceTransactionManager)transactionResource.getLcc().getTransactionExecute();
             ((SpliceTransactionView)stm.getRawTransaction()).setTxn(getTxn());
 
-						spliceRuntimeContext = instructions.getSpliceRuntimeContext();
-						spliceRuntimeContext.markAsSink();
-						spliceRuntimeContext.setCurrentTaskId(getTaskId());
-						SpliceOperation op = instructions.getTopOperation();
-						if(op.shouldRecordStats()){
-								spliceRuntimeContext.recordTraceMetrics();
-						}
+            spliceRuntimeContext=instructions.getSpliceRuntimeContext();
+            spliceRuntimeContext.markAsSink();
+            spliceRuntimeContext.setCurrentTaskId(getTaskId());
+            SpliceOperation op=instructions.getTopOperation();
+            if(op.shouldRecordStats()){
+                spliceRuntimeContext.recordTraceMetrics();
+            }
 
-            opContext = new SpliceOperationContext(region, txnRegion,
+            opContext=new SpliceOperationContext(region,txnRegion,
                     scan,activation,
-										instructions.getStatement(),
-										transactionResource.getLcc(),
-										true,instructions.getTopOperation(), spliceRuntimeContext,getTxn());
-						//init the operation stack
+                    instructions.getStatement(),
+                    transactionResource.getLcc(),
+                    true,instructions.getTopOperation(),spliceRuntimeContext,getTxn());
+            //init the operation stack
 
             op.init(opContext);
         }catch(Exception e){
-            closeQuietly(prepared, transactionResource, opContext);
+            closeQuietly(prepared,transactionResource,opContext);
             throw new ExecutionException(e);
         }
-        waitTimeNs = System.nanoTime()-prepareTimestamp;
+        waitTimeNs=System.nanoTime()-prepareTimestamp;
         try{
             doExecute();
         }finally{
             txnRegion.close();
 
             taskWatcher.setTask(null);
-            if (activation != null) {
-                try {
+            if(activation!=null){
+                try{
                     activation.close();
-                } catch (StandardException e) {
+                }catch(StandardException e){
                     /*
                      * We swallow this exception because the activation closing could throw
                      * some random error, but at this point we don't care--we are finished
@@ -210,35 +215,35 @@ public class SinkTask extends ZkTask {
                      */
                     LOG.info("Swallowing exception during activation close",e);
                 }
-                activation = null;
+                activation=null;
             }
         }
     }
 
-		protected void closeQuietly(boolean prepared, SpliceTransactionResourceImpl impl, SpliceOperationContext opContext)  {
-				try{
-						resetContext(impl,prepared);
-						closeOperationContext(opContext);
-				} catch (ExecutionException e) {
-						LOG.error("Unable to close Operation context during unexpected initialization error",e);
-				}
-		}
+    protected void closeQuietly(boolean prepared,SpliceTransactionResourceImpl impl,SpliceOperationContext opContext){
+        try{
+            resetContext(impl,prepared);
+            closeOperationContext(opContext);
+        }catch(ExecutionException e){
+            LOG.error("Unable to close Operation context during unexpected initialization error",e);
+        }
+    }
 
     @Override
-    public void doExecute() throws ExecutionException, InterruptedException {
-        try {
-            SpliceOperation op = instructions.getTopOperation();
-            Txn txn = getTxn();
-            if(LOG.isTraceEnabled()) {
-                SpliceLogUtils.trace(LOG, "Sink[%s]: %s over [%s,%s)", Bytes.toLong(getTaskId()), txn, BytesUtil.toHex(scan.getStartRow()), BytesUtil.toHex(scan.getStopRow()));
+    public void doExecute() throws ExecutionException, InterruptedException{
+        try{
+            SpliceOperation op=instructions.getTopOperation();
+            Txn txn=getTxn();
+            if(LOG.isTraceEnabled()){
+                SpliceLogUtils.trace(LOG,"Sink[%s]: %s over [%s,%s)",Bytes.toLong(getTaskId()),txn,BytesUtil.toHex(scan.getStartRow()),BytesUtil.toHex(scan.getStopRow()));
             }
-            OperationSink opSink = OperationSinkFactory.create((SinkingOperation) op, getTaskId(), txn, op.getStatementId(), waitTimeNs);
-            TaskStats stats = opSink.sink(spliceRuntimeContext);
+            OperationSink opSink=OperationSinkFactory.create((SinkingOperation)op,getTaskId(),txn,op.getStatementId(),waitTimeNs);
+            TaskStats stats=opSink.sink(spliceRuntimeContext);
             status.setStats(stats);
 
             if(LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG,"Sink[%s]: %s sunk %d rows",Bytes.toLong(getTaskId()),txn,stats.getTotalRowsWritten());
-        } catch (Exception e) {
+        }catch(Exception e){
             if(e instanceof ExecutionException)
                 throw (ExecutionException)e;
             else if(e instanceof InterruptedException)
@@ -251,28 +256,28 @@ public class SinkTask extends ZkTask {
         }
     }
 
-		@Override
-		protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
-				byte[] table = null;
-        boolean additive = false;
-        SpliceOperation topOperation = instructions.getTopOperation();
+    @Override
+    protected Txn beginChildTransaction(TxnView parentTxn,TxnLifecycleManager tc) throws IOException{
+        byte[] table=null;
+        boolean additive=false;
+        SpliceOperation topOperation=instructions.getTopOperation();
         if(topOperation instanceof DMLWriteOperation){
-						table = ((DMLWriteOperation) topOperation).getDestinationTable();
+            table=((DMLWriteOperation)topOperation).getDestinationTable();
             if(topOperation instanceof InsertOperation){
 		            /*
 		             * (DB-949)Insert operations should use an Additive transaction, so that internal WW conflicts will
 		             * be replaced by the proper UniqueConstraint violations (if necessary)
 		             */
-                additive = true;
+                additive=true;
             }
-				}
-        Txn txn = tc.beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), additive, table);
+        }
+        Txn txn=tc.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),additive,table);
         SpliceLogUtils.trace(LOG,"Executing task %s with transaction %s, which is a child of %s",Bytes.toLong(taskId),txn,parentTxn);
         return txn;
-		}
+    }
 
-		@Override
-    public boolean isCancelled() throws ExecutionException {
+    @Override
+    public boolean isCancelled() throws ExecutionException{
         return status.getStatus()==Status.CANCELLED;
     }
 
@@ -282,7 +287,7 @@ public class SinkTask extends ZkTask {
         if(instructions==null)
             instructions=SpliceUtils.getSpliceObserverInstructions(scan);
         SpliceOperation topOperation=instructions.getTopOperation();
-        int niceness = topOperation.getQueryNiceness();
+        int niceness=topOperation.getQueryNiceness(spliceRuntimeContext);
         if(niceness>=0){
             return niceness;
         }
@@ -294,48 +299,48 @@ public class SinkTask extends ZkTask {
     }
 
 
-		public HRegion getRegion() {
+    public HRegion getRegion(){
         return region;
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
-        derbyFactory.writeScanExternal(out, scan);
-		out.writeByte(hashBucket);
+        derbyFactory.writeScanExternal(out,scan);
+        out.writeByte(hashBucket);
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
-        scan = derbyFactory.readScanExternal(in);
-		hashBucket = in.readByte();
+        scan=derbyFactory.readScanExternal(in);
+        hashBucket=in.readByte();
     }
 
     @Override
-    protected String getTaskType() {
+    protected String getTaskType(){
         if(instructions==null)
-            instructions = SpliceUtils.getSpliceObserverInstructions(scan);
+            instructions=SpliceUtils.getSpliceObserverInstructions(scan);
         return instructions.getTopOperation().getClass().getSimpleName();
     }
 
-/*******************************************************************************************************/
+    /*******************************************************************************************************/
 		/*private helper methods*/
-		 private void closeOperationContext(SpliceOperationContext opContext) throws ExecutionException {
+    private void closeOperationContext(SpliceOperationContext opContext) throws ExecutionException{
         if(opContext!=null){
-            try {
+            try{
                 opContext.close();
-            } catch (IOException | StandardException e) {
+            }catch(IOException|StandardException e){
                 throw new ExecutionException(e);
             }
         }
     }
 
-    private void resetContext(SpliceTransactionResourceImpl impl, boolean prepared) {
+    private void resetContext(SpliceTransactionResourceImpl impl,boolean prepared){
         if(prepared){
             impl.resetContextManager();
         }
-        if (impl != null) {
+        if(impl!=null){
             impl.cleanup();
         }
     }

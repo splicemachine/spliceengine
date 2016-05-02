@@ -263,9 +263,11 @@ public interface SpliceOperation extends StandardCloseable {
 
 	String getOptimizerOverrides();
 
+	String getOptimizerOverrides(SpliceRuntimeContext ctx);
+
 	/**
 	 * @return the "niceness" at which this should run. If this is not set by the user (or the optimizer),
 	 * then this will return {@code -1}
      */
-	int getQueryNiceness();
+	int getQueryNiceness(SpliceRuntimeContext ctx);
 }

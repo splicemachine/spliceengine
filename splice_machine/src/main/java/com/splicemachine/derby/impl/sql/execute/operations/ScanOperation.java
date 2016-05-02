@@ -132,6 +132,11 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     }
 
     @Override
+    public String getOptimizerOverrides(SpliceRuntimeContext ctx){
+        return getOptimizerOverrides();
+    }
+
+    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
         oneRowScan=in.readBoolean();

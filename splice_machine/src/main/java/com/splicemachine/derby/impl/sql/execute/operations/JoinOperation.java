@@ -329,16 +329,21 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				}
 		}
 
+
 	@Override
-	public String getOptimizerOverrides(){
-		String left = leftResultSet!=null?leftResultSet.getOptimizerOverrides(): null;
-		String right = rightResultSet!=null? rightResultSet.getOptimizerOverrides():null;
-		if(left!=null){
-			if(right!=null){
-				return left+","+right;
-			}else return left;
-		}else if(right!=null) return right;
-		else return null;
+	public String getOptimizerOverrides(SpliceRuntimeContext ctx){
+		if(leftResultSet!=null){
+			String left = leftResultSet.getOptimizerOverrides(ctx);
+			if(left!=null) return left;
+		}
+
+		if(rightResultSet!=null){
+			String right = rightResultSet.getOptimizerOverrides(ctx);
+			if(right!=null) return right;
+		}
+
+		//default
+		return userSuppliedOptimizerOverrides;
 	}
 
 	protected Restriction getRestriction() {

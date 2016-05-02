@@ -101,7 +101,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
     }
 
 	@Override
-	public String getOptimizerOverrides(){
+	public String getOptimizerOverrides(SpliceRuntimeContext ctx){
 		return null;
 	}
 

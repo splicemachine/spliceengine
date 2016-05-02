@@ -641,8 +641,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     }
 
     @Override
-    public String getOptimizerOverrides(){
-        return source.getOptimizerOverrides();
+    public String getOptimizerOverrides(SpliceRuntimeContext ctx){
+        return source.getOptimizerOverrides(ctx);
     }
 
     public static final class DMLWriteSparkOp extends SparkFlatMapOperation<DMLWriteOperation, Iterator<LocatedRow>, LocatedRow>{

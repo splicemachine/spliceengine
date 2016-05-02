@@ -478,8 +478,8 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
 	@Override
-	public String getOptimizerOverrides(){
-		return source.getOptimizerOverrides();
+	public String getOptimizerOverrides(SpliceRuntimeContext ctx){
+		return source.getOptimizerOverrides(ctx);
 	}
 
 	private class RowComparator implements Comparator<ExecRow>, Serializable {

@@ -277,7 +277,7 @@ public class CallStatementOperation extends NoRowsOperation{
     }
 
     @Override
-    public String getOptimizerOverrides(){
+    public String getOptimizerOverrides(SpliceRuntimeContext ctx){
         return null;
     }
 }

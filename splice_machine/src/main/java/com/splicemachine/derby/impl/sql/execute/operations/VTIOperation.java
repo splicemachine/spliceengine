@@ -642,7 +642,7 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
     }
 
 	@Override
-	public String getOptimizerOverrides(){
+	public String getOptimizerOverrides(SpliceRuntimeContext ctx){
 		return null;
 	}
 }

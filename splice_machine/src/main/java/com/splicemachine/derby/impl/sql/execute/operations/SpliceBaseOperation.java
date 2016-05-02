@@ -756,14 +756,19 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         this.rowsSunk = rowsSunk;
     }
 
-    @Override
+	@Override
+	public String getOptimizerOverrides(){
+		return getOptimizerOverrides(null);
+	}
+
+	@Override
 	public ExecIndexRow getStartPosition() throws StandardException {
 		throw new RuntimeException("getStartPosition not implemented");
 	}
 
 	@Override
-	public int getQueryNiceness(){
-		String optimizerOverrides = getOptimizerOverrides();
+	public int getQueryNiceness(SpliceRuntimeContext ctx){
+		String optimizerOverrides = getOptimizerOverrides(ctx);
 		if(optimizerOverrides==null) return -1;
 		int start = optimizerOverrides.indexOf("niceness");
 		if(start<0) return -1;

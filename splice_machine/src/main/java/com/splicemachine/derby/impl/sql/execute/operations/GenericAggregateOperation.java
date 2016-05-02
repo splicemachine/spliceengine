@@ -13,6 +13,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -197,11 +198,11 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
     }
 
 	@Override
-	public String getOptimizerOverrides(){
-		return source.getOptimizerOverrides();
+	public String getOptimizerOverrides(SpliceRuntimeContext ctx){
+		return source.getOptimizerOverrides(ctx);
 	}
 
-    protected void initializeVectorAggregation(ExecRow aggResult) throws StandardException{
+	protected void initializeVectorAggregation(ExecRow aggResult) throws StandardException{
         for(SpliceGenericAggregator aggregator:aggregates){
             aggregator.initialize(aggResult);
             aggregator.accumulate(aggResult,aggResult);

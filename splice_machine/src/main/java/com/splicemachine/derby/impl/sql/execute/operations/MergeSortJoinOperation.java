@@ -319,7 +319,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     @Override
     public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException{
         SpliceLogUtils.trace(LOG,"executeScan");
-        final List<SpliceOperation> opStack=new ArrayList<SpliceOperation>();
+        final List<SpliceOperation> opStack=new ArrayList<>();
         this.generateLeftOperationStack(opStack);
         SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
 

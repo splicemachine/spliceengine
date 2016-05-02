@@ -284,13 +284,16 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
 	@Override
-	public String getOptimizerOverrides(){
-		String left = leftResultSet.getOptimizerOverrides();
-		String right = rightResultSet.getOptimizerOverrides();
-		if(left!=null){
-			if(right!=null) return left+","+right;
-			else return left;
-		}else if(right!=null) return right;
-		else return right;
+	public String getOptimizerOverrides(SpliceRuntimeContext ctx){
+		if(leftResultSet==null){
+			if(rightResultSet==null) return null;
+			else return rightResultSet.getOptimizerOverrides(ctx);
+		}else if(rightResultSet==null){
+			return leftResultSet.getOptimizerOverrides(ctx);
+		}else{
+			String left=leftResultSet.getOptimizerOverrides();
+			String right=rightResultSet.getOptimizerOverrides();
+			return left+","+right;
+		}
 	}
 }

@@ -555,4 +555,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         return String.format("DistinctScalarAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
     }
 
+    @Override
+    public String getOptimizerOverrides(SpliceRuntimeContext ctx){
+        return source.getOptimizerOverrides(ctx);
+    }
 }
