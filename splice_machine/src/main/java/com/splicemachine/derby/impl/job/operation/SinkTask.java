@@ -282,6 +282,10 @@ public class SinkTask extends ZkTask {
         if(instructions==null)
             instructions=SpliceUtils.getSpliceObserverInstructions(scan);
         SpliceOperation topOperation=instructions.getTopOperation();
+        int niceness = topOperation.getQueryNiceness();
+        if(niceness>=0){
+            return niceness;
+        }
         double cost=topOperation.getEstimatedCost();
         if(cost<=1)
             return 0;

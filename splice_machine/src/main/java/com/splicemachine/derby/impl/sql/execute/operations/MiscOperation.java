@@ -157,7 +157,12 @@ public class MiscOperation extends NoRowsOperation
 				return "ConstantAction" + super.prettyPrint(indentLevel);
 		}
 
-		@Override
+	@Override
+	public String getOptimizerOverrides(){
+		return null;
+	}
+
+	@Override
 		public int[] getRootAccessedCols(long tableNumber) {
 				return null;
 		}

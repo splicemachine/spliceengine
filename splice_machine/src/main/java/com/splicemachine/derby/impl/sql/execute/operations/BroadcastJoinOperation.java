@@ -346,6 +346,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
     }
 
+
     public static final class BroadcastSparkOperation extends SparkFlatMapOperation<BroadcastJoinOperation, Iterator<LocatedRow>, LocatedRow>{
         private Broadcast<List<Tuple2<ExecRow, ExecRow>>> right;
         private Multimap<ExecRow, ExecRow> rightMap;

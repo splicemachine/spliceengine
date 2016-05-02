@@ -104,6 +104,11 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     @Override
+    public String getOptimizerOverrides(){
+        return source.getOptimizerOverrides();
+    }
+
+    @Override
     public int[] getRootAccessedCols(long tableNumber) {
         return null;
     }

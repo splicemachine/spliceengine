@@ -485,4 +485,9 @@ public class OnceOperation extends SpliceBaseOperation {
                     }
                 });
     }
+
+	@Override
+	public String getOptimizerOverrides(){
+		return source.getOptimizerOverrides();
+	}
 }

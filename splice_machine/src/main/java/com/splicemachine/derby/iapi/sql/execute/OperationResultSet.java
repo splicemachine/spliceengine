@@ -37,6 +37,7 @@ import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Delegating ResultSet to ensure that operation stacks are re-run when Derby
@@ -68,6 +69,7 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
     private StatementInfo statementInfo;
     private long scrollUuid = -1l;
     private TxnView txn;
+    private Properties optimizerProperties;
 
     public OperationResultSet() {
         // no-op
@@ -90,37 +92,6 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
         topOperation.markAsTopResultSet();
     }
 
-    private StatementInfo initStatmentInfo(TxnView txn, StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
-        if (stmtInfo != null) {
-            // if statementInfo already created for this ResultSet, don't create again nor add
-            // to StatementManager
-            return stmtInfo;
-        }
-        String sql = opCtx.getPreparedStatement().getSource();
-        String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        if (parentOperationID == -1) {
-            Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
-            long sId = snowflake.nextUUID();
-            if (activation.isTraced()) {
-                activation.getLanguageConnectionContext().setXplainStatementId(sId);
-            }
-            stmtInfo = new StatementInfo(sql, user, txn,
-                    OperationTree.getNumSinks(topOperation),
-                    sId);
-        } else {
-            stmtInfo = new StatementInfo(sql, user, txn,
-                    OperationTree.getNumSinks(topOperation),
-                    statementId);
-        }
-        List<OperationInfo> operationInfo = getOperationInfo(stmtInfo.getStatementUuid());
-        stmtInfo.setOperationInfo(operationInfo);
-        topOperation.setStatementId(stmtInfo.getStatementUuid());
-
-        if(sql!=null && !sql.equals("null")) //don't display statement info if we aren't actually a statement
-            SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
-
-        return stmtInfo;
-    }
 
     public SpliceNoPutResultSet getDelegate() {
         return delegate;
@@ -242,43 +213,20 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
         this.parentOperationID = operationId;
     }
 
-    private List<OperationInfo> getOperationInfo(long statementId) {
-        List<OperationInfo> info = Lists.newArrayList();
-        SpliceOperation top = topOperation;
-        if (!(top instanceof DMLWriteOperation || top instanceof MiscOperation)) {
-            /*
-             * We add an extra OperationInfo on the top here to indicate that there is
-             * a "Scroll Insensitive" which returns the final output.
-             */
-            String m = operationChainInfo == null ? null : operationChainInfo.getMethodName();
 
-            scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-            OperationInfo opInfo = new OperationInfo(scrollUuid, statementId, "ScrollInsensitive",
-                    m, false, parentOperationID);
-            info.add(opInfo);
-        } else if (top instanceof MiscOperation) {
-            top = topOperation.getLeftOperation();
-            scrollUuid = -1l;
-        } else {
-            scrollUuid = -1l;
+    @Override
+    public Properties getUserOptimizerOverrides(){
+        if(optimizerProperties==null){
+            String opOverridesString = topOperation.getOptimizerOverrides();
+            if(opOverridesString==null|| opOverridesString.length()<=0) return null;
+            optimizerProperties = new Properties();
+            String[] props = opOverridesString.split(",");
+            for(String prop:props){
+                String[] kV = prop.split("=");
+                optimizerProperties.put(kV[0],kV[1]);
+            }
         }
-        populateOpInfo(statementId, scrollUuid, false, top, info);
-        return info;
-    }
-
-
-    private void populateOpInfo(long statementId, long parentOperationId, boolean isRight, SpliceOperation operation, List<OperationInfo> infos) {
-        if (operation == null) return;
-        long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
-        OperationInfo opInfo = new OperationInfo(operationUuid, statementId, operation.getName(), operation.getInfo(), isRight, parentOperationId);
-        infos.add(opInfo);
-        populateOpInfo(statementId, operationUuid, false, operation.getLeftOperation(), infos);
-        /*
-         * Most joins will record their information during the scan phase, and are not themselves
-         * sinks. However, MergeSortJoin will need to record its right hand side data directly here
-         */
-        //if(operation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
-        populateOpInfo(statementId, operationUuid, true, operation.getRightOperation(), infos);
+        return optimizerProperties;
     }
 
     @Override
@@ -627,6 +575,10 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
         topOperation.setActivation(activation);
     }
 
+    public IOStats getStats() {
+        return delegate.getStats();
+    }
+
     /*********************************************************************************************************************/
     /*private helper methods*/
     private void checkDelegate() {
@@ -662,7 +614,74 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
         return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
     }
 
-    public IOStats getStats() {
-        return delegate.getStats();
+
+    private StatementInfo initStatmentInfo(TxnView txn, StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
+        if (stmtInfo != null) {
+            // if statementInfo already created for this ResultSet, don't create again nor add
+            // to StatementManager
+            return stmtInfo;
+        }
+        String sql = opCtx.getPreparedStatement().getSource();
+        String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        if (parentOperationID == -1) {
+            Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
+            long sId = snowflake.nextUUID();
+            if (activation.isTraced()) {
+                activation.getLanguageConnectionContext().setXplainStatementId(sId);
+            }
+            stmtInfo = new StatementInfo(sql, user, txn,
+                    OperationTree.getNumSinks(topOperation),
+                    sId);
+        } else {
+            stmtInfo = new StatementInfo(sql, user, txn,
+                    OperationTree.getNumSinks(topOperation),
+                    statementId);
+        }
+        List<OperationInfo> operationInfo = getOperationInfo(stmtInfo.getStatementUuid());
+        stmtInfo.setOperationInfo(operationInfo);
+        topOperation.setStatementId(stmtInfo.getStatementUuid());
+
+        if(sql!=null && !sql.equals("null")) //don't display statement info if we aren't actually a statement
+            SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
+
+        return stmtInfo;
+    }
+
+    private void populateOpInfo(long statementId, long parentOperationId, boolean isRight, SpliceOperation operation, List<OperationInfo> infos) {
+        if (operation == null) return;
+        long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
+        OperationInfo opInfo = new OperationInfo(operationUuid, statementId, operation.getName(), operation.getInfo(), isRight, parentOperationId);
+        infos.add(opInfo);
+        populateOpInfo(statementId, operationUuid, false, operation.getLeftOperation(), infos);
+        /*
+         * Most joins will record their information during the scan phase, and are not themselves
+         * sinks. However, MergeSortJoin will need to record its right hand side data directly here
+         */
+        //if(operation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
+        populateOpInfo(statementId, operationUuid, true, operation.getRightOperation(), infos);
+    }
+
+    private List<OperationInfo> getOperationInfo(long statementId) {
+        List<OperationInfo> info = Lists.newArrayList();
+        SpliceOperation top = topOperation;
+        if (!(top instanceof DMLWriteOperation || top instanceof MiscOperation)) {
+            /*
+             * We add an extra OperationInfo on the top here to indicate that there is
+             * a "Scroll Insensitive" which returns the final output.
+             */
+            String m = operationChainInfo == null ? null : operationChainInfo.getMethodName();
+
+            scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+            OperationInfo opInfo = new OperationInfo(scrollUuid, statementId, "ScrollInsensitive",
+                    m, false, parentOperationID);
+            info.add(opInfo);
+        } else if (top instanceof MiscOperation) {
+            top = topOperation.getLeftOperation();
+            scrollUuid = -1l;
+        } else {
+            scrollUuid = -1l;
+        }
+        populateOpInfo(statementId, scrollUuid, false, top, info);
+        return info;
     }
 }

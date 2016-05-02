@@ -173,4 +173,9 @@ public class HashTableOperation extends SpliceBaseOperation  {
                 .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
                 .toString();
     }
+
+	@Override
+	public String getOptimizerOverrides(){
+		return source.getOptimizerOverrides();
+	}
 }

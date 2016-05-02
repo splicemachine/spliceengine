@@ -565,4 +565,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             }
             return nonPkCols;
         }
+
+	@Override
+	public String getOptimizerOverrides(){
+		return source.getOptimizerOverrides();
+	}
 }

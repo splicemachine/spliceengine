@@ -760,4 +760,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public ExecIndexRow getStartPosition() throws StandardException {
 		throw new RuntimeException("getStartPosition not implemented");
 	}
+
+	@Override
+	public int getQueryNiceness(){
+		String optimizerOverrides = getOptimizerOverrides();
+		if(optimizerOverrides==null) return -1;
+		int start = optimizerOverrides.indexOf("niceness");
+		if(start<0) return -1;
+
+		int stop = optimizerOverrides.indexOf(",",start);
+		if(stop<0){
+			stop = optimizerOverrides.indexOf("}",start); //the end of the string is a } in derby
+		}
+		String nicenessProp = optimizerOverrides.substring(start,stop);
+		String niceValue = nicenessProp.substring(nicenessProp.indexOf("=")+1).trim();
+		return Integer.parseInt(niceValue);
+	}
 }

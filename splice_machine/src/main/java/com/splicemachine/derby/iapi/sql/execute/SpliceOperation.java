@@ -260,4 +260,12 @@ public interface SpliceOperation extends StandardCloseable {
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException;
 
     public ExecIndexRow getStartPosition() throws StandardException;
+
+	String getOptimizerOverrides();
+
+	/**
+	 * @return the "niceness" at which this should run. If this is not set by the user (or the optimizer),
+	 * then this will return {@code -1}
+     */
+	int getQueryNiceness();
 }

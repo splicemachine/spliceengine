@@ -124,7 +124,8 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 -1,
                 false,
                 optimizerEstimatedRowCount,
-                optimizerEstimatedCost);
+                optimizerEstimatedCost,
+				userSuppliedOptimizerOverrides);
         this.hashKeyItem = hashKeyItem;
         this.tableName = tableName;
         this.indexName = indexName;

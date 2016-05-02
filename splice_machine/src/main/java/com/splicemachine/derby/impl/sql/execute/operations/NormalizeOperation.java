@@ -408,8 +408,13 @@ public class NormalizeOperation extends SpliceBaseOperation {
         return source.pushedToServer();
     }
 
+	@Override
+	public String getOptimizerOverrides(){
+		return source.getOptimizerOverrides();
+	}
 
-    public static final class NormalizeSparkOperation extends SparkOperation<NormalizeOperation, LocatedRow, LocatedRow> {
+
+	public static final class NormalizeSparkOperation extends SparkOperation<NormalizeOperation, LocatedRow, LocatedRow> {
 
         private static final long serialVersionUID = 7780564699906451370L;
 

@@ -640,6 +640,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         return SpliceSpark.getContext().parallelize(Collections.<LocatedRow>emptyList(),1);
     }
 
+    @Override
+    public String getOptimizerOverrides(){
+        return source.getOptimizerOverrides();
+    }
+
     public static final class DMLWriteSparkOp extends SparkFlatMapOperation<DMLWriteOperation, Iterator<LocatedRow>, LocatedRow>{
 
         public DMLWriteSparkOp(){

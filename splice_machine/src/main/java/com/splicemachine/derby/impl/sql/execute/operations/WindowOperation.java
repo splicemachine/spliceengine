@@ -516,6 +516,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     @Override
+    public String getOptimizerOverrides(){
+        return source.getOptimizerOverrides();
+    }
+
+    @Override
     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         if(source != null && source.isReferencingTable(tableNumber))
             return source.getRootAccessedCols(tableNumber);

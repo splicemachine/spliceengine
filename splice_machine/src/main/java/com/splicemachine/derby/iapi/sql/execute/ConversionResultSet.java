@@ -19,6 +19,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
+import java.util.Properties;
 
 /**
  * Converts between a SpliceOperation and a NoPutResultSet.
@@ -30,6 +31,7 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
     private SpliceOperation topOperation;
     private Activation activation;
     private SpliceRuntimeContext spliceRuntimeContext;
+    private Properties optimizerOverrides;
 
     public ConversionResultSet() {
     }
@@ -345,5 +347,21 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
     @Override
     public SpliceOperation getOperation() {
         return topOperation;
+    }
+
+    @Override
+    public Properties getUserOptimizerOverrides(){
+        if(optimizerOverrides==null){
+            String overrideString = topOperation.getOptimizerOverrides();
+            if(overrideString==null||overrideString.length()<=0) return null;
+
+            String[] properties=overrideString.split(",");
+            optimizerOverrides = new Properties();
+            for(String prop:properties){
+                String[] keyValue=prop.split("=");
+                optimizerOverrides.put(keyValue[0],keyValue[1]);
+            }
+        }
+        return optimizerOverrides;
     }
 }

@@ -150,6 +150,11 @@ public class BatchOnceOperation extends SpliceBaseOperation {
     }
 
     @Override
+    public String getOptimizerOverrides(){
+        return source.getOptimizerOverrides();
+    }
+
+    @Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }

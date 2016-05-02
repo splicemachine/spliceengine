@@ -107,7 +107,18 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	/*default implementations and no-ops*/
 
 		public double getEstimatedRowCount() { return this.optimizerEstimatedRowCount; }
-		@Override public int resultSetNumber() { return this.resultSetNumber; }
+
+	@Override
+	public String getOptimizerOverrides(){
+		return null;
+	}
+
+	@Override
+	public int getQueryNiceness(){
+		return -1;
+	}
+
+	@Override public int resultSetNumber() { return this.resultSetNumber; }
 		@Override public Activation getActivation() { return activation; }
 
 		@Override

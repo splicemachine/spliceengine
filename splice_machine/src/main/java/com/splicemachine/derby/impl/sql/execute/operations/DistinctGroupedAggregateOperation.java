@@ -61,4 +61,5 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
     public boolean providesRDD() {
         return false;
     }
+
 }

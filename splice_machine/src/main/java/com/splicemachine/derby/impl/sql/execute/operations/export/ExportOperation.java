@@ -199,6 +199,11 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     @Override
+    public String getOptimizerOverrides(){
+        return source.getOptimizerOverrides();
+    }
+
+    @Override
     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         return source.getRootAccessedCols(tableNumber);
     }

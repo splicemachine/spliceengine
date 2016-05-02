@@ -1,5 +1,7 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import java.util.Properties;
+
 /**
  * Used to indicate an Operation which has to interact directly with Derby code.
  *
@@ -9,4 +11,6 @@ package com.splicemachine.derby.iapi.sql.execute;
 public interface ConvertedResultSet {
 
     SpliceOperation getOperation();
+
+    Properties getUserOptimizerOverrides();
 }

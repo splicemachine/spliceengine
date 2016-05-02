@@ -561,4 +561,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public ExecIndexRow getStartPosition() throws StandardException {
 		return source.getStartPosition();
 	}
+
+	@Override
+	public String getOptimizerOverrides(){
+		return source.getOptimizerOverrides();
+	}
 }

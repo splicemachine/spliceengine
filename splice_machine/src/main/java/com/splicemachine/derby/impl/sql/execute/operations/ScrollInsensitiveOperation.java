@@ -100,7 +100,12 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         return "ScrollInsensitive"; //this class is never used
     }
 
-    @Override
+	@Override
+	public String getOptimizerOverrides(){
+		return null;
+	}
+
+	@Override
 	public List<NodeType> getNodeTypes() {
 		return nodeTypes;
 	}

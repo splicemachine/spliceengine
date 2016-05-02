@@ -149,7 +149,7 @@ public class DependentOperation extends ScanOperation {
 			 resultRowAllocator,lockMode, tableLocked,
 			  TransactionController.ISOLATION_REPEATABLE_READ,
               colRefItem, -1, false, // Add Index Ref: This is junk JL
-			  optimizerEstimatedRowCount, optimizerEstimatedCost);
+			  optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 
 		/* Static info created at compile time and can be shared across
 		 * instances of the plan.

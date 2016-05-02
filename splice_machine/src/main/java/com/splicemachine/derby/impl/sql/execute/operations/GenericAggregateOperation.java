@@ -195,6 +195,12 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
         // TODO: subclasses also do this - check if redundant
         if (source != null) source.close();
     }
+
+	@Override
+	public String getOptimizerOverrides(){
+		return source.getOptimizerOverrides();
+	}
+
     protected void initializeVectorAggregation(ExecRow aggResult) throws StandardException{
         for(SpliceGenericAggregator aggregator:aggregates){
             aggregator.initialize(aggResult);

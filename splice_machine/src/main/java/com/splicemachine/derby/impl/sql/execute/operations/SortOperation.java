@@ -477,7 +477,12 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         return sorted.values();
     }
 
-    private class RowComparator implements Comparator<ExecRow>, Serializable {
+	@Override
+	public String getOptimizerOverrides(){
+		return source.getOptimizerOverrides();
+	}
+
+	private class RowComparator implements Comparator<ExecRow>, Serializable {
 
         private static final long serialVersionUID = -7005014411999208729L;
         private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending

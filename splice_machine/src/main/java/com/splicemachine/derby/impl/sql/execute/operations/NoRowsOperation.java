@@ -139,4 +139,9 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
                 .append(indent).append("isScan:").append(isScan)
                 .toString();
     }
+
+	@Override
+	public String getOptimizerOverrides(){
+		return null;
+	}
 }

@@ -313,4 +313,9 @@ public class RowOperation extends SpliceBaseOperation {
 		public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
 			return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(getRow())), 1);
 		}
+
+	@Override
+	public String getOptimizerOverrides(){
+		return null;
+	}
 }

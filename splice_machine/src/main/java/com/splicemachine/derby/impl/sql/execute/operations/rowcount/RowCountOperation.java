@@ -392,4 +392,9 @@ public class RowCountOperation extends SpliceBaseOperation {
                     }
                 });
     }
+
+    @Override
+    public String getOptimizerOverrides(){
+        return source.getOptimizerOverrides();
+    }
 }

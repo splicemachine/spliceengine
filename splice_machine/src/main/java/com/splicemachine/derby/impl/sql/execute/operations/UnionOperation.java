@@ -282,4 +282,15 @@ public class UnionOperation extends SpliceBaseOperation {
 //        RDDUtils.printRDD("Union result", result);
         return result;
     }
+
+	@Override
+	public String getOptimizerOverrides(){
+		String left = leftResultSet.getOptimizerOverrides();
+		String right = rightResultSet.getOptimizerOverrides();
+		if(left!=null){
+			if(right!=null) return left+","+right;
+			else return left;
+		}else if(right!=null) return right;
+		else return right;
+	}
 }

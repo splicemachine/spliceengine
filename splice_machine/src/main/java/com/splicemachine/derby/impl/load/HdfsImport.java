@@ -578,8 +578,8 @@ public class HdfsImport{
                 statementInfo.addRunningJob(operationId, info);
                 jobFuture.addCleanupTask(StatementInfo.completeOnClose(statementInfo, info));
 
-                if(opInfo!=null)
-                    opInfo.initializeJob(info);
+//                if(opInfo!=null)
+//                    opInfo.initializeJob(info);
                 jobFutures.add(Pair.newPair(jobFuture,info));
 
                 info.logStatusOfImportFiles(jobFuture.getNumTasks(),jobFuture.getRemainingTasks());

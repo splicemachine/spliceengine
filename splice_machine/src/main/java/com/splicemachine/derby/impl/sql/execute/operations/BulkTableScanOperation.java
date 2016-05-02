@@ -28,6 +28,8 @@ public class BulkTableScanOperation extends TableScanOperation {
 	public String getName() {
 			return NAME;
 	}
+
+
 	public BulkTableScanOperation(long conglomId,
 			StaticCompiledOpenConglomInfo scoci, Activation activation, 
 			GeneratedMethod resultRowAllocator, 

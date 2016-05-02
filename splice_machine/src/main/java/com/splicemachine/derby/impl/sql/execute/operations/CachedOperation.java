@@ -166,4 +166,8 @@ public class CachedOperation extends SpliceBaseOperation {
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         return RDDUtils.toSparkRows(SpliceSpark.getContext().parallelize(rows));
     }
+    @Override
+    public String getOptimizerOverrides(){
+        return null;
+    }
 }

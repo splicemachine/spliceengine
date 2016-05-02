@@ -640,4 +640,9 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
     public String prettyPrint(int indentLevel) {
         return "VTIOperation";
     }
+
+	@Override
+	public String getOptimizerOverrides(){
+		return null;
+	}
 }
