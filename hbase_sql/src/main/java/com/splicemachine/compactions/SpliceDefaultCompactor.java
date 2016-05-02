@@ -205,18 +205,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return regionLocation+":"+Long.toString(request.getSelectionTime());
     }
 
-    private String jobDetails = null;
+    private static final String delim = ",\n";
     private String getJobDetails(CompactionRequest request) {
-        if (jobDetails == null) {
-            String delim=",\n";
-            jobDetails =getTableInfoLabel(delim) +delim
-                    +String.format("Region Name=%s",this.store.getRegionInfo().getRegionNameAsString()) +delim
-                    +String.format("Region Id=%d",this.store.getRegionInfo().getRegionId()) +delim
-                    +String.format("File Count=%d",request.getFiles().size()) +delim
-                    +String.format("Total File Size=%s",FileUtils.byteCountToDisplaySize(request.getSize())) +delim
-                    +String.format("Type=%s",getMajorMinorLabel(request));
-        }
-        return jobDetails;
+        return getTableInfoLabel(delim) +delim
+            +String.format("Region Name=%s",this.store.getRegionInfo().getRegionNameAsString()) +delim
+            +String.format("Region Id=%d",this.store.getRegionInfo().getRegionId()) +delim
+            +String.format("File Count=%d",request.getFiles().size()) + (request.isAllFiles() ? " (all)" : "") +delim
+            +String.format("Total File Size=%s",FileUtils.byteCountToDisplaySize(request.getSize())) +delim
+            +String.format("Type=%s",getMajorMinorLabel(request));
     }
 
     private String getPoolName() {
@@ -489,10 +485,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     /**
      * Returns location for an HBase store
-     * @param store
-     * @return
+     * @param store the store whose location is needed
+     * @return server host name where store is located
      * @throws IOException
      */
+    @SuppressWarnings("unchecked")
     private String getRegionLocation(Store store) throws IOException {
         // Get start key for the store
         HRegionInfo regionInfo = store.getRegionInfo();
