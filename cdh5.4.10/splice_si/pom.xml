@@ -130,13 +130,9 @@
 								<option>-keep public class com.splicemachine.si.api.RollForward { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.RowAccumulator { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.Partition { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.PartitionFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.SIFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.SIFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TimestampSource { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.MemoryTimestampSource { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.CommittedTxn { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionLifecycle { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionManager { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionOperations { public *; }</option>
@@ -156,8 +152,6 @@
 								<option>-keep public class com.splicemachine.si.api.TxnStore { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TxnSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TxnView { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.Checkpointer { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.checkpoint.BufferedCheckpointer { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.BaseSICompactionScanner { public *; protected boolean nextDirect(java.util.List, int); }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIBaseObserver { public *; protected *; }</option>
@@ -189,8 +183,6 @@
 								<option>-keep public class com.splicemachine.si.impl.AbstractTxn { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.ActionFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.ActiveWriteTxn { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.ActiveReadTxn { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.SIReadRequest { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.AdditiveWriteConflict { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.BaseSIFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.BaseSIFilterPacked { public *; protected *;}</option>
@@ -203,12 +195,11 @@
 								<option>-keep public class com.splicemachine.si.impl.HTransactorFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.InheritingTxnView { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.KeepAliveScheduler { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.NoopKeepAliveScheduler { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.CellType { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.KeyValueType { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.LazyTxnView { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PackedTxnFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.ReadOnlyTxn { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.si.impl.ReadOnlyTxn { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.RootTransaction { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SICompactionState { public *; }</option>
@@ -220,14 +211,7 @@
 								<option>-keep public class com.splicemachine.si.impl.SITransactor* { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.STableReaderDelegate { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SimpleOperationFactory { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.MinimumTransactionWatcher { public *; }</option>	
-								<option>-keep public class com.splicemachine.si.impl.MinimumTransactionWatcher$MATReader { public *; }</option>	
-								<option>-keep public class com.splicemachine.si.impl.TxnLifecycleObserver { public *; }</option>	
-								<option>-keep public class com.splicemachine.si.api.TxnFilterFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SimpleTxnFilter { public *; protected void doResolve(org.apache.hadoop.hbase.KeyValue, long); }</option>
-								<option>-keep public class com.splicemachine.si.impl.NoopTxnFilter { public *; protected void doResolve(org.apache.hadoop.hbase.KeyValue, long); }</option>
-								<option>-keep public class com.splicemachine.si.impl.DefaultCellTypeParser { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.CellTypeParser { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SparseTxn { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.Tracer { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TransactionLifecycle { public *; }</option>
@@ -240,22 +224,10 @@
 								<option>-keep public class com.splicemachine.si.impl.TxnViewBuilder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.UnsupportedLifecycleManager { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.UpdatingTxnFilter { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.DefaultCellTypeParser { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.CellTypeParser { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.WritableTxn { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.WriteConflict { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.readresolve.NoOpReadResolver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.readresolve.SynchronousReadResolver { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.checkpoint.CheckpointResolver { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.checkpoint.NoOpCheckpointResolver { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.checkpoint.AsyncCheckpointResolver { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.checkpoint.PartitionCheckpointResolver { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.checkpoint.SharedCheckpointResolver { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.CheckpointFilter { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.compaction.CheckpointCompactionScanner { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.compaction.RowCompactor { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.compaction.CheckpointRowCompactor { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.compaction.MinorCheckpointRowCompactor { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.AbstractV1TxnDecoder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.AbstractV2TxnDecoder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.ActiveTxnFilter { public *; }</option>
