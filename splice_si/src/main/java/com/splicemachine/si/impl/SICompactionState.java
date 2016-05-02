@@ -99,6 +99,7 @@ public class SICompactionState<Data,Mutation,
      */
     private boolean mutateCommitTimestamp(long timestamp,Data element) throws IOException {
         TxnView transaction = transactionStore.getTransaction(timestamp);
+        if(transaction==null) return true; //Safety valve--don't process rows with no associated transaction, leave them to be treated at read time
         if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
             /*
              * This transaction has been rolled back, so just remove the data
