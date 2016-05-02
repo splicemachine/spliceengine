@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>splice_si_test-cdh5.4.10</artifactId>
+	<packaging>jar</packaging>
+	<name>${project.artifactId}</name>
+	<description>Splice SI Test</description>
+	<parent>
+		<artifactId>spliceengine-cdh5.4.10</artifactId>
+		<groupId>com.splicemachine</groupId>
+		<version>1.6.0-SNAPSHOT</version>
+	</parent>
+	<dependencies>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>splice_si_adapter_98-cdh5.4.10</artifactId>
+			<version>1.6.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>splice_si_adapter_98-cdh5.4.10</artifactId>
+			<version>1.6.0-SNAPSHOT</version>
+			<classifier>tests</classifier>
+		</dependency>
+	</dependencies>
+</project>

@@ -826,6 +826,7 @@
 				<!--module>cdh5.3.3</module-->
 				<module>cdh5.4.1</module>
 				<module>cdh5.4.8</module>
+				<module>cdh5.4.10</module>
 				<module>hdp2.1.7</module>
 				<module>hdp2.2.4</module>
 				<!--module>hdp2.3.0</module-->
@@ -855,6 +856,12 @@
 			<id>cdh5.4.8</id>
 			<modules>
 				<module>cdh5.4.8</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>cdh5.4.10</id>
+			<modules>
+				<module>cdh5.4.10</module>
 			</modules>
 		</profile>
 		<profile>

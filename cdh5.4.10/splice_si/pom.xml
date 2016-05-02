@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<packaging>jar</packaging>
+	<artifactId>splice_si-cdh5.4.10</artifactId>
+	<name>${project.artifactId}</name>
+	<description>Splice Engine Snapshot Isolation</description>
+	<parent>
+		<artifactId>spliceengine-cdh5.4.10</artifactId>
+		<groupId>com.splicemachine</groupId>
+		<version>1.6.0-SNAPSHOT</version>
+	</parent>
+	<dependencies>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>splice_constants-cdh5.4.10</artifactId>
+			<version>1.6.0-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>servlet-api</artifactId>
+					<groupId>javax.servlet</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+	</dependencies>
+	<profiles>
+		<profile>
+			<id>obfuscate</id>
+			<activation>
+				<property>
+					<name>obfuscate</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.wvengen</groupId>
+						<artifactId>proguard-maven-plugin</artifactId>
+						<configuration>
+							<injar>${project.build.finalName}.jar</injar>
+							<outputDirectory>${project.build.directory}</outputDirectory>
+							<addMavenDescriptor>false</addMavenDescriptor>
+							<appendClassifier>true</appendClassifier>
+							<!-- archive></archive -->
+							<attach>true</attach>
+							<attachArtifactClassifier>${obfuscate.si}</attachArtifactClassifier>
+							<attachArtifactType>jar</attachArtifactType>
+							<!-- exclusions></exclusions -->
+							<!-- inFilter></inFilter -->
+							<includeDependency>true</includeDependency>
+							<injarNotExistsSkip>false</injarNotExistsSkip>
+							<libs>
+								<lib>${java.home}/lib/rt.jar</lib>
+								<lib>${java.home}/lib/jsse.jar</lib>
+								<lib>${java.home}/lib/jce.jar</lib>
+								<lib>${java.home}/lib/charsets.jar</lib>
+							</libs>
+							<maxMemory>1024m</maxMemory>
+							<options>
+								<!-- This has to be set or all generics are lost.  -->
+								<option>-keepattributes Signature</option>
+								<option>-keepattributes Exceptions</option>
+								<!-- # Write out an obfuscation mapping file for de-obfuscating any stack traces. -->
+								<!-- # Or for incremental obfuscation of extensions... this will allow for patching obfuscated code if needed. -->
+								<option>-printmapping ${project.build.directory}/${project.build.finalName}.map </option>
+								<!-- # Kick-ass option to list all classes and class members that match the various -keep options. -->
+								<!-- # Awesome for debugging config files. -->
+								<option>-printseeds ${project.build.directory}/${project.build.finalName}.keep </option>
+								<!-- ################################################# -->
+								<!-- ### From the example for a typical library... ### -->
+								<!-- ################################################# -->
+								<!-- # SourceFile and LineNumberTable are needed for useful obfuscated stack traces.  Without these, the stack traces cannot be deciphered later on. -->
+								<!-- # *Annotation* is needed to preserve @MXBean annotations for TransactionStatus. -->
+								<!-- InnerClasses is needed for SI inner classes in SegmentedRollForward -->
+								<option>-renamesourcefileattribute SourceFile</option>
+								<option>-keepattributes SourceFile,LineNumberTable,MXBean,*Annotation*,InnerClasses</option>
+								<!-- # Needed to keep enumerations working. -->
+								<option>-keepclassmembers,allowoptimization enum * {
+									public static **[] values();
+									public static ** valueOf(java.lang.String);
+									}
+								</option>
+								<!-- # Preserves methods and members for Serializable classes that are actually used. -->
+								<!-- # TODO: Do we need to add Formattable too? -->
+								<option>-keepclassmembers class * implements java.io.Serializable {
+									static final long serialVersionUID;
+									private static final java.io.ObjectStreamField[] serialPersistentFields;
+									private void writeObject(java.io.ObjectOutputStream);
+									private void readObject(java.io.ObjectInputStream);
+									java.lang.Object writeReplace();
+									java.lang.Object readResolve();
+									}
+								</option>
+								<!-- ################################################################ -->
+								<!-- ### From the example of obfuscating the ProGuard jar file... ### -->
+								<!-- ################################################################ -->
+								<!-- # Allow methods with the same signature, except for the return type, to get the same obfuscation name. -->
+								<option>-overloadaggressively</option>
+								<!-- # Put all obfuscated classes into the nameless root package. -->
+								<option>-repackageclasses ''</option>
+								<!-- # Allow classes and class members to be made public. -->
+								<option>-allowaccessmodification</option>
+								<!-- ################################### -->
+								<!-- ### Overrides for structured_si ### -->
+								<!-- ################################### -->
+								<!-- # Just ignore the duplicate class definitions for now.  Our class path is crazy long and probably needs to be cleaned up.-->
+								<option>-dontnote</option>
+								<!-- # Ignore bogus warnings that are being generated from the Apache Derby java/stubs source code.-->
+								<!-- # I believe these files could just be deleted from our repo.  This should be confirmed before deletion.-->
+								<option>-ignorewarnings</option>
+								<!-- ################################### -->
+								<!-- ### Overrides for structured_si ### -->
+								<!-- ################################### -->
+								<!-- # Preserve the classes accessed externally. -->
+								<option>-keep public class com.splicemachine.async.AsyncSkippingScanFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.derby.hbase.AllocatedFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.derby.hbase.BaseAllocatedFilter { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.derby.hbase.BaseAllocatedFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.hbase.AbstractBufferedRegionScanner { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.hbase.AbstractSkippingScanFilter { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.hbase.BaseReadAheadRegionScanner { *; }</option>
+								<option>-keep public class com.splicemachine.hbase.RegionScanIterator* { public *; }</option>
+								<option>-keep public class com.splicemachine.si.LStoreTest { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.CannotCommitException { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.ConstraintChecker { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.HTransactorFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.ReadOnlyModificationException { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.ReadResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.RollForward { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.RowAccumulator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.Partition { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.PartitionFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.SIFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.SIFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TimestampSource { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.MemoryTimestampSource { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.CommittedTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionLifecycle { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionManager { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionOperations { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionStorage { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionTimeoutException { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionTimestamps { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionalRegion { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.Transactor { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactorListener { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.Txn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnDataStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnLifecycleManager { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnOperationFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnSupplier { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TxnView { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.Checkpointer { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.checkpoint.BufferedCheckpointer { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.BaseSICompactionScanner { public *; protected boolean nextDirect(java.util.List, int); }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIBaseObserver { public *; protected *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIFilterPacked { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.TimestampMasterObserver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.TxnLifecycleEndpoint { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.HTableSource { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.IHTable { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.SDataLib {public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.SRowLock { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HRowLock { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.STableReader { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.api.STableWriter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.BaseHbRegion { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HTableReader { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HTableWriter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HbTable { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.light.IncrementingClock { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.light.LDataLib { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.light.LGet { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.light.LStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.light.LTable { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.light.LTuple { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.AbstractTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.ActionFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.ActiveWriteTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.ActiveReadTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.SIReadRequest { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.AdditiveWriteConflict { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.BaseSIFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.BaseSIFilterPacked { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.si.impl.BaseSIFilterPacked { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.ClientTxnLifecycleManager { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DDLTxnView { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DataStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DenseTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.HTransactorFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.InheritingTxnView { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.KeepAliveScheduler { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.NoopKeepAliveScheduler { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.CellType { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.LazyTxnView { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.PackedTxnFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.ReadOnlyTxn { public *; protected *;}</option>
+								<option>-keep public class com.splicemachine.si.impl.RootTransaction { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SICompactionState { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SIFactoryDriver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SIFactoryImpl { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SIFilterPacked { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SITransactionManager { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SITransactionReadController { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SITransactor* { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.STableReaderDelegate { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SimpleOperationFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.MinimumTransactionWatcher { public *; }</option>	
+								<option>-keep public class com.splicemachine.si.impl.MinimumTransactionWatcher$MATReader { public *; }</option>	
+								<option>-keep public class com.splicemachine.si.impl.TxnLifecycleObserver { public *; }</option>	
+								<option>-keep public class com.splicemachine.si.api.TxnFilterFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SimpleTxnFilter { public *; protected void doResolve(org.apache.hadoop.hbase.KeyValue, long); }</option>
+								<option>-keep public class com.splicemachine.si.impl.NoopTxnFilter { public *; protected void doResolve(org.apache.hadoop.hbase.KeyValue, long); }</option>
+								<option>-keep public class com.splicemachine.si.impl.DefaultCellTypeParser { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.CellTypeParser { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.SparseTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.Tracer { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TransactionLifecycle { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TransactionTimestamps { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TransactionalRegions { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnDataStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnRegion { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnUtils { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnViewBuilder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.UnsupportedLifecycleManager { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.UpdatingTxnFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DefaultCellTypeParser { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.CellTypeParser { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.WritableTxn { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.WriteConflict { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.readresolve.NoOpReadResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.readresolve.SynchronousReadResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.checkpoint.CheckpointResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.checkpoint.NoOpCheckpointResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.checkpoint.AsyncCheckpointResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.checkpoint.PartitionCheckpointResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.checkpoint.SharedCheckpointResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.CheckpointFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.compaction.CheckpointCompactionScanner { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.compaction.RowCompactor { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.compaction.CheckpointRowCompactor { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.compaction.MinorCheckpointRowCompactor { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.AbstractV1TxnDecoder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.AbstractV2TxnDecoder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.ActiveTxnFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.BaseActiveTxnFilter { public *; protected long afterTs; protected long beforeTs; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.HTransactionLib { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.RegionTxnStore { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.STransactionLib { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.TransactionResolver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.TxnDecoder { public *; protected *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.V1TxnDecoder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.region.V2TxnDecoder { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.NoopRollForward { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardManagement { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardStatus { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.SegmentedRollForward$Context { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.store.ActiveTxnCacheSupplier { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.store.CompletedTxnCacheSupplier { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.store.LazyTxnSupplier { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampClient { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampMasterManagement { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampOracle { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.timestamp.TimestampRegionManagement { public *; }</option>
+								<option>-keep public class com.splicemachine.si.jmx.ManagedTransactor { public *; }</option>
+								<option>-keep public class com.splicemachine.si.jmx.TransactorStatus { public *; }</option>
+								<option>-keep public class com.splicemachine.si.testsetup.LStoreSetup { public *; }</option>
+								<option>-keep public class com.splicemachine.si.testsetup.TestTransactionSetup { public *; }</option>
+								<option>-keep public class com.splicemachine.si.txn.JtaXAResource { public *; }</option>
+								<option>-keep public class com.splicemachine.si.txn.ZooKeeperStatTimestampSource { public *; }</option>
+								<option>-keep public class com.splicemachine.si.txn.ZooKeeperTimestampSource { public *; }</option>
+								<option>-keep public enum com.splicemachine.si.api.Txn$IsolationLevel { public *; }</option>
+								<option>-keep public enum com.splicemachine.si.api.Txn$State { public *; }</option>
+								<option>-keep public interface com.splicemachine.si.impl.rollforward.SegmentedRollForward$Action { public *; }</option>
+								<option>-keep public interface com.splicemachine.si.impl.txnclient.TxnStoreManagement {public *; }</option>
+							</options>
+							<!-- outjar></outjar -->
+							<!-- proguardInclude></proguardInclude -->
+							<!-- proguardMainClass></proguardMainClass -->
+							<proguardVersion>4.11</proguardVersion>
+							<skip>false</skip>
+						</configuration>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>proguard</goal>
+								</goals>
+							</execution>
+						</executions>
+						<dependencies>
+							<dependency>
+								<groupId>net.sf.proguard</groupId>
+								<artifactId>proguard-base</artifactId>
+								<version>4.11</version>
+								<scope>runtime</scope>
+							</dependency>
+						</dependencies>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>
