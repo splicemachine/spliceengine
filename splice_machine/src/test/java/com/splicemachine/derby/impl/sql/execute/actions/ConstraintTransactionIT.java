@@ -479,6 +479,38 @@ public class ConstraintTransactionIT {
         c2.commit();
     }
 
+    @Test @Ignore("DB-5052: Adding not-null constraint to a table is not transactional")
+    public void testNotNullConstraint() throws Exception {
+        // DB-5052
+        // DB-5039 follow-on to check to see that one thread adding not-null constraint is not hosed by another adding null value.
+        String tableName = "testNotNullConstraint".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s (c1 int,c2 int)", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(2, 9)", tableRef));
+        s1.execute(String.format("insert into %s values(3, 8)", tableRef));
+        s1.execute(String.format("insert into %s values(1, 3)", tableRef));
+        c1.commit();
+
+        Connection c2 = classWatcher.createConnection();
+        c2.setAutoCommit(false);
+        Statement s2 = c2.createStatement();
+
+        // connection2 creates not-null constraint, but doesn't commit
+        s2.execute(String.format("alter table %s alter column c2 not null", tableRef));
+        // connection1 inserts a row that will yield null value in not-null constrained col
+        s1.execute(String.format("insert into %s values(9, null)", tableRef));
+        c1.commit();
+        c2.commit();
+    }
+
     @Test
     @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void testVerifyCheckConstraint() throws Exception {

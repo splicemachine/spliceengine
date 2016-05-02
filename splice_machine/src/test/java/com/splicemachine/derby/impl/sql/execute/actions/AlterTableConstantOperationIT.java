@@ -495,6 +495,23 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testAddNotNullConstraint() throws Exception {
+        // DB-5039: adding not-null column constraint on table with nulls did not throw exception
+        String tableName = "foo".toUpperCase();
+        String tableRef = this.getTableReference(tableName);
+        methodWatcher.executeUpdate(String.format("drop table if exists %s", tableRef));
+        methodWatcher.executeUpdate(String.format("create table %s (col1 int)", tableRef));
+        methodWatcher.executeUpdate(String.format("insert into %s values null", tableRef));
+        try {
+            methodWatcher.getStatement().execute(String.format("alter table %s alter column col1 not null", tableRef));
+            fail("Expected constraint violation: \"Null data found in column 'COL1'\"");
+        } catch (SQLException e) {
+            assertEquals("Expected constraint violation: \"Null data found in column 'COL1'\", but was: "+
+                             e.getLocalizedMessage(),"X0Y80", e.getSQLState());
+        }
+    }
+
     @Test(expected=SQLException.class)
     public void testAlterTableXml() throws Exception {
         Connection conn = methodWatcher.createConnection();

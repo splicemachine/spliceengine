@@ -38,6 +38,8 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.store.access.RowUtil;
+import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -1323,8 +1325,40 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
     }
 
-    private int getSemiRowCount(TransactionController tc, TableDescriptor td) {
-        return 0;
+    /**
+     * Return the "semi" row count of a table.  We are only interested in
+     * whether the table has 0, 1 or > 1 rows.
+     *
+     *
+     * @return Number of rows (0, 1 or > 1) in table.
+     *
+     * @exception StandardException		Thrown on failure
+     */
+    private int getSemiRowCount(TransactionController tc, TableDescriptor td) throws StandardException {
+        int numRows = 0;
+
+        ScanController sc = tc.openScan(td.getHeapConglomerateId(),
+                                        false,    // hold
+                                        0,        // open read only
+                                        TransactionController.MODE_TABLE,
+                                        TransactionController.ISOLATION_SERIALIZABLE,
+                                        RowUtil.EMPTY_ROW_BITSET, // scanColumnList
+                                        null,    // start position
+                                        ScanController.GE,      // startSearchOperation
+                                        null, // scanQualifier
+                                        null, //stop position - through last row
+                                        ScanController.GT);     // stopSearchOperation
+
+        while (sc.next()) {
+            numRows++;
+            // We're only interested in whether the table has 0, 1 or > 1 rows
+            if (numRows == 2) {
+                break;
+            }
+        }
+        sc.close();
+
+        return numRows;
     }
 
 }
