@@ -156,8 +156,8 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 
         StringBuilder query = new StringBuilder();
         query.append("SELECT DISTINCT " + commaJoiner.join(Iterables.transform(childColumns, childNameFunction)));
-        query.append(" FROM " + childTd.getName());
-        query.append(" LEFT JOIN " + parentTd.getName() + " ON ");
+        query.append(" FROM " + childTd.getSchemaName() + "." + childTd.getName());
+        query.append(" LEFT JOIN " + parentTd.getSchemaName() + "." + parentTd.getName() + " ON ");
         query.append(andJoiner.join(joinClauseParts));
         query.append(" WHERE ");
         query.append(andJoiner.join(whereClauseParts));
@@ -271,7 +271,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 
         @Override
         public String apply(ColumnDescriptor columnDescriptor) {
-            return tableDescriptor.getName() + "." + columnDescriptor.getColumnName();
+            return tableDescriptor.getSchemaName() + "." + tableDescriptor.getName() + "." + columnDescriptor.getColumnName();
         }
     }
 }

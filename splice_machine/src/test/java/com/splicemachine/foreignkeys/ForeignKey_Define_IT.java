@@ -143,10 +143,11 @@ public class ForeignKey_Define_IT {
     public void alterTable() throws Exception {
         methodWatcher.executeUpdate("create table P (id int, a int, b int, c int, primary key(id))");
         methodWatcher.executeUpdate("create table C (a int, a_id int)");
-        methodWatcher.executeUpdate("ALTER TABLE C ADD CONSTRAINT FK_1 FOREIGN KEY (a_id) REFERENCES P(id)");
+        methodWatcher.execute("set schema splice");
+        methodWatcher.executeUpdate("ALTER TABLE ForeignKey_Define_IT.C ADD CONSTRAINT FK_1 FOREIGN KEY (a_id) REFERENCES ForeignKey_Define_IT.P(id)");
+        methodWatcher.execute("set schema ForeignKey_Define_IT");
         verifyForeignKey();
     }
-
 
     @Test
     public void alterTable_noConstraintName() throws Exception {
