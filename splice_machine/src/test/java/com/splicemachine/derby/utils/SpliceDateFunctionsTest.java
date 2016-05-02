@@ -15,6 +15,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 import static com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE;
 import static org.junit.Assert.*;
@@ -253,7 +254,7 @@ public class SpliceDateFunctionsTest {
         return new Timestamp(DFT.parse(dateString).getTime());
     }
 
-    @Ignore("DB-4678")
+    @Test
     public void testLargeTimestamps() throws Exception {
 
         assertEquals("2013-11-26 23:28:55.22", SpliceDateFunctions.TO_TIMESTAMP("2013-11-26 23:28:55.22","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
@@ -270,7 +271,9 @@ public class SpliceDateFunctionsTest {
         assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.ffffff").toString());
 
         // Note: we have to format the java.sql.Timestamp here to get the output we want.  The information is there, it's just that the default format is w/o timezone
-        assertEquals("2013-03-23 19:45:00.987-0500", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ").format(SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987-05","yyyy-MM-dd HH:mm:ss.SSSZ")));
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
+        sdf.setTimeZone(TimeZone.getTimeZone("PST"));
+        assertEquals("2013-03-23 19:45:00.987-0700", sdf.format(SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987-07", "yyyy-MM-dd HH:mm:ss.SSSZ")));
     }
 
     @Test @Ignore("DB-5033")
