@@ -579,6 +579,30 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(setWritePool);
 
+                    Procedure setRetryPause = Procedure.newBuilder().name("SYSCS_SET_WRITE_RETRY_PAUSE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .integer("pause")
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(setRetryPause);
+
+                    Procedure setWriteRetryLimit = Procedure.newBuilder().name("SYSCS_SET_WRITE_RETRY_LIMIT")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .integer("numRetries")
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(setWriteRetryLimit);
+
+                    Procedure setConcWritePermits = Procedure.newBuilder().name("SYSCS_SET_CONCURRENT_ROW_PERMITS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .integer("permits")
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(setConcWritePermits);
+
         			/*
         			 * Procedure get the max write pool threads
         			 */

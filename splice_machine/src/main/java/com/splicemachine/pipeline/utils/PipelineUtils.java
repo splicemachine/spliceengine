@@ -22,6 +22,7 @@ import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.client.ConnectionUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -90,97 +91,15 @@ public class PipelineUtils extends PipelineConstants{
     }
 
     public static long getWaitTime(int retryCount,long pauseInterval){
-        /*
-         * We want to perform an Exponential backoff here. By that, we mean that the more often
-         * we have to retry an operation, the longer we should wait before performing that retry. This
-         * uses a bit of fancy logic to determine exactly how long that interval should be.
-         *
-         * First, we have the base interval "pauseInterval", which is our unit of wait time. Each time we
-         * ask to wait, we want to wait in multiples of this pause interval. The exponential part comes
-         * from sequencing where that multiple is proportional to the number of times we wait. So the main
-         * body of this method is in determining that growth factor (called waitFactor or wf in various places here).
-         *
-         * We start here with an algorithm of waitFactor=2^(retryCount). Unfortunately, this leads to awkward
-         * sequencing in practice, because it would lead to the sequence 2*pauseInterval,4*pI,8*pI,...; if the retry
-         * count is 35 (HBase's default), and the pause interval is 1 second, we would wait a total of
-         * sum(2^i,i from 1 to 35) ~ 34 billion seconds ~ 1100 years. This isn't a reasonable retry cycle (obviously).
-         *
-         * To make the sequencing a little more practical, we "tier off" the waitFactor--that is, instead of the
-         * sequence 2,4,8,16,... we do something more like 2,2,4,4,4,4,8,8,8,8,8,8,8,8,16,... which will still grow
-         * exponentially, but will result in a realistic time frame for waiting (We are basically taking the
-         * step function of 2^x). This boils down to the formula
-         *
-         * waitFactor=2^(highest 1-bit in retryCount).
-         *
-         * thus, we get
-         * retryCount | waitFactor
-         * 1          | 2
-         * 2          | 4
-         * 3          | 4
-         * 4          | 8
-         * 5          | 8
-         * 6          | 8
-         * 7          | 8
-         * 8          | 16
-         * ...
-         *
-         * this is very nice--in the same scenario, we would wait a total of
-         * sum(2^highestOneBit(i),i from 1 to 35) = 470 seconds ~ 7.8 minutes. This is a MUCH nicer sequence.
-         *
-         * However, it's still SLIGHTLY off, because the first time you wait is 2*pauseInterval, which is contrary
-         * to human expectations--you'd like to wait for just 1*pauseInterval for a few times before moving on. To do
-         * this we divide the waitFactor by 2, giving the sequence 1,2,2,4,4,4,4,8,8,8,8,8,8,8,8,...
-         * which gives us a wait time of about 235 seconds (~4 minutes) while also having nice human friendly outputs.
-         *
-         * However, if the retry limit is unbounded, this growth sequence is unbounded as well. We want to cap
-         * this growth rate at a certain point; after that point we just want to wait a constant amount of time. In
-         * a pretty-much-arbitrary way, I (-sf-) chose 32 because it's pretty.
-         *
-         * Finally, we realize that this is often used for network behavior (in fact, it's only used for network behavior),
-         * and we want to avoid contention storms--situations in which N machines are all writing at the same time
-         * over and over again, causing spikes in contention at regular periodic intervals. To eliminate this,
-         * we add a jitter--a random, bounded value which is added to the total wait time to avoid contention. We choose
-         * as a bounding factor the Max(waitFactor/8,pauseInterval/8), which gives us either +=12.5% of the waitFactor
-         * or 12.5% of the pauseInterval as our jitter window, whichever is largest.
-         *
-         */
-        int maxWaitFactor=32;
-        long waitTime;
-        long jitter;
-        if(retryCount==0 || retryCount==1){
-            waitTime=pauseInterval;
-            jitter=pauseInterval/8; //~12.5% of the interval is out jitter window
-        }else if(retryCount>maxWaitFactor){
-            waitTime=(maxWaitFactor>>1)*pauseInterval;
-            jitter=maxWaitFactor>>3; //~12.5% of the scale factor
-        }else{
-            int wf=maxWaitFactor;
-            //find the highest set 1-bit less than the maxWaitFactor
-            while(wf>0){
-                if((retryCount&wf)!=0){
-                    break;
-                }else
-                    wf>>=1;
-            }
-            waitTime=(wf>>1)*pauseInterval;
-            jitter=Math.max(wf>>4,pauseInterval/8);
-        }
-        long jitterTime=jitter>0?ThreadLocalRandom.current().nextLong(-jitter,jitter):0;
-        return waitTime+jitterTime;
+        return ConnectionUtils.getPauseTime(pauseInterval,retryCount);
     }
 
     public static void main(String...args) throws Exception{
-        long waitTime = 1L;
-        for(int i=2;i<=35;i++){
-            int w = 32;
-            while(w>0){
-                if((i & w)!=0){
-                    break;
-                }else w>>=1;
-            }
-            waitTime +=(w>>1);
+        long waitTime = 0L;
+        for(int i=1;i<=80;i++){
+            waitTime+=getWaitTime(i,250L);
         }
-        System.out.printf("WaitTime = %d s%n",waitTime);
+        System.out.printf("WaitTime = %d %n",waitTime);
     }
 
     /**

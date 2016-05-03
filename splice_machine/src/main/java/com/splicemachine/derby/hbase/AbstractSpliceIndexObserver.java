@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.hbase.KVPair;
@@ -82,6 +83,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         super.stop(e);
         if (region != null)
             region.close();
+    }
+
+    @Override
+    public void start(CoprocessorEnvironment e) throws IOException{
+
+        super.start(e);
     }
 
     @Override

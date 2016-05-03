@@ -80,7 +80,7 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
 
 
     private int getSysStatementCount() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATEMENT_SUMMARY(0)");
+        ResultSet rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATEMENT_SUMMARY(-1)");
         return SpliceUnitTest.resultSetSize(rs);
     }
 

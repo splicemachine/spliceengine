@@ -97,7 +97,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         this.retryCounter=metricFactory.newCounter();
         this.writeTimer=metricFactory.newTimer();
         this.maxFailedAttempts = writeConfiguration.getMaximumRetries();
-        this.maxRejectedAttempts = 2*maxFailedAttempts;
+        this.maxRejectedAttempts = 4*maxFailedAttempts;
     }
 
     @Override
@@ -205,12 +205,22 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 if(ctx.rejected)
                     pause/=2;
                 sleeper.sleep(PipelineUtils.getWaitTime(ctx.attemptCount,pause));
-            }if(ctx.directRetry)
+            }
+
+            if(ctx.directRetry)
                 writesToPerform.add(nextWrite);
             else if(ctx.nextWriteSet!=null && ctx.nextWriteSet.size()>0){
                 ctx.failed();
                 //rebuild a new buffer to retry from any records that need retrying
                 addToRetryCallBuffer(ctx.nextWriteSet,bulkWrites.getTxn(),ctx.refreshCache);
+            }else{
+                /*
+                 * We were successful! This means that we are no longer being rejected. As a result,
+                 * we want to reset our rejection counter--that way, we can reduce writes failing
+                 * because of a long series of concurrency issues (i.e. rejected 10 times, then split,
+                 * then rejected 12 times, then success, then rejected 8 times, etc etc)
+                 */
+                ctx.rejectedCount=0;
             }
 
             if(retryPipingCallBuffer!=null){

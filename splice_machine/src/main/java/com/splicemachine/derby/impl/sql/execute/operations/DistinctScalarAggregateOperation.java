@@ -557,6 +557,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
     @Override
     public String getOptimizerOverrides(SpliceRuntimeContext ctx){
-        return source.getOptimizerOverrides(ctx);
+        if(source!=null)
+            return source.getOptimizerOverrides(ctx);
+        else return null;
     }
 }
