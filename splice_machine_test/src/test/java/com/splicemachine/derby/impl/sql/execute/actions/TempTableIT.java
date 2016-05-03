@@ -33,7 +33,6 @@ import com.splicemachine.utils.SpliceUtilities;
  * @author Jeff Cunningham
  *         Date: 1/25/15
  */
-@Ignore("-sf- ignored for the next day or so (May 3,2016) until we can resolve the goofy errors")
 public class TempTableIT {
     public static final String CLASS_NAME = TempTableIT.class.getSimpleName().toUpperCase();
     private static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
@@ -799,7 +798,6 @@ public class TempTableIT {
                                   }
                               });
         } catch (SQLException e) {
-            e.printStackTrace();
             // expected
             Assert.assertEquals(e.getLocalizedMessage(),"42X05", e.getSQLState());
         }
