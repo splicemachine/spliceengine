@@ -3422,6 +3422,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void resetBadFile() {
+        badFile.remove();
+    }
+
+    @Override
+    public void resetFailedRecords() {
+        failedRecords.remove();
+    }
+
+    @Override
     public CompilerContext.DataSetProcessorType getDataSetProcessorType() {
         return this.type;
     }
