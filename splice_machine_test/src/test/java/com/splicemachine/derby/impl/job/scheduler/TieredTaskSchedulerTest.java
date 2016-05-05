@@ -40,7 +40,7 @@ public class TieredTaskSchedulerTest {
 						}
 				};
 				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
-								new PresetTieredTaskSchedulerSetup(new int[]{0,1},new int[]{1,1}), overflowHandler,cScheduler);
+								new PresetTieredTaskSchedulerSetup(new int[]{0,1},new int[]{1,1},1), overflowHandler,cScheduler);
 				try{
 
 						final CountDownLatch latch = new CountDownLatch(3);
@@ -131,7 +131,7 @@ public class TieredTaskSchedulerTest {
 						}
 				};
 				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
-								new PresetTieredTaskSchedulerSetup(new int[]{0,1},new int[]{1,1}), overflowHandler,cScheduler);
+								new PresetTieredTaskSchedulerSetup(new int[]{0,1},new int[]{1,1},1), overflowHandler,cScheduler);
 				try{
 
 						final CountDownLatch latch = new CountDownLatch(2);
@@ -201,7 +201,7 @@ public class TieredTaskSchedulerTest {
 						}
 				};
 				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
-								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
+								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1},1), overflowHandler,cScheduler);
 				try{
 
 						final CountDownLatch latch = new CountDownLatch(1);
@@ -270,7 +270,7 @@ public class TieredTaskSchedulerTest {
 						}
 				};
 				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
-								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
+								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1},1), overflowHandler,cScheduler);
 				try{
 						final CountDownLatch subLatch = new CountDownLatch(1);
 
@@ -335,7 +335,7 @@ public class TieredTaskSchedulerTest {
 						}
 				};
 				final TieredTaskScheduler<Task> taskScheduler = new TieredTaskScheduler<Task>(
-								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
+								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1},1), overflowHandler,cScheduler);
 				try{
 
 						final CountDownLatch latch = new CountDownLatch(1);

@@ -39,20 +39,21 @@ public class SchedulerPriorities{
         this.basePriorityMap=new NonBlockingHashMap<>();
         this.numTiers=config.getInt(SpliceConstants.NUM_PRIORITY_TIERS,SpliceConstants.DEFAULT_NUM_PRIORITY_TIERS);
         this.maxPriority=config.getInt(SpliceConstants.MAX_PRIORITY,SpliceConstants.DEFAULT_MAX_PRIORITY);
-        this.exponentialPriorityScaleFactor= (maxPriority-1)/Math.log(1000000000000d);
+        this.exponentialPriorityScaleFactor= (maxPriority-1)/Math.log(1_000_000_000_000_000_000d);
         setupPriorities();
     }
 
 
     public TieredTaskSchedulerSetup getSchedulerSetup(){
         int numThreads=SIConstants.taskWorkers;
+        int numMaintenanceThreads = SIConstants.maintenanceTaskWorkers;
         String type=config.get(TIER_STRATEGY);
         if(type==null)
-            return SchedulerSetups.uniformSetup(numThreads,numTiers,maxPriority);
+            return SchedulerSetups.uniformSetup(numThreads,numMaintenanceThreads,numTiers,maxPriority);
         else if(type.equals("binaryNormalized")){
-            return SchedulerSetups.binaryNormalizedSetup(numThreads,numTiers,maxPriority);
+            return SchedulerSetups.binaryNormalizedSetup(numThreads,numMaintenanceThreads,numTiers,maxPriority);
         }else if(type.equals("uniform")){
-            return SchedulerSetups.uniformSetup(numThreads,numTiers,maxPriority);
+            return SchedulerSetups.uniformSetup(numThreads,numMaintenanceThreads,numTiers,maxPriority);
         }else{
             try{
                 @SuppressWarnings("unchecked") Class<? extends TieredTaskSchedulerSetup> setupClass=(Class<? extends TieredTaskSchedulerSetup>)Class.forName(type);
@@ -160,6 +161,34 @@ public class SchedulerPriorities{
     }
 
     public static void main(String... args) throws Exception{
-        SchedulerPriorities.INSTANCE.getSchedulerSetup();
+        double[] knownCosts = new double[22];
+        knownCosts[0] = 1061327.065;
+        knownCosts[1] = 15101440.423;
+        knownCosts[2] = 95106.027;
+        knownCosts[3] = 123768.671;
+        knownCosts[4] = 338516718.771;
+        knownCosts[5] = 759158.739;
+        knownCosts[6] = 704337097.396;
+        knownCosts[7] = 1122171314.295;
+        knownCosts[8] = 905472005.502;
+        knownCosts[9] = 75862277.065;
+        knownCosts[10] = 17295181.404;
+        knownCosts[11] = 8469000.787;
+        knownCosts[12] = 2784314.689;
+        knownCosts[13] =3622773.608;
+        knownCosts[14] =8822224.244;
+        knownCosts[15] =10832883.818;
+        knownCosts[16] =13348353.07;
+        knownCosts[17] =8251299.969;
+        knownCosts[18] =16037150.326;
+        knownCosts[19] =2127132.8;
+        knownCosts[20] =41398173.73;
+        knownCosts[21] =45156017611606992d;
+        int i=1;
+        for(double cost:knownCosts){
+            System.out.printf("query=%d, cost=%f,priority=%d%n",i,cost,(int)(Math.log(cost)*SchedulerPriorities.INSTANCE.getPriorityScaleFactor())+1);
+            i++;
+        }
+        System.out.println(SchedulerPriorities.INSTANCE.getBasePriority(ScalarAggregateOperation.class));
     }
 }

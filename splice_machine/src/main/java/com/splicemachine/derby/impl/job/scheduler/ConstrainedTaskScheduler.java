@@ -60,12 +60,7 @@ public class ConstrainedTaskScheduler<T extends Task> implements StealableTaskSc
 
 		private final AtomicInteger numRunning = new AtomicInteger(0);
 
-		public ConstrainedTaskScheduler(TaskScheduler<T> delegate,
-																		List<Constraint<T>> constraints){
-				this(delegate, constraints,TaskScheduler.ExceptionRejectionHandler.<T>instance(),false);
-		}
-
-		public ConstrainedTaskScheduler(TaskScheduler<T> delegate,
+	public ConstrainedTaskScheduler(TaskScheduler<T> delegate,
 																		List<Constraint<T>> constraints,
 																		boolean enableOverflow){
 				this(delegate, constraints,TaskScheduler.ExceptionRejectionHandler.<T>instance(),enableOverflow);

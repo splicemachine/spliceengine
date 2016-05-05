@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.operation;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -47,9 +48,10 @@ import java.util.concurrent.ExecutionException;
  * instances, which are invoked by this class.
  *
  * @author Scott Fines
- *         Created on: 4/3/13
+ *         Created on: 4/3/13ice
  */
 public class SinkTask extends ZkTask{
+    private static final boolean useCostsInPriorities = SpliceConstants.useCostsInPriorities;
     private static final DerbyFactory derbyFactory=DerbyFactoryDriver.derbyFactory;
     private static final long serialVersionUID=3l;
     private static final Logger LOG=Logger.getLogger(SinkTask.class);
@@ -291,11 +293,15 @@ public class SinkTask extends ZkTask{
         if(niceness>=0){
             return niceness;
         }
-        double cost=topOperation.getEstimatedCost();
-        if(cost<=1)
-            return 0;
-        else
-            return (int)(Math.log(cost)*SchedulerPriorities.INSTANCE.getPriorityScaleFactor()+1);
+        if(useCostsInPriorities){
+            double cost=topOperation.getEstimatedCost();
+            if(cost<=1)
+                return 0;
+            else
+                return (int)(Math.log(cost)*SchedulerPriorities.INSTANCE.getPriorityScaleFactor()+1);
+        }else{
+            return SchedulerPriorities.INSTANCE.getBasePriority(topOperation.getClass());
+        }
     }
 
 

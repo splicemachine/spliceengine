@@ -24,7 +24,7 @@ public class SchedulerSetups {
 		 * @param maxPriority the maximum priority
 		 * @return a setup with a uniform distribution of threads across evenly-spaced tiers.
 		 */
-		public static TieredTaskSchedulerSetup uniformSetup(int numThreads, int numTiers,int maxPriority){
+		public static TieredTaskSchedulerSetup uniformSetup(int numThreads, int numMaintenanceTasks,int numTiers,int maxPriority){
 				Preconditions.checkArgument(numTiers<=numThreads,"Insufficient threads to properly populate all tiers");
 
 				int[] tiers = getEvenTiers(numTiers,maxPriority);
@@ -41,7 +41,7 @@ public class SchedulerSetups {
 						if(pos<0)
 								pos = numTiers-1;
 				}
-				return new PresetTieredTaskSchedulerSetup(tiers,threadCounts);
+				return new PresetTieredTaskSchedulerSetup(tiers,threadCounts,numMaintenanceTasks);
 		}
 
 		/**
@@ -58,7 +58,10 @@ public class SchedulerSetups {
 		 * @return a TieredTaskSchedulerSetup with a binary-normalized distribution favoring middle and lower
 		 * tiers over higher tiers.
 		 */
-		public static TieredTaskSchedulerSetup binaryNormalizedSetup(int numThreads, int numTiers, int maxPriority){
+		public static TieredTaskSchedulerSetup binaryNormalizedSetup(int numThreads,
+																	 int numMaintenanceThreads,
+																	 int numTiers,
+																	 int maxPriority){
 				Preconditions.checkArgument(numTiers<=numThreads,"Insufficient threads to properly populate all tiers");
 				//divide the range [o,maxPriority) into numTiers ranges
 				int[] tierPriorityLevels = getEvenTiers(numTiers, maxPriority);
@@ -88,7 +91,7 @@ public class SchedulerSetups {
 						}
 				}
 
-				return new PresetTieredTaskSchedulerSetup(tierPriorityLevels,threadCounts);
+				return new PresetTieredTaskSchedulerSetup(tierPriorityLevels,threadCounts,numMaintenanceThreads);
 		}
 
 		private static int[] getEvenTiers(int numTiers, int maxPriority) {
@@ -101,7 +104,7 @@ public class SchedulerSetups {
 		}
 
 		public static void main(String... args)throws Exception{
-				TieredTaskSchedulerSetup setup = binaryNormalizedSetup(10, 3, 100);
+				TieredTaskSchedulerSetup setup = binaryNormalizedSetup(10,1, 3, 100);
 				int[] priorityTiers = setup.getPriorityTiers();
 				System.out.println(Arrays.toString(priorityTiers));
 				for (int priorityTier : priorityTiers) {

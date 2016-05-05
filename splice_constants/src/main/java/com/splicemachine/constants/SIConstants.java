@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.util.Bytes;
  */
 
 public class SIConstants extends SpliceConstants {
+
     static {
         setParameters();
     }

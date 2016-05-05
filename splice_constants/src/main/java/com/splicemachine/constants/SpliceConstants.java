@@ -327,6 +327,14 @@ public class SpliceConstants {
     @SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=Math.max(DEFAULT_NUM_PRIORITY_TIERS,Runtime.getRuntime().availableProcessors());
     public static int taskWorkers;
 
+    @SpliceConstants.Parameter public static final String MAINTENANCE_WORKERS = "splice.task.maxMaintenanceWorkers";
+    @SpliceConstants.DefaultValue(MAINTENANCE_WORKERS) public static final int DEFAULT_MAINTENANCE_WORKERS=2;
+    public static int maintenanceTaskWorkers;
+
+    @SpliceConstants.Parameter public static final String USE_COST_IN_PRIORITIES = "splice.task.useCostsForPriority";
+    @SpliceConstants.DefaultValue(USE_COST_IN_PRIORITIES) public static final boolean DEFAULT_USE_COST_IN_PRIORITY=true;
+    public static boolean useCostsInPriorities;
+
     @SpliceConstants.Parameter public static final String MAX_PRIORITY = "splice.task.maxPriority";
     @DefaultValue(MAX_PRIORITY) public static final int DEFAULT_MAX_PRIORITY=100;
     public static int maxPriority;
@@ -1268,6 +1276,9 @@ public class SpliceConstants {
         taskWorkers = config.getInt(TOTAL_WORKERS,DEFAULT_TOTAL_WORKERS);
         if (taskWorkers > DEFAULT_TOTAL_WORKERS)
             SpliceLogUtils.warn(LOG, "your task workers are set at {%d} and that is more than 2*(Number of Java Cores) {%d}", taskWorkers,DEFAULT_TOTAL_WORKERS);
+        maintenanceTaskWorkers = config.getInt(MAINTENANCE_WORKERS,DEFAULT_MAINTENANCE_WORKERS);
+        useCostsInPriorities = config.getBoolean(USE_COST_IN_PRIORITIES,DEFAULT_USE_COST_IN_PRIORITY);
+
         numPriorityTiers = config.getInt(NUM_PRIORITY_TIERS,DEFAULT_NUM_PRIORITY_TIERS);
         maxPriority = config.getInt(MAX_PRIORITY,DEFAULT_MAX_PRIORITY);
 

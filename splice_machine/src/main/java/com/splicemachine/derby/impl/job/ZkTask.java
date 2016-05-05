@@ -42,7 +42,6 @@ public abstract class ZkTask implements RegionTask, Externalizable{
     protected byte[] taskId;
     protected String jobId;
     protected SpliceZooKeeperManager zkManager;
-    private int priority;
 
     private String taskPath;
 
@@ -74,7 +73,6 @@ public abstract class ZkTask implements RegionTask, Externalizable{
                      byte[] parentTaskId){
         this.LOG=Logger.getLogger(this.getClass());
         this.jobId=jobId;
-        this.priority=priority;
         this.status=new TaskStatus(Status.PENDING,null);
         this.parentTaskId=parentTaskId;
     }
@@ -82,7 +80,6 @@ public abstract class ZkTask implements RegionTask, Externalizable{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         jobId=in.readUTF();
-        priority=in.readInt();
         if(in.readBoolean())
             parentTxn=TransactionOperations.getOperationFactory().readTxn(in);
         int taskIdSize=in.readInt();
@@ -100,7 +97,6 @@ public abstract class ZkTask implements RegionTask, Externalizable{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         out.writeUTF(jobId);
-        out.writeInt(priority);
         out.writeBoolean(parentTxn!=null);
         if(parentTxn!=null)
             TransactionOperations.getOperationFactory().writeTxn(parentTxn,out);

@@ -2,13 +2,15 @@ package com.splicemachine.derby.impl.job.scheduler;
 
 /**
  * @author Scott Fines
- * Date: 12/5/13
+ *         Date: 12/5/13
  */
-public interface TieredTaskSchedulerSetup {
+public interface TieredTaskSchedulerSetup{
 
-		int[] getPriorityTiers();
+    int[] getPriorityTiers();
 
-		int maxThreadsForPriority(int minPriorityForTier);
+    int maxThreadsForPriority(int minPriorityForTier);
 
-		long pollTimeForPriority(int minPriority);
+    long pollTimeForPriority(int minPriority);
+
+    int maxMaintenanceThreads();
 }
