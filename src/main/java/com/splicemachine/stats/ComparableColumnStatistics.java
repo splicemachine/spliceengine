@@ -75,7 +75,6 @@ public class ComparableColumnStatistics<T extends Comparable<T>> extends BaseCol
 
     @Override
     public ColumnStatistics<T> merge(ColumnStatistics<T> other) {
-        assert other.minValue() instanceof Object : "Cannot merge statistics of type "+ other.getClass();
         cardinalityEstimator = cardinalityEstimator.merge(other.getCardinalityEstimator());
         frequentElements = frequentElements.merge(other.topK());
         /*
