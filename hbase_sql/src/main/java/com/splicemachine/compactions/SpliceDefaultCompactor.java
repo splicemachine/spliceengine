@@ -83,6 +83,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         for (StoreFile sf : request.getFiles()) {
             files.add(sf.getPath().toString());
         }
+        int randomInt = files.hashCode();
+        LOG.warn("Submitting job with id " + randomInt);
         String regionLocation = getRegionLocation(store);
         DistributedCompaction jobRequest=new DistributedCompaction(
                 getCompactionFunction(),
@@ -92,7 +94,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 getJobDescription(request),
                 getPoolName(),
                 getScope(request),
-                regionLocation);
+                regionLocation,
+                randomInt);
         CompactionResult result = null;
         OlapClient olapClient = getOlapClient();
         Future<CompactionResult> futureResult = olapClient.submit(jobRequest);
@@ -118,6 +121,12 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
 
         List<String> sPaths = result.getPaths();
+        int id = result.getId();
+        LOG.warn("Got result with id " + id);
+        if (id != randomInt) {
+            throw new IOException("Unexpected id, had " + randomInt + " but got " + id);
+        }
+        LOG.warn("Files compacted: " + sPaths );
 
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
