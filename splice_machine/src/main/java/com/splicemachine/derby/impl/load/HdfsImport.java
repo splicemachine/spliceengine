@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.load.ColumnInfo;
 import com.splicemachine.derby.utils.EngineUtils;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -360,8 +362,16 @@ public class HdfsImport {
 
         Connection conn = null;
         try {
-            schemaName = EngineUtils.validateSchema(schemaName);
-            tableName = EngineUtils.validateTable(tableName);
+            if (schemaName == null) {
+                schemaName = EngineUtils.getCurrentSchema();
+            } else {
+                schemaName = normalizeIdentifier(schemaName);
+            }
+            if (tableName == null) {
+                throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
+            } else {
+                tableName = normalizeIdentifier(tableName);
+            }
             conn = SpliceAdmin.getDefaultConn();
             // This needs to be found by the database locale, not hard coded.
             if (timestampFormat == null)
@@ -392,11 +402,16 @@ public class HdfsImport {
                 quoteStringArgument(charset) +
                 " )";
             String entityName = IdUtil.mkQualifiedName(schemaName, tableName);
-            if (insertColumnList != null && (insertColumnList.isEmpty() || insertColumnList.toLowerCase().equals("null")) )
-                insertColumnList = null;
+            if (insertColumnList != null) {
+                if (insertColumnList.isEmpty() || insertColumnList.toLowerCase().equals("null")) {
+                    insertColumnList = null;
+                } else {
+                    insertColumnList = normalizeIdentifierList(insertColumnList);
+                }
+            }
 
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList != null ?
-                insertColumnList.toUpperCase() :null);
+                insertColumnList :null);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                 "--splice-properties insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
                 badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n" +
@@ -430,6 +445,27 @@ public class HdfsImport {
             if (conn != null)
                 conn.close();
         }
+    }
+
+    private static String normalizeIdentifierList(String insertColumnList) {
+        String normalizedList = insertColumnList.toUpperCase();
+        if (insertColumnList.contains("\"")) {
+            StringBuilder buf = new StringBuilder(insertColumnList.length());
+            for (String ele : insertColumnList.split(",")) {
+                buf.append(normalizeIdentifier(ele.trim())).append(',');
+            }
+            if (buf.length() > 0) buf.setLength(buf.length()-1);
+            normalizedList = buf.toString();
+        }
+        return normalizedList;
+    }
+
+    private static String normalizeIdentifier(String identifier) {
+        String unquoted = identifier.toUpperCase();
+        if (! identifier.isEmpty() && identifier.charAt(0) == '"' && identifier.charAt(identifier.length()-1) == '"') {
+            unquoted = identifier.substring(1, identifier.length()-1);
+        }
+        return unquoted;
     }
 
     /**

@@ -1285,6 +1285,80 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testCaseSensitiveTableQuoted() throws Exception {
+        String tableName = "\"MixedCase\"";
+        methodWatcher.executeUpdate(format("drop table if exists %s.%s",spliceSchemaWatcher.schemaName,tableName));
+
+        methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
+            format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+ "(i int primary key)");
+
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                                                                         "'%s'," +  // schema name
+                                                                         "'%s'," +  // table name
+                                                                         "null," +  // insert column list
+                                                                         "'%s'," +  // file path
+                                                                         "','," +   // column delimiter
+                                                                         "null," +  // character delimiter
+                                                                         "null," +  // timestamp format
+                                                                         "null," +  // date format
+                                                                         "null," +  // time format
+                                                                         "0," +    // max bad records
+                                                                         "null," +  // bad record dir
+                                                                         "null," +  // has one line records
+                                                                         "null)",   // char set
+                                                                     spliceSchemaWatcher.schemaName, tableName,
+                                                                     getResourceDirectory() + "/values.txt",
+                                                                     BADDIR.getCanonicalPath()));
+
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                                                         tableName));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            results.add(rs.getInt(1)+"");
+        }
+        Assert.assertEquals("Bad row count/", 10, results.size());
+    }
+
+    @Test
+    public void testCaseSensitiveInsertColumnListQuoted() throws Exception {
+        String tableName = "\"MixedCaseCols\"";
+        methodWatcher.executeUpdate(format("drop table if exists %s.%s",spliceSchemaWatcher.schemaName,tableName));
+
+        methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
+            format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+ "(\"ColOne\" int primary key, \"ColTwo\" varchar(10))");
+
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                                                                         "'%s'," +  // schema name
+                                                                         "'%s'," +  // table name
+                                                                         "\"ColOne\",\"ColTwo\"," +  // insert column list
+                                                                         "'%s'," +  // file path
+                                                                         "','," +   // column delimiter
+                                                                         "null," +  // character delimiter
+                                                                         "null," +  // timestamp format
+                                                                         "null," +  // date format
+                                                                         "null," +  // time format
+                                                                         "0," +    // max bad records
+                                                                         "null," +  // bad record dir
+                                                                         "null," +  // has one line records
+                                                                         "null)",   // char set
+                                                                     spliceSchemaWatcher.schemaName, tableName,
+                                                                     getResourceDirectory() + "/valuesTwo.txt",
+                                                                     BADDIR.getCanonicalPath()));
+
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                                                         tableName));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            results.add(rs.getInt(1)+"");
+        }
+        Assert.assertEquals("Bad row count/", 10, results.size());
+    }
+
     //DB-3685
     @Test @Ignore("Getting a PK violation on 2nd import. Also, no status log file: DB-3957")
     public void testImportTableWithPKAndIndex() throws Exception {
