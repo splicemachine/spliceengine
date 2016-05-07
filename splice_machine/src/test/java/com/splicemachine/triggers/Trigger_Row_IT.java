@@ -241,6 +241,7 @@ public class Trigger_Row_IT {
     }
 
     @Test
+    @Ignore("DB-5065")
     public void beforeInsert() throws Exception {
         createTrigger(tb.before().insert().on("T").row().then("select 1/0 from sys.systables"));
         assertQueryFails("insert into T values(8,8,8)", "Attempt to divide by zero.");

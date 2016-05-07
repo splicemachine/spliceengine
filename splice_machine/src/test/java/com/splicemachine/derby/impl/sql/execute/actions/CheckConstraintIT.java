@@ -141,6 +141,7 @@ public class CheckConstraintIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-5065")
     public void testViolationErrorMsg() throws Exception {
         // DB-3864 - bad error msg
         String tableName = "table3".toUpperCase();
@@ -180,6 +181,7 @@ public class CheckConstraintIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-5065")
     public void testCreateAlterDropConstraint() throws Exception {
         String tableName = "table5".toUpperCase();
         TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
