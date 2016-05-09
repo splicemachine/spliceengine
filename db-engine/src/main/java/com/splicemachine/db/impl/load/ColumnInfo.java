@@ -21,14 +21,19 @@
 
 package com.splicemachine.db.impl.load;
 
-import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.iapi.reference.JDBC40Translation;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.util.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
+import com.splicemachine.db.iapi.reference.JDBC40Translation;
+import com.splicemachine.db.iapi.util.IdUtil;
 
 /**
  *	
@@ -57,13 +62,13 @@ public class ColumnInfo {
 	 * @param conn  - connection to use for metadata queries
 	 * @param sName - table's schema
 	 * @param tName - table Name
-	 * @param insertColumnList - comma seperared insert statement column list 
-	 * @exception Exception on error
+	 * @param insertColumnList - an optional list of column identifiers
+	 * @exception SQLException on error
 	 */
 	public ColumnInfo(Connection conn,
 					  String sName, 
 					  String tName,
-					  String insertColumnList)
+					  List<String> insertColumnList)
 		throws SQLException  {
 		insertColumnNames = new ArrayList(1);
 		columnTypes = new ArrayList(1);
@@ -80,15 +85,11 @@ public class ColumnInfo {
 		this.schemaName = sName;
 		this.tableName =  tName;
 
-		if(insertColumnList!=null) {
-			//break the comma seperated column list and initialze column info
-			//eg: C2 , C1 , C3
-			StringTokenizer st = new StringTokenizer(insertColumnList , ",");
-			while (st.hasMoreTokens())  {
-				String columnName = (st.nextToken()).trim();
-				if(!initializeColumnInfo(columnName)) {
+		if(insertColumnList != null && ! insertColumnList.isEmpty()) {
+			for (String columnName : insertColumnList) {
+				if(!initializeColumnInfo(columnName.trim())) {
 					if(tableExists())
-						throw  LoadError.invalidColumnName(columnName);
+						throw  LoadError.invalidColumnName(columnName.trim());
 					else {
 						String entityName = (schemaName !=null ? 
 											 schemaName + "." + tableName :tableName); 
@@ -96,8 +97,8 @@ public class ColumnInfo {
 					}
 				}
 			}
-		}else {
-			//All columns in the table
+		} else {
+		 	//All columns in the table
 			if(!initializeColumnInfo(null)) {
 				String entityName = (schemaName !=null ? 
 									 schemaName + "." + tableName :tableName); 
