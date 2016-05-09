@@ -539,7 +539,7 @@ public class ImportDefaultValueIT {
         methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
             String.format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+controlTableDef);
 
-        PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.IMPORT_DATA(" +
+        String importString =String.format("call SYSCS_UTIL.IMPORT_DATA(" +
                                                                          "'%s'," +  // schema name
                                                                          "'%s'," +  // table name
                                                                          "'%s'," +  // insert column list
@@ -555,7 +555,9 @@ public class ImportDefaultValueIT {
                                                                          "'%s')",   // char set
                                                                      spliceSchemaWatcher.schemaName, tableName, colList,
                                                                      fileName, maxBadRecordsAllowed,
-                                                                     BADDIR.getCanonicalPath(), UTF_8_CHAR_SET_STR));
+                                                                     BADDIR.getCanonicalPath(), UTF_8_CHAR_SET_STR);
+//        System.out.println(importString);
+        PreparedStatement ps = methodWatcher.prepareStatement(importString);
         try {
             ps.execute();
             if (sqlStateCode != null && ! sqlStateCode.isEmpty()) {

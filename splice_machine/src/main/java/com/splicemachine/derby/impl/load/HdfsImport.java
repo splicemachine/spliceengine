@@ -19,7 +19,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -317,7 +320,7 @@ public class HdfsImport {
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     private static void doImport(String schemaName,
                                  String tableName,
-                                 String insertColumnList,
+                                 String insertColumnListString,
                                  String fileName,
                                  String columnDelimiter,
                                  String characterDelimiter,
@@ -336,7 +339,7 @@ public class HdfsImport {
                                      "columnDelimiter=%s, characterDelimiter=%s, timestampFormat=%s, dateFormat=%s, " +
                 "timeFormat=%s, badRecordsAllowed=%d, badRecordDirectory=%s, oneLineRecords=%s, charset=%s, " +
                 "isUpsert=%s, isCheckScan=%s}",
-                                 schemaName, tableName, insertColumnList, fileName, columnDelimiter, characterDelimiter,
+                                 schemaName, tableName, insertColumnListString, fileName, columnDelimiter, characterDelimiter,
                                  timestampFormat, dateFormat, timeFormat, badRecordsAllowed, badRecordDirectory,
                                  oneLineRecords, charset, isUpsert, isCheckScan);
 
@@ -402,16 +405,14 @@ public class HdfsImport {
                 quoteStringArgument(charset) +
                 " )";
             String entityName = IdUtil.mkQualifiedName(schemaName, tableName);
-            if (insertColumnList != null) {
-                if (insertColumnList.isEmpty() || insertColumnList.toLowerCase().equals("null")) {
-                    insertColumnList = null;
-                } else {
-                    insertColumnList = normalizeIdentifierList(insertColumnList);
-                }
+            List<String> insertColumnList = null;
+            if (insertColumnListString != null &&
+                ! insertColumnListString.isEmpty() &&
+                ! insertColumnListString.toLowerCase().equals("null")) {
+                insertColumnList = normalizeIdentifierList(insertColumnListString);
             }
 
-            ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList != null ?
-                insertColumnList :null);
+            ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                 "--splice-properties insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
                 badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n" +
@@ -447,15 +448,21 @@ public class HdfsImport {
         }
     }
 
-    private static String normalizeIdentifierList(String insertColumnList) {
-        String normalizedList = insertColumnList.toUpperCase();
-        if (insertColumnList.contains("\"")) {
-            StringBuilder buf = new StringBuilder(insertColumnList.length());
-            for (String ele : insertColumnList.split(",")) {
-                buf.append(normalizeIdentifier(ele.trim())).append(',');
+    static List<String> normalizeIdentifierList(String insertColumnListStr) {
+        List<String> normalizedList = new ArrayList<>();
+        if (insertColumnListStr.charAt(0) == '"') {
+            // quoted column list. may be case sensitive, may contain commas.
+            for (String ele : insertColumnListStr.split("\"")) {
+                String trimmedEle = ele.trim();
+                if (! trimmedEle.isEmpty() && trimmedEle.charAt(0) != ',') {
+                    normalizedList.add(trimmedEle);
+                }
             }
-            if (buf.length() > 0) buf.setLength(buf.length()-1);
-            normalizedList = buf.toString();
+        } else {
+            // no quotes. straight col list.
+            for (String columnName : insertColumnListStr.split(",")) {
+                normalizedList.add(columnName.trim().toUpperCase());
+            }
         }
         return normalizedList;
     }

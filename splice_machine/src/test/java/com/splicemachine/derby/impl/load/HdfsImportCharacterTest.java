@@ -41,4 +41,13 @@ public class HdfsImportCharacterTest {
         assertEquals("\"", HdfsImport.unescape("\""));
     }
 
+    @Test
+    public void testQuotedInsertColumnList() throws Exception {
+        assertEquals("[NULL]", HdfsImport.normalizeIdentifierList("null").toString());
+        assertEquals("[COL1, TWO]", HdfsImport.normalizeIdentifierList("col1,two").toString());
+        assertEquals("[Col1, Col2]", HdfsImport.normalizeIdentifierList("\"Col1\",\"Col2\"").toString());
+        assertEquals("[Col,1, Col,2]", HdfsImport.normalizeIdentifierList("\"Col,1\",\"Col,2\"").toString());
+        assertEquals("[Col,One, Col,Two]", HdfsImport.normalizeIdentifierList("\"Col,One\",\"Col,Two\"").toString());
+    }
+
 }
