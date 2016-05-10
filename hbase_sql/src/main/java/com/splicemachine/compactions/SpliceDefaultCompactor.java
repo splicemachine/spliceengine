@@ -96,6 +96,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 getScope(request),
                 regionLocation,
                 randomInt);
+
         CompactionResult result = null;
         OlapClient olapClient = getOlapClient();
         Future<CompactionResult> futureResult = olapClient.submit(jobRequest);

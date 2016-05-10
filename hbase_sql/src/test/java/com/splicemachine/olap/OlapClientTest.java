@@ -56,6 +56,27 @@ public class OlapClientTest {
         Assert.assertEquals(13, result.order);
     }
 
+    @Test(timeout = 8000)
+    public void longRunningTest() throws Exception {
+        final Random rand = new Random(0);
+        int sleep = 4000;
+        DumbOlapResult result = olapClient.execute(new DumbDistributedJob(sleep,13));
+        Assert.assertNotNull(result);
+        Assert.assertEquals(13, result.order);
+    }
+
+    @Test(timeout = 3000, expected = IllegalArgumentException.class)
+    public void cantReuseJobsTest() throws Exception {
+        final Random rand = new Random(0);
+        int sleep = rand.nextInt(200);
+        DumbDistributedJob ddj = new DumbDistributedJob(sleep,13);
+        DumbOlapResult result = olapClient.execute(ddj);
+        Assert.assertNotNull(result);
+        Assert.assertEquals(13, result.order);
+        DumbOlapResult result2 = olapClient.execute(ddj);
+        Assert.fail("Should have raised exception");
+    }
+
     @Test(timeout = 3000)
     @Ignore // per sf
     public void failingJobTest() throws Exception {
@@ -89,6 +110,39 @@ public class OlapClientTest {
                     int sleep = rand.nextInt(200);
                     try {
                         results[j] = olapClient.execute(new DumbDistributedJob(sleep,j));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        results[j] = null;
+                    }catch(TimeoutException te){
+                        Assert.fail("Timed out");
+                    }
+                }
+            };
+            threads[i].start();
+        }
+        for (int i = 0; i < size; ++i) {
+            threads[i].join();
+        }
+        for (int i = 0; i < size; ++i) {
+            Assert.assertNotNull(results[i]);
+            Assert.assertEquals(i, results[i].order);
+        }
+    }
+
+    @Test(timeout = 3000)
+    public void concurrencySameNameTest() throws Exception {
+        int size = 32;
+        Thread[] threads = new Thread[size];
+        final DumbOlapResult[] results = new DumbOlapResult[size];
+        final Random rand = new Random(size);
+        for (int i = 0; i < size; ++i) {
+            final int j = i;
+            threads[i] = new Thread() {
+                @Override
+                public void run() {
+                    int sleep = rand.nextInt(200);
+                    try {
+                        results[j] = olapClient.execute(new SameNameJob(sleep,j));
                     } catch (IOException e) {
                         e.printStackTrace();
                         results[j] = null;
@@ -193,7 +247,7 @@ public class OlapClientTest {
         }
     }
 
-    private static class DumbDistributedJob implements DistributedJob{
+    private static class DumbDistributedJob extends DistributedJob{
         private static final Logger LOG = Logger.getLogger(DumbDistributedJob.class);
         int order;
         int sleep;
@@ -221,13 +275,28 @@ public class OlapClientTest {
         }
 
         @Override
-        public String getUniqueName(){
-            return "DumbDistributedJob["+order+","+sleep+"]";
+        public String getName(){
+            return "DumbDistributedJob["+order+"]";
         }
 
     }
 
-    private static class FailingDistributedJob implements DistributedJob{
+    private static class SameNameJob extends DumbDistributedJob {
+
+        public SameNameJob() {}
+
+        SameNameJob(int sleep,int order) {
+            super(sleep, order);
+        }
+
+        @Override
+        public String getName(){
+            return "SameNameJob";
+        }
+
+    }
+
+    private static class FailingDistributedJob extends DistributedJob{
         private String uniqueId;
 
         public FailingDistributedJob(){
@@ -250,7 +319,7 @@ public class OlapClientTest {
         }
 
         @Override
-        public String getUniqueName(){
+        public String getName(){
             return uniqueId;
         }
 

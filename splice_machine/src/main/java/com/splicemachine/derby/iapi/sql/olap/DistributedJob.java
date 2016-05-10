@@ -3,6 +3,7 @@ package com.splicemachine.derby.iapi.sql.olap;
 import com.splicemachine.concurrent.Clock;
 
 import java.io.Serializable;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /**
@@ -11,12 +12,30 @@ import java.util.concurrent.Callable;
  * @author Scott Fines
  *         Date: 4/1/16
  */
-public interface DistributedJob extends Serializable{
+public abstract class DistributedJob implements Serializable{
 
-    Callable<Void> toCallable(OlapStatus jobStatus,
+    private UUID uuid;
+    private boolean submitted = false;
+
+    public DistributedJob() {
+        this.uuid = UUID.randomUUID();
+    }
+
+    public abstract Callable<Void> toCallable(OlapStatus jobStatus,
                               Clock clock,
                               long clientTimeoutCheckIntervalMs);
 
-    String getUniqueName();
+    public abstract String getName();
 
+    public final String getUniqueName() {
+        return getName() + "-" + uuid.toString();
+    }
+
+    public final void markSubmitted() {
+        submitted = true;
+    }
+
+    public final boolean isSubmitted() {
+        return submitted;
+    }
 }

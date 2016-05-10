@@ -16,7 +16,7 @@ import java.util.concurrent.Callable;
  * @author Scott Fines
  *         Date: 4/1/16
  */
-public class DistributedCompaction implements DistributedJob{
+public class DistributedCompaction extends DistributedJob{
     private static final long serialVersionUID = 1l;
 
     SparkCompactionFunction compactionFunction;
@@ -72,7 +72,7 @@ public class DistributedCompaction implements DistributedJob{
     }
 
     @Override
-    public String getUniqueName(){
+    public String getName(){
         return jobGroup;
     }
 

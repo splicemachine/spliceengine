@@ -198,6 +198,10 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                     long window=Math.min(tickTimeNanos,nanosRemaining);
                     long remaining=signal.awaitNanos(window);
                     nanosRemaining-=(window-remaining);
+                    if (!isDone()) {
+                        // we are not done yet, wait the whole window before a new status check
+                        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(remaining));
+                    }
                 }finally{
                     checkLock.unlock();
                 }
@@ -264,6 +268,10 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             ChannelPipeline writePipeline=c.pipeline();
             writePipeline.addLast("handler",olapFuture.submitHandler);
 
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Submitted job " + olapFuture.job.getUniqueName());
+            }
+
             ByteString data=OlapSerializationUtils.encode(olapFuture.job);
             OlapMessage.Submit submit=OlapMessage.Submit.newBuilder().setCommandBytes(data).build();
             OlapMessage.Command cmd=OlapMessage.Command.newBuilder()
@@ -294,6 +302,9 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             ChannelPipeline writePipeline=c.pipeline();
             writePipeline.addLast("handler",olapFuture.resultHandler);
 
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Status check job " + olapFuture.job.getUniqueName());
+            }
 
             OlapMessage.Status status=OlapMessage.Status.newBuilder().build();
             OlapMessage.Command cmd=OlapMessage.Command.newBuilder()

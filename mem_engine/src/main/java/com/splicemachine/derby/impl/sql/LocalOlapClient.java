@@ -32,6 +32,7 @@ public class LocalOlapClient implements OlapClient{
 
     @Override
     public <R extends OlapResult> R execute(@Nonnull DistributedJob jobRequest) throws IOException, TimeoutException{
+        checkNotSubmitted(jobRequest);
         Status status=new Status();
         Callable<Void> callable=jobRequest.toCallable(status,SIDriver.driver().getClock(),Long.MAX_VALUE);
         try {
@@ -42,8 +43,16 @@ public class LocalOlapClient implements OlapClient{
         return (R)status.getResult();
     }
 
+    private void checkNotSubmitted(DistributedJob jobRequest) {
+        if (jobRequest.isSubmitted()) {
+            throw new IllegalArgumentException("Job already submitted: " + jobRequest);
+        }
+        jobRequest.markSubmitted();
+    }
+
     @Override
     public <R extends OlapResult> Future<R> submit(@Nonnull final DistributedJob jobRequest) throws IOException {
+        checkNotSubmitted(jobRequest);
         try {
             SettableFuture result = SettableFuture.create();
             result.set(execute(jobRequest));
