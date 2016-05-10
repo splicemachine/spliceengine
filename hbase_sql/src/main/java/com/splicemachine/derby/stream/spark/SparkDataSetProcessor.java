@@ -38,7 +38,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.utils.StreamUtils;
-import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -73,13 +72,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             SpliceLogUtils.trace(LOG, "setup(): jobName = %s", jobName);
         setJobGroup(jobName,sql);
         setSchedulerPool(schedulerPool);
-    }
-
-    @Override
-    public boolean allowsExecution(){ // corresponds to master_dataset isRunningOnSpark
-        if(Thread.currentThread().getName().contains("DRDAConn")) return true; //we are on the derby execution thread
-        else if(Thread.currentThread().getName().contains("Executor task launch worker")) return false; //we are definitely in spark
-        else return RegionServerLifecycleObserver.isHbaseJVM; //we can run in spark as long as are in the HBase JVM
     }
 
     private static TxnView getCurrentTransaction(Activation activation) throws StandardException {
@@ -257,6 +249,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private void setupBroadcastedActivation(Activation activation){
         if(broadcastedActivation.get()==null){
             broadcastedActivation.set(new BroadcastedActivation(activation));
+
         }
     }
 

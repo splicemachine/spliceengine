@@ -278,7 +278,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public void setPermissive(){
-        permissive=true;
+        this.permissive = true;
     }
 
     @Override

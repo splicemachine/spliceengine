@@ -209,7 +209,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     @SuppressWarnings({ "unchecked" })
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
-        if(statusDirectory!=null){
+        if(statusDirectory != null) {
+            // if we have a status directory, we're an import and so permissive
             dsp.setPermissive();
             dsp.setFailBadRecordCount(this.failBadRecordCount);
         }

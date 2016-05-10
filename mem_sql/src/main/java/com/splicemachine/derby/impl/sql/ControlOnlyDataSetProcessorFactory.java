@@ -73,10 +73,5 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
                 SpliceLogUtils.trace(LOG, "DistributedWrapper#setup()");
             //no-op
         }
-
-        @Override
-        public boolean allowsExecution(){
-            return true;
-        }
     }
 }

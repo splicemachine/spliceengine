@@ -1,5 +1,8 @@
 package com.splicemachine.derby.lifecycle;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
@@ -12,10 +15,6 @@ import com.splicemachine.derby.iapi.sql.PropertyManagerService;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.HSqlExceptionFactory;
-import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
-import com.splicemachine.derby.stream.control.CostChoosingDataSetProcessorFactory;
-import com.splicemachine.derby.stream.spark.HregionDataSetProcessor;
-import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
@@ -24,9 +23,6 @@ import com.splicemachine.olap.JobExecutor;
 import com.splicemachine.olap.TimedOlapClient;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
-
-import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * @author Scott Fines
@@ -51,11 +47,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.propertyManager =PropertyManagerService.loadPropertyManager();
         this.loadWatcher = HBaseRegionLoads.INSTANCE;
         SIDriver driver =SIDriver.driver();
-        ControlDataSetProcessor cdsp = new ControlDataSetProcessor(driver.getTxnSupplier(),
-                driver.getTransactor(), driver.getOperationFactory());
-        HregionDataSetProcessor hdsp = new HregionDataSetProcessor(driver.getTxnSupplier(),
-                driver.getTransactor(), driver.getOperationFactory());
-        this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp, hdsp);
+        this.processorFactory = new CostChoosingDataSetProcessorFactory();
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();
         this.olapClient = initializeOlapClient(config,driver.getClock());
