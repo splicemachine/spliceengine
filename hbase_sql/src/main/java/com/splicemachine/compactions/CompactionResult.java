@@ -9,20 +9,17 @@ import java.util.List;
  */
 public class CompactionResult extends AbstractOlapResult {
     private List<String> paths;
-    private int id;
 
     public CompactionResult() {
     }
 
-    public CompactionResult(List<String> paths, int id) {
+    public CompactionResult(List<String> paths) {
         this.paths = paths;
-        this.id = id;
     }
 
     public List<String> getPaths() {
         return paths;
     }
-    public int getId() { return id; }
 
     @Override
     public boolean isSuccess(){

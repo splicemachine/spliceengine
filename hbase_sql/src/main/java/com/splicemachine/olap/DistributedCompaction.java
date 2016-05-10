@@ -29,7 +29,6 @@ public class DistributedCompaction extends DistributedJob{
     String poolName;
     String scope;
     String regionLocation;
-    int id;
 
     /*Used for Serialization*/
     @SuppressWarnings("unused")
@@ -42,8 +41,7 @@ public class DistributedCompaction extends DistributedJob{
                                  String jobDescription,
                                  String poolName,
                                  String scope,
-                                 String regionLocation,
-                                 int id){
+                                 String regionLocation){
         this.compactionFunction=compactionFunction;
         this.files=files;
         this.jobDetails=jobDetails;
@@ -52,7 +50,6 @@ public class DistributedCompaction extends DistributedJob{
         this.poolName=poolName;
         this.scope=scope;
         this.regionLocation=regionLocation;
-        this.id = id;
     }
 
     public String base64EncodedFileList(){
@@ -83,7 +80,7 @@ public class DistributedCompaction extends DistributedJob{
 
     @Override
     public Callable<Void> toCallable(OlapStatus jobStatus,Clock clock,long clientTimeoutCheckIntervalMs){
-        return new CompactionJob(this,jobStatus,clock,clientTimeoutCheckIntervalMs,id);
+        return new CompactionJob(this,jobStatus,clock,clientTimeoutCheckIntervalMs);
     }
 
 }

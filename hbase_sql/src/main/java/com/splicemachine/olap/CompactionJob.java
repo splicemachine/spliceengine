@@ -39,18 +39,15 @@ public class CompactionJob implements Callable<Void>{
 
     private final Clock clock;
     private final long tickTime;
-    private final int id;
 
     public CompactionJob(DistributedCompaction compactionRequest,
                          OlapStatus jobStatus,
                          Clock clock,
-                         long tickTime,
-                         int id) {
+                         long tickTime) {
         this.status = jobStatus;
         this.clock = clock;
         this.tickTime = tickTime;
         this.compactionRequest = compactionRequest;
-        this.id = id;
     }
 
     @Override
@@ -110,7 +107,7 @@ public class CompactionJob implements Callable<Void>{
         }
         //the compaction completed
         List<String> sPaths = collectFuture.get();
-        status.markCompleted(new CompactionResult(sPaths, id));
+        status.markCompleted(new CompactionResult(sPaths));
         SpliceSpark.popScope();
 
         if (LOG.isTraceEnabled())
