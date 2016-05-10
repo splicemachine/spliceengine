@@ -32,7 +32,7 @@ public class TimedOlapClient implements OlapClient{
 
     @Override
     public <R extends OlapResult> R execute(@Nonnull DistributedJob jobRequest) throws IOException,TimeoutException{
-        checkNotSubmitted(jobRequest);
+        jobRequest.markSubmitted();
         //submit the jobRequest to the server
         try{
             Future<OlapResult> submit=networkLayer.submit(jobRequest);
@@ -49,16 +49,8 @@ public class TimedOlapClient implements OlapClient{
 
     @Override
     public <R extends OlapResult> Future<R> submit(@Nonnull DistributedJob jobRequest) throws IOException {
-        checkNotSubmitted(jobRequest);
-        return (Future<R>) networkLayer.submit(jobRequest);
-    }
-
-
-    private void checkNotSubmitted(DistributedJob jobRequest) {
-        if (jobRequest.isSubmitted()) {
-            throw new IllegalArgumentException("Job already submitted: " + jobRequest);
-        }
         jobRequest.markSubmitted();
+        return (Future<R>) networkLayer.submit(jobRequest);
     }
 
     @Override

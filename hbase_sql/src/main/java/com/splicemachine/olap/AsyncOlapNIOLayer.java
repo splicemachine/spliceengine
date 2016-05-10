@@ -77,6 +77,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
 
     @Override
     public java.util.concurrent.Future<OlapResult> submit(DistributedJob job) throws IOException{
+        assert job.isSubmitted();
         OlapFuture future=new OlapFuture(job);
         future.doSubmit();
         return future;

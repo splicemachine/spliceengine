@@ -32,6 +32,9 @@ public abstract class DistributedJob implements Serializable{
     }
 
     public final void markSubmitted() {
+        if (submitted) {
+            throw new IllegalStateException("Job already submitted: " + toString());
+        }
         submitted = true;
     }
 

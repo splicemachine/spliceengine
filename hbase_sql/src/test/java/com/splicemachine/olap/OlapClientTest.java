@@ -65,7 +65,7 @@ public class OlapClientTest {
         Assert.assertEquals(13, result.order);
     }
 
-    @Test(timeout = 3000, expected = IllegalArgumentException.class)
+    @Test(timeout = 3000, expected = IllegalStateException.class)
     public void cantReuseJobsTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = rand.nextInt(200);
