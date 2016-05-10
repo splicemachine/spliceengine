@@ -23,13 +23,7 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.regionserver.ScanType;
-import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.regionserver.StoreFile;
+import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -86,7 +80,7 @@ public class SIObserver extends BaseRegionObserver{
             //noinspection unchecked
             txnOperationFactory=new SimpleTxnOperationFactory(driver.getExceptionFactory(),HOperationFactory.INSTANCE);
             //noinspection unchecked
-            Partition regionPartition = new RegionPartition(rce.getRegion());
+            Partition regionPartition = new RegionPartition((HRegion)rce.getRegion());
             region=new TxnRegion(regionPartition,
                     driver.getRollForward(),
                     driver.getReadResolver(regionPartition),

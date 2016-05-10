@@ -27,6 +27,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
@@ -55,7 +56,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     @SuppressWarnings("unchecked")
     public void start(final CoprocessorEnvironment env) throws IOException{
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)env);
-        final ServerControl serverControl=new RegionServerControl(rce.getRegion());
+        final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion());
 
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
         TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),(RegionCoprocessorEnvironment)env);
@@ -69,7 +70,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
                 conglomId=-1;
             }
             final long cId = conglomId;
-            final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
+            final RegionPartition baseRegion=new RegionPartition((HRegion)rce.getRegion());
 
             try{
                 service=new PipelineLoadService<TableName>(serverControl,baseRegion,cId){
@@ -142,7 +143,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     public void stop(CoprocessorEnvironment env) throws IOException{
         if(writePipeline!=null){
             writePipeline.close();
-            PipelineDriver.driver().deregisterPipeline(((RegionCoprocessorEnvironment)env).getRegion().getRegionNameAsString());
+            PipelineDriver.driver().deregisterPipeline(((RegionCoprocessorEnvironment)env).getRegion().getRegionInfo().getRegionNameAsString());
         }
         if(service!=null)
             try{

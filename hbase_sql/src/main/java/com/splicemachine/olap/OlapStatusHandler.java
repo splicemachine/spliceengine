@@ -3,8 +3,7 @@ package com.splicemachine.olap;
 import com.splicemachine.backup.OlapMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import org.jboss.netty.channel.*;
-
+import org.sparkproject.jboss.netty.channel.*;
 import java.io.IOException;
 
 /**

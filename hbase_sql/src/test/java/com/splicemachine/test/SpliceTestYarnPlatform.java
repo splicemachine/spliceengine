@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -79,7 +80,7 @@ public class SpliceTestYarnPlatform {
     public void start(int nodeCount) throws Exception {
         if (yarnCluster == null) {
             LOG.info("Starting up YARN cluster with "+nodeCount+" nodes. Server yarn-site.xml is: "+yarnSiteConfigURL);
-
+            conf.set(YarnConfiguration.RM_WEBAPP_ADDRESS, "localhost:0");
             yarnCluster = new MiniYARNClusterSplice(SpliceTestYarnPlatform.class.getSimpleName(), nodeCount, 1, 1);
             yarnCluster.init(conf);
             yarnCluster.start();
@@ -125,6 +126,13 @@ public class SpliceTestYarnPlatform {
         }
 
         conf = new YarnConfiguration();
+        conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+        conf.set("fs.default.name", "file:///");
+        conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+        conf.set("fs.hdfs.client", "org.apache.hadoop.hdfs.DistributedFileSystem");
+        System.setProperty("zookeeper.sasl.client", "false");
+        System.setProperty("zookeeper.sasl.serverconfig", "fake");
+
         conf.setInt(YarnConfiguration.RM_NM_HEARTBEAT_INTERVAL_MS, DEFAULT_HEARTBEAT_INTERVAL);
         conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 128);
         conf.setClass(YarnConfiguration.RM_SCHEDULER, FifoScheduler.class, ResourceScheduler.class);

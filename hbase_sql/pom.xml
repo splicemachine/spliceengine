@@ -20,7 +20,10 @@
         <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
+
     </properties>
+
+
     <dependencies>
         <!--
         -sf- For some absurd reason, we have an annoying dependency conflict between hbase and
@@ -38,6 +41,12 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.8</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -48,11 +57,23 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_pipeline-${envClassifier}</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+            <exclusion>
+                <groupId>org.jboss.netty</groupId>
+                <artifactId>netty</artifactId>
+            </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
             <version>${hbase.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.netty</groupId>
+                    <artifactId>netty</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -64,6 +85,14 @@
             <artifactId>${spark-assembly-id}</artifactId>
             <version>${spark.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.10</artifactId>
+            <version>${kafka.version}</version>
+            <classifier>test</classifier>
+            <scope>test</scope>
+        </dependency>
+
         <!--Test dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -93,11 +122,13 @@
             <!--intentionally compile scope,we use this dependency at app compile and runtime-->
             <scope>test</scope>
         </dependency>
+<!--
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-core</artifactId>
-            <version>2.6.0-mr1-${envClassifier}</version>
+            <version>${hadoop.version}</version>
         </dependency>
+-->
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-beeline</artifactId>
@@ -107,6 +138,12 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-cli</artifactId>
             <version>${hive.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>guava</artifactId>
+                    <groupId>com.google.guava</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
@@ -207,7 +244,7 @@
         </dependency>
       <dependency>
         <groupId>com.splicemachine</groupId>
-        <artifactId>hbase_storage-cdh5.4.8</artifactId>
+        <artifactId>hbase_storage-${envClassifier}</artifactId>
         <version>2.0.1-SNAPSHOT</version>
         <scope>test</scope>
       </dependency>
@@ -315,14 +352,14 @@
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
                                             <arg value="-c"/>
-                                            <arg value="-p ${envClassifier}"/>
+                                            <arg value="-p ${envClassifier},${envHbase}"/>
                                         </exec>
                                     </then>
                                     <else>
                                         <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier}"/>
+                                            <arg value="-p ${envClassifier},${envHbase}"/>
                                         </exec>
                                     </else>
                                 </if>
@@ -353,6 +390,22 @@
                             <goal>run</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>clean stop-splice-its</id>
+                        <phase>pre-clean</phase>
+                        <configuration>
+                            <skip>${skipTests}</skip>
+                            <target name="StopSpliceServer" unless="${server.skip.start}">
+                                <exec executable="${shell.command}" dir="${basedir}" spawn="false">
+                                    <arg value="${stop.script}"/>
+                                </exec>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+
                 </executions>
                 <dependencies>
                     <dependency>
@@ -376,26 +429,15 @@
         </plugins>
     </build>
     <profiles>
-        <!-- paltform definition profiles-->
+
         <profile>
-            <id>cdh5.4.8</id>
+            <id>hbase1.0.0.x</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
                 <property>
-                    <name>env</name>
-                    <value>cdh5.4.8</value>
+                    <name>envHbase</name>
+                    <value>hbase1.0.0.x</value>
                 </property>
             </activation>
-            <properties>
-                <envClassifier>cdh5.4.8</envClassifier>
-                <!--  platform component versions  -->
-                <hadoop.version>2.6.0-cdh5.4.8</hadoop.version>
-                <hbase.version>1.0.0-cdh5.4.8-splice1.5.1-SNAPSHOT</hbase.version>
-                <hive.version>1.1.0-cdh5.4.8</hive.version>
-                <zookeeper.version>3.4.5-cdh5.4.8</zookeeper.version>
-                <spark.version>1.6.1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.8</spark-assembly-id>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -411,8 +453,7 @@
                                 </goals>
                                 <configuration>
                                     <sources>
-                                        <source>cdh5.4.x/src/main/java</source>
-                                        <source>hbase1.0/src/main/java</source>
+                                        <source>1.0.0.x/src/main/java</source>
                                     </sources>
                                 </configuration>
                             </execution>
@@ -424,8 +465,7 @@
                                 </goals>
                                 <configuration>
                                     <sources>
-                                        <source>cdh5.4.x/src/test/java</source>
-                                        <source>hbase1.0/src/test/java</source>
+                                        <source>1.0.0.x/src/test/java</source>
                                     </sources>
                                 </configuration>
                             </execution>
@@ -434,7 +474,168 @@
                 </plugins>
                 <resources>
                     <resource>
-                        <directory>hbase1.0/src/main/resources</directory>
+                        <directory>1.0.0.x/src/main/resources</directory>
+                    </resource>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+
+
+        <profile>
+            <id>hbase1.1.0</id>
+            <activation>
+                <property>
+                    <name>envHbase</name>
+                    <value>hbase1.1.0</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-platform-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>1.1.0/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>1.1.0/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+                <resources>
+                    <resource>
+                        <directory>1.1.0/src/main/resources</directory>
+                    </resource>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+
+
+        <profile>
+            <id>hbase1.2.0</id>
+            <activation>
+                <property>
+                    <name>envHbase</name>
+                    <value>hbase1.2.0</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-platform-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>1.2.0/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>1.2.0/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+                <resources>
+                    <resource>
+                        <directory>1.2.0/src/main/resources</directory>
+                    </resource>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+
+        <profile>
+            <id>hbase1.0.0</id>
+            <activation>
+                <property>
+                    <name>envHbase</name>
+                    <value>hbase1.0.0</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-platform-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>1.0.0/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>1.0.0/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+                <resources>
+                    <resource>
+                        <directory>1.0.0/src/main/resources</directory>
                     </resource>
                     <resource>
                         <directory>src/main/resources</directory>
@@ -443,6 +644,76 @@
             </build>
         </profile>
         <!-- Test Environment execution profiles-->
+        <profile>
+            <!-- Kafka-->
+            <id>spliceKafka</id>
+            <activation>
+                <property>
+                    <name>kafka</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>clean</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.directory}/hbase</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </fileset>
+                                <fileset>
+                                    <directory>${project.build.directory}/zookeeper</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>-Djava.awt.headless=true</argument>
+                                <argument> -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties </argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Dzookeeper.sasl.client=false</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xms1g</argument>
+                                <argument>-XX:MaxPermSize=256M</argument>
+                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
+                                <argument>com.splicemachine.kafka.TestKafkaCluster</argument>
+                                <argument>localhost:2181</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <profile>
             <!-- ZooKeeper-->
             <id>spliceZoo</id>
@@ -516,6 +787,7 @@
                 </plugins>
             </build>
         </profile>
+
         <profile>
             <id>spliceYarn</id>
             <activation>

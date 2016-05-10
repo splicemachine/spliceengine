@@ -4,14 +4,14 @@ import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.backup.OlapMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.jboss.netty.channel.ChannelHandler;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder;
-import org.jboss.netty.handler.codec.frame.LengthFieldPrepender;
-import org.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
-import org.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
+import org.sparkproject.jboss.netty.channel.ChannelHandler;
+import org.sparkproject.jboss.netty.channel.ChannelPipeline;
+import org.sparkproject.jboss.netty.channel.ChannelPipelineFactory;
+import org.sparkproject.jboss.netty.channel.Channels;
+import org.sparkproject.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder;
+import org.sparkproject.jboss.netty.handler.codec.frame.LengthFieldPrepender;
+import org.sparkproject.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
+import org.sparkproject.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
 
 public class OlapPipelineFactory implements ChannelPipelineFactory {
 

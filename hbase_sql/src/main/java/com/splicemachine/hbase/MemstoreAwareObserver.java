@@ -175,7 +175,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 // Partition Hit
                 InternalScan iscan = new InternalScan(scan);
                 iscan.checkOnlyMemStore();
-                HRegion region = c.getEnvironment().getRegion();
+                HRegion region = (HRegion) c.getEnvironment().getRegion();
                 return new MemStoreFlushAwareScanner(region, store, store.getScanInfo(), iscan, targetCols, getReadpoint(region), memstoreAware, memstoreAware.get());
             } else { // Partition Miss
                 while (true) {
@@ -213,7 +213,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     }
 
     private long getReadpoint(HRegion region){
-        return region.getMVCC().memstoreReadPoint();
+        return HBasePlatformUtils.getReadpoint(region);
     }
 
     public static  String displayByteArray(byte[] key) {
@@ -241,13 +241,13 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     public void start(CoprocessorEnvironment e) throws IOException {
         super.start(e);
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"starting [%s]",((RegionCoprocessorEnvironment) e).getRegion().getRegionNameAsString());
+            SpliceLogUtils.debug(LOG,"starting [%s]",((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
     }
 
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
         super.stop(e);
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"stopping [%s]", ((RegionCoprocessorEnvironment) e).getRegion().getRegionNameAsString());
+            SpliceLogUtils.debug(LOG,"stopping [%s]", ((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
     }
 }

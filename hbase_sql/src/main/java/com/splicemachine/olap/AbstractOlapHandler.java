@@ -2,8 +2,7 @@ package com.splicemachine.olap;
 
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import org.apache.log4j.Logger;
-import org.jboss.netty.channel.*;
-
+import org.sparkproject.jboss.netty.channel.*;
 import java.io.IOException;
 
 /**

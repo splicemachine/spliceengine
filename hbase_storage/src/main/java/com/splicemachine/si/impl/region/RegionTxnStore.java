@@ -21,10 +21,8 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -315,10 +313,10 @@ public class RegionTxnStore implements TxnPartition{
         byte[] startKey=Bytes.toBytes(afterTs);
         byte[] stopKey = Bytes.toBytes(beforeTs+1);
 
-        byte[] regionKey=region.getStartKey();
+        byte[] regionKey=region.getRegionInfo().getStartKey();
         byte bucket;
         if(regionKey.length<=0)
-            regionKey = region.getEndKey();
+            regionKey = region.getRegionInfo().getEndKey();
         if(regionKey.length<=0)
             bucket = 0; //should never happen
         else
@@ -333,10 +331,10 @@ public class RegionTxnStore implements TxnPartition{
         System.arraycopy(stopKey,0,ek,1,stopKey.length);
         stopKey = ek;
 
-        if(Bytes.startComparator.compare(region.getStartKey(),startKey)>0)
-            startKey=region.getStartKey();
-        if(Bytes.endComparator.compare(region.getEndKey(),stopKey)<0)
-            stopKey=region.getEndKey();
+        if(Bytes.startComparator.compare(region.getRegionInfo().getStartKey(),startKey)>0)
+            startKey=region.getRegionInfo().getStartKey();
+        if(Bytes.endComparator.compare(region.getRegionInfo().getEndKey(),stopKey)<0)
+            stopKey=region.getRegionInfo().getEndKey();
         Scan scan=new Scan(startKey,stopKey);
         scan.setMaxVersions(1);
         return scan;

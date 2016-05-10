@@ -56,7 +56,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException{
-        HRegion region=((RegionCoprocessorEnvironment)env).getRegion();
+        HRegion region=(HRegion)((RegionCoprocessorEnvironment)env).getRegion();
         HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
         SConfiguration configuration=siEnv.configuration();
         TableType table=EnvUtils.getTableType(configuration,(RegionCoprocessorEnvironment)env);

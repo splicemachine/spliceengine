@@ -4,12 +4,12 @@ import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
+import org.sparkproject.jboss.netty.buffer.ChannelBuffer;
+import org.sparkproject.jboss.netty.buffer.ChannelBuffers;
+import org.sparkproject.jboss.netty.channel.ChannelFuture;
+import org.sparkproject.jboss.netty.channel.ChannelFutureListener;
+import org.sparkproject.jboss.netty.channel.ChannelHandlerContext;
+import org.sparkproject.jboss.netty.channel.MessageEvent;
 
 public class TimestampServerHandler extends TimestampBaseHandler {
 

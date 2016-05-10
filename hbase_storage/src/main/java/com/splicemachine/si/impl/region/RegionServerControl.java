@@ -18,7 +18,7 @@ public class RegionServerControl implements ServerControl{
 
     public RegionServerControl(HRegion region){
         this.region=region;
-        this.regionNameAsString = region.getRegionNameAsString();
+        this.regionNameAsString = region.getRegionInfo().getRegionNameAsString();
     }
 
     @Override

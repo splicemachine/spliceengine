@@ -279,8 +279,10 @@ public class HRegionUtil extends BaseHRegionUtil{
                         if (bloomFilter == null)
                             bitSet.set(0,dataAndLocks.length); // Low level race condition, need to go to scan
                         else {
-                            BitSet returnedBitSet = bloomFilter.contains(keys, keyOffset, keyLength, (ByteBuffer) null);
-                            bitSet.or(returnedBitSet);
+                            for (int j = 0; j<keys.length; j++) {
+                                if (bloomFilter.contains(keys[j],keyOffset[j],keyLength[j],(ByteBuffer) null))
+                                    bitSet.set(j);
+                            }
                         }
                     }
                 }

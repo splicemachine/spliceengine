@@ -3,7 +3,6 @@ package com.splicemachine.storage;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-
 import java.io.IOException;
 import java.util.Map;
 

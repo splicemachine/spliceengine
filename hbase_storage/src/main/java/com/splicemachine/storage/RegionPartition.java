@@ -53,7 +53,7 @@ public class RegionPartition implements Partition{
 
     @Override
     public String getName(){
-        return region.getRegionNameAsString();
+        return region.getRegionInfo().getRegionNameAsString();
     }
 
 
@@ -335,12 +335,12 @@ public class RegionPartition implements Partition{
     /*Data range ownership methods*/
     @Override
     public byte[] getStartKey(){
-        return region.getStartKey();
+        return region.getRegionInfo().getStartKey();
     }
 
     @Override
     public byte[] getEndKey(){
-        return region.getEndKey();
+        return region.getRegionInfo().getEndKey();
     }
 
     @Override
@@ -445,7 +445,7 @@ public class RegionPartition implements Partition{
      */
     @Override
     public void flush() throws IOException{
-        region.flushcache();
+        HBasePlatformUtils.flush(region);
     }
 
     public HRegion unwrapDelegate(){

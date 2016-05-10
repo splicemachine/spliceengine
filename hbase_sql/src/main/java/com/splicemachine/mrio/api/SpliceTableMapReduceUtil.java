@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
@@ -356,7 +357,7 @@ public class SpliceTableMapReduceUtil{
 
         if(quorumAddress!=null){
             // Calling this will validate the format
-            ZKUtil.transformClusterKey(quorumAddress);
+            HBasePlatformUtils.validateClusterKey(quorumAddress);
             conf.set(TableOutputFormat.QUORUM_ADDRESS,quorumAddress);
         }
         if(serverClass!=null && serverImpl!=null){

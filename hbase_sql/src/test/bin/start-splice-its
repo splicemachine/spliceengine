@@ -10,6 +10,7 @@ ROOT_DIR=$(pwd)
 ZOOLOG="${ROOT_DIR}"/zoo_it.log
 YARNLOG="${ROOT_DIR}"/yarn_it.log
 SPLICELOG="${ROOT_DIR}"/splice_it.log
+KAFKALOG="${ROOT_DIR}"/kafka.log
 
 CHAOS="false"
 PROFILE="cdh5.4.8"  # default hbase platform profile
@@ -61,6 +62,7 @@ fi
 
 # Start zookeeper in background.
 echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
+echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
 mvn -B exec:exec -P${PROFILE},spliceZoo > ${ZOOLOG} 2>&1 &
 
 #######################################################################################################
@@ -90,6 +92,10 @@ fi
 # Start SpliceTestYarnPlatform in background.
 echo "Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
 mvn -B exec:java -P${PROFILE},spliceYarn > ${YARNLOG} 2>&1 &
+
+# Start Kafka in background.
+echo "Starting SpliceTestYarnPlatform, log file is ${KAFKALOG}"
+mvn -B exec:exec -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1 &
 
 # Start SpliceTestPlaform in background.
 echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"

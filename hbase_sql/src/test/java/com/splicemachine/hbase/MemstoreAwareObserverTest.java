@@ -7,7 +7,6 @@ import com.splicemachine.collections.EmptyNavigableSet;
 import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.constants.SIConstants;
-import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
@@ -19,7 +18,6 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -29,7 +27,6 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -689,14 +686,12 @@ public class MemstoreAwareObserverTest {
         when(mockRInfo.getStartKey()).thenReturn(startKey);
         when(mockRInfo.getEndKey()).thenReturn(endKey);
 
+        /*
         ConsistencyControl mockCC = mock(ConsistencyControl.class);
         when(mockCC.memstoreReadPoint()).thenReturn(1313L);
-
+        */
         HRegion mockRegion = mock(HRegion.class);
-        when(mockRegion.getStartKey()).thenReturn(startKey);
-        when(mockRegion.getEndKey()).thenReturn(endKey);
         when(mockRegion.getRegionInfo()).thenReturn(mockRInfo);
-        when(mockRegion.getMVCC()).thenReturn(mockCC);
 
         RegionCoprocessorEnvironment mockEnv = mock(RegionCoprocessorEnvironment.class);
         when(mockEnv.getRegion()).thenReturn(mockRegion);
@@ -1092,24 +1087,6 @@ public class MemstoreAwareObserverTest {
         }
     }
 
-    private static class StubInternalScanner extends Scan implements InternalScanner {
-
-        @Override
-        public boolean next(List<Cell> results) throws IOException {
-            return false;
-        }
-
-        @Override
-        public boolean next(List<Cell> result, int limit) throws IOException {
-            return false;
-        }
-
-        @Override
-        public void close() throws IOException {
-
-        }
-    }
-    
    private static class StubCompactionRequest extends SpliceCompactionRequest {
        AtomicReference<MemstoreAware> guinea;
        

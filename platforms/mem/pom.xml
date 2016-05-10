@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.splicemachine</groupId>
+    <artifactId>splice_machine_mem</artifactId>
+    <packaging>pom</packaging>
+    <version>2.0.1-SNAPSHOT</version>
+    <name>splice_machine_mem</name>
+    <description>In Memory Storage Engine for SpliceMachine.</description>
+    <modules>
+        <module>../../mem_storage</module>
+        <module>../../mem_pipeline</module>
+        <module>../../mem_sql</module>
+    </modules>
+</project>

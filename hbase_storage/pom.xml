@@ -4,7 +4,7 @@
     <groupId>com.splicemachine</groupId>
     <artifactId>hbase_storage-${envClassifier}</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
+    <name>hbase_storage-${envClassifier}</name>
     <description>HBase-1.0-base Storage engine for SpliceMachine</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
@@ -36,6 +36,11 @@
                 </exclusion>
 
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>${spark-assembly-id}</artifactId>
+            <version>${spark.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -110,6 +115,12 @@
             <type>test-jar</type>
             <version>${project.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.8</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -162,27 +173,233 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.19.1</version>
+                <configuration>
+                    <dependenciesToScan>
+                        <dependency>com.splicemachine:splice_si_api</dependency>
+                    </dependenciesToScan>
+                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
+                    <excludes>
+                        <!-- Temporarily excluded until the k2_refactor pullover, then we'll need to
+                        un-exclude it and fix the two failing tests-->
+                        <exclude>com.splicemachine.si.ActiveTransactionTest</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <profiles>
         <profile>
-            <id>cdh5.4.8</id>
+            <id>hbase1.0.0.x</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
                 <property>
-                    <name>env</name>
-                    <value>cdh5.4.8</value>
+                    <name>envHbase</name>
+                    <value>hbase1.0.0.x</value>
                 </property>
             </activation>
-            <properties>
-                <envClassifier>cdh5.4.8</envClassifier>
-                <!--  platform component versions  -->
-                <hadoop.version>2.6.0-cdh5.4.8</hadoop.version>
-                <hbase.version>1.0.0-cdh5.4.8-splice1.5.1-SNAPSHOT</hbase.version>
-                <hive.version>1.1.0-cdh5.4.8</hive.version>
-                <zookeeper.version>3.4.5-cdh5.4.8</zookeeper.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.8</spark-assembly-id>
-            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-platform-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase1.0.0.x/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase1.0.0.x/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+                <resources>
+                    <resource>
+                        <directory>hbase1.0.0.x/src/main/resources</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+
+
+        <profile>
+            <id>hbase1.2.0</id>
+            <activation>
+                <property>
+                    <name>envHbase</name>
+                    <value>hbase1.2.0</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-platform-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase1.2.0/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase1.2.0/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+                <resources>
+                    <resource>
+                        <directory>hbase1.2.0/src/main/resources</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+
+        <profile>
+            <id>hbase1.1.0</id>
+            <activation>
+                <property>
+                    <name>envHbase</name>
+                    <value>hbase1.1.0</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-platform-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase1.1.0/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase1.1.0/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+                <resources>
+                    <resource>
+                        <directory>hbase1.1.0/src/main/resources</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+
+        <profile>
+            <id>hbase1.0.0</id>
+            <activation>
+                <property>
+                    <name>envHbase</name>
+                    <value>hbase1.0.0</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-platform-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase1.0.0/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase1.0.0/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+                <resources>
+                    <resource>
+                        <directory>hbase1.0.0/src/main/resources</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+        <profile>
+            <id>hbase0.98</id>
+            <activation>
+                <property>
+                    <name>envHbase</name>
+                    <value>hbase0.98</value>
+                </property>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
@@ -199,144 +416,6 @@
                                 <configuration>
                                     <sources>
                                         <source>cdh5.4.x/src/main/java</source>
-                                        <source>hbase1.0/src/main/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>add-platform-test-source</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>add-test-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>cdh5.4.x/src/test/java</source>
-                                        <source>hbase1.0/src/test/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.19.1</version>
-                        <configuration>
-                            <dependenciesToScan>
-                                <dependency>com.splicemachine:splice_si_api</dependency>
-                            </dependenciesToScan>
-                            <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
-                            <excludes>
-                                <!-- Temporarily excluded until the k2_refactor pullover, then we'll need to
-                                un-exclude it and fix the two failing tests-->
-                                <exclude>com.splicemachine.si.ActiveTransactionTest</exclude>
-                            </excludes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-                <resources>
-                    <resource>
-                        <directory>hbase1.0/src/main/resources</directory>
-                    </resource>
-                </resources>
-            </build>
-        </profile>
-        <profile>
-            <id>cdh5.5.1</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>cdh5.5.1</value>
-                </property>
-            </activation>
-            <properties>
-                <envClassifier>cdh5.5.1</envClassifier>
-                <!-- platform component versions -->
-                <hadoop.version>2.6.0-cdh5.5.1</hadoop.version>
-                <hbase.version>1.0.0-cdh5.5.1-splice1.5.1-SNAPSHOT</hbase.version>
-                <hive.version>1.1.0-cdh5.5.1</hive.version>
-                <zookeeper.version>3.4.5-cdh5.5.1</zookeeper.version>
-                <spark.version>1.6.0</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.1</spark-assembly-id>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>1.9.1</version>
-                        <executions>
-                            <execution>
-                                <id>add-platform-source</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>add-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>cdh5.5.1/src/main/java</source>
-                                        <source>hbase1.0/src/main/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>add-platform-test-source</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>add-test-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>cdh5.5.1/src/test/java</source>
-                                        <source>hbase1.0/src/test/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-                <resources>
-                    <resource>
-                        <directory>hbase1.0/src/main/resources</directory>
-                    </resource>
-                </resources>
-            </build>
-        </profile>
-        <profile>
-            <id>mapr5.0.0</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>mapr5.0.0</value>
-                </property>
-            </activation>
-            <properties>
-                <envClassifier>mapr5.0.0</envClassifier>
-                <!-- platform component versions -->
-                <hadoop.version>2.7.0-mapr-1506</hadoop.version>
-                <hbase.version>0.98.12-mapr-1506-splice1.5.0</hbase.version>
-                <hive.version>0.13.0-mapr-1504-protobuf250</hive.version>
-                <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
-                <maprfs.version>5.0.0-mapr</maprfs.version>
-                <spark.version>1.6.1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1506</spark-assembly-id>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>1.9.1</version>
-                        <executions>
-                            <execution>
-                                <id>add-platform-source</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>add-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
                                         <source>hbase0.98/src/main/java</source>
                                     </sources>
                                 </configuration>
@@ -349,6 +428,7 @@
                                 </goals>
                                 <configuration>
                                     <sources>
+                                        <source>cdh5.4.x/src/test/java</source>
                                         <source>hbase0.98/src/test/java</source>
                                     </sources>
                                 </configuration>
@@ -363,5 +443,6 @@
                 </resources>
             </build>
         </profile>
+
     </profiles>
 </project>

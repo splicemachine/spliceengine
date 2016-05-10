@@ -87,7 +87,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 		return scanner.getMvccReadPoint();
 	}
 
-    @Override
     public boolean next(List<Cell> result,int limit) throws IOException{
         return nextRaw(result,limit);
     }
@@ -97,7 +96,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         return nextRaw(results);
     }
 
-    @Override
     public boolean nextRaw(List<Cell> result,int limit) throws IOException{
         return nextRaw(result);
     }

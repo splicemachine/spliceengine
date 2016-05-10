@@ -34,8 +34,6 @@ public class MockRegionUtils{
     public static HRegion getMockRegion() throws IOException{
         final Map<byte[], Set<Cell>> rowMap=Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
         HRegion fakeRegion=mock(HRegion.class);
-        when(fakeRegion.getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
-        when(fakeRegion.getEndKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
         HRegionInfo fakeInfo=mock(HRegionInfo.class);
         when(fakeInfo.getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
         when(fakeInfo.getEndKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);

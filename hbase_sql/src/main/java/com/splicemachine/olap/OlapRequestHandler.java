@@ -6,7 +6,7 @@ import com.splicemachine.backup.OlapMessage;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import org.apache.log4j.Logger;
-import org.jboss.netty.channel.*;
+import org.sparkproject.jboss.netty.channel.*;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;

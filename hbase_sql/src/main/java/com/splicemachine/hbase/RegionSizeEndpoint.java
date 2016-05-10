@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.Store;
@@ -29,7 +30,7 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException{
-        region = ((RegionCoprocessorEnvironment) env).getRegion();
+        region = (HRegion)((RegionCoprocessorEnvironment) env).getRegion();
     }
 
     @Override
@@ -69,8 +70,8 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
             SpliceLogUtils.debug(LOG, "computeRegionSize");
         SpliceMessage.SpliceRegionSizeResponse.Builder writeResponse = SpliceMessage.SpliceRegionSizeResponse.newBuilder();
         try {
-            writeResponse.setEncodedName(region.getRegionNameAsString());
-            writeResponse.setSizeInBytes(region.getMemstoreSize().longValue()+getStoreFileSize());
+            writeResponse.setEncodedName(region.getRegionInfo().getRegionNameAsString());
+            writeResponse.setSizeInBytes(HBasePlatformUtils.getMemstoreSize(region)+getStoreFileSize());
         } catch (Exception e) {
             org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, new IOException(e));
         }

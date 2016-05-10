@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -76,8 +77,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         }
 
         final long cId = conglomId;
-        final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
-        ServerControl sc = new RegionServerControl(rce.getRegion());
+        final RegionPartition baseRegion=new RegionPartition((HRegion)rce.getRegion());
+        ServerControl sc = new RegionServerControl((HRegion)rce.getRegion());
         try{
             if(service==null){
                 service=new PipelineLoadService<TableName>(sc,baseRegion,cId){

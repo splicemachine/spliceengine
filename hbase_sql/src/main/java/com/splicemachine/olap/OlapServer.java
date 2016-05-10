@@ -5,11 +5,11 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelHandler;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.sparkproject.jboss.netty.bootstrap.ServerBootstrap;
+import org.sparkproject.jboss.netty.channel.Channel;
+import org.sparkproject.jboss.netty.channel.ChannelFactory;
+import org.sparkproject.jboss.netty.channel.ChannelHandler;
+import org.sparkproject.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;

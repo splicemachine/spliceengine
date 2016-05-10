@@ -71,6 +71,7 @@ public class HBaseSITestEnv implements SITestEnv{
     public HBaseSITestEnv(Level baseLoggingLevel){
         configureLogging(baseLoggingLevel);
         Configuration conf = HConfiguration.unwrapDelegate();
+        conf.set("fs.defaultFS", "file:///");
         try{
             startCluster(conf);
             SIEnvironment hEnv=loadSIEnvironment();
@@ -190,12 +191,25 @@ public class HBaseSITestEnv implements SITestEnv{
 
     private void startCluster(Configuration conf) throws Exception{
         int basePort = getNextBasePort();
+        // -> MapR work-around
+        conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+        conf.set("fs.default.name", "file:///");
+        conf.set("fs.hdfs.client", "org.apache.hadoop.hdfs.DistributedFileSystem");
+        System.setProperty("zookeeper.sasl.client", "false");
+        System.setProperty("zookeeper.sasl.serverconfig", "fake");
+        // <- MapR work-around
+        conf.setInt("hbase.master.port", basePort);
+        conf.setInt("hbase.master.info.port", basePort + 1);
+        conf.setInt("hbase.regionserver.port", basePort + 2);
+        conf.setInt("hbase.regionserver.info.port", basePort + 3);
+
         testUtility = new HBaseTestingUtility(conf);
 
         Configuration configuration = testUtility.getConfiguration();
         // -> MapR work-around
         configuration.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
         configuration.set("fs.default.name", "file:///");
+        configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
         configuration.set("fs.hdfs.client", "org.apache.hadoop.hdfs.DistributedFileSystem");
         System.setProperty("zookeeper.sasl.client", "false");
         System.setProperty("zookeeper.sasl.serverconfig", "fake");
