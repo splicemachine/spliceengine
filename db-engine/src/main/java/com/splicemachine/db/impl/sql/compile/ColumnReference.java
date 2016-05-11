@@ -889,7 +889,7 @@ public class ColumnReference extends ValueNode {
 		ResultColumn	sourceRC = source;
 
 		/* Nothing to do if we are not pointing to a redundant RC */
-		if (! source.isRedundant())
+		if (source == null || ! source.isRedundant())
 		{
 			return this;
 		}

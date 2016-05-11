@@ -66,7 +66,10 @@ public final class DenseRankFunctionNode extends WindowFunctionNode {
     @Override
     public List<ValueNode> getOperands() {
         List<OrderedColumn> orderedColumns = getWindow().getOrderByList();
-        List<ValueNode> operands = new ArrayList<>(orderedColumns.size());
+        List<ValueNode> operands = new ArrayList<>(orderedColumns.size()+1);
+        if (operand != null) {
+            operands.add(operand);
+        }
         for (OrderedColumn orderedColumn : orderedColumns) {
             operands.add(orderedColumn.getColumnExpression());
         }

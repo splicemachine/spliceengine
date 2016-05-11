@@ -365,12 +365,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             String baseName = parentRC.getName();
             if (srcRC != null) {
                 // create RC->CR->srcRC for bottom PR
-                ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(), getContextManager(), this.getLevel());
+                ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(), getContextManager(), this.getLevel(), this.getLevel());
                 childRCL.addElement(bottomRC);
                 bottomRC.setVirtualColumnId(childRCL.size());
 
                 // create RC->CR->bottomRC for window PR
-                ResultColumn winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(), getContextManager(), this.getLevel());
+                ResultColumn winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(), getContextManager(), this.getLevel(), this.getLevel());
                 winRCL.addElement(winRC);
                 winRC.setVirtualColumnId(winRCL.size());
 
@@ -431,13 +431,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                         // create RC->CR->srcRC for bottom PR
                         ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(),
-                                                                 getContextManager(), this.getLevel());
+                                                                 getContextManager(), this.getLevel(), this.getLevel());
                         childRCL.addElement(bottomRC);
                         bottomRC.setVirtualColumnId(childRCL.size());
 
                         // create RC->CR->bottomRC for window PR
                         ResultColumn winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(),
-                                                              getContextManager(), this.getLevel());
+                                                              getContextManager(), this.getLevel(), this.getLevel());
                         winRCL.addElement(winRC);
                         winRC.setVirtualColumnId(winRCL.size());
 
@@ -455,13 +455,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         }
                         // Add a reference to this column into the bottom RCL.
                         ResultColumn bottomRC = createRC_CR_Pair(expRC, exp.getColumnName(), getNodeFactory(),
-                                                                 getContextManager(), this.getLevel());
+                                                                 getContextManager(), this.getLevel(), this.getLevel());
                         childRCL.addElement(bottomRC);
                         bottomRC.setVirtualColumnId(childRCL.size());
 
                         // create RC->CR->bottomRC for window PR
                         ResultColumn winRC = createRC_CR_Pair(bottomRC, exp.getColumnName(), getNodeFactory(),
-                                                              getContextManager(), this.getLevel());
+                                                              getContextManager(), this.getLevel(), this.getLevel());
                         winRCL.addElement(winRC);
                         winRC.setVirtualColumnId(winRCL.size());
 
@@ -522,14 +522,14 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                     // create RC->CR->srcRC for bottom PR
                     ResultColumn bottomRC = createRC_CR_Pair(grandChildRC, baseName, getNodeFactory(),
-                                                             getContextManager(), this.getLevel());
+                                                             getContextManager(), this.getLevel(), this.getLevel());
 
                     childRCL.addElement(bottomRC);
                     bottomRC.setVirtualColumnId(childRCL.size());
 
                     // create RC->CR->bottomRC for window PR
                     winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(), getContextManager(),
-                                             this.getLevel());
+                                             this.getLevel(), this.getLevel());
                     winRCL.addElement(winRC);
                     winRC.setVirtualColumnId(winRCL.size());
 
@@ -611,7 +611,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** Set the windowFunctionNode result column to point to this RC.
 			*/
             ResultColumn tmpRC = createRC_CR_Pair(newRC, newRC.getName(), getNodeFactory(),
-                                                  getContextManager(), this.getLevel());
+                                                  getContextManager(), this.getLevel(), this.getLevel());
             winRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(winRCL.size());
             ((ColumnReference)tmpRC.getExpression()).markGeneratedToReplaceWindowFunctionCall();
@@ -648,7 +648,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         tmpRC = createRC_CR_Pair(srcRC,
                                                  "##" + windowFunctionNode.getAggregateName() + "_Input_" +
                                                      exp.getColumnName(),
-                                                 getNodeFactory(), getContextManager(), this.getLevel());
+                                                 getNodeFactory(), getContextManager(), this.getLevel(), this.getLevel());
                     } else {
                         // we didn't find it in an RCL below us.
                         if (LOG.isDebugEnabled()) {
@@ -660,7 +660,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         tmpRC = createRC_CR_Pair(expRC,
                                                  "##" + windowFunctionNode.getAggregateName() + "_Input_" +
                                                      exp.getColumnName(),
-                                                 getNodeFactory(), getContextManager(), this.getLevel());
+                                                 getNodeFactory(), getContextManager(), this.getLevel(), this.getLevel());
                     }
                 } else {
                     // The given operand does not have an RC. It may be a non-aggregate function expression, i.e.,
@@ -689,7 +689,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                 // Add a reference to this column into the windowing RCL.
                 tmpRC = createRC_CR_Pair(tmpRC, tmpRC.getName(), getNodeFactory(),
-                                         getContextManager(), this.getLevel());
+                                         getContextManager(), this.getLevel(), this.getLevel());
                 winRCL.addElement(tmpRC);
                 tmpRC.setVirtualColumnId(winRCL.size());
             }
@@ -710,7 +710,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** Add a reference to this column in the windowing RCL.
 			*/
             tmpRC = createRC_CR_Pair(newRC, newRC.getName(), getNodeFactory(),
-                                     getContextManager(), this.getLevel());
+                                     getContextManager(), this.getLevel(), this.getLevel());
             winRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(winRCL.size());
 
@@ -1088,6 +1088,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                 // Create an RC->CR->matchedRC for matching column that we'll add to the parent RCL upon return
                 ResultColumn parentRC = rCtoCRfactory.createRC_CR_Pair(matchedRC, matchedRC.getName(),
+                                                                       ((FromTable)currentNode).getLevel(),
                                                                        ((FromTable)currentNode).getLevel());
                 currentNode.getResultColumns().addElement(parentRC);
                 parentRC.setVirtualColumnId(currentNode.getResultColumns().size());
@@ -1274,8 +1275,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             this.contextManager = contextManager;
         }
 
-        public ResultColumn createRC_CR_Pair(ResultColumn sourceRC, String name, int level) throws StandardException {
-            return WindowResultSetNode.createRC_CR_Pair(sourceRC, name, nodeFactory, contextManager, level);
+        public ResultColumn createRC_CR_Pair(ResultColumn sourceRC, String name, int srcLevel, int nestingLevel) throws StandardException {
+            return WindowResultSetNode.createRC_CR_Pair(sourceRC, name, nodeFactory, contextManager, srcLevel, nestingLevel);
         }
     }
 
@@ -1289,6 +1290,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @param nodeFactory for creating nodes
      * @param contextManager for creating nodes
      * @param sourceLevel the level we're at in the tree
+     * @param nestingLevel the level of subquery nesting
      * @return the new result column
      * @throws StandardException on error
      */
@@ -1296,7 +1298,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                                  String name,
                                                  NodeFactory nodeFactory,
                                                  ContextManager contextManager,
-                                                 int sourceLevel) throws StandardException {
+                                                 int sourceLevel, int nestingLevel) throws StandardException {
 
         // create the CR using sourceRC as the source and source name
         ColumnReference columnRef = (ColumnReference) nodeFactory.getNode(C_NodeTypes.COLUMN_REFERENCE,
@@ -1304,7 +1306,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                                                           null,
                                                                           contextManager);
         columnRef.setSource(sourceRC);
-        columnRef.setNestingLevel(0);
+        columnRef.setNestingLevel(nestingLevel);
         columnRef.setSourceLevel(sourceLevel);
         if (sourceRC.getTableNumber() != -1) {
             columnRef.setTableNumber(sourceRC.getTableNumber());
