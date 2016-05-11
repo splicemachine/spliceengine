@@ -171,7 +171,7 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
                 }
             }
             if(!found) {
-                topK[size] = otherEst;
+                topK[size] = new IntValueEstimate(otherEst.value(),otherEst.count(),otherEst.error());
                 size++;
             }
         }
@@ -221,9 +221,7 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
                 }else if(o2==null) return -1; //sort nulls last
 
                 int compare = Longs.compare(o1.count(), o2.count());
-                if(compare!=0)
-                    return compare;
-                return o1.compareTo(o2);
+                return -1*compare;
             }
         };
 

@@ -172,7 +172,7 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
                 }
             }
             if(!found) {
-                topK[size] = otherEst;
+                topK[size] = new FloatValueEstimate(otherEst.value(),otherEst.count(),otherEst.error());
                 size++;
             }
         }

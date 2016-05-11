@@ -53,5 +53,9 @@ class BytesValueEstimate implements BytesFrequencyEstimate {
         return this;
     }
 
+    @Override
+    public ByteComparator byteComparator() {
+        return byteComparator;
+    }
     //TODO -sf- do equals and hashCode methods
 }

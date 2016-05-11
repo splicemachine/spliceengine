@@ -277,7 +277,7 @@ public abstract class BytesFrequentElements implements FrequentElements<ByteBuff
                 }
             }
             if(!found) {
-                topK[size] = otherEst;
+                topK[size] = new BytesValueEstimate(otherEst.valueArrayBuffer(),otherEst.count(),otherEst.error(),otherEst.byteComparator());
                 size++;
             }
         }
@@ -421,6 +421,7 @@ public abstract class BytesFrequentElements implements FrequentElements<ByteBuff
 
         @Override public long count() { return 0; }
         @Override public long error() { return 0; }
+        @Override public ByteComparator byteComparator() {return null;}
     }
 
     private final class ZeroBuffer implements BytesFrequencyEstimate{
@@ -477,6 +478,7 @@ public abstract class BytesFrequentElements implements FrequentElements<ByteBuff
 
         @Override public long count() { return 0; }
         @Override public long error() { return 0; }
+        @Override public ByteComparator byteComparator() {return null;}
     }
 
     static class EncoderDecoder implements Encoder<BytesFrequentElements> {

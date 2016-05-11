@@ -171,7 +171,7 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
                 }
             }
             if(!found) {
-                topK[size] = otherEst;
+                topK[size] = new ShortValueEstimate(otherEst.value(),otherEst.count(),otherEst.error());
                 size++;
             }
         }

@@ -175,7 +175,7 @@ public abstract class LongFrequentElements implements FrequentElements<Long> {
                 }
             }
             if(!found) {
-                topK[size] = otherEst;
+                topK[size] = new LongValueEstimate(otherEst.value(),otherEst.count(),otherEst.error());
                 size++;
             }
         }

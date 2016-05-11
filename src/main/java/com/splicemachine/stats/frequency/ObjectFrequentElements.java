@@ -157,7 +157,7 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
                 }
             }
             if(!found) {
-                topK[size] = otherEst;
+                topK[size] = new ValueEstimate<>(otherEst.getValue(),otherEst.count(),otherEst.error(),comparator);
                 size++;
             }
         }

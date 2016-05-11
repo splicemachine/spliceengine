@@ -184,7 +184,7 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
                 }
             }
             if(!found){
-                all[size] = est;
+                all[size] = new DoubleValueEstimate(est.value(),est.count(),est.error());
                 size++;
             }
         }

@@ -1,5 +1,7 @@
 package com.splicemachine.stats.frequency;
 
+import com.splicemachine.primitives.ByteComparator;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -20,4 +22,5 @@ public interface BytesFrequencyEstimate extends FrequencyEstimate<ByteBuffer>,Co
 
     int compare(byte[] buffer, int offset,int length);
 
+    ByteComparator byteComparator();
 }
