@@ -452,7 +452,8 @@
                 <envClassifier>cdh5.4.10</envClassifier>
                 <envHbase>hbase1.0.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.4.10</hadoop.version>
-                <hbase.version>1.0.0-cdh5.4.10-splice1.5.1-SNAPSHOT</hbase.version>
+                <hadoop.tools.version>2.6.0-mr1-cdh5.4.10</hadoop.tools.version>
+                <hbase.version>1.0.0-cdh5.4.10</hbase.version>
                 <hive.version>1.1.0-cdh5.4.10</hive.version>
                 <zookeeper.version>3.4.5-cdh5.4.10</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.10</spark-assembly-id>
@@ -477,6 +478,7 @@
             <properties>
                 <envClassifier>cdh5.5.2</envClassifier>
                 <hadoop.version>2.6.0-cdh5.5.2</hadoop.version>
+                <hadoop.tools.version>2.6.0-mr1-cdh5.5.2</hadoop.tools.version>
                 <hbase.version>1.0.0-cdh5.5.2</hbase.version>
                 <hive.version>1.1.0-cdh5.5.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.5.2</zookeeper.version>
@@ -502,6 +504,7 @@
             <properties>
                 <envClassifier>cdh5.6.0</envClassifier>
                 <hadoop.version>2.6.0-cdh5.6.0</hadoop.version>
+                <hadoop.tools.version>2.6.0-mr1-cdh5.6.0</hadoop.tools.version>
                 <hbase.version>1.0.0-cdh5.6.0</hbase.version>
                 <hive.version>1.1.0-cdh5.6.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.6.0</zookeeper.version>
@@ -527,6 +530,7 @@
             <properties>
                 <envClassifier>cdh5.7.0</envClassifier>
                 <hadoop.version>2.6.0-cdh5.7.0</hadoop.version>
+                <hadoop.tools.version>2.6.0-mr1-cdh5.7.0</hadoop.tools.version>
                 <hbase.version>1.2.0-cdh5.7.0</hbase.version>
                 <hive.version>1.1.0-cdh5.7.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
@@ -552,7 +556,7 @@
             <properties>
                 <envClassifier>mapr5.0.0</envClassifier>
                 <hadoop.version>2.7.0-mapr-1506</hadoop.version>
-                <hbase.version>0.98.12-mapr-1506-splice1.5.0</hbase.version>
+                <hbase.version>0.98.12-mapr-1506</hbase.version>
                 <hive.version>0.13.0-mapr-1504-protobuf250</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.0.0-mapr</maprfs.version>
@@ -578,6 +582,7 @@
             <properties>
                 <envClassifier>mapr5.1.0</envClassifier>
                 <hadoop.version>2.7.0-mapr-1602</hadoop.version>
+                <hadoop.tools.version>1.0.3-mapr-5.1.0</hadoop.tools.version>
                 <hbase.version>1.1.1-mapr-1602</hbase.version>
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
@@ -604,7 +609,7 @@
             <properties>
                 <envClassifier>hdp2.3.0</envClassifier>
                 <hadoop.version>2.7.1.2.3.0.0-2557</hadoop.version>
-                <hbase.version>1.1.1-hdp2.3.0-splice1.5.1-SNAPSHOT</hbase.version>
+                <hbase.version>1.1.1-hdp2.3.0</hbase.version>
                 <hive.version>1.2.1.2.3.0.0-2557</hive.version>
                 <zookeeper.version>3.4.6.2.3.0.0-2557</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.1.2.3.0.0-2557</spark-assembly-id>
