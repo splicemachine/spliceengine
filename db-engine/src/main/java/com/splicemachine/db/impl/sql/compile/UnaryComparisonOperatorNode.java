@@ -277,8 +277,10 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	public void generateAbsoluteColumnId(MethodBuilder mb, Optimizable optTable) {
 		// Get the absolute 0-based column position for the column
 		int columnPosition = getAbsoluteColumnPosition(optTable);
-
 		mb.push(columnPosition);
+
+        int storagePosition=getAbsoluteStoragePosition(optTable);
+        mb.push(storagePosition);
 	}
 
 	@Override
@@ -287,9 +289,12 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		int columnPosition = getAbsoluteColumnPosition(optTable);
 		// Convert the absolute to the relative 0-based column position
 		columnPosition = optTable.convertAbsoluteToRelativeColumnPosition(columnPosition);
-
 		mb.push(columnPosition);
-	}
+
+        int storagePosition=getAbsoluteStoragePosition(optTable);
+        storagePosition=optTable.convertAbsoluteToRelativeColumnPosition(storagePosition);
+        mb.push(storagePosition);
+    }
 
 	/**
 	 * Get the absolute 0-based column position of the ColumnReference from 
@@ -313,17 +318,39 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		** If it's an index, find the base column position in the index
 		** and translate it to an index column position.
 		*/
-		if (bestCD.isIndex()) {
+		if (bestCD != null && bestCD.isIndex()) {
 			columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
-
-			assert columnPosition>0: "Base column not found in index";
+            assert columnPosition>0: "Base column not found in index";
 		}
 
 		// return the 0-based column position
 		return columnPosition - 1;
 	}
 
-	@Override
+    private int getAbsoluteStoragePosition(Optimizable optTable) {
+        ColumnReference	cr = (ColumnReference) operand;
+        int columnPosition;
+        ConglomerateDescriptor bestCD;
+
+        bestCD = optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
+
+		/*
+		** If it's an index, find the base column position in the index
+		** and translate it to an index column position.
+		*/
+        if (bestCD != null && bestCD.isIndex()) {
+            columnPosition = cr.getSource().getColumnPosition();
+            columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
+            assert columnPosition>0: "Base column not found in index";
+        } else {
+            columnPosition = cr.getSource().getStoragePosition();
+        }
+
+        // return the 0-based column position
+        return columnPosition - 1;
+    }
+
+    @Override
 	public boolean orderedNulls() { return true; }
 
 	@Override

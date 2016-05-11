@@ -2551,7 +2551,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         /* variantType for qualifier's orderable */
         consMB.push(or_node.getOrderableVariantType(optTable));
 
-        int numArgs=9;
+        int numArgs=10;
         /* Qualifier's string representation */
         consMB.push("TODOJL");
 

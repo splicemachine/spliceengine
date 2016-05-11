@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 class QualifierUtil implements Qualifier 
 {
     private int                 column_id;
+    private int                 storagePosition;
     private DataValueDescriptor key_val;
     private int                 operator;
     private boolean             negateCompareResult;
@@ -46,6 +47,25 @@ class QualifierUtil implements Qualifier
     boolean             unknownRV)
     {
         this.column_id              = column_id;
+        this.storagePosition        = column_id;
+        this.key_val                = key_val;
+        this.operator               = operator;
+        this.negateCompareResult    = negateCompareResult;
+        this.orderedNulls           = orderedNulls;
+        this.unknownRV              = unknownRV;
+    }
+
+    public QualifierUtil(
+        int                 column_id,
+        int                 storagePosition,
+        DataValueDescriptor key_val,
+        int                 operator,
+        boolean             negateCompareResult,
+        boolean             orderedNulls,
+        boolean             unknownRV)
+    {
+        this.column_id              = column_id;
+        this.storagePosition        = storagePosition;
         this.key_val                = key_val;
         this.operator               = operator;
         this.negateCompareResult    = negateCompareResult;
@@ -59,6 +79,11 @@ class QualifierUtil implements Qualifier
     public int getColumnId()
     {
         return(this.column_id);
+    }
+
+    public int getStoragePosition()
+    {
+        return(this.storagePosition);
     }
 
     /** Get the value that the column is to be compared to. **/

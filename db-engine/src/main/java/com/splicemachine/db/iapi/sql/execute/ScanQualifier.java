@@ -43,4 +43,13 @@ public interface ScanQualifier extends Qualifier
     boolean             negateCR, 
     boolean             orderedNulls, 
     boolean             unknownRV);
+
+    void setQualifier(
+        int                 columnId,
+        int                 storagePosition,
+        DataValueDescriptor orderable,
+        int                 operator,
+        boolean             negateCR,
+        boolean             orderedNulls,
+        boolean             unknownRV);
 }

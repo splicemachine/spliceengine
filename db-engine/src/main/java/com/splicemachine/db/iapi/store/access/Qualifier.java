@@ -201,6 +201,8 @@ public interface Qualifier
      **/
 	int getColumnId();
 
+    int getStoragePosition();
+
 	/**
 	 * Get the value that the column is to be compared to.
 	 *

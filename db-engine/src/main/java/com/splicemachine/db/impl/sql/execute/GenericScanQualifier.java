@@ -41,6 +41,7 @@ public class GenericScanQualifier implements ScanQualifier
 {
 
 	private int                 columnId        = -1;
+    private int                 storagePosition = -1;
 	private DataValueDescriptor orderable       = null;
 	private int                 operator        = -1;
 	private boolean             negateCR        = false;
@@ -67,7 +68,12 @@ public class GenericScanQualifier implements ScanQualifier
 		return columnId;
 	}
 
-	/** 
+    public int getStoragePosition()
+    {
+        return storagePosition;
+    }
+
+    /**
 	 * @see Qualifier#getOrderable
 	 */
 	public DataValueDescriptor getOrderable()
@@ -162,14 +168,15 @@ public class GenericScanQualifier implements ScanQualifier
 	 * @see ScanQualifier#setQualifier
 	 */
 	public void setQualifier(
-    int                 columnId, 
-    DataValueDescriptor orderable, 
-    int                 operator,
-    boolean             negateCR, 
-    boolean             orderedNulls, 
-    boolean             unknownRV)
+        int                 columnId,
+        DataValueDescriptor orderable,
+        int                 operator,
+        boolean             negateCR,
+        boolean             orderedNulls,
+        boolean             unknownRV)
 	{
 		this.columnId = columnId;
+        this.storagePosition = columnId;
 		this.orderable = orderable;
 		this.operator = operator;
 		this.negateCR = negateCR;
@@ -177,6 +184,25 @@ public class GenericScanQualifier implements ScanQualifier
 		this.unknownRV = unknownRV;
 		properInit = true;
 	}
+
+    public void setQualifier(
+        int                 columnId,
+        int                 storagePosition,
+        DataValueDescriptor orderable,
+        int                 operator,
+        boolean             negateCR,
+        boolean             orderedNulls,
+        boolean             unknownRV)
+    {
+        this.columnId = columnId;
+        this.storagePosition = storagePosition;
+        this.orderable = orderable;
+        this.operator = operator;
+        this.negateCR = negateCR;
+        this.orderedNulls = orderedNulls;
+        this.unknownRV = unknownRV;
+        properInit = true;
+    }
 
     public String getText() {
         return null;

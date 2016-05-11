@@ -165,6 +165,7 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
      */
     @Override
     public Qualifier getQualifier(int columnId,
+                                  int storagePosition,
                                   int operator,
                                   GeneratedMethod orderableGetter,
                                   Activation activation,
@@ -172,7 +173,8 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                                   boolean unknownRV,
                                   boolean negateCompareResult,
                                   int variantType) {
-        return new GenericQualifier(columnId, operator, orderableGetter, activation, orderedNulls, unknownRV,
+        return new GenericQualifier(columnId, storagePosition, operator, orderableGetter,
+                activation, orderedNulls, unknownRV,
                 negateCompareResult, variantType);
     }
 
@@ -181,6 +183,7 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
      */
     @Override
     public Qualifier getQualifier(int columnId,
+                                  int storagePosition,
                                   int operator,
                                   GeneratedMethod orderableGetter,
                                   Activation activation,
@@ -189,7 +192,7 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                                   boolean negateCompareResult,
                                   int variantType,
                                   String name) {
-        return new GenericQualifier(columnId, operator, orderableGetter,
+        return new GenericQualifier(columnId, storagePosition, operator, orderableGetter,
                 activation, orderedNulls, unknownRV,
                 negateCompareResult, variantType, name);
     }

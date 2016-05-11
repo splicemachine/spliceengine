@@ -136,6 +136,7 @@ public interface ExecutionFactory {
 	 * @return	A new Qualifier
 	 */
 	Qualifier getQualifier(int columnId,
+                           int storagePosition,
 						   int operator,
 						   GeneratedMethod orderableGetter,
 						   Activation activation,
@@ -146,6 +147,7 @@ public interface ExecutionFactory {
                            String text);
 
     Qualifier getQualifier(int columnId,
+                           int storagePosition,
                            int operator,
                            GeneratedMethod orderableGetter,
                            Activation activation,

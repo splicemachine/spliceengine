@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 public class GenericQualifier implements Qualifier
 {
 	private int columnId;
+    private int storagePosition;
 	private int operator;
 	private GeneratedMethod orderableGetter;
 	private Activation	activation;
@@ -49,6 +50,7 @@ public class GenericQualifier implements Qualifier
 	private DataValueDescriptor orderableCache = null;
 
     public GenericQualifier(int columnId,
+                            int storagePosition,
                             int operator,
                             GeneratedMethod orderableGetter,
                             Activation activation,
@@ -58,6 +60,7 @@ public class GenericQualifier implements Qualifier
                             int variantType)
     {
         this.columnId = columnId;
+        this.storagePosition = storagePosition;
         this.operator = operator;
         this.orderableGetter = orderableGetter;
         this.activation = activation;
@@ -68,6 +71,7 @@ public class GenericQualifier implements Qualifier
     }
 
 	public GenericQualifier(int columnId,
+                            int storagePosition,
 							int operator,
 							GeneratedMethod orderableGetter,
 							Activation activation,
@@ -78,6 +82,7 @@ public class GenericQualifier implements Qualifier
                             String text)
 	{
 		this.columnId = columnId;
+        this.storagePosition = storagePosition;
 		this.operator = operator;
 		this.orderableGetter = orderableGetter;
 		this.activation = activation;
@@ -104,7 +109,12 @@ public class GenericQualifier implements Qualifier
 		return columnId;
 	}
 
-	/** 
+    public int getStoragePosition()
+    {
+        return storagePosition;
+    }
+
+    /**
 	 * @see Qualifier#getOrderable
 	 *
 	 * @exception StandardException		Thrown on error
@@ -210,6 +220,7 @@ public class GenericQualifier implements Qualifier
 		if (SanityManager.DEBUG)
 		{
 			return "columnId: "+columnId+
+                "\nstoragePosition: "+storagePosition+
 				"\noperator: "+operator+
 				"\norderedNulls: "+orderedNulls+
 				"\nunknownRV: "+unknownRV+
