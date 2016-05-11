@@ -1210,9 +1210,7 @@ abstract class SQLBinary
 		}
 		catch (StandardException se)
 		{
-			if (SanityManager.DEBUG)
-				SanityManager.THROWASSERT("Unexpected exception", se);
-			return 0;
+			throw new RuntimeException(se);
 		}
 
 		// Hash code should ignore trailing PAD bytes.

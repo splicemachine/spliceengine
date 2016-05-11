@@ -3082,9 +3082,7 @@ public class SQLChar
         }
         catch (StandardException se)
         {
-            if (SanityManager.DEBUG)
-                SanityManager.THROWASSERT("Unexpected exception", se);
-            return 0;
+            throw new RuntimeException(se);
         }
 
 
