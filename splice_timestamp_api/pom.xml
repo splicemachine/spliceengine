@@ -12,6 +12,8 @@
         <version>2.0.1.10-SNAPSHOT</version>
     </parent>
     <dependencies>
+        <!-- Dependency added so Splice Machine will use
+        the shaded libraries for Guava and Netty-->
         <dependency>
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.8</artifactId>
