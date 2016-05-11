@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.hbase.*;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
@@ -90,6 +91,9 @@ class SpliceTestPlatformConfig {
        // config.setClass(ConsistencyControlUtils.MVCC_IMPL, SIMultiVersionConsistencyControl.class, ConsistencyControl.class);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, SpliceDefaultCompactionPolicy.class, CompactionPolicy.class);
 
+
+
+
         //
         // Networking -- interfaces
         //
@@ -105,6 +109,11 @@ class SpliceTestPlatformConfig {
         // File System
         //
         config.set("fs.defaultFS", "file:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
+        config.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+        config.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
+        config.set("fs.default.name", "file:///");
+        config.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");
+
         // Must allow Cygwin instance to config its own rootURI
         if (!"CYGWIN".equals(hbaseRootDirUri)) {
             config.set("hbase.rootdir", hbaseRootDirUri);
@@ -172,9 +181,6 @@ class SpliceTestPlatformConfig {
         // Snapshots
         //
         config.setBoolean("hbase.snapshot.enabled", true);
-        
-//        config.setDouble(HConfiguration.DEBUG_TASK_FAILURE_RATE, 0.05d);
-//        config.setBoolean(HConfiguration.DEBUG_FAIL_TASKS_RANDOMLY, failTasksRandomly);
 
         HConfiguration.reloadConfiguration(config);
         return HConfiguration.unwrapDelegate();

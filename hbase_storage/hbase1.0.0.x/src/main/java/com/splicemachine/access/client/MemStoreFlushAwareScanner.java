@@ -8,10 +8,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.ScanInfo;
-import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.regionserver.StoreScanner;
+import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -46,7 +43,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 	   protected boolean flushAlreadyReturned = false;
 	   protected int counter = 0;
 
-		public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
+		public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
 				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
 			super(store, scanInfo, scan, columns, readPt);
 			if (LOG.isDebugEnabled())
@@ -63,12 +60,12 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 					SpliceLogUtils.trace(LOG, "already Flushed");
 				if (flushAlreadyReturned) {
 					if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG, "returning counter");				
+						SpliceLogUtils.trace(LOG, "returning counter");
 					return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
 				}
 				else {
 					if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG, "returning flush");				
+						SpliceLogUtils.trace(LOG, "returning flush");
 					return ClientRegionConstants.MEMSTORE_BEGIN_FLUSH;
 				}
 			}
@@ -105,7 +102,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			throw new IOException("reseek not implemented");
 		}
 
-		public boolean internalNext(List<Cell> outResult) throws IOException {
+		public boolean internalNext(List<Cell> outResult,ScannerContext scannerContext) throws IOException {
                 if (beginRow) {
                     beginRow = false;
                     return outResult.add(ClientRegionConstants.MEMSTORE_BEGIN);
@@ -131,7 +128,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
                     }
                     return true;
                 }
-                return directInternalNext(outResult);
+                return directInternalNext(outResult,scannerContext);
 		}
 
 		@Override
@@ -145,21 +142,27 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 				shouldC = !memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest));
 			} while (shouldC);
 		}
-		
+
 		private boolean didWeFlush() {
 			return memstoreAware.get().totalFlushCount != initialValue.totalFlushCount;
 		}
 
-	
+
 	@Override
 	public boolean next(List<Cell> outResult) throws IOException {
-		return internalNext(outResult);
+		return internalNext(outResult,NoLimitScannerContext.getInstance());
 	}
 
 
-	boolean directInternalNext(List<Cell> result) throws IOException {
-		return super.next(result,null);
+	boolean directInternalNext(List<Cell> result, ScannerContext scannerContext) throws IOException {
+		return super.next(result,scannerContext);
 	}
 
-
+    @Override
+    public boolean next(List<Cell> outResult, ScannerContext scannerContext) throws IOException {
+        System.out.println("next before -> " + outResult + " -> " + scannerContext);
+        boolean returnValue = internalNext(outResult,scannerContext);
+        System.out.println("next after -> " + outResult  + " -> " + scannerContext);
+        return returnValue;
+    }
 }

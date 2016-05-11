@@ -44,10 +44,10 @@ public class HBase10ClientSideRegionScanner extends SkeletonClientSideRegionScan
     }
 
     public boolean nextRaw(List<Cell> cells, ScannerContext scannerContext) throws IOException {
-        return false;
+        return nextRaw(cells);
     }
 
     public boolean next(List<Cell> cells, ScannerContext scannerContext) throws IOException {
-        return false;
+        return nextRaw(cells);
     }
 }

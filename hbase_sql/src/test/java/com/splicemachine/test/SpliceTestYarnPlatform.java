@@ -60,6 +60,7 @@ public class SpliceTestYarnPlatform {
 
         SpliceTestYarnPlatform yarnParticipant = new SpliceTestYarnPlatform();
         yarnParticipant.configForSplice(classPathRoot);
+        LOG.error("Yarn -- > class " + yarnParticipant.getConfig().get("yarn.nodemanager.container-executor.class"));
         yarnParticipant.start(nodeCount);
     }
 
@@ -127,9 +128,9 @@ public class SpliceTestYarnPlatform {
 
         conf = new YarnConfiguration();
         conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+        conf.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
         conf.set("fs.default.name", "file:///");
-        conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
-        conf.set("fs.hdfs.client", "org.apache.hadoop.hdfs.DistributedFileSystem");
+        conf.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");
         System.setProperty("zookeeper.sasl.client", "false");
         System.setProperty("zookeeper.sasl.serverconfig", "fake");
 
