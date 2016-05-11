@@ -20,6 +20,11 @@ public class AutoCastedQualifier implements Qualifier {
     }
 
     @Override
+    public int getStoragePosition() {
+        return originalQualifier.getStoragePosition();
+    }
+
+    @Override
     public DataValueDescriptor getOrderable() throws StandardException {
         return castedDvd;
     }

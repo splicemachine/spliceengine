@@ -40,20 +40,25 @@ public class PredicateBuilder{
 
     public Predicate getPredicate(Qualifier qualifier) throws StandardException{
         DataValueDescriptor dvd=qualifier.getOrderable();
+        int storagePosition = qualifier.getStoragePosition(); // physical column id, might differ from columnId
+        if (storagePosition < 0) {
+            throw new IllegalArgumentException(String.format("Qualifier has invalid storagePosition: %s", qualifier));
+        }
         if(dvd==null || dvd.isNull() || dvd.isNullOp().getBoolean()){
             boolean filterIfMissing=qualifier.negateCompareResult();
             boolean isNullValue=dvd==null || dvd.isNull();
             boolean isOrderedNulls=qualifier.getOrderedNulls();
             boolean isNullNumericalComparison=(isNullValue && !isOrderedNulls);
             if(dvd==null)
-                return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,false);
+                return new NullPredicate(filterIfMissing,isNullNumericalComparison,storagePosition,false,false);
             else if(DerbyBytesUtil.isDoubleType(dvd))
-                return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),true,false);
+                return new NullPredicate(filterIfMissing,isNullNumericalComparison,storagePosition,true,false);
             else if(DerbyBytesUtil.isFloatType(dvd))
-                return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,true);
+                return new NullPredicate(filterIfMissing,isNullNumericalComparison,storagePosition,false,true);
             else
-                return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,false);
+                return new NullPredicate(filterIfMissing,isNullNumericalComparison,storagePosition,false,false);
         }else{
+            // use columnId (not storagePosition) as index into these other maps
             boolean sort=getSortPosition(qualifier.getColumnId());
             if(serializers==null)
                 serializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(columnTypes);
@@ -61,10 +66,10 @@ public class PredicateBuilder{
 
             if(dvd.getTypeFormatId() == StoredFormatIds.SQL_CHAR_ID){
                 return new CharValuePredicate(getHBaseCompareOp(qualifier.getOperator(),
-                        qualifier.negateCompareResult()),qualifier.getColumnId(),bytes,true,sort);
+                        qualifier.negateCompareResult()),storagePosition,bytes,true,sort);
             }else{
                 return new ValuePredicate(getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
-                        qualifier.getColumnId(),
+                        storagePosition,
                         bytes,true,sort);
             }
         }
