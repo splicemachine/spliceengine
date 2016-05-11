@@ -199,9 +199,10 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                     long window=Math.min(tickTimeNanos,nanosRemaining);
                     long remaining=signal.awaitNanos(window);
                     nanosRemaining-=(window-remaining);
-                    if (!isDone()) {
+                    long millisRemaining = TimeUnit.NANOSECONDS.toMillis(remaining);
+                    if (!isDone() && millisRemaining > 0) {
                         // we are not done yet, wait the whole window before a new status check
-                        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(remaining));
+                        Thread.sleep(millisRemaining);
                     }
                 }finally{
                     checkLock.unlock();
