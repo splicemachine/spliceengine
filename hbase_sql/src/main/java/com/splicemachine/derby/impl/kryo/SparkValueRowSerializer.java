@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.db.impl.services.reflect.ReflectClassesJava2;
 import org.sparkproject.guava.base.Throwables;
 import org.sparkproject.guava.cache.CacheBuilder;
 import org.sparkproject.guava.cache.CacheLoader;
@@ -42,6 +43,7 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class SparkValueRowSerializer<T extends ExecRow> extends Serializer<T> {
     private static Logger LOG = Logger.getLogger(SparkValueRowSerializer.class);
+    private static ClassFactory cf;
     private LoadingCache<IntArray, DescriptorSerializer[]> serializersCache = CacheBuilder.newBuilder().maximumSize(10).build(
             new CacheLoader<IntArray, DescriptorSerializer[]>() {
                 @Override
@@ -54,6 +56,10 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                 }
             }
     );
+
+    static {
+        cf = new ReflectClassesJava2();
+    }
 
     @Override
     public void write(Kryo kryo, Output output, T object) {
@@ -119,9 +125,6 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                         int len = input.readInt();
                         byte[] bytes = new byte[len];
                         input.read(bytes, 0, len);
-                        LanguageConnectionContext lcc = (LanguageConnectionContext)
-                                ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
-                        ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
                         ByteArrayInputStream in = new ByteArrayInputStream(bytes);
                         UDTInputStream inputStream = new UDTInputStream(in, cf);
                         Object o = inputStream.readObject();
