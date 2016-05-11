@@ -1,19 +1,9 @@
 package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-
-import com.splicemachine.access.api.FileInfo;
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.impl.load.ColumnInfo;
-import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.utils.SpliceLogUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import java.nio.charset.UnsupportedCharsetException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,18 +13,30 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.load.ColumnInfo;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -169,40 +171,6 @@ public class HdfsImport {
                  results);
     }
 
-    public static void UPSERT_CHECK_DATA_FROM_FILE(String schemaName,
-                                                   String tableName,
-                                                   String insertColumnList,
-                                                   String fileName,
-                                                   String columnDelimiter,
-                                                   String characterDelimiter,
-                                                   String timestampFormat,
-                                                   String dateFormat,
-                                                   String timeFormat,
-                                                   long badRecordsAllowed,
-                                                   String badRecordDirectory,
-                                                   String oneLineRecords,
-                                                   String charset,
-                                                   ResultSet[] results
-    ) throws SQLException {
-        // TODO: JC - CHECK_DATA proc implementations have been removed
-        doImport(schemaName,
-                 tableName,
-                 insertColumnList,
-                 fileName,
-                 columnDelimiter,
-                 characterDelimiter,
-                 timestampFormat,
-                 dateFormat,
-                 timeFormat,
-                 badRecordsAllowed,
-                 badRecordDirectory,
-                 oneLineRecords,
-                 charset,
-                 true,
-                 true,
-                 results);
-    }
-
     /**
      * The SYSCS_UTIL.IMPORT_DATA system procedure imports data to a subset of columns in a table. You choose the subset
      * of columns by specifying insert columns.
@@ -283,40 +251,6 @@ public class HdfsImport {
                  results);
     }
 
-    public static void IMPORT_CHECK_DATA(String schemaName,
-                                         String tableName,
-                                         String insertColumnList,
-                                         String fileName,
-                                         String columnDelimiter,
-                                         String characterDelimiter,
-                                         String timestampFormat,
-                                         String dateFormat,
-                                         String timeFormat,
-                                         long badRecordsAllowed,
-                                         String badRecordDirectory,
-                                         String oneLineRecords,
-                                         String charset,
-                                         ResultSet[] results
-    ) throws SQLException {
-        // TODO: JC - CHECK_DATA proc implementations have been removed
-        doImport(schemaName,
-                 tableName,
-                 insertColumnList,
-                 fileName,
-                 columnDelimiter,
-                 characterDelimiter,
-                 timestampFormat,
-                 dateFormat,
-                 timeFormat,
-                 badRecordsAllowed,
-                 badRecordDirectory,
-                 oneLineRecords,
-                 charset,
-                 false,
-                 true,
-                 results);
-    }
-
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     private static void doImport(String schemaName,
                                  String tableName,
@@ -343,24 +277,30 @@ public class HdfsImport {
                                  timestampFormat, dateFormat, timeFormat, badRecordsAllowed, badRecordDirectory,
                                  oneLineRecords, charset, isUpsert, isCheckScan);
 
-        if (charset == null)
+        if (charset == null) {
             charset = StandardCharsets.UTF_8.name();
-
+        } else {
+            try {
+                Charset.forName(charset);
+            } catch (UnsupportedCharsetException e) {
+                throw PublicAPI.wrapStandardException(ErrorState.LANG_INVALID_CHARACTER_ENCODING.newException(charset));
+            }
+        }
 
         // unescape separator chars if need be
         try {
             characterDelimiter = unescape(characterDelimiter);
         } catch (IOException e) {
-            throw new SQLException("Illegal character delimiter char '"+characterDelimiter+"'", e);
+            throw PublicAPI.wrapStandardException(ErrorState.ILLEGAL_DELIMITER_CHAR.newException("character", characterDelimiter));
         }
         try {
             columnDelimiter = unescape(columnDelimiter);
         } catch (IOException e) {
-            throw new SQLException("Illegal column delimiter char '"+columnDelimiter+"'", e);
+            throw PublicAPI.wrapStandardException(ErrorState.ILLEGAL_DELIMITER_CHAR.newException("column", columnDelimiter));
         }
 
         if (columnDelimiter != null && ! columnDelimiter.equals("NULL") && columnDelimiter.equals(characterDelimiter)) {
-            throw new SQLException("Character delimiter cannot be the same as the column delimiter.");
+            throw PublicAPI.wrapStandardException(ErrorState.DELIMITERS_SAME.newException());
         }
 
         Connection conn = null;
@@ -500,29 +440,10 @@ public class HdfsImport {
         }
         StringBuilder unescaped = new StringBuilder(4);
         int sz = str.length();
-        StringBuilder unicode = new StringBuilder(4);
         boolean hadControl = false;
-        boolean hadSlash = false;
-        boolean inUnicode = false;
+        boolean hadBackslash = false;
         for (int i = 0; i < sz; i++) {
             char ch = str.charAt(i);
-            if (inUnicode) {
-                // if in unicode, then we're reading unicode
-                unicode.append(ch);
-                if (unicode.length() == 4) {
-                    // unicode now contains the four hex digits which represents our unicode character
-                    try {
-                        int value = Integer.parseInt(unicode.toString(), 16);
-                        unescaped.append((char) value);
-                        unicode.setLength(0);
-                        inUnicode = false;
-                        hadSlash = false;
-                    } catch (NumberFormatException nfe) {
-                        throw new IOException("Unable to parse unicode value: " + unicode, nfe);
-                    }
-                }
-                continue;
-            }
             if (hadControl) {
                 // support ctrl chars
                 switch (ch) {
@@ -535,13 +456,12 @@ public class HdfsImport {
                         unescaped.append('\n');
                         break;
                     default:
-                        unescaped.append(ch);
-                        break;
+                        throw new IOException("Unsupported control char '"+str+"'");
                 }
                 continue;
-            } else if (hadSlash) {
+            } else if (hadBackslash) {
                 // handle an escaped value
-                hadSlash = false;
+                hadBackslash = false;
                 switch (ch) {
                     case '\\':
                         unescaped.append('\\');
@@ -567,19 +487,12 @@ public class HdfsImport {
                     case 'b':
                         unescaped.append('\b');
                         break;
-                    case 'u':
-                    {
-                        // unicode
-                        inUnicode = true;
-                        break;
-                    }
                     default :
-                        unescaped.append(ch);
-                        break;
+                        throw new IOException("Unsupported escape char '"+str+"'");
                 }
                 continue;
             } else if (ch == '\\') {
-                hadSlash = true;
+                hadBackslash = true;
                 continue;
             } else if (ch == '^') {
                 hadControl = true;

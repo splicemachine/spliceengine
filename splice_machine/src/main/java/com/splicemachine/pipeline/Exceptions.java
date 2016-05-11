@@ -35,8 +35,6 @@ public class Exceptions {
             assert baseEf!=null: "Cannot parse exception without an Exception Factory";
             e = baseEf.processRemoteException(rootCause);
         }
-        Throwable t = Throwables.getRootCause(e);
-        if(t instanceof StandardException) return (StandardException)t;
 
         ErrorState state = ErrorState.stateFor(e);
 
