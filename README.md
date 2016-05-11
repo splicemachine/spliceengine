@@ -93,13 +93,16 @@ against a fresh memory-database.
 HBase is further separated into subprofiles, indicating the specific hbase distribution of interest. To build
 hbase against a specific distribution:
 
-`mvn install -P${hbaseDistribution}`
+`mvn install -P${hbaseDistribution},${hbaseVersion}`
 
-where `${hbaseDistribution}` is the name of the distribution that you want to build and test against. This will
+where `${hbaseDistribution},${hbaseVersion}` is the name of the distribution and hbase version that you want to build and test against. This will
 run all unit _and_ integration tests(we will be separating those out better in the near-term)
 
-###Available HBase distributions
-* `cdh5.4.8`
+###Available HBase distributions and version combos
+* `cdh5.4.10,hbase1.0.0`
+* `cdh5.5.2,hbase1.0.0.x`
+* `cdh5.6.0,hbase1.0.0.x`
+* `cdh5.7.0,hbase1.2.0`
 
 #Running testing environments
 
