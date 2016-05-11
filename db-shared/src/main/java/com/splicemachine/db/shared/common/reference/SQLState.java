@@ -721,6 +721,7 @@ public interface SQLState {
 	String LANG_FORMAT_EXCEPTION                                       = "22018";
 	String LANG_INVALID_ESCAPE_CHARACTER                               = "22019";
 	String LANG_INVALID_TRIM_CHARACTER                                 = "22020";
+	String LANG_INVALID_CHARACTER_ENCODING                             = "22021";
 	String LANG_INVALID_ESCAPE_SEQUENCE                                = "22025";
 	String LANG_INVALID_TRIM_SET                                       = "22027";
     String LANG_STRING_TOO_LONG                                        = "22028";
@@ -1858,8 +1859,10 @@ public interface SQLState {
 	String INVALID_COLUMN_NUMBER                                   ="XIE09.S";
 	String COLUMN_NUMBER_MISMATCH                                  ="XIE0A.S";
 	String UNSUPPORTED_COLUMN_TYPE                                 ="XIE0B.S";
+	String ILLEGAL_DELIMITER_CHAR                                  ="XIE0C.S";
 	String RECORD_SEPERATOR_MISSING                                ="XIE0D.S";
 	String UNEXPECTED_END_OF_FILE                                  ="XIE0E.S";
+	String DELIMITERS_SAME                                         ="XIE0F.S";
 	String ERROR_WRITING_DATA                                      ="XIE0I.S";
 	String DELIMITERS_ARE_NOT_MUTUALLY_EXCLUSIVE                   ="XIE0J.S";
 	String PERIOD_AS_CHAR_DELIMITER_NOT_ALLOWED                    ="XIE0K.S";

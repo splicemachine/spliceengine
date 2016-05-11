@@ -799,6 +799,12 @@ Guide.
 				<arg>string</arg>
 			</msg>
 
+
+          <msg>
+            <name>22021</name>
+            <text>Unknown character encoding '{0}'.</text>
+            <arg>typeName</arg>
+          </msg>
 			<msg>
                 <name>22025</name>
                 <text>Escape character must be followed by escape character, '_', or '%'. It cannot be followed by any other character or be at the end of the pattern.</text>
@@ -4560,6 +4566,13 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             </msg>
 
             <msg>
+                <name>XIE0C.S</name>
+                <text>Illegal {0} delimiter character '{1}'.</text>
+                <arg>delimiter</arg>
+                <arg>character</arg>
+            </msg>
+
+            <msg>
                 <name>XIE0D.S</name>
                 <text>Cannot find the record separator on line {0}.</text>
                 <arg>lineNumber</arg>
@@ -4569,6 +4582,11 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <name>XIE0E.S</name>
                 <text>Read endOfFile at unexpected place on line {0}.</text>
                 <arg>lineNumber</arg>
+            </msg>
+
+            <msg>
+                <name>XIE0F.S</name>
+                <text>Character delimiter cannot be the same as the column delimiter.</text>
             </msg>
 
             <msg>
