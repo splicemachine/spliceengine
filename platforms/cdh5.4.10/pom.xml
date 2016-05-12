@@ -4,7 +4,7 @@
     <groupId>com.splicemachine</groupId>
     <artifactId>splice_machine_cdh5.4.10</artifactId>
     <packaging>pom</packaging>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.0.1.10-SNAPSHOT</version>
     <name>splice_machine_cdh5.4.10</name>
     <description>In Memory Storage Engine for SpliceMachine.</description>
     <modules>
