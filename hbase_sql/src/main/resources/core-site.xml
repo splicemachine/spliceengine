@@ -1,0 +1,22 @@
+<configuration>
+<property>
+    <name>fs.default.name</name>
+    <value>file:///</value>
+</property>
+
+<property>
+<name>fs.maprfs.impl</name>
+<value>org.apache.hadoop.fs.LocalFileSystem</value>
+</property>
+
+    <property>
+        <name>fs.hdfs.impl</name>
+        <value>org.apache.hadoop.fs.LocalFileSystem</value>
+    </property>
+
+    <property>
+        <name>fs.defaultFS</name>
+        <value>file:///</value>
+    </property>
+
+    </configuration>
