@@ -11,12 +11,6 @@
         <groupId>com.splicemachine</groupId>
         <version>2.0.1.10-SNAPSHOT</version>
     </parent>
-    <repositories>
-        <repository>
-            <id>splicemachine</id>
-            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
-        </repository>
-    </repositories>
     <build>
         <plugins>
             <plugin>
