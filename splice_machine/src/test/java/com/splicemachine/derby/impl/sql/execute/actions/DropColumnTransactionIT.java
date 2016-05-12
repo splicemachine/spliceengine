@@ -471,16 +471,34 @@ public class DropColumnTransactionIT {
         conn.createStatement().execute(String.format("insert into %s values (1,'fred',100)", tableRef));
         conn.createStatement().execute(String.format("insert into %s values (2,'barney',200)", tableRef));
 
+        runQueriesForDropColumnTest(tableRef, 1);
+
+        // Drop the middle column, which bumps 'bar' from column 3 to column 2 (but still with storage column 3),
+        // then run the same queries we just ran to make sure results are the same.
+        conn.createStatement().execute(String.format(
+            "alter table %s drop column name", tableRef));
+
+        runQueriesForDropColumnTest(tableRef, 2);
+
+        conn.createStatement().execute(String.format(
+            "alter table %s drop column id", tableRef));
+
+        runQueriesForDropColumnTest(tableRef, 3);
+    }
+
+    // Called by the above test a few times
+    private void runQueriesForDropColumnTest(String tableRef, int num) throws Exception {
+        // Appended to query to ensure uniqueness and therefore reparse/replan
+        String suffix = "/* call " + num + " */";
+
         // Important: we count rows by iteration and via select count(*) because
         // while resolving the related defect these returned different counts.
-        // After the drop column, the 'again' text in the queries forces them
-        // to be replanned which we need here.
 
         Assert.assertEquals(1L, methodWatcher.query(String.format(
-            "select count(*) from %s where bar = 100", tableRef)));
+            "select count(*) from %s where bar = 100 %s", tableRef, suffix)));
 
         ResultSet rs = methodWatcher.getStatement().executeQuery(String.format(
-            "select * from %s where bar = 100", tableRef));
+            "select * from %s where bar = 100 %s", tableRef, suffix));
         int count = 0;
         while (rs.next()) {
             String bar = rs.getString("bar");
@@ -490,10 +508,10 @@ public class DropColumnTransactionIT {
         Assert.assertEquals("Incorrect returned row count", 1, count);
 
         Assert.assertEquals(0L, methodWatcher.query(String.format(
-            "select count(*) from %s where bar = 5", tableRef)));
+            "select count(*) from %s where bar = 5 %s", tableRef, suffix)));
 
         rs = methodWatcher.getStatement().executeQuery(String.format(
-            "select * from %s where bar = 5", tableRef));
+            "select * from %s where bar = 5 %s", tableRef, suffix));
         count = 0;
         while (rs.next()) {
             ++count;
@@ -501,48 +519,9 @@ public class DropColumnTransactionIT {
         Assert.assertEquals("Incorrect returned row count", 0, count);
 
         Assert.assertEquals(0L, methodWatcher.query(String.format(
-            "select count(bar) from %s where bar = 5", tableRef)));
+            "select count(bar) from %s where bar = 5 %s", tableRef, suffix)));
         rs = methodWatcher.getStatement().executeQuery(String.format(
-            "select bar from %s where bar = 5", tableRef));
-        count = 0;
-        while (rs.next()) {
-            ++count;
-        }
-        Assert.assertEquals("Incorrect returned row count", 0, count);
-
-        // Drop the middle column, which bumps 'bar' from column 3 to column 2 (but still with storage column 3),
-        // then run the same queries we just ran to make sure results are the same.
-        conn.createStatement().execute(String.format(
-            "alter table %s drop column name", tableRef));
-
-        Assert.assertEquals(1L, methodWatcher.query(String.format(
-            "select count(*) from %s where bar = 100 /* again */", tableRef)));
-
-        rs = methodWatcher.getStatement().executeQuery(String.format(
-            "select * from %s where bar = 100 /* again */", tableRef));
-        count = 0;
-        while (rs.next()) {
-            String bar = rs.getString("bar");
-            Assert.assertNotNull("Expected non-null valued for bar.", bar);
-            ++count;
-        }
-        Assert.assertEquals("Incorrect returned row count", 1, count);
-
-        Assert.assertEquals(0L, methodWatcher.query(String.format(
-            "select count(*) from %s where bar = 5 /* again */", tableRef)));
-
-        rs = methodWatcher.getStatement().executeQuery(String.format(
-            "select * from %s where bar = 5 /* again */", tableRef));
-        count = 0;
-        while (rs.next()) {
-            ++count;
-        }
-        Assert.assertEquals("Incorrect returned row count", 0, count);
-
-        Assert.assertEquals(0L, methodWatcher.query(String.format(
-            "select count(bar) from %s where bar = 5 /* again */", tableRef)));
-        rs = methodWatcher.getStatement().executeQuery(String.format(
-            "select bar from %s where bar = 5 /* again */", tableRef));
+            "select bar from %s where bar = 5 %s", tableRef, suffix));
         count = 0;
         while (rs.next()) {
             ++count;
