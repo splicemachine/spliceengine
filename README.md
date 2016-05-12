@@ -103,6 +103,9 @@ run all unit _and_ integration tests(we will be separating those out better in t
 * `cdh5.5.2,hbase1.0.0.x`
 * `cdh5.6.0,hbase1.0.0.x`
 * `cdh5.7.0,hbase1.2.0`
+* `mapr5.1.0,hbase1.1.0`
+* `hdp2.30,hbase1.0.0.x`
+* `hdp2.4.2,hbase1.1.0`
 
 #Running testing environments
 
