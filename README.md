@@ -68,6 +68,8 @@ execution engine over HBase.
 * maven v3.2.1 (or newer)
   * a proper settings.xml (in ~/.m2/)
   * access to the splice nexus repo
+* Empty file (/opt/mapr/server/createJTVolume.sh) with open access (Hack around MapR's lack of Yarn Testing)
+  
   
 ## Building Core modules
 Since Core modules are shared, they need only be built once; after that, they only need to be built when
