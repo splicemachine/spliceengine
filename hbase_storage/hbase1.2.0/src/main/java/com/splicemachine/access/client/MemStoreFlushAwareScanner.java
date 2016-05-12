@@ -15,6 +15,10 @@ import org.apache.hadoop.hbase.regionserver.StoreScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
+import org.apache.hadoop.hbase.regionserver.ScannerContext;
+import org.apache.hadoop.hbase.regionserver.NoLimitScannerContext;
+
 
 /**
  *
