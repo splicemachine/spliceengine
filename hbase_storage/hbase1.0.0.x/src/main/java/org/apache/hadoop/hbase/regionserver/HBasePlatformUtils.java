@@ -44,5 +44,11 @@ public class HBasePlatformUtils{
         ZKUtil.transformClusterKey(quorumAddress);
     }
 
+    public static boolean scannerEndReached(ScannerContext scannerContext) {
+        scannerContext.setSizeLimitScope(ScannerContext.LimitScope.BETWEEN_ROWS);
+        scannerContext.incrementBatchProgress(1);
+        scannerContext.incrementSizeProgress(100l);
+       return scannerContext.setScannerState(ScannerContext.NextState.BATCH_LIMIT_REACHED).hasMoreValues();
+    }
 
 }

@@ -109,7 +109,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
                 }
                 if (endRowNeedsToBeReturned) {
                     try {
-                        return outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
+                        outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
+                        return HBasePlatformUtils.scannerEndReached(scannerContext);
                     } finally {
                         counter++;
                     }
@@ -119,6 +120,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
                         try {
                             outResult.add(new KeyValue(Bytes.toBytes(counter),
                                     ClientRegionConstants.FLUSH, ClientRegionConstants.FLUSH, Long.MAX_VALUE, ClientRegionConstants.FLUSH));
+                            return HBasePlatformUtils.scannerEndReached(scannerContext);
                         } finally {
                             counter++;
                         }
@@ -126,7 +128,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
                         flushAlreadyReturned = true;
                         outResult.add(ClientRegionConstants.MEMSTORE_BEGIN_FLUSH);
                     }
-                    return true;
+                    return HBasePlatformUtils.scannerEndReached(scannerContext);
                 }
                 return directInternalNext(outResult,scannerContext);
 		}
@@ -160,9 +162,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 
     @Override
     public boolean next(List<Cell> outResult, ScannerContext scannerContext) throws IOException {
-        System.out.println("next before -> " + outResult + " -> " + scannerContext);
-        boolean returnValue = internalNext(outResult,scannerContext);
-        System.out.println("next after -> " + outResult  + " -> " + scannerContext);
-        return returnValue;
+        return internalNext(outResult,scannerContext);
     }
 }
