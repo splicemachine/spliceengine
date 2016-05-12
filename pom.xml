@@ -609,7 +609,8 @@
             <properties>
                 <envClassifier>hdp2.3.0</envClassifier>
                 <hadoop.version>2.7.1.2.3.0.0-2557</hadoop.version>
-                <hbase.version>1.1.1-hdp2.3.0</hbase.version>
+                <hadoop.tools.version>1.2.0.23</hadoop.tools.version>
+                <hbase.version>1.1.1.2.3.0.0-2557</hbase.version>
                 <hive.version>1.2.1.2.3.0.0-2557</hive.version>
                 <zookeeper.version>3.4.6.2.3.0.0-2557</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.1.2.3.0.0-2557</spark-assembly-id>
