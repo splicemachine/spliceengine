@@ -18,7 +18,7 @@
     },
     "schema_version": 1,
     "name": "splice_machine",
-    "depends": "CDH (== 5.4.10)",
+    "depends": "CDH (== CDH_VERSION)",
     "version": "VERSION",
     "provides": [
         "hbase-plugin"
