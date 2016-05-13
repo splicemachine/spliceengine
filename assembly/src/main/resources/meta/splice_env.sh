@@ -27,7 +27,7 @@ fi
 
 echo "Copying yarn-site.xml to hbase directory"
 
-if [ -f "/etc/hadoop/conf.cloudera.yarn/yarn-site.xml" ] ; then
+if [ -r "/etc/hadoop/conf.cloudera.yarn/yarn-site.xml" ] ; then
     cp "/etc/hadoop/conf.cloudera.yarn/yarn-site.xml" "$CONF_DIR"
 else
     echo "Could not find yarn-site.xml, make sure to deploy yarn client in UI" >&2
