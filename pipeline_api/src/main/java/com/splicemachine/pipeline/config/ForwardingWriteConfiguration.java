@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.RecordingContext;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWrite;
@@ -20,6 +21,16 @@ public class ForwardingWriteConfiguration implements WriteConfiguration {
 
     protected ForwardingWriteConfiguration(WriteConfiguration delegate) {
         this.delegate = delegate;
+    }
+
+    @Override
+    public RecordingContext getRecordingContext() {
+        return delegate.getRecordingContext();
+    }
+
+    @Override
+    public void setRecordingContext(RecordingContext recordingContext) {
+        delegate.setRecordingContext(recordingContext);
     }
 
     @Override

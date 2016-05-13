@@ -10,32 +10,84 @@ import com.splicemachine.metrics.TimeView;
  */
 public interface WriteStats {
 		WriteStats NOOP_WRITE_STATS = new WriteStats() {
-				@Override public long getBytesWritten() { return 0; }
-				@Override public long getRowsWritten() { return 0; }
-				@Override public long getTotalRetries() { return 0; }
-				@Override public long getGlobalErrors() { return 0; }
-				@Override public long getPartialFailureCount() { return 0; }
-				@Override public long getRejectedCount() { return 0; }
-				@Override public TimeView getSleepTime() { return Metrics.noOpTimeView(); }
-				@Override public TimeView getNetworkTime() { return Metrics.noOpTimeView(); }
-				@Override public TimeView getTotalTime() { return Metrics.noOpTimeView(); }
+
+			@Override
+			public long getWrittenCounter() {
+				return 0;
+			}
+
+			@Override
+			public long getRetryCounter() {
+				return 0;
+			}
+
+			@Override
+			public long getThrownErrorsRows() {
+				return 0;
+			}
+
+			@Override
+			public long getRetriedRows() {
+				return 0;
+			}
+
+			@Override
+			public long getPartialRows() {
+				return 0;
+			}
+
+			@Override
+			public long getPartialThrownErrorRows() {
+				return 0;
+			}
+
+			@Override
+			public long getPartialRetriedRows() {
+				return 0;
+			}
+
+			@Override
+			public long getPartialIgnoredRows() {
+				return 0;
+			}
+
+			@Override
+			public long getPartialWrite() {
+				return 0;
+			}
+
+			@Override
+			public long getIgnoredRows() {
+				return 0;
+			}
+
+			@Override
+			public long getCatchThrownRows() {
+				return 0;
+			}
+
+			@Override
+			public long getCatchRetriedRows() {
+				return 0;
+			}
+
+			@Override
+			public long getRegionTooBusy() {
+				return 0;
+			}
 		};
 
-		long getBytesWritten();
-
-		long getRowsWritten();
-
-		long getTotalRetries();
-
-		long getGlobalErrors();
-
-		long getPartialFailureCount();
-
-		long getRejectedCount();
-
-		TimeView getSleepTime();
-
-		TimeView getNetworkTime();
-
-		TimeView getTotalTime();
+	long getWrittenCounter();
+	long getRetryCounter();
+	long getThrownErrorsRows();
+	long getRetriedRows();
+	long getPartialRows();
+	long getPartialThrownErrorRows();
+	long getPartialRetriedRows();
+	long getPartialIgnoredRows();
+	long getPartialWrite();
+	long getIgnoredRows();
+	long getCatchThrownRows();
+	long getCatchRetriedRows();
+	long getRegionTooBusy();
 }

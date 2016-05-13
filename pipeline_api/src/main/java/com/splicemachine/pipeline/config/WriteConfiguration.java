@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.RecordingContext;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
@@ -33,4 +34,8 @@ public interface WriteConfiguration {
     void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap);
 
     PipelineExceptionFactory getExceptionFactory();
+
+    RecordingContext getRecordingContext();
+
+    void setRecordingContext(RecordingContext recordingContext);
 }

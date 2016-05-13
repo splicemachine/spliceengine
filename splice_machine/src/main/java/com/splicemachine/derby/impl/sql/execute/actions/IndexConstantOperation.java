@@ -106,7 +106,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             IndexScanSetBuilder<KVPair> indexBuilder = dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
             ScanSetBuilder<KVPair> scanSetBuilder = indexBuilder
 				.indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
-                .tableDisplayName(tableName)
+                		.tableDisplayName(tableName)
+				.operationContext(dsp.createOperationContext(activation))
 				.transaction(indexTransaction)
 				.demarcationPoint(demarcationPoint)
 				.scan(DDLUtils.createFullScan());

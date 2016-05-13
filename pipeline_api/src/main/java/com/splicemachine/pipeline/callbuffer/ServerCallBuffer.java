@@ -108,8 +108,11 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
     public void flushBufferAndWait() throws Exception {
         flushBuffer();
         //make sure all outstanding buffers complete before returning
-        for (Future<WriteStats> outstandingCall : outstandingRequests) {
-            WriteStats retStats = outstandingCall.get();//wait for errors and/or completion
+        Iterator<Future<WriteStats>> futureIterator = outstandingRequests.iterator();
+        while (futureIterator.hasNext()) {
+            Future<WriteStats> future = futureIterator.next();
+            futureIterator.remove();
+            WriteStats retStats = future.get();//check for errors
             writeStats.merge(retStats);
         }
     }

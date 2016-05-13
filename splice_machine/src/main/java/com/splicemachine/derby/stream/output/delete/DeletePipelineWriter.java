@@ -28,7 +28,6 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
     public DeletePipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) throws StandardException {
         super(txn,heapConglom,operationContext);
-        this.operationContext = operationContext;
         if (operationContext != null) {
             deleteOperation = (DeleteOperation)operationContext.getOperation();
         }

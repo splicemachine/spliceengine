@@ -6,11 +6,16 @@ import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.pipeline.api.WriteStats;
+import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
+import com.splicemachine.pipeline.config.ForwardingWriteConfiguration;
+import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 
@@ -27,7 +32,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     private final OperationContext opCtx;
     private final boolean skipIndex;
 
-    private CallBuffer<KVPair> writeBuffer;
+    private RecordingCallBuffer<KVPair> writeBuffer;
 
     public DirectPipelineWriter(long destConglomerate,TxnView txn,OperationContext opCtx,boolean skipIndex){
         this.destConglomerate=destConglomerate;
@@ -38,9 +43,15 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
 
     @Override
     public void open() throws StandardException{
-        WriteCoordinator wc =PipelineDriver.driver().writeCoordinator();
+        WriteCoordinator wc = PipelineDriver.driver().writeCoordinator();
+        WriteConfiguration writeConfiguration = new DirectWriteConfiguration(wc.defaultWriteConfiguration());
         try{
-            this.writeBuffer = wc.writeBuffer(Bytes.toBytes(Long.toString(destConglomerate)),txn,Metrics.noOpMetricFactory());
+            this.writeBuffer = wc.writeBuffer(
+                    Bytes.toBytes(Long.toString(destConglomerate)),
+                    txn,
+                    PipelineUtils.noOpFlushHook,
+                    writeConfiguration,
+                    Metrics.basicMetricFactory());
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
@@ -72,6 +83,20 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
         try{
             writeBuffer.flushBufferAndWait();
             writeBuffer.close();
+            WriteStats ws = writeBuffer.getWriteStats();
+            opCtx.recordPipelineWrites(ws.getWrittenCounter());
+            opCtx.recordRetry(ws.getRetryCounter());
+            opCtx.recordThrownErrorRows(ws.getThrownErrorsRows());
+            opCtx.recordRetriedRows(ws.getRetriedRows());
+            opCtx.recordPartialRows(ws.getPartialRows());
+            opCtx.recordPartialThrownErrorRows(ws.getPartialThrownErrorRows());
+            opCtx.recordPartialRetriedRows(ws.getPartialRetriedRows());
+            opCtx.recordPartialIgnoredRows(ws.getPartialIgnoredRows());
+            opCtx.recordPartialWrite(ws.getPartialWrite());
+            opCtx.recordIgnoredRows(ws.getIgnoredRows());
+            opCtx.recordCatchThrownRows(ws.getCatchThrownRows());
+            opCtx.recordCatchRetriedRows(ws.getCatchRetriedRows());
+            opCtx.recordRegionTooBusy(ws.getRegionTooBusy());
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -95,5 +120,16 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     @Override
     public OperationContext getOperationContext() {
         return opCtx;
+    }
+
+    public static class DirectWriteConfiguration extends ForwardingWriteConfiguration {
+        protected DirectWriteConfiguration(WriteConfiguration delegate) {
+            super(delegate);
+        }
+
+        @Override
+        public MetricFactory getMetricFactory() {
+            return Metrics.basicMetricFactory();
+        }
     }
 }

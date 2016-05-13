@@ -10,6 +10,7 @@ import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.primitives.Bytes;
@@ -29,13 +30,13 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected Callable<Void> flushCallback;
     protected RecordingCallBuffer<KVPair> writeBuffer;
     protected WriteCoordinator writeCoordinator;
-    protected OperationContext operationContext;
     protected DMLWriteOperation operation;
+    protected OperationContext operationContext;
 
     public AbstractPipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) {
         this.txn = txn;
         this.heapConglom = heapConglom;
-        destinationTable = Bytes.toBytes(Long.toString(heapConglom));
+        this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
         this.operationContext = operationContext;
         if (operationContext != null) {
             this.operation = (DMLWriteOperation) operationContext.getOperation();
@@ -77,7 +78,22 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
             if (writeBuffer != null) {
                 writeBuffer.flushBuffer();
                 writeBuffer.close();
+                WriteStats ws = writeBuffer.getWriteStats();
+                operationContext.recordPipelineWrites(ws.getWrittenCounter());
+                operationContext.recordRetry(ws.getRetryCounter());
+                operationContext.recordThrownErrorRows(ws.getThrownErrorsRows());
+                operationContext.recordRetriedRows(ws.getRetriedRows());
+                operationContext.recordPartialRows(ws.getPartialRows());
+                operationContext.recordPartialThrownErrorRows(ws.getPartialThrownErrorRows());
+                operationContext.recordPartialRetriedRows(ws.getPartialRetriedRows());
+                operationContext.recordPartialIgnoredRows(ws.getPartialIgnoredRows());
+                operationContext.recordPartialWrite(ws.getPartialWrite());
+                operationContext.recordIgnoredRows(ws.getIgnoredRows());
+                operationContext.recordCatchThrownRows(ws.getCatchThrownRows());
+                operationContext.recordCatchRetriedRows(ws.getCatchRetriedRows());
+                operationContext.recordRegionTooBusy(ws.getRegionTooBusy());
             }
+
         } catch (Exception e) {
             e.printStackTrace();
             throw Exceptions.parseException(e);

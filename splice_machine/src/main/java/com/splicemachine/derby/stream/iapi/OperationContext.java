@@ -4,28 +4,27 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.control.BadRecordsRecorder;
+import com.splicemachine.pipeline.api.RecordingContext;
 import com.splicemachine.si.api.txn.TxnView;
 import java.io.Externalizable;
 
 /**
  * Created by jleach on 4/17/15.
  */
-public interface OperationContext<Op extends SpliceOperation> extends Externalizable {
+public interface OperationContext<Op extends SpliceOperation> extends Externalizable, RecordingContext {
     void prepare();
     void reset();
     Op getOperation();
     Activation getActivation();
-    void recordRead();
-    void recordFilter();
-    void recordWrite();
+
     void recordJoinedLeft();
     void recordJoinedRight();
-    void recordProduced();
+
     long getRecordsRead();
     long getRecordsFiltered();
     long getRecordsWritten();
-
-    void recordBadRecord(String badRecord, Exception exception) throws StandardException;
+    long getRetryAttempts();
+    long getRegionTooBusyExceptions();
 
     BadRecordsRecorder getBadRecordsRecorder();
 
