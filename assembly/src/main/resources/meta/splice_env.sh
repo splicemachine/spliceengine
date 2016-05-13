@@ -18,6 +18,9 @@ MYLIBDIR=${PARCELS_ROOT}/${PARCEL_DIRNAME}/lib/splice
 
 APPENDSTRING=`echo ${MYLIBDIR}/*.jar | sed 's/ /:/g'`
 echo "appending '$APPENDSTRING' to HBASE_CLASSPATH"
+
+echo "listening out config dir '$HBASE_CONF_DIR'"
+
 if [ -z $HBASE_CLASSPATH ] ; then
     export HBASE_CLASSPATH=$APPENDSTRING
 else
