@@ -449,6 +449,7 @@
                 </property>
             </activation>
             <properties>
+                <cdh.parcel.version>5.4.10</cdh.parcel.version>
                 <envClassifier>cdh5.4.10</envClassifier>
                 <envHbase>hbase1.0.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.4.10</hadoop.version>
@@ -476,6 +477,7 @@
                 </property>
             </activation>
             <properties>
+                <cdh.parcel.version>5.5.2</cdh.parcel.version>
                 <envClassifier>cdh5.5.2</envClassifier>
                 <hadoop.version>2.6.0-cdh5.5.2</hadoop.version>
                 <hadoop.tools.version>2.6.0-mr1-cdh5.5.2</hadoop.tools.version>
@@ -502,6 +504,7 @@
                 </property>
             </activation>
             <properties>
+                <cdh.parcel.version>5.6.0</cdh.parcel.version>
                 <envClassifier>cdh5.6.0</envClassifier>
                 <hadoop.version>2.6.0-cdh5.6.0</hadoop.version>
                 <hadoop.tools.version>2.6.0-mr1-cdh5.6.0</hadoop.tools.version>
@@ -528,6 +531,7 @@
                 </property>
             </activation>
             <properties>
+                <cdh.parcel.version>5.7.0</cdh.parcel.version>
                 <envClassifier>cdh5.7.0</envClassifier>
                 <hadoop.version>2.6.0-cdh5.7.0</hadoop.version>
                 <hadoop.tools.version>2.6.0-mr1-cdh5.7.0</hadoop.tools.version>
