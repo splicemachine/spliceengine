@@ -11,5 +11,6 @@
         <module>../../mem_storage</module>
         <module>../../mem_pipeline</module>
         <module>../../mem_sql</module>
+        <module>../../assembly</module>
     </modules>
 </project>

@@ -11,8 +11,209 @@
         <groupId>com.splicemachine</groupId>
         <version>2.0.1.10-SNAPSHOT</version>
     </parent>
-    <build>
-        <plugins>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+        <id>parcel</id>
+        <activation>
+            <property>
+                <name>parcel</name>
+                <value>parcel</value>
+            </property>
+        </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <!--This used to be confinded to the spark-prepare profile, but is now done always by default
+          To disable, use skipSparkPrepare on the command line
+          -->
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>2.10</version>
+                        <executions>
+                            <execution>
+                                <id>copy</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+
+                                    <includeArtifactIds>
+                                        hpcc,kryo,gson,protobuf-java,disruptor,
+                                        kryo-serializers,ehcache-core,opencsv,super-csv,
+                                        lucene-core,spark,concurrentlinkedhashmap-lru,
+                                        pipeline_api,splice_access_api,splice_encoding,
+                                        splice_machine,splice_protocol,splice_si_api,
+                                        splice_timestamp_api,hbase_pipeline-${envClassifier},
+                                        hbase_storage-${envClassifier},hbase_sql-${envClassifier},
+                                        ${spark-assembly-id}
+                                    </includeArtifactIds>
+
+                                </configuration>
+
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <tasks>
+                                        <replace token= "BASE_VERSION" value="${envClassifier}" dir="target/classes/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+                                        <replace token= "PKG_VERSION" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <replace token= "VERSION" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <replace token= "PKG_RELEASE" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+                                        <replace token= "SPLICE_PACKAGE" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <copy todir="target/splice_machine-${envClassifier}-${project.version}/lib/splice/">
+                                            <fileset dir="target/dependency" includes="**/*" />
+                                        </copy>
+                                        <copy todir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                            <fileset dir="target/classes/meta" includes="**/*" />
+                                        </copy>
+                                        <copy todir="target/splice_machine-${envClassifier}-${project.version}/bin">
+                                            <fileset dir="target/classes/bin" includes="**/*" />
+                                        </copy>
+
+                                        <!-- el6 -->
+
+                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.el6"
+                                                 dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-el6.parcel">
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
+                                                        prefix="splice_machine-${envClassifier}-${project.version}"
+                                                        preserveLeadingSlashes="true"/>
+                                        </tar>
+
+                                        <!-- sles11 -->
+
+                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.sles11" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-sles11.parcel">
+
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
+                                                        prefix="splice_machine-${envClassifier}-${project.version}"
+                                                        preserveLeadingSlashes="true"/>
+                                        </tar>
+
+                                        <!-- precise -->
+
+                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.precise" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-precise.parcel">
+
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
+                                                        prefix="splice_machine-${envClassifier}-${project.version}"
+                                                        preserveLeadingSlashes="true"/>
+                                        </tar>
+
+
+                                        <!-- el7 -->
+
+                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.el7" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-el7.parcel">
+
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
+                                                        prefix="splice_machine-${envClassifier}-${project.version}"
+                                                        preserveLeadingSlashes="true"/>
+                                        </tar>
+
+
+                                        <!-- wheezy -->
+
+                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.wheezy" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-wheezy.parcel">
+
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
+                                                        prefix="splice_machine-${envClassifier}-${project.version}"
+                                                        preserveLeadingSlashes="true"/>
+                                        </tar>
+
+
+                                        <!-- trusty -->
+
+                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.trusty" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+
+                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-trusty.parcel">
+
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
+                                                        prefix="splice_machine-${envClassifier}-${project.version}"
+                                                        preserveLeadingSlashes="true"/>
+                                        </tar>
+
+
+                                        <exec executable="python" failonerror="true" dir="target/parcels">
+                                            <arg line="${project.basedir}/src/main/resources/python/make_manifest.py"/>
+                                        </exec>
+
+                                        <tar destfile="target/parcels.tar" basedir="target/parcels/"/>
+
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+
+                </plugins>
+
+
+            </build>
+            </profile>
+
+            <profile>
+            <id>complete</id>
+            <activation>
+                <property>
+                    <name>complete</name>
+                    <value>complete</value>
+                </property>
+            </activation>
+            <build>
+            <plugins>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -73,46 +274,10 @@
                 </executions>
             </plugin>
         </plugins>
-    </build>
-    <profiles>
-        <profile>
-            <id>mem</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-                <property>
-                    <name>env</name>
-                    <value>mem</value>
-                </property>
-            </activation>
-            <properties>
-                <envClassifier>mem</envClassifier>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>mem_engine</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>cdh5.4.8</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>cdh5.4.8</value>
-                </property>
-            </activation>
-            <properties>
-                <envClassifier>cdh5.4.8</envClassifier>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>hbase_sql-${envClassifier}</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
+                </build>
+
+    </profile>
+
     </profiles>
+
 </project>

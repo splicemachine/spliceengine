@@ -1,0 +1,34 @@
+{
+    "groups": [],
+    "extraVersionInfo": {
+        "baseVersion": "BASE_VERSION",
+        "fullVersion": "FULLV",
+        "patchCount": "0"
+    },
+    "components": [
+        {
+            "pkg_version": "PKG_VERSION",
+            "version": "VERSION",
+            "name": "splice",
+            "pkg_release": "PKG_RELEASE"
+        }
+    ],
+    "scripts": {
+        "defines": "splice_env.sh"
+    },
+    "schema_version": 1,
+    "name": "splice_machine",
+    "depends": "CDH (== 5.4.10)",
+    "version": "VERSION",
+    "provides": [
+        "hbase-plugin"
+    ],
+    "setActiveSymlink": true,
+    "packages": [
+        {
+            "version": "SPLICE_PACKAGE",
+            "name": "splice"
+        }
+    ],
+    "users": {}
+}
