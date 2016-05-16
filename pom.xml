@@ -38,12 +38,6 @@
 			<!-- internally built dependencies -->
 			<dependency>
 				<groupId>com.splicemachine</groupId>
-				<artifactId>splice-web</artifactId>
-				<version>1.5.5</version>
-				<type>tar.gz</type>
-			</dependency>
-			<dependency>
-				<groupId>com.splicemachine</groupId>
 				<artifactId>utilities</artifactId>
 				<version>1.2.0</version>
 			</dependency>
