@@ -2255,7 +2255,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testWindowFunctionInCaseStmt() throws Exception {
         // DB-3999 - WF in case stmt not working
         // Added a rank() WF to the select to make sure we still get the ref to the commission col pulled up
-        String tableName = "employees";
+        String tableName = "EMPLOYEES";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(employee_id int, employee_name varchar(10), salary int, department varchar(10), commission int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2340,7 +2340,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testFirstValueFunction() throws Exception {
         // DB-3920
-        String tableName = "emp3";
+        String tableName = "EMP3";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2534,7 +2534,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLagFunction() throws Exception {
         // DB-3920
-        String tableName = "emp3";
+        String tableName = "EMP3";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2752,7 +2752,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLeadLagOffsetExtrema() throws Exception {
         // DB-3977, DB-3980 - offset extrema
-        String tableName = "twoints";
+        String tableName = "TWOINTS";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(a int, b int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2787,7 +2787,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLeadLagFirstValueLastValueNoOrderBy() throws Exception {
         // DB-3976 - no order by
-        String tableName = "twoints";
+        String tableName = "TWOINTS";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(a int, b int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);

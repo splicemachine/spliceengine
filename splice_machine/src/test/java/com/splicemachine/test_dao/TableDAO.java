@@ -1,6 +1,7 @@
 package com.splicemachine.test_dao;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.utils.EngineUtils;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -36,12 +37,21 @@ public class TableDAO {
         try {
             synchronized(jdbcTemplate){ //TODO -sf- synchronize on something else, or remove the need
                 DatabaseMetaData metaData=jdbcTemplate.getConnection().getMetaData();
-                try(ResultSet rs=metaData.getTables(null,schemaName.toUpperCase(),tableName.toUpperCase(),null)){
+                String tN;
+                if(tableName.toLowerCase().equals(tableName))
+                    tN = tableName.toUpperCase();
+                else if(tableName.toUpperCase().equals(tableName))
+                    tN = tableName;
+                else {
+                    //we have mixed case
+                    tN = "\""+tableName+"\"";
+                }
+                try(ResultSet rs=metaData.getTables(null,schemaName.toUpperCase(),tableName,null)){
                     if(rs.next()){
                         if(isView){
-                            jdbcTemplate.executeUpdate(format("drop view %s.%s",schemaName,tableName));
+                            jdbcTemplate.executeUpdate(format("drop view %s.%s",schemaName,tN));
                         }else{
-                            jdbcTemplate.executeUpdate(format("drop table %s.%s",schemaName,tableName));
+                            jdbcTemplate.executeUpdate(format("drop table %s.%s",schemaName,tN));
                         }
                     }
                 }

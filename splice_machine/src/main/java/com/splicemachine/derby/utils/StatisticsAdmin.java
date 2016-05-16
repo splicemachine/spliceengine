@@ -140,7 +140,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             if (schema == null)
                 throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException(); //TODO -sf- change this to proper SCHEMA
                 // error?
-            schema = schema.toUpperCase();
+            schema = EngineUtils.validateSchema(schema);
 
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();

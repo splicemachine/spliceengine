@@ -283,7 +283,7 @@ public class ImportDefaultValueIT {
         // TODO: This test was verifying old import behavior that is now unsupported. Not sure of its value anymore.
         // col2 is a timestamp column with default. If an empty value is given in CSV, we should see the default value
         // in query results. This is how it worked in Lassen
-        String tableName = "default_timestamp_middle_col_list";
+        String tableName = "default_timestamp_middle_col_list10";
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
@@ -367,7 +367,7 @@ public class ImportDefaultValueIT {
     public void errorGeneratedAlwaysNoColumnList() throws Exception {
         // no col list spec'd so should turn into all columns in table, which is an
         // error in this case cause the file doesn't have all
-        String tableName = "generated_always_no_col_list";
+        String tableName = "generated_always_no_col_list23";
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 

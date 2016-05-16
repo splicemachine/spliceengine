@@ -43,13 +43,13 @@ public class ConstraintConstantOperationIT {
 
     // primary key constraint
     // column-level check constraint
-    private static final String EMP_PRIV_TABLE_NAME = "EmpPriv";
+    private static final String EMP_PRIV_TABLE_NAME = "EMPPRIV";
     private static final String EMP_PRIV_TABLE_DEF =
         "(empId int not null CONSTRAINT EMP_ID_PK PRIMARY KEY, dob varchar(10) not null, ssn varchar(12) not null, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000))";
     protected static SpliceTableWatcher empPrivTable = new SpliceTableWatcher(EMP_PRIV_TABLE_NAME, SCHEMA, EMP_PRIV_TABLE_DEF);
 
     // foreign key constraint
-    private static final String EMP_NAME_TABLE_NAME = "EmpName";
+    private static final String EMP_NAME_TABLE_NAME = "EMPNAME";
     private static final String EMP_NAME_TABLE_DEF = "(empId int not null CONSTRAINT EMP_ID_FK REFERENCES "+ empPrivTable+
         " ON UPDATE RESTRICT, fname varchar(8) not null, lname varchar(10) not null)";
     protected static SpliceTableWatcher empNameTable = new SpliceTableWatcher(EMP_NAME_TABLE_NAME, SCHEMA, EMP_NAME_TABLE_DEF);

@@ -39,16 +39,30 @@ public class EngineUtils{
     public static String validateSchema(String schema) throws SQLException{
         if (schema == null)
             schema = getCurrentSchema();
-        else
-            schema = schema.toUpperCase();
+        else{
+            int quoteStartIdx = schema.indexOf("\"");
+            if(quoteStartIdx>=0){
+                int quoteEndIdx = schema.indexOf("\"",quoteStartIdx+1);
+                assert quoteEndIdx>0 : "Parser error! uncompleted quotes were allowed!";
+                schema = schema.substring(quoteStartIdx+1,quoteEndIdx);
+            }else
+                schema = schema.toUpperCase();
+        }
         return schema;
     }
 
     public static String validateTable(String table) throws SQLException {
         if (table == null)
             throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
-        else
-            table = table.toUpperCase();
+        else {
+            int quoteStartIdx = table.indexOf("\"");
+            if(quoteStartIdx>=0){
+                int quoteEndIdx = table.indexOf("\"",quoteStartIdx+1);
+                assert quoteEndIdx>0 : "Parser error! uncompleted quotes were allowed!";
+                table = table.substring(quoteStartIdx+1,quoteEndIdx);
+            }else
+                table = table.toUpperCase();
+        }
         return table;
     }
 

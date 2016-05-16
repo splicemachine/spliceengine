@@ -10,10 +10,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -35,6 +32,8 @@ public class StatisticsAdminIT{
     private static final String TABLE_EMPTY="EMPTY";
     private static final String TABLE_OCCUPIED="OCCUPIED";
     private static final String TABLE_OCCUPIED2="OCCUPIED2";
+    private static final String MIXED_CASE_TABLE="MixedCaseTable";
+    private static final String MIXED_CASE_SCHEMA="MixedCaseSchema";
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -58,6 +57,7 @@ public class StatisticsAdminIT{
 
         Connection conn2=spliceClassWatcher2.getOrCreateConnection();
         doCreateSharedTables(conn2);
+
     }
 
     private static void doCreateSharedTables(Connection conn) throws Exception{
@@ -79,6 +79,11 @@ public class StatisticsAdminIT{
         new TableCreator(conn)
                 .withCreate("create table "+TABLE_EMPTY+" (a int)")
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table \""+MIXED_CASE_TABLE+"\" (a int)")
+                .create();
+
     }
 
     @Test
@@ -233,7 +238,7 @@ public class StatisticsAdminIT{
         }
 
         // Check collected stats for both schemas
-        verifyStatsCounts(conn,SCHEMA,null,3,3);
+        verifyStatsCounts(conn,SCHEMA,null,4,4);
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
         // Drop stats for schema 1
@@ -293,7 +298,7 @@ public class StatisticsAdminIT{
             cs2.execute();
         }
         // Check collected stats for both schemas
-        verifyStatsCounts(conn,SCHEMA,null,3,3);
+        verifyStatsCounts(conn,SCHEMA,null,4,4);
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
         // Drop stats for schema 1, table 1
@@ -304,7 +309,7 @@ public class StatisticsAdminIT{
         }
 
         // Make sure stats for both table and index were dropped in schema 1.
-        verifyStatsCounts(conn,SCHEMA,null,2,2);
+        verifyStatsCounts(conn,SCHEMA,null,3,3);
         verifyStatsCounts(conn,SCHEMA,TABLE_OCCUPIED,0,0);
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
@@ -316,7 +321,7 @@ public class StatisticsAdminIT{
         }
 
         // Same as prior check
-        verifyStatsCounts(conn,SCHEMA,null,2,2);
+        verifyStatsCounts(conn,SCHEMA,null,3,3);
         verifyStatsCounts(conn,SCHEMA,TABLE_OCCUPIED,0,0);
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
@@ -327,6 +332,45 @@ public class StatisticsAdminIT{
         conn.reset();
     }
 
+    @Test
+    public void canCollectOnMixedCaseTable() throws Exception{
+        /*
+         * DB-4184 Regression test. Just make sure that we don't get any errors.
+         */
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+
+        try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,false)")){
+            cs.setString(1,spliceSchemaWatcher.schemaName);
+            cs.setString(2,"\""+MIXED_CASE_TABLE+"\"");
+
+            cs.execute();
+        }
+    }
+
+    @Test
+    public void canCollectOnMixedCaseSchema() throws Exception{
+        /*
+         * DB-4184 Regression test. Just make sure that we don't get any errors.
+         */
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+
+        try(Statement s = conn.createStatement()){
+            s.execute("create schema \""+MIXED_CASE_SCHEMA+"\"");
+
+            try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                cs.setString(1,"\""+MIXED_CASE_SCHEMA+"\"");
+
+                cs.execute();
+            }
+        }finally{
+            conn.rollback();
+        }
+
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
     private void verifyStatsCounts(Connection conn,String schema,String table,int tableStatsCount,int colStatsCount) throws Exception{
         try (
             PreparedStatement check = (table == null) ?

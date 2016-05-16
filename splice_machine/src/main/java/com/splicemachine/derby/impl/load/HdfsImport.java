@@ -308,12 +308,12 @@ public class HdfsImport {
             if (schemaName == null) {
                 schemaName = EngineUtils.getCurrentSchema();
             } else {
-                schemaName = normalizeIdentifier(schemaName);
+                schemaName = EngineUtils.validateSchema(schemaName);
             }
             if (tableName == null) {
                 throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
             } else {
-                tableName = normalizeIdentifier(tableName);
+                tableName = EngineUtils.validateTable(tableName);
             }
             conn = SpliceAdmin.getDefaultConn();
             // This needs to be found by the database locale, not hard coded.
@@ -408,14 +408,6 @@ public class HdfsImport {
             }
         }
         return normalizedList;
-    }
-
-    private static String normalizeIdentifier(String identifier) {
-        String unquoted = identifier.toUpperCase();
-        if (! identifier.isEmpty() && identifier.charAt(0) == '"' && identifier.charAt(identifier.length()-1) == '"') {
-            unquoted = identifier.substring(1, identifier.length()-1);
-        }
-        return unquoted;
     }
 
     /**
