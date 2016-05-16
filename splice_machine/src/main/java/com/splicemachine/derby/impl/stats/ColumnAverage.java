@@ -598,13 +598,17 @@ public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
         @Override
         protected void mergeExtrema(ColumnStatistics<String> stats) {
             String minV = stats.minValue();
-            if(min==null||min.compareTo(minV)>0){
-                min = minV;
-                minCount = stats.minCount();
+            if (minV != null) {
+                if (min == null || min.compareTo(minV) > 0) {
+                    min = minV;
+                    minCount = stats.minCount();
+                }
             }
             String maxV = stats.maxValue();
-            if(max==null||max.compareTo(maxV)<0){
-                max = maxV;
+            if (maxV != null) {
+                if (max == null || max.compareTo(maxV) < 0) {
+                    max = maxV;
+                }
             }
         }
 
