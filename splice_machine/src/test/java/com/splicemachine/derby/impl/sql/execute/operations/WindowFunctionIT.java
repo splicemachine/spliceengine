@@ -2845,6 +2845,44 @@ public class WindowFunctionIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testNestedFlattening() throws Exception {
+        // DB-5082 - ranking function operand referenced during subquery flattening
+        String tableName = "KDW_PAT_SVC_STAGE";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(PRSN_KEY VARCHAR(14), DIAGNOSIS_FOR_STAGING VARCHAR(500), STAGE VARCHAR(255), " +
+            "EARLIEST_STAGING_DATE TIMESTAMP, MOST_RECENT_STAGING_DATE TIMESTAMP)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s values (?, ?, ?, ?, ?)", tableRef))
+            .withRows(rows(
+                row("gen key", "Big Long Staging Diagnosis", "The Stage", "2012-02-03 08:42:00", "2016-04-28 08:00:00")
+            )).create();
+
+        String sqlText = format("select " +
+                                    "B.PRSN_KEY, " +
+                                    "ROWNUM, " +
+                                    "PREV_STAGE_NUM  AS STAGING " +
+                                    "FROM ( " +
+                                    "        select " +
+                                    "        A.PRSN_KEY, " +
+                                    "         ROW_NUMBER() OVER (PARTITION BY A.PRSN_KEY ORDER BY " +
+                                    "MOST_RECENT_STAGING_DATE DESC) \"ROWNUM\", " +
+                                    "         LEAD(STAGE_NUM) OVER (PARTITION BY B.PRSN_KEY ORDER BY " +
+                                    "MOST_RECENT_STAGING_DATE DESC ) \"PREV_STAGE_NUM\" " +
+                                    "        from ( " +
+                                    "                select " +
+                                    "                PD.PRSN_KEY, " +
+                                    "                 -1  as STAGE_NUM, " +
+                                    "                pd.MOST_RECENT_STAGING_DATE " +
+                                    "                FROM %s PD " +
+                                    "        ) A  " +
+                                    ")B where ROWNUM = 1", tableRef);
+        methodWatcher.executeQuery(sqlText);
+    }
+
     //==================================================================================================================
     // Tests for multiple window functions in one query
     //==================================================================================================================
