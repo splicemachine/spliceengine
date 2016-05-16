@@ -7,6 +7,9 @@ package com.splicemachine.utils;
 public class StringUtils{
 
     public static String trimTrailingSpaces(String str){
+        if (str == null) {
+            return null;
+        }
         int len = str.length()-1;
 
         char ch;
