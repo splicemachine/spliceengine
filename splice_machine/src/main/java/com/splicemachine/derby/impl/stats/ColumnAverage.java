@@ -597,14 +597,23 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         @Override
         protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
             DataValueDescriptor minDvd = stats.minValue();
-            String minV = safeString(minDvd);
-            if(min==null||min.compareTo(minV)>0){
-                min = minV;
-                minCount = stats.minCount();
+            if (minDvd != null && !minDvd.isNull()) {
+                String minV = safeString(minDvd);
+                if (minV != null) {
+                    if (min == null || min.compareTo(minV) > 0) {
+                        min = minV;
+                        minCount = stats.minCount();
+                    }
+                }
             }
-            String maxV = safeString(stats.maxValue());
-            if(max==null||max.compareTo(maxV)<0){
-                max = maxV;
+            DataValueDescriptor maxDvd = stats.maxValue();
+            if (maxDvd != null && !maxDvd.isNull()) {
+                String maxV = safeString(maxDvd);
+                if (maxV != null) {
+                    if (max == null || max.compareTo(maxV) < 0) {
+                        max = maxV;
+                    }
+                }
             }
         }
 
