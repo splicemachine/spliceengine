@@ -58,6 +58,9 @@ public class StatisticsAdminIT{
         Connection conn2=spliceClassWatcher2.getOrCreateConnection();
         doCreateSharedTables(conn2);
 
+        new TableCreator(conn)
+                .withCreate("create table \""+MIXED_CASE_TABLE+"\" (a int)")
+                .create();
     }
 
     private static void doCreateSharedTables(Connection conn) throws Exception{
@@ -78,10 +81,6 @@ public class StatisticsAdminIT{
 
         new TableCreator(conn)
                 .withCreate("create table "+TABLE_EMPTY+" (a int)")
-                .create();
-
-        new TableCreator(conn)
-                .withCreate("create table \""+MIXED_CASE_TABLE+"\" (a int)")
                 .create();
 
     }
@@ -118,7 +117,6 @@ public class StatisticsAdminIT{
     }
 
     @Test
-    @Ignore("DB-4840")
     public void testTableStatisticsCorrectForOccupiedTable() throws Exception{
         TestConnection conn=methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
