@@ -681,20 +681,8 @@ public final class SQLTimestamp extends DataType
         setNumericTimestamp(value);
     }
 
-	public void setValue(String theValue)
-	    throws StandardException
-	{
-		restoreToNull();
-
-		if (theValue != null)
-		{
-            DatabaseContext databaseContext = skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
-            parseTimestamp( theValue,
-                            false,
-                            (databaseContext == null) ? null : databaseContext.getDatabase(),
-                            (Calendar) null);
-		}
-		/* restoreToNull will have already set the encoded date to 0 (null value) */
+	public void setValue(String theValue) throws StandardException {
+		setValue(theValue,null);
 	}
 
 	public void setValue(int encodedDateArg)
@@ -1358,7 +1346,23 @@ public final class SQLTimestamp extends DataType
         return resultHolder;
     }
 
-    /**
+	@Override
+	public void setValue(String theValue,Calendar cal) throws StandardException{
+		restoreToNull();
+
+		if (theValue != null)
+		{
+			DatabaseContext databaseContext = skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
+			parseTimestamp( theValue,
+					false,
+					(databaseContext == null) ? null : databaseContext.getDatabase(),
+					cal);
+		}
+		/* restoreToNull will have already set the encoded date to 0 (null value) */
+
+	}
+
+	/**
      * Finds the difference between two datetime values as a number of intervals. Implements the JDBC
      * TIMESTAMPDIFF escape function.
      *

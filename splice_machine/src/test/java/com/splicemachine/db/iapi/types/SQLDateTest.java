@@ -2,11 +2,11 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 
 import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 
@@ -20,6 +20,7 @@ public class SQLDateTest {
     private static final int GREGORIAN_YEAR = 1582;
     private static final int MAX_SUPPORTED_YEAR = 9999;
     private static final int MIN_SUPPORTED_YEAR = 1;
+
 
     private SQLDate createSqlDate(int year, int month, int day) throws StandardException {
         GregorianCalendar c = new GregorianCalendar();
@@ -47,6 +48,7 @@ public class SQLDateTest {
             assertEquals(res, str);
         }
     }
+
 
     @Test
     public void shouldConvertArrayOfDates() throws StandardException {

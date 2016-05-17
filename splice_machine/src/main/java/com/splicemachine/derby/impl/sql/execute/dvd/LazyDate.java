@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.Calendar;
 
 public class LazyDate extends LazyDataValueDescriptor implements DateTimeDataValue {
     protected DateTimeDataValue dtdv = null;
@@ -191,6 +192,13 @@ public class LazyDate extends LazyDataValueDescriptor implements DateTimeDataVal
     public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue daysToAdd, NumberDataValue returnValue) throws StandardException {
         forceDeserialization();
         return dtdv.minus(leftOperand, daysToAdd, returnValue);
+    }
+
+    @Override
+    public void setValue(String value,Calendar cal) throws StandardException{
+        if(dtdv==null) createNewDescriptor();
+        dtdv.setValue(value,cal);
+        resetForSerialization();
     }
 
     @Override

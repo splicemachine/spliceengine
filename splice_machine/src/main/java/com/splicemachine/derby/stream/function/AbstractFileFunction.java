@@ -3,8 +3,11 @@ package com.splicemachine.derby.stream.function;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
+import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
 
@@ -26,16 +29,18 @@ import com.splicemachine.derby.utils.SpliceDateFunctions;
  * Created by jleach on 10/30/15.
  */
 public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<SpliceOperation, I, LocatedRow> {
-    protected CsvPreference preference = null;
-    protected static final char DEFAULT_COLUMN_DELIMITTER = ",".charAt(0);
-    protected static final char DEFAULT_STRIP_STRING = "\"".charAt(0);
-    protected String characterDelimiter;
-    protected String columnDelimiter;
+    CsvPreference preference = null;
+    private static final char DEFAULT_COLUMN_DELIMITTER = ",".charAt(0);
+    private static final char DEFAULT_STRIP_STRING = "\"".charAt(0);
+    private String characterDelimiter;
+    private String columnDelimiter;
     protected ExecRow execRow;
-    protected String timeFormat;
-    protected String dateTimeFormat;
-    protected String timestampFormat;
-    protected int[] columnIndex;
+    private String timeFormat;
+    private String dateTimeFormat;
+    private String timestampFormat;
+    private int[] columnIndex;
+
+    private transient Calendar calendar;
 
     public AbstractFileFunction() {
 
@@ -115,20 +120,26 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                 if (value != null && (value.equals("null") || value.equals("NULL") || value.isEmpty()))
                     value = null;
                 if (type == StoredFormatIds.SQL_TIME_ID) {
-                    if (timeFormat == null || value==null)
-                        dvd.setValue(value);
-                    else
-                        dvd.setValue(SpliceDateFunctions.TO_TIME(value, timeFormat));
+                    if(calendar==null)
+                        calendar = new GregorianCalendar();
+                    if (timeFormat == null || value==null){
+                        ((DateTimeDataValue)dvd).setValue(value,calendar);
+                    }else
+                        dvd.setValue(SpliceDateFunctions.TO_TIME(value, timeFormat),calendar);
                 } else if (type == StoredFormatIds.SQL_TIMESTAMP_ID) {
+                    if(calendar==null)
+                        calendar = new GregorianCalendar();
                     if (timestampFormat == null || value==null)
-                        dvd.setValue(value);
+                        ((DateTimeDataValue)dvd).setValue(value,calendar);
                     else
-                        dvd.setValue(SpliceDateFunctions.TO_TIMESTAMP(value, timestampFormat));
+                        dvd.setValue(SpliceDateFunctions.TO_TIMESTAMP(value, timestampFormat),calendar);
                 } else if (type == StoredFormatIds.SQL_DATE_ID) {
+                    if(calendar==null)
+                        calendar = new GregorianCalendar();
                     if (dateTimeFormat == null || value == null)
-                        dvd.setValue(value);
+                        ((DateTimeDataValue)dvd).setValue(value,calendar);
                     else
-                        dvd.setValue(SpliceDateFunctions.TO_DATE(value, dateTimeFormat));
+                        dvd.setValue(SpliceDateFunctions.TO_DATE(value, dateTimeFormat),calendar);
                 } else {
                     dvd.setValue(value);
                 }
@@ -143,7 +154,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
         }
     }
 
-    protected void checkPreference() {
+    void checkPreference() {
         if (preference==null){
             SConfiguration config =EngineDriver.driver().getConfiguration();
             int maxQuotedLines = config.getImportMaxQuotedColumnLines();

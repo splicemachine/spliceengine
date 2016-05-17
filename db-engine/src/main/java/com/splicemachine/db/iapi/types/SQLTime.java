@@ -595,17 +595,8 @@ public final class SQLTime extends DataType
 
 	
 
-	public void setValue(String theValue)
-	    throws StandardException
-	{
-		if (theValue != null)
-        {
-            DatabaseContext databaseContext = (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
-            parseTime( theValue,
-                       false,
-                       (databaseContext == null) ? null : databaseContext.getDatabase(),
-                       (Calendar) null);
-        }
+	public void setValue(String theValue) throws StandardException {
+		setValue(theValue,null);
 	}
 
 	public void setValue(int theValue)
@@ -1080,7 +1071,19 @@ public final class SQLTime extends DataType
 		return returnValue;
     }
 
-    private SQLTimestamp toTimestamp(java.sql.Date currentDate) throws StandardException
+	@Override
+	public void setValue(String theValue,Calendar cal) throws StandardException{
+		restoreToNull();
+		if (theValue != null) {
+			DatabaseContext databaseContext = (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
+			parseTime( theValue,
+					false,
+					(databaseContext == null) ? null : databaseContext.getDatabase(),
+					cal);
+		}
+	}
+
+	private SQLTimestamp toTimestamp(java.sql.Date currentDate) throws StandardException
     {
         return new SQLTimestamp( SQLDate.computeEncodedDate( currentDate, (Calendar) null),
                                  getEncodedTime(),

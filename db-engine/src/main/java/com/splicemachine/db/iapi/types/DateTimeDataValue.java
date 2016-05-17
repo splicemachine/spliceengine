@@ -23,6 +23,8 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.util.Calendar;
+
 public interface DateTimeDataValue extends DataValueDescriptor
 {
 	public static final int YEAR_FIELD = 0;
@@ -305,5 +307,7 @@ public interface DateTimeDataValue extends DataValueDescriptor
      */
     NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue)
         throws StandardException;
+
+	void setValue(String value, Calendar cal)throws StandardException;
 }
 

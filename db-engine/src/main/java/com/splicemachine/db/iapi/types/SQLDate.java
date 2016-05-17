@@ -133,29 +133,14 @@ public final class SQLDate extends DataType
      * with the time set to 00:00 based upon the passed in Calendar.
      */
 	private long getTimeInMillis(Calendar cal) {
-		long result;
-
-		if (cal == null) {
-			int year = getYear(encodedDate);
-			if (year < JODA_CRUSH_YEAR) {
-				GregorianCalendar c = new GregorianCalendar();
-				c.clear();
-				c.set(year, getMonth(encodedDate) - 1, getDay(encodedDate));
-				// c.setTimeZone(...); if necessary
-				result = c.getTimeInMillis();
-			} else {
-				DateTime dt = new DateTime(year,
-						getMonth(encodedDate), getDay(encodedDate), 0, 0, 0, 0);
-				result = dt.getMillis();
-			}
-		} else {
-			cal.clear();
-
-			SQLDate.setDateInCalendar(cal, encodedDate);
-			result = cal.getTimeInMillis();
+		if (cal == null){
+			cal=new GregorianCalendar();
 		}
-
-		return result;
+		cal.clear();
+		SQLDate.setDateInCalendar(cal,encodedDate);
+		int year = getYear(encodedDate);
+		cal.set(year,getMonth(encodedDate)-1,getDay(encodedDate));
+		return cal.getTimeInMillis();
 	}
     
     /**
@@ -603,20 +588,8 @@ public final class SQLDate extends DataType
 	}
 
 
-	public void setValue(String theValue)
-		throws StandardException
-	{
-		restoreToNull();
-
-		if (theValue != null)
-		{
-			DatabaseContext databaseContext = (skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID));
-            parseDate( theValue,
-                       false,
-                       (databaseContext == null) ? null : databaseContext.getDatabase(),
-                       (Calendar) null);
-        }
-		isNull = evaluateNull();
+	public void setValue(String theValue) throws StandardException {
+		setValue(theValue, null);
 	}
 
 	/*
@@ -1109,22 +1082,11 @@ public final class SQLDate extends DataType
 		int result;
 		
         if( currentCal == null){
-			DateTime dt = new DateTime(value);
-			if (dt.getYear() < JODA_CRUSH_YEAR) {
-				GregorianCalendar cal = new GregorianCalendar();
-				cal.setTime(value);
-				int year = cal.get(Calendar.YEAR);
-				int month = cal.get(Calendar.MONTH) + 1;
-				int day = cal.get(Calendar.DAY_OF_MONTH);
-				result = computeEncodedDate(year, month, day);
-			} else {
-				result = computeEncodedDate(dt);
-			}
-		} else {
-            currentCal.setTime(value);
-            result = SQLDate.computeEncodedDate(currentCal);
-        }
-        
+			currentCal=new GregorianCalendar();
+		}
+		currentCal.setTime(value);
+		result = SQLDate.computeEncodedDate(currentCal);
+
         return result;
 	}
     
@@ -1304,7 +1266,22 @@ public final class SQLDate extends DataType
 		return returnValue;
 	}
 
-    public Format getFormat() {
+	@Override
+	public void setValue(String theValue,Calendar cal) throws StandardException{
+		restoreToNull();
+
+		if (theValue != null)
+		{
+			DatabaseContext databaseContext = (skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID));
+			parseDate( theValue,
+					false,
+					(databaseContext == null) ? null : databaseContext.getDatabase(),
+					cal);
+		}
+		isNull = evaluateNull();
+	}
+
+	public Format getFormat() {
     	return Format.DATE;
     }
 }

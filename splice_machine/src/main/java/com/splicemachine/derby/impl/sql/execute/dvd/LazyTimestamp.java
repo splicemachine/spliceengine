@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 
 import java.io.IOException;
 import java.io.ObjectInput;
+import java.util.Calendar;
 
 public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDataValue{
     protected DateTimeDataValue dtdv;
@@ -197,6 +198,13 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
     public NumberDataValue minus(DateTimeDataValue leftOperand,DateTimeDataValue daysToAdd,NumberDataValue returnValue) throws StandardException{
         forceDeserialization();
         return dtdv.minus(leftOperand,daysToAdd,returnValue);
+    }
+
+    @Override
+    public void setValue(String value,Calendar cal) throws StandardException{
+        if(dtdv==null) createNewDescriptor();
+        dtdv.setValue(value,cal);
+        resetForSerialization();
     }
 
     @Override
