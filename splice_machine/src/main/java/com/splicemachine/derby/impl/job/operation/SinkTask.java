@@ -293,15 +293,16 @@ public class SinkTask extends ZkTask{
         if(niceness>=0){
             return niceness;
         }
-        if(useCostsInPriorities){
-            double cost=topOperation.getEstimatedCost();
-            if(cost<=1)
-                return 0;
-            else
-                return (int)(Math.log(cost)*SchedulerPriorities.INSTANCE.getPriorityScaleFactor()+1);
-        }else{
+        //-sf- disabled until we decide to work with it again, since 1.5.5 doesn't need it
+//        if(useCostsInPriorities){
+//            double cost=topOperation.getEstimatedCost();
+//            if(cost<=1)
+//                return 0;
+//            else
+//                return (int)(Math.log(cost)*SchedulerPriorities.INSTANCE.getPriorityScaleFactor()+1);
+//        }else{
             return SchedulerPriorities.INSTANCE.getBasePriority(topOperation.getClass());
-        }
+//        }
     }
 
 
