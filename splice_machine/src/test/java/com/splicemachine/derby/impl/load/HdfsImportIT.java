@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
+import static com.splicemachine.homeless.TestUtils.o;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -20,6 +21,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -40,6 +42,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 
@@ -1339,6 +1342,21 @@ public class HdfsImportIT extends SpliceUnitTest {
         assertTrue(rs.next());
         int c2 = rs.getInt(1);
         assertTrue(c1 == c2);
+    }
+
+    // Regression test for DB-1686
+    @Test
+    public void testNewImportPaddedStringPKColumn() throws Exception {
+        String csvFile = getResourceDirectory()+"padded_string_pk.csv";
+        String badDirPath = BADDIR.getCanonicalPath();
+        PreparedStatement ps = methodWatcher.prepareStatement(
+            format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s',',',null,null,null,null,1,'%s','true',null)",
+                spliceSchemaWatcher.schemaName, TABLE_17, csvFile, badDirPath));
+        ps.execute();
+        List<Object[]> expected = Arrays.asList(o("fred", 100), o(" fred", 101), o("fred ", 102));
+        ResultSet rs = methodWatcher.executeQuery(format("select name, age from %s.%s order by age",spliceSchemaWatcher.schemaName,TABLE_17));
+        List results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
     }
 
     /**
