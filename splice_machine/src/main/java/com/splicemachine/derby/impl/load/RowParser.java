@@ -174,7 +174,10 @@ public class RowParser {
 						return;
 				//		throw ErrorState.LANG_AI_CANNOT_MODIFY_AI.newException(columnContext.getColumnName());
 				}
-				elem = elem.trim();
+                // DB-1686: don't implicilty trim the raw string here. Leading/trailing spaces in data is valid.
+                // In cases where trimming makes sense (like if this is an integer column), it happens
+                // below in column.setValue.
+                // elem = elem.trim();
 				if(elem.length()<=0){
 						//if it's a date, treat "" as null by setting to null
 						//otherwise, get it's default value
