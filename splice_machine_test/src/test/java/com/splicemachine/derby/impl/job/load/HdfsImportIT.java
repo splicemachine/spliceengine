@@ -775,7 +775,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     }
 
     // Regression test for DB-1686
-    @Test
+    @Ignore
     public void testNewImportPaddedStringPKColumn() throws Exception {
         String csvFile = getResourceDirectory()+"padded_string_pk.csv";
         String badDirPath = baddir.newFolder().getCanonicalPath();
