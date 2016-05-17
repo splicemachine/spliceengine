@@ -7,11 +7,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.google.common.base.Function;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
@@ -58,8 +54,15 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public void deleteTable(String tableName) throws IOException{
-        admin.disableTable(tableInfoFactory.getTableInfo(tableName));
-        admin.deleteTable(tableInfoFactory.getTableInfo(tableName));
+        try{
+            admin.disableTable(tableInfoFactory.getTableInfo(tableName));
+            admin.deleteTable(tableInfoFactory.getTableInfo(tableName));
+        }catch(TableNotFoundException ignored){
+            /*
+             * If the table isn't there, then we probably have two concurrent Vacuums going on. In that
+             * situation, we just ignore the error, since the delete already works.
+             */
+        }
     }
 
     /**
