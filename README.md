@@ -109,6 +109,10 @@ run all unit _and_ integration tests(we will be separating those out better in t
 * `hdp2.3.0,hbase1.1.0`
 * `hdp2.4.2,hbase1.1.0`
 
+For MapR, you will need to add the following empty file on your filesystem.
+
+/opt/mapr/server/createJTVolume.sh
+
 #Running testing environments
 
 ##Memory
