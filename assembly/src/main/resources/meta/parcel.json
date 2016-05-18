@@ -1,34 +1,37 @@
 {
-    "groups": [],
+    "schema_version": 1,
+    "name": "SPLICEMACHINE",
+    "version": "TOP_VERSION",
     "extraVersionInfo": {
         "baseVersion": "BASE_VERSION",
-        "fullVersion": "FULLV",
+        "fullVersion": "FULL_VERSION",
         "patchCount": "0"
     },
+
+    "setActiveSymlink": true,
+
+    "scripts": {
+        "defines": "splicemachine_env.sh"
+    },
+
+    "packages": [],
+
     "components": [
         {
+            "name": "splicemachine",
+            "version": "COMPONENT_VERSION",
             "pkg_version": "PKG_VERSION",
-            "version": "VERSION",
-            "name": "splice",
             "pkg_release": "PKG_RELEASE"
         }
     ],
-    "scripts": {
-        "defines": "splice_env.sh"
-    },
-    "schema_version": 1,
-    "name": "splice_machine",
-    "depends": "CDH (== CDH_VERSION)",
-    "version": "VERSION",
+
     "provides": [
         "hbase-plugin"
     ],
-    "setActiveSymlink": true,
-    "packages": [
-        {
-            "version": "SPLICE_PACKAGE",
-            "name": "splice"
-        }
-    ],
-    "users": {}
+
+    "depends": "CDH (== CDH_VERSION)",
+
+    "users": {},
+
+    "groups": []
 }

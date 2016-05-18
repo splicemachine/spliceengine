@@ -30,9 +30,8 @@
             <build>
                 <plugins>
                     <plugin>
-                        <!--This used to be confinded to the spark-prepare profile, but is now done always by default
-          To disable, use skipSparkPrepare on the command line
-          -->
+                        <!-- This used to be confinded to the spark-prepare profile, but is now done always by default
+                             To disable, use skipSparkPrepare on the command line -->
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>2.10</version>
@@ -65,79 +64,78 @@
                                 <phase>pre-integration-test</phase>
                                 <configuration>
                                     <tasks>
-                                        <replace token="BASE_VERSION" value="${envClassifier}" dir="target/classes/meta">
+                                        <replace token="TOP_VERSION" value="${project.version}-${envClassifier}.p0.1" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <replace token="PKG_VERSION" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                        <replace token="BASE_VERSION" value="${project.version}" dir="target/classes/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+                                        <replace token="COMPONENT_VERSION" value="${project.version}-${envClassifier}" dir="target/classes/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+                                        <replace token="PKG_VERSION" value="${project.version}+${envClassifier}+${buildNumber}" dir="target/classes/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+                                        <replace token="PKG_RELEASE" value="1.${envClassifier}.p0.1" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
                                         <replace token="CDH_VERSION" value="${cdh.parcel.version}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <replace token="VERSION" value="${envClassifier}-${project.version}" dir="target/classes/meta">
-                                            <include name="parcel.json"/>
-                                        </replace>
-                                        <replace token="PKG_RELEASE" value="${envClassifier}-${project.version}" dir="target/classes/meta">
-                                            <include name="parcel.json"/>
-                                        </replace>
-                                        <replace token="SPLICE_PACKAGE" value="${envClassifier}-${project.version}" dir="target/classes/meta">
-                                            <include name="parcel.json"/>
-                                        </replace>
-                                        <copy todir="target/splice_machine-${envClassifier}-${project.version}/lib/splice/">
+                                        <copy todir="target/SPLICEMACHINE-${envClassifier}-${project.version}/lib/splice/">
                                             <fileset dir="target/dependency" includes="**/*"/>
                                         </copy>
-                                        <copy todir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <copy todir="target/SPLICEMACHINE-${envClassifier}-${project.version}/meta">
                                             <fileset dir="target/classes/meta" includes="**/*"/>
                                         </copy>
-                                        <copy todir="target/splice_machine-${envClassifier}-${project.version}/bin">
+                                        <copy todir="target/SPLICEMACHINE-${envClassifier}-${project.version}/bin">
                                             <fileset dir="target/classes/bin" includes="**/*"/>
                                         </copy>
                                         <!-- el6 -->
-                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.el6" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULL_VERSION" value="${project.version}-${envClassifier}.p0.1-el6" dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-el6.parcel">
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
-                                        </tar>
-                                        <!-- sles11 -->
-                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.sles11" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
-                                            <include name="parcel.json"/>
-                                        </replace>
-                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-sles11.parcel">
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
-                                        </tar>
-                                        <!-- precise -->
-                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.precise" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
-                                            <include name="parcel.json"/>
-                                        </replace>
-                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-precise.parcel">
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
+                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}-${envClassifier}.p0.1-el6.parcel">
+                                            <tarfileset dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" prefix="SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" preserveLeadingSlashes="true"/>
                                         </tar>
                                         <!-- el7 -->
-                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.el7" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULL_VERSION" value="${project.version}-${envClassifier}.p0.1-el7" dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-el7.parcel">
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
+                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}-${envClassifier}.p0.1-el7.parcel">
+                                            <tarfileset dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" prefix="SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" preserveLeadingSlashes="true"/>
+                                        </tar>
+                                        <!-- sles11 -->
+                                        <replace token="FULL_VERSION" value="${project.version}-${envClassifier}.p0.1-sles11" dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}-${envClassifier}.p0.1-sles11.parcel">
+                                            <tarfileset dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" prefix="SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" preserveLeadingSlashes="true"/>
+                                        </tar>
+                                        <!-- precise -->
+                                        <replace token="FULL_VERSION" value="${project.version}-${envClassifier}.p0.1-precise" dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1/meta">
+                                            <include name="parcel.json"/>
+                                        </replace>
+                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}-${envClassifier}.p0.1-precise.parcel">
+                                            <tarfileset dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" prefix="SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" preserveLeadingSlashes="true"/>
                                         </tar>
                                         <!-- wheezy -->
-                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.wheezy" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULL_VERSION" value="${project.version}-${envClassifier}.p0.1-wheezy" dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-wheezy.parcel">
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
+                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}-${envClassifier}.p0.1-wheezy.parcel">
+                                            <tarfileset dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" prefix="SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" preserveLeadingSlashes="true"/>
                                         </tar>
                                         <!-- trusty -->
-                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.trusty" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULL_VERSION" value="${project.version}-${envClassifier}.p0.1-trusty" dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-trusty.parcel">
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
+                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}-${envClassifier}.p0.1-trusty.parcel">
+                                            <tarfileset dir="target/SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" prefix="SPLICEMACHINE-${envClassifier}-${project.version}.p0.1" preserveLeadingSlashes="true"/>
                                         </tar>
-                                        <exec executable="python" failonerror="true" dir="target/parcels">
+                                        <exec executable="python2.7" failonerror="true" dir="target/parcels">
                                             <arg line="${project.basedir}/src/main/resources/python/make_manifest.py"/>
                                         </exec>
-                                        <tar destfile="target/parcels.tar" basedir="target/parcels/"/>
                                     </tasks>
                                 </configuration>
                                 <goals>
