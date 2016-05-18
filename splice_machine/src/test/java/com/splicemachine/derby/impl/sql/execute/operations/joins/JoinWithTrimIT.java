@@ -167,12 +167,12 @@ public class JoinWithTrimIT {
         assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, NESTED_LOOP, TRIM), 2));
     }
 
-    @Ignore("DB-4932 causes this to give no valid execution plan error")
+    @Test
     public void testRightOpTrimBroadcast() throws Exception {
         assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, BROADCAST, RTRIM), 2));
     }
 
-    @Ignore("DB-4932 causes this to give no valid execution plan error")
+    @Test
     public void testRightOpTrimSortMerge() throws Exception {
         assertRightOpTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_RIGHT_OP, MERGE_SORT, RTRIM), 2));
     }
@@ -195,12 +195,12 @@ public class JoinWithTrimIT {
         assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, NESTED_LOOP, TRIM, TRIM), 2));
     }
 
-    @Ignore("DB-4932 causes this to give no valid execution plan error")
+    @Test
     public void testBothTrimBroadcast() throws Exception {
         assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, BROADCAST, RTRIM, RTRIM), 2));
     }
 
-    @Ignore("DB-4932 causes this to give no valid execution plan error")
+    @Test
     public void testBothTrimMergeSort() throws Exception {
         assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH, MERGE_SORT, RTRIM, RTRIM), 2));
     }
@@ -221,14 +221,14 @@ public class JoinWithTrimIT {
         assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, NESTED_LOOP, TRIM, TRIM), 2));
     }
 
-    @Ignore("DB-4932 causes this to give no valid execution plan error")
+    @Test
     public void testBothTrimBroadcastReverse() throws Exception {
-        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, BROADCAST, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, BROADCAST, RTRIM, RTRIM), 2));
     }
 
-    @Ignore("DB-4932 causes this to give no valid execution plan error")
+    @Test
     public void testBothTrimMergeSortReverse() throws Exception {
-        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, MERGE_SORT, RTRIM), 2));
+        assertBothTrimResult(methodWatcher.queryListMulti(String.format(SQL_TRIM_BOTH_REVERSE_TABLE_ORDER, MERGE_SORT, RTRIM, RTRIM), 2));
     }
 
     private void assertNoTrimResult(List<Object[]> result) throws Exception {
