@@ -130,12 +130,6 @@ done
 
 SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=${CHAOS}"
 
-# TODO: we can only run YARN in cdh5.4.8 currently
-if [[ ${PROFILE} != ${IN_MEM_PROFILE} && ${PROFILE} != ${DEFAULT_PROFILE} ]]; then
-  usage "Can only run YARN with ${DEFAULT_PROFILE}"
-  exit 1;
-fi
-
 #=============================================================================
 # Run...
 #=============================================================================
