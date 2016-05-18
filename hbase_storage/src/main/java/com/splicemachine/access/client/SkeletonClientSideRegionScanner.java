@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.IsolationLevel;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
@@ -206,6 +207,12 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_SERVER,Bytes.toBytes(hostAndPort));
         memScan.setAttribute(SIConstants.SI_NEEDED,null);
         ResultScanner scanner=newScanner(memScan);
+        // Request the first row from the Memstore scanner to make sure the region is opened and possible pending edits
+        // have been replayed. The reply should be the ClientRegionConstants.MEMSTORE_BEGIN
+        Result memstoreBegin = scanner.next();
+        assert !memstoreBegin.isEmpty();
+        assert matchingFamily(memstoreBegin.listCells(), ClientRegionConstants.HOLD);
+        assert memstoreBegin.listCells().get(0).getTimestamp() == 0;
         return new MemstoreKeyValueScanner(scanner);
     }
 

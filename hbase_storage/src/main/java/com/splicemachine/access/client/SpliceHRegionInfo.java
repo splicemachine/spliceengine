@@ -14,7 +14,9 @@ import org.apache.hadoop.hbase.KeyValue;
 public class SpliceHRegionInfo extends HRegionInfo {
 
     public SpliceHRegionInfo(HRegionInfo info) {
-        super(info);
+        // Set replicaId to something other than DEFAULT_REPLICA, othwerwise we might try to replay edits
+        // or do some other housekeeping work on this remote region
+        super(info, 1);
     }
 
     @Override
