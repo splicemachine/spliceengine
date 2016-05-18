@@ -26,13 +26,16 @@ _kill_em_all () {
    P=$(ps -ef | awk '/zoo/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Zoo. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
+   P=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found Kafka. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+
    P=$(ps -ef | awk '/exec:java/ && !/awk/ {print $2}')
-   [[ -n $P ]] && echo "Found IN MEMORY. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+   [[ -n $P ]] && echo "Found stray maven exec:java. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 }
 export -f _kill_em_all
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="cdh5.4.8"  # default hbase platform profile
+DEFAULT_PROFILE="cdh5.4.10,hbase1.0.0"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/hbase_sql"
@@ -60,8 +63,9 @@ usage() {
     echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
     echo "        grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
-    echo "    mem (in mem), c41 (cdh5.4.8), c51 (cdh5.5.1), h24 (hdp2.2.4), h30 (hdp2.3.0), m4 (mapr0.98.4), m12 (mapr0.98.12)."
-    echo "    Default is ${DEFAULT_PROFILE}. CURRENTLY ONLY THE DEFAULT PROFILE WORKS WITH YARN!"
+    echo "    mem (in mem), c54 (cdh5.4.10,hbase1.0.0), c55 (cdh5.5.2,hbase1.0.0.x), c56 (cdh5.6.0,hbase1.0.0.x),"
+    echo "    c57 (cdh5.7.0,hbase1.2.0), m5 (mapr5.1.0,hbase1.1.0), h23 (hdp2.3.0,hbase1.1.0), h24 (hdp2.4.2,hbase1.1.0)."
+    echo "    Default is ${DEFAULT_PROFILE}."
     echo "  -k just KILL any and all splice processes currently running."
     echo "  -h => print this message"
 }
@@ -83,20 +87,22 @@ while getopts "chkp:s:bd:" flag ; do
         p)
         # the hbase profile
         #echo "-> [$OPTARG] "
-          if [[ "$OPTARG" ==  "c48" ]]; then
-            PROFILE="cdh5.4.8"
-          elif [[ "$OPTARG" == "c51" ]]; then
-            PROFILE="cdh5.5.1"
+          if [[ "$OPTARG" ==  "c54" ]]; then
+            PROFILE="cdh5.4.10,hbase1.0.0"
+          elif [[ "$OPTARG" == "c55" ]]; then
+            PROFILE="cdh5.5.2,hbase1.0.0.x"
           elif [[ "$OPTARG" == "mem" ]]; then
             PROFILE=${IN_MEM_PROFILE}
+          elif [[ "$OPTARG" == "c56" ]]; then
+            PROFILE="cdh5.6.0,hbase1.0.0.x"
+          elif [[ "$OPTARG" == "c57" ]]; then
+            PROFILE="cdh5.7.0,hbase1.2.0"
+          elif [[ "$OPTARG" == "m5" ]]; then
+            PROFILE="mapr5.1.0,hbase1.1.0"
+          elif [[ "$OPTARG" == "h23" ]]; then
+            PROFILE="hdp2.3.0,hbase1.1.0"
           elif [[ "$OPTARG" == "h24" ]]; then
-            PROFILE="hdp2.2.4"
-          elif [[ "$OPTARG" == "h30" ]]; then
-            PROFILE="hdp2.3.0"
-          elif [[ "$OPTARG" == "m4" ]]; then
-            PROFILE="mapr0.98.4"
-          elif [[ "$OPTARG" == "m12" ]]; then
-            PROFILE="mapr0.98.12"
+            PROFILE="hdp2.4.2,hbase1.1.00"
           else
             usage "Unknown profile: $OPTARG"
             exit 1
@@ -192,6 +198,11 @@ fi
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
 (${MVN} exec:java -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+
+KAFKALOG="${RUN_DIR}"/kafka.log
+# Start Kafka in background.
+echo "Starting Kafka, log file is ${KAFKALOG}"
+(${MVN} exec:exec -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
 
 SPLICE_LOG="${RUN_DIR}/splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
