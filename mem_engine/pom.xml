@@ -86,7 +86,7 @@
                         <dependency>com.splicemachine:splice_machine</dependency>
                     </dependenciesToScan>
                     <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
-		    <argLine>-Xmx512m -XX:MaxPermSize=256m</argLine>
+                    <argLine>-Xmx512m -XX:MaxPermSize=256m</argLine>
                 </configuration>
             </plugin>
             <plugin>

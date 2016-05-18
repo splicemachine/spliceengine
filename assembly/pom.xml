@@ -11,7 +11,6 @@
         <groupId>com.splicemachine</groupId>
         <version>2.0.1.10-SNAPSHOT</version>
     </parent>
-
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -19,16 +18,15 @@
             <version>${project.version}</version>
         </dependency>
     </dependencies>
-
     <profiles>
         <profile>
-        <id>parcel</id>
-        <activation>
-            <property>
-                <name>parcel</name>
-                <value>parcel</value>
-            </property>
-        </activation>
+            <id>parcel</id>
+            <activation>
+                <property>
+                    <name>parcel</name>
+                    <value>parcel</value>
+                </property>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
@@ -46,7 +44,6 @@
                                     <goal>copy-dependencies</goal>
                                 </goals>
                                 <configuration>
-
                                     <includeArtifactIds>
                                         hpcc,kryo,gson,protobuf-java,disruptor,
                                         kryo-serializers,ehcache-core,opencsv,super-csv,
@@ -57,13 +54,10 @@
                                         hbase_storage-${envClassifier},hbase_sql-${envClassifier},
                                         ${spark-assembly-id}
                                     </includeArtifactIds>
-
                                 </configuration>
-
                             </execution>
                         </executions>
                     </plugin>
-
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
@@ -71,127 +65,79 @@
                                 <phase>pre-integration-test</phase>
                                 <configuration>
                                     <tasks>
-                                        <replace token= "BASE_VERSION" value="${envClassifier}" dir="target/classes/meta">
+                                        <replace token="BASE_VERSION" value="${envClassifier}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <replace token= "PKG_VERSION" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                        <replace token="PKG_VERSION" value="${envClassifier}-${project.version}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
-                                        <replace token= "CDH_VERSION" value="${cdh.parcel.version}" dir="target/classes/meta">
+                                        <replace token="CDH_VERSION" value="${cdh.parcel.version}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
-
-                                        <replace token= "VERSION" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                        <replace token="VERSION" value="${envClassifier}-${project.version}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
-                                        <replace token= "PKG_RELEASE" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                        <replace token="PKG_RELEASE" value="${envClassifier}-${project.version}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <replace token= "SPLICE_PACKAGE" value="${envClassifier}-${project.version}" dir="target/classes/meta">
+                                        <replace token="SPLICE_PACKAGE" value="${envClassifier}-${project.version}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
                                         <copy todir="target/splice_machine-${envClassifier}-${project.version}/lib/splice/">
-                                            <fileset dir="target/dependency" includes="**/*" />
+                                            <fileset dir="target/dependency" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/splice_machine-${envClassifier}-${project.version}/meta">
-                                            <fileset dir="target/classes/meta" includes="**/*" />
+                                            <fileset dir="target/classes/meta" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/splice_machine-${envClassifier}-${project.version}/bin">
-                                            <fileset dir="target/classes/bin" includes="**/*" />
+                                            <fileset dir="target/classes/bin" includes="**/*"/>
                                         </copy>
-
                                         <!-- el6 -->
-
-                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.el6"
-                                                 dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.el6" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
                                         <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-el6.parcel">
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
-                                                        prefix="splice_machine-${envClassifier}-${project.version}"
-                                                        preserveLeadingSlashes="true"/>
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
                                         </tar>
-
                                         <!-- sles11 -->
-
-                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.sles11" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.sles11" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
                                         <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-sles11.parcel">
-
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
-                                                        prefix="splice_machine-${envClassifier}-${project.version}"
-                                                        preserveLeadingSlashes="true"/>
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
                                         </tar>
-
                                         <!-- precise -->
-
-                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.precise" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.precise" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
                                         <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-precise.parcel">
-
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
-                                                        prefix="splice_machine-${envClassifier}-${project.version}"
-                                                        preserveLeadingSlashes="true"/>
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
                                         </tar>
-
-
                                         <!-- el7 -->
-
-                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.el7" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.el7" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
                                         <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-el7.parcel">
-
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
-                                                        prefix="splice_machine-${envClassifier}-${project.version}"
-                                                        preserveLeadingSlashes="true"/>
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
                                         </tar>
-
-
                                         <!-- wheezy -->
-
-                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.wheezy" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.wheezy" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
                                         <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-wheezy.parcel">
-
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
-                                                        prefix="splice_machine-${envClassifier}-${project.version}"
-                                                        preserveLeadingSlashes="true"/>
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
                                         </tar>
-
-
                                         <!-- trusty -->
-
-                                        <replace token= "FULLV" value="splice_machine-${envClassifier}-${project.version}.trusty" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
+                                        <replace token="FULLV" value="splice_machine-${envClassifier}-${project.version}.trusty" dir="target/splice_machine-${envClassifier}-${project.version}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-
                                         <tar destfile="target/parcels/splice_machine-${envClassifier}-${project.version}-trusty.parcel">
-
-                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}"
-                                                        prefix="splice_machine-${envClassifier}-${project.version}"
-                                                        preserveLeadingSlashes="true"/>
+                                            <tarfileset dir="target/splice_machine-${envClassifier}-${project.version}" prefix="splice_machine-${envClassifier}-${project.version}" preserveLeadingSlashes="true"/>
                                         </tar>
-
-
                                         <exec executable="python" failonerror="true" dir="target/parcels">
                                             <arg line="${project.basedir}/src/main/resources/python/make_manifest.py"/>
                                         </exec>
-
                                         <tar destfile="target/parcels.tar" basedir="target/parcels/"/>
-
                                     </tasks>
                                 </configuration>
                                 <goals>
@@ -200,15 +146,10 @@
                             </execution>
                         </executions>
                     </plugin>
-
-
                 </plugins>
-
-
             </build>
-            </profile>
-
-            <profile>
+        </profile>
+        <profile>
             <id>complete</id>
             <activation>
                 <property>
@@ -217,72 +158,68 @@
                 </property>
             </activation>
             <build>
-            <plugins>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <shadedArtifactAttached>true</shadedArtifactAttached>
-                    <shadedClassifierName>${envClassifier}_complete</shadedClassifierName>
-                    <artifactSet>
-                        <includes>
-                            <include>com.carrotsearch:hppc</include>
-                            <include>com.esotericsoftware.kryo:kryo</include>
-                            <include>com.google.code.gson:gson</include>
-                            <include>com.google.protobuf:protobuf-java</include>
-                            <include>com.lmax:disruptor</include>
-                            <include>de.javakaffee:kryo-serializers</include>
-                            <include>net.sf.ehcache:ehcache-core</include>
-                            <include>net.sf.opencsv:opencsv</include>
-                            <include>net.sf.supercsv:super-csv</include>
-                            <include>org.apache.lucene:lucene-core</include>
-                            <include>org.apache.spark</include>
-                            <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
-                            <include>com.splicemachine.db-project:*</include>
-                            <include>com.splicemachine:*</include>
-                            <include>org.sparkproject.guava:*</include>
-                        </includes>
-                    </artifactSet>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <!-- exclude signing keys from uber-jar -->
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>**/yarn-site.xml</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
                         <configuration>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <manifestEntries>
-                                        <Implementation-Version>${buildNumber}</Implementation-Version>
-                                        <Release>${project.version}</Release>
-                                        <Build-Time>${maven.build.timestamp}</Build-Time>
-                                        <URL>http://www.splicemachine.com</URL>
-                                    </manifestEntries>
-                                </transformer>
-                            </transformers>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>${envClassifier}_complete</shadedClassifierName>
+                            <artifactSet>
+                                <includes>
+                                    <include>com.carrotsearch:hppc</include>
+                                    <include>com.esotericsoftware.kryo:kryo</include>
+                                    <include>com.google.code.gson:gson</include>
+                                    <include>com.google.protobuf:protobuf-java</include>
+                                    <include>com.lmax:disruptor</include>
+                                    <include>de.javakaffee:kryo-serializers</include>
+                                    <include>net.sf.ehcache:ehcache-core</include>
+                                    <include>net.sf.opencsv:opencsv</include>
+                                    <include>net.sf.supercsv:super-csv</include>
+                                    <include>org.apache.lucene:lucene-core</include>
+                                    <include>org.apache.spark</include>
+                                    <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
+                                    <include>com.splicemachine.db-project:*</include>
+                                    <include>com.splicemachine:*</include>
+                                    <include>org.sparkproject.guava:*</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!-- exclude signing keys from uber-jar -->
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>**/yarn-site.xml</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-                </build>
-
-    </profile>
-
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <transformers>
+                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                            <manifestEntries>
+                                                <Implementation-Version>${buildNumber}</Implementation-Version>
+                                                <Release>${project.version}</Release>
+                                                <Build-Time>${maven.build.timestamp}</Build-Time>
+                                                <URL>http://www.splicemachine.com</URL>
+                                            </manifestEntries>
+                                        </transformer>
+                                    </transformers>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
-
 </project>

@@ -23,7 +23,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
@@ -45,7 +44,6 @@
                     <groupId>org.jboss.netty</groupId>
                     <artifactId>netty</artifactId>
                 </exclusion>
-
             </exclusions>
         </dependency>
         <dependency>
@@ -115,15 +113,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
-
         <!--Test dependencies -->
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
             <version>2.0.1.10-SNAPSHOT</version>
         </dependency>
-
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
@@ -131,7 +126,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_si_api</artifactId>
@@ -267,7 +261,6 @@
                 </resources>
             </build>
         </profile>
-
         <profile>
             <id>hbase1.0.0.x</id>
             <activation>
@@ -317,7 +310,6 @@
                 </resources>
             </build>
         </profile>
-
         <profile>
             <id>hbase1.1.0</id>
             <activation>
@@ -367,8 +359,6 @@
                 </resources>
             </build>
         </profile>
-
-
         <profile>
             <id>hbase1.2.0</id>
             <activation>
@@ -418,6 +408,5 @@
                 </resources>
             </build>
         </profile>
-
     </profiles>
 </project>

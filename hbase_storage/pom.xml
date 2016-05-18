@@ -34,7 +34,6 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-core</artifactId>
                 </exclusion>
-
             </exclusions>
         </dependency>
         <dependency>
@@ -241,8 +240,6 @@
                 </resources>
             </build>
         </profile>
-
-
         <profile>
             <id>hbase1.2.0</id>
             <activation>
@@ -292,7 +289,6 @@
                 </resources>
             </build>
         </profile>
-
         <profile>
             <id>hbase1.1.0</id>
             <activation>
@@ -342,7 +338,6 @@
                 </resources>
             </build>
         </profile>
-
         <profile>
             <id>hbase1.0.0</id>
             <activation>
@@ -443,6 +438,5 @@
                 </resources>
             </build>
         </profile>
-
     </profiles>
 </project>

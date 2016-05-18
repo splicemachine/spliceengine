@@ -20,10 +20,7 @@
         <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
-
     </properties>
-
-
     <dependencies>
         <!--
         -sf- For some absurd reason, we have an annoying dependency conflict between hbase and
@@ -58,10 +55,10 @@
             <artifactId>hbase_pipeline-${envClassifier}</artifactId>
             <version>${project.version}</version>
             <exclusions>
-            <exclusion>
-                <groupId>org.jboss.netty</groupId>
-                <artifactId>netty</artifactId>
-            </exclusion>
+                <exclusion>
+                    <groupId>org.jboss.netty</groupId>
+                    <artifactId>netty</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -92,7 +89,6 @@
             <classifier>test</classifier>
             <scope>test</scope>
         </dependency>
-
         <!--Test dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -128,7 +124,7 @@
             <!--intentionally compile scope,we use this dependency at app compile and runtime-->
             <scope>test</scope>
         </dependency>
-<!--
+        <!--
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-core</artifactId>
@@ -243,13 +239,12 @@
             <artifactId>hadoop-tools</artifactId>
             <version>${hadoop.tools.version}</version>
         </dependency>
-
-      <dependency>
-        <groupId>com.splicemachine</groupId>
-        <artifactId>hbase_storage-${envClassifier}</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
-        <scope>test</scope>
-      </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <version>2.0.1-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -407,7 +402,6 @@
                             <goal>run</goal>
                         </goals>
                     </execution>
-
                 </executions>
                 <dependencies>
                     <dependency>
@@ -431,7 +425,6 @@
         </plugins>
     </build>
     <profiles>
-
         <profile>
             <id>hbase1.0.0.x</id>
             <activation>
@@ -484,8 +477,6 @@
                 </resources>
             </build>
         </profile>
-
-
         <profile>
             <id>hbase1.1.0</id>
             <activation>
@@ -538,8 +529,6 @@
                 </resources>
             </build>
         </profile>
-
-
         <profile>
             <id>hbase1.2.0</id>
             <activation>
@@ -592,7 +581,6 @@
                 </resources>
             </build>
         </profile>
-
         <profile>
             <id>hbase1.0.0</id>
             <activation>
@@ -715,7 +703,6 @@
                 </plugins>
             </build>
         </profile>
-
         <profile>
             <!-- ZooKeeper-->
             <id>spliceZoo</id>
@@ -789,7 +776,6 @@
                 </plugins>
             </build>
         </profile>
-
         <profile>
             <id>spliceYarn</id>
             <activation>
@@ -1028,7 +1014,7 @@
                             <suppressJMeterOutput>false</suppressJMeterOutput>
                             <ignoreResultFailures>true</ignoreResultFailures>
                             <testFilesIncluded>
-								<!-- jMeterTestFile>tpch-micro-suite.jmx</jMeterTestFile -->
+                                <!-- jMeterTestFile>tpch-micro-suite.jmx</jMeterTestFile -->
                                 <jMeterTestFile>tpch1.jmx</jMeterTestFile>
                             </testFilesIncluded>
                             <propertiesUser>
