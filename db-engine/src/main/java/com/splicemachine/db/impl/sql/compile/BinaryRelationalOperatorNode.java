@@ -133,7 +133,7 @@ public class BinaryRelationalOperatorNode
      * See InListOperatorNode.preprocess() for more.
      */
     public void init(Object leftOperand,Object rightOperand,Object inListOp){
-        init(leftOperand,rightOperand);
+        init(leftOperand, rightOperand);
         this.inListProbeSource=(InListOperatorNode)inListOp;
     }
 
@@ -195,12 +195,26 @@ public class BinaryRelationalOperatorNode
 
         ColumnReference cr;
         boolean walkSubtree=true;
-        if(leftOperand instanceof ColumnReference){
+
+        ColumnReference leftColumnReference = null;
+        if (leftOperand instanceof TernaryOperatorNode) {
+            TernaryOperatorNode n = (TernaryOperatorNode) leftOperand;
+            leftColumnReference = (ColumnReference) n.receiver;
+        } else if (leftOperand instanceof UnaryOperatorNode) {
+            UnaryOperatorNode n = (UnaryOperatorNode) leftOperand;
+            if (n.operand instanceof ColumnReference) {
+                leftColumnReference = (ColumnReference)n.operand;
+            }
+        } else if (leftOperand instanceof ColumnReference) {
+            leftColumnReference = (ColumnReference)leftOperand;
+        }
+
+        if(leftColumnReference != null){
 			/*
 			** The left operand is a column reference.
 			** Is it the correct column?
 			*/
-            cr=(ColumnReference)leftOperand;
+            cr=leftColumnReference;
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
 				/*
 				** The table is correct, how about the column position?
@@ -212,13 +226,25 @@ public class BinaryRelationalOperatorNode
             }
             walkSubtree=false;
         }
+        ColumnReference rightColumnReference = null;
+        if (rightOperand instanceof TernaryOperatorNode) {
+            TernaryOperatorNode n = (TernaryOperatorNode) rightOperand;
+            rightColumnReference = (ColumnReference)n.receiver;
+        } else if (rightOperand instanceof UnaryOperatorNode) {
+            UnaryOperatorNode n = (UnaryOperatorNode) rightOperand;
+            if (n.operand instanceof ColumnReference) {
+                rightColumnReference = (ColumnReference)n.operand;
+            }
+        } else if (rightOperand instanceof ColumnReference) {
+            rightColumnReference = (ColumnReference)rightOperand;
+        }
 
-        if(rightOperand instanceof ColumnReference){
+        if(rightColumnReference != null){
 			/*
 			** The right operand is a column reference.
 			** Is it the correct column?
 			*/
-            cr=(ColumnReference)rightOperand;
+            cr=rightColumnReference;
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
 				/*
 				** The table is correct, how about the column position?
@@ -464,6 +490,22 @@ public class BinaryRelationalOperatorNode
         exprOp.generateExpression(acb,mb);
     }
 
+    private ColumnReference getColumnReference(ValueNode v) {
+
+        if(v instanceof ColumnReference) {
+            return (ColumnReference)v;
+        }
+        else if (v instanceof UnaryOperatorNode) {
+            UnaryOperatorNode n = (UnaryOperatorNode) v;
+            if (n.operand instanceof ColumnReference) {
+                return (ColumnReference) n.operand;
+            }
+        }
+        else if (v instanceof TernaryOperatorNode) {
+            return (ColumnReference)((TernaryOperatorNode) v).receiver;
+        }
+        return null;
+    }
     /**
      * @throws StandardException Thrown on error
      * @see RelationalOperator#selfComparison
@@ -477,9 +519,9 @@ public class BinaryRelationalOperatorNode
 		** Figure out which side the given ColumnReference is on,
 		** and look for the same table on the other side.
 		*/
-        if(leftOperand==cr){
+        if(getColumnReference(leftOperand)==cr){
             otherSide=rightOperand;
-        }else if(rightOperand==cr){
+        }else if(getColumnReference(rightOperand)==cr){
             otherSide=leftOperand;
         }else{
             otherSide=null;
@@ -534,24 +576,66 @@ public class BinaryRelationalOperatorNode
         boolean left=false;
 
 		/* Is the key column on the left or the right? */
-        if(leftOperand instanceof ColumnReference){
+        if(leftOperand instanceof ColumnReference) {
 			/*
 			** The left operand is a column reference.
 			** Is it the correct column?
 			*/
-            cr=(ColumnReference)leftOperand;
+            cr = (ColumnReference) leftOperand;
+            if (valNodeReferencesOptTable(cr, (FromTable) optTable, false, true)) {
+				/* The left operand is the key column */
+                left = true;
+            }
+        }else if (leftOperand instanceof UnaryOperatorNode) {
+            UnaryOperatorNode n = (UnaryOperatorNode) leftOperand;
+            if (n.operand instanceof ColumnReference) {
+                cr=(ColumnReference)n.operand;
+                if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
+				/* The left operand is the key column */
+                    left=true;
+                }
+            }
+        }
+        else if (leftOperand instanceof TernaryOperatorNode) {
+            cr=(ColumnReference)((TernaryOperatorNode) leftOperand).receiver;
             if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
 				/* The left operand is the key column */
                 left=true;
             }
         }
-
         // Else the right operand must be the key column.
         if(SanityManager.DEBUG){
             if(!left){
-                SanityManager.ASSERT(
-                        (rightOperand instanceof ColumnReference) &&
-                                valNodeReferencesOptTable(rightOperand,(FromTable)optTable,false,true),"Key column not found on either side.");
+                boolean right = false;
+
+                if (rightOperand instanceof ColumnReference) {
+                    cr=(ColumnReference)rightOperand;
+                    if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
+				/* The right operand is the key column */
+                        right=true;
+                    }
+                }
+                else if (rightOperand instanceof UnaryOperatorNode) {
+                    UnaryOperatorNode n = (UnaryOperatorNode) rightOperand;
+                    if (n.operand instanceof ColumnReference) {
+                        cr=(ColumnReference)n.operand;
+                        if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
+				/* The left operand is the key column */
+                            right=true;
+                        }
+                    }
+                }
+                else if (rightOperand instanceof TernaryOperatorNode) {
+                    TernaryOperatorNode n = (TernaryOperatorNode) rightOperand;
+                    if (n.receiver instanceof ColumnReference) {
+                        cr = (ColumnReference) n.receiver;
+                        if (valNodeReferencesOptTable(cr, (FromTable) optTable, false, true)) {
+				/* The right operand is the key column */
+                            right = true;
+                        }
+                    }
+                }
+                SanityManager.ASSERT(right,"Key column not found on either side.");
             }
         }
 
@@ -671,14 +755,32 @@ public class BinaryRelationalOperatorNode
      * @return The absolute 0-based column position of the ColumnReference
      */
     private int getAbsoluteColumnPosition(Optimizable optTable){
-        ColumnReference cr;
+        ColumnReference cr=null;
         ConglomerateDescriptor bestCD;
         int columnPosition;
 
         if(keyColumnOnLeft(optTable)){
-            cr=(ColumnReference)leftOperand;
+            if (leftOperand instanceof ColumnReference) {
+                cr = (ColumnReference) leftOperand;
+            }
+            else if (leftOperand instanceof TernaryOperatorNode) {
+                cr = (ColumnReference)((TernaryOperatorNode) leftOperand).receiver;
+            }
+            else {
+                SanityManager.ASSERT(false,
+                        "unexpected operand type:" + leftOperand.getClass().getName());
+            }
         }else{
-            cr=(ColumnReference)rightOperand;
+            if (rightOperand instanceof ColumnReference) {
+                cr = (ColumnReference) rightOperand;
+            }
+            else if (rightOperand instanceof TernaryOperatorNode) {
+                cr = (ColumnReference) ((TernaryOperatorNode) rightOperand).receiver;
+            }
+            else {
+                SanityManager.ASSERT(false,
+                        "unexpected operand type:" + rightOperand.getClass().getName());
+            }
         }
 
         bestCD=optTable.getTrulyTheBestAccessPath().
@@ -708,14 +810,32 @@ public class BinaryRelationalOperatorNode
     }
 
     private int getAbsoluteStoragePosition(Optimizable optTable){
-        ColumnReference cr;
+        ColumnReference cr=null;
         ConglomerateDescriptor bestCD;
         int columnPosition;
 
         if(keyColumnOnLeft(optTable)){
-            cr=(ColumnReference)leftOperand;
+            if (leftOperand instanceof ColumnReference) {
+                cr = (ColumnReference) leftOperand;
+            }
+            else if (leftOperand instanceof TernaryOperatorNode) {
+                cr = (ColumnReference)((TernaryOperatorNode) leftOperand).receiver;
+            }
+            else {
+                SanityManager.ASSERT(false,
+                        "unexpected operand type:" + leftOperand.getClass().getName());
+            }
         }else{
-            cr=(ColumnReference)rightOperand;
+            if (rightOperand instanceof ColumnReference) {
+                cr = (ColumnReference) rightOperand;
+            }
+            else if (rightOperand instanceof TernaryOperatorNode) {
+                cr = (ColumnReference) ((TernaryOperatorNode) rightOperand).receiver;
+            }
+            else {
+                SanityManager.ASSERT(false,
+                        "unexpected operand type:" + rightOperand.getClass().getName());
+            }
         }
 
         bestCD=optTable.getTrulyTheBestAccessPath().
@@ -823,6 +943,67 @@ public class BinaryRelationalOperatorNode
 			** Is it the correct column?
 			*/
             cr=(ColumnReference)rightOperand;
+            if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
+                otherSide=leftOperand;
+                found=true;
+            }
+        }
+
+		/* Have we found a ColumnReference on either side? */
+        if(!found){
+			/*
+			** Neither side is a ColumnReference to the table we're looking
+			** for, so it can't be a Qualifier
+			*/
+            return false;
+        }
+
+		/*
+		** One side is a ColumnReference to the correct table.  It is a
+		** Qualifier if the other side does not refer to the table we are
+		** optimizing.
+		*/
+        return !valNodeReferencesOptTable(otherSide,ft,forPush,true);
+    }
+
+    public boolean isQualifierForHashableJoin(Optimizable optTable,boolean forPush) throws StandardException{
+		/* If this rel op is for an IN-list probe predicate then we never
+		 * treat it as a qualifer.  The reason is that if we treat it as
+		 * a qualifier then we could end up generating it as a qualifier,
+		 * which would lead to the generation of an equality qualifier
+		 * of the form "col = <val>" (where <val> is the first value in
+		 * the IN-list).  That would lead to wrong results (missing rows)
+		 * because that restriction is incorrect.
+		 */
+        if(isInListProbeNode())
+            return false;
+
+        FromTable ft;
+        ValueNode otherSide=null;
+        boolean found=false;
+        boolean walkSubtree=true;
+
+        ft=(FromTable)optTable;
+
+        ColumnReference cr = getColumnReference(leftOperand);
+        if(cr != null){
+			/*
+			** The left operand is a column reference.
+			** Is it the correct column?
+			*/
+            if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
+                otherSide=rightOperand;
+                found=true;
+            }
+            walkSubtree=false;
+        }
+
+        cr = getColumnReference(rightOperand);
+        if((!found) && cr != null){
+			/*
+			** The right operand is a column reference.
+			** Is it the correct column?
+			*/
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
                 otherSide=leftOperand;
                 found=true;

@@ -33,15 +33,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.AccessPath;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
-import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -365,7 +357,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			** Skip comparisons that are not qualifiers for the table
 			** in question.
 			*/
-            if(!((RelationalOperator)leftNode).isQualifier(optTable,false)){
+            if (!(leftNode instanceof BinaryRelationalOperatorNode)) {
+                continue;
+            }
+            if(!((BinaryRelationalOperatorNode)leftNode).isQualifierForHashableJoin(optTable,false)){
                 continue;
             }
 
@@ -400,7 +395,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // We found a match - make this entry first in the list
             if(index!=0){
                 removeElementAt(index);
-                insertElementAt(predicate,0);
+                insertElementAt(predicate, 0);
             }
 
             return;
@@ -435,6 +430,34 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 return false;
             }
         }else if(!pred.getRelop().isQualifier(optTable,pushPreds)){
+            // NOT a qualifier, go on to next predicate.
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean isQualifierForHashableJoin(Predicate pred,Optimizable optTable,boolean pushPreds) throws StandardException{
+		/*
+		** Skip over it if it's not a relational operator (this includes
+		** BinaryComparisonOperators and IsNullNodes.
+		*/
+        if(!pred.isRelationalOpPredicate()) {
+            // possible OR clause, check for it.
+            if (!pred.isPushableOrClause(optTable)) {
+                /* NOT an OR or AND, so go on to next predicate.
+                 *
+                 * Note: if "pred" (or any predicates in the tree
+                 * beneath "pred") is an IN-list probe predicate
+                 * then we'll "revert" it to its original form
+                 * (i.e. to the source InListOperatorNode from
+                 * which it originated) as part of code generation.
+                 * See generateExpression() in BinaryOperatorNode.
+                 */
+                return false;
+            }
+        } else if (!(pred.getRelop() instanceof BinaryRelationalOperatorNode)) {
+            return false;
+        }else if(!((BinaryRelationalOperatorNode) pred.getRelop()).isQualifierForHashableJoin(optTable,pushPreds)){
             // NOT a qualifier, go on to next predicate.
             return false;
         }
@@ -637,10 +660,17 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			** in reverse order after completing the loop.
 			*/
             Predicate[] preds=new Predicate[size];
+            JoinStrategy joinStrategy = optTable.getTrulyTheBestAccessPath().getJoinStrategy();
+            if (joinStrategy == null) {
+                joinStrategy = optTable.getCurrentAccessPath().getJoinStrategy();
+            }
+            AccessPath ap = optTable.getCurrentAccessPath();
+            boolean isHashableJoin = joinStrategy instanceof HashableJoinStrategy;
 
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
-                if(isQualifier(pred,optTable,pushPreds)){
+                if(!isHashableJoin && isQualifier(pred,optTable,pushPreds) ||
+                        isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
                     pred.markQualifier();
                     if(SanityManager.DEBUG){
                         if(pred.isInListProbePredicate()){
