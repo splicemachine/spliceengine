@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>2.0.1.10-SNAPSHOT</version>
+    <version>2.0.1.11-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -24,7 +24,7 @@
         </repository>
     </repositories>
     <properties>
-        <derby.version>2.0.1.10-SNAPSHOT</derby.version>
+        <derby.version>2.0.1.11-SNAPSHOT</derby.version>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
