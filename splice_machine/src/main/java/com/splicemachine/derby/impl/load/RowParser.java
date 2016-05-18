@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLDate;
 import com.splicemachine.db.iapi.types.SQLTime;
+import org.apache.commons.lang3.text.WordUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -174,35 +175,35 @@ public class RowParser {
 						return;
 				//		throw ErrorState.LANG_AI_CANNOT_MODIFY_AI.newException(columnContext.getColumnName());
 				}
-				elem = elem.trim();
-				if(elem.length()<=0){
-						//if it's a date, treat "" as null by setting to null
-						//otherwise, get it's default value
-						switch(column.getTypeFormatId()){
-								case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
-								case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-								case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-										column.setToNull();
-										return;
-						}
-						if(elem.length()==0) {
-								elem = columnContext.getColumnDefault();
-						}
-				}
+                elem = trimIfNeeded(column, elem);
+                if(elem.length()<=0){
+                    //if it's a date, treat "" as null by setting to null
+                    //otherwise, get it's default value
+                    switch(column.getTypeFormatId()){
+                        case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
+                        case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
+                        case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
+                            column.setToNull();
+                            return;
+                    }
+                    if(elem.length()==0) {
+                        elem = columnContext.getColumnDefault();
+                    }
+                }
 				switch(column.getTypeFormatId()){
 						case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
 						case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
 						case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
 								if(elem==null){
-										column.setToNull();
-										break;
+                                    column.setToNull();
+                                    break;
 								}
 						case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
 						case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
 						case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
 						case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
 						case StoredFormatIds.SQL_DECIMAL_ID:
-						case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
+ 						case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
 						case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
 						case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
 						case StoredFormatIds.XML_ID: //return new XML();
@@ -233,7 +234,7 @@ public class RowParser {
 								}
 								break;
 						case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-								try {
+                                try {
 										if(calendar==null)
 												calendar = new GregorianCalendar();
 										column.setValue(timestampParser.parse(elem),calendar);
@@ -246,6 +247,30 @@ public class RowParser {
 				}
 				columnContext.validate(column);
 		}
+
+        private String trimIfNeeded(DataValueDescriptor column, String elem) {
+            // Once we get to column.setValue calls above in setColumn method,
+            // trimming is generally done in the dvd subtypes so many cases
+            // are properly handled. However, in others, like a numeric column
+            // that is all whitespace, we need to trim and treat that as null
+            // to avoid errors.
+            switch(column.getTypeFormatId()) {
+                case StoredFormatIds.SQL_DATE_ID:
+                case StoredFormatIds.SQL_TIME_ID:
+                case StoredFormatIds.SQL_TIMESTAMP_ID:
+                case StoredFormatIds.SQL_TINYINT_ID:
+                case StoredFormatIds.SQL_SMALLINT_ID:
+                case StoredFormatIds.SQL_INTEGER_ID:
+                case StoredFormatIds.SQL_BOOLEAN_ID:
+                case StoredFormatIds.SQL_LONGINT_ID:
+                case StoredFormatIds.SQL_REAL_ID:
+                case StoredFormatIds.SQL_DOUBLE_ID:
+                case StoredFormatIds.SQL_DECIMAL_ID:
+                    return elem.trim();
+                default:
+                    return elem;
+            }
+        }
 
 		/*Convenience method to re-join a failed row*/
 		private Joiner joiner = null;
