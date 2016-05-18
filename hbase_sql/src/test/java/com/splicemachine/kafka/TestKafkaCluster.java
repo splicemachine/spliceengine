@@ -30,6 +30,7 @@ public class TestKafkaCluster {
         Properties props = propsI.next();
         assert props.containsKey("zookeeper.connect");
         props.put("zookeeper.connect", zkConnectString);
+        props.put("port","9092");
         return new KafkaConfig(props);
     }
 
