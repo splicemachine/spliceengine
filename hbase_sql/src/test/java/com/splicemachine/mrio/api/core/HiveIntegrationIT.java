@@ -37,7 +37,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_tools.TableCreator;
-
+@Ignore
 public class HiveIntegrationIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
     public static final String CLASS_NAME = HiveIntegrationIT.class.getSimpleName().toUpperCase();
