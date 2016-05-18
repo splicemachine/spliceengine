@@ -9,8 +9,10 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.uuid.Snowflake;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.BitSet;
@@ -21,6 +23,7 @@ import java.util.BitSet;
  */
 public class IndexStatsCostController extends StatsStoreCostController {
     private final int totalColumns;
+    private final double baseRowIdLength;
     private final IndexTableStatistics indexStats;
     private int[] indexColToHeapColMap;
     private final OverheadManagedTableStatistics baseTableStatistics;
@@ -45,9 +48,29 @@ public class IndexStatsCostController extends StatsStoreCostController {
         this.indexColToHeapColMap = new int[baseColumnPositions.length];
         System.arraycopy(baseColumnPositions,0,this.indexColToHeapColMap,0,indexColToHeapColMap.length);
         baseTableStatistics = PartitionStatsStore.getStatistics(heapConglomerateId,indexConglomerate.getTransactionManager());
-        indexStats = new IndexTableStatistics(conglomerateStatistics,baseTableStatistics);
-        this.conglomerateStatistics = indexStats;
         totalColumns = ((SpliceConglomerate)heapConglomerate).getFormat_ids().length;
+        int primaryKeyCols = ((SpliceConglomerate)heapConglomerate).getColumnOrdering().length;
+        int baseOverhead = 0;
+        if (primaryKeyCols == 0) {
+            // base table with no PK -> id is snowflake UUID
+            // this UUID is overhead on the base table, it doesn't map to column data
+            baseOverhead = Snowflake.UUID_BYTE_SIZE;
+            baseRowIdLength = baseOverhead;
+        } else {
+            // base table with PK -> estimate id length from avgRowWidth
+            baseRowIdLength = ((double)baseTableStatistics.avgRowWidth()) / totalColumns * primaryKeyCols;
+        }
+        double indexOverhead = getIndexOverhead(cd);
+        double columnFraction = ((double)indexColToHeapColMap.length) / totalColumns;
+        indexStats = new IndexTableStatistics(conglomerateStatistics,baseTableStatistics, columnFraction, baseOverhead, indexOverhead);
+        this.conglomerateStatistics = indexStats;
+    }
+
+    private double getIndexOverhead(ConglomerateDescriptor indexDescriptor) {
+        boolean indexUnique = indexDescriptor.getIndexDescriptor().isUnique();
+        return indexUnique
+                ? baseRowIdLength // just the base row id length
+                : 2 * baseRowIdLength + 1; // row id appears twice plus a null separator
     }
 
     @Override

@@ -16,20 +16,38 @@ public class IndexTableStatistics implements OverheadManagedTableStatistics{
     private final OverheadManagedTableStatistics baseTableStats;
 
     private final double indexSizeFactor;
+    private final int baseOverhead;
+    private final double indexOverhead;
 
     private transient List<OverheadManagedPartitionStatistics> indexPartStats;
 
-    public IndexTableStatistics(OverheadManagedTableStatistics indexStats,OverheadManagedTableStatistics baseTableStats){
+    /**
+     * @param indexStats Estimated index stats, we don't collect index statistics anymore
+     * @param baseTableStats Statistics for the base table, we derive index stats from these
+     * @param columnFraction Fraction of columns in the index vs the base table
+     * @param baseOverhead
+     * @param indexOverhead
+     */
+    public IndexTableStatistics(OverheadManagedTableStatistics indexStats,
+                                OverheadManagedTableStatistics baseTableStats,
+                                double columnFraction, int baseOverhead, double indexOverhead){
         this.indexStats=indexStats;
         this.baseTableStats=baseTableStats;
-        this.indexSizeFactor = ((double)indexStats.avgRowWidth())/baseTableStats.avgRowWidth();
+        this.indexSizeFactor = columnFraction;
+        this.baseOverhead = baseOverhead;
+        this.indexOverhead = indexOverhead;
     }
 
     @Override public long rowCount(){ return indexStats.rowCount(); }
     @Override public long totalSize(){ return indexStats.totalSize(); }
     @Override public long avgSize(){ return indexStats.avgSize(); }
     @Override public double localReadLatency(){ return indexStats.localReadLatency(); }
-    @Override public int avgRowWidth(){ return indexStats.avgRowWidth(); }
+    @Override public int avgRowWidth(){
+        double baseColsWidth = baseTableStats.avgRowWidth() - baseOverhead;
+        double indexColsWidth = baseColsWidth * indexSizeFactor;
+        int indexRowWidth = (int) (indexColsWidth + indexOverhead);
+        return indexRowWidth < 1 ? 1 : indexRowWidth; // make sure we don't end up with a bogus width
+    }
     @Override public long localReadTime(){ return indexStats.localReadTime(); }
     @Override public long numOpenEvents(){ return baseTableStats.numOpenEvents(); }
     @Override public long numCloseEvents(){ return baseTableStats.numCloseEvents(); }

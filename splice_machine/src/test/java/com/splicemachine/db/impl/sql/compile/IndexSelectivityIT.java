@@ -78,6 +78,50 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 insert.executeBatch();
         }
         insert.executeBatch();
+
+        new TableCreator(conn)
+                .withCreate("create table narrow_table(i int, j int)")
+                .withInsert("insert into narrow_table values(?,?)")
+                .withRows(rows(
+                        row(1, 2),
+                        row(3, 4)))
+                .withIndex("create index narrow_table_idx on narrow_table(i)")
+                .create();
+
+        PreparedStatement doubleSize = spliceClassWatcher.prepareStatement("insert into narrow_table select * from narrow_table");
+
+        for (int i = 0; i < 6; i++) {
+            doubleSize.execute();
+        }
+        conn.commit();
+        new TableCreator(conn)
+                .withCreate("create table wide_table(i int, j int, k int, l int, m int, n int)")
+                .withInsert("insert into wide_table values(?,?,?,?,?,?)")
+                .withRows(rows(
+                        row(1, 2, 3, 4, 5, 6),
+                        row(3, 4, 5, 6, 7, 8)))
+                .withIndex("create index wide_table_idx on wide_table(i)")
+                .create();
+
+        doubleSize = spliceClassWatcher.prepareStatement("insert into wide_table select * from wide_table");
+
+        for (int i = 0; i < 6; i++) {
+            doubleSize.execute();
+        }
+        conn.commit();
+        new TableCreator(conn)
+                .withCreate("create table wide_table_pk(i int, j int, k int, l int, m int, n int, primary key (j,k,l,m,n))")
+                .withInsert("insert into wide_table_pk values(?,?,?,?,?,?)")
+                .withRows(rows(
+                        row(1, 1, 3, 4, 5, 6),
+                        row(3, 2, 5, 6, 7, 8)))
+                .withIndex("create index wide_table_pk_idx on wide_table_pk(i)")
+                .create();
+
+
+        for (int i = 0; i < 6; i++) {
+            spliceClassWatcher.execute("insert into wide_table_pk select i,j+(select count(*) from wide_table_pk),k,l,m,n from wide_table_pk");
+        }
         conn.commit();
 
         conn.createStatement().executeQuery(format(
@@ -87,7 +131,6 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-4272 DB-4440 Intermittent failures; expected IndexScan[TS_LOW_CARDINALITY_IX_1 got IndexScan[TS_LOW_CARDINALITY_IX_5")
     public void testCoveringIndexScan() throws Exception {
         rowContainsQuery(3,"explain select c1 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_1",methodWatcher);
         rowContainsQuery(3,"explain select c1,c2 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_3",methodWatcher);
@@ -211,6 +254,26 @@ public class IndexSelectivityIT extends SpliceUnitTest {
         	format(query, index2, 5000),
             methodWatcher,
             "ProjectRestrict", "outputRows=4998");
+    }
+
+    @Test
+    public void testCountChoosesNarrowTable() throws Exception {
+        rowContainsQuery(6,"explain select count(*) from narrow_table","TableScan[NARROW_TABLE",methodWatcher);
+    }
+
+    @Test
+    public void testFilteredCountChoosesNarrowTableIndex() throws Exception {
+        rowContainsQuery(6,"explain select count(*) from narrow_table where i = 1","IndexScan[NARROW_TABLE_IDX",methodWatcher);
+    }
+
+    @Test
+    public void testCountChoosesWideTableIndex() throws Exception {
+        rowContainsQuery(6,"explain select count(*) from wide_table","IndexScan[WIDE_TABLE_IDX",methodWatcher);
+    }
+
+    @Test
+    public void testCountChoosesWideTablePK() throws Exception {
+        rowContainsQuery(6,"explain select count(*) from wide_table_pk","TableScan[WIDE_TABLE_PK",methodWatcher);
     }
 
     // Possible future tests:
