@@ -194,6 +194,8 @@
                                         <exclude>META-INF/*.RSA</exclude>
                                         <exclude>META-INF/*.SF</exclude>
                                         <exclude>**/yarn-site.xml</exclude>
+                                        <exclude>**/core-site.xml</exclude>
+                                        <exclude>**/splice-site.xml</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
