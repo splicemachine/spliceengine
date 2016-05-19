@@ -109,9 +109,11 @@ run all unit _and_ integration tests(we will be separating those out better in t
 * `hdp2.3.0,hbase1.1.0`
 * `hdp2.4.2,hbase1.1.0`
 
-For MapR, you will need to add the following empty file on your filesystem.
+For MapR, you will need to add the following empty file on your filesystem, executable and owned by root:
+`/opt/mapr/server/createJTVolume.sh`
 
-/opt/mapr/server/createJTVolume.sh
+You will also need to have the following directory on your filesystem, owned by root with 700 permissions:
+`/private/var/mapr/cluster/yarn/rm/system`
 
 #Running testing environments
 
