@@ -66,18 +66,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     @Override
     public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController) throws IOException {
-        return super.compact(request, throughputController);
-    }
-
-    @Override
-    protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer, long smallestReadPoint, boolean cleanSeqId, CompactionThroughputController throughputController, boolean major) throws IOException {
-        return super.performCompaction(fd, scanner, writer, smallestReadPoint, cleanSeqId, throughputController, major);
-    }
-    // TODO DGF : Fix required
-//    @Override
-    public List<Path> compact(CompactionRequest request) throws IOException {
         if(!allowSpark)
-            return super.compact(request,null);
+            return super.compact(request, throughputController);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
 
@@ -267,7 +257,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
                 writer = createTmpWriter(fd, smallestReadPoint);
                 boolean finished = performCompaction(fd, scanner, writer, smallestReadPoint, cleanSeqId,
-                        request.isAllFiles());
+                        new NoLimitCompactionThroughputController(), request.isAllFiles());
                 if (!finished) {
                     writer.close();
                     store.getFileSystem().delete(writer.getPath(), false);
@@ -378,9 +368,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             SpliceLogUtils.trace(LOG,"postCreateCoprocScanner");
         return super.postCreateCoprocScanner(request, scanType, scanner);
     }
-    // TODO DGF : Fix required
-//    @Override
-    protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer, long smallestReadPoint, boolean cleanSeqId, boolean major) throws IOException {
+
+    @Override
+    protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer, long smallestReadPoint, boolean cleanSeqId, CompactionThroughputController throughputController, boolean major) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"performCompaction");
         long bytesWritten = 0;
@@ -396,10 +386,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
         long now = 0;
         boolean hasMore;
+        ScannerContext scannerContext =
+                ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
         do {
-            // TODO DGF : Fix required
-            hasMore = false;
-            //hasMore = scanner.next(cells, compactionKVMax);
+            hasMore = scanner.next(cells, scannerContext);
             if (LOG.isDebugEnabled()) {
                 now = EnvironmentEdgeManager.currentTime();
             }

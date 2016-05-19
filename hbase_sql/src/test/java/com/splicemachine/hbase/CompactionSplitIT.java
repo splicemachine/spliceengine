@@ -305,7 +305,6 @@ public class CompactionSplitIT {
     }
 
     @Test(timeout = 180000)
-    @Ignore("DB-5103")
     // Tests compactions block scans during the storefile renaming step
     public void testCompactionFinalizerBlocksScans() throws Throwable {
         final String tableName = "F";

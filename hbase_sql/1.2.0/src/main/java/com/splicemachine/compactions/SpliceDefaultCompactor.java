@@ -65,14 +65,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         this.smallestReadPoint = smallestReadPoint;
     }
 
-    /*
     @Override
-    protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer, long smallestReadPoint, boolean cleanSeqId, CompactionThroughputController throughputController, boolean major) throws IOException {
-        return super.performCompaction(fd, scanner, writer, smallestReadPoint, cleanSeqId, throughputController, major);
-    }
-    */
-    // TODO DGF : Fix required
-//    @Override
     public List<Path> compact(CompactionRequest request, CompactionThroughputController compactionThroughputController, User user) throws IOException {
         if(!allowSpark)
             return super.compact(request,compactionThroughputController,user);
@@ -127,10 +120,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
 
         this.progress.complete();
-        // TODO FIX DFG
-        ScanType scanType = null;
-//        ScanType scanType = request.isRetainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
-//                : ScanType.COMPACT_DROP_DELETES;
+        ScanType scanType =
+                request.isRetainDeleteMarkers()
+                        ? ScanType.COMPACT_RETAIN_DELETES
+                        : ScanType.COMPACT_DROP_DELETES;
         // trigger MemstoreAwareObserver
         postCreateCoprocScanner(request, scanType, null,user);
 
@@ -219,6 +212,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
         List<StoreFileScanner> scanners;
         Collection<StoreFile> readersToClose;
+        // Tell HDFS it can drop data out of the caches after reading them, we are compacting on Spark and won't need
+        // that data anytime soon
+        final boolean dropBehind = true;
         if (this.conf.getBoolean("hbase.regionserver.compaction.private.readers", false)) {
             // clone all StoreFiles, so we'll do the compaction on a independent copy of StoreFiles,
             // HFileFiles, and their readers
@@ -226,12 +222,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             for (StoreFile f : request.getFiles()) {
                 readersToClose.add(new StoreFile(f));
             }
-            // TODO DFG What is drop behind?
-            scanners = createFileScanners(readersToClose, smallestReadPoint,false);
+            scanners = createFileScanners(readersToClose, smallestReadPoint, dropBehind);
         } else {
             readersToClose = Collections.emptyList();
-            // TODO DFG What is drop behind?
-            scanners = createFileScanners(request.getFiles(), smallestReadPoint,false);
+            scanners = createFileScanners(request.getFiles(), smallestReadPoint, dropBehind);
         }
 
         StoreFile.Writer writer = null;
@@ -242,10 +236,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             InternalScanner scanner = null;
             try {
                 /* Include deletes, unless we are doing a compaction of all files */
-                // TODO FIX DFG
-                ScanType scanType = null;
-//                ScanType scanType = request.isRetainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
-//                        : ScanType.COMPACT_DROP_DELETES;
+                ScanType scanType = request.isRetainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
+                        : ScanType.COMPACT_DROP_DELETES;
                 scanner = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners);
                 if (scanner == null) {
                     scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
@@ -268,11 +260,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     cleanSeqId = true;
                 }
 
-                // TODO FIX DFG
-//                writer = createTmpWriter(fd, smallestReadPoint);
-                writer = null;
-                boolean finished = performCompaction(fd, scanner, writer, smallestReadPoint, cleanSeqId,
-                        request.isAllFiles());
+                writer = createTmpWriter(fd, dropBehind);
+                boolean finished = performCompaction(fd, scanner,  writer, smallestReadPoint, cleanSeqId,
+                        new NoLimitCompactionThroughputController(), request.isAllFiles());
                 if (!finished) {
                     writer.close();
                     store.getFileSystem().delete(writer.getPath(), false);
@@ -372,9 +362,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return super.preCreateCoprocScanner(request, scanType, earliestPutTs, scanners);
     }
 
-    // TODO DGF : Fix required
-//    @Override
-    protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer, long smallestReadPoint, boolean cleanSeqId, boolean major) throws IOException {
+    @Override
+    protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer,
+                                        long smallestReadPoint, boolean cleanSeqId,
+                                        CompactionThroughputController throughputController, boolean major) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"performCompaction");
         long bytesWritten = 0;
@@ -390,10 +381,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
         long now = 0;
         boolean hasMore;
+        ScannerContext scannerContext =
+                ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
         do {
-            // TODO DGF : Fix required
-            hasMore = false;
-            //hasMore = scanner.next(cells, compactionKVMax);
+            hasMore = scanner.next(cells, scannerContext);
             if (LOG.isDebugEnabled()) {
                 now = EnvironmentEdgeManager.currentTime();
             }
