@@ -136,7 +136,7 @@ SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=$
 _kill_em_all 9
 
 if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
-  RUN_DIR="${BASE_DIR}/mem_engine"
+  RUN_DIR="${BASE_DIR}/mem_sql"
 fi
 
 echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"

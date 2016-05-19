@@ -79,7 +79,7 @@ public class SpliceUnitTest {
          * The ITs can run in multiple different locations based on the different architectures
          * that are available, but the actual test data files are located in the splice_machine directory; thus,
          * to find the source file, we have to do a little looking around. Implicitely, the ITs run
-         * in a sibling directory to splice_machine (like mem_engine or hbase_sql), so we need to make
+         * in a sibling directory to splice_machine (like mem_sql or hbase_sql), so we need to make
          * sure that we go up and over to the splice_machine directory.
          *
          * Of course, if we are in the correct location to begin with, then we are good to go.
@@ -126,7 +126,7 @@ public class SpliceUnitTest {
          * The ITs can run in multiple different locations based on the different architectures
          * that are available, but the actual test data files are located in the splice_machine directory; thus,
          * to find the source file, we have to do a little looking around. Implicitely, the ITs run
-         * in a sibling directory to splice_machine (like mem_engine or hbase_sql), so we need to make
+         * in a sibling directory to splice_machine (like mem_sql or hbase_sql), so we need to make
          * sure that we go up and over to the splice_machine directory.
          *
          * Of course, if we are in the correct location to begin with, then we are good to go.

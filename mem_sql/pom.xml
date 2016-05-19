@@ -2,9 +2,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
-    <artifactId>mem_engine</artifactId>
+    <artifactId>mem_sql</artifactId>
     <packaging>jar</packaging>
-    <name>mem_engine</name>
+    <name>mem_sql</name>
     <description>In Memory SQL Engine.</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>

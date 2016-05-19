@@ -51,7 +51,7 @@ The Memory system consists of three modules:
 * mem_storage: This constructs a storage engine which satisfies all acceptance tests as a snapshot-isolation suitable
 transactional storage engine
 * mem_pipeline: This is an in-memory (read direct) bulk data architecture built over pipeline_api
-* mem_engine: This is the in-memory components necessary to run a fully functional SpliceMachine SQL execution engine
+* mem_sql: This is the in-memory components necessary to run a fully functional SpliceMachine SQL execution engine
 over mem_storage and mem_pipeline
 
 ####HBase
@@ -120,7 +120,7 @@ You will also need to have the following directory on your filesystem, owned by 
 ##Memory
 To run an in-memory database which you can issue SQL against:
 * Build mem
-* `cd mem_engine`
+* `cd mem_sql`
 * `mvn exec:java`
 
 -sf- Note that this is likely to change to be something more like `mvn exec:java -Pserver` or similar, but for now.
