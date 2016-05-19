@@ -477,6 +477,7 @@
             <properties>
                 <cdh.parcel.version>5.5.2</cdh.parcel.version>
                 <envClassifier>cdh5.5.2</envClassifier>
+                <envHbase>hbase1.0.0.x</envHbase>
                 <hadoop.version>2.6.0-cdh5.5.2</hadoop.version>
                 <hadoop.tools.version>2.6.0-mr1-cdh5.5.2</hadoop.tools.version>
                 <hbase.version>1.0.0-cdh5.5.2</hbase.version>
@@ -503,6 +504,7 @@
             <properties>
                 <cdh.parcel.version>5.6.0</cdh.parcel.version>
                 <envClassifier>cdh5.6.0</envClassifier>
+                <envHbase>hbase1.0.0.x</envHbase>
                 <hadoop.version>2.6.0-cdh5.6.0</hadoop.version>
                 <hadoop.tools.version>2.6.0-mr1-cdh5.6.0</hadoop.tools.version>
                 <hbase.version>1.0.0-cdh5.6.0</hbase.version>
@@ -529,6 +531,7 @@
             <properties>
                 <cdh.parcel.version>5.7.0</cdh.parcel.version>
                 <envClassifier>cdh5.7.0</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.7.0</hadoop.version>
                 <hadoop.tools.version>2.6.0-mr1-cdh5.7.0</hadoop.tools.version>
                 <hbase.version>1.2.0-cdh5.7.0</hbase.version>
@@ -579,6 +582,7 @@
             </activation>
             <properties>
                 <envClassifier>mapr5.1.0</envClassifier>
+                <envHbase>hbase1.1.0</envHbase>
                 <hadoop.version>2.7.0-mapr-1602</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.1.0</hadoop.tools.version>
                 <hbase.version>1.1.1-mapr-1602</hbase.version>
@@ -605,6 +609,7 @@
             </activation>
             <properties>
                 <envClassifier>hdp2.3.0</envClassifier>
+                <envHbase>hbase1.1.0</envHbase>
                 <hadoop.version>2.7.1.2.3.0.0-2557</hadoop.version>
                 <hadoop.tools.version>1.2.0.23</hadoop.tools.version>
                 <hbase.version>1.1.1.2.3.0.0-2557</hbase.version>
@@ -630,6 +635,7 @@
             </activation>
             <properties>
                 <envClassifier>hdp2.4.2</envClassifier>
+                <envHbase>hbase1.1.0</envHbase>
                 <hadoop.version>2.7.1.2.4.2.0-258</hadoop.version>
                 <hadoop.tools.version>2.7.1.2.4.2.0-258</hadoop.tools.version>
                 <hbase.version>1.1.2.2.4.2.0-258</hbase.version>
