@@ -7,12 +7,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
-import com.splicemachine.db.iapi.store.access.SpaceInfo;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.impl.store.raw.data.SpaceInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -29,7 +27,6 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Properties;
 
@@ -108,11 +105,6 @@ public abstract class SpliceController implements ConglomerateController{
     public RowLocation newRowLocationTemplate() throws StandardException{
         return new HBaseRowLocation();
     }
-
-    public SpaceInfo getSpaceInfo() throws StandardException{
-        return new SpaceInformation(0l,0l,0l);
-    }
-
 
     public void debugConglomerate() throws StandardException{
         throw new UnsupportedOperationException("DebugConglomerate Not enabled");
