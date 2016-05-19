@@ -449,7 +449,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     public void testFailedImportNullBadDir() throws Exception {
         // DB-5017: When bad record dir is null or empty, the input file dir becomes the bad record dir
         String inputFileName =  "constraintViolation.csv";
-        String inputFile = getBaseDirectory()+"/target/test-classes/" +inputFileName;
+        String inputFile = getResourceDirectory() +inputFileName;
         String badFileName = getBaseDirectory()+"/target/test-classes/" +inputFileName+".bad";
 
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
@@ -463,11 +463,11 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null," +  // date format
                         "null," +  // time format
                         "%d," +    // max bad records
-                        "null," +  // bad record dir
+                        "'%s'," +  // bad record dir
                         "null," +  // has one line records
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_20,
-                inputFile,                    0));
+                inputFile, 0, getBaseDirectory()+"/target/test-classes/"));
         try {
             ps.execute();
             fail("Too many bad records.");
