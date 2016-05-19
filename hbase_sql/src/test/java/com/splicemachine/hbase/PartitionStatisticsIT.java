@@ -14,6 +14,7 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.rules.Timeout;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -43,6 +44,9 @@ public class PartitionStatisticsIT {
 
     @Rule
     public final SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA);
+    @Rule
+    public Timeout globalTimeout = Timeout.seconds(60);
+
 
     @BeforeClass
     public static void createTables() throws Exception{
