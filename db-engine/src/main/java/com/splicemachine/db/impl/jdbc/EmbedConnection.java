@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.jdbc.EngineConnection;
 import com.splicemachine.db.security.DatabasePermission;
 
 import com.splicemachine.db.iapi.db.Database;
-import com.splicemachine.db.impl.db.SlaveDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -48,16 +47,11 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-
 import com.splicemachine.db.iapi.store.replication.master.MasterFactory;
 import com.splicemachine.db.iapi.store.replication.slave.SlaveFactory;
-
 import java.io.IOException;
-
 import java.security.Permission;
 import java.security.AccessControlException;
-
 /* can't import due to name overlap:
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -272,7 +266,6 @@ public abstract class EmbedConnection implements EngineConnection
             boolean slaveDBAlreadyBooted = false;
 
             boolean isFailoverMasterBoot = false;
-            boolean isFailoverSlaveBoot = false;
             final boolean dropDatabase = isDropDatabase(info);
 
             // Don't allow both the shutdown and the drop attribute.
@@ -280,39 +273,6 @@ public abstract class EmbedConnection implements EngineConnection
                 throw newSQLException(
                         SQLState.CONFLICTING_BOOT_ATTRIBUTES,
                         Attribute.SHUTDOWN_ATTR + ", " + Attribute.DROP_ATTR);
-            }
-
-            // check that a replication operation is not combined with
-            // other operations
-            String replicationOp = getReplicationOperation(info);
-            if (replicationOp!= null) {
-                if (createBoot ||
-                    shutdown ||
-                    dropDatabase ||
-                    isTwoPhaseEncryptionBoot ||
-                    isTwoPhaseUpgradeBoot) {
-                    throw StandardException.
-                        newException(SQLState.
-                                     REPLICATION_CONFLICTING_ATTRIBUTES,
-                                     replicationOp);
-                }
-            }
-
-            if (isReplicationFailover(info)) {
-                // Check that the database has been booted - otherwise throw 
-                // exception.
-                checkDatabaseBooted(database, 
-                                    Attribute.REPLICATION_FAILOVER, 
-                                    tr.getDBName());
-                // The failover command is the same for master and slave 
-                // databases. If the db is not in slave replication mode, we
-                // assume that it is in master mode. If not in any replication 
-                // mode, the connection attempt will fail with an exception
-                if (database.isInSlaveMode()) {
-                    isFailoverSlaveBoot = true;
-                } else {
-                    isFailoverMasterBoot = true;
-                }
             }
 
 			// Save original properties if we modified them for
@@ -341,28 +301,6 @@ public abstract class EmbedConnection implements EngineConnection
                     info.setProperty(SlaveFactory.REPLICATION_MODE,
                                      SlaveFactory.SLAVE_PRE_MODE);
                 }
-            }
-
-            if (isStopReplicationSlaveBoot(info)) {
-                // DERBY-3383: stopSlave must be performed before
-                // bootDatabase so that we don't accidentally boot the db
-                // if stopSlave is requested on an unbooted db.
-                // An exception is always thrown from this method. If
-                // stopSlave is requested, we never get past this point
-                handleStopReplicationSlave(database, info);
-            } else if (isInternalShutdownSlaveDatabase(info)) {
-                internalStopReplicationSlave(database, info);
-                return;
-            } else if (isFailoverSlaveBoot) {
-                // For slave side failover, we perform failover before 
-                // connecting to the db (tr.startTransaction further down sets
-                // up the connection). If a connection had been
-                // established first, the connection attempt would throw an 
-                // exception saying that a database in slave mode cannot be 
-                // connected to
-                handleFailoverSlave(database);
-                // db is no longer in slave mode - proceed with normal 
-                // connection attempt
             }
 
 			if (database != null)
@@ -824,61 +762,6 @@ public abstract class EmbedConnection implements EngineConnection
                booleanValue();
     }
 
-    /**
-     * Examine the boot properties and determine if a boot with the
-     * given attributes should stop slave replication mode. A
-     * connection with this property should only be made from
-     * SlaveDatabase. Make sure to call
-     * SlaveDatabase.verifyShutdownSlave() to verify that this
-     * connection is not made from a client.
-     * 
-     * @param p The attribute set.
-     * @return true if the shutdownslave attribute has been set, false
-     * otherwise.
-     */
-    private boolean isInternalShutdownSlaveDatabase(Properties p) {
-        return Boolean.valueOf(
-               p.getProperty(Attribute.REPLICATION_INTERNAL_SHUTDOWN_SLAVE)).
-               booleanValue();
-    }
-
-    private String getReplicationOperation(Properties p) 
-        throws StandardException {
-
-        String operation = null;
-        int opcount = 0;
-        if (isStartReplicationSlaveBoot(p)) {
-            operation = Attribute.REPLICATION_START_SLAVE;
-            opcount++;
-        } 
-        if (isStartReplicationMasterBoot(p)) {
-            operation = Attribute.REPLICATION_START_MASTER;
-            opcount++;
-        }
-        if (isStopReplicationSlaveBoot(p)) {
-            operation = Attribute.REPLICATION_STOP_SLAVE;
-            opcount++;
-        }
-        if (isInternalShutdownSlaveDatabase(p)) {
-            operation = Attribute.REPLICATION_INTERNAL_SHUTDOWN_SLAVE;
-            opcount++;
-        }
-        if (isStopReplicationMasterBoot(p)) {
-            operation = Attribute.REPLICATION_STOP_MASTER;
-            opcount++;
-        } 
-        if (isReplicationFailover(p)) {
-            operation = Attribute.REPLICATION_FAILOVER;
-            opcount++;
-        }
-
-        if (opcount > 1) {
-            throw StandardException.
-                newException(SQLState.REPLICATION_CONFLICTING_ATTRIBUTES,
-                             operation);
-        }
-        return operation;
-    }
 
     private void handleStartReplicationMaster(TransactionResourceImpl tr,
                                               Properties p)
@@ -988,55 +871,6 @@ public abstract class EmbedConnection implements EngineConnection
                               getTR().getDBName());
     }
 
-    /**
-     * Stop replication slave when called from SlaveDatabase. Called
-     * when slave replication mode has been stopped, and all that
-     * remains is to shutdown the database. This happens if
-     * handleStopReplicationSlave has successfully requested the slave
-     * to stop, if the replication master has requested the slave to
-     * stop using the replication network, or if a fatal exception has
-     * occurred in the database.
-     *    
-     * @param database The database the internal stop slave operation
-     * will be performed on
-     * @param p The Attribute set.
-     * @exception StandardException Thrown on error or if not in replication 
-     * slave mode
-     * @exception SQLException Thrown if the database has not been
-     * booted or if this connection was not made internally from
-     * SlaveDatabase
-     */
-    private void internalStopReplicationSlave(Database database, Properties p)
-        throws StandardException, SQLException {
-
-        // We cannot check authentication and authorization for
-        // databases in slave mode since the AuthenticationService has
-        // not been booted for the database
-
-        // Cannot get the database by using getTR().getDatabase()
-        // because getTR().setDatabase() has not been called in the
-        // constructor at this point.
-
-        // Check that the database has been booted - otherwise throw exception.
-        checkDatabaseBooted(database, 
-                            Attribute.REPLICATION_INTERNAL_SHUTDOWN_SLAVE,
-                            tr.getDBName());
-
-        // We should only get here if the connection is made from
-        // inside SlaveDatabase. To verify, we ask SlaveDatabase
-        // if it requested this shutdown. If it didn't,
-        // verifyShutdownSlave will throw an exception
-        if (! (database instanceof SlaveDatabase)) {
-            throw newSQLException(SQLState.REPLICATION_NOT_IN_SLAVE_MODE);
-        }
-        ((SlaveDatabase)database).verifyShutdownSlave();
-
-        // Will shutdown the database without writing to the log
-        // since the SQLException with state
-        // REPLICATION_SLAVE_SHUTDOWN_OK will be reported anyway
-        handleException(tr.shutdownDatabaseException());
-    }
-    
     /**
      * Used to authorize and verify the privileges of the user and
      * initiate failover.

@@ -436,12 +436,6 @@ public interface ConglomerateController extends ConglomPropertyQueryable
 		throws StandardException;
 
     /**
-    Get information about space used by the conglomerate.
-    **/
-    SpaceInfo getSpaceInfo()
-        throws StandardException;
-
-    /**
      * Dump debugging output to error log.
      * <p>
      * Dump information about the conglomerate to error log.

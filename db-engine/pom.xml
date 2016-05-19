@@ -173,8 +173,6 @@
                             <arguments>
                                 <argument>com.splicemachine.db.iapi.types.DataValueDescriptor</argument>
                                 <argument>com.splicemachine.db.impl.services.cache.CachedItem</argument>
-                                <argument>com.splicemachine.db.impl.store.raw.data.RecordId</argument>
-                                <argument>com.splicemachine.db.iapi.store.raw.ContainerKey</argument>
                                 <argument>com.splicemachine.db.iapi.services.cache.SizedCacheable</argument>
                                 <argument>java.lang.ref.WeakReference</argument>
                                 <argument>java.math.BigDecimal</argument>

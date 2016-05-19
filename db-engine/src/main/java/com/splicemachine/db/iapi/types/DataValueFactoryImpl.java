@@ -31,7 +31,6 @@ import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -1175,11 +1174,6 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         case StoredFormatIds.SQL_BLOB_ID: return new SQLBlob();
         case StoredFormatIds.SQL_CLOB_ID: return new SQLClob();
         case StoredFormatIds.XML_ID: return new XML();
-        case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID: 
-        // This is an specific implementation of RowLocation, known to be
-        // a DTD.  
-             return(
-                 new com.splicemachine.db.impl.store.access.heap.HeapRowLocation());
         default:return null;
         }
     }
