@@ -88,21 +88,21 @@ while getopts "chkp:s:bd:" flag ; do
         # the hbase profile
         #echo "-> [$OPTARG] "
           if [[ "$OPTARG" ==  "c54" ]]; then
-            PROFILE="cdh5.4.10,hbase1.0.0"
+            PROFILE="cdh5.4.10"
           elif [[ "$OPTARG" == "c55" ]]; then
-            PROFILE="cdh5.5.2,hbase1.0.0.x"
+            PROFILE="cdh5.5.2"
           elif [[ "$OPTARG" == "mem" ]]; then
             PROFILE=${IN_MEM_PROFILE}
           elif [[ "$OPTARG" == "c56" ]]; then
-            PROFILE="cdh5.6.0,hbase1.0.0.x"
+            PROFILE="cdh5.6.0"
           elif [[ "$OPTARG" == "c57" ]]; then
-            PROFILE="cdh5.7.0,hbase1.2.0"
+            PROFILE="cdh5.7.0"
           elif [[ "$OPTARG" == "m5" ]]; then
-            PROFILE="mapr5.1.0,hbase1.1.0"
+            PROFILE="mapr5.1.0"
           elif [[ "$OPTARG" == "h23" ]]; then
-            PROFILE="hdp2.3.0,hbase1.1.0"
+            PROFILE="hdp2.3.0"
           elif [[ "$OPTARG" == "h24" ]]; then
-            PROFILE="hdp2.4.2,hbase1.1.00"
+            PROFILE="hdp2.4.2"
           else
             usage "Unknown profile: $OPTARG"
             exit 1
