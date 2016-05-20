@@ -51,7 +51,7 @@
                                         kryo-serializers,ehcache-core,opencsv,super-csv,
                                         lucene-core,spark,concurrentlinkedhashmap-lru,
                                         db-engine,db-drda,db-client,db-tools-ij,
-                                        utilities,pipeline_api,splice_access_api,splice_encoding,
+                                        utilities,stats,pipeline_api,splice_access_api,splice_encoding,
                                         splice_machine,splice_protocol,splice_si_api,
                                         splice_timestamp_api,hbase_pipeline-${envClassifier},
                                         hbase_storage-${envClassifier},hbase_sql-${envClassifier},
