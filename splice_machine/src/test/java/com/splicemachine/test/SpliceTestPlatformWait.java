@@ -13,7 +13,7 @@ import static java.lang.String.format;
  */
 public class SpliceTestPlatformWait {
 
-    private static final long MAX_WAIT_SECS = TimeUnit.SECONDS.toSeconds(90);
+    private static final long MAX_WAIT_SECS = TimeUnit.SECONDS.toSeconds(120);
 
     /**
      * argument 0 - hostname
