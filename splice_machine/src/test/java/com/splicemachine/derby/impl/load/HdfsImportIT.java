@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.commons.io.FileUtils;
 import org.hamcrest.Matcher;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -34,6 +35,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.sparkproject.guava.collect.Lists;
 import org.sparkproject.guava.collect.Maps;
@@ -404,18 +406,21 @@ public class HdfsImportIT extends SpliceUnitTest {
         Assert.assertEquals("second row wrong", "i:2,j:There", results.get(1));
     }
 
-    @Test @Ignore("DB-4004: IMPORT/UPSERT: Graceful message instead of connection termination needed in case if quoteChar and delimiterChar is the same char")
+    @Test
     public void testImportPipeSeparatedFile() throws Exception {
+        // DB-4904: Graceful message instead of connection termination needed in case if quoteChar and
+        // delimiterChar is the same char
         String tableName = "PIPE_SEPARATED";
         TableDAO td = new TableDAO(methodWatcher.getOrCreateConnection());
         td.drop(spliceSchemaWatcher.schemaName, tableName);
 
-        methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
+        Connection conn = methodWatcher.getOrCreateConnection();
+        conn.createStatement().executeUpdate(
             format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+
                 "(firstc int primary key, secondc char(30), thirdc int, fourthc double)");
         String csvLocation = getResourceDirectory() + "pipeSeparator.csv";
 
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+        PreparedStatement ps = conn.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
                         "null," +  // insert column list
@@ -430,27 +435,35 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "false," +  // has one line records
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, tableName,
-                csvLocation,                    0,
-                BADDIR.getCanonicalPath()));
-        ps.execute();
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName, TABLE_5));
-        List<String> results = Lists.newArrayList();
-        while (rs.next()) {
-            Integer i = rs.getInt(1);
-            String j = rs.getString(2);
-            assertNotNull("i is null!", i);
-            assertNotNull("j is null!", j);
-            results.add(String.format("i:%d,j:%s", i, j));
+                csvLocation,0, BADDIR.getCanonicalPath()));
+        try {
+            ps.execute();
+            fail("Expected exception, column and char delims are same.");
+        } catch (SQLException e) {
+            assertEquals("Expected different SQLState for column delim matching char delim", "XIE0F",e.getSQLState());
         }
-        Assert.assertEquals("wrong row count imported! "+results, 2, results.size());
+        // assert we can still use connection
+        // if we can query w/o exception, we're good
+        conn.createStatement().executeQuery(String.format("select * from %s.%s",
+                                                          spliceSchemaWatcher.schemaName, tableName));
     }
+
+
+    @ClassRule
+    public static TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Test
     public void testFailedImportNullBadDir() throws Exception {
         // DB-5017: When bad record dir is null or empty, the input file dir becomes the bad record dir
         String inputFileName =  "constraintViolation.csv";
-        String inputFile = getResourceDirectory() +inputFileName;
-        String badFileName = getBaseDirectory()+"/target/test-classes/" +inputFileName+".bad";
+        String inputFileOrigin = getResourceDirectory() +inputFileName;
+        // copy the given input file under a temp folder so that it will get cleaned up
+        // this used to go under the "target/test-classes" folder but doesn't work when we execute test from
+        // a different location.
+        File newImportFile = tempFolder.newFile(inputFileName);
+        FileUtils.copyFile(new File(inputFileOrigin), newImportFile);
+        assertTrue("Import file copy failed: "+newImportFile.getCanonicalPath(), newImportFile.exists());
+        String badFileName = newImportFile.getParent()+"/" +inputFileName+".bad";
 
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
@@ -463,11 +476,11 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null," +  // date format
                         "null," +  // time format
                         "%d," +    // max bad records
-                        "'%s'," +  // bad record dir
+                        "null," +  // bad record dir
                         "null," +  // has one line records
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_20,
-                inputFile, 0, getBaseDirectory()+"/target/test-classes/"));
+                newImportFile.getCanonicalPath(), 0));
         try {
             ps.execute();
             fail("Too many bad records.");
