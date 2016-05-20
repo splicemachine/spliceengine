@@ -67,7 +67,7 @@
                             <execution>
                                 <phase>pre-integration-test</phase>
                                 <configuration>
-                                    <tasks>
+                                    <target>
                                         <replace token="TOP_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
@@ -140,7 +140,7 @@
                                         <exec executable="python2.7" failonerror="true" dir="target/parcels">
                                             <arg line="${project.basedir}/src/main/resources/python/make_manifest.py"/>
                                         </exec>
-                                    </tasks>
+                                    </target>
                                 </configuration>
                                 <goals>
                                     <goal>run</goal>
