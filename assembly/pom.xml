@@ -100,42 +100,42 @@
                                             <include name="parcel.json"/>
                                         </replace>
                                         <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-el6.parcel">
-                                            <tarfileset dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" preserveLeadingSlashes="true"/>
+                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
                                         </tar>
                                         <!-- el7 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-el7" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
                                         <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-el7.parcel">
-                                            <tarfileset dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" preserveLeadingSlashes="true"/>
+                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
                                         </tar>
                                         <!-- sles11 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-sles11" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
                                         <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-sles11.parcel">
-                                            <tarfileset dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" preserveLeadingSlashes="true"/>
+                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
                                         </tar>
                                         <!-- precise -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-precise" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
                                         <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-precise.parcel">
-                                            <tarfileset dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" preserveLeadingSlashes="true"/>
+                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
                                         </tar>
                                         <!-- wheezy -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-wheezy" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
                                         <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-wheezy.parcel">
-                                            <tarfileset dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" preserveLeadingSlashes="true"/>
+                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
                                         </tar>
                                         <!-- trusty -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-trusty" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
                                         <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-trusty.parcel">
-                                            <tarfileset dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" preserveLeadingSlashes="true"/>
+                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
                                         </tar>
                                         <exec executable="python2.7" failonerror="true" dir="target/parcels">
                                             <arg line="${project.basedir}/src/main/resources/python/make_manifest.py"/>
