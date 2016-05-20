@@ -2,6 +2,7 @@ package com.splicemachine.access.client;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
@@ -207,13 +208,15 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_SERVER,Bytes.toBytes(hostAndPort));
         memScan.setAttribute(SIConstants.SI_NEEDED,null);
         ResultScanner scanner=newScanner(memScan);
-        // Request the first row from the Memstore scanner to make sure the region is opened and possible pending edits
-        // have been replayed. The reply should be the ClientRegionConstants.MEMSTORE_BEGIN
-        Result memstoreBegin = scanner.next();
-        assert !memstoreBegin.isEmpty();
-        assert matchingFamily(memstoreBegin.listCells(), ClientRegionConstants.HOLD);
-        assert memstoreBegin.listCells().get(0).getTimestamp() == 0;
-        return new MemstoreKeyValueScanner(scanner);
+        // We want to request the first row from the Memstore scanner to make sure the region is
+        // open and possible pending edits have been replayed. The MemstoreKeyValueScanner doest that for us.
+        // Make sure the reply is ClientRegionConstants.MEMSTORE_BEGIN
+        MemstoreKeyValueScanner memScanner = new MemstoreKeyValueScanner(scanner);
+        Cell current = memScanner.current();
+        assert current != null;
+        assert matchingFamily(Arrays.asList(current), ClientRegionConstants.HOLD);
+        assert current.getTimestamp() == 0;
+        return memScanner;
     }
 
     protected abstract ResultScanner newScanner(Scan memScan) throws IOException;
