@@ -6,7 +6,11 @@
     <packaging>pom</packaging>
     <version>2.0.1.11-SNAPSHOT</version>
     <name>splice_machine_mapr5.1.0</name>
-    <description>In Memory Storage Engine for SpliceMachine.</description>
+    <parent>
+        <artifactId>spliceengine-parent</artifactId>
+        <groupId>com.splicemachine</groupId>
+        <version>2.0.1.11-SNAPSHOT</version>
+    </parent>
     <modules>
         <module>../../hbase_storage</module>
         <module>../../hbase_pipeline</module>
