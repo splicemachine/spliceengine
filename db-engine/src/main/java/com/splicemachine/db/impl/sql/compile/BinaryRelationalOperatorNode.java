@@ -37,6 +37,8 @@ import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import java.sql.Types;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class represents the 6 binary operators: LessThan, LessThanEquals,
@@ -117,7 +119,7 @@ public class BinaryRelationalOperatorNode
                 }
                 break;
         }
-        super.init(leftOperand,rightOperand,operatorName,methodName);
+        super.init(leftOperand, rightOperand, operatorName, methodName);
         btnVis=null;
     }
 
@@ -193,28 +195,13 @@ public class BinaryRelationalOperatorNode
         // to see if we can find any FromTables that correspond to
         // either of this op's column references.
 
-        ColumnReference cr;
         boolean walkSubtree=true;
-
-        ColumnReference leftColumnReference = null;
-        if (leftOperand instanceof TernaryOperatorNode) {
-            TernaryOperatorNode n = (TernaryOperatorNode) leftOperand;
-            leftColumnReference = (ColumnReference) n.receiver;
-        } else if (leftOperand instanceof UnaryOperatorNode) {
-            UnaryOperatorNode n = (UnaryOperatorNode) leftOperand;
-            if (n.operand instanceof ColumnReference) {
-                leftColumnReference = (ColumnReference)n.operand;
-            }
-        } else if (leftOperand instanceof ColumnReference) {
-            leftColumnReference = (ColumnReference)leftOperand;
-        }
-
-        if(leftColumnReference != null){
+        ColumnReference cr = leftOperand.getHashableJoinColumnReference();
+        if(cr != null){
 			/*
 			** The left operand is a column reference.
 			** Is it the correct column?
 			*/
-            cr=leftColumnReference;
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
 				/*
 				** The table is correct, how about the column position?
@@ -226,34 +213,18 @@ public class BinaryRelationalOperatorNode
             }
             walkSubtree=false;
         }
-        ColumnReference rightColumnReference = null;
-        if (rightOperand instanceof TernaryOperatorNode) {
-            TernaryOperatorNode n = (TernaryOperatorNode) rightOperand;
-            rightColumnReference = (ColumnReference)n.receiver;
-        } else if (rightOperand instanceof UnaryOperatorNode) {
-            UnaryOperatorNode n = (UnaryOperatorNode) rightOperand;
-            if (n.operand instanceof ColumnReference) {
-                rightColumnReference = (ColumnReference)n.operand;
-            }
-        } else if (rightOperand instanceof ColumnReference) {
-            rightColumnReference = (ColumnReference)rightOperand;
-        }
-
-        if(rightColumnReference != null){
-			/*
-			** The right operand is a column reference.
-			** Is it the correct column?
-			*/
-            cr=rightColumnReference;
-            if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
+        cr = rightOperand.getHashableJoinColumnReference();
+        if(cr != null){
+            if (valNodeReferencesOptTable(cr, ft, false, walkSubtree)) {
 				/*
 				** The table is correct, how about the column position?
 				*/
-                if(cr.getSource().getColumnPosition()==columnPosition){
+                if (cr.getSource().getColumnPosition() == columnPosition) {
 					/* We've found the correct column - return it */
                     return cr;
                 }
             }
+
         }
 
 		/* Neither side is the column we're looking for */
@@ -490,26 +461,11 @@ public class BinaryRelationalOperatorNode
         exprOp.generateExpression(acb,mb);
     }
 
-    private ColumnReference getColumnReference(ValueNode v) {
-
-        if(v instanceof ColumnReference) {
-            return (ColumnReference)v;
-        }
-        else if (v instanceof UnaryOperatorNode) {
-            UnaryOperatorNode n = (UnaryOperatorNode) v;
-            if (n.operand instanceof ColumnReference) {
-                return (ColumnReference) n.operand;
-            }
-        }
-        else if (v instanceof TernaryOperatorNode) {
-            return (ColumnReference)((TernaryOperatorNode) v).receiver;
-        }
-        return null;
-    }
     /**
      * @throws StandardException Thrown on error
      * @see RelationalOperator#selfComparison
      */
+    @Override
     public boolean selfComparison(ColumnReference cr)
             throws StandardException{
         ValueNode otherSide;
@@ -519,9 +475,9 @@ public class BinaryRelationalOperatorNode
 		** Figure out which side the given ColumnReference is on,
 		** and look for the same table on the other side.
 		*/
-        if(getColumnReference(leftOperand)==cr){
+        if(leftOperand.getHashableJoinColumnReference() == cr){
             otherSide=rightOperand;
-        }else if(getColumnReference(rightOperand)==cr){
+        }else if(rightOperand.getHashableJoinColumnReference() == cr) {
             otherSide=leftOperand;
         }else{
             otherSide=null;
@@ -576,63 +532,22 @@ public class BinaryRelationalOperatorNode
         boolean left=false;
 
 		/* Is the key column on the left or the right? */
-        if(leftOperand instanceof ColumnReference) {
-			/*
-			** The left operand is a column reference.
-			** Is it the correct column?
-			*/
-            cr = (ColumnReference) leftOperand;
+        cr = leftOperand.getHashableJoinColumnReference();
+        if (cr != null) {
             if (valNodeReferencesOptTable(cr, (FromTable) optTable, false, true)) {
 				/* The left operand is the key column */
                 left = true;
-            }
-        }else if (leftOperand instanceof UnaryOperatorNode) {
-            UnaryOperatorNode n = (UnaryOperatorNode) leftOperand;
-            if (n.operand instanceof ColumnReference) {
-                cr=(ColumnReference)n.operand;
-                if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
-				/* The left operand is the key column */
-                    left=true;
-                }
-            }
-        }
-        else if (leftOperand instanceof TernaryOperatorNode) {
-            cr=(ColumnReference)((TernaryOperatorNode) leftOperand).receiver;
-            if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
-				/* The left operand is the key column */
-                left=true;
             }
         }
         // Else the right operand must be the key column.
         if(SanityManager.DEBUG){
             if(!left){
                 boolean right = false;
-
-                if (rightOperand instanceof ColumnReference) {
-                    cr=(ColumnReference)rightOperand;
+                cr = rightOperand.getHashableJoinColumnReference();
+                if (cr != null) {
                     if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
-				/* The right operand is the key column */
+				    /* The right operand is the key column */
                         right=true;
-                    }
-                }
-                else if (rightOperand instanceof UnaryOperatorNode) {
-                    UnaryOperatorNode n = (UnaryOperatorNode) rightOperand;
-                    if (n.operand instanceof ColumnReference) {
-                        cr=(ColumnReference)n.operand;
-                        if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
-				/* The left operand is the key column */
-                            right=true;
-                        }
-                    }
-                }
-                else if (rightOperand instanceof TernaryOperatorNode) {
-                    TernaryOperatorNode n = (TernaryOperatorNode) rightOperand;
-                    if (n.receiver instanceof ColumnReference) {
-                        cr = (ColumnReference) n.receiver;
-                        if (valNodeReferencesOptTable(cr, (FromTable) optTable, false, true)) {
-				/* The right operand is the key column */
-                            right = true;
-                        }
                     }
                 }
                 SanityManager.ASSERT(right,"Key column not found on either side.");
@@ -760,27 +675,10 @@ public class BinaryRelationalOperatorNode
         int columnPosition;
 
         if(keyColumnOnLeft(optTable)){
-            if (leftOperand instanceof ColumnReference) {
-                cr = (ColumnReference) leftOperand;
-            }
-            else if (leftOperand instanceof TernaryOperatorNode) {
-                cr = (ColumnReference)((TernaryOperatorNode) leftOperand).receiver;
-            }
-            else {
-                SanityManager.ASSERT(false,
-                        "unexpected operand type:" + leftOperand.getClass().getName());
-            }
+            cr = leftOperand.getHashableJoinColumnReference();
+
         }else{
-            if (rightOperand instanceof ColumnReference) {
-                cr = (ColumnReference) rightOperand;
-            }
-            else if (rightOperand instanceof TernaryOperatorNode) {
-                cr = (ColumnReference) ((TernaryOperatorNode) rightOperand).receiver;
-            }
-            else {
-                SanityManager.ASSERT(false,
-                        "unexpected operand type:" + rightOperand.getClass().getName());
-            }
+            cr = rightOperand.getHashableJoinColumnReference();
         }
 
         bestCD=optTable.getTrulyTheBestAccessPath().
@@ -815,31 +713,13 @@ public class BinaryRelationalOperatorNode
         int columnPosition;
 
         if(keyColumnOnLeft(optTable)){
-            if (leftOperand instanceof ColumnReference) {
-                cr = (ColumnReference) leftOperand;
-            }
-            else if (leftOperand instanceof TernaryOperatorNode) {
-                cr = (ColumnReference)((TernaryOperatorNode) leftOperand).receiver;
-            }
-            else {
-                SanityManager.ASSERT(false,
-                        "unexpected operand type:" + leftOperand.getClass().getName());
-            }
+            cr = leftOperand.getHashableJoinColumnReference();
         }else{
-            if (rightOperand instanceof ColumnReference) {
-                cr = (ColumnReference) rightOperand;
-            }
-            else if (rightOperand instanceof TernaryOperatorNode) {
-                cr = (ColumnReference) ((TernaryOperatorNode) rightOperand).receiver;
-            }
-            else {
-                SanityManager.ASSERT(false,
-                        "unexpected operand type:" + rightOperand.getClass().getName());
-            }
+            cr = rightOperand.getHashableJoinColumnReference();
         }
 
         bestCD=optTable.getTrulyTheBestAccessPath().
-            getConglomerateDescriptor();
+                getConglomerateDescriptor();
 
 		/*
 		** If it's an index, find the base column position in the index
@@ -848,11 +728,11 @@ public class BinaryRelationalOperatorNode
         if(bestCD!=null && bestCD.isIndex()){
             columnPosition=cr.getSource().getColumnPosition();
             columnPosition=bestCD.getIndexDescriptor().
-                getKeyColumnPosition(columnPosition);
+                    getKeyColumnPosition(columnPosition);
 
             if(SanityManager.DEBUG){
                 SanityManager.ASSERT(columnPosition>0,
-                    "Base column not found in index");
+                        "Base column not found in index");
             }
         } else {
             columnPosition = cr.getSource().getStoragePosition();
@@ -985,7 +865,7 @@ public class BinaryRelationalOperatorNode
 
         ft=(FromTable)optTable;
 
-        ColumnReference cr = getColumnReference(leftOperand);
+        ColumnReference cr = leftOperand.getHashableJoinColumnReference();
         if(cr != null){
 			/*
 			** The left operand is a column reference.
@@ -998,7 +878,7 @@ public class BinaryRelationalOperatorNode
             walkSubtree=false;
         }
 
-        cr = getColumnReference(rightOperand);
+        cr = rightOperand.getHashableJoinColumnReference();
         if((!found) && cr != null){
 			/*
 			** The right operand is a column reference.
@@ -1567,7 +1447,7 @@ public class BinaryRelationalOperatorNode
                                   ConglomerateDescriptor currentCd,
                                   long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException {
         assert optTable != null:"null values passed into predicate joinSelectivity";
-            // Binary Relational Operator Node...
+        // Binary Relational Operator Node...
         double selectivity;
 
         if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {

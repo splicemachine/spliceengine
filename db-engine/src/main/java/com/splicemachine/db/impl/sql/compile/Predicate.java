@@ -760,62 +760,16 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         int leftTableNumber=-1;
         int rightTableNumber=-1;
 
-        if(leftOperand instanceof ColumnReference){
-            isColumnReferenceOnLeft=true;
-            leftTableNumber=((ColumnReference)leftOperand).getTableNumber();
-        }else if(leftOperand instanceof CastNode) {
-            /*
-                if there is a CASTNODE, look one level deeper
-             */
-            CastNode n = (CastNode) leftOperand;
-            if (n.castOperand instanceof ColumnReference) {
-                isColumnReferenceOnLeft = true;
-                ColumnReference r = (ColumnReference) n.castOperand;
-                leftTableNumber = r.getTableNumber();
-            }
-        }else if (leftOperand instanceof UnaryOperatorNode) {
-            UnaryOperatorNode n = (UnaryOperatorNode) leftOperand;
-            if (n.operand instanceof ColumnReference) {
-                isColumnReferenceOnLeft = true;
-                ColumnReference r = (ColumnReference) n.operand;
-                leftTableNumber = r.getTableNumber();
-            }
-        } else if (leftOperand instanceof TernaryOperatorNode) {
-            TernaryOperatorNode n = (TernaryOperatorNode) leftOperand;
-            if (n.receiver instanceof ColumnReference) {
-                isColumnReferenceOnLeft = true;
-                ColumnReference r = (ColumnReference) n.receiver;
-                leftTableNumber = r.getTableNumber();
-            }
+        ColumnReference cr = leftOperand.getHashableJoinColumnReference();
+        if (cr != null) {
+            isColumnReferenceOnLeft = true;
+            leftTableNumber = cr.getTableNumber();
         }
 
-        if(rightOperand instanceof ColumnReference){
-            isColumnReferenceOnRight=true;
-            rightTableNumber=((ColumnReference)rightOperand).getTableNumber();
-        }else if(rightOperand instanceof CastNode) {
-            /*
-                if there is a CASTNODE, look one level deeper
-             */
-            CastNode n = (CastNode) rightOperand;
-            if (n.castOperand instanceof ColumnReference) {
-                isColumnReferenceOnRight = true;
-                ColumnReference r = (ColumnReference) n.castOperand;
-                rightTableNumber = r.getTableNumber();
-            }
-        }else if (rightOperand instanceof UnaryOperatorNode) {
-            UnaryOperatorNode n = (UnaryOperatorNode) rightOperand;
-            if (n.operand instanceof ColumnReference) {
-                isColumnReferenceOnRight = true;
-                ColumnReference r = (ColumnReference) n.operand;
-                rightTableNumber = r.getTableNumber();
-            }
-        } else if (rightOperand instanceof TernaryOperatorNode) {
-            TernaryOperatorNode n = (TernaryOperatorNode) rightOperand;
-            if (n.receiver instanceof ColumnReference) {
-                isColumnReferenceOnRight = true;
-                ColumnReference r = (ColumnReference) n.receiver;
-                rightTableNumber = r.getTableNumber();
-            }
+        cr = rightOperand.getHashableJoinColumnReference();
+        if (cr != null) {
+            isColumnReferenceOnRight = true;
+            rightTableNumber = cr.getTableNumber();
         }
 
         // If both sides are column references AND they point to different
@@ -1257,13 +1211,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     /**
-         * Returns true if the predicate is a multi-probe qualifier.
-         *
-         * A Multi-probe qualifier satisfies 3 criteria:
-         * 1. It has an IN clause
-         * 2. It is applied against the first keyed column
-         * 3. There are only constant nodes in the IN list
-         */
+     * Returns true if the predicate is a multi-probe qualifier.
+     *
+     * A Multi-probe qualifier satisfies 3 criteria:
+     * 1. It has an IN clause
+     * 2. It is applied against the first keyed column
+     * 3. There are only constant nodes in the IN list
+     */
     public boolean isMultiProbeQualifier(int[] keyColumns){
         if(keyColumns==null)
             return false; //can't be a MPQ if there are no keyed columns

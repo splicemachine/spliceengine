@@ -1290,4 +1290,29 @@ abstract class MethodCallNode extends JavaValueNode
 			}
 		}
 	}
+
+
+	@Override
+	public ColumnReference getHashableJoinColumnReference() {
+		// To qualify for a hashable join, we only allow one column reference in a method call
+		int count = 0;
+		ColumnReference cr = null;
+		for(JavaValueNode param : methodParms) {
+			cr = param.getHashableJoinColumnReference();
+			if (cr != null)
+			    count++;
+		}
+		return count==1 ? cr : null;
+	}
+
+	@Override
+	public void setHashableJoinColumnReference(ColumnReference cr) {
+		for(int i = 0; i < methodParms.length; ++i) {
+			ColumnReference columnReference = methodParms[i].getHashableJoinColumnReference();
+			if (columnReference != null) {
+				methodParms[i].setHashableJoinColumnReference(cr);
+			}
+		}
+	}
+
 }

@@ -312,4 +312,15 @@ public class VirtualColumnNode extends ValueNode
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         return sourceColumn.nonZeroCardinality(numberOfRows);
     }
+
+	@Override
+	public int getTableNumber() {
+		if (sourceResultSet instanceof FromBaseTable)
+		{
+			return ((FromBaseTable)sourceResultSet).getTableNumber();
+		}
+		else {
+			return sourceColumn.getTableNumber();
+		}
+	}
 }

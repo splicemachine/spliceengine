@@ -1130,4 +1130,16 @@ public class TernaryOperatorNode extends OperatorNode
 		return Math.max(Math.max(c1, c2), c3);
     }
 
+	@Override
+	public ColumnReference getHashableJoinColumnReference() {
+		return receiver.getHashableJoinColumnReference();
+	}
+
+	@Override
+	public void setHashableJoinColumnReference(ColumnReference cr) {
+		if (receiver instanceof ColumnReference)
+			receiver = cr;
+		else
+			receiver.setHashableJoinColumnReference(cr);
+	}
 }

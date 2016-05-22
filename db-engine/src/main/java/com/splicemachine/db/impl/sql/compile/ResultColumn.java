@@ -65,8 +65,8 @@ import com.splicemachine.db.iapi.util.StringUtil;
  *
  */
 
-public class ResultColumn extends ValueNode 
-				implements ResultColumnDescriptor, Comparable
+public class ResultColumn extends ValueNode
+		implements ResultColumnDescriptor, Comparable
 {
 	/* name and exposedName should point to the same string, unless there is a
 	 * derived column list, in which case name will point to the underlying name
@@ -89,29 +89,29 @@ public class ResultColumn extends ValueNode
 	boolean			updated;
 	boolean			updatableByCursor;
 	private boolean defaultColumn;
-    private boolean wasDefault;
-    private DataTypeDescriptor castToType;
+	private boolean wasDefault;
+	private DataTypeDescriptor castToType;
 
-    //Following 2 fields have been added for DERBY-4631. 
-    //rightOuterJoinUsingClause will be set to true for following 2 cases
-    //1)if this column represents the join column which is part of the 
-    //  SELECT list of a RIGHT OUTER JOIN with USING/NATURAL. eg
-    //     select c from t1 right join t2 using (c)
-    //  This case is talking about column c as in "select c"
-    //2)if this column represents the join column from the right table 
-    //  for predicates generated for the USING/NATURAL of RIGHT OUTER JOIN
-    //  eg
-    //     select c from t1 right join t2 using (c)
-    //  For "using(c)", a join predicate will be created as follows
-    //    t1.c=t2.c
-    //  This case is talking about column t2.c of the join predicate.
-    private boolean rightOuterJoinUsingClause;
-    //Following will be non-null for the case 1) above. It will show the
-    // association of this result column to the join resultset created
-    // for the RIGHT OUTER JOIN with USING/NATURAL. This information along
-    // with rightOuterJoinUsingClause will be used during the code generation
-    // time.
-    private JoinNode joinResultSet = null;
+	//Following 2 fields have been added for DERBY-4631.
+	//rightOuterJoinUsingClause will be set to true for following 2 cases
+	//1)if this column represents the join column which is part of the
+	//  SELECT list of a RIGHT OUTER JOIN with USING/NATURAL. eg
+	//     select c from t1 right join t2 using (c)
+	//  This case is talking about column c as in "select c"
+	//2)if this column represents the join column from the right table
+	//  for predicates generated for the USING/NATURAL of RIGHT OUTER JOIN
+	//  eg
+	//     select c from t1 right join t2 using (c)
+	//  For "using(c)", a join predicate will be created as follows
+	//    t1.c=t2.c
+	//  This case is talking about column t2.c of the join predicate.
+	private boolean rightOuterJoinUsingClause;
+	//Following will be non-null for the case 1) above. It will show the
+	// association of this result column to the join resultset created
+	// for the RIGHT OUTER JOIN with USING/NATURAL. This information along
+	// with rightOuterJoinUsingClause will be used during the code generation
+	// time.
+	private JoinNode joinResultSet = null;
 
 	// tells us if this ResultColumn is a placeholder for a generated
 	// autoincrement value for an insert statement.
@@ -185,7 +185,7 @@ public class ResultColumn extends ValueNode
 				when we bind, we'll want to make sure
 				the reference has the right table name.
 		 	*/
-			this.reference = ref; 
+			this.reference = ref;
 			setExpression( (ValueNode) arg2 );
 		}
 		else if (arg1 instanceof ColumnDescriptor)
@@ -213,10 +213,10 @@ public class ResultColumn extends ValueNode
 		 * update statement
 		 */
 		if (expression != null &&
-			expression.isInstanceOf(C_NodeTypes.DEFAULT_NODE))
+				expression.isInstanceOf(C_NodeTypes.DEFAULT_NODE))
 			defaultColumn = true;
 	}
-	
+
 	/**
 	 * Returns TRUE if the ResultColumn is join column for a RIGHT OUTER 
 	 *  JOIN with USING/NATURAL. More comments at the top of this class
@@ -237,15 +237,15 @@ public class ResultColumn extends ValueNode
 	 *   For "using(c)", a join predicate will be created as follows
 	 *     t1.c=t2.c
 	 *   This case is talking about column t2.c of the join predicate.
-	 *   
+	 *
 	 * This method gets called for Case 1) during the bind phase of
 	 *  ResultColumn(ResultColumn.bindExpression).
-	 *   
+	 *
 	 * This method gets called for Case 2) during the bind phase of
 	 *  JoinNode while we are going through the list of join columns
 	 *  for a NATURAL JOIN or user supplied list of join columns for
 	 *  USING clause(JoinNode.getMatchingColumn).
-	 *  
+	 *
 	 * @param value True/False
 	 */
 	public void setRightOuterJoinUsingClause(boolean value)
@@ -282,7 +282,7 @@ public class ResultColumn extends ValueNode
 	{
 		joinResultSet = resultSet;
 	}
-	
+
 	/**
 	 * Returns TRUE if the ResultColumn is standing in for a DEFAULT keyword in
 	 * an insert/update statement.
@@ -327,15 +327,15 @@ public class ResultColumn extends ValueNode
 	boolean columnNameMatches(String columnName)
 	{
 		return columnName.equals(exposedName) ||
-			columnName.equals(name) ||
-			columnName.equals(getSourceColumnName());
+				columnName.equals(name) ||
+				columnName.equals(getSourceColumnName());
 	}
-	
+
 	/**
 	 * Get non-null column name. This method is called during the bind phase
 	 *  to see if we are dealing with ResultColumn in the SELECT list that 
 	 *  belongs to a RIGHT OUTER JOIN(NATURAL OR USING)'s join column.
-	 * 					
+	 *
 	 * For a query like following, we want to use column name x and not the
 	 *  alias x1 when looking in the JoinNode for join column
 	 *   SELECT x x1
@@ -350,7 +350,7 @@ public class ResultColumn extends ValueNode
 	 *   SELECT ''dummy="'|| TRIM(CHAR(x))|| '"'
 	 *        FROM (derby4631_t2 NATURAL RIGHT OUTER JOIN derby4631_t1);
 	 */
-	String getUnderlyingOrAliasName() 
+	String getUnderlyingOrAliasName()
 	{
 		if (getSourceColumnName() != null)
 			return getSourceColumnName();
@@ -359,7 +359,7 @@ public class ResultColumn extends ValueNode
 		else
 			return exposedName;
 	}
-	
+
 	/**
 	 * Returns the underlying source column name, if this ResultColumn
 	 * is a simple direct reference to a table column, or NULL otherwise.
@@ -387,12 +387,12 @@ public class ResultColumn extends ValueNode
 	public String getSchemaName() throws StandardException
 	{
 		if ((columnDescriptor!=null) &&
-			(columnDescriptor.getTableDescriptor() != null))
+				(columnDescriptor.getTableDescriptor() != null))
 			return columnDescriptor.getTableDescriptor().getSchemaName();
 		else
 		{
 			if (expression != null)
-			// REMIND: could look in reference, if set.
+				// REMIND: could look in reference, if set.
 				return expression.getSchemaName();
 			else
 				return null;
@@ -406,7 +406,7 @@ public class ResultColumn extends ValueNode
 			return tableName;
 		}
 		if ((columnDescriptor!=null) &&
-			(columnDescriptor.getTableDescriptor() != null))
+				(columnDescriptor.getTableDescriptor() != null))
 		{
 			return columnDescriptor.getTableDescriptor().getName();
 		}
@@ -456,15 +456,15 @@ public class ResultColumn extends ValueNode
 			return virtualColumnId;
 	}
 
-    public int getStoragePosition() {
-        if (columnDescriptor!=null)
-            return columnDescriptor.getStoragePosition();
-        else
-            return virtualColumnId;
-    }
+	public int getStoragePosition() {
+		if (columnDescriptor!=null)
+			return columnDescriptor.getStoragePosition();
+		else
+			return virtualColumnId;
+	}
 
 
-    /**
+	/**
 	 * Set the expression in this ResultColumn.  This is useful in those
 	 * cases where you don't know the expression in advance, like for
 	 * INSERT statements with column lists, where the column list and
@@ -497,7 +497,7 @@ public class ResultColumn extends ValueNode
 	 * @exception StandardException		Thrown on error
 	 */
 	void setExpressionToNullNode()
-		throws StandardException
+			throws StandardException
 	{
 		setExpression( getNullNode(getTypeServices()) );
 	}
@@ -520,9 +520,9 @@ public class ResultColumn extends ValueNode
 		}
 		else {
 			if (SanityManager.DEBUG)
-			SanityManager.ASSERT(reference == null || 
-				name.equals(reference.getColumnName()), 
-				"don't change name from reference name");
+				SanityManager.ASSERT(reference == null ||
+								name.equals(reference.getColumnName()),
+						"don't change name from reference name");
 		}
 
 		this.exposedName = name;
@@ -567,9 +567,9 @@ public class ResultColumn extends ValueNode
 		return resultSetNumber;
 	}
 
-	/** 
+	/**
 	 * Adjust the virtualColumnId for this ResultColumn	by the specified amount
-	 * 
+	 *
 	 * @param adjust	The adjustment for the virtualColumnId
 	 */
 
@@ -578,9 +578,9 @@ public class ResultColumn extends ValueNode
 		virtualColumnId += adjust;
 	}
 
-	/** 
+	/**
 	 * Set the virtualColumnId for this ResultColumn
-	 * 
+	 *
 	 * @param id	The virtualColumnId for this ResultColumn
 	 */
 
@@ -605,7 +605,7 @@ public class ResultColumn extends ValueNode
 	 * This routine is called when bind processing finds and removes
 	 * duplicate columns in the result list which were pulled up due to their
 	 * presence in the ORDER BY clause, but were later found to be duplicate.
-	 * 
+	 *
 	 * If this column is a virtual column, and if this column's virtual
 	 * column id is greater than the column id which is being removed, then
 	 * we must logically shift this column to the left by decrementing its
@@ -647,24 +647,24 @@ public class ResultColumn extends ValueNode
 		if (SanityManager.DEBUG)
 		{
 			return "exposedName: " + exposedName + "\n" +
-				"name: " + name + "\n" +
-				"tableName: " + tableName + "\n" +
-				"isDefaultColumn: " + defaultColumn + "\n" +
-				"wasDefaultColumn: " + wasDefault + "\n" +
-				"isNameGenerated: " + isNameGenerated + "\n" +
-				"sourceTableName: " + sourceTableName + "\n" +
-				"type: " + getTypeServices() + "\n" +
-				"columnDescriptor: " + columnDescriptor + "\n" +
-				"isGenerated: " + isGenerated + "\n" +
-				"isGeneratedForUnmatchedColumnInInsert: " + isGeneratedForUnmatchedColumnInInsert + "\n" +
-				"isGroupingColumn: " + isGroupingColumn + "\n" +
-				"isReferenced: " + isReferenced + "\n" +
-				"isRedundant: " + isRedundant + "\n" +
-				"rightOuterJoinUsingClause: " + rightOuterJoinUsingClause + "\n" +
-				"joinResultSet: " + joinResultSet + "\n" +
-				"virtualColumnId: " + virtualColumnId + "\n" +
-				"resultSetNumber: " + resultSetNumber + "\n" +
-				super.toString();
+					"name: " + name + "\n" +
+					"tableName: " + tableName + "\n" +
+					"isDefaultColumn: " + defaultColumn + "\n" +
+					"wasDefaultColumn: " + wasDefault + "\n" +
+					"isNameGenerated: " + isNameGenerated + "\n" +
+					"sourceTableName: " + sourceTableName + "\n" +
+					"type: " + getTypeServices() + "\n" +
+					"columnDescriptor: " + columnDescriptor + "\n" +
+					"isGenerated: " + isGenerated + "\n" +
+					"isGeneratedForUnmatchedColumnInInsert: " + isGeneratedForUnmatchedColumnInInsert + "\n" +
+					"isGroupingColumn: " + isGroupingColumn + "\n" +
+					"isReferenced: " + isReferenced + "\n" +
+					"isRedundant: " + isRedundant + "\n" +
+					"rightOuterJoinUsingClause: " + rightOuterJoinUsingClause + "\n" +
+					"joinResultSet: " + joinResultSet + "\n" +
+					"virtualColumnId: " + virtualColumnId + "\n" +
+					"resultSetNumber: " + resultSetNumber + "\n" +
+					super.toString();
 		}
 		else
 		{
@@ -672,32 +672,32 @@ public class ResultColumn extends ValueNode
 		}
 	}
 
-    @Override
-    public String toHTMLString() {
-        return "" +
-                "exposedName: " + exposedName + "<br>" +
-                "name: " + name + "<br>" +
-                "tableName: " + tableName + "<br>" +
-                "resultSetNumber: " + resultSetNumber + "<br>" +
-                "virtualColumnId: " + virtualColumnId + "<br>" +
-                "isDefaultColumn: " + defaultColumn + "<br>" +
-                "wasDefaultColumn: " + wasDefault + "<br>" +
-                "isNameGenerated: " + isNameGenerated + "<br>" +
-                "sourceTableName: " + sourceTableName + "<br>" +
-                "columnDescriptor: " + columnDescriptor + "<br>" +
-                "isGenerated: " + isGenerated + "<br>" +
-                "isGeneratedForUnmatchedColumnInInsert: " + isGeneratedForUnmatchedColumnInInsert + "<br>" +
-                "isGroupingColumn: " + isGroupingColumn + "<br>" +
-                "isReferenced: " + isReferenced + "<br>" +
-                "isRedundant: " + isRedundant + "<br>" +
-                "rightOuterJoinUsingClause: " + rightOuterJoinUsingClause + "<br>" +
-                "joinResultSet: " + joinResultSet + "<br>" +
-                "identityHashCode: " + System.identityHashCode(this) + "<br>" +
-                super.toHTMLString();
-    }
+	@Override
+	public String toHTMLString() {
+		return "" +
+				"exposedName: " + exposedName + "<br>" +
+				"name: " + name + "<br>" +
+				"tableName: " + tableName + "<br>" +
+				"resultSetNumber: " + resultSetNumber + "<br>" +
+				"virtualColumnId: " + virtualColumnId + "<br>" +
+				"isDefaultColumn: " + defaultColumn + "<br>" +
+				"wasDefaultColumn: " + wasDefault + "<br>" +
+				"isNameGenerated: " + isNameGenerated + "<br>" +
+				"sourceTableName: " + sourceTableName + "<br>" +
+				"columnDescriptor: " + columnDescriptor + "<br>" +
+				"isGenerated: " + isGenerated + "<br>" +
+				"isGeneratedForUnmatchedColumnInInsert: " + isGeneratedForUnmatchedColumnInInsert + "<br>" +
+				"isGroupingColumn: " + isGroupingColumn + "<br>" +
+				"isReferenced: " + isReferenced + "<br>" +
+				"isRedundant: " + isRedundant + "<br>" +
+				"rightOuterJoinUsingClause: " + rightOuterJoinUsingClause + "<br>" +
+				"joinResultSet: " + joinResultSet + "<br>" +
+				"identityHashCode: " + System.identityHashCode(this) + "<br>" +
+				super.toHTMLString();
+	}
 
 
-    /**
+	/**
 	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
 	 * how tree printing is supposed to work.
 	 *
@@ -740,10 +740,10 @@ public class ResultColumn extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-    @Override
+	@Override
 	public ValueNode bindExpression(FromList fromList,
-                                    SubqueryList subqueryList,
-                                    List<AggregateNode>	aggregateVector) throws StandardException {
+									SubqueryList subqueryList,
+									List<AggregateNode>	aggregateVector) throws StandardException {
 		/*
 		** Set the type of a parameter to the type of the result column.
 		** Don't do it if this result column doesn't have a type yet.
@@ -770,13 +770,13 @@ public class ResultColumn extends ValueNode
 		}
 
 		setExpression( expression.bindExpression(fromList, subqueryList,
-                                                 aggregateVector) );
+				aggregateVector) );
 
 		if (expression instanceof ColumnReference)
 		{
 			autoincrement = ((ColumnReference)expression).getSource().isAutoincrement();
 		}
-		
+
 		return this;
 	}
 
@@ -800,8 +800,8 @@ public class ResultColumn extends ValueNode
 	 */
 
 	void bindResultColumnByPosition(TableDescriptor tableDescriptor,
-					int columnId)
-				throws StandardException
+									int columnId)
+			throws StandardException
 	{
 		ColumnDescriptor	columnDescriptor;
 
@@ -846,8 +846,8 @@ public class ResultColumn extends ValueNode
 	 */
 
 	public void bindResultColumnByName(TableDescriptor tableDescriptor,
-					int columnId)
-				throws StandardException
+									   int columnId)
+			throws StandardException
 	{
 		ColumnDescriptor	columnDescriptor;
 
@@ -881,7 +881,7 @@ public class ResultColumn extends ValueNode
 	public void typeUntypedNullExpression( ResultColumn bindingRC)
 			throws StandardException
 	{
-        TypeId typeId = bindingRC.getTypeId();
+		TypeId typeId = bindingRC.getTypeId();
 		/* This is where we catch null in a VALUES clause outside
 		 * of INSERT VALUES()
 		 */
@@ -890,18 +890,18 @@ public class ResultColumn extends ValueNode
 			throw StandardException.newException(SQLState.LANG_NULL_IN_VALUES_CLAUSE);
 		}
 
-        if( expression instanceof UntypedNullConstantNode)
-        	//since we don't know the type of such a constant node, we just
-        	//use the default values for collation type and derivation.
-        	//eg insert into table1 values(1,null)
-        	//When this method is executed for the sql above, we don't know
-        	//the type of the null at this point.
-            setExpression( getNullNode(bindingRC.getTypeServices()) );
-        else if( ( expression instanceof ColumnReference) && expression.getTypeServices() == null)
-        {
-            // The expression must be a reference to a null column in a values table.
-            expression.setType( bindingRC.getType());
-        }
+		if( expression instanceof UntypedNullConstantNode)
+			//since we don't know the type of such a constant node, we just
+			//use the default values for collation type and derivation.
+			//eg insert into table1 values(1,null)
+			//When this method is executed for the sql above, we don't know
+			//the type of the null at this point.
+			setExpression( getNullNode(bindingRC.getTypeServices()) );
+		else if( ( expression instanceof ColumnReference) && expression.getTypeServices() == null)
+		{
+			// The expression must be a reference to a null column in a values table.
+			expression.setType( bindingRC.getType());
+		}
 	}
 
 	/**
@@ -921,11 +921,11 @@ public class ResultColumn extends ValueNode
 	 * @exception StandardException tableNameMismatch
 	 */
 	void setColumnDescriptor(TableDescriptor tableDescriptor,
-				ColumnDescriptor columnDescriptor) throws StandardException
+							 ColumnDescriptor columnDescriptor) throws StandardException
 	{
 		/* Callers are responsible for verifying that the column exists */
 		if (SanityManager.DEBUG)
-	    SanityManager.ASSERT(columnDescriptor != null,
+			SanityManager.ASSERT(columnDescriptor != null,
 					"Caller is responsible for verifying that column exists");
 
 		setType(columnDescriptor.getType());
@@ -935,10 +935,10 @@ public class ResultColumn extends ValueNode
 			If the node was created using a reference, the table name
 			of the reference must agree with that of the tabledescriptor.
 		 */
-		if (reference != null && reference.getTableName() != null) 
+		if (reference != null && reference.getTableName() != null)
 		{
 			if (! tableDescriptor.getName().equals(
-					reference.getTableName()) ) 
+					reference.getTableName()) )
 			{
 				/* REMIND: need to have schema name comparison someday as well...
 				** left out for now, lots of null checking needed...
@@ -948,8 +948,8 @@ public class ResultColumn extends ValueNode
 				String realName = tableDescriptor.getName();
 				String refName = reference.getTableName();
 
-				throw StandardException.newException(SQLState.LANG_TABLE_NAME_MISMATCH, 
-					realName, refName);
+				throw StandardException.newException(SQLState.LANG_TABLE_NAME_MISMATCH,
+						realName, refName);
 			}
 		}
 	}
@@ -963,7 +963,7 @@ public class ResultColumn extends ValueNode
 	 * @exception StandardException		Thrown on error
 	 */
 	public void bindResultColumnToExpression()
-				throws StandardException
+			throws StandardException
 	{
 		/*
 		** This gets the same DataTypeServices object as
@@ -1016,62 +1016,62 @@ public class ResultColumn extends ValueNode
 	public ValueNode preprocess(int numTables,
 								FromList outerFromList,
 								SubqueryList outerSubqueryList,
-								PredicateList outerPredicateList) 
-					throws StandardException
+								PredicateList outerPredicateList)
+			throws StandardException
 	{
 		if (expression == null)
 			return this;
 		setExpression( expression.preprocess(numTables, outerFromList,
-										   outerSubqueryList,
-                                           outerPredicateList) );
+				outerSubqueryList,
+				outerPredicateList) );
 		return this;
 	}
 
 	/**
-		This verifies that the expression is storable into the result column.
-		It checks versus the given ResultColumn.
+	 This verifies that the expression is storable into the result column.
+	 It checks versus the given ResultColumn.
 
-		This method should not be called until the result column and
-		expression both have a valid type, i.e. after they are bound
-		appropriately. Its use is for statements like insert, that need to
-		verify if a given value can be stored into a column.
+	 This method should not be called until the result column and
+	 expression both have a valid type, i.e. after they are bound
+	 appropriately. Its use is for statements like insert, that need to
+	 verify if a given value can be stored into a column.
 
-		@exception StandardException thrown if types not suitable.
+	 @exception StandardException thrown if types not suitable.
 	 */
 	public void checkStorableExpression(ResultColumn toStore)
-					throws StandardException
+			throws StandardException
 	{
-        checkStorableExpression((ValueNode) toStore);
+		checkStorableExpression((ValueNode) toStore);
 	}
-    
-    private void checkStorableExpression(ValueNode source)
-        throws StandardException
-    {
-        TypeId toStoreTypeId = source.getTypeId();
-        
-        if (!getTypeCompiler().storable(toStoreTypeId, getClassFactory()))
-        {
-           throw StandardException.newException(SQLState.LANG_NOT_STORABLE, 
-                    getTypeId().getSQLTypeName(),
-                    toStoreTypeId.getSQLTypeName() );
-        }   
-    }
+
+	private void checkStorableExpression(ValueNode source)
+			throws StandardException
+	{
+		TypeId toStoreTypeId = source.getTypeId();
+
+		if (!getTypeCompiler().storable(toStoreTypeId, getClassFactory()))
+		{
+			throw StandardException.newException(SQLState.LANG_NOT_STORABLE,
+					getTypeId().getSQLTypeName(),
+					toStoreTypeId.getSQLTypeName() );
+		}
+	}
 
 	/**
-		This verifies that the expression is storable into the result column.
-		It checks versus the expression under this ResultColumn.
+	 This verifies that the expression is storable into the result column.
+	 It checks versus the expression under this ResultColumn.
 
-		This method should not be called until the result column and
-		expression both have a valid type, i.e. after they are bound
-		appropriately. Its use is for statements like update, that need to
-		verify if a given value can be stored into a column.
+	 This method should not be called until the result column and
+	 expression both have a valid type, i.e. after they are bound
+	 appropriately. Its use is for statements like update, that need to
+	 verify if a given value can be stored into a column.
 
-		@exception StandardException thrown if types not suitable.
+	 @exception StandardException thrown if types not suitable.
 	 */
 	public void checkStorableExpression()
-					throws StandardException
+			throws StandardException
 	{
-        checkStorableExpression(getExpression());
+		checkStorableExpression(getExpression());
 	}
 
 	/**
@@ -1086,8 +1086,8 @@ public class ResultColumn extends ValueNode
 	 */
 
 	public void generateExpression(ExpressionClassBuilder ecb,
-											MethodBuilder mb)
-									throws StandardException
+								   MethodBuilder mb)
+			throws StandardException
 	{
 		expression.generateExpression(ecb, mb);
 	}
@@ -1095,7 +1095,7 @@ public class ResultColumn extends ValueNode
 	/**
 	 * Do code generation to return a Null of the appropriate type
 	 * for the result column.  
-	   Requires the getCOlumnExpress value pushed onto the stack
+	 Requires the getCOlumnExpress value pushed onto the stack
 	 *
 	 * @param acb		The ActivationClassBuilder for the class we're generating
 	 * @param eb		The ExpressionBlock that the generate code is to go into
@@ -1128,16 +1128,16 @@ public class ResultColumn extends ValueNode
 	}
 */
 	/**
-		Generate the code to create a column the same shape and
-		size as this ResultColumn.
+	 Generate the code to create a column the same shape and
+	 size as this ResultColumn.
 
-		Used in ResultColumnList.generateHolder().
+	 Used in ResultColumnList.generateHolder().
 
-		@exception StandardException  thrown on failure
-	*/
+	 @exception StandardException  thrown on failure
+	 */
 	public void generateHolder(ExpressionClassBuilder acb,
-									MethodBuilder mb)
-		throws StandardException
+							   MethodBuilder mb)
+			throws StandardException
 	{
 		// generate expression of the form
 		// (DataValueDescriptor) columnSpace
@@ -1147,17 +1147,17 @@ public class ResultColumn extends ValueNode
 	}
 
 	/**
-	** Check whether the column length and type of this result column
-	** match the expression under the columns.  This is useful for
-	** INSERT and UPDATE statements.  For SELECT statements this method
-	** should always return true.  There is no need to call this for a
-	** DELETE statement.
-	**
-	** @return	true means the column matches its expressions,
-	**			false means it doesn't match.
-	*/
+	 ** Check whether the column length and type of this result column
+	 ** match the expression under the columns.  This is useful for
+	 ** INSERT and UPDATE statements.  For SELECT statements this method
+	 ** should always return true.  There is no need to call this for a
+	 ** DELETE statement.
+	 **
+	 ** @return	true means the column matches its expressions,
+	 **			false means it doesn't match.
+	 */
 	boolean columnTypeAndLengthMatch()
-		throws StandardException
+			throws StandardException
 	{
 
 		/*
@@ -1178,12 +1178,12 @@ public class ResultColumn extends ValueNode
 		// method in com.splicemachine.db.iapi.types.XML for more.
 		if (getTypeId().isXMLTypeId())
 			return false;
-        
-        
-        DataTypeDescriptor  expressionType = getExpression().getTypeServices();
-        
-        if (!getTypeServices().isExactTypeAndLengthMatch(expressionType))
-            return false;
+
+
+		DataTypeDescriptor  expressionType = getExpression().getTypeServices();
+
+		if (!getTypeServices().isExactTypeAndLengthMatch(expressionType))
+			return false;
 
 		/* Is the source nullable and the target non-nullable? */
 		if ((! getTypeServices().isNullable()) && expressionType.isNullable())
@@ -1195,12 +1195,12 @@ public class ResultColumn extends ValueNode
 	}
 
 	boolean columnTypeAndLengthMatch(ResultColumn otherColumn)
-		throws StandardException
+			throws StandardException
 	{
 		ValueNode otherExpression = otherColumn.getExpression();
 
-        DataTypeDescriptor resultColumnType = getTypeServices();
-        DataTypeDescriptor otherResultColumnType = otherColumn.getTypeServices();
+		DataTypeDescriptor resultColumnType = getTypeServices();
+		DataTypeDescriptor otherResultColumnType = otherColumn.getTypeServices();
 
 		if (SanityManager.DEBUG)
 		{
@@ -1216,7 +1216,7 @@ public class ResultColumn extends ValueNode
 		** case.
 		*/
 		if ((otherExpression != null) && (otherExpression.requiresTypeFromContext()) ||
-			(expression.requiresTypeFromContext()))
+				(expression.requiresTypeFromContext()))
 		{
 			return false;
 		}
@@ -1232,9 +1232,9 @@ public class ResultColumn extends ValueNode
 
 		/* Are they the same type? */
 		if ( ! resultColumnType.getTypeId().equals(
-			otherResultColumnType.getTypeId()
+				otherResultColumnType.getTypeId()
+		)
 				)
-			)
 		{
 			/* If the source is a constant of a different type then
 			 * we try to convert that constant to a constant of our
@@ -1255,13 +1255,13 @@ public class ResultColumn extends ValueNode
 				DataValueDescriptor oldValue = constant.getValue();
 
 				DataValueDescriptor newValue = convertConstant(
-					resultColumnType.getTypeId(),
-					resultColumnType.getMaximumWidth(), 
-					oldValue);
+						resultColumnType.getTypeId(),
+						resultColumnType.getMaximumWidth(),
+						oldValue);
 
 				if ((oldValue != newValue) &&
-					(oldValue instanceof StringDataValue ==
-					 newValue instanceof StringDataValue))
+						(oldValue instanceof StringDataValue ==
+								newValue instanceof StringDataValue))
 				{
 					constant.setValue(newValue);
 					constant.setType(getTypeServices());
@@ -1274,8 +1274,8 @@ public class ResultColumn extends ValueNode
 				//depending on the collation type.
 				if (newValue instanceof StringDataValue)
 				{
-                    constant.setCollationInfo(resultColumnType);
-                    
+					constant.setCollationInfo(resultColumnType);
+
 					DataValueFactory dvf = getDataValueFactory();
 					newValue = ((StringDataValue)newValue).getValue(dvf.getCharacterCollator(
 							constant.getTypeServices().getCollationType()));
@@ -1283,9 +1283,9 @@ public class ResultColumn extends ValueNode
 				}
 			}
 			if ( ! resultColumnType.getTypeId().equals(
-				otherResultColumnType.getTypeId()
+					otherResultColumnType.getTypeId()
+			)
 					)
-				)
 			{
 				return false;
 			}
@@ -1293,7 +1293,7 @@ public class ResultColumn extends ValueNode
 
 		/* Are they the same precision? */
 		if (resultColumnType.getPrecision() !=
-										otherResultColumnType.getPrecision())
+				otherResultColumnType.getPrecision())
 		{
 			return false;
 		}
@@ -1306,7 +1306,7 @@ public class ResultColumn extends ValueNode
 
 		/* Are they the same width? */
 		if (resultColumnType.getMaximumWidth() !=
-										otherResultColumnType.getMaximumWidth())
+				otherResultColumnType.getMaximumWidth())
 		{
 			return false;
 		}
@@ -1323,8 +1323,8 @@ public class ResultColumn extends ValueNode
 		 * non_nullable.  In this case, we want to see it as
 		 */
 		if ((! resultColumnType.isNullable()) &&
-					(otherResultColumnType.isNullable() || 
-					 otherColumn.isGeneratedForUnmatchedColumnInInsert()))
+				(otherResultColumnType.isNullable() ||
+						otherColumn.isGeneratedForUnmatchedColumnInInsert()))
 		{
 			return false;
 		}
@@ -1390,27 +1390,27 @@ public class ResultColumn extends ValueNode
 		isReferenced = true;
 	}
 
-    /**
-     * Mark this column as a referenced column if it is already marked as referenced or if any result column in
-     * its chain of virtual columns is marked as referenced.
-     */
-    void pullVirtualIsReferenced()
-    {
-        if( isReferenced())
-            return;
-        
-        for( ValueNode expr = expression; expr != null && (expr instanceof VirtualColumnNode);)
-        {
-            VirtualColumnNode vcn = (VirtualColumnNode) expr;
-            ResultColumn src = vcn.getSourceColumn();
-            if( src.isReferenced())
-            {
-                setReferenced();
-                return;
-            }
-            expr = src.getExpression();
-        }
-    } // end of pullVirtualIsReferenced
+	/**
+	 * Mark this column as a referenced column if it is already marked as referenced or if any result column in
+	 * its chain of virtual columns is marked as referenced.
+	 */
+	void pullVirtualIsReferenced()
+	{
+		if( isReferenced())
+			return;
+
+		for( ValueNode expr = expression; expr != null && (expr instanceof VirtualColumnNode);)
+		{
+			VirtualColumnNode vcn = (VirtualColumnNode) expr;
+			ResultColumn src = vcn.getSourceColumn();
+			if( src.isReferenced())
+			{
+				setReferenced();
+				return;
+			}
+			expr = src.getExpression();
+		}
+	} // end of pullVirtualIsReferenced
 
 	/**
 	 * Mark this column as an unreferenced column.
@@ -1421,7 +1421,7 @@ public class ResultColumn extends ValueNode
 	}
 
 	/**
- 	 * Mark this RC and all RCs in the underlying
+	 * Mark this RC and all RCs in the underlying
 	 * RC/VCN chain as referenced.
 	 */
 	void markAllRCsInChainReferenced()
@@ -1556,25 +1556,25 @@ public class ResultColumn extends ValueNode
 		if (columnDescriptor != null)
 		{
 			newResultColumn = (ResultColumn) getNodeFactory().getNode(
-													C_NodeTypes.RESULT_COLUMN,
-													columnDescriptor,
-													expression,
-													getContextManager());
+					C_NodeTypes.RESULT_COLUMN,
+					columnDescriptor,
+					expression,
+					getContextManager());
 			newResultColumn.setExpression(cloneExpr);
 		}
 		else
 		{
 
 			newResultColumn = (ResultColumn) getNodeFactory().getNode(
-													C_NodeTypes.RESULT_COLUMN,
-													getName(),
-													cloneExpr,
-													getContextManager());
+					C_NodeTypes.RESULT_COLUMN,
+					getName(),
+					cloneExpr,
+					getContextManager());
 		}
 
 		/* Set the VirtualColumnId and name in the new node */
 		newResultColumn.setVirtualColumnId(getVirtualColumnId());
-        // Splice fork: also set the result set number on the new node
+		// Splice fork: also set the result set number on the new node
 		newResultColumn.setResultSetNumber(getResultSetNumber());
 		
 		/* Set the type and name information in the new node */
@@ -1608,24 +1608,24 @@ public class ResultColumn extends ValueNode
 		if (isAutoincrementGenerated())
 			newResultColumn.setAutoincrementGenerated();
 
-  		if (isAutoincrement())
-  			newResultColumn.setAutoincrement();
-  		if (isGroupingColumn()) 
-  			newResultColumn.markAsGroupingColumn();
-  		
-  		if (isRightOuterJoinUsingClause()) {
-  			newResultColumn.setRightOuterJoinUsingClause(true);
-  		}
+		if (isAutoincrement())
+			newResultColumn.setAutoincrement();
+		if (isGroupingColumn())
+			newResultColumn.markAsGroupingColumn();
 
-  		if (getJoinResultSet() != null) {
-  	  		newResultColumn.setJoinResultset(getJoinResultSet());
-  		}
-  		
-  		if (isGenerated()) {
-  			newResultColumn.markGenerated();
-  		}
+		if (isRightOuterJoinUsingClause()) {
+			newResultColumn.setRightOuterJoinUsingClause(true);
+		}
 
-  		return newResultColumn;
+		if (getJoinResultSet() != null) {
+			newResultColumn.setJoinResultset(getJoinResultSet());
+		}
+
+		if (isGenerated()) {
+			newResultColumn.markGenerated();
+		}
+
+		return newResultColumn;
 	}
 
 	/**
@@ -1636,20 +1636,20 @@ public class ResultColumn extends ValueNode
 	public int getMaximumColumnSize()
 	{
 		return getTypeServices().getTypeId()
-			.getApproximateLengthInBytes(getTypeServices());
+				.getApproximateLengthInBytes(getTypeServices());
 	}
-    
-    public DataTypeDescriptor getTypeServices()
-    {
-        DataTypeDescriptor type = super.getTypeServices();
-        if (type != null)
-            return type;
-        
-        if (getExpression() != null)
-            return getExpression().getTypeServices();
-        
-        return null;
-    }
+
+	public DataTypeDescriptor getTypeServices()
+	{
+		DataTypeDescriptor type = super.getTypeServices();
+		if (type != null)
+			return type;
+
+		if (getExpression() != null)
+			return getExpression().getTypeServices();
+
+		return null;
+	}
 
 	/**
 	 * Return the variant type for the underlying expression.
@@ -1673,36 +1673,36 @@ public class ResultColumn extends ValueNode
 		** generating autoincrement values, the result
 		** is variant.
 		*/
-        int expType;
-        if (isAutoincrementGenerated()) {
-            expType = Qualifier.VARIANT;
-        } else if (expression != null) {
-            expType = expression.getOrderableVariantType();
-        } else {
-            expType = Qualifier.CONSTANT;
-        }
+		int expType;
+		if (isAutoincrementGenerated()) {
+			expType = Qualifier.VARIANT;
+		} else if (expression != null) {
+			expType = expression.getOrderableVariantType();
+		} else {
+			expType = Qualifier.CONSTANT;
+		}
 
 		switch (expType)
 		{
-			case Qualifier.VARIANT: 
-					return Qualifier.VARIANT;
+			case Qualifier.VARIANT:
+				return Qualifier.VARIANT;
 
-			case Qualifier.SCAN_INVARIANT: 
-			case Qualifier.QUERY_INVARIANT: 
-					return Qualifier.SCAN_INVARIANT;
+			case Qualifier.SCAN_INVARIANT:
+			case Qualifier.QUERY_INVARIANT:
+				return Qualifier.SCAN_INVARIANT;
 
 			default:
-					return Qualifier.CONSTANT;
+				return Qualifier.CONSTANT;
 		}
 	}
 
 	/**
 	 * Accept the visitor for all visitable children of this node.
 	 *
-     * @param v the visitor
-     */
+	 * @param v the visitor
+	 */
 	@Override
-    public void acceptChildren(Visitor v) throws StandardException {
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 		if (expression != null) {
 			setExpression( (ValueNode)expression.accept(v, this));
@@ -1737,16 +1737,16 @@ public class ResultColumn extends ValueNode
 		 */
 		if (!getTypeId().orderable(getClassFactory()))
 		{
-			throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION, 
-						getTypeId().getSQLTypeName());
+			throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
+					getTypeId().getSQLTypeName());
 		}
 	}
 
 	/**
-	  If this ResultColumn is bound to a column in a table
-	  get the column descriptor for the column in the table.
-	  Otherwise return null.
-	  */
+	 If this ResultColumn is bound to a column in a table
+	 get the column descriptor for the column in the table.
+	 Otherwise return null.
+	 */
 	public ColumnDescriptor getTableColumnDescriptor() {return columnDescriptor;}
 
 	/**
@@ -1768,27 +1768,27 @@ public class ResultColumn extends ValueNode
 		autoincrementGenerated = false;
 	}
 
-  	public boolean isAutoincrement()
-  	{
+	public boolean isAutoincrement()
+	{
 		return autoincrement;
-  	}
+	}
 
-  	public void setAutoincrement()
-  	{
-  		autoincrement = true;
-  	}
-        
-        public boolean isGroupingColumn()
-        {
-        	return isGroupingColumn;
-        }
-        
+	public void setAutoincrement()
+	{
+		autoincrement = true;
+	}
+
+	public boolean isGroupingColumn()
+	{
+		return isGroupingColumn;
+	}
+
 	/**
 	 * @exception StandardException		Thrown on error
 	 */
 	private DataValueDescriptor convertConstant(TypeId toTypeId, int maxWidth,
-			DataValueDescriptor constantValue)
-		throws StandardException
+												DataValueDescriptor constantValue)
+			throws StandardException
 	{
 		int formatId = toTypeId.getTypeFormatId();
 		DataValueFactory dvf = getDataValueFactory();
@@ -1824,11 +1824,11 @@ public class ResultColumn extends ValueNode
 					{
 						String typeName = null;
 						if (formatId == StoredFormatIds.VARCHAR_TYPE_ID)
-								typeName = TypeId.VARCHAR_NAME;
-						throw StandardException.newException(SQLState.LANG_STRING_TRUNCATION, 
-													 typeName,
-													 StringUtil.formatForPrint(sourceValue), 
-													 String.valueOf(maxWidth));
+							typeName = TypeId.VARCHAR_NAME;
+						throw StandardException.newException(SQLState.LANG_STRING_TRUNCATION,
+								typeName,
+								StringUtil.formatForPrint(sourceValue),
+								String.valueOf(maxWidth));
 					}
 				}
 
@@ -1842,13 +1842,13 @@ public class ResultColumn extends ValueNode
 		}
 	}
 
-    public TableName getTableNameObject() {
-        return null;
-    }
+	public TableName getTableNameObject() {
+		return null;
+	}
 
 	/* Get the wrapped reference if any */
 	public	ColumnReference	getReference() { return reference; }
-	
+
 	/**
 	 * Get the source BaseColumnNode for this result column. The
 	 * BaseColumnNode cannot be found unless the ResultColumn is bound
@@ -1892,8 +1892,8 @@ public class ResultColumn extends ValueNode
 	 * @return The number of the table to which this ResultColumn	
 	 *  points, or -1 if we can't determine that from where we are.
 	 */
+	@Override
 	public int getTableNumber()
-		throws StandardException
 	{
 		if (expression instanceof ColumnReference)
 			return ((ColumnReference)expression).getTableNumber();
@@ -1906,7 +1906,7 @@ public class ResultColumn extends ValueNode
 			if (vcn.getSourceResultSet() instanceof FromBaseTable)
 			{
 				return ((FromBaseTable)vcn.getSourceResultSet()).
-					getTableNumber();
+						getTableNumber();
 			}
 
 			// Else recurse down the VCN.
@@ -1916,21 +1916,21 @@ public class ResultColumn extends ValueNode
 		// We can get here if expression has neither a column
 		// reference nor a FromBaseTable beneath it--for example,
 		// if it is of type BaseColumnNode. 
-		return -1;
+		return expression.getTableNumber();
 	}
-	
-	public boolean isEquivalent(ValueNode o) throws StandardException 
+
+	public boolean isEquivalent(ValueNode o) throws StandardException
 	{
-        if (o.getNodeType() == getNodeType()) 
-        {                
-        	ResultColumn other = (ResultColumn)o;
-        	if (expression != null) {
-        		return expression.isEquivalent(other.expression);
-        	}
-        }
-        return false;
+		if (o.getNodeType() == getNodeType())
+		{
+			ResultColumn other = (ResultColumn)o;
+			if (expression != null) {
+				return expression.isEquivalent(other.expression);
+			}
+		}
+		return false;
 	}
-	
+
 	public boolean equals(Object o){
 		return this == o;
 	}
@@ -1941,56 +1941,56 @@ public class ResultColumn extends ValueNode
 	 */
 	public boolean hasGenerationClause()
 	{
-        if ( (columnDescriptor != null) && columnDescriptor.hasGenerationClause() ) { return true; }
-        else { return false; }
+		if ( (columnDescriptor != null) && columnDescriptor.hasGenerationClause() ) { return true; }
+		else { return false; }
 	}
 
 	public List getChildren() {
 		return Collections.singletonList(expression);
 	}
 
-    public DataTypeDescriptor getCastToType() {
-        return castToType;
-    }
+	public DataTypeDescriptor getCastToType() {
+		return castToType;
+	}
 
-    public void setCastToType(DataTypeDescriptor type) {
-        castToType = type;
-    }
+	public void setCastToType(DataTypeDescriptor type) {
+		castToType = type;
+	}
 
-    /**
-     *
-     * Utilizes statistics cardinality if available, if not it returns 0.
-     *
-     * @return
-     * @throws StandardException
-     */
-    public long cardinality() throws StandardException {
-        if (this.getTableColumnDescriptor() ==null) // Temporary JL
-            return 0;
-        ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
-        int leftPosition = getColumnPosition();
-        return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
-    }
-    /**
-     *
-     * Utilizes statistics cardinality if available, if not it returns the number of rows passed in.
-     *
-     * @return
-     * @throws StandardException
-     */
-    @Override
-    public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        long c = cardinality();
-        return c> 0? c : expression.nonZeroCardinality(numberOfRows);
-    }
+	/**
+	 *
+	 * Utilizes statistics cardinality if available, if not it returns 0.
+	 *
+	 * @return
+	 * @throws StandardException
+	 */
+	public long cardinality() throws StandardException {
+		if (this.getTableColumnDescriptor() ==null) // Temporary JL
+			return 0;
+		ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+		int leftPosition = getColumnPosition();
+		return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
+	}
+	/**
+	 *
+	 * Utilizes statistics cardinality if available, if not it returns the number of rows passed in.
+	 *
+	 * @return
+	 * @throws StandardException
+	 */
+	@Override
+	public long nonZeroCardinality(long numberOfRows) throws StandardException {
+		long c = cardinality();
+		return c> 0? c : expression.nonZeroCardinality(numberOfRows);
+	}
 
-    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
-        return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();
-    }
+	public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+		return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();
+	}
 
 
-    public void setColumnDescriptor(ColumnDescriptor columnDescriptor) {
-        this.columnDescriptor = columnDescriptor;
-    }
+	public void setColumnDescriptor(ColumnDescriptor columnDescriptor) {
+		this.columnDescriptor = columnDescriptor;
+	}
 }
 

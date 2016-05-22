@@ -169,13 +169,13 @@ public abstract class TableOperatorNode extends FromTable{
         // add/load.
 
         if(leftResultSet instanceof Optimizable){
-            ((Optimizable)leftResultSet).updateBestPlanMap(action,planKey);
+            ((Optimizable)leftResultSet).updateBestPlanMap(action, planKey);
         }else if(leftResultSet.getOptimizerImpl()!=null){
             leftResultSet.getOptimizerImpl().updateBestPlanMaps(action,planKey);
         }
 
         if(rightResultSet instanceof Optimizable){
-            ((Optimizable)rightResultSet).updateBestPlanMap(action,planKey);
+            ((Optimizable)rightResultSet).updateBestPlanMap(action, planKey);
         }else if(rightResultSet.getOptimizerImpl()!=null){
             rightResultSet.getOptimizerImpl().updateBestPlanMaps(action,planKey);
         }
@@ -520,11 +520,16 @@ public abstract class TableOperatorNode extends FromTable{
 			 * bound, since the join expression may contain column references that
 			 * are not referenced anywhere else above us.
 			 */
-            projectResultColumns();
-            return genProjectRestrict(numTables);
+            return genProjectRestrict();
         }
     }
 
+    @Override
+    public ResultSetNode genProjectRestrict()
+            throws StandardException {
+        projectResultColumns();
+        return super.genProjectRestrict();
+    }
     /**
      * Find the unreferenced result columns and project them out. This is used in pre-processing joins
      * that are not flattened into the where clause.

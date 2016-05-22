@@ -902,5 +902,49 @@ public class BinaryOperatorNode extends OperatorNode
         return Math.max(c1, c2);
     }
 
+	@Override
+	public ColumnReference getHashableJoinColumnReference() {
+		// only allow one column reference in a binary function or arithmetic expression for it to qualify
+		// for a hashable join
+		ColumnReference lcr = leftOperand.getHashableJoinColumnReference();
+		ColumnReference rcr = rightOperand.getHashableJoinColumnReference();
+		if (lcr != null && rcr == null)
+			return lcr;
+		else if (lcr ==null && rcr != null) {
+			return  rcr;
+		}
+
+		return null;
+	}
+
+	@Override
+	public void setHashableJoinColumnReference(ColumnReference cr) {
+		ColumnReference lcr = leftOperand.getHashableJoinColumnReference();
+		ColumnReference rcr = rightOperand.getHashableJoinColumnReference();
+		if (lcr != null && rcr == null)
+			if (leftOperand instanceof ColumnReference)
+				leftOperand = cr;
+			else
+				leftOperand.setHashableJoinColumnReference(cr);
+		else if (lcr ==null && rcr != null) {
+			if (rightOperand instanceof ColumnReference)
+				rightOperand = cr;
+			else
+				rightOperand.setHashableJoinColumnReference(cr);
+		}
+	}
+
+	@Override
+	public int getTableNumber() {
+		int l = leftOperand.getTableNumber();
+		int r = rightOperand.getTableNumber();
+		if (l == -1 && r == -1) {
+			return -1;
+		}
+		else if (l == -1)
+			return r;
+		else return l;
+	}
+
 }
 

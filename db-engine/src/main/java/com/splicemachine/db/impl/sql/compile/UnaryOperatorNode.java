@@ -802,4 +802,18 @@ public class UnaryOperatorNode extends OperatorNode
     public void setOperand(ValueNode operand) {
         this.operand = operand;
     }
+
+	@Override
+	public ColumnReference getHashableJoinColumnReference() {
+		return operand.getHashableJoinColumnReference();
+	}
+
+	@Override
+	public void setHashableJoinColumnReference(ColumnReference cr) {
+		if (operand instanceof ColumnReference)
+			operand = cr;
+		else
+			operand.setHashableJoinColumnReference(cr);
+	}
+
 }

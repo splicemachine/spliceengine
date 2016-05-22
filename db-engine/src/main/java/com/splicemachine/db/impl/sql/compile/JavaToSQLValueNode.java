@@ -353,4 +353,16 @@ public class JavaToSQLValueNode extends ValueNode
 	public List getChildren() {
 		return Collections.singletonList(javaNode);
 	}
+
+
+	@Override
+	public ColumnReference getHashableJoinColumnReference() {
+		return javaNode.getHashableJoinColumnReference();
+	}
+
+	@Override
+	public void setHashableJoinColumnReference(ColumnReference cr) {
+		javaNode.setHashableJoinColumnReference(cr);
+	}
+
 }

@@ -502,4 +502,14 @@ public class SQLToJavaValueNode extends JavaValueNode {
 			value = (ValueNode)value.accept(v, this);
 		}
 	}
+
+	@Override
+	public ColumnReference getHashableJoinColumnReference() {
+		return value.getHashableJoinColumnReference();
+	}
+
+	@Override
+	public void setHashableJoinColumnReference(ColumnReference cr) {
+		value = cr;
+	}
 }

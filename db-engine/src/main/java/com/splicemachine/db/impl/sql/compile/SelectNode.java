@@ -1166,13 +1166,13 @@ public class SelectNode extends ResultSetNode{
             // Now we add a window result set wrapped in a PRN on top of what we currently have.
             for (WindowNode windowDefinition : windowDefinitionList) {
                 WindowResultSetNode wrsn =
-                    (WindowResultSetNode) getNodeFactory().getNode(
-                        C_NodeTypes.WINDOW_RESULTSET_NODE,
-                        prnRSN,
-                        windowDefinition,
-                        null,   // table properties
-                        nestingLevel,
-                        getContextManager());
+                        (WindowResultSetNode) getNodeFactory().getNode(
+                                C_NodeTypes.WINDOW_RESULTSET_NODE,
+                                prnRSN,
+                                windowDefinition,
+                                null,   // table properties
+                                nestingLevel,
+                                getContextManager());
 
                 prnRSN = wrsn.processWindowDefinition();
                 // TODO-JL NOT OPTIMAL
@@ -1680,18 +1680,20 @@ public class SelectNode extends ResultSetNode{
 			/* Now we're finally ready to generate the JoinNode and have it
 			 * replace the 1st 2 entries in the FromList.
 			 */
-            fromList.setElementAt((JoinNode)getNodeFactory().getNode(
-                            C_NodeTypes.JOIN_NODE,
-                            leftResultSet,
-                            rightResultSet,
-                            null,
-                            null,
-                            leftRCList,
-                            null,
-                            //user supplied optimizer overrides
-                            fromList.properties,
-                            getContextManager()
-                    ),
+            JoinNode joinNode = (JoinNode)getNodeFactory().getNode(
+                    C_NodeTypes.JOIN_NODE,
+                    leftResultSet,
+                    rightResultSet,
+                    null,
+                    null,
+                    leftRCList,
+                    null,
+                    //user supplied optimizer overrides
+                    fromList.properties,
+                    getContextManager()
+            );
+
+            fromList.setElementAt(joinNode.genProjectRestrict(),
                     0
             );
 

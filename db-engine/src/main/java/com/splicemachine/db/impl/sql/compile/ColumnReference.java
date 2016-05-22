@@ -55,29 +55,29 @@ public class ColumnReference extends ValueNode {
 	*/
 	TableName	tableName;
 
-    /**
-     * The FromTable this column reference is bound to.
-     */
-    private int tableNumber;
+	/**
+	 * The FromTable this column reference is bound to.
+	 */
+	private int tableNumber;
 
-    /**
-     * The column number in the underlying FromTable. But note {@code source}.
-     * @see #source
-     */
-    private int columnNumber;
+	/**
+	 * The column number in the underlying FromTable. But note {@code source}.
+	 * @see #source
+	 */
+	private int columnNumber;
 
-    /**
-     * This is where the value for this column reference will be coming from.
-     * Note that for join nodes, {@code tableNumber}/{@code columnNumber} will
-     * point to the column in the left or right join participant {@code
-     * FromTable}, whereas {@code source} will be bound to the RC in the result
-     * column list of the join node. See also the comment at the end of
-     * JoinNode#getMatchingColumn.
-     * @see JoinNode#getMatchingColumn
-     * @see #columnNumber
-     * @see #tableNumber
-     */
-    private ResultColumn source;
+	/**
+	 * This is where the value for this column reference will be coming from.
+	 * Note that for join nodes, {@code tableNumber}/{@code columnNumber} will
+	 * point to the column in the left or right join participant {@code
+	 * FromTable}, whereas {@code source} will be bound to the RC in the result
+	 * column list of the join node. See also the comment at the end of
+	 * JoinNode#getMatchingColumn.
+	 * @see JoinNode#getMatchingColumn
+	 * @see #columnNumber
+	 * @see #tableNumber
+	 */
+	private ResultColumn source;
 
 	/* For unRemapping */
 	ResultColumn	origSource;
@@ -85,9 +85,9 @@ public class ColumnReference extends ValueNode {
 	int				origTableNumber = -1;
 	int				origColumnNumber = -1;
 
-    /* For remembering original (tn,cn) of this CR during join flattening. */
-    private int tableNumberBeforeFlattening = -1;
-    private int columnNumberBeforeFlattening = -1;
+	/* For remembering original (tn,cn) of this CR during join flattening. */
+	private int tableNumberBeforeFlattening = -1;
+	private int columnNumberBeforeFlattening = -1;
 
 	/* Reuse generated code where possible */
 	//Expression genResult;
@@ -95,30 +95,30 @@ public class ColumnReference extends ValueNode {
 	private boolean		replacesAggregate;
 	private boolean		replacesWindowFunctionCall;
 
-    // 'nestingLevel' is the (0 indexed) level at which the column reference appears in the query.  Zero if this col ref
-    // is contained by a top level select, 1 if contained by a singly nested subquery, 2 if a doubly nested subquery, etc.
-    //
-    // 'sourceLevel' is similar to nestingLevel except that it indicates the nesting level of the referenced column.
-    // A better name for this field might have been targetNestingLevel.
-    //
-    // Note that the source level of a column reference is the same whether the result column comes from a FromBaseTable
-    // or FromSubquery.
-    //
-    // EXAMPLE
-    //<pre>
-    //
-    // select * from A left join (select * from D) foo on foo.d1 = a1 where a2 = (select max(c2) from C where c3=a3);
-    //
-    //  col ref | nesting level | source level
-    //  --------------------------------------
-    //   foo.d1 |             0 |           0
-    //       a1 |             0 |           0
-    //       a2 |             0 |           0
-    //       c2 |             1 |           1
-    //       c3 |             1 |           1
-    //       a3 |             1 |           0
-    //
-    //</pre>
+	// 'nestingLevel' is the (0 indexed) level at which the column reference appears in the query.  Zero if this col ref
+	// is contained by a top level select, 1 if contained by a singly nested subquery, 2 if a doubly nested subquery, etc.
+	//
+	// 'sourceLevel' is similar to nestingLevel except that it indicates the nesting level of the referenced column.
+	// A better name for this field might have been targetNestingLevel.
+	//
+	// Note that the source level of a column reference is the same whether the result column comes from a FromBaseTable
+	// or FromSubquery.
+	//
+	// EXAMPLE
+	//<pre>
+	//
+	// select * from A left join (select * from D) foo on foo.d1 = a1 where a2 = (select max(c2) from C where c3=a3);
+	//
+	//  col ref | nesting level | source level
+	//  --------------------------------------
+	//   foo.d1 |             0 |           0
+	//       a1 |             0 |           0
+	//       a2 |             0 |           0
+	//       c2 |             1 |           1
+	//       c3 |             1 |           1
+	//       a3 |             1 |           0
+	//
+	//</pre>
 	private int			nestingLevel = -1;
 	private int			sourceLevel = -1;
 
@@ -145,11 +145,11 @@ public class ColumnReference extends ValueNode {
 	 *					identifier from parser.
 	 */
 
-	public void init(Object columnName, 
+	public void init(Object columnName,
 					 Object tableName,
-			 		 Object	tokBeginOffset,
+					 Object	tokBeginOffset,
 					 Object	tokEndOffset
-					 )
+	)
 	{
 		this.columnName = (String) columnName;
 		this.tableName = (TableName) tableName;
@@ -186,17 +186,17 @@ public class ColumnReference extends ValueNode {
 		if (SanityManager.DEBUG)
 		{
 			return "columnName: " + columnName + "\n" +
-				"tableNumber: " + tableNumber + "\n" +
-				"columnNumber: " + columnNumber + "\n" +
-				"replacesAggregate: " + replacesAggregate + "\n" +
-				"replacesWindowFunctionCall: " +
-				    replacesWindowFunctionCall + "\n" +
-				"tableName: " + ( ( tableName != null) ?
-								  tableName.toString() :
-								  "null") + "\n" +
-				"nestingLevel: " + nestingLevel + "\n" +
-				"sourceLevel: " + sourceLevel + "\n" +
-				super.toString();
+					"tableNumber: " + tableNumber + "\n" +
+					"columnNumber: " + columnNumber + "\n" +
+					"replacesAggregate: " + replacesAggregate + "\n" +
+					"replacesWindowFunctionCall: " +
+					replacesWindowFunctionCall + "\n" +
+					"tableName: " + ( ( tableName != null) ?
+					tableName.toString() :
+					"null") + "\n" +
+					"nestingLevel: " + nestingLevel + "\n" +
+					"sourceLevel: " + sourceLevel + "\n" +
+					super.toString();
 		}
 		else
 		{
@@ -204,41 +204,41 @@ public class ColumnReference extends ValueNode {
 		}
 	}
 
-    public String printNameLoc() {
-        ResultColumn src = (source != null ? source : origSource);
-        String fullColumnName = columnName;
-        try {
-            fullColumnName = src.getSchemaName()+"."+src.getFullName();
-        } catch (StandardException e) {
-            // do nothing
-        }
-        return fullColumnName + "["+src.getResultSetNumber()+","+src.getVirtualColumnId()+"]";
-    }
+	public String printNameLoc() {
+		ResultColumn src = (source != null ? source : origSource);
+		String fullColumnName = columnName;
+		try {
+			fullColumnName = src.getSchemaName()+"."+src.getFullName();
+		} catch (StandardException e) {
+			// do nothing
+		}
+		return fullColumnName + "["+src.getResultSetNumber()+","+src.getVirtualColumnId()+"]";
+	}
 
-    @Override
-    public String toHTMLString() {
-        return "" +
-                "hash: " + System.identityHashCode(this) + "<br>" +
-                "tableName: " + Objects.toString(tableName) + "<br>" +
-                "tableNumber: " + tableNumber + "<br>" +
-                "columnName: " + columnName + "<br>" +
-                "columnNumber: " + columnNumber + "<br>" +
-                "nestingLevel: " + nestingLevel + "<br>" +
-                "sourceLevel: " + sourceLevel + "<br>" +
-                "source ResultSet: " + (source == null ? "null" : source.getResultSetNumber()) + "<br>" +
-                "source ResultCol: " + (source == null ? "null" : source.getColumnPosition()) + "<br>" +
-                "source ResultColVID: " + (source == null ? "null" : source.getVirtualColumnId()) + "<br>" +
-                "source ResultColumn hash: " + (source == null ? "null" : System.identityHashCode(source)) + "<br>" +
-                "scoped: " + scoped + "<br>" +
-                "remaps: " + (remaps == null ? 0 : remaps.size()) + "<br>" +
-                "origColumnNumber: " + origColumnNumber + "<br>" +
-                "origName: " + origName + "<br>" +
-                "origTableNumber: " + origTableNumber + "<br>" +
-                "origSourceResultColumn hash: " + (origSource == null ? "null" : System.identityHashCode(origSource)) + "<br>" +
-                "replacesWindowFunctionCall: " + replacesWindowFunctionCall + "<br>" +
-                "replacesAggregate: " + replacesAggregate + "<br>" +
-                super.toHTMLString();
-    }
+	@Override
+	public String toHTMLString() {
+		return "" +
+				"hash: " + System.identityHashCode(this) + "<br>" +
+				"tableName: " + Objects.toString(tableName) + "<br>" +
+				"tableNumber: " + tableNumber + "<br>" +
+				"columnName: " + columnName + "<br>" +
+				"columnNumber: " + columnNumber + "<br>" +
+				"nestingLevel: " + nestingLevel + "<br>" +
+				"sourceLevel: " + sourceLevel + "<br>" +
+				"source ResultSet: " + (source == null ? "null" : source.getResultSetNumber()) + "<br>" +
+				"source ResultCol: " + (source == null ? "null" : source.getColumnPosition()) + "<br>" +
+				"source ResultColVID: " + (source == null ? "null" : source.getVirtualColumnId()) + "<br>" +
+				"source ResultColumn hash: " + (source == null ? "null" : System.identityHashCode(source)) + "<br>" +
+				"scoped: " + scoped + "<br>" +
+				"remaps: " + (remaps == null ? 0 : remaps.size()) + "<br>" +
+				"origColumnNumber: " + origColumnNumber + "<br>" +
+				"origName: " + origName + "<br>" +
+				"origTableNumber: " + origTableNumber + "<br>" +
+				"origSourceResultColumn hash: " + (origSource == null ? "null" : System.identityHashCode(origSource)) + "<br>" +
+				"replacesWindowFunctionCall: " + replacesWindowFunctionCall + "<br>" +
+				"replacesAggregate: " + replacesAggregate + "<br>" +
+				super.toHTMLString();
+	}
 
 	/**
 	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
@@ -271,9 +271,9 @@ public class ColumnReference extends ValueNode {
 		if (SanityManager.DEBUG)
 		{
 			SanityManager.ASSERT(nestingLevel != -1,
-				"nestingLevel on "+columnName+" is not expected to be -1");
+					"nestingLevel on "+columnName+" is not expected to be -1");
 			SanityManager.ASSERT(sourceLevel != -1,
-				"sourceLevel on "+columnName+" is not expected to be -1");
+					"sourceLevel on "+columnName+" is not expected to be -1");
 		}
 		return sourceLevel != nestingLevel;
 	}
@@ -289,7 +289,7 @@ public class ColumnReference extends ValueNode {
 		if (SanityManager.DEBUG)
 		{
 			SanityManager.ASSERT(nestingLevel != -1,
-				"nestingLevel is not expected to be -1");
+					"nestingLevel is not expected to be -1");
 		}
 		this.nestingLevel = nestingLevel;
 	}
@@ -323,7 +323,7 @@ public class ColumnReference extends ValueNode {
 		if (SanityManager.DEBUG)
 		{
 			SanityManager.ASSERT(sourceLevel != -1,
-				"sourceLevel is not expected to be -1");
+					"sourceLevel is not expected to be -1");
 		}
 		this.sourceLevel = sourceLevel;
 	}
@@ -391,13 +391,13 @@ public class ColumnReference extends ValueNode {
 	 * @exception StandardException			Thrown on error
 	 */
 	public ValueNode getClone()
-		throws StandardException
+			throws StandardException
 	{
 		ColumnReference newCR = (ColumnReference) getNodeFactory().getNode(
-									C_NodeTypes.COLUMN_REFERENCE,
-									columnName,
-									tableName,
-									getContextManager());
+				C_NodeTypes.COLUMN_REFERENCE,
+				columnName,
+				tableName,
+				getContextManager());
 
 		newCR.copyFields(this);
 		return newCR;
@@ -421,7 +421,7 @@ public class ColumnReference extends ValueNode {
 		sourceLevel = oldCR.getSourceLevel();
 		replacesAggregate = oldCR.getGeneratedToReplaceAggregate();
 		replacesWindowFunctionCall =
-			oldCR.getGeneratedToReplaceWindowFunctionCall();
+				oldCR.getGeneratedToReplaceWindowFunctionCall();
 		scoped = oldCR.isScoped();
 	}
 
@@ -442,10 +442,10 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-    @Override
+	@Override
 	public ValueNode bindExpression(FromList fromList,
-                                    SubqueryList subqueryList,
-                                    List<AggregateNode> aggregateVector) throws StandardException {
+									SubqueryList subqueryList,
+									List<AggregateNode> aggregateVector) throws StandardException {
 		ResultColumn matchingRC;
 
 		if (SanityManager.DEBUG) {
@@ -456,13 +456,13 @@ public class ColumnReference extends ValueNode {
 			throw StandardException.newException(SQLState.LANG_ILLEGAL_COLUMN_REFERENCE, columnName);
 		}
 
-        matchingRC = fromList.bindColumnReference(this);
+		matchingRC = fromList.bindColumnReference(this);
             /* Error if no match found in fromList */
-        if (matchingRC == null) {
-            throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
-        }
+		if (matchingRC == null) {
+			throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
+		}
 
-        return this;
+		return this;
 	}
 
 	/**
@@ -478,7 +478,7 @@ public class ColumnReference extends ValueNode {
 	{
 		if (tableName == null)
 			return columnName;
-		
+
 		return tableName.toString() + "." + columnName;
 	}
 
@@ -499,6 +499,7 @@ public class ColumnReference extends ValueNode {
 	 * @return	int The table number for this ColumnReference
 	 */
 
+	@Override
 	public int getTableNumber()
 	{
 		return tableNumber;
@@ -515,7 +516,7 @@ public class ColumnReference extends ValueNode {
 		if (SanityManager.DEBUG)
 		{
 			SanityManager.ASSERT(tableNumber != -1,
-				"tableNumber not expected to be -1");
+					"tableNumber not expected to be -1");
 		}
 		this.tableNumber = tableNumber;
 	}
@@ -578,8 +579,8 @@ public class ColumnReference extends ValueNode {
 	}
 
 	/**
-	  Return the table name as the node it is.
-	  @return the column's table name.
+	 Return the table name as the node it is.
+	 @return the column's table name.
 	 */
 	public TableName getTableNameNode()
 	{
@@ -645,31 +646,31 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public ValueNode putAndsOnTop() 
-					throws StandardException
+	public ValueNode putAndsOnTop()
+			throws StandardException
 	{
 		BinaryComparisonOperatorNode		equalsNode;
 		BooleanConstantNode	trueNode;
 		NodeFactory		nodeFactory = getNodeFactory();
 		ValueNode		andNode;
 
-        trueNode = (BooleanConstantNode) nodeFactory.getNode(
-										C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-										Boolean.TRUE,
-										getContextManager());
-		equalsNode = (BinaryComparisonOperatorNode) 
-						nodeFactory.getNode(
-										C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-										this,
-										trueNode,
-										getContextManager());
+		trueNode = (BooleanConstantNode) nodeFactory.getNode(
+				C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+				Boolean.TRUE,
+				getContextManager());
+		equalsNode = (BinaryComparisonOperatorNode)
+				nodeFactory.getNode(
+						C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+						this,
+						trueNode,
+						getContextManager());
 		/* Set type info for the operator node */
 		equalsNode.bindComparisonOperator();
 		andNode = (ValueNode) nodeFactory.getNode(
-									C_NodeTypes.AND_NODE,
-									equalsNode,
-									trueNode,
-									getContextManager());
+				C_NodeTypes.AND_NODE,
+				equalsNode,
+				trueNode,
+				getContextManager());
 		((AndNode) andNode).postBindFixup();
 		return andNode;
 	}
@@ -711,17 +712,17 @@ public class ColumnReference extends ValueNode {
 	public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
 	{
 		if (SanityManager.DEBUG)
-		SanityManager.ASSERT(tableNumber >= 0,
-							 "tableNumber is expected to be non-negative");
+			SanityManager.ASSERT(tableNumber >= 0,
+					"tableNumber is expected to be non-negative");
 		referencedTabs.set(tableNumber);
 
 		return ( ! replacesAggregate ) &&
-			   ( ! replacesWindowFunctionCall ) &&
-			   ( (source.getExpression() instanceof ColumnReference) ||
-			     (source.getExpression() instanceof VirtualColumnNode) ||
-				 (source.getExpression() instanceof ConstantNode) ||
-                 (source.getExpression() instanceof CurrentRowLocationNode) ||
-                 (source.getExpression() instanceof CastNode));
+				( ! replacesWindowFunctionCall ) &&
+				( (source.getExpression() instanceof ColumnReference) ||
+						(source.getExpression() instanceof VirtualColumnNode) ||
+						(source.getExpression() instanceof ConstantNode) ||
+						(source.getExpression() instanceof CurrentRowLocationNode) ||
+						(source.getExpression() instanceof CastNode));
 	}
 
 	/**
@@ -744,9 +745,9 @@ public class ColumnReference extends ValueNode {
 		}
 
 		if ( ! ( (expression instanceof VirtualColumnNode) ||
-				 (expression instanceof ColumnReference) ||
-                 (expression instanceof CastNode))
-			)
+				(expression instanceof ColumnReference) ||
+				(expression instanceof CastNode))
+				)
 		{
 			return;
 		}
@@ -765,7 +766,7 @@ public class ColumnReference extends ValueNode {
 			if (remaps == null)
 				remaps = new java.util.ArrayList();
 			remaps.add(new RemapInfo(
-				columnNumber, tableNumber, columnName, source));
+					columnNumber, tableNumber, columnName, source));
 		}
 		else
 		{
@@ -776,16 +777,16 @@ public class ColumnReference extends ValueNode {
 		}
 
 		/* Find the matching ResultColumn */
-        if (expression instanceof CastNode) {
-            VirtualColumnNode vn = (VirtualColumnNode)((CastNode) expression).getCastOperand();
-            source = vn.getSourceResultColumn();
-        }
-        else {
-            source = getSourceResultColumn();
-        }
+		if (expression instanceof CastNode) {
+			VirtualColumnNode vn = (VirtualColumnNode)((CastNode) expression).getCastOperand();
+			source = vn.getSourceResultColumn();
+		}
+		else {
+			source = getSourceResultColumn();
+		}
 
-        columnName = source.getName();
-        columnNumber = source.getColumnPosition();
+		columnName = source.getName();
+		columnNumber = source.getColumnPosition();
 
 
 		if (source.getExpression() instanceof ColumnReference)
@@ -799,7 +800,7 @@ public class ColumnReference extends ValueNode {
 				if (tableNumber == -1 && !cr.getGeneratedToReplaceAggregate() && !cr.getGeneratedToReplaceWindowFunctionCall())
 				{
 					SanityManager.THROWASSERT(
-						"tableNumber not expected to be -1, origName = " + origName);
+							"tableNumber not expected to be -1, origName = " + origName);
 				}
 			}
 		}
@@ -867,11 +868,11 @@ public class ColumnReference extends ValueNode {
          * the predicate through.
          */
 
-        if (source == null || source.getExpression() == null) {
-            // prevent an NPE
-            return null;
-        }
-        return source.getExpression().getSourceResultColumn();
+		if (source == null || source.getExpression() == null) {
+			// prevent an NPE
+			return null;
+		}
+		return source.getExpression().getSourceResultColumn();
 	}
 
 	/**
@@ -883,7 +884,7 @@ public class ColumnReference extends ValueNode {
 	 * @exception StandardException			Thrown on error
 	 */
 	public ValueNode remapColumnReferencesToExpressions()
-		throws StandardException
+			throws StandardException
 	{
 		ResultColumn	rc;
 		ResultColumn	sourceRC = source;
@@ -900,7 +901,7 @@ public class ColumnReference extends ValueNode {
 		for (rc = source; rc != null && rc.isRedundant(); )
 		{
 			/* Find the matching ResultColumn */
-            ResultColumn nextRC = rc.getExpression().getSourceResultColumn();
+			ResultColumn nextRC = rc.getExpression().getSourceResultColumn();
 
 			if (nextRC != null && nextRC.isRedundant())
 			{
@@ -914,15 +915,15 @@ public class ColumnReference extends ValueNode {
 			if (sourceRC == null)
 			{
 				SanityManager.THROWASSERT(
-					"sourceRC is expected to be non-null for " +
-					columnName);
+						"sourceRC is expected to be non-null for " +
+								columnName);
 			}
 
 			if ( ! sourceRC.isRedundant())
 			{
 				SanityManager.THROWASSERT(
-					"sourceRC is expected to be redundant for " +
-					columnName);
+						"sourceRC is expected to be redundant for " +
+								columnName);
 			}
 		}
 
@@ -934,7 +935,7 @@ public class ColumnReference extends ValueNode {
 		if (sourceRC.getExpression() instanceof VirtualColumnNode)
 		{
 			VirtualColumnNode vcn =
-				(VirtualColumnNode) (sourceRC.getExpression());
+					(VirtualColumnNode) (sourceRC.getExpression());
 			ResultSetNode rsn = vcn.getSourceResultSet();
 			if (rsn instanceof FromTable)
 			{
@@ -952,58 +953,58 @@ public class ColumnReference extends ValueNode {
                  * details.
 				 */
 
-                ResultColumnList rcl = ft.getResultColumns();
+				ResultColumnList rcl = ft.getResultColumns();
 
-                ResultColumn ftRC = null;
+				ResultColumn ftRC = null;
 
 
-                // Need to save original (tn,cn) in case we have several
-                // flattenings so we can relocate the correct column many
-                // times. After the first flattening, the (tn,cn) pair points
-                // to the top RCL which is going away..
-                if (tableNumberBeforeFlattening == -1) {
-                    tableNumberBeforeFlattening = tableNumber;
-                    columnNumberBeforeFlattening = columnNumber;
-                }
+				// Need to save original (tn,cn) in case we have several
+				// flattenings so we can relocate the correct column many
+				// times. After the first flattening, the (tn,cn) pair points
+				// to the top RCL which is going away..
+				if (tableNumberBeforeFlattening == -1) {
+					tableNumberBeforeFlattening = tableNumber;
+					columnNumberBeforeFlattening = columnNumber;
+				}
 
-                // Covers references to a table not being flattened out, e.g.
-                // inside a join tree, which can have many columns in the rcl
-                // with the same name, so looking up via column name can give
-                // the wrong column. DERBY-4679.
-                ftRC = rcl.getResultColumn(
-                    tableNumberBeforeFlattening,
-                    columnNumberBeforeFlattening,
-                    columnName);
+				// Covers references to a table not being flattened out, e.g.
+				// inside a join tree, which can have many columns in the rcl
+				// with the same name, so looking up via column name can give
+				// the wrong column. DERBY-4679.
+				ftRC = rcl.getResultColumn(
+						tableNumberBeforeFlattening,
+						columnNumberBeforeFlattening,
+						columnName);
 
-                if (ftRC == null) {
-                    // The above lookup won't work for references to a base
-                    // column, so fall back on column name, which is unique
-                    // then.
-                    ftRC = rcl.getResultColumn(columnName);
-                }
+				if (ftRC == null) {
+					// The above lookup won't work for references to a base
+					// column, so fall back on column name, which is unique
+					// then.
+					ftRC = rcl.getResultColumn(columnName);
+				}
 
-                if (SanityManager.DEBUG) {
-                    SanityManager.ASSERT(
-                        ftRC != null,
-                        "Failed to find column '" + columnName +
-                        "' in the " + "RCL for '" + ft.getTableName() +
-                        "'.");
-                }
+				if (SanityManager.DEBUG) {
+					SanityManager.ASSERT(
+							ftRC != null,
+							"Failed to find column '" + columnName +
+									"' in the " + "RCL for '" + ft.getTableName() +
+									"'.");
+				}
 
-                tableNumber = ft.getTableNumber();
+				tableNumber = ft.getTableNumber();
 
 				if (SanityManager.DEBUG) {
 					SanityManager.ASSERT(tableNumber != -1,
-						"tableNumber not expected to be -1");
+							"tableNumber not expected to be -1");
 				}
 
 				/* Use the virtual column id if the ResultColumn's expression
 				 * is a virtual column (DERBY-3023).
 				 */
 				columnNumber =
-					(ftRC.getExpression() instanceof VirtualColumnNode)
-						? ftRC.getVirtualColumnId()
-						: ftRC.getColumnPosition();
+						(ftRC.getExpression() instanceof VirtualColumnNode)
+								? ftRC.getVirtualColumnId()
+								: ftRC.getColumnPosition();
 			}
 			else
 			{
@@ -1021,7 +1022,7 @@ public class ColumnReference extends ValueNode {
 		}
 	}
 
-	/** 
+	/**
 	 * Update the table map to reflect the source
 	 * of this CR.
 	 *
@@ -1065,10 +1066,10 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	 public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-									throws StandardException
-	 {
+	public void generateExpression(ExpressionClassBuilder acb,
+								   MethodBuilder mb)
+			throws StandardException
+	{
 		int sourceResultSetNumber = source.getResultSetNumber();
 
 		//PUSHCOMPILE
@@ -1104,13 +1105,13 @@ public class ColumnReference extends ValueNode {
 		 * where <interface> is the appropriate Datatype protocol interface
 		 * for the type of the column.
 		 */
-	    acb.pushColumnReference(mb, sourceResultSetNumber, 
-	    									source.getVirtualColumnId());
+		acb.pushColumnReference(mb, sourceResultSetNumber,
+				source.getVirtualColumnId());
 
 		mb.cast(getTypeCompiler().interfaceName());
 
 		/* Remember generated code for possible resuse */
-	 }
+	}
 
 	/**
 	 * Get the user-supplied schema name of this column.  This will be null
@@ -1152,22 +1153,22 @@ public class ColumnReference extends ValueNode {
 	 * @return Whether or not the source of this ColumnReference is itself a ColumnReference.
 	 */
 	boolean pointsToColumnReference()
-	{ 
+	{
 		return (source.getExpression() instanceof ColumnReference);
 	}
 
 	/**
 	 * The type of a ColumnReference is the type of its
-     * source unless the source is null then it is
-     * the type that has been set on this node.
+	 * source unless the source is null then it is
+	 * the type that has been set on this node.
 	 */
 	public DataTypeDescriptor getTypeServices()
-	{        
-        if (source == null)
-            return super.getTypeServices();
-       
-        return source.getTypeServices();
-    }
+	{
+		if (source == null)
+			return super.getTypeServices();
+
+		return source.getTypeServices();
+	}
 
 	/**
 	 * Find the source result set for this ColumnReference and
@@ -1183,7 +1184,7 @@ public class ColumnReference extends ValueNode {
 	 *  null if there is no source result set.
 	 */
 	protected ResultSetNode getSourceResultSet(int [] colNum)
-		throws StandardException
+			throws StandardException
 	{
 		if (source == null)
 		{
@@ -1215,7 +1216,7 @@ public class ColumnReference extends ValueNode {
 		 * for that case inside the loop.
 		 */
 		while ((rcExpr != null) &&
-			(rc.isRedundant() || (rcExpr instanceof ColumnReference)))
+				(rc.isRedundant() || (rcExpr instanceof ColumnReference)))
 		{
 			if (rcExpr instanceof ColumnReference)
 			{
@@ -1270,24 +1271,24 @@ public class ColumnReference extends ValueNode {
 		return null;
 	}
 
-    @Override
+	@Override
 	public boolean isEquivalent(ValueNode o) throws StandardException {
 		if (!isSameNodeType(o)) {
 			return false;
 		}
 		ColumnReference other = (ColumnReference)o;
-		return (tableNumber == other.tableNumber 
+		return (tableNumber == other.tableNumber
 				&& columnName.equals(other.getColumnName()));
 	}
 
-    @Override
+	@Override
 	public int hashCode(){
-	    int hc = tableNumber;
-        hc = hc*31+columnName.hashCode();
-        return hc;
+		int hc = tableNumber;
+		hc = hc*31+columnName.hashCode();
+		return hc;
 	}
 
-    /**
+	/**
 	 * Mark this column reference as "scoped", which means that it
 	 * was created (as a clone of another ColumnReference) to serve
 	 * as the left or right operand of a scoped predicate.
@@ -1339,7 +1340,7 @@ public class ColumnReference extends ValueNode {
 	public List getChildren() {
 		return Collections.EMPTY_LIST;
 	}
-	
+
 	public ResultColumn getOrigSourceResultColumn()
 	{
         /* RESOLVE - If expression is a ColumnReference, then we are hitting
@@ -1352,62 +1353,62 @@ public class ColumnReference extends ValueNode {
          * the predicate through.
          */
 
-        if (origSource == null || origSource.getExpression() == null) {
-            // prevent an NPE
-            return null;
-        }
-        return origSource.getExpression().getSourceResultColumn();
+		if (origSource == null || origSource.getExpression() == null) {
+			// prevent an NPE
+			return null;
+		}
+		return origSource.getExpression().getSourceResultColumn();
 	}
 
 
-    /**
-     * Returns the cardinality of the column reference from statistics if available.  If not, it returns 0.
-     */
-    public long cardinality() throws StandardException {
-            if (source == null || source.getTableColumnDescriptor() ==null)
-                return 0;
-            ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-            int leftPosition = getSource().getColumnPosition();
-            return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
-    }
+	/**
+	 * Returns the cardinality of the column reference from statistics if available.  If not, it returns 0.
+	 */
+	public long cardinality() throws StandardException {
+		if (source == null || source.getTableColumnDescriptor() ==null)
+			return 0;
+		ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
+		int leftPosition = getSource().getColumnPosition();
+		return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
+	}
 
-    /**
-     *
-     * Returns columnReferenceEqualityPredicate
-     *
-     * @return
-     * @throws StandardException
-     */
-    public double columnReferenceEqualityPredicateSelectivity() throws StandardException {
-        long cardinality = cardinality();
-        if (cardinality==0)
-            return -1.0d;
-        else
-            return (1.0d/(double)cardinality);
-    }
+	/**
+	 *
+	 * Returns columnReferenceEqualityPredicate
+	 *
+	 * @return
+	 * @throws StandardException
+	 */
+	public double columnReferenceEqualityPredicateSelectivity() throws StandardException {
+		long cardinality = cardinality();
+		if (cardinality==0)
+			return -1.0d;
+		else
+			return (1.0d/(double)cardinality);
+	}
 
-    /**
-     * Returns the cardinality of the column reference from statistics and if none available it will return the number
-     * of rows passed in.
-     */
+	/**
+	 * Returns the cardinality of the column reference from statistics and if none available it will return the number
+	 * of rows passed in.
+	 */
 	@Override
-    public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        long cardinality = cardinality();
-        return cardinality==0?numberOfRows:cardinality;
-    }
+	public long nonZeroCardinality(long numberOfRows) throws StandardException {
+		long cardinality = cardinality();
+		return cardinality==0?numberOfRows:cardinality;
+	}
 
-    /**
-     * Null Selectivity calculation from statistics.  It does check the type on the column and if it is not nullable it
-     * will automatically return 0.0.
-     */
-    public double nullSelectivity() throws StandardException {
-        // Check for not null in declaration
-        if (!getSource().getType().isNullable())
-            return 0.0;
-        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-        int leftPosition = getSource().getColumnPosition();
-        return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
-    }
+	/**
+	 * Null Selectivity calculation from statistics.  It does check the type on the column and if it is not nullable it
+	 * will automatically return 0.0.
+	 */
+	public double nullSelectivity() throws StandardException {
+		// Check for not null in declaration
+		if (!getSource().getType().isNullable())
+			return 0.0;
+		ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
+		int leftPosition = getSource().getColumnPosition();
+		return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
+	}
 
 	public StoreCostController getStoreCostController() throws StandardException{
 		StoreCostController storeCostController = null;
@@ -1418,15 +1419,20 @@ public class ColumnReference extends ValueNode {
 		}
 		return storeCostController;
 	}
-    /**
-     * Get the row count estimate from the statistics for this column reference.
-     */
-    public double rowCountEstimate() throws StandardException {
-        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-        return getCompilerContext().getStoreCostController(cd).rowCount();
-    }
+	/**
+	 * Get the row count estimate from the statistics for this column reference.
+	 */
+	public double rowCountEstimate() throws StandardException {
+		ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
+		return getCompilerContext().getStoreCostController(cd).rowCount();
+	}
 
-    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
-        return getSource() == null ? null : getSource().getBaseConglomerateDescriptor();
-    }
+	public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+		return getSource() == null ? null : getSource().getBaseConglomerateDescriptor();
+	}
+
+	@Override
+	public ColumnReference getHashableJoinColumnReference() {
+		return this;
+	}
 }

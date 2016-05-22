@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import org.apache.commons.lang3.tuple.Pair;
@@ -83,82 +84,108 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             }
         }
         else {
-            try {
-                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            // Add a result column to the child result set
+            ResultColumn resultColumn = addResultColumnToChild(cr, operand, resultSetNode, rcl);
 
-                // Add a result column and return virtual column Id
-                ResultColumn rc = cr.getSource();
-                ResultSetNode rn = null;
-                do {
-                    VirtualColumnNode vn = (VirtualColumnNode) rc.getExpression();
-                    rn = vn.getSourceResultSet();
-                    rc = vn.getSourceColumn();
-                } while (rn != resultSetNode);
-                // construct a result column and add to result column list of child result set
-                NodeFactory nodeFactory = lcc.getLanguageConnectionFactory().
-                        getNodeFactory();
+            //Change operand's column reference to the column that has just added to child result set
+            resultColumn = resetColumnReference(resultColumn,operand, brop, joinNode, resultSetNode);
 
-                ColumnReference generatedRef = (ColumnReference) nodeFactory.getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        rc.getName(),
-                        null,
-                        ContextService.getService().getCurrentContextManager());
+            // Add a column to the result column list of the join node
+            rebuildJoinNodeRCL(joinNode, resultSetNode, resultColumn);
 
-                assert rc.getExpression() instanceof VirtualColumnNode;
-                VirtualColumnNode vn = (VirtualColumnNode)rc.getExpression();
-                generatedRef.setSource(vn.getSourceColumn());
-
-                if (operand instanceof TernaryOperatorNode) {
-                    ((TernaryOperatorNode) operand).setReceiver(generatedRef);
-                }
-                else if (operand instanceof UnaryOperatorNode) {
-                    ((UnaryOperatorNode) operand).setOperand(generatedRef);
-                }
-                ResultColumn resultColumn =
-                        (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                                generatedRef.getColumnName(),
-                                operand,
-                                ContextService.getService().getCurrentContextManager());
-                resultColumn.markGenerated();
-                resultColumn.setResultSetNumber(resultSetNode.getResultSetNumber());
-                resultColumn.setVirtualColumnId(rcl.size());
-                rcl.addResultColumn(resultColumn);
-
-                // Add a column to result column list of join node
-                generatedRef = (ColumnReference) nodeFactory.getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        rc.getName(),
-                        null,
-                        ContextService.getService().getCurrentContextManager());
-                VirtualColumnNode vnode = (VirtualColumnNode) nodeFactory.getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                        resultSetNode, // source result set.
-                        rc,
-                        resultSetNode.getResultColumns().size(),
-                        ContextService.getService().getCurrentContextManager());
-
-                resultColumn =  (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                        rc.getName(),
-                        vnode,
-                        ContextService.getService().getCurrentContextManager());
-                resultColumn.markGenerated();
-                resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
-                generatedRef.setSource(resultColumn);
-                if (brop.getLeftOperand() == operand) {
-                    brop.setLeftOperand(generatedRef);
-                }
-                else {
-                    brop.setRightOperand(generatedRef);
-                }
-
-                rebuildJoinNodeRCL(joinNode, resultSetNode, resultColumn);
-
-            } catch (SQLException e) {
-                throw StandardException.newException(e.getSQLState());
-            }
+            // Hash column position is the end of result column list of child result set
             return rcl.size()-1;
         }
     }
 
+    private static ResultColumn resetColumnReference(ResultColumn resultColumn,
+                                                     ValueNode operand,
+                                                     BinaryRelationalOperatorNode brop,
+                                                     JoinNode joinNode,
+                                                     ResultSetNode resultSetNode) throws StandardException {
+
+        try {
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            NodeFactory nodeFactory = lcc.getLanguageConnectionFactory().
+                    getNodeFactory();
+
+            ColumnReference generatedRef = (ColumnReference) nodeFactory.getNode(
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    resultColumn.getName(),
+                    null,
+                    ContextService.getService().getCurrentContextManager());
+            VirtualColumnNode vnode = (VirtualColumnNode) nodeFactory.getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                    resultSetNode, // source result set.
+                    resultColumn,
+                    resultSetNode.getResultColumns().size(),
+                    ContextService.getService().getCurrentContextManager());
+
+            resultColumn = (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
+                    resultColumn.getName(),
+                    vnode,
+                    ContextService.getService().getCurrentContextManager());
+            resultColumn.markGenerated();
+            resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
+            generatedRef.setSource(resultColumn);
+            if (brop.getLeftOperand() == operand) {
+                generatedRef.setTableNumber(brop.getLeftOperand().getHashableJoinColumnReference().getTableNumber());
+                brop.setLeftOperand(generatedRef);
+            }
+            else {
+                generatedRef.setTableNumber(brop.getRightOperand().getHashableJoinColumnReference().getTableNumber());
+                brop.setRightOperand(generatedRef);
+            }
+            return resultColumn;
+        }
+        catch (SQLException e) {
+            throw StandardException.newException(e.getSQLState());
+        }
+    }
+
+    private static ResultColumn addResultColumnToChild(ColumnReference cr,
+                                                       ValueNode operand,
+                                                       ResultSetNode resultSetNode,
+                                                       ResultColumnList rcl) throws StandardException{
+        try {
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            NodeFactory nodeFactory = lcc.getLanguageConnectionFactory().
+                    getNodeFactory();
+
+            // Add a result column and return virtual column Id
+            ResultColumn rc = cr.getSource();
+            assert rc.getExpression() instanceof VirtualColumnNode;
+            VirtualColumnNode vn = (VirtualColumnNode) rc.getExpression();
+            rc = vn.getSourceColumn();
+
+            // construct a result column and add to result column list of child result set
+            ColumnReference generatedRef = (ColumnReference) nodeFactory.getNode(
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    rc.getName(),
+                    null,
+                    ContextService.getService().getCurrentContextManager());
+
+            assert rc.getExpression() instanceof VirtualColumnNode;
+            vn = (VirtualColumnNode) rc.getExpression();
+            generatedRef.setSource(vn.getSourceColumn());
+            generatedRef.setTableNumber(operand.getHashableJoinColumnReference().getTableNumber());
+            operand.setHashableJoinColumnReference(generatedRef);
+
+            ResultColumn resultColumn =
+                    (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
+                            generatedRef.getColumnName(),
+                            operand,
+                            ContextService.getService().getCurrentContextManager());
+            resultColumn.markGenerated();
+            resultColumn.setResultSetNumber(resultSetNode.getResultSetNumber());
+            resultColumn.setVirtualColumnId(rcl.size());
+            rcl.addResultColumn(resultColumn);
+
+            return resultColumn;
+        }
+        catch (SQLException e) {
+            throw StandardException.newException(e.getSQLState());
+        }
+    }
     public static Pair<List<Integer>, List<Integer>> findHashIndices(final JoinNode node, Collection<Predicate> equiJoinPreds)
             throws StandardException {
         List<Integer> leftIndices = Lists.newArrayListWithCapacity(equiJoinPreds.size());
@@ -193,7 +220,6 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             }
         }
 
-
         return Pair.of(leftIndices, rightIndices);
     }
 
@@ -205,20 +231,34 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
         ResultColumnList rcl = node.getResultColumns();
 
         if (isLeft) {
-            int size = child.getResultColumns().size()-1;
-            ResultColumnList l = new ResultColumnList();
-            while(rcl.size() > 0){
-                l.addResultColumn(rcl.elementAt(0));
+            int size = rcl.size();
+            JBitSet leftReferencedTableMap=node.getLeftResultSet().getReferencedTableMap();
+            // make a copy of result column list
+            ResultColumnList temp = new ResultColumnList();
+            for (int i = 0; i < size; ++i) {
+                temp.addResultColumn(rcl.elementAt(0));
                 rcl.removeElementAt(0);
             }
+
+            // copy result columns that reference to left result set
+            size = temp.size();
             for (int i = 0; i < size; ++i) {
-                rcl.addResultColumn(l.elementAt(0));
-                l.removeElementAt(0);
+                ResultColumn resultColumn = temp.elementAt(0);
+                int tableNumber = resultColumn.getTableNumber();
+                if (leftReferencedTableMap.get(tableNumber)) {
+                    rcl.addResultColumn(resultColumn);
+                    temp.removeElementAt(0);
+                }
+                else break;
             }
+
+            // Add a new column to join result column list
             rcl.addResultColumn(rc);
-            while(l.size() > 0) {
-                rcl.addResultColumn(l.elementAt(0));
-                l.removeElementAt(0);
+
+            // copy columns that reference to the right result set
+            while(temp.size() > 0) {
+                rcl.addResultColumn(temp.elementAt(0));
+                temp.removeElementAt(0);
             }
         }
         else {

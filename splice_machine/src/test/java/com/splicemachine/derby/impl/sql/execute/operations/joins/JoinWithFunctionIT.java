@@ -59,10 +59,15 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                 .withCreate("create table b (i int, j int)")
                 .withInsert("insert into b values(?,?)")
                 .withRows(rows(row(-1, 1), row(-2, 2), row(3, 3), row(4, 4))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("create table c (d double, j int)")
+                .withInsert("insert into c values(?,?)")
+                .withRows(rows(row(1.1, 1), row(2.2, 2), row(-3.3, 3), row(-4.4, 4))).create();
     }
 
     @Test
-    public void testAbsolute() throws Exception {
+    public void testUnaryFunction() throws Exception {
         String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
                 "a\n" +
                 ", b  --SPLICE-PROPERTIES joinStrategy=%s\n" +
@@ -75,7 +80,85 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                 "-3 | 3 | 3 | 3 |\n" +
                 " 1 | 1 |-1 | 1 |\n" +
                 " 2 | 2 |-2 | 2 |";
-        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
+
+    @Test
+    public void testJavaFunction() throws Exception {
+        String sql = String.format("select a.i, a.j, c.d from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "a\n" +
+                ", c --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                " where double(a.i)=floor(c.d) order by a.i", joinStrategy);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+
+        String expected =
+                "I | J |  D  |\n" +
+                "--------------\n" +
+                "-4 | 4 |-3.3 |\n" +
+                " 1 | 1 | 1.1 |\n" +
+                " 2 | 2 | 2.2 |";
+
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(s, expected, s);
+        rs.close();
+    }
+
+    @Test
+    public void testBinaryFunction() throws Exception {
+        String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "a\n" +
+                ", b  --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                "where mod(abs(a.i), 10) = abs(b.i) order by a.i", joinStrategy);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+
+        String expected =
+                "I | J | I | J |\n" +
+                "----------------\n" +
+                "-4 | 4 | 4 | 4 |\n" +
+                "-3 | 3 | 3 | 3 |\n" +
+                " 1 | 1 |-1 | 1 |\n" +
+                " 2 | 2 |-2 | 2 |";
+
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(s, expected, s);
+        rs.close();
+    }
+
+    @Test
+    public void testBinaryArithmeticOperator() throws Exception {
+        String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "a\n" +
+                ", b  --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                ", c --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                "where a.j+1 = b.j+1 and b.j+1 = c.j+1 order by a.i", joinStrategy, joinStrategy);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+        String expected =
+                "I | J | I | J |  D  | J |\n" +
+                "--------------------------\n" +
+                "-4 | 4 | 4 | 4 |-4.4 | 4 |\n" +
+                "-3 | 3 | 3 | 3 |-3.3 | 3 |\n" +
+                " 1 | 1 |-1 | 1 | 1.1 | 1 |\n" +
+                " 2 | 2 |-2 | 2 | 2.2 | 2 |";
+        assertEquals(s, expected, s);
+    }
+
+    @Test
+    public void testSelfJoinWithBinaryArithmeticOperator() throws Exception {
+        String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+                " a t1 --SPLICE-PROPERTIES joinStrategy=%s \n" +
+                " , a t2 where t1.i*2=t2.j order by t1.i", joinStrategy);
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+        String expected =
+                "I | J | I | J |\n" +
+                "----------------\n" +
+                " 1 | 1 | 2 | 2 |\n" +
+                " 2 | 2 |-4 | 4 |";
+        assertEquals(s, expected, s);
     }
 }

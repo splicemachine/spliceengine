@@ -1490,4 +1490,8 @@ public abstract class ValueNode extends QueryTreeNode
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         return numberOfRows > 0 ? numberOfRows : Long.MAX_VALUE;
     }
+
+	public int getTableNumber() {
+		return -1;
+	}
 }
