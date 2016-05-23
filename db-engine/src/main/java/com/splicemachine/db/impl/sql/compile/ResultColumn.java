@@ -1949,48 +1949,40 @@ public class ResultColumn extends ValueNode
 		return Collections.singletonList(expression);
 	}
 
-	public DataTypeDescriptor getCastToType() {
-		return castToType;
-	}
+    /**
+     *
+     * Utilizes statistics cardinality if available, if not it returns 0.
+     *
+     * @return
+     * @throws StandardException
+     */
+    public long cardinality() throws StandardException {
+        if (this.getTableColumnDescriptor() ==null) // Temporary JL
+            return 0;
+        ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+        int leftPosition = getColumnPosition();
+        return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
+    }
+    /**
+     *
+     * Utilizes statistics cardinality if available, if not it returns the number of rows passed in.
+     *
+     * @return
+     * @throws StandardException
+     */
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long c = cardinality();
+        return c> 0? c : expression.nonZeroCardinality(numberOfRows);
+    }
 
-	public void setCastToType(DataTypeDescriptor type) {
-		castToType = type;
-	}
-
-	/**
-	 *
-	 * Utilizes statistics cardinality if available, if not it returns 0.
-	 *
-	 * @return
-	 * @throws StandardException
-	 */
-	public long cardinality() throws StandardException {
-		if (this.getTableColumnDescriptor() ==null) // Temporary JL
-			return 0;
-		ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
-		int leftPosition = getColumnPosition();
-		return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
-	}
-	/**
-	 *
-	 * Utilizes statistics cardinality if available, if not it returns the number of rows passed in.
-	 *
-	 * @return
-	 * @throws StandardException
-	 */
-	@Override
-	public long nonZeroCardinality(long numberOfRows) throws StandardException {
-		long c = cardinality();
-		return c> 0? c : expression.nonZeroCardinality(numberOfRows);
-	}
-
-	public ConglomerateDescriptor getBaseConglomerateDescriptor() {
-		return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();
-	}
+    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+        return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();
+    }
 
 
-	public void setColumnDescriptor(ColumnDescriptor columnDescriptor) {
-		this.columnDescriptor = columnDescriptor;
-	}
+    public void setColumnDescriptor(ColumnDescriptor columnDescriptor) {
+        this.columnDescriptor = columnDescriptor;
+    }
 }
 

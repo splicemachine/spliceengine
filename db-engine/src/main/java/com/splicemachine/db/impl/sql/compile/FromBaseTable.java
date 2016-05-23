@@ -1486,8 +1486,7 @@ public class FromBaseTable extends FromTable {
             prRCList.addResultColumn(rowIdColumn);
         }
 
-        castColumnType(prRCList);
-		/* Finally, we create the new ProjectRestrictNode */
+        /* Finally, we create the new ProjectRestrictNode */
         return (ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 this,
@@ -1498,29 +1497,6 @@ public class FromBaseTable extends FromTable {
                 null,	/* Restrict subquery list */
                 null,
                 getContextManager());
-    }
-
-    /*
-        In the column list of PRN, if a source column needs to be cast to a wider data type, place a CASTNODE on top of
-        the source column. Byte code will be generated to cast the data type of a source column, and project to
-        ExecRow of a PRN
-     */
-    private void castColumnType(ResultColumnList rcl) throws StandardException{
-        for(int i=0;i<rcl.size();++i){
-            ResultColumn rc=rcl.elementAt(i);
-            if(rc.getCastToType()!=null){
-                ValueNode vn=rc.getExpression();
-                @SuppressWarnings("UnusedDeclaration") ResultColumn source=vn.getSourceResultColumn();
-                CastNode castNode=(CastNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.CAST_NODE,
-                                vn,
-                                rc.getCastToType(),
-                                getContextManager());
-                castNode.bindCastNodeOnly();
-                rc.setExpression(castNode);
-            }
-        }
     }
 
     /**

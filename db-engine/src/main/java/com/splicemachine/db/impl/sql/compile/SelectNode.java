@@ -498,8 +498,6 @@ public class SelectNode extends ResultSetNode{
             whereClause=whereClause.bindExpression(fromListParam, whereSubquerys, whereAggregates);
             cc.setReliability(previousReliability);
 
-            propagateTypeCast(whereClause);
-
 			/* RESOLVE - Temporarily disable aggregates in the HAVING clause.
 			** (We may remove them in the parser anyway.)
 			** RESOLVE - Disable aggregates in the WHERE clause.  Someday
@@ -2094,35 +2092,6 @@ public class SelectNode extends ResultSetNode{
         return wl;
     }
 
-    /*
-        Propagate type conversions to columns that are indirectly related to a big decimal
-     */
-    private void propagateTypeCast(ValueNode whereClause){
-        if(whereClause instanceof AndNode){
-            List<BinaryRelationalOperatorNode> l=new ArrayList<>();
-            collectJoinPredicates(whereClause,l);
-
-            boolean done;
-            do{
-                done=true;
-                for(BinaryRelationalOperatorNode operator : l){
-                    ColumnReference leftColumn=(ColumnReference)operator.leftOperand;
-                    ColumnReference rightColumn=(ColumnReference)operator.rightOperand;
-                    ResultColumn lrc=leftColumn.getSource();
-                    ResultColumn rrc=rightColumn.getSource();
-                    DataTypeDescriptor lct=lrc.getCastToType();
-                    DataTypeDescriptor rct=rrc.getCastToType();
-                    if(lct!=null && rct==null){
-                        rrc.setCastToType(lct);
-                        done=false;
-                    }else if(lct==null && rct!=null){
-                        lrc.setCastToType(rct);
-                        done=false;
-                    }
-                }
-            }while(!done);
-        }
-    }
 
     /*
         From where clause, this method returns a collection of all predicates that are eligible as a hash join predicate.

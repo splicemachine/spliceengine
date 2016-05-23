@@ -57,6 +57,11 @@ public class InsertOperationIT {
         classWatcher.executeUpdate("create table batch_test (col1 int, col2 int, col3 int, primary key (col1))");
         classWatcher.executeUpdate("create table T6 (a int)");
         classWatcher.executeUpdate("create table T7 (name varchar(20))");
+
+        classWatcher.executeUpdate("create table TABLE_DECIMAL (CUSTOMER_ID DECIMAL (10,0))");
+        classWatcher.executeUpdate("create table TABLE_BIGINT (CUSTOMER_ID BIGINT)");
+        classWatcher.executeUpdate("create table TABLE_RESULT (CUSTOMER_ID BIGINT)");
+        classWatcher.executeUpdate("insert into TABLE_BIGINT values (1),(2),(3)");
     }
 
     @Rule
@@ -374,5 +379,38 @@ public class InsertOperationIT {
         ResultSet rs = ps.executeQuery();
         Assert.assertTrue(rs.next());
         Assert.assertTrue(rs.getInt(1) == 2);
+    }
+
+    @Test
+    public void testInsertFromJoinWithImplicitCast() throws Exception {
+        Connection conn = methodWatcher.getOrCreateConnection();
+        String sql = "insert into TABLE_RESULT select A.CUSTOMER_ID from TABLE_BIGINT A " +
+                "where NOT EXISTS (SELECT * from TABLE_DECIMAL B where A.CUSTOMER_ID = B.CUSTOMER_ID)";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.execute();
+
+        ps = conn.prepareStatement("select * from TABLE_RESULT order by 1");
+        ResultSet rs = ps.executeQuery();
+        int i = 1;
+        while(rs.next()) {
+            Assert.assertEquals("Wrong result", i++, rs.getInt(1));
+        }
+        rs.close();
+
+        ps = conn.prepareStatement("truncate table TABLE_RESULT");
+        ps.execute();
+
+        sql = "insert into TABLE_RESULT select A.CUSTOMER_ID from TABLE_BIGINT A " +
+                "where NOT EXISTS (SELECT * from TABLE_DECIMAL B where B.CUSTOMER_ID = A.CUSTOMER_ID)";
+        ps = conn.prepareStatement(sql);
+        ps.execute();
+
+        ps = conn.prepareStatement("select * from TABLE_RESULT order by 1");
+        rs = ps.executeQuery();
+        i = 1;
+        while(rs.next()) {
+            Assert.assertEquals("Wrong result", i++, rs.getInt(1));
+        }
+        rs.close();
     }
 }
