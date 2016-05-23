@@ -3,13 +3,11 @@ package com.splicemachine.derby.impl;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.rdd.RDDOperationScope;
 import scala.Tuple2;
-
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
@@ -18,7 +16,6 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.derby.stream.spark.SpliceMachineSource;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.hbase.ZkUtils;
@@ -98,7 +95,7 @@ public class SpliceSpark {
                 HBaseRegionLoads.INSTANCE.startWatching();
 
                 spliceStaticComponentsSetup = true;
-                SpliceMachineSource.register();
+//                SpliceMachineSource.register();
             }
         } catch (RuntimeException e) {
             LOG.error("Unexpected error setting up Splice components", e);
