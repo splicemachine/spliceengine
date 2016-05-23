@@ -15,6 +15,16 @@ or which can rely on the architecture APIs as currently defined, then place that
 Core modules are further broken down as follows:
 
 Library modules:
+
+* db-build: Classes used as part of build.
+* db-client: Splice JDBC driver.
+* db-drda: DRDA classes.
+* db-engine: Server, compiler, optimizer, etc.
+* db-shared: Code shared by client/server.
+* db-tools-i18n: Internationalization
+* db-tools-ij: Our IJ implementation.
+* db-tools-testing: Testing code shared by test cases in all modules.
+* db-testing: Old integration tests that should be deleted but we want to hang on to them for a while.
 * splice_encoding: This is a library module consisting of our sorted encoding library, and sundry other utilities
 * splice_protocol: This houses our protocol buffer libraries and proto definition files. (-sf- this may later
 be dispersed amongst other module locations)
