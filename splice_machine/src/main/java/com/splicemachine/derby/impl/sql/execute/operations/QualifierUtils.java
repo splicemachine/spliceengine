@@ -76,6 +76,7 @@ public class QualifierUtils {
     private static Qualifier reTypeQualifier(Qualifier qualifier,DataValueDescriptor correctType) {
     	if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
+                    qualifier.getStoragePosition(),
                     correctType,
                     qualifier.getOperator(),
                     qualifier.negateCompareResult(),
@@ -85,6 +86,7 @@ public class QualifierUtils {
             //make it an instanceof ScanQualifier
             ScanQualifier qual = new GenericScanQualifier();
             qual.setQualifier(qualifier.getColumnId(),
+                    qualifier.getStoragePosition(),
                     correctType,
                     qualifier.getOperator(),
                     qualifier.negateCompareResult(),
@@ -191,6 +193,7 @@ public class QualifierUtils {
         DataValueDescriptor correctType = convertScalar(qualifier.getOrderable(), columnFormat,dataValueFactory);
         if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
+                    qualifier.getStoragePosition(),
                     correctType,
                     qualifier.getOperator(),
                     qualifier.negateCompareResult(),
@@ -200,6 +203,7 @@ public class QualifierUtils {
             //make it an instanceof ScanQualifier
             ScanQualifier qual = new GenericScanQualifier();
             qual.setQualifier(qualifier.getColumnId(),
+                    qualifier.getStoragePosition(),
                     correctType,
                     qualifier.getOperator(),
                     qualifier.negateCompareResult(),
@@ -302,6 +306,7 @@ public class QualifierUtils {
          */
         if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
+                    qualifier.getStoragePosition(),
                     correctType,
                     qualifier.getOperator(),
                     qualifier.negateCompareResult(),
@@ -311,6 +316,7 @@ public class QualifierUtils {
             //make it an instanceof ScanQualifier
             ScanQualifier qual = new GenericScanQualifier();
             qual.setQualifier(qualifier.getColumnId(),
+                    qualifier.getStoragePosition(),
                     correctType,
                     qualifier.getOperator(),
                     qualifier.negateCompareResult(),

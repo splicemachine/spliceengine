@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.vti.DeferModification;
@@ -44,6 +45,8 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
+
+import java.sql.Types;
 import java.util.Properties;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
@@ -251,6 +254,11 @@ public final class InsertNode extends DMLModStatementNode {
 		** Get the resultColumnList representing the columns in the base
 		** table or VTI.
 		*/
+
+        // this.resultColumnList is null at this point, but this invocation populates it
+        // so that it can be utilized to transform this.resultSet.resultColumnList
+        // farther down in this bindStatement logic. It is the RCL in this.resultSet
+        // which is subsequently used in the activation.
 		getResultColumnList();
 
 		/* If we have a target column list, then it must have the same # of
@@ -334,6 +342,8 @@ public final class InsertNode extends DMLModStatementNode {
 		/* Bind the columns of the result set to their expressions */
 		resultSet.bindResultColumns(fromList);
 
+
+
 		int resCols = resultSet.getResultColumns().visibleSize();
 		DataDictionary dd = getDataDictionary();
 		if (targetColumnList != null) {
@@ -360,6 +370,11 @@ public final class InsertNode extends DMLModStatementNode {
 		 * than the current size of the source list.  In that case, the source
 		 * list will be "enhanced" to include defaults.
 		 */
+
+        // We can continue to use numTableColumns here, and to utilize column ordinal positions.
+        // Taking storage positions into account for dropped column handling happens
+        // at the very end of this bindStatement() logic.
+
 		int[] colMap = new int[numTableColumns];
 
 		// set the fields to an unused value
@@ -418,6 +433,8 @@ public final class InsertNode extends DMLModStatementNode {
 		resultSet = enhanceAndCheckForAutoincrement(resultSet, inOrder, colMap);
 
 		resultColumnList.checkStorableExpressions(resultSet.getResultColumns());
+
+
 		/* Insert a NormalizeResultSetNode above the source if the source
 		 * and target column types and lengths do not match.
  		 */
@@ -487,8 +504,14 @@ public final class InsertNode extends DMLModStatementNode {
                                                   null,
                                                   resultSet);
 		}
-        
-		getCompilerContext().popCurrentPrivType();
+
+        // With all binding complete, now we can safely expand this result Set
+        // (this.resultSet.resultColumnList) to include null placeholders for
+        // dropped columns. We need each ResultColumn to have its virtualColumnId
+        // be the storage position, not the ordinal column position.
+        expandResultSetWithDeletedColumns();
+
+        getCompilerContext().popCurrentPrivType();
 	}
 
 	/**

@@ -90,6 +90,15 @@ public interface ResultColumnDescriptor
 	 */
 	int	getColumnPosition();
 
+    /**
+     * Get the storage position of the Column.
+     * NOTE - storage position is 1-based.
+     *
+     * @return an int representing the storage position of the Column
+     * within the table.
+     */
+    int getStoragePosition();
+
 	/**
 	 * Tell us if the column is an autoincrement column or not.
 	 * 

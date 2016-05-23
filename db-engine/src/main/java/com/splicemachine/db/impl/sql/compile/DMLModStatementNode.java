@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.sql.Types;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
@@ -373,6 +374,64 @@ abstract class DMLModStatementNode extends DMLStatementNode
 													(DMLStatementNode) this);
 		}
 	}
+
+    /**
+     * Updates this DML node's result set columns to include placeholder null columns
+     * for deleted columns. This is accomplished by looking at column information
+     * within this DML node's result column list (in particular the storage position
+     * of each column) to determine where the additional null columns are needed.
+     * Should generally only be called at the very end of bindStatement().
+     *
+     * @throws StandardException
+     */
+    protected void expandResultSetWithDeletedColumns() throws StandardException {
+        int maxColumnID = targetTableDescriptor.getMaxColumnID(); // 1-based
+        int maxStorageID = targetTableDescriptor.getMaxStorageColumnID(); // 1-based
+        if (maxColumnID == maxStorageID) {
+            // No columns were dropped so no need to expand
+            return;
+        }
+
+        int size = this.resultSet.getResultColumns().size();
+        int[] storagePosMap = new int[maxStorageID];
+        for (int i = 0; i < maxStorageID; i++)  {
+            storagePosMap[i] = -1;
+        }
+
+        for (int index = 1; index <= size; index++) {
+            ResultColumn targetRC = this.resultColumnList.getResultColumn(index);
+            int storagePosition = targetRC.columnDescriptor.getStoragePosition();
+            storagePosMap[storagePosition-1] = index;
+        }
+
+        ResultColumnList expandedRCL = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        for (int index = 0; index < maxStorageID; index++) {
+            int pos = storagePosMap[index]; // index is 0-based, pos is 1-based
+            ResultColumn newSourceRC = null;
+            if (pos != -1) {
+                ResultColumn sourceRC = this.resultSet.getResultColumns().getResultColumn(pos);
+                newSourceRC = sourceRC.cloneMe();
+            } else {
+                // Have to give it a type. Arbitrarily using integer which seems to work even when
+                // the dropped column was another type.
+                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER);
+                // Create untyped null node and use it to initialize new ResultColumn.
+                // Alternatively use getNullNode(dtd) to create typed null node.
+                ValueNode nullNode = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+                    getContextManager());
+                newSourceRC = (ResultColumn)getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    dtd,
+                    nullNode,
+                    getContextManager());
+            }
+            expandedRCL.addResultColumn(newSourceRC);
+        }
+
+        // In the new result columns, virtualColumnId = storage position id of the column
+        resultSet.setResultColumns(expandedRCL);
+    }
 
     /**
      * Parse and bind the generating expressions of computed columns.

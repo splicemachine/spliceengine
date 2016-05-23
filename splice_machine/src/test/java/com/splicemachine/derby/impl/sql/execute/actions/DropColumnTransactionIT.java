@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.*;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -27,6 +28,7 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.test.Transactions;
+import static com.splicemachine.homeless.TestUtils.o;
 
 /**
  * Tests around dropping a column (transactionally and otherwise).
@@ -479,11 +481,6 @@ public class DropColumnTransactionIT {
             "alter table %s drop column name", tableRef));
 
         runQueriesForDropColumnTest(tableRef, 2);
-
-        conn.createStatement().execute(String.format(
-            "alter table %s drop column id", tableRef));
-
-        runQueriesForDropColumnTest(tableRef, 3);
     }
 
     // Called by the above test a few times
@@ -497,35 +494,93 @@ public class DropColumnTransactionIT {
         Assert.assertEquals(1L, methodWatcher.query(String.format(
             "select count(*) from %s where bar = 100 %s", tableRef, suffix)));
 
+        List<Object[]> expected = (num == 1 ?
+            Collections.singletonList(o(1,"fred",100)) :
+            Collections.singletonList(o(1,100)));
         ResultSet rs = methodWatcher.getStatement().executeQuery(String.format(
             "select * from %s where bar = 100 %s", tableRef, suffix));
-        int count = 0;
-        while (rs.next()) {
-            String bar = rs.getString("bar");
-            Assert.assertNotNull("Expected non-null valued for bar.", bar);
-            ++count;
-        }
-        Assert.assertEquals("Incorrect returned row count", 1, count);
+        List results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
 
         Assert.assertEquals(0L, methodWatcher.query(String.format(
             "select count(*) from %s where bar = 5 %s", tableRef, suffix)));
 
+        expected = Collections.emptyList();
         rs = methodWatcher.getStatement().executeQuery(String.format(
             "select * from %s where bar = 5 %s", tableRef, suffix));
-        count = 0;
-        while (rs.next()) {
-            ++count;
-        }
-        Assert.assertEquals("Incorrect returned row count", 0, count);
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
 
         Assert.assertEquals(0L, methodWatcher.query(String.format(
             "select count(bar) from %s where bar = 5 %s", tableRef, suffix)));
+
+        expected = Collections.emptyList();
         rs = methodWatcher.getStatement().executeQuery(String.format(
             "select bar from %s where bar = 5 %s", tableRef, suffix));
-        count = 0;
-        while (rs.next()) {
-            ++count;
-        }
-        Assert.assertEquals("Incorrect returned row count", 0, count);
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
     }
+
+    /* Regression test for DB-5060 */
+    @Test
+    public void testDropColumnBeforeInsertShiftedColumns() throws Exception {
+        String tableName = "DROPCOLINS1";
+        String tableRef = schemaWatcher.schemaName + "." + tableName;
+        methodWatcher.executeUpdate(String.format(
+            "create table %s (id INTEGER NOT NULL, name VARCHAR(20) NOT NULL, bar INTEGER)", tableRef));
+
+        String tableName2 = "DROPCOLINS2";
+        String tableRef2 = schemaWatcher.schemaName + "." + tableName2;
+        methodWatcher.executeUpdate(String.format(
+            "create table %s (myid INTEGER NOT NULL, myval INTEGER)", tableRef2));
+
+        TestConnection conn = methodWatcher.createConnection();
+        conn.createStatement().execute(String.format("insert into %s values (1,'fred',100)", tableRef));
+        conn.createStatement().execute(String.format("insert into %s values (2,'barney',200)", tableRef));
+
+        conn.createStatement().execute(String.format("insert into %s values (10,1000)", tableRef2));
+        conn.createStatement().execute(String.format("insert into %s values (20,2000)", tableRef2));
+
+        List<Object[]> expected = Arrays.asList(
+            o(1,"fred",100),o(2,"barney",200));
+        ResultSet rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id", tableRef));
+        List results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        conn.createStatement().execute(String.format(
+            "alter table %s drop column name", tableRef));
+
+        // VALUES with no target list
+        conn.createStatement().execute(String.format("insert into %s values (3, 300)", tableRef));
+        expected = Arrays.asList(
+            o(1,100),o(2,200),o(3,300));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*a*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // VALUES with target list
+        conn.createStatement().execute(String.format("insert into %s (id, bar) values (4, 400)", tableRef));
+        expected = Arrays.asList(
+            o(1,100),o(2,200),o(3,300),o(4,400));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*b*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // Source select (dummy) with target list
+        conn.createStatement().execute(String.format("insert into %s (id, bar) select 5, 500 from SYSIBM.SYSDUMMY1", tableRef));
+        expected = Arrays.asList(
+            o(1,100),o(2,200),o(3,300),o(4,400),o(5,500));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*c*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // Source select with target list
+        conn.createStatement().execute(String.format("insert into %s (id, bar) select myid, myval from %s", tableRef, tableRef2));
+        expected = Arrays.asList(
+            o(1,100),o(2,200),o(3,300),o(4,400),o(5,500),o(10,1000),o(20,2000));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*d*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+   }
+
 }

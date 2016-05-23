@@ -415,12 +415,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     }
 
     /**
-     * Gets the highest column id in the table. For now this is the same as
-     * the number of columns. However, in the future, after we implement
-     * ALTER TABLE DROP COLUMN, this correspondence won't hold any longer.
+     * Gets the highest column position id in the table.
      *
-     * @return the highest column ID in the table
-     * @throws StandardException Thrown on error
+     * @return the highest column id in the table
+     * @see {@link #getMaxStorageColumnID()}
      */
     public int getMaxColumnID() {
         int maxColumnID=1;
@@ -432,14 +430,11 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return maxColumnID;
     }
 
-
     /**
-     * Gets the highest column id in the table. For now this is the same as
-     * the number of columns. However, in the future, after we implement
-     * ALTER TABLE DROP COLUMN, this correspondence won't hold any longer.
+     * Gets the highest column storage position in the table.
      *
-     * @return the highest column ID in the table
-     * @throws StandardException Thrown on error
+     * @return the highest column storage position in the table
+     * @see {@link #getMaxColumnID()}
      */
     public int getMaxStorageColumnID() {
         int maxColumnID=1;

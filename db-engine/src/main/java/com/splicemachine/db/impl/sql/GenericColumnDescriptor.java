@@ -61,6 +61,7 @@ public final class GenericColumnDescriptor
 	private String				schemaName;
 	private String				tableName;
 	private int					columnPos;
+    private int					storagePos;
 	private DataTypeDescriptor	type;
 	private boolean 			isAutoincrement;
 	private boolean 			updatableByCursor;
@@ -93,6 +94,7 @@ public final class GenericColumnDescriptor
 		tableName = rcd.getSourceTableName();
  		schemaName = rcd.getSourceSchemaName();
 		columnPos = rcd.getColumnPosition();
+        storagePos = rcd.getStoragePosition();
 		type = rcd.getType();
 		isAutoincrement = rcd.isAutoincrement();
 		updatableByCursor = rcd.updatableByCursor();
@@ -163,7 +165,12 @@ public final class GenericColumnDescriptor
 		return columnPos;
 	}
 
-	public boolean isAutoincrement()
+    public int getStoragePosition()
+    {
+        return storagePos;
+    }
+
+    public boolean isAutoincrement()
 	{
 		return isAutoincrement;
 	}
