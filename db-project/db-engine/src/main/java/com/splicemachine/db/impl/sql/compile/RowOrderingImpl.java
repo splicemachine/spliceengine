@@ -1,0 +1,301 @@
+/*
+
+   Derby - Class org.apache.derby.impl.sql.compile.RowOrderingImpl
+
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to you under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ */
+
+package com.splicemachine.db.impl.sql.compile;
+
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class RowOrderingImpl implements RowOrdering{
+
+    /* This vector contains ColumnOrderings */
+    List<ColumnOrdering> ordering;
+
+    ColumnOrdering currentColumnOrdering;
+
+    /* This vector contains unordered Optimizables */
+    List<Optimizable> unorderedOptimizables;
+
+    public RowOrderingImpl(){
+        //noinspection Convert2Diamond
+        ordering=new ArrayList<ColumnOrdering>();
+        //noinspection Convert2Diamond
+        unorderedOptimizables=new ArrayList<Optimizable>();
+    }
+
+    @Override
+    public Iterable<ColumnOrdering> orderedColumns(){
+        return ordering;
+    }
+
+    @Override
+    public ColumnOrdering ordering(int orderPosition,int tableNumber,int columnNumber) throws StandardException{
+        return null;
+    }
+
+    @Override
+    public boolean orderedOnColumn(int direction,int orderPosition,
+                                   int tableNumber,int columnNumber) throws StandardException{
+
+		/*
+		** Return false if we're looking for an ordering position that isn't
+		** in this ordering.
+		*/
+        if(orderPosition>=ordering.size())
+            return false;
+
+        ColumnOrdering co=ordering.get(orderPosition);
+
+		/*
+		** Is the column in question ordered with the given direction at
+		** this position?
+		*/
+        return co.ordered(direction,tableNumber,columnNumber);
+    }
+
+    @Override
+    public boolean orderedOnColumn(int direction, int tableNumber, int columnNumber) throws StandardException{
+        boolean ordered=false;
+
+        for(ColumnOrdering co : ordering){
+            /*
+            ** Is the column in question ordered with the given direction at
+			** this position?
+			*/
+            boolean thisOrdered=co.ordered(direction, tableNumber, columnNumber);
+
+            if(thisOrdered){
+                ordered=true;
+                break;
+            }
+        }
+
+        return ordered;
+    }
+
+    @Override
+    public int orderedPositionForColumn(int direction, int tableNumber, int columnNumber) throws StandardException{
+        boolean ordered=false;
+
+        int p = 0;
+        for(ColumnOrdering co : ordering){
+            /*
+            ** Is the column in question ordered with the given direction at
+			** this position?
+			*/
+            boolean thisOrdered=co.ordered(direction, tableNumber, columnNumber);
+
+            if(thisOrdered){
+                return p;
+            }
+            p++;
+        }
+
+        return -1;
+    }
+
+    @Override
+    public void addOrderedColumn(int direction, int tableNumber, int columnNumber){
+        if(unorderedOptimizables.size()>0)
+            return;
+
+        ColumnOrdering currentColumnOrdering;
+
+        if(ordering.size()==0){
+            currentColumnOrdering=new ColumnOrdering(direction);
+            ordering.add(currentColumnOrdering);
+        }else{
+            currentColumnOrdering= ordering.get(ordering.size()-1);
+        }
+
+        if(SanityManager.DEBUG){
+            if(currentColumnOrdering.direction()!=direction){
+                SanityManager.THROWASSERT("direction == "+direction+
+                        ", currentColumnOrdering.direction() == "+
+                        currentColumnOrdering.direction());
+            }
+        }
+
+        currentColumnOrdering.addColumn(tableNumber,columnNumber);
+    }
+
+    @Override
+    public void nextOrderPosition(int direction){
+        if(unorderedOptimizables.size()>0)
+            return;
+
+        currentColumnOrdering=new ColumnOrdering(direction);
+        ordering.add(currentColumnOrdering);
+    }
+
+    @Override
+    public void removeOptimizable(int tableNumber){
+		/*
+		** Walk the list backwards, so we can remove elements
+		** by position.
+		*/
+        for(int i=ordering.size()-1;i>=0;i--){
+			/*
+			** First, remove the table from all the ColumnOrderings
+			*/
+            ColumnOrdering ord=ordering.get(i);
+            ord.removeColumns(tableNumber);
+            if(ord.empty())
+                ordering.remove(i);
+        }
+
+		/* Also remove from list of unordered optimizables */
+        removeOptimizableFromVector(tableNumber,unorderedOptimizables);
+
+    }
+
+    @Override
+    public void addUnorderedOptimizable(Optimizable optimizable){
+        unorderedOptimizables.add(optimizable);
+    }
+
+    @Override
+    public void copy(RowOrdering copyTo){
+        assert copyTo instanceof RowOrderingImpl : "copyTo should be a RowOrderingImpl, is a "+ copyTo.getClass();
+
+        RowOrderingImpl dest=(RowOrderingImpl)copyTo;
+
+		/* Clear the ordering of what we're copying to */
+        dest.ordering.clear();
+        dest.currentColumnOrdering=null;
+
+        for(int i=0;i<ordering.size();i++){
+            ColumnOrdering co=ordering.get(i);
+
+            dest.ordering.add(co.cloneMe());
+
+            if(co==currentColumnOrdering)
+                dest.rememberCurrentColumnOrdering(i);
+        }
+    }
+
+    @Override
+    public RowOrdering getClone(){
+        RowOrdering ordering = new RowOrderingImpl();
+        copy(ordering);
+        return ordering;
+    }
+
+    @Override
+    public String toString(){
+        String retval=null;
+
+        if(SanityManager.DEBUG){
+            retval="Unordered optimizables: ";
+            for(Optimizable opt : unorderedOptimizables){
+                if(opt.getBaseTableName()!=null){
+                    retval+=opt.getBaseTableName();
+                }else{
+                    retval+=opt.toString();
+                }
+                retval+=" ";
+            }
+            retval+="\n";
+
+            for(int i=0;i<ordering.size();i++){
+                retval+=" ColumnOrdering "+i+": "+ordering.get(i);
+            }
+        }
+
+        return retval;
+    }
+
+    /**
+     * Return true if the given vector of Optimizables contains an Optimizable
+     * with the given table number.
+     */
+    private boolean vectorContainsOptimizable(int tableNumber,List<Optimizable> vec){
+        int i;
+
+        for(i=vec.size()-1;i>=0;i--){
+            Optimizable optTable=vec.get(i);
+
+            if(optTable.hasTableNumber()){
+                if(optTable.getTableNumber()==tableNumber){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private int optimizablePosition(int tableNumber,List<Optimizable> vec){
+        int i;
+
+        for(i=vec.size()-1;i>=0;i--){
+            Optimizable optTable=vec.get(i);
+
+            if(optTable.hasTableNumber()){
+                if(optTable.getTableNumber()==tableNumber){
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Remove all optimizables with the given table number from the
+     * given vector of optimizables.
+     */
+    private void removeOptimizableFromVector(int tableNumber,List<Optimizable> vec){
+        int i;
+
+        for(i=vec.size()-1;i>=0;i--){
+            Optimizable optTable=vec.get(i);
+
+            if(optTable.hasTableNumber()){
+                if(optTable.getTableNumber()==tableNumber){
+                    vec.remove(i);
+                }
+            }
+        }
+    }
+
+    private void rememberCurrentColumnOrdering(int posn){
+        currentColumnOrdering=ordering.get(posn);
+    }
+
+    /**
+     * Returns true if there are unordered optimizables in the join order
+     * other than the given one.
+     */
+    private boolean unorderedOptimizablesOtherThan(Optimizable optimizable){
+        for(Optimizable thisOpt : unorderedOptimizables){
+            if(thisOpt!=optimizable)
+                return true;
+        }
+
+        return false;
+    }
+
+}

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.splicemachine.db-project</groupId>
+        <artifactId>db-project</artifactId>
+        <version>2.0.1.11-SNAPSHOT</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>db-drda</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>db-engine</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>db-tools-i18n</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.4.0</version>
+                <executions>
+
+                    <!-- Generate ODBC-compliant metadata statements from JDBC metadata       -->
+                    <!-- 1. Get a fresh copy of the metadata.properties file (from the source -->
+                    <!--    dir, since that one hasn't been modified by the ODBC generation   -->
+                    <!--    code), to be safe.                                                -->
+                    <!-- 2. Run the ODBC metadata generator program, which reads the metadata -->
+                    <!--    file from step 1 and creates an output file that has all of the   -->
+                    <!--    queries from metadata.properties PLUS any ODBC versions of those  -->
+                    <!--    queries that are required for ODBC compliance.                    -->
+                    <execution>
+                        <id>message-builder</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <includePluginDependencies>true</includePluginDependencies>
+                            <mainClass>com.splicemachine.derbyBuild.ODBCMetadataGenerator</mainClass>
+                            <arguments>
+                                <argument>${basedir}/src/main/properties/metadata.properties</argument>
+                                <argument>
+                                    ${project.build.outputDirectory}/com/splicemachine/db/impl/jdbc/metadata.properties
+                                </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <!-- ================================================================================================
+                    Message Vetter
+                    ===================================================================================================== -->
+                    <execution>
+                        <id>message-vetter</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.splicemachine.derbyBuild.MessageVetter</mainClass>
+                            <includePluginDependencies>true</includePluginDependencies>
+                            <arguments>
+                                <argument>${project.build.outputDirectory}/com/splicemachine/db/loc/drda</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <!-- ================================================================================================
+                    Message Bundle Test
+                    ===================================================================================================== -->
+                    <execution>
+                        <id>message-bundle-test</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.splicemachine.derbyBuild.messages.MessageBundleTest</mainClass>
+                            <includePluginDependencies>true</includePluginDependencies>
+                        </configuration>
+                    </execution>
+
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>db-build</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+
+        </plugins>
+    </build>
+
+</project>

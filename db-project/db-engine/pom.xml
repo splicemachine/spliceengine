@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <groupId>com.splicemachine.db-project</groupId>
+        <artifactId>db-project</artifactId>
+        <version>2.0.1.11-SNAPSHOT</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>db-engine</artifactId>
+    <properties>
+        <spark.version>1.6.1</spark.version>
+        <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.8</spark-assembly-id>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>db-shared</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>${spark-assembly-id}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+<!--
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>11.0.2</version>
+        </dependency>
+-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>db-tools-testing</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+
+        <!-- Enable build variable substitution ("filtering") for files in resource directory. -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+
+        <plugins>
+
+            <!-- ================================================================================================
+            JAVACC: sqlgrammar.jj
+
+            Available Maven JavaCC Plugins
+            ** https://github.com/phax/ph-javacc-maven-plugin
+            ** https://github.com/mojohaus/javacc-maven-plugin
+
+            By default this will use the version of javacc that is included with the plugin. However we have
+            explicily specified version 4.0 below.
+            ===================================================================================================== -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>javacc-maven-plugin</artifactId>
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <id>generate-parser-execution-id</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>javacc</goal>
+                        </goals>
+                        <configuration>
+                            <jdkVersion>1.7</jdkVersion>
+                            <packageName>com.splicemachine.db.impl.sql.compile</packageName>
+                            <sourceDirectory>src/main/java/com/splicemachine/db/impl/sql/compile</sourceDirectory>
+                            <outputDirectory>${project.build.directory}/generated-sources/javacc_engine
+                            </outputDirectory>
+                            <grammarEncoding>UTF-8</grammarEncoding>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <!-- Things break at runtime if we don't use version 4.0. Not sure why. -->
+                    <dependency>
+                        <groupId>net.java.dev.javacc</groupId>
+                        <artifactId>javacc</artifactId>
+                        <version>4.0</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.4.0</version>
+                <configuration>
+                    <includePluginDependencies>true</includePluginDependencies>
+                </configuration>
+                <executions>
+
+                    <!-- ================================================================================================
+                    Class Size Crawler
+                    ===================================================================================================== -->
+                    <execution>
+                        <id>generate-class-size-catalog-source</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.splicemachine.db.iapi.services.cache.ClassSizeCrawler</mainClass>
+                            <includePluginDependencies>true</includePluginDependencies>
+                            <systemProperties>
+                                <systemProperty>
+                                    <key>classDir</key>
+                                    <value>${project.build.outputDirectory}</value>
+                                </systemProperty>
+                                <systemProperty>
+                                    <key>verbose</key>
+                                    <value>false</value>
+                                </systemProperty>
+                                <systemProperty>
+                                    <key>out</key>
+                                    <value>
+                                        ${project.build.directory}/generated-sources/javacc_engine/com/splicemachine/db/iapi/services/cache/ClassSizeCatalog.java
+                                    </value>
+                                </systemProperty>
+                                <systemProperty>
+                                    <key>prefix.1</key>
+                                    <value>com.splicemachine.db.iapi.types</value>
+                                </systemProperty>
+                                <systemProperty>
+                                    <key>prefix.2</key>
+                                    <value>com.splicemachine.db.impl</value>
+                                </systemProperty>
+                            </systemProperties>
+
+                            <arguments>
+                                <argument>com.splicemachine.db.iapi.types.DataValueDescriptor</argument>
+                                <argument>com.splicemachine.db.impl.services.cache.CachedItem</argument>
+                                <argument>com.splicemachine.db.iapi.services.cache.SizedCacheable</argument>
+                                <argument>java.lang.ref.WeakReference</argument>
+                                <argument>java.math.BigDecimal</argument>
+                                <argument>java.util.ArrayList</argument>
+                                <argument>java.util.GregorianCalendar</argument>
+                                <argument>java.util.Vector</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>db-build</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <!-- ================================================================================================
+            Compile ClassSizeCatalog.java
+
+            The class catalog is generated from class files in db-engine, so we generate it after compiling.
+            See above, 'generate-class-size-catalog-source' is bound to prepare-package phase.  Now we have to
+            recompile the single *.java file we generated from that plugin.
+            ===================================================================================================== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.3</version>
+                <executions>
+                    <execution>
+                        <id>compile-class-size-catalog</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>com/splicemachine/db/iapi/services/cache/ClassSizeCatalog.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>

@@ -164,3 +164,28 @@ To build an uber jar for your architecture:
 * There is no requirement to build any other packages to build splice.
 * All deployment (to nexus) is handled by [Jenkins](http://206.225.8.98:8080) and is not necessary for typical dev/test builds. (mvn deploy will fail with unauthorized access error)
 * Quick set of instructions for installing protobufs on your Mac can be found [here](http://sleepythread.blogspot.com/2013/11/installing-protoc-25x-compiler-google.html)
+=======
+# db-project
+
+
+Splice fork of apache derby (10.9.1.0).
+
+
+## build
+
+mvn clean install
+
+
+## modules
+
+
+* **db-build**: Classes used as part of build.
+* **db-client**: Splice JDBC driver.
+* **db-drda**: DRDA classes.
+* **db-engine**: Server, compiler, optimizer, etc.
+* **db-shared**: Code shared by client/server.
+* **db-tools-i18n**: Internationalization
+* **db-tools-ij**: Our IJ implementation.
+* **db-tools-testing**: Testing code shared by test cases in all modules.
+* **db-testing**: Old integration tests that should be deleted or moved to spliceengine repo.
+

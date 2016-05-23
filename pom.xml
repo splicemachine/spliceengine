@@ -12,11 +12,11 @@
         <artifactId>splice-maven-parent</artifactId>
         <version>1.1.1</version>
     </parent>
-    <scm>
-        <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
-        <developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
-        <url>https://github.com/splicemachine/spliceengine</url>
-    </scm>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.splicemachine.db-project</groupId>
+    <artifactId>db-project</artifactId>
+    <version>2.0.1.11-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <repositories>
         <repository>
             <id>splicemachine</id>
@@ -374,6 +374,11 @@
                     <configuration>
                         <source>1.7</source>
                         <target>1.7</target>
+                        <encoding>UTF-8</encoding>
+                        <compilerArgs>
+                            <arg>-XDignore.symbol.file</arg>
+                        </compilerArgs>
+                        <fork>true</fork>
                         <showWarnings>true</showWarnings>
                         <showDeprecation>true</showDeprecation>
                     </configuration>

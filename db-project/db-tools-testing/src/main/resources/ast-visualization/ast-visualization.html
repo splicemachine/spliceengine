@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>Splice AST</title>
+
+    <link href="css/ast-visualization.css" rel="stylesheet" type="text/css"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.7.0/vis.min.css" rel="stylesheet" type="text/css"/>
+
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.7.0/vis.min.js"></script>
+    <script type="text/javascript" src="js/GraphControls.js"></script>
+    <script type="text/javascript" src="js/FileControl.js"></script>
+    <script type="text/javascript" src="js/Startup.js"></script>
+</head>
+
+<body>
+
+<form id="jsonFile" name="jsonFile" enctype="multipart/form-data" method="post">
+
+    <table class="control">
+        <tr>
+            <td>
+                <label for="file-input">JSON File</label>
+                <input type='file' id='file-input'>
+            </td>
+            <td>
+                <label for="node-shape-param-select">Node Shape:</label>
+                <select id="node-shape-param-select">
+                    <optgroup label="Text Inside">
+                        <option value="ellipse">ellipse</option>
+                        <option value="circle">circle</option>
+                        <option value="database">database</option>
+                        <option value="box" selected>box</option>
+                        <option value="text">text</option>
+                    </optgroup>
+                    <optgroup label="Text Outside">
+                        <option value="diamond">diamond</option>
+                        <option value="dot">dot</option>
+                        <option value="star">star</option>
+                        <option value="triangle">triangle</option>
+                        <option value="triangleDown">triangleDown</option>
+                        <option value="square">square</option>
+                    </optgroup>
+                </select>
+            </td>
+            <td>
+                <label for="short-node-names-checkbox">Short Node Names</label>
+                <input id="short-node-names-checkbox" type="checkbox"/>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <h3 style="display: inline-block">Hierarchical:&nbsp;</h3>
+
+                <label for="hierarchical-enabled-checkbox">Enabled</label>
+                <input id="hierarchical-enabled-checkbox" type="checkbox" checked/>
+
+                <label for="layout-param-select">Layout method:</label>
+                <select id="layout-param-select">
+                    <option value="directed" selected>directed</option>
+                    <option value="hubsize">hubsize</option>
+                </select>
+
+                <label for="direction-param-select">Layout Direction:</label>
+                <select id="direction-param-select">
+                    <option value="DU" selected>Down-Up</option>
+                    <option value="UD">Up-Down</option>
+                    <option value="LR">Left-Right</option>
+                    <option value="RL">Right-Left</option>
+                </select>
+                <label for="hierarchical-level-separation-input">Level Separation:</label>
+                <input id="hierarchical-level-separation-input"  size="5" value="125"/>
+            </td>
+        </tr>
+    </table>
+
+</form>
+
+
+<div id="graph-container-div"></div>
+
+
+</body>
+</html>

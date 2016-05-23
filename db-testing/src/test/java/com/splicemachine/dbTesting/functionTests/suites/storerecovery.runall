@@ -1,0 +1,9 @@
+store/LogChecksumSetup.java
+store/LogChecksumRecovery.java
+store/LogChecksumRecovery1.java
+store/MaxLogNumber.java
+store/MaxLogNumberRecovery.java
+store/RecoveryAfterBackupSetup.java
+store/RecoveryAfterBackup.java
+store/dropcrash.java
+store/dropcrash2.java
