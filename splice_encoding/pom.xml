@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.splicemachine</groupId>
     <artifactId>splice_encoding</artifactId>
-    <packaging>jar</packaging>
-    <name>splice_encoding</name>
     <description>Splice Encoding</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
@@ -31,8 +28,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.splicemachine.db-project</groupId>
+            <groupId>com.splicemachine</groupId>
             <artifactId>db-engine</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.esotericsoftware.kryo</groupId>

@@ -181,7 +181,6 @@
                                     <include>org.apache.lucene:lucene-core</include>
                                     <include>org.apache.spark</include>
                                     <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
-                                    <include>com.splicemachine.db-project:*</include>
                                     <include>com.splicemachine:*</include>
                                     <include>org.sparkproject.guava:*</include>
                                 </includes>

@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <parent>
-        <groupId>com.splicemachine.db-project</groupId>
-        <artifactId>db-project</artifactId>
+        <artifactId>spliceengine-parent</artifactId>
+        <groupId>com.splicemachine</groupId>
         <version>2.0.1.11-SNAPSHOT</version>
     </parent>
 

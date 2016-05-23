@@ -12,11 +12,6 @@
         <artifactId>splice-maven-parent</artifactId>
         <version>1.1.1</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>com.splicemachine.db-project</groupId>
-    <artifactId>db-project</artifactId>
-    <version>2.0.1.11-SNAPSHOT</version>
-    <packaging>pom</packaging>
     <repositories>
         <repository>
             <id>splicemachine</id>
@@ -24,7 +19,6 @@
         </repository>
     </repositories>
     <properties>
-        <derby.version>2.0.1.11-SNAPSHOT</derby.version>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
@@ -57,24 +51,24 @@
                 <version>1.0.1-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <groupId>com.splicemachine.db-project</groupId>
+                <groupId>com.splicemachine</groupId>
                 <artifactId>db-engine</artifactId>
-                <version>${derby.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.splicemachine.db-project</groupId>
+                <groupId>com.splicemachine</groupId>
                 <artifactId>db-drda</artifactId>
-                <version>${derby.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.splicemachine.db-project</groupId>
+                <groupId>com.splicemachine</groupId>
                 <artifactId>db-client</artifactId>
-                <version>${derby.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.splicemachine.db-project</groupId>
+                <groupId>com.splicemachine</groupId>
                 <artifactId>db-tools-ij</artifactId>
-                <version>${derby.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.splicetest.sqlj</groupId>
@@ -406,6 +400,11 @@
         </plugins>
     </build>
     <profiles>
+
+
+
+
+
         <profile>
             <id>core</id>
             <activation>
@@ -418,6 +417,15 @@
                 <envClassifier>core</envClassifier>
             </properties>
             <modules>
+                <module>db-build</module>
+                <module>db-shared</module>
+                <module>db-engine</module>
+                <module>db-tools-i18n</module>
+                <module>db-drda</module>
+                <module>db-tools-ij</module>
+                <module>db-client</module>
+                <module>db-testing</module>
+                <module>db-tools-testing</module>
                 <module>splice_encoding</module>
                 <module>splice_protocol</module>
                 <module>splice_timestamp_api</module>
