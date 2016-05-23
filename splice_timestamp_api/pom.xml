@@ -16,7 +16,7 @@
         the shaded libraries for Guava and Netty-->
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.8</artifactId>
+            <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.10</artifactId>
             <version>1.6.1</version>
         </dependency>
         <dependency>
