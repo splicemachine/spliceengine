@@ -19,7 +19,8 @@
         </dependency>
     </dependencies>
     <properties>
-        <parcel.patch>p0.1</parcel.patch>
+        <jenkins.build.number>1</jenkins.build.number>
+        <parcel.patch>p0.${jenkins.build.number}</parcel.patch>
     </properties>
     <profiles>
         <profile>
