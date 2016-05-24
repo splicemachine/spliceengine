@@ -58,11 +58,25 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
             insert.setTimestamp(3,new Timestamp(time-i));
             insert.setBoolean(4,false);
             insert.addBatch();
-            if (1%100==0)
+            if (i%100==0)
                 insert.executeBatch();
         }
         insert.executeBatch();
         conn.commit();
+
+        // Union test data
+        new TableCreator(conn)
+            .withCreate("create table a (i int, j int, k int, l int, m int, n int, o int, p int, q int)")
+            .withInsert("insert into a values(1,2,3,4,5,6,7,8,9)")
+            .create();
+        new TableCreator(conn)
+            .withCreate("create table b (i int, j int, k int, l int, m int, n int, o int, p int, q int)")
+            .withInsert("insert into b values(1,2,3,4,5,6,7,8,9)")
+            .create();
+        for (int i = 0; i < 100; i++) {
+            spliceClassWatcher.executeUpdate("insert into a select * from a");
+            spliceClassWatcher.executeUpdate("insert into b select * from b");
+        }
 
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
@@ -97,5 +111,12 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select distinct minute(c3) from ts_low_cardinality", "rows=60", methodWatcher);
         firstRowContainsQuery("explain select distinct second(c3) from ts_low_cardinality", "rows=60", methodWatcher);
         firstRowContainsQuery("explain select distinct month(c3) from ts_high_cardinality", "rows=12", methodWatcher);
+    }
+
+    @Test
+    public void testUnion() throws Exception {
+        firstRowContainsQuery("explain select * from (select i from a union select i from b) c", "rows=2", methodWatcher);
+        firstRowContainsQuery("explain select * from (select i,j from a union select i,j from b) c", "rows=2", methodWatcher);
+        firstRowContainsQuery("explain select * from (select i,j,k,l,m,n,o from a union select i,j,k,l,m,n,o from b) c", "rows=2", methodWatcher);
     }
 }

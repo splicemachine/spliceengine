@@ -173,20 +173,23 @@ public class DistinctNode extends SingleChildResultSetNode
         double outputHeapSize = 0d;
 
         ResultColumnList rcl = childResult.getResultColumns();
-        double returnedRows = 1d;
+        double selectivity = 0d;
         for (int i = 1; i <= rcl.size(); ++i) {
             ResultColumn resultColumn = rcl.getResultColumn(i);
-            returnedRows *= resultColumn.nonZeroCardinality((long)baseCost.rowCount());
+            selectivity += resultColumn.nonZeroCardinality((long) rc) / rc;
         }
-        sortCost = returnedRows * remoteCostPerRow;
-        outputHeapSize = returnedRows * outputHeapSizePerRow;
+
+        double tableCardinality = Math.min(1, selectivity) * rc;
+
+        sortCost = tableCardinality * remoteCostPerRow;
+        outputHeapSize = tableCardinality * outputHeapSizePerRow;
 
         double totalLocalCost = baseCost.localCost()/baseCost.partitionCount();
         double totalRemoteCost = sortCost + remoteCostPerRow * rc;
         costEstimate.setLocalCost(totalLocalCost);
         costEstimate.setRemoteCost(totalRemoteCost);
         costEstimate.setNumPartitions(1);
-        costEstimate.setRowCount(returnedRows);
+        costEstimate.setRowCount(tableCardinality);
         costEstimate.setEstimatedHeapSize((long)outputHeapSize);
 
 		return costEstimate;
