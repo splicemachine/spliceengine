@@ -281,6 +281,8 @@ public class SITransactor implements Transactor{
         if(constraintChecker==null) return false;
 
         if(row==null || row.size()<=0) return false;
+        //must reset the filter here to avoid contaminating multiple rows with tombstones and stuff
+        constraintStateFilter.reset();
 
         //we need to make sure that this row is visible to the current transaction
         List<DataCell> visibleColumns=Lists.newArrayListWithExpectedSize(row.size());

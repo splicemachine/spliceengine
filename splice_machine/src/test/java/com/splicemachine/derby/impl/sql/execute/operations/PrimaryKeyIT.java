@@ -6,12 +6,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.List;
 
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.pipeline.ErrorState;
 import org.sparkproject.guava.collect.Lists;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -57,6 +56,29 @@ public class PrimaryKeyIT {
         } catch (SQLException e) {
             assertEquals("Incorrect error returned.", "23505", e.getSQLState());
             assertEquals("Expected 2 rows in table X", 2L, methodWatcher.query("select count(*) from X"));
+        }
+    }
+
+    @Test
+    public void testUpdateOverPrimaryKeyInSingleTransactionWorks() throws Exception{
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+        conn.setSchema(SCHEMA); //just in case the schema wasn't set already
+        try(Statement s = conn.createStatement()){
+            s.execute("create table T (a int, b int, PRIMARY KEY(a))");
+            int rowsModified = s.executeUpdate("insert into T(a,b) values (1,1),(2,1),(3,2)");
+            Assert.assertEquals("Did not insert rows!",3,rowsModified);
+            try{
+                s.executeUpdate("update T set a = a+1 where b=1");
+                Assert.fail("Did not throw a duplicate key exception");
+            }catch(SQLException se){
+                Assert.assertEquals("Incorrect error code!",
+                        ErrorState.LANG_DUPLICATE_KEY_CONSTRAINT.getSqlState(),
+                        se.getSQLState());
+            }
+        }finally{
+            conn.rollback();
+            conn.reset();
         }
     }
 
