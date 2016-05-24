@@ -6,6 +6,10 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.Properties;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -35,6 +39,17 @@ public class SpliceSequenceIT {
         assertTrue(first >= Short.MIN_VALUE && first <= Short.MAX_VALUE);
 
         methodWatcher.executeUpdate("drop sequence SMALLSEQ restrict");
+    }
+
+    @Test
+    public void testSequenceOnSpark() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+        Connection connection = DriverManager.getConnection(url, new Properties());
+
+        methodWatcher.executeUpdate("create sequence seq AS int");
+
+        Integer first = methodWatcher.query("values (next value for seq)");
+        assertEquals(first, new Integer(1));
     }
 
 }

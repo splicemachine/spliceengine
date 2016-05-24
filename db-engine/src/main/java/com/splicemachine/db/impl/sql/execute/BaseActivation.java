@@ -30,6 +30,7 @@ import java.util.Vector;
 import	com.splicemachine.db.catalog.Dependable;
 import	com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -714,12 +715,23 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         ( String sequenceUUIDstring, int typeFormatID )
 	       throws StandardException
 	{
-        NumberDataValue ndv = (NumberDataValue) getDataValueFactory().getNull( typeFormatID, StringDataValue.COLLATION_TYPE_UCS_BASIC );
+        ContextManager contextManager = ContextService.getFactory().getCurrentContextManager();
+        try {
+            cm.setActiveThread();
+            cm.pushContext(lcc);
+            cm.pushContext(lcc.getLanguageConnectionFactory().getExecutionFactory().newExecutionContext(cm));
+            ContextService.getFactory().setCurrentContextManager(cm);
 
-        lcc.getDataDictionary().getCurrentValueAndAdvance( sequenceUUIDstring, ndv );
+            NumberDataValue ndv = (NumberDataValue) getDataValueFactory().getNull(typeFormatID, StringDataValue.COLLATION_TYPE_UCS_BASIC);
 
-        return ndv;
-	}
+            lcc.getDataDictionary().getCurrentValueAndAdvance(sequenceUUIDstring, ndv);
+
+            return ndv;
+        }
+        finally {
+            ContextService.getFactory().resetCurrentContextManager(contextManager);
+        }
+    }
 
 	/**
 		Used in CurrentOfResultSet to get to the cursor result set
