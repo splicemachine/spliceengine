@@ -86,27 +86,7 @@ while getopts "chkp:s:bd:" flag ; do
         ;;
         p)
         # the hbase profile
-        #echo "-> [$OPTARG] "
-          if [[ "$OPTARG" ==  "c54" ]]; then
-            PROFILE="cdh5.4.10"
-          elif [[ "$OPTARG" == "c55" ]]; then
-            PROFILE="cdh5.5.2"
-          elif [[ "$OPTARG" == "mem" ]]; then
-            PROFILE=${IN_MEM_PROFILE}
-          elif [[ "$OPTARG" == "c56" ]]; then
-            PROFILE="cdh5.6.0"
-          elif [[ "$OPTARG" == "c57" ]]; then
-            PROFILE="cdh5.7.0"
-          elif [[ "$OPTARG" == "m5" ]]; then
-            PROFILE="mapr5.1.0"
-          elif [[ "$OPTARG" == "h23" ]]; then
-            PROFILE="hdp2.3.0"
-          elif [[ "$OPTARG" == "h24" ]]; then
-            PROFILE="hdp2.4.2"
-          else
-            usage "Unknown profile: $OPTARG"
-            exit 1
-          fi
+            PROFILE="${OPTARG}"
         ;;
         s)
         # number of cluster members
@@ -139,7 +119,7 @@ if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
   RUN_DIR="${BASE_DIR}/mem_sql"
 fi
 
-echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
+echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = ${CHAOS} in:"
 echo "   ${RUN_DIR}"
 
 if [[ "${BUILD}" == "1" ]]; then
@@ -184,7 +164,7 @@ until [ $COUNT -lt 0 ]; do
     let COUNT-=1
 done
 
-if [ $COUNT -eq 0 ]; then
+if [ ${COUNT} -eq 0 ]; then
     echo "ZooKeeper did not start up properly, aborting startup. Please check ${RUN_DIR}/zoo.log for more information"
     exit 5
 fi
@@ -202,7 +182,7 @@ SPLICE_LOG="${RUN_DIR}/splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
 (${MVN} exec:exec -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
-echo -n "  Waiting... "
+echo -n "  Waiting. "
 while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 5; done
 echo
 
@@ -212,10 +192,9 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
     (${MVN} exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
-    echo -n "  Waiting... "
+    echo -n "  Waiting. "
     while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 5; done
     echo
   done
 fi
 popd > /dev/null
-
