@@ -470,7 +470,8 @@
                 <zookeeper.version>3.4.6.2.3.4.7-4</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.1.2.3.4.7-4</spark-assembly-id>
                 <spark.version>1.6.1</spark.version>
-                <kafka.version>0.9.0.2.3.4.7-4</kafka.version>
+                <kafka.version>0.8.2.1</kafka.version>
+                <!-- kafka.version>0.9.0.2.3.4.7-4</kafka.version -->
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -496,7 +497,8 @@
                 <zookeeper.version>3.4.6.2.4.2.0-258</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.1.2.4.2.0-258</spark-assembly-id>
                 <spark.version>1.6.1</spark.version>
-                <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
+                <kafka.version>0.8.2.1</kafka.version>
+                <!-- kafka.version>0.9.0.2.4.2.0-258</kafka.version -->
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -550,7 +552,7 @@
                 <zookeeper.version>3.4.5-cdh5.5.2</zookeeper.version>
                 <spark.version>1.6.1</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
-                <kafka.version>0.9.0-kafka-2.1.0</kafka.version>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -577,7 +579,7 @@
                 <zookeeper.version>3.4.5-cdh5.6.0</zookeeper.version>
                 <spark.version>1.6.1</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.6.0</spark-assembly-id>
-                <kafka.version>0.9.0-kafka-2.1.0</kafka.version>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -604,7 +606,7 @@
                 <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
                 <spark.version>1.6.1</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.0</spark-assembly-id>
-                <kafka.version>0.9.0-kafka-2.1.0</kafka.version>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -631,7 +633,8 @@
                 <maprfs.version>5.1.0-mapr</maprfs.version>
                 <spark.version>1.6.1</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1602</spark-assembly-id>
-                <kafka.version>0.9.0.0-mapr-1602</kafka.version>
+                <kafka.version>0.8.2.1</kafka.version>
+                <!-- kafka.version>0.9.0.0-mapr-1602</kafka.version -->
             </properties>
             <modules>
                 <module>hbase_storage</module>
