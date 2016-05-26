@@ -1007,17 +1007,21 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         if (rc == null) {
             return null;
         }
-        String[] nameComponents = new String[] {rc.getSourceSchemaName(), rc.getSourceTableName(), rc.getName()};
-        if (nameComponents[0] == null) {
-            ColumnDescriptor colDesc = rc.getTableColumnDescriptor();
-            if (colDesc != null) {
-                nameComponents[2] = colDesc.getColumnName();
-                TableDescriptor tableDesc = colDesc.getTableDescriptor();
-                if (tableDesc != null) {
-                    nameComponents[0] = tableDesc.getSchemaName();
-                    nameComponents[1] = tableDesc.getName();
-                }
+        String[] nameComponents = new String[3];
+        ColumnDescriptor colDesc = rc.getTableColumnDescriptor();
+        if (colDesc != null) {
+            // prefer the column descriptor if available
+            nameComponents[2] = colDesc.getColumnName();
+            TableDescriptor tableDesc = colDesc.getTableDescriptor();
+            if (tableDesc != null) {
+                nameComponents[0] = tableDesc.getSchemaName();
+                nameComponents[1] = tableDesc.getName();
             }
+        }
+        if (colDesc == null || nameComponents[0] == null) {
+            // either column descriptor is null or column descriptor's table descriptor is null.
+            // use the result column info
+            nameComponents = new String[] {rc.getSourceSchemaName(), rc.getSourceTableName(), rc.getName()};
         }
         StringBuilder name = new StringBuilder();
         for (String nameComponent : nameComponents) {

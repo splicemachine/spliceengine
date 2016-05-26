@@ -2434,9 +2434,140 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test @Ignore("DB-3920: found possible frame processing problem while implementing first_value()")
+    @Test
+    public void testLeadWithAlias() throws Exception {
+        // DB-4757
+        String tableName = "ProductRating";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(productId decimal(10,0), ratingAgencyCode varchar(20), ratingEffDate timestamp, rating varchar(20))";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (productId, ratingAgencyCode, ratingEffDate, rating) values (?,?,?,?)",
+                                      tableRef))
+            .withRows(rows(
+                row(3300d, "Better", "2014-03-07 19:37:30.604", "WDQTAXMXLMTWXQL"),
+                row(4040d, "Best", "2014-08-21 15:48:24.096", "JSKWDFWMTQCVJTS"),
+                row(3300d, "Better", "2014-05-22 10:42:47.834", "QOJYERFYJAYGNIC"),
+                row(4440d, "Dont think about it", "2014-03-11 10:19:44.256", "NIILBXPPMRRKVSG"),
+                row(0001d, "Good", "2014-11-02 03:24:36.044", "TILAXMXGUEYZSEK"),
+                row(3300d, "Better", "2015-01-13 11:01:19.065", "SPIHABCGNPNOOAC"),
+                row(0002d, "Dont think about it", "2014-02-14 04:59:08.36", "JVEZECWKNBLAALU"),
+                row(3300d, "Dont think about it", "2015-08-13 21:03:44.191", "MRUQGZIKYBXHZPQ"),
+                row(4440d, "Dont think about it", "2014-08-05 09:55:23.669", "GLUUGLMTGJRUHSA"),
+                row(5500d, "Good", "2014-07-31 20:33:36.713", "OLSEYNIBUDVHEIF"),
+                row(0001d, "Good", "2014-12-14 05:52:22.326", "UMTHLNRYDFAYWQS"),
+                row(9001d, "Good", "2015-09-27 17:49:39.5", "XHFHMOPWMOJNGOL"),
+                row(4440d, "Run Away", "2014-11-12 06:40:59.685", "VVEEPGAEVWDLBPF"),
+                row(3300d, "Dont think about it", "2014-11-03 05:15:49.851", "TMXIAVAKXCDJYKY"),
+                row(0800d, "Run Away", "2015-01-09 13:29:29.642", "KMCNRDOWZFAEVFS"),
+                row(9001d, "Best", "2014-11-01 21:51:02.199", "JFVQBHBCTVPVZTR"),
+                row(0001d, "Good", "2015-12-04 16:40:43.67", "BLYUEGSMCFCPXJA"),
+                row(6999d, "Dont think about it", "2014-07-30 10:23:12.643", "MRVUOQXPZMVTVXW"),
+                row(3300d, "Poor", "2015-09-02 05:09:32.683", "FFXXMDXCAVYDJTC"),
+                row(9001d, "Dont think about it", "2015-06-11 21:00:40.206", "ILWSWUTLTSCJRSV"),
+                row(0002d, "Run Away", "2014-05-16 22:44:34.056", "ZSFHGWWFCQZZNMO"),
+                row(4440d, "Dont think about it", "2015-01-06 21:26:12.528", "KVPKDRBXWBGATQY"),
+                row(6999d, "Poor", "2015-04-30 05:52:43.627", "LFHHSWUBDDIPKPA"),
+                row(0002d, "Good", "2015-01-22 11:41:01.329", "ZRHSIVRCQUUQZLC"),
+                row(4040d, "Run Away", "2014-06-22 08:12:53.937", "PHAMOZYXPQXWJDF"),
+                row(0001d, "Good", "2015-07-22 04:39:19.453", "XQSJCCCGLIOMMCJ"),
+                row(6999d, "Dont think about it", "2014-09-21 01:20:16.26", "MLBLXWCFKHVWXVU"),
+                row(0800d, "Run Away", "2014-01-04 21:08:27.058", "FWXYVWSYDWYXXBZ"),
+                row(4440d, "Run Away", "2014-04-11 06:29:30.187", "WYREDMPIIZPGXZA"),
+                row(4040d, "Dont think about it", "2015-06-10 12:59:47.54", "LTCOVEBAVEHNCRP"),
+                row(4040d, "Poor", "2014-07-29 18:45:46.257", "EMXGEGPTWXUECLS"),
+                row(0700d, "Poor", "2014-02-07 12:19:36.492", "YPXRMRFFYYPWBUZ"),
+                row(4440d, "Good", "2014-07-27 14:25:56.885", "APGRMQQJCJSTCDB"),
+                row(0001d, "Dont think about it", "2014-02-09 08:12:02.596", "PXVDSMZWANQWGCX"),
+                row(6999d, "Dont think about it", "2015-05-23 16:04:52.561", "HCZIXOTTRASHITI"),
+                row(5500d, "Best", "2015-01-23 18:15:43.723", "JRLYTUTWIZNOAPT"),
+                row(0700d, "Dont think about it", "2014-07-19 08:25:52.238", "UYLCQPSCHURELLY"),
+                row(0001d, "Dont think about it", "2015-01-25 19:47:53.004", "NWAJOBJVSGIAIZU"),
+                row(0700d, "Poor", "2014-08-21 21:27:35.482", "ZKBLWNEPGNMQUTL"),
+                row(4040d, "Run Away", "2015-05-09 01:21:16.513", "YNWDVEUSONYHZXE"),
+                row(9001d, "Poor", "2014-05-22 22:20:20.929", "HZLYPGHDEQORMOH"),
+                row(0800d, "Better", "2015-07-30 11:36:16.128", "UUAYIPTXDNCCBTU"),
+                row(0700d, "Better", "2014-01-27 01:22:55.581", "CHZGQMKFKUXIEAY"),
+                row(0800d, "Run Away", "2015-06-23 20:21:06.677", "DBAEKJQCJBGMOYQ"),
+                row(0800d, "Better", "2015-11-25 00:16:42.154", "ZCQJQILUQRCHWCY"),
+                row(0001d, "Best", "2014-08-29 22:30:41.012", "BIMTVQOBOXOMBNI"),
+                row(0800d, "Run Away", "2014-11-04 19:02:56.001", "ZIMKXUOKMCWCGSZ"),
+                row(6999d, "Dont think about it", "2015-08-03 18:40:21.753", "QZMNXNYRPEKJWBY"),
+                row(0002d, "Good", "2015-10-06 03:44:19.184", "NZRXIDYRZNUVXDU"),
+                row(0002d, "Run Away", "2015-06-30 07:06:13.865", "IAUEYFHYZBFMJFW")
+                ))
+            .create();
+
+        // a.ratingEffDate is aliased as effDate - WindowResultSetNode was not recognizing the alias projected out the top
+        // to find the column reference of the underlying table column
+        String sqlText = format("select a.productId, a.ratingAgencyCode, a.ratingEffDate as effDate, a.rating, LEAD(ratingeffDate)" +
+                                    " OVER (PARTITION BY productId, ratingAgencyCode ORDER BY ratingeffDate) \"endDate\" " +
+                                    "from %s a order by productId, ratingAgencyCode", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "PRODUCTID | RATINGAGENCYCODE   |        EFFDATE         |    RATING      |        endDate         |\n" +
+                "----------------------------------------------------------------------------------------------------\n" +
+                "     1     |       Best         |2014-08-29 22:30:41.012 |BIMTVQOBOXOMBNI |         NULL           |\n" +
+                "     1     |Dont think about it |2014-02-09 08:12:02.596 |PXVDSMZWANQWGCX |2015-01-25 19:47:53.004 |\n" +
+                "     1     |Dont think about it |2015-01-25 19:47:53.004 |NWAJOBJVSGIAIZU |         NULL           |\n" +
+                "     1     |       Good         |2014-11-02 03:24:36.044 |TILAXMXGUEYZSEK |2014-12-14 05:52:22.326 |\n" +
+                "     1     |       Good         |2014-12-14 05:52:22.326 |UMTHLNRYDFAYWQS |2015-07-22 04:39:19.453 |\n" +
+                "     1     |       Good         |2015-07-22 04:39:19.453 |XQSJCCCGLIOMMCJ |2015-12-04 16:40:43.67  |\n" +
+                "     1     |       Good         |2015-12-04 16:40:43.67  |BLYUEGSMCFCPXJA |         NULL           |\n" +
+                "     2     |Dont think about it |2014-02-14 04:59:08.36  |JVEZECWKNBLAALU |         NULL           |\n" +
+                "     2     |       Good         |2015-01-22 11:41:01.329 |ZRHSIVRCQUUQZLC |2015-10-06 03:44:19.184 |\n" +
+                "     2     |       Good         |2015-10-06 03:44:19.184 |NZRXIDYRZNUVXDU |         NULL           |\n" +
+                "     2     |     Run Away       |2014-05-16 22:44:34.056 |ZSFHGWWFCQZZNMO |2015-06-30 07:06:13.865 |\n" +
+                "     2     |     Run Away       |2015-06-30 07:06:13.865 |IAUEYFHYZBFMJFW |         NULL           |\n" +
+                "    700    |      Better        |2014-01-27 01:22:55.581 |CHZGQMKFKUXIEAY |         NULL           |\n" +
+                "    700    |Dont think about it |2014-07-19 08:25:52.238 |UYLCQPSCHURELLY |         NULL           |\n" +
+                "    700    |       Poor         |2014-02-07 12:19:36.492 |YPXRMRFFYYPWBUZ |2014-08-21 21:27:35.482 |\n" +
+                "    700    |       Poor         |2014-08-21 21:27:35.482 |ZKBLWNEPGNMQUTL |         NULL           |\n" +
+                "    800    |      Better        |2015-07-30 11:36:16.128 |UUAYIPTXDNCCBTU |2015-11-25 00:16:42.154 |\n" +
+                "    800    |      Better        |2015-11-25 00:16:42.154 |ZCQJQILUQRCHWCY |         NULL           |\n" +
+                "    800    |     Run Away       |2014-01-04 21:08:27.058 |FWXYVWSYDWYXXBZ |2014-11-04 19:02:56.001 |\n" +
+                "    800    |     Run Away       |2014-11-04 19:02:56.001 |ZIMKXUOKMCWCGSZ |2015-01-09 13:29:29.642 |\n" +
+                "    800    |     Run Away       |2015-01-09 13:29:29.642 |KMCNRDOWZFAEVFS |2015-06-23 20:21:06.677 |\n" +
+                "    800    |     Run Away       |2015-06-23 20:21:06.677 |DBAEKJQCJBGMOYQ |         NULL           |\n" +
+                "   3300    |      Better        |2014-03-07 19:37:30.604 |WDQTAXMXLMTWXQL |2014-05-22 10:42:47.834 |\n" +
+                "   3300    |      Better        |2014-05-22 10:42:47.834 |QOJYERFYJAYGNIC |2015-01-13 11:01:19.065 |\n" +
+                "   3300    |      Better        |2015-01-13 11:01:19.065 |SPIHABCGNPNOOAC |         NULL           |\n" +
+                "   3300    |Dont think about it |2014-11-03 05:15:49.851 |TMXIAVAKXCDJYKY |2015-08-13 21:03:44.191 |\n" +
+                "   3300    |Dont think about it |2015-08-13 21:03:44.191 |MRUQGZIKYBXHZPQ |         NULL           |\n" +
+                "   3300    |       Poor         |2015-09-02 05:09:32.683 |FFXXMDXCAVYDJTC |         NULL           |\n" +
+                "   4040    |       Best         |2014-08-21 15:48:24.096 |JSKWDFWMTQCVJTS |         NULL           |\n" +
+                "   4040    |Dont think about it |2015-06-10 12:59:47.54  |LTCOVEBAVEHNCRP |         NULL           |\n" +
+                "   4040    |       Poor         |2014-07-29 18:45:46.257 |EMXGEGPTWXUECLS |         NULL           |\n" +
+                "   4040    |     Run Away       |2014-06-22 08:12:53.937 |PHAMOZYXPQXWJDF |2015-05-09 01:21:16.513 |\n" +
+                "   4040    |     Run Away       |2015-05-09 01:21:16.513 |YNWDVEUSONYHZXE |         NULL           |\n" +
+                "   4440    |Dont think about it |2014-03-11 10:19:44.256 |NIILBXPPMRRKVSG |2014-08-05 09:55:23.669 |\n" +
+                "   4440    |Dont think about it |2014-08-05 09:55:23.669 |GLUUGLMTGJRUHSA |2015-01-06 21:26:12.528 |\n" +
+                "   4440    |Dont think about it |2015-01-06 21:26:12.528 |KVPKDRBXWBGATQY |         NULL           |\n" +
+                "   4440    |       Good         |2014-07-27 14:25:56.885 |APGRMQQJCJSTCDB |         NULL           |\n" +
+                "   4440    |     Run Away       |2014-04-11 06:29:30.187 |WYREDMPIIZPGXZA |2014-11-12 06:40:59.685 |\n" +
+                "   4440    |     Run Away       |2014-11-12 06:40:59.685 |VVEEPGAEVWDLBPF |         NULL           |\n" +
+                "   5500    |       Best         |2015-01-23 18:15:43.723 |JRLYTUTWIZNOAPT |         NULL           |\n" +
+                "   5500    |       Good         |2014-07-31 20:33:36.713 |OLSEYNIBUDVHEIF |         NULL           |\n" +
+                "   6999    |Dont think about it |2014-07-30 10:23:12.643 |MRVUOQXPZMVTVXW |2014-09-21 01:20:16.26  |\n" +
+                "   6999    |Dont think about it |2014-09-21 01:20:16.26  |MLBLXWCFKHVWXVU |2015-05-23 16:04:52.561 |\n" +
+                "   6999    |Dont think about it |2015-05-23 16:04:52.561 |HCZIXOTTRASHITI |2015-08-03 18:40:21.753 |\n" +
+                "   6999    |Dont think about it |2015-08-03 18:40:21.753 |QZMNXNYRPEKJWBY |         NULL           |\n" +
+                "   6999    |       Poor         |2015-04-30 05:52:43.627 |LFHHSWUBDDIPKPA |         NULL           |\n" +
+                "   9001    |       Best         |2014-11-01 21:51:02.199 |JFVQBHBCTVPVZTR |         NULL           |\n" +
+                "   9001    |Dont think about it |2015-06-11 21:00:40.206 |ILWSWUTLTSCJRSV |         NULL           |\n" +
+                "   9001    |       Good         | 2015-09-27 17:49:39.5  |XHFHMOPWMOJNGOL |         NULL           |\n" +
+                "   9001    |       Poor         |2014-05-22 22:20:20.929 |HZLYPGHDEQORMOH |         NULL           |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test @Ignore("DB-3927: found possible frame processing problem while implementing first_value()")
     public void testFirstValueWithAggregateArgument() throws Exception {
-        // DB-3920
+        // DB-3927
         String tableName = "all_sales3";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(yr INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount decimal(8, 2))";
