@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
         <version>2.0.1.12-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>db-client</artifactId>
-
-
     <!--
     Classes in this module and its dependencies make up our splice JDBC driver.  Because the jdbc driver will be on the
     classpath of customer java applications that use it, the driver jar must NOT contain any unshaded third party
@@ -19,33 +14,25 @@
     example).
     -->
     <dependencies>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>db-shared</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>db-tools-i18n</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>db-tools-testing</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-
-
     </dependencies>
-
-
     <build>
         <plugins>
-
             <!-- Replace the artifact for this module with a jar artifact that contains everything necessary to function
              as the splice JDBC driver. -->
             <plugin>
@@ -71,5 +58,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
