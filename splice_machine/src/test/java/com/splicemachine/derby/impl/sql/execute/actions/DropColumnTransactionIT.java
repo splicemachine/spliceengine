@@ -583,4 +583,93 @@ public class DropColumnTransactionIT {
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
    }
 
+    /* Regression test for DB-5060 */
+    @Test
+    public void testDropColumnBeforeInsertShiftedColumns2() throws Exception {
+        String tableName = "DROPCOLEMP";
+        String tableRef = schemaWatcher.schemaName + "." + tableName;
+        methodWatcher.executeUpdate(String.format(
+            "create table %s (id INTEGER NOT NULL, name VARCHAR(32), gender CHAR(1), title VARCHAR(16))", tableRef));
+
+        String tableName2 = "DROPCOLEMP2";
+        String tableRef2 = schemaWatcher.schemaName + "." + tableName2;
+        methodWatcher.executeUpdate(String.format(
+            "create table %s (idtwo INTEGER NOT NULL, gendertwo CHAR(1), titletwo VARCHAR(16))", tableRef2));
+
+        TestConnection conn = methodWatcher.createConnection();
+        conn.createStatement().execute(String.format("insert into %s values (1,'amy','f','my1title')", tableRef));
+        conn.createStatement().execute(String.format("insert into %s (id,gender,title) values (2,'m','my2title')", tableRef));
+
+        conn.createStatement().execute(String.format("insert into %s values (10,'f','my1000title')", tableRef2));
+        conn.createStatement().execute(String.format("insert into %s values (20,'m','my2000title')", tableRef2));
+
+        List<Object[]> expected = Arrays.asList(
+            o(1,"amy","f","my1title"),o(2,null,"m","my2title"));
+        ResultSet rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*aa*/", tableRef));
+        List results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        conn.createStatement().execute(String.format(
+            "alter table %s drop column name", tableRef));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*bb*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // VALUES with no target list
+        conn.createStatement().execute(String.format("insert into %s values (3,'m','my3title')", tableRef));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*cc*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // VALUES with target list
+        conn.createStatement().execute(String.format("insert into %s (id,gender,title) values (4,'f','my4title')", tableRef));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
+            o(4,"f","my4title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*dd*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // VALUES with shorter target list
+        conn.createStatement().execute(String.format("insert into %s (id,title) values (5,'my5title')", tableRef));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
+            o(4,"f","my4title"),o(5,null,"my5title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*ee*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // VALUES with shorter target list in different order
+        conn.createStatement().execute(String.format("insert into %s (title,id) values ('my6title',6)", tableRef));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
+            o(4,"f","my4title"),o(5,null,"my5title"),o(6,null,"my6title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*ff*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // Source select (dummy) with target list
+        conn.createStatement().execute(String.format("insert into %s (id,gender,title) select 7,'m','my7title' from SYSIBM.SYSDUMMY1", tableRef));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
+            o(4,"f","my4title"),o(5,null,"my5title"),o(6,null,"my6title"),
+            o(7,"m","my7title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*gg*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // Source select with target list
+        conn.createStatement().execute(String.format("insert into %s (id,gender,title) select idtwo,gendertwo,titletwo from %s", tableRef, tableRef2));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
+            o(4,"f","my4title"),o(5,null,"my5title"),o(6,null,"my6title"),
+            o(7,"m","my7title"),o(10,"f","my1000title"),o(20,"m","my2000title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*hh*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+    }
 }

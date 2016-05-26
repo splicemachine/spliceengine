@@ -376,11 +376,13 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	}
 
     /**
-     * Updates this DML node's result set columns to include placeholder null columns
-     * for deleted columns. This is accomplished by looking at column information
+     * Updates this DML node's source and target result columns
+     * (both this.resultSet.resultColumns and this.resultColumnList,
+     * respectively) to include placeholder null columns for dropped columns.
+     * This is accomplished by looking at column information
      * within this DML node's result column list (in particular the storage position
      * of each column) to determine where the additional null columns are needed.
-     * Should generally only be called at the very end of bindStatement().
+     * Should generally only be called from bindStatement().
      *
      * @throws StandardException
      */
@@ -404,17 +406,21 @@ abstract class DMLModStatementNode extends DMLStatementNode
             storagePosMap[storagePosition-1] = index;
         }
 
+        ResultColumnList expandedRS = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
         ResultColumnList expandedRCL = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
         for (int index = 0; index < maxStorageID; index++) {
             int pos = storagePosMap[index]; // index is 0-based, pos is 1-based
             ResultColumn newSourceRC = null;
+            ResultColumn newSourceRCLEntry = null;
             if (pos != -1) {
                 ResultColumn sourceRC = this.resultSet.getResultColumns().getResultColumn(pos);
                 newSourceRC = sourceRC.cloneMe();
+                ResultColumn sourceRCLEntry = this.resultColumnList.getResultColumn(pos);
+                newSourceRCLEntry = sourceRCLEntry.cloneMe();
             } else {
                 // Have to give it a type. Arbitrarily using integer which seems to work even when
                 // the dropped column was another type.
-                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER);
+                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
                 // Create untyped null node and use it to initialize new ResultColumn.
                 // Alternatively use getNullNode(dtd) to create typed null node.
                 ValueNode nullNode = (ValueNode) getNodeFactory().getNode(
@@ -425,12 +431,15 @@ abstract class DMLModStatementNode extends DMLStatementNode
                     dtd,
                     nullNode,
                     getContextManager());
+                newSourceRCLEntry = newSourceRC.cloneMe();
             }
-            expandedRCL.addResultColumn(newSourceRC);
+            expandedRS.addResultColumn(newSourceRC);
+            expandedRCL.addResultColumn(newSourceRCLEntry);
         }
 
         // In the new result columns, virtualColumnId = storage position id of the column
-        resultSet.setResultColumns(expandedRCL);
+        resultSet.setResultColumns(expandedRS);
+        this.resultColumnList = expandedRCL;
     }
 
     /**

@@ -921,20 +921,21 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @throws StandardException Thrown on error
      */
     public int[] getStreamStorableColIds(int heapColCount) throws StandardException{
-        //@#$
-        //System.out.println("getStreamStorableColids");
-
         int ssCount=0;
-        boolean[] isSS=new boolean[heapColCount];//Should be table length.
         int size=size();
+        // Sometimes size < heapColCount (delete), other times they match,
+        // other times size > heapColCount (insert after a drop column),
+        // so ensure array is large enough for any case.
+        boolean[] isSS=new boolean[Math.max(size, heapColCount)];
 
         for(int index=0;index<size;index++){
             ResultColumn rc=elementAt(index);
 
             if(rc.getTypeId().streamStorable()){
-                //System.out.println("    streamStorable=true");
                 ColumnDescriptor cd=rc.getTableColumnDescriptor();
-                isSS[cd.getPosition()-1]=true;
+                if (cd != null) { // can be null if placeholder for dropped column
+                    isSS[cd.getPosition()-1]=true;
+                }
             }
         }
 

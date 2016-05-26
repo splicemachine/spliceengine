@@ -434,6 +434,12 @@ public final class InsertNode extends DMLModStatementNode {
 
 		resultColumnList.checkStorableExpressions(resultSet.getResultColumns());
 
+        // We need to expand both target (this.ResultColumnList) and source (this.ResultSet.resultColumnList)
+        // to include null placeholders for dropped columns. We need each ResultColumn to have its virtualColumnId
+        // be the storage position, not the ordinal column position. Ideally we would call this at the very bottom
+        // of bindStatement() once everything is bound using the regular ordinal positions, but we need to do it
+        // here because the normalize node is created here and it will end up wrong if we update result set later.
+        expandResultSetWithDeletedColumns();
 
 		/* Insert a NormalizeResultSetNode above the source if the source
 		 * and target column types and lengths do not match.
@@ -504,12 +510,6 @@ public final class InsertNode extends DMLModStatementNode {
                                                   null,
                                                   resultSet);
 		}
-
-        // With all binding complete, now we can safely expand this result Set
-        // (this.resultSet.resultColumnList) to include null placeholders for
-        // dropped columns. We need each ResultColumn to have its virtualColumnId
-        // be the storage position, not the ordinal column position.
-        expandResultSetWithDeletedColumns();
 
         getCompilerContext().popCurrentPrivType();
 	}
