@@ -2,6 +2,8 @@ package com.splicemachine.derby.lifecycle;
 
 import javax.annotation.Nullable;
 
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.stream.RemoteQueryClientImpl;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.db.iapi.sql.Activation;
@@ -15,6 +17,7 @@ import com.splicemachine.derby.stream.spark.HregionDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -94,4 +97,8 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
         else return RegionServerLifecycleObserver.isHbaseJVM; //we can run in spark as long as are in the HBase JVM
     }
 
+    @Override
+    public RemoteQueryClient getRemoteQueryClient(SpliceBaseOperation operation) {
+        return new RemoteQueryClientImpl(operation);
+    }
 }

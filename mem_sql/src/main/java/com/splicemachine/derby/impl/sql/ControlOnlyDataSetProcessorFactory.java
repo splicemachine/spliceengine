@@ -4,9 +4,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.derby.stream.utils.ForwardingDataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -60,6 +62,11 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "distributedProcessor(): DistributedWrapper provided");
         return new DistributedWrapper(createControlDataSetProcessor());
+    }
+
+    @Override
+    public RemoteQueryClient getRemoteQueryClient(SpliceBaseOperation operation) {
+        throw new UnsupportedOperationException("Not supported");
     }
 
     private static class DistributedWrapper extends ForwardingDataSetProcessor implements DistributedDataSetProcessor{

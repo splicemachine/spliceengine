@@ -373,7 +373,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
-        openCore(dsp);
+        if (dsp.getType() == DataSetProcessor.Type.SPARK) {
+            RemoteQueryClient remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
+            remoteQueryClient.submit();
+            locatedRowIterator = remoteQueryClient.getIterator();
+        } else {
+            openCore(dsp);
+        }
     }
 
     @Override
