@@ -61,7 +61,6 @@ public final class GenericColumnDescriptor
 	private String				schemaName;
 	private String				tableName;
 	private int					columnPos;
-    private int					storagePos;
 	private DataTypeDescriptor	type;
 	private boolean 			isAutoincrement;
 	private boolean 			updatableByCursor;
@@ -94,7 +93,6 @@ public final class GenericColumnDescriptor
 		tableName = rcd.getSourceTableName();
  		schemaName = rcd.getSourceSchemaName();
 		columnPos = rcd.getColumnPosition();
-        storagePos = rcd.getStoragePosition();
 		type = rcd.getType();
 		isAutoincrement = rcd.isAutoincrement();
 		updatableByCursor = rcd.updatableByCursor();
@@ -167,7 +165,7 @@ public final class GenericColumnDescriptor
 
     public int getStoragePosition()
     {
-        return storagePos;
+        return columnPos;
     }
 
     public boolean isAutoincrement()
@@ -195,8 +193,7 @@ public final class GenericColumnDescriptor
  	 * @exception IOException thrown on error
 	 */
 	public void writeExternal(ObjectOutput out) throws IOException {
-		
-		out.writeUTF(name);
+        out.writeUTF(name);
 		if (tableName != null) {
             out.writeBoolean(true);
             out.writeUTF(tableName);
@@ -213,8 +210,7 @@ public final class GenericColumnDescriptor
 		out.writeObject(type);
 		out.writeBoolean(isAutoincrement);
 		out.writeBoolean(updatableByCursor);		
-		return;
-	}	
+	}
 
 	/**
 	 * Read this object from a stream of stored objects.
@@ -225,8 +221,8 @@ public final class GenericColumnDescriptor
 	 * @exception ClassNotFoundException		thrown on error
 	 */
 	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException {		
-		name = in.readUTF();
+		throws IOException, ClassNotFoundException {
+        name = in.readUTF();
 		if (in.readBoolean()) {
             tableName = in.readUTF();
         }
@@ -253,7 +249,6 @@ public final class GenericColumnDescriptor
 			return "GenericColumnDescriptor\n\tname: "+name+
 				"\n\tTable: "+schemaName+"."+tableName+
 				"\n\tcolumnPos: "+columnPos+
-                "\n\tstoragePos: "+storagePos+
 				"\n\tType: "+type+
 				"\n\tisAutoincrement: " + isAutoincrement +
 				"\n\thasGenerationClause: " + hasGenerationClause;

@@ -561,20 +561,16 @@ public final class InsertNode extends DMLModStatementNode {
                 ResultColumn sourceRCLEntry = this.resultColumnList.getResultColumn(pos);
                 newSourceRCLEntry = sourceRCLEntry.cloneMe();
             } else {
-                // Have to give it a type. Arbitrarily using integer which seems to work even when
-                // the dropped column was another type.
+                // Have to give it a type, which doesn't need to match what the dropped column was.
                 DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
-                // Create untyped null node and use it to initialize new ResultColumn.
-                // Alternatively use getNullNode(dtd) to create typed null node.
-                ValueNode nullNode = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                    getContextManager());
+                // ValueNode nullNode = (ValueNode) getNodeFactory().getNode(
+                //     C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+                //     getContextManager());
                 newSourceRC = (ResultColumn)getNodeFactory().getNode(
                     C_NodeTypes.RESULT_COLUMN,
-                    dtd,
-                    nullNode,
+                    "",
+                    getNullNode(dtd),
                     getContextManager());
-                // newSourceRC.markGeneratedForUnmatchedColumnInInsert();
                 newSourceRCLEntry = newSourceRC.cloneMe();
             }
             expandedRS.addResultColumn(newSourceRC);
