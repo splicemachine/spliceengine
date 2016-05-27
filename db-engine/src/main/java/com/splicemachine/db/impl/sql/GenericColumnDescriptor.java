@@ -33,11 +33,11 @@ import com.splicemachine.db.iapi.services.io.Formatable;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+
 /**
  * This is a stripped down implementation of a column
  * descriptor that is intended for generic use.  It
  * can be seralized and attached to plans.
- *
  */
 public final class GenericColumnDescriptor
 	implements ResultColumnDescriptor, Formatable
@@ -158,15 +158,10 @@ public final class GenericColumnDescriptor
 	 * @return	An int containing the position of the Column
 	 *		within the table.
 	 */
-	public int	getColumnPosition()
+	public int getColumnPosition()
 	{
 		return columnPos;
 	}
-
-    public int getStoragePosition()
-    {
-        return columnPos;
-    }
 
     public boolean isAutoincrement()
 	{
