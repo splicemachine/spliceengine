@@ -496,6 +496,7 @@ public final class ColumnDescriptor extends TupleDescriptor
 			*/
             return "columnName: " + columnName + "\n" +
                     "columnPosition: " + columnPosition + "\n" +
+                    "storagePosition: " + storagePosition + "\n" +
                     "columnType: " + columnType + "\n" +
                     "columnDefault: " + columnDefault + "\n" +
                     "uuid: " + uuid + "\n" +
