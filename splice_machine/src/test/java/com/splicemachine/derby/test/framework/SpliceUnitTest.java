@@ -298,15 +298,27 @@ public class SpliceUnitTest {
     public static File createBadLogDirectory(String schemaName) {
         File badImportLogDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/BAD/"+schemaName);
         if (badImportLogDirectory.exists()) {
-            //noinspection ConstantConditions
-            for (File file : badImportLogDirectory.listFiles()) {
-                assertTrue("Couldn't create "+file,file.delete());
-            }
-            assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.delete());
+            recursiveDelete(badImportLogDirectory);
         }
         assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.mkdirs());
         assertTrue("Failed to create "+badImportLogDirectory,badImportLogDirectory.exists());
         return badImportLogDirectory;
+    }
+
+    public static void recursiveDelete(File file) {
+        if (file != null) {
+            File[] directoryFiles = file.listFiles();
+            if (directoryFiles != null) {
+                for (File aFile : directoryFiles) {
+                    if (aFile.isDirectory()) {
+                        recursiveDelete(aFile);
+                    } else {
+                        assertTrue("Couldn't delete " + aFile, aFile.delete());
+                    }
+                }
+            }
+            assertTrue("Couldn't delete "+file,file.delete());
+        }
     }
 
     public static File createImportFileDirectory(String schemaName) {

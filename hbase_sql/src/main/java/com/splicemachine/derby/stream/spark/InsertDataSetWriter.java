@@ -53,7 +53,6 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
     private long heapConglom;
     private boolean isUpsert;
     private TxnView txn;
-    private static final Logger LOG = Logger.getLogger(InsertDataSetWriter.class);
 
     public InsertDataSetWriter(){
     }
@@ -90,17 +89,14 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
             valueRow.setColumn(1,new SQLLongint(opContext.getRecordsWritten()));
             opContext.getActivation().getLanguageConnectionContext().setRecordsImported(opContext.getRecordsWritten());
             InsertOperation insertOperation=((InsertOperation)opContext.getOperation());
-            if(insertOperation!=null) {
-                List<String> badRecords = opContext.getBadRecords();
-                opContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
-                if (badRecords.size() > 0) {
-                    DataSet dataSet = new ControlDataSet<>(badRecords);
-                    DistributedFileSystem fileSystem = SIDriver.driver().fileSystem();
-                    Path path = generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
-                    dataSet.saveAsTextFile(path.toString());
-                    opContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
-                    if (insertOperation.isAboveFailThreshold(badRecords.size())) {
-                        throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path.toString());
+            if(insertOperation!=null && opContext.isPermissive()) {
+                long numBadRecords = opContext.getBadRecords();
+                opContext.getActivation().getLanguageConnectionContext().setFailedRecords(numBadRecords);
+                if (numBadRecords > 0) {
+                    String fileName = opContext.getBadRecordFileName();
+                    opContext.getActivation().getLanguageConnectionContext().setBadFile(fileName);
+                    if (insertOperation.isAboveFailThreshold(numBadRecords)) {
+                        throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
                     }
                 }
             }
@@ -131,36 +127,4 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
         return Bytes.toBytes(heapConglom);
     }
 
-    private static Path generateFileSystemPathForWrite(String badDirectory,
-                                                       DistributedFileSystem fileSystem,
-                                                       SpliceOperation spliceOperation) throws StandardException {
-
-
-        java.nio.file.Path inputFilePath = fileSystem.getPath(spliceOperation.getVTIFileName());
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "generateFileSystemPathForWrite(): badDirectory=%s, filePath=%s", badDirectory, inputFilePath);
-        assert inputFilePath !=null;
-        String vtiFileName=inputFilePath.getFileName().toString();
-
-        if (badDirectory == null || badDirectory.isEmpty() || badDirectory.toUpperCase().equals("NULL")) {
-            badDirectory = inputFilePath.getParent().toString();
-        }
-
-        ImportUtils.validateWritable(badDirectory,true);
-        int i=0;
-        while(true){
-            String fileName=new org.apache.hadoop.fs.Path(vtiFileName).getName();
-            fileName=fileName+(i==0?".bad":"_"+i+".bad");
-            Path fileSystemPathForWrites=new Path(badDirectory,fileName);
-            FileInfo info;
-            try {
-                info=fileSystem.getInfo(fileSystemPathForWrites.toString());
-            }catch(IOException e){
-                // File does not exist already, so we are done
-                return fileSystemPathForWrites;
-            }
-            if (info == null) return fileSystemPathForWrites;
-            i++;
-        }
-    }
 }

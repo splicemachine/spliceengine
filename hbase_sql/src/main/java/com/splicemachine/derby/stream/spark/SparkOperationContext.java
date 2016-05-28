@@ -7,7 +7,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
@@ -17,7 +19,6 @@ import java.sql.SQLException;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,6 +28,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     protected static Logger LOG=Logger.getLogger(SparkOperationContext.class);
     private static final String LINE_SEP = System.lineSeparator();
     private BroadcastedActivation broadcastedActivation;
+    private Accumulable<BadRecordsRecorder,String> badRecordsAccumulator;
 
     public SpliceTransactionResourceImpl impl;
     public Activation activation;
@@ -38,11 +40,10 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public Accumulator<Long> rowsProduced;
     public Accumulator<Long> rowsFiltered;
     public Accumulator<Long> rowsWritten;
-    public Accumulable<List<String>, String> badRecordsAccumulable;
     public boolean permissive;
+    public long badRecordsSeen;
+    public long badRecordThreshold;
     public boolean failed;
-    public int numberBadRecords=0;
-    private int failBadRecordCount=-1;
 
     public SparkOperationContext(){
 
@@ -62,7 +63,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined left",param);
         this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined right",param);
         this.rowsProduced=SpliceSpark.getContext().accumulator(0l,baseName+" rows produced",param);
-        this.badRecordsAccumulable=SpliceSpark.getContext().accumulable(new ArrayList<String>(),baseName+" BadRecords",new BadRecordsAccumulator());
     }
 
     @SuppressWarnings("unchecked")
@@ -76,7 +76,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.rowsWritten=SpliceSpark.getContext().accumulator(0l,"rows written",param);
         this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0l,"rows joined left",param);
         this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,"rows joined right",param);
-        this.rowsProduced=SpliceSpark.getContext().accumulator(0l,"rows produced",param);
+        this.rowsProduced=SpliceSpark.getContext().accumulator(0l, "rows produced", param);
     }
 
     public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException{
@@ -84,7 +84,8 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
-        out.writeInt(failBadRecordCount);
+        out.writeLong(badRecordsSeen);
+        out.writeLong(badRecordThreshold);
         out.writeBoolean(permissive);
         out.writeBoolean(op!=null);
         if(op!=null){
@@ -97,13 +98,14 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         out.writeObject(rowsJoinedLeft);
         out.writeObject(rowsJoinedRight);
         out.writeObject(rowsProduced);
-        out.writeObject(badRecordsAccumulable);
+        out.writeObject(badRecordsAccumulator);
     }
 
     @Override
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException{
-        failBadRecordCount=in.readInt();
+        badRecordsSeen = in.readLong();
+        badRecordThreshold = in.readLong();
         permissive=in.readBoolean();
         SpliceSpark.setupSpliceStaticComponents();
         boolean isOp=in.readBoolean();
@@ -118,7 +120,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         rowsJoinedLeft=(Accumulator<Long>)in.readObject();
         rowsJoinedRight=(Accumulator<Long>)in.readObject();
         rowsProduced=(Accumulator<Long>)in.readObject();
-        badRecordsAccumulable=(Accumulable<List<String>, String>)in.readObject();
+        badRecordsAccumulator = (Accumulable<BadRecordsRecorder,String>) in.readObject();
     }
 
     @Override
@@ -219,32 +221,54 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
-    public void recordBadRecord(String badRecord, Exception e) {
-        numberBadRecords++;
-        String errorState = "";
-        if (e != null) {
-            if (e instanceof SQLException) {
-                errorState = ((SQLException)e).getSQLState();
-            } else if (e instanceof StandardException) {
-                errorState = ((StandardException)e).getSQLState();
+    public void recordBadRecord(String badRecord, Exception e) throws StandardException {
+        if (! failed) {
+            ++badRecordsSeen;
+            String errorState = "";
+            if (e != null) {
+                if (e instanceof SQLException) {
+                    errorState = ((SQLException)e).getSQLState();
+                } else if (e instanceof StandardException) {
+                    errorState = ((StandardException)e).getSQLState();
+                }
+            }
+            badRecordsAccumulator.add(errorState + " " + badRecord+LINE_SEP);
+            if (badRecordThreshold >= 0 && badRecordsSeen > badRecordThreshold) {
+                // If tolerance threshold is < 0, we're accepting all bad records
+                // We can't dereference the accumulator's value (BadRecordRecorder) here on server side
+                // to check failure, so we have to track it manually
+                failed = true;
             }
         }
-        badRecordsAccumulable.add(errorState + " " + badRecord+LINE_SEP);
-        if (failBadRecordCount>=0 && numberBadRecords> this.failBadRecordCount)
-            failed=true;
     }
 
     @Override
-    public List<String> getBadRecords(){
+    public long getBadRecords() {
+        // can only be called after we're back on the client side since we need to reference accumulator value
+        long nBadRecords = (getBadRecordsRecorder() != null ? getBadRecordsRecorder().getNumberOfBadRecords() : 0);
         List<SpliceOperation> operations=getOperation().getSubOperations();
-        List<String> badRecords=badRecordsAccumulable.value();
         if(operations!=null){
             for(SpliceOperation operation : operations){
                 if(operation.getOperationContext()!=null)
-                    badRecords.addAll(operation.getOperationContext().getBadRecords());
+                    nBadRecords += operation.getOperationContext().getBadRecords();
             }
         }
-        return badRecords;
+        return nBadRecords;
+    }
+
+    @Override
+    public String getBadRecordFileName() {
+        // can only be called after we're back on the client side since we need to reference accumulator value
+        return (getBadRecordsRecorder() != null ? getBadRecordsRecorder().getBadRecordFileName() : "");
+    }
+
+    @Override
+    public BadRecordsRecorder getBadRecordsRecorder() {
+        // can only be called after we're back on the client side since we need to reference accumulator value
+        if (this.badRecordsAccumulator != null) {
+            return this.badRecordsAccumulator.value();
+        }
+        return null;
     }
 
     @Override
@@ -258,12 +282,10 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
-    public void setPermissive(){
+    public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold){
         this.permissive=true;
-    }
-
-    @Override
-    public void setFailBadRecordCount(int failBadRecordCount){
-        this.failBadRecordCount=failBadRecordCount;
+        this.badRecordThreshold = badRecordThreshold;
+        BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory, importFileName, badRecordThreshold);
+        this.badRecordsAccumulator=SpliceSpark.getContext().accumulable(badRecordsRecorder,badRecordsRecorder.getUniqueName(), new BadRecordsAccumulator());
     }
 }

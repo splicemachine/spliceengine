@@ -54,8 +54,10 @@ import com.splicemachine.storage.Partition;
  * @author jleach
  */
 public class ControlDataSetProcessor implements DataSetProcessor{
-    private int failBadRecordCount=-1;
+    private long badRecordThreshold=-1;
     private boolean permissive;
+    private String statusDirectory;
+    private String importFileName;
 
     private static final Logger LOG=Logger.getLogger(ControlDataSetProcessor.class);
 
@@ -178,8 +180,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         OperationContext<Op> operationContext=new ControlOperationContext<>(spliceOperation);
         spliceOperation.setOperationContext(operationContext);
         if(permissive){
-            operationContext.setPermissive();
-            operationContext.setFailBadRecordCount(failBadRecordCount);
+            operationContext.setPermissive(statusDirectory, importFileName, badRecordThreshold);
         }
         return operationContext;
     }
@@ -277,13 +278,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public void setPermissive(){
+    public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold){
         this.permissive = true;
-    }
-
-    @Override
-    public void setFailBadRecordCount(int failBadRecordCount){
-        this.failBadRecordCount=failBadRecordCount;
+        this.statusDirectory = statusDirectory;
+        this.importFileName = importFileName;
+        this.badRecordThreshold = badRecordThreshold;
     }
 
     @Override

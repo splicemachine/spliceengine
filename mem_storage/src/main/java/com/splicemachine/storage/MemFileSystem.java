@@ -258,6 +258,14 @@ public class MemFileSystem extends DistributedFileSystem{
         localDelegate.setAttribute(path,attribute,value,options);
     }
 
+    @Override
+    public void concat(Path target, Path... sources) throws IOException {
+        for (Path source : sources) {
+            localDelegate.copy(source, target);
+            localDelegate.delete(source);
+        }
+    }
+
     private static class PathInfo implements FileInfo{
         private final Path p;
 

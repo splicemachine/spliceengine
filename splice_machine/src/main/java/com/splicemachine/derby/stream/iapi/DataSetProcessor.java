@@ -88,11 +88,12 @@ public interface DataSetProcessor {
     void setSchedulerPool(String pool);
 
     /**
-     * Sets whether failures are swallowed vs. being thrown up the stack.
+     * Sets whether failures are logged (up to <code>badRecordThreshold</code> vs. immediately thrown up the stack.
+     * @param statusDirectory the director to which bad record files should be written
+     * @param importFileName the name of the import file. Will be used to determine the bad record file name.
+     * @param badRecordThreshold the tolerance to which we should accept bad records
      */
-    void setPermissive();
-
-    void setFailBadRecordCount(int failBadRecordCount);
+    void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold);
 
     void clearBroadcastedOperation();
 

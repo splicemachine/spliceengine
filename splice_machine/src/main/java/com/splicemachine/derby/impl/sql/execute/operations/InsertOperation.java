@@ -211,8 +211,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         if(statusDirectory != null) {
             // if we have a status directory, we're an import and so permissive
-            dsp.setPermissive();
-            dsp.setFailBadRecordCount(this.failBadRecordCount);
+            dsp.setPermissive(statusDirectory, getVTIFileName(), failBadRecordCount);
         }
         DataSet set=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
