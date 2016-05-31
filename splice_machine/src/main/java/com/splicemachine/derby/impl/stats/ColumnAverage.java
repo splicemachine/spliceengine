@@ -78,6 +78,7 @@ public abstract class ColumnAverage<T> implements ColumnStatistics<T>{
     @Override
     public int avgColumnWidth() {
         if(mergeCount<=0) return 0;
+        if (sumNonNull == 0) return 0;
         return (int)(sumWidth/sumNonNull);
     }
 

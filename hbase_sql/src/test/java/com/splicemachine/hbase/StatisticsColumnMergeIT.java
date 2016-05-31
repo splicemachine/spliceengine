@@ -53,10 +53,10 @@ public class StatisticsColumnMergeIT extends SpliceUnitTest{
 
         new TableCreator(conn)
                 .withCreate("create table " + TABLE + " (c1 smallint, c2 int, c3 bigint, c4 boolean, c5 float," +
-                        "c6 double, c7 decimal, c8 timestamp, c9 date, c10 varchar(10), c11 char(10))")
+                        "c6 double, c7 decimal, c8 timestamp, c9 date, c10 varchar(10), c11 char(10), c12 int)")
                 .create();
 
-        PreparedStatement ps = methodWatcher.prepareStatement("insert into " + TABLE + " values(?,?,?,?,?,?,?,?,?,?,?)");
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into " + TABLE + "(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11) values(?,?,?,?,?,?,?,?,?,?,?)");
         for (int i = 0; i < 40; ++i) {
             for (int j = 0; j < 1024; j++) {
                 int n = i * 1024 + j;
