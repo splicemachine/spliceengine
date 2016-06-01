@@ -168,9 +168,19 @@ public class HRegionUtil extends BaseHRegionUtil{
         // The secondary index takes numEntries + 1 ints.
         int entriesOffset = Bytes.SIZEOF_INT * (numEntries + 2);
 
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Block readable bytes: " + nonRootIndex.limit());
+        }
+
         if (level > 1) {
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Processing intermediate index");
+            }
             // Intermediate index
             for (int i = 0; i < numEntries; ++i) {
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Decoding element " + i + " of " + numEntries);
+                }
                 // Targetkey's offset relative to the end of secondary index
                 int targetEntryRelOffset = nonRootIndex.getInt(Bytes.SIZEOF_INT * (i + 1));
 
@@ -191,6 +201,10 @@ public class HRegionUtil extends BaseHRegionUtil{
             }
             return carriedSize;
         } else {
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Processing leaf index");
+            }
+
             // Leaf index
             int incrementalSize = storeFileInBytes > numEntries ? (int) (storeFileInBytes / numEntries) : 1;
             int step = splitBlockSize > incrementalSize ? splitBlockSize / incrementalSize : 1;
@@ -199,6 +213,10 @@ public class HRegionUtil extends BaseHRegionUtil{
             int previous = 0;
             for (int i = firstStep; i < numEntries; previous = i, i += step) {
                 carriedSize = 0; // We add a cutpoint, reset carried size
+
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Decoding element " + i + " of " + numEntries);
+                }
 
                 // Targetkey's offset relative to the end of secondary index
                 int targetKeyRelOffset = nonRootIndex.getInt(
@@ -220,6 +238,9 @@ public class HRegionUtil extends BaseHRegionUtil{
                 dup.limit(targetKeyOffset + targetKeyLength);
                 KeyValue tentative = KeyValue.createKeyValueFromKey(dup.slice());
                 if (CellUtils.isKeyValueInRange(tentative, range)) {
+                    if (LOG.isTraceEnabled()) {
+                        LOG.trace("Adding cutpoint " + CellUtils.toHex(tentative.getRow()));
+                    }
                     cutpoints.add(tentative.getRow());
                 }
             }

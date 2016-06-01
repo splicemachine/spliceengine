@@ -30,6 +30,7 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
     @Override
     public List<InputSplit> getSubSplits(Table table, List<Partition> splits) throws HMissedSplitException {
         List<InputSplit> results = new ArrayList<>();
+        final HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
         for (final Partition split : splits) {
             try {
                 byte[] probe;
@@ -64,7 +65,6 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                                     throw controller.getFailedOn();
                                 }
                                 List<InputSplit> result = new ArrayList<>();
-                                HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
                                 Iterator<ByteString> it = response.getCutPointList().iterator();
                                 byte[] first = it.next().toByteArray();
                                 while (it.hasNext()) {
@@ -90,7 +90,18 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
             } catch (HMissedSplitException ms) {
                 throw ms;
             } catch (Throwable throwable) {
-                throw new RuntimeException(throwable);
+                LOG.error("Error while computing cutpoints, falling back to whole region partition", throwable);
+                try {
+                    results.add(new SMSplit(
+                            new TableSplit(
+                                    infoFactory.getTableInfo(split.getTableName()),
+                                    split.getStartKey(),
+                                    split.getEndKey(),
+                                    split.owningServer().getHostname())));
+                } catch (IOException e) {
+                    // Failed to add split, bail out
+                    throw new RuntimeException(e);
+                }
             }
         }
         return results;
