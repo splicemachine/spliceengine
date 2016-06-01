@@ -41,12 +41,26 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         return -1l;
     }
 
+    /**
+     * Adjusts the base table cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
     @Override
     public Visitable visit(IndexToBaseRowNode node) throws StandardException {
         adjustBaseTableCost(node);
         nullify();
         return super.visit(node);
     }
+    /**
+     * Adjusts the base table cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(FromBaseTable node) throws StandardException {
@@ -57,6 +71,13 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         nullify();
         return super.visit(node);
     }
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(DistinctNode node) throws StandardException {
@@ -65,11 +86,19 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         return super.visit(node);
     }
 
+
     @Override
     public Visitable visit(FromSubquery node) throws StandardException {
         nullify();
         return super.visit(node);
     }
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(GroupByNode node) throws StandardException {
@@ -77,6 +106,13 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         nullify();
         return super.visit(node);
     }
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(JoinNode node) throws StandardException {
@@ -84,6 +120,13 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         nullify();
         return super.visit(node);
     }
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(HalfOuterJoinNode node) throws StandardException {
@@ -91,6 +134,13 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         nullify();
         return super.visit(node);
     }
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(RowResultSetNode node) throws StandardException {
@@ -98,6 +148,13 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         nullify();
         return super.visit(node);
     }
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(IntersectOrExceptNode node) throws StandardException {
@@ -112,6 +169,13 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         return super.visit(node);
     }
 
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(UnionNode node) throws StandardException {
@@ -125,6 +189,13 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         nullify();
         return super.visit(node);
     }
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
 
     @Override
     public Visitable visit(OrderByNode node) throws StandardException {
@@ -153,18 +224,31 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         return false;
     }
 
-    /*
-         * Top Down Traversal
-        */
+    /**
+     * Top Down ordering to see how far to push limits
+     */
     public boolean isPostOrder() {
         return false;
     }
 
-
+    /**
+     * Remove the limit items
+     *
+     */
     private void nullify() {
         offset = -1;
         fetchFirst = -1;
     }
+
+    /**
+     *
+     * Adjust normal node costing, row count and remote cost reduction
+     *
+     * Need to account for offset
+     *
+     * @param rsn
+     * @throws StandardException
+     */
 
     public void adjustCost(ResultSetNode rsn) throws StandardException {
         if (fetchFirst==-1 && offset ==-1) // No Limit Adjustment
@@ -183,7 +267,15 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
 
     }
 
-
+    /**
+     *
+     * Adjust base table costing...  Attacks BaseTable, Projections, and Index Lookups, etc.
+     *
+     * Need to account for offset better.
+     *
+     * @param rsn
+     * @throws StandardException
+     */
     public void adjustBaseTableCost(ResultSetNode rsn) throws StandardException {
         if (fetchFirst==-1 && offset ==-1) // No Limit Adjustment
             return;
@@ -210,6 +302,8 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
 
 
 /*
+
+<!-- This was the original code in the RowCountNode -->
 
     public void fixCost() throws StandardException {
         if (fetchFirst != null && fetchFirst instanceof NumericConstantNode) {
