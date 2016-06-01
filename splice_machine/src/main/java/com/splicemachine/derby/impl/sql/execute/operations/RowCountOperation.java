@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.stream.control.ControlDataSet;
+import com.splicemachine.derby.stream.function.TakeFunction;
 import org.sparkproject.guava.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -189,7 +190,9 @@ public class RowCountOperation extends SpliceBaseOperation {
         }
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         if (fetchLimit > 0) {
+            OperationContext operationContext = dsp.createOperationContext(this);
             // Apply limit on control side
+            sourceSet = sourceSet.mapPartitions(new TakeFunction<SpliceOperation, LocatedRow>(operationContext, (int) fetchLimit));
             final DataSet<LocatedRow> finalSourceSet = sourceSet;
             sourceSet = new ControlDataSet<>(new Iterable<LocatedRow>() {
                 @Override
