@@ -94,7 +94,7 @@ public class OrderByNode extends SingleChildResultSetNode {
     @Override
     public CostEstimate getFinalCostEstimate() throws StandardException{
         if(costEstimate==null) {
-            costEstimate = childResult.getFinalCostEstimate();
+            costEstimate = childResult.getFinalCostEstimate().cloneMe();
             orderByList.estimateCost(optimizer, null, costEstimate);
         }
         return costEstimate;

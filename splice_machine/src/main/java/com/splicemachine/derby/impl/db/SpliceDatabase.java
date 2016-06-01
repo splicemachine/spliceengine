@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.splicemachine.db.impl.ast.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -30,15 +31,6 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.ast.AssignRSNVisitor;
-import com.splicemachine.db.impl.ast.FindHashJoinColumns;
-import com.splicemachine.db.impl.ast.FixSubqueryColRefs;
-import com.splicemachine.db.impl.ast.JoinConditionVisitor;
-import com.splicemachine.db.impl.ast.PlanPrinter;
-import com.splicemachine.db.impl.ast.RepeatedPredicateVisitor;
-import com.splicemachine.db.impl.ast.RowLocationColumnVisitor;
-import com.splicemachine.db.impl.ast.SpliceASTWalker;
-import com.splicemachine.db.impl.ast.UnsupportedFormsDetector;
 import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
@@ -114,6 +106,7 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(FindHashJoinColumns.class);
         afterOptVisitors.add(FixSubqueryColRefs.class);
         afterOptVisitors.add(BatchOnceVisitor.class);
+        afterOptVisitors.add(LimitOffsetVisitor.class);
         afterOptVisitors.add(PlanPrinter.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);

@@ -43,11 +43,11 @@ public final class RowCountNode extends SingleChildResultSetNode{
     /**
      * If not null, this represents the value of a <result offset clause>.
      */
-    private ValueNode offset;
+    public ValueNode offset;
     /**
      * If not null, this represents the value of a <fetch first clause>.
      */
-    private ValueNode fetchFirst;
+    public ValueNode fetchFirst;
     /**
      * True if the offset/fetchFirst clauses were added by JDBC LIMIT syntax.
      */
@@ -111,23 +111,7 @@ public final class RowCountNode extends SingleChildResultSetNode{
     }
 
     public void fixCost() throws StandardException {
-        if (fetchFirst != null && fetchFirst instanceof NumericConstantNode) {
-            long totalRowCount = costEstimate.getEstimatedRowCount();
-            long fetchCount = ((NumericConstantNode)fetchFirst).getValue().getInt();
-            double factor = (double)fetchCount/(double)totalRowCount;
-            costEstimate.setEstimatedRowCount(fetchCount);
-            costEstimate.setSingleScanRowCount(fetchCount);
-            costEstimate.setEstimatedHeapSize((long)(costEstimate.getEstimatedHeapSize()*factor));
-            costEstimate.setRemoteCost((long)(costEstimate.getRemoteCost()*factor));
-        }
-        else
-        if (offset != null && offset instanceof NumericConstantNode) {
-            long totalRowCount = costEstimate.getEstimatedRowCount();
-            long offsetCount = ((NumericConstantNode)offset).getValue().getInt();
-            costEstimate.setEstimatedRowCount(totalRowCount-offsetCount >=1? totalRowCount-offsetCount:1); // Snap to 1
-        } else {
-            // Nothing
-        }
+        // Nothing
     }
 
     /**
