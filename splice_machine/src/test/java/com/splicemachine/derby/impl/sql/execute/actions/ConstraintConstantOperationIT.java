@@ -260,7 +260,7 @@ public class ConstraintConstantOperationIT {
      * @throws Exception
      */
     @Test
-    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
+//    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void testInsertRowCheckConstraintViolation() throws Exception {
         Connection connection = methodWatcher.createConnection();
         connection.setAutoCommit(false);

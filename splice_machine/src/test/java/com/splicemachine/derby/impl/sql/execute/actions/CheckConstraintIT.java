@@ -59,7 +59,6 @@ public class CheckConstraintIT extends SpliceUnitTest {
 		"The check constraint '%s' was violated while performing an INSERT or UPDATE on table '%s.%s'.";
 
     @Test
-    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void testSingleInserts() throws Exception {
         String tableName = "table1".toUpperCase();
         TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
@@ -97,7 +96,6 @@ public class CheckConstraintIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void testSingleInsertsAfterAlterTable() throws Exception {
         String tableName = "table2".toUpperCase();
         TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
@@ -141,7 +139,6 @@ public class CheckConstraintIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-5065")
     public void testViolationErrorMsg() throws Exception {
         // DB-3864 - bad error msg
         String tableName = "table3".toUpperCase();
@@ -181,7 +178,6 @@ public class CheckConstraintIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-5065")
     public void testCreateAlterDropConstraint() throws Exception {
         String tableName = "table5".toUpperCase();
         TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
