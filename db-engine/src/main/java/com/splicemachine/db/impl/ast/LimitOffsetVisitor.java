@@ -257,7 +257,7 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         long totalRowCount = costEstimate.getEstimatedRowCount();
         long currentOffset = offset==-1?0:offset;
         long currentFetchFirst = fetchFirst==-1?totalRowCount:fetchFirst;
-        scaleFactor = (double) fetchFirst/(double) totalRowCount;
+        scaleFactor = (double) currentFetchFirst/(double) totalRowCount;
         if (scaleFactor >= 1.0d) {
             // do nothing, will not effect cost
         } else {
@@ -283,14 +283,14 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         long totalRowCount = costEstimate.getEstimatedRowCount();
         long currentOffset = offset==-1?0:offset;
         long currentFetchFirst = fetchFirst==-1?totalRowCount:fetchFirst;
-        scaleFactor = (double) fetchFirst/(double) totalRowCount;
+        scaleFactor = (double) currentFetchFirst/(double) totalRowCount;
         if (scaleFactor >= 1.0d) {
                 // do nothing, will not effect cost
         } else {
-                costEstimate.setEstimatedRowCount(fetchFirst);
-                costEstimate.setSingleScanRowCount(fetchFirst);
-                costEstimate.setRowCount(fetchFirst);
-                costEstimate.setProjectionRows(fetchFirst);
+                costEstimate.setEstimatedRowCount(currentFetchFirst);
+                costEstimate.setSingleScanRowCount(currentFetchFirst);
+                costEstimate.setRowCount(currentFetchFirst);
+                costEstimate.setProjectionRows(currentFetchFirst);
                 costEstimate.setIndexLookupRows(costEstimate.getIndexLookupRows()*scaleFactor);
                 costEstimate.setEstimatedHeapSize((long)(costEstimate.getEstimatedHeapSize()*scaleFactor));
                 costEstimate.setRemoteCost((long)(costEstimate.getRemoteCost()*scaleFactor));
