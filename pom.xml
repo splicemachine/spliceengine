@@ -460,7 +460,7 @@
                 <envHbase>hbase1.1.0</envHbase>
                 <hadoop.version>2.7.1.2.3.4.7-4</hadoop.version>
                 <hadoop.tools.version>1.2.0.23</hadoop.tools.version>
-                <hbase.version>1.1.2.2.3.4.7-4/</hbase.version>
+                <hbase.version>1.1.2.2.3.4.7-4</hbase.version>
                 <hive.version>1.2.1.2.3.4.7-4</hive.version>
                 <zookeeper.version>3.4.6.2.3.4.7-4</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.1.2.3.4.7-4</spark-assembly-id>
