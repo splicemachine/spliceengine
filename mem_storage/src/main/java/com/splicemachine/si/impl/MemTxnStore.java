@@ -276,8 +276,21 @@ public class MemTxnStore implements TxnStore{
             Txn value=txnEntry.getValue().txn;
             if(value.getEffectiveState()==Txn.State.ACTIVE
                     && value.getTxnId()<=maxTxnId
-                    && value.getTxnId()>=minTxnid)
-                txns.add(value);
+                    && value.getTxnId()>=minTxnid){
+                //neck if it is relevant to the specified table
+                if(table!=null){
+                    Iterator<ByteSlice> destTables = value.getDestinationTables();
+                    while(destTables.hasNext()){
+                        if(destTables.next().compareTo(table,0,table.length)==0){
+                            txns.add(value);
+                            break;
+                        }
+                    }
+                }else{
+                    //have to assume it applied
+                    txns.add(value);
+                }
+            }
         }
         Collections.sort(txns,new Comparator<TxnView>(){
             @Override
@@ -335,8 +348,9 @@ public class MemTxnStore implements TxnStore{
     }
 
     protected boolean isTimedOut(TxnHolder txn){
-        return txn.txn.getEffectiveState()==Txn.State.ACTIVE &&
-                (clock.currentTimeMillis()-txn.keepAliveTs)>txnTimeOutIntervalMs;
+        return false; //don't time out transactions
+//        return txn.txn.getEffectiveState()==Txn.State.ACTIVE &&
+//                (clock.currentTimeMillis()-txn.keepAliveTs)>txnTimeOutIntervalMs;
     }
 
     private long[] getAllActiveTransactions(long minTimestamp,long maxId) throws IOException{

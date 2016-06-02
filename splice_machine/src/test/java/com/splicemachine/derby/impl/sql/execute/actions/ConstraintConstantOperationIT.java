@@ -31,7 +31,7 @@ import org.junit.runner.Description;
  * @author Jeff Cunningham
  * Date: 6/10/13
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class ConstraintConstantOperationIT {
     private static final String SCHEMA = ConstraintConstantOperationIT.class.getSimpleName().toUpperCase();
 

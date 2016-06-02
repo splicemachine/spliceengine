@@ -7,6 +7,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 /**
  *
@@ -30,61 +31,74 @@ public class SortMergeJoinSelectivityIT extends BaseJoinSelectivityIT {
     }
     @Test
     public void innerJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {1,3},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=SORTMERGE\n where ts_10_spk.c1 = ts_5_spk.c1",methodWatcher,
-                "rows=10","MergeSortJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3},
+                    "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=SORTMERGE\n where ts_10_spk.c1 = ts_5_spk.c1",
+                    "rows=10","MergeSortJoin");
+        }
     }
 
     @Test
     public void leftOuterJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {1,3},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk left outer join ts_5_spk --splice-properties joinStrategy=SORTMERGE\n on ts_10_spk.c1 = ts_5_spk.c1",methodWatcher,
-                "rows=10","MergeSortLeftOuterJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3},
+                    "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk left outer join ts_5_spk --splice-properties joinStrategy=SORTMERGE\n on ts_10_spk.c1 = ts_5_spk.c1",
+                    "rows=10","MergeSortLeftOuterJoin");
+        }
     }
 
     @Test
     public void rightOuterJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {1,3,3},
-                "explain select * from ts_10_spk --splice-properties joinStrategy=SORTMERGE\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",methodWatcher,
-                "rows=10","MergeSortRightOuterJoin","preds=[(TS_10_SPK.C1[4:1] = TS_5_SPK.C1[4:5])]");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3,3},
+                    "explain select * from ts_10_spk --splice-properties joinStrategy=SORTMERGE\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",
+                    "rows=10","MergeSortRightOuterJoin","preds=[(TS_10_SPK.C1[4:1] = TS_5_SPK.C1[4:5])]");
+        }
     }
 
     @Test
     // DB-4078: For a three-way merge sort join (A, B, C), make sure the total cost is more than two-way merge sort
     // join (A, B).
     public void test3WayJoin() throws Exception {
-        String twoWay = "explain \n" +
-                "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                "t1 a, t1 b --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
-                "where a.i=b.i";
+        try(Statement statement = methodWatcher.getOrCreateConnection().createStatement()){
+            String twoWay="explain \n"+
+                    "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n"+
+                    "t1 a, t1 b --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n"+
+                    "where a.i=b.i";
 
-        String threeWay = "explain \n" +
-                "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                "t1 a\n" +
-                ", t1 b --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
-                ", t1 c --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
-                "where a.i=b.i and b.i=c.i";
+            String threeWay="explain \n"+
+                    "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n"+
+                    "t1 a\n"+
+                    ", t1 b --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n"+
+                    ", t1 c --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n"+
+                    "where a.i=b.i and b.i=c.i";
 
-        ResultSet rs = methodWatcher.executeQuery(twoWay);
-        String s = null;
-        while (rs.next()) {
-            s = rs.getString(1);
-            if (s.contains("ScrollInsensitive"))
-                break;
+            String s=null;
+            try(ResultSet rs=statement.executeQuery(twoWay)){
+                while(rs.next()){
+                    s=rs.getString(1);
+                    if(s.contains("ScrollInsensitive"))
+                        break;
+                }
+            }
+            double cost1=getTotalCost(s);
+
+            try(ResultSet rs=statement.executeQuery(threeWay)){
+                while(rs.next()){
+                    s=rs.getString(1);
+                    if(s.contains("ScrollInsensitive"))
+                        break;
+                }
+            }
+            double cost2=getTotalCost(s);
+
+            Assert.assertTrue(cost1<cost2);
         }
-        double cost1 = getTotalCost(s);
-
-        rs = methodWatcher.executeQuery(threeWay);
-        while (rs.next()) {
-            s = rs.getString(1);
-            if (s.contains("ScrollInsensitive"))
-                break;
-        }
-        double cost2 = getTotalCost(s);
-
-        Assert.assertTrue(cost1 < cost2);
     }
 }

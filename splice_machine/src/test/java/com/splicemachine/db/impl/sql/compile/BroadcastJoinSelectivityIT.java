@@ -6,6 +6,8 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.Statement;
+
 /**
  *
  *
@@ -20,7 +22,7 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+    public SpliceWatcher methodWatcher = new SpliceWatcher(spliceSchemaWatcher.schemaName);
 
     @BeforeClass
     public static void createDataSet() throws Exception {
@@ -28,26 +30,32 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
     }
     @Test
     public void innerJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {3},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk, ts_5_npk --splice-properties joinStrategy=BROADCAST\n where ts_10_npk.c1 = ts_5_npk.c1",methodWatcher,
-                "BroadcastJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(s,
+                    new int[]{3},
+                    "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk, ts_5_npk --splice-properties joinStrategy=BROADCAST\n where ts_10_npk.c1 = ts_5_npk.c1",
+                    "BroadcastJoin");
+        }
     }
 
     @Test
     public void leftOuterJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {3},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk left outer join ts_5_npk --splice-properties joinStrategy=BROADCAST\n on ts_10_npk.c1 = ts_5_npk.c1",methodWatcher,
-                "BroadcastLeftOuterJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(s,
+                    new int[]{3},
+                    "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk left outer join ts_5_npk --splice-properties joinStrategy=BROADCAST\n on ts_10_npk.c1 = ts_5_npk.c1",
+                    "BroadcastLeftOuterJoin");
+        }
     }
 
     @Test
     public void rightOuterJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {3},
-                "explain select * from ts_10_npk --splice-properties joinStrategy=BROADCAST\n right outer join ts_5_npk on ts_10_npk.c1 = ts_5_npk.c1",methodWatcher,
-                "BroadcastRightOuterJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(s,
+                    new int[]{3},
+                    "explain select * from ts_10_npk --splice-properties joinStrategy=BROADCAST\n right outer join ts_5_npk on ts_10_npk.c1 = ts_5_npk.c1",
+                    "BroadcastRightOuterJoin");
+        }
     }
 
 }

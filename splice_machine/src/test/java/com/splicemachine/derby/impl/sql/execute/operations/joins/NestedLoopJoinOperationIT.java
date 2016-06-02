@@ -18,7 +18,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Integration tests for NestedLoopJoinOperation.
  */
-@Category(SerialTest.class) //in Serial category because of the NestedLoopIteratorClosesStatements test
+//@Category(SerialTest.class) //in Serial category because of the NestedLoopIteratorClosesStatements test
 public class NestedLoopJoinOperationIT extends SpliceUnitTest {
 
     private static final String SCHEMA = NestedLoopJoinOperationIT.class.getSimpleName().toUpperCase();

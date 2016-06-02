@@ -26,7 +26,7 @@ import static org.junit.Assert.*;
 /**
  * Foreign Key tests for *defining* FK constraints.
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class ForeignKey_Define_IT{
 
     private static final String SCHEMA=ForeignKey_Define_IT.class.getSimpleName();

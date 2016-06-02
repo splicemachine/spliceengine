@@ -15,6 +15,8 @@ import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.jetty.util.ConcurrentHashSet;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,12 +49,13 @@ public class DDLWatchRefresher{
                              SqlExceptionFactory exceptionFactory,
                              long maxDdlWaitMs,
                              TxnSupplier txnSupplier){
+        assert clock!=null;
         this.clock=clock;
         this.txController = txnController;
         this.maxDdlWaitMs=maxDdlWaitMs;
-        this.seenDDLChanges=new HashSet<>();
-        this.changeTimeouts=new HashMap<>();
-        this.currentDDLChanges=new HashMap<>();
+        this.seenDDLChanges=new ConcurrentHashSet<>();
+        this.changeTimeouts=new ConcurrentHashMap<>();
+        this.currentDDLChanges=new ConcurrentHashMap<>();
         this.tentativeDDLS=new ConcurrentHashMap<>();
         this.watchChecker=watchChecker;
         this.exceptionFactory =exceptionFactory;
@@ -84,8 +87,11 @@ public class DDLWatchRefresher{
         for(String changeId : ongoingDDLChangeIds){
             if(!seenDDLChanges.contains(changeId)){
                 DDLChange change=watchChecker.getChange(changeId);
+                if(change==null)continue; //another thread took care of this for us
+
                 //inform the server of the first time we see this change
-                changeTimeouts.put(change.getChangeId(),clock.currentTimeMillis());
+                String cId=change.getChangeId();
+                changeTimeouts.put(cId,clock.currentTimeMillis());
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG,"New change with id=%s, and change=%s",changeId,change);
                 try {
@@ -164,6 +170,7 @@ public class DDLWatchRefresher{
          * Remove DDL changes which are known to be finished.
          *
          * This is to avoid processing a DDL change twice.
+         *
          */
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
@@ -173,11 +180,17 @@ public class DDLWatchRefresher{
                 currentDDLChanges.remove(entry);
                 currChangeCount.decrementAndGet();
                 DDLChange ddlChange = tentativeDDLS.remove(entry);
-                assignDDLDemarcationPoint(ddlChange);
                 iterator.remove();
-                // notify access manager
-                for(DDLWatcher.DDLListener listener : ddlListeners){
-                    listener.changeSuccessful(entry,ddlChange);
+                if(ddlChange!=null){
+                    /*
+                     * If the change isn't in tentativeDDLs, then it's already been processed, and we don't
+                     * have to worry about it here.
+                     */
+                    assignDDLDemarcationPoint(ddlChange);
+                    // notify access manager
+                    for(DDLWatcher.DDLListener listener : ddlListeners){
+                        listener.changeSuccessful(entry,ddlChange);
+                    }
                 }
             }
         }

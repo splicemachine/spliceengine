@@ -97,7 +97,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <!--<groups>com.splicemachine.test.SerialTest</groups>-->
+                            <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>${excluded.categories}</excludedGroups>
                             <argLine>-Xmx3g -XX:MaxPermSize=256m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -108,36 +108,39 @@
                                 <include>**/*IT.java</include>
                             </includes>
                             <excludes>
-                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**
-                                </exclude>
+                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
-                    <!--<execution>-->
-                    <!--<id>integration-tests-parallel</id>-->
-                    <!--<goals>-->
-                    <!--<goal>integration-test</goal>-->
-                    <!--<goal>verify</goal>-->
-                    <!--</goals>-->
-                    <!--<configuration>-->
-                    <!--<excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>-->
-                    <!--<skipTests>${skip.integration.tests}</skipTests>-->
-                    <!--<parallel>classes</parallel>-->
-                    <!--<threadCount>1</threadCount>-->
-                    <!--<perCoreThreadCount>false</perCoreThreadCount>-->
-                    <!--<argLine>-Xmx3g</argLine>-->
-                    <!--<redirectTestOutputToFile>true</redirectTestOutputToFile>-->
-                    <!--<includes>-->
-                    <!--<include>**/*IT.java</include>-->
-                    <!--</includes>-->
-                    <!--<excludes>-->
-                    <!--&lt;!&ndash; Skip all unit tests &ndash;&gt;-->
-                    <!--<exclude>**/*Test.java</exclude>-->
-                    <!--</excludes>-->
-                    <!--<runOrder>alphabetical</runOrder>-->
-                    <!--</configuration>-->
-                    <!--</execution>-->
+                    <execution>
+                        <id>integration-tests-parallel</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+                            <!--<skipTests>${skip.integration.tests}</skipTests>-->
+                            <parallel>classes</parallel>
+                            <threadCount>4</threadCount>
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <argLine>-Xmx3g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_machine</dependency>
+                            </dependenciesToScan>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludes>
+                                <!-- Skip all unit tests -->
+                                <exclude>**/*Test.java</exclude>
+                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
+                            </excludes>
+                            <runOrder>alphabetical</runOrder>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>

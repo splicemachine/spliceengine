@@ -192,7 +192,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                 long indexConglomId=ddlChange.getDropIndex().getConglomerate();
                 synchronized(indexFactories){
                     for(LocalWriteFactory factory : indexFactories.list()){
-                        if(factory.getConglomerateId()==indexConglomId){
+                        if(factory.getConglomerateId()==indexConglomId &&!(factory instanceof DropIndexFactory)){
                             DropIndexFactory wrappedFactory=new DropIndexFactory(txn,factory,indexConglomId);
                             indexFactories.replace(wrappedFactory);
                             return;

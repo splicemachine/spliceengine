@@ -23,7 +23,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 
-@Category(SerialTest.class) //made sequential because of joinWithStatistics() test
+//@Category(SerialTest.class) //made sequential because of joinWithStatistics() test
 public class HashNestedLoopJoinIT {
 
     private static final String CLASS_NAME = HashNestedLoopJoinIT.class.getSimpleName().toUpperCase();

@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *         Date: 6/25/14
  */
 public class ManualKeepAliveScheduler implements KeepAliveScheduler{
-    private final Map<Long, Txn> txnMap=new ConcurrentHashMap<Long, Txn>();
+    private final Map<Long, Txn> txnMap=new ConcurrentHashMap<>();
 
     private final TxnStore store;
 
@@ -45,5 +45,11 @@ public class ManualKeepAliveScheduler implements KeepAliveScheduler{
     @Override
     public void stop(){
 
+    }
+
+    public void keepAliveAll() throws IOException{
+        for(Txn t:txnMap.values()){
+            keepAlive(t.getTxnId());
+        }
     }
 }

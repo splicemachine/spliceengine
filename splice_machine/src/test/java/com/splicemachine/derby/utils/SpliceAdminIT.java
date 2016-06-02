@@ -24,7 +24,7 @@ import com.splicemachine.test.SlowTest;
  * @author Jeff Cunningham
  *         Date: 12/11/13
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 @Ignore("-sf- Needs to be reimplemented in an architecture-independent way, but shouldn't interfere with other work")
 public class SpliceAdminIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
