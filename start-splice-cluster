@@ -35,7 +35,7 @@ _kill_em_all () {
 export -f _kill_em_all
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="cdh5.5.2"  # default hbase platform profile
+DEFAULT_PROFILE="mapr5.1.0"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/hbase_sql"
@@ -125,7 +125,6 @@ echo "   ${RUN_DIR}"
 if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
   pushd "${BASE_DIR}" > /dev/null
-  (${MVN} clean -P${PROFILE} -DskipTests )
   (${MVN} install -Pcore,${PROFILE} -DskipTests )
   popd > /dev/null
   echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
@@ -169,6 +168,8 @@ if [ ${COUNT} -eq 0 ]; then
     echo "ZooKeeper did not start up properly, aborting startup. Please check ${RUN_DIR}/zoo.log for more information"
     exit 5
 fi
+
+zkCli delete /hbase/master
   
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"

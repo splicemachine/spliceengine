@@ -35,6 +35,11 @@ import org.sparkproject.jboss.netty.channel.ChannelFuture;
 import org.sparkproject.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.sparkproject.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 import org.sparkproject.jboss.netty.handler.codec.serialization.ObjectEncoder;
+import scala.Function1;
+import scala.collection.JavaConversions;
+import scala.collection.Seq;
+import scala.reflect.ClassTag;
+import scala.runtime.AbstractFunction1;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -97,23 +102,20 @@ public class QueryJob implements Callable<Void>{
         String clientHost = queryRequest.host;
         int clientPort = queryRequest.port;
         int numPartitions = sparkDataSet.rdd.getNumPartitions();
-        JavaRDD<Object> streamed = sparkDataSet.rdd.mapPartitionsWithIndex(new ResultStreamer(clientHost, clientPort, numPartitions), true);
+        StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, clientHost, clientPort);
 
+        Object result = streamableRDD.result();
 
-//        if(!status.isRunning()){
-//            //the client timed out during our setup, so it's time to stop
-//            return null;
-//        }
-        JavaFutureAction<List<Object>> collectFuture = streamed.collectAsync();
-        while(!collectFuture.isDone()){
-            try{
-                collectFuture.get(tickTime,TimeUnit.MILLISECONDS);
-            }catch(TimeoutException te){
+//        JavaFutureAction<List<Object>> collectFuture = streamed.collectAsync();
+//        while(!collectFuture.isDone()){
+//            try{
+//                collectFuture.get(tickTime,TimeUnit.MILLISECONDS);
+//            }catch(TimeoutException te){
                 /*
                  * A TimeoutException just means that tickTime expired. That's okay, we just stick our
                  * head up and make sure that the client is still operating
                  */
-            }
+//            }
 //            if(!status.isRunning()){
 //                /*
 //                 * The client timed out, so cancel the query and terminate
@@ -122,9 +124,10 @@ public class QueryJob implements Callable<Void>{
 //                context.cancelJobGroup(queryRequest.jobGroup);
 //                return null;
 //            }
-        }
+//        }
+
         //the compaction completed
-        List<Object> results = collectFuture.get();
+//        List<Object> results = collectFuture.get();
         status.markCompleted(new QueryResult(numPartitions));
 
         return null;
