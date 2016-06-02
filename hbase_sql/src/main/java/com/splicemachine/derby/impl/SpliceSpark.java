@@ -174,7 +174,21 @@ public class SpliceSpark {
         conf.set("spark.streaming.unpersist", System.getProperty("splice.spark.streaming.unpersist", "true"));
         conf.set("spark.streaming.kafka.maxRatePerPartition", System.getProperty("splice.spark.streaming.kafka.maxRatePerPartition", ""));
         conf.set("spark.streaming.kafka.maxRetries", System.getProperty("splice.spark.streaming.kafka.maxRetries", "1"));
-        conf.set("spark.streaming.ui.retainedBatches", System.getProperty("splice.spark.streaming.ui.retainedBatches", "1000"));
+        conf.set("spark.streaming.ui.retainedBatches", System.getProperty("splice.spark.streaming.ui.retainedBatches", "100"));
+
+
+        /*
+
+           Spark UI
+
+         */
+
+        conf.set("spark.ui.retainedJobs", System.getProperty("splice.spark.ui.retainedJobs", "100"));
+        conf.set("spark.ui.retainedStages", System.getProperty("splice.spark.ui.retainedStages", "100"));
+        conf.set("spark.worker.ui.retainedExecutors", System.getProperty("splice.spark.worker.ui.retainedExecutors", "100"));
+        conf.set("spark.worker.ui.retainedDrivers", System.getProperty("splice.spark.worker.ui.retainedDrivers", "100"));
+        conf.set("spark.ui.retainedJobs", System.getProperty("splice.spark.ui.retainedJobs", "100"));
+
 
         if (LOG.isDebugEnabled()) {
             printConfigProps(conf);
