@@ -235,6 +235,12 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-tools</artifactId>
             <version>${hadoop.tools.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>hadoop-core</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
