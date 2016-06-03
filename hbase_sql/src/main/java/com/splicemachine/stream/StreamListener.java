@@ -32,25 +32,29 @@ import java.util.concurrent.*;
 public class StreamListener<T> extends ChannelInboundHandlerAdapter implements Iterator<T> {
     private static final Logger LOG = Logger.getLogger(StreamListener.class);
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
+    private static final Object SENTINEL = new Object();
+    private static final StreamProtocol.Continue CONTINUE = new StreamProtocol.Continue();
+    private static final StreamProtocol.Close CLOSE = new StreamProtocol.Close();
 
     private Channel serverChannel;
     private Map<Channel, Integer> partitionMap = new ConcurrentHashMap<>();
-//    private ArrayBlockingQueue[] messages;
+    private Map<Integer, Channel> channelMap = new ConcurrentHashMap<>();
     private ConcurrentMap<Integer, PartitionState> partitionStateMap = new ConcurrentHashMap<>();
     private boolean initialized = false;
 
     private T currentResult;
     private int currentQueue = 0;
     private long numPartitions;
+    private NioEventLoopGroup bossGroup;
+    private NioEventLoopGroup workerGroup;
 
     public StreamListener() {
-
     }
 
     public HostAndPort start() throws StandardException {
 
-        EventLoopGroup bossGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        this.bossGroup = new NioEventLoopGroup();
+        this.workerGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -122,43 +126,38 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         Channel channel = ctx.channel();
 
-
-        if (msg instanceof Long) {
+        if (msg instanceof StreamProtocol.Init) {
+            StreamProtocol.Init init = (StreamProtocol.Init) msg;
             LOG.trace("Received " + msg + " from " + channel);
             synchronized (this) {
-                if (initialized)
-                    return;
-                numPartitions = (Long) msg;
-                initialized = true;
-            }
-        } else if (msg instanceof Integer) {
-            LOG.trace("Received " + msg + " from " + channel);
-            Integer partition = (Integer) msg;
-            partitionMap.put(channel, partition);
-            partitionStateMap.putIfAbsent(partition, new PartitionState());
-        } else {
-            Integer partition = partitionMap.get(channel);
-            try {
-                PartitionState state = partitionStateMap.get(partition);
-                state.messages.put(msg);
-                state.received++;
-                if (state.received % 512 == 0) {
-                    LOG.trace("Writing CONT");
-                    ctx.writeAndFlush("CONT");
+                // Init global state for receiver
+                if (!initialized) {
+                    numPartitions = init.numPartitions;
+                    initialized = true;
                 }
-            } catch (InterruptedException e) {
-                LOG.error("While queueing message", e);
-                throw new RuntimeException(e);
             }
-        }
-        if (msg instanceof String) {
+            partitionMap.put(channel, init.partition);
+            partitionStateMap.putIfAbsent(init.partition, new PartitionState());
+            channelMap.put(init.partition, channel);
+        } else if (msg instanceof StreamProtocol.Close) {
+            Integer partition = partitionMap.get(channel);
+            PartitionState state = partitionStateMap.get(partition);
+            // We can't block here, we negotiate throughput with the server to guarantee it
+            state.messages.add(SENTINEL);
             try {
-                ctx.writeAndFlush("FIN");
+                // Let server know it can close the connection
+                ctx.writeAndFlush(CLOSE);
                 ctx.close().sync();
             } catch (InterruptedException e) {
                 LOG.error("While closing channel", e);
                 throw new RuntimeException(e);
             }
+        } else {
+            // Data
+            Integer partition = partitionMap.get(channel);
+            PartitionState state = partitionStateMap.get(partition);
+            // We can't block here, we negotiate throughput with the server to guarantee it
+            state.messages.add(msg);
         }
     }
 
@@ -178,30 +177,38 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         T next = null;
         try {
             while (next == null) {
-
-//                LOG.trace("Advancing to next message");
-                Object msg = partitionStateMap.get(currentQueue).messages.take();
-//                if (LOG.isTraceEnabled())
-//                    LOG.trace("Next message: " + msg);
-                if (msg instanceof String) {
-//                    LOG.trace("Moving queues");
+                PartitionState state = partitionStateMap.get(currentQueue);
+                Object msg = state.messages.take();
+                if (msg == SENTINEL) {
+                    LOG.trace("Moving queues");
                     currentQueue++;
                     if (currentQueue >= numPartitions) {
-//                        LOG.trace("The end");
                         // finished
+                        LOG.trace("End of stream");
                         currentResult = null;
+                        close();
                         return;
                     } else {
                         partitionStateMap.putIfAbsent(currentQueue, new PartitionState());
                     }
                 } else {
                     next = (T) msg;
+                    state.returned++;
+                    if (state.returned % 512 == 0) {
+                        LOG.trace("Writing CONT");
+                        channelMap.get(currentQueue).writeAndFlush(CONTINUE);
+                    }
                 }
             }
             currentResult = next;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void close() {
+        bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
     }
 
     @Override
@@ -211,7 +218,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 }
 
 class PartitionState {
-    ArrayBlockingQueue messages = new ArrayBlockingQueue(1024);
-    long received;
+    ArrayBlockingQueue messages = new ArrayBlockingQueue(1025); // One more to account for the SENTINEL
+    long returned;
 
 }

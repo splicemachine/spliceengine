@@ -33,6 +33,8 @@ import java.util.concurrent.Semaphore;
  */
 public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<Object>>, Serializable {
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
+    private static final StreamProtocol.Close CLOSE = new StreamProtocol.Close();
+
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
     private int numPartitions;
     private String host;
@@ -55,13 +57,12 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
 
     @Override
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-        ctx.write((long) numPartitions);
-        ctx.writeAndFlush(partition);
+        ctx.writeAndFlush(new StreamProtocol.Init(numPartitions, partition));
+        LOG.trace("Written init");
         this.executor = Executors.newFixedThreadPool(1);
         this.executor.submit(new Runnable() {
             @Override
             public void run() {
-                LOG.trace("Written init");
 
                 while (locatedRowIterator.hasNext()) {
                     if (sent % 512 == 0) {
@@ -78,12 +79,12 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                     T lr = locatedRowIterator.next();
                     ctx.write(lr);
 
-//                    LOG.trace("Written " + lr);
                     sent++;
                 }
                 LOG.trace("Written data");
 
-                ctx.writeAndFlush(new String("FIN"));
+                ctx.writeAndFlush(CLOSE);
+
                 LOG.trace("Written FIN");
             }
         });
@@ -93,19 +94,17 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         LOG.trace("Received message " + msg);
 
-        if (msg instanceof String) {
-            if ("CONT".equals(msg)) {
-                LOG.trace("Releasing permit " + cont);
-                cont.release();
-                LOG.trace("Released permit " + cont);
-            } else {
-                try {
-                    ctx.close().sync();
-                } catch (InterruptedException e) {
-                    LOG.error(e);
-                }
-                LOG.trace("Closed");
+        if (msg instanceof StreamProtocol.Continue) {
+            LOG.trace("Releasing permit " + cont);
+            cont.release();
+            LOG.trace("Released permit " + cont);
+        } else if (msg instanceof StreamProtocol.Close) {
+            try {
+                ctx.close().sync();
+            } catch (InterruptedException e) {
+                LOG.error(e);
             }
+            LOG.trace("Closed");
         }
     }
 
@@ -116,7 +115,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         this.locatedRowIterator = locatedRowIterator;
 
         Bootstrap bootstrap;
-        EventLoopGroup workerGroup = new NioEventLoopGroup(4);
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
 
             bootstrap = new Bootstrap();
@@ -145,7 +144,6 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             return Collections.emptyIterator();
         } finally {
             workerGroup.shutdownGracefully();
-//            pool.returnInstance(kryo);
         }
     }
 }
