@@ -9,7 +9,7 @@ if [ -z $PARCELS_ROOT ] ; then
 fi
 PARCEL_DIRNAME=${PARCEL_DIRNAME-SPLICE}
 
-MYLIBDIR=${PARCELS_ROOT}/${PARCEL_DIRNAME}/lib/splice
+MYLIBDIR=${PARCELS_ROOT}/${PARCEL_DIRNAME}/lib
 
 [ -d $MYLIBDIR ] || {
     echo "Could not find splice parcel lib dir, exiting" >&2
