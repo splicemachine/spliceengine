@@ -42,6 +42,8 @@ public class StreamableRDD<T> {
         int numPartitions = streamed.getNumPartitions();
         int batchSize = PARALLEL_PARTITIONS / 2;
         int batches = numPartitions / batchSize;
+        if (numPartitions % batchSize > 0)
+            batches++;
 
         LOG.trace("Num partitions " + numPartitions);
 
@@ -77,18 +79,19 @@ public class StreamableRDD<T> {
     }
 
     private void submitBatch(int batch, int batchSize, int numPartitions, final JavaRDD<Object> streamed) {
-            final List<Integer> list = new ArrayList<>();
-            for (int j = batch*batchSize; j < numPartitions && j < (batch+1)*batchSize; j++) {
-                list.add(j);
+        final List<Integer> list = new ArrayList<>();
+        for (int j = batch*batchSize; j < numPartitions && j < (batch+1)*batchSize; j++) {
+            list.add(j);
+        }
+        LOG.warn("Submitting partitions " + list);
+        final Seq objects = JavaConversions.asScalaBuffer(list).toList();
+        completionService.submit(new Runnable() {
+            @Override
+            public void run() {
+                LOG.trace("Running partitions " + list);
+                SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
             }
-            final Seq objects = JavaConversions.asScalaBuffer(list).toList();
-            completionService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    LOG.trace("Running partitions " + list);
-                    SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
-                }
-            }, null);
+        }, null);
     }
 
 }

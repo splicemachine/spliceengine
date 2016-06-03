@@ -105,6 +105,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
 
         LOG.warn("Got iterator!");
+        // Initialize first partition
+        partitionStateMap.putIfAbsent(0, new PartitionState());
         advance();
         return this;
     }
@@ -120,9 +122,9 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         Channel channel = ctx.channel();
 
-        LOG.trace("Received " + msg + " from " + channel);
 
         if (msg instanceof Long) {
+            LOG.trace("Received " + msg + " from " + channel);
             synchronized (this) {
                 if (initialized)
                     return;
@@ -130,15 +132,31 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                 initialized = true;
             }
         } else if (msg instanceof Integer) {
+            LOG.trace("Received " + msg + " from " + channel);
             Integer partition = (Integer) msg;
             partitionMap.put(channel, partition);
             partitionStateMap.putIfAbsent(partition, new PartitionState());
         } else {
             Integer partition = partitionMap.get(channel);
             try {
-                partitionStateMap.get(partition).messages.put(msg);
+                PartitionState state = partitionStateMap.get(partition);
+                state.messages.put(msg);
+                state.received++;
+                if (state.received % 512 == 0) {
+                    LOG.trace("Writing CONT");
+                    ctx.writeAndFlush("CONT");
+                }
             } catch (InterruptedException e) {
                 LOG.error("While queueing message", e);
+                throw new RuntimeException(e);
+            }
+        }
+        if (msg instanceof String) {
+            try {
+                ctx.writeAndFlush("FIN");
+                ctx.close().sync();
+            } catch (InterruptedException e) {
+                LOG.error("While closing channel", e);
                 throw new RuntimeException(e);
             }
         }
@@ -163,8 +181,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
 //                LOG.trace("Advancing to next message");
                 Object msg = partitionStateMap.get(currentQueue).messages.take();
-                if (LOG.isTraceEnabled())
-                    LOG.trace("Next message: " + msg);
+//                if (LOG.isTraceEnabled())
+//                    LOG.trace("Next message: " + msg);
                 if (msg instanceof String) {
 //                    LOG.trace("Moving queues");
                     currentQueue++;

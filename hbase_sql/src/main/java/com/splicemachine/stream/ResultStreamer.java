@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
 /**
  * Created by dgomezferro on 5/25/16.
@@ -36,8 +37,11 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private int numPartitions;
     private String host;
     private int port;
+    private Semaphore cont = new Semaphore(2);
+    private volatile long sent = 0;
     private Integer partition;
     private Iterator<T> locatedRowIterator;
+    private ExecutorService executor;
 
     // Serialization
     public ResultStreamer() {
@@ -50,22 +54,59 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+    public void channelActive(final ChannelHandlerContext ctx) throws Exception {
         ctx.write((long) numPartitions);
         ctx.writeAndFlush(partition);
+        this.executor = Executors.newFixedThreadPool(1);
+        this.executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                LOG.trace("Written init");
 
-        LOG.trace("Written init");
+                while (locatedRowIterator.hasNext()) {
+                    if (sent % 512 == 0) {
+                        LOG.trace("Acquiring permit " + cont.toString() + " sent " + sent);
+                        ctx.flush();
+                        try {
+                            cont.acquire();
+                        } catch (InterruptedException e) {
+                            LOG.error(e);
+                            throw new RuntimeException(e);
+                        }
+                        LOG.trace("Acquired permit " + cont.toString()+ " sent " + sent);
+                    }
+                    T lr = locatedRowIterator.next();
+                    ctx.write(lr);
 
-        while (locatedRowIterator.hasNext()) {
-            T lr = locatedRowIterator.next();
-            ctx.write(lr);
+//                    LOG.trace("Written " + lr);
+                    sent++;
+                }
+                LOG.trace("Written data");
+
+                ctx.writeAndFlush(new String("FIN"));
+                LOG.trace("Written FIN");
+            }
+        });
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        LOG.trace("Received message " + msg);
+
+        if (msg instanceof String) {
+            if ("CONT".equals(msg)) {
+                LOG.trace("Releasing permit " + cont);
+                cont.release();
+                LOG.trace("Released permit " + cont);
+            } else {
+                try {
+                    ctx.close().sync();
+                } catch (InterruptedException e) {
+                    LOG.error(e);
+                }
+                LOG.trace("Closed");
+            }
         }
-        LOG.trace("Written data");
-
-        ctx.writeAndFlush(new String("FIN"));
-        LOG.trace("Written FIN");
-        ctx.close().sync();
-        LOG.trace("Closed");
     }
 
     @Override
@@ -75,9 +116,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         this.locatedRowIterator = locatedRowIterator;
 
         Bootstrap bootstrap;
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
-        final Kryo kryo = new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
-        registry.registerClasses(kryo);
+        EventLoopGroup workerGroup = new NioEventLoopGroup(4);
         try {
 
             bootstrap = new Bootstrap();
@@ -89,7 +128,12 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ChannelPipeline p = ch.pipeline();
+                    Kryo kryo = new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
+                    registry.registerClasses(kryo);
                     p.addLast(new KryoEncoder(kryo));
+                    kryo = new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
+                    registry.registerClasses(kryo);
+                    p.addLast(new KryoDecoder(kryo));
                     p.addLast(ResultStreamer.this);
                 }
             });
