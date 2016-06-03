@@ -97,7 +97,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
             }
             done.run(responseBuilder.build());
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            controller.setFailed(e.getMessage());
         }
     }
 
