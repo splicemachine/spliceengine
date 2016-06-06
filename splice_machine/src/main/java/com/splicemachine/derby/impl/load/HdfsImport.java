@@ -363,11 +363,11 @@ public class HdfsImport {
             //execute the import operation.
             try (PreparedStatement ips = conn.prepareStatement(insertSql)) {
                 FileInfo contentSummary = ImportUtils.getImportFileInfo(fileName);
-                int count = ips.executeUpdate();
+                ips.executeUpdate();
                 String badFileName = ((EmbedConnection) conn).getLanguageConnection().getBadFile();
                 ExecRow result = new ValueRow(5);
                 result.setRowArray(new DataValueDescriptor[]{
-                    new SQLLongint(count),
+                    new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getRecordsImported()),
                     new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
                     new SQLLongint(contentSummary.fileCount()),
                     new SQLLongint(contentSummary.size()),
@@ -386,6 +386,7 @@ public class HdfsImport {
             if (conn != null) {
                 ((EmbedConnection) conn).getLanguageConnection().resetBadFile();
                 ((EmbedConnection) conn).getLanguageConnection().resetFailedRecords();
+                ((EmbedConnection) conn).getLanguageConnection().resetRecordsImported();
                 conn.close();
             }
         }

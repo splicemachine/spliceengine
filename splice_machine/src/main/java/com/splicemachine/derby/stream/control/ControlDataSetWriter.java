@@ -4,6 +4,7 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
@@ -55,7 +56,8 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
             pipelineWriter.open(operation.getTriggerHandler(),operation);
             pipelineWriter.write(dataSet.values().toLocalIterator());
             ValueRow valueRow=new ValueRow(1);
-            valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
+            valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
+            operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
             if(operation instanceof InsertOperation){
                 InsertOperation insertOperation = (InsertOperation)operation;
                 List<String> badRecords=operationContext.getBadRecords();
