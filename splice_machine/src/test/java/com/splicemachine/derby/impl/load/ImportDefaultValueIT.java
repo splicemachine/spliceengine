@@ -1,27 +1,21 @@
 package com.splicemachine.derby.impl.load;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.io.PrintWriter;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test_dao.TableDAO;
+import static org.junit.Assert.*;
 
 /**
  * Test importing a file into a table with default or generated column values.
@@ -69,6 +63,7 @@ public class ImportDefaultValueIT {
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     private static File BADDIR;
     private static File IMPORTDIR;
+    private TestConnection conn;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -80,8 +75,21 @@ public class ImportDefaultValueIT {
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).around(spliceSchemaWatcher);
+
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    @Before
+    public void setUp() throws Exception{
+        this.conn = methodWatcher.getOrCreateConnection();
+        this.conn.setAutoCommit(false);
+    }
+
+    @After
+    public void tearDown() throws Exception{
+        this.conn.rollback();
+        conn.reset();
+    }
 
     @Test
     public void allValuesNoColumnList() throws Exception {
@@ -529,33 +537,29 @@ public class ImportDefaultValueIT {
             throw new Exception("Don't enclose the create table definition in parens.");
         }
 
-        TableDAO td = new TableDAO(methodWatcher.getOrCreateConnection());
-        td.drop(spliceSchemaWatcher.schemaName, tableName);
-
         String controlTableDef = "("+tableDef+")";
-        methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
-            String.format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+controlTableDef);
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate(String.format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+controlTableDef);
+        }
 
-        String importString =String.format("call SYSCS_UTIL.IMPORT_DATA(" +
-                                                                         "'%s'," +  // schema name
-                                                                         "'%s'," +  // table name
-                                                                         "'%s'," +  // insert column list
-                                                                         "'%s'," +  // file path
-                                                                         "','," +   // column delimiter
-                                                                         "'\"'," +  // character delimiter
-                                                                         "null," +  // timestamp format
-                                                                         "null," +  // date format
-                                                                         "null," +  // time format
-                                                                         "%d," +    // max bad records
-                                                                         "'%s'," +  // bad record dir
-                                                                         "null," +  // has one line records
-                                                                         "'%s')",   // char set
-                                                                     spliceSchemaWatcher.schemaName, tableName, colList,
-                                                                     fileName, maxBadRecordsAllowed,
-                                                                     BADDIR.getCanonicalPath(), UTF_8_CHAR_SET_STR);
-//        System.out.println(importString);
-        PreparedStatement ps = methodWatcher.prepareStatement(importString);
-        try {
+        String importString=String.format("call SYSCS_UTIL.IMPORT_DATA("+
+                        "'%s',"+  // schema name
+                        "'%s',"+  // table name
+                        "'%s',"+  // insert column list
+                        "'%s',"+  // file path
+                        "',',"+   // column delimiter
+                        "'\"',"+  // character delimiter
+                        "null,"+  // timestamp format
+                        "null,"+  // date format
+                        "null,"+  // time format
+                        "%d,"+    // max bad records
+                        "'%s',"+  // bad record dir
+                        "null,"+  // has one line records
+                        "'%s')",   // char set
+                spliceSchemaWatcher.schemaName,tableName,colList,
+                fileName,maxBadRecordsAllowed,
+                BADDIR.getCanonicalPath(),UTF_8_CHAR_SET_STR);
+        try(PreparedStatement ps=conn.prepareStatement(importString)){
             ps.execute();
             if (sqlStateCode != null && ! sqlStateCode.isEmpty()) {
                 fail("Expected import exception: "+sqlStateCode+ " but got no error.  Printing \"bad\" file: "+
@@ -579,24 +583,28 @@ public class ImportDefaultValueIT {
             queryString = alternateQueryString;
         }
 
-        ResultSet rs = methodWatcher.executeQuery(queryString);
-        SpliceUnitTest.ResultList actualResultList = SpliceUnitTest.ResultList.create();
-        int nRows = 0;
-        int nCols = rs.getMetaData().getColumnCount();
-        while (rs.next()) {
-            ++nRows;
-            String[] actualRow = new String[nCols];
-            // skipping first col because it's the "control column"
-            for (int index =1; index<=nCols; ++index) {
-                actualRow[index-1] = (rs.getObject(index) != null ? rs.getObject(index).toString() : "NULL");
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(queryString)){
+                SpliceUnitTest.ResultList actualResultList=SpliceUnitTest.ResultList.create();
+                int nRows=0;
+                int nCols=rs.getMetaData().getColumnCount();
+                while(rs.next()){
+                    ++nRows;
+                    String[] actualRow=new String[nCols];
+                    // skipping first col because it's the "control column"
+                    for(int index=1;index<=nCols;++index){
+                        Object object=rs.getObject(index);
+                        actualRow[index-1]=rs.wasNull()?"NULL":object.toString();
+                    }
+                    actualResultList.expected((String[])actualRow);
+                }
+
+                assertEquals(String.format("Expected %d rows imported, got: %d: %s",expectedResultList.nRows(),nRows,
+                        SpliceUnitTest.printBadFile(BADDIR,fileName)),expectedResultList.nRows(),nRows);
+
+                assertEquals("Results differ: ",expectedResultList.toString(),actualResultList.toString());
             }
-            actualResultList.expected((String[]) actualRow);
         }
-
-        assertEquals(String.format("Expected %d rows imported, got: %d: %s", expectedResultList.nRows(), nRows,
-                SpliceUnitTest.printBadFile(BADDIR, fileName)), expectedResultList.nRows(), nRows);
-
-        assertEquals("Results differ: ", expectedResultList.toString(), actualResultList.toString());
     }
 
 }

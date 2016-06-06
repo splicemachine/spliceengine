@@ -9,7 +9,10 @@ import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -53,27 +56,25 @@ public class VacuumIT extends SpliceUnitTest{
         Connection connection = spliceClassWatcher.getOrCreateConnection();
         long[] conglomerateNumber = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, TABLE);
         String conglomerateString = Long.toString(conglomerateNumber[0]);
-        PreparedStatement ps = methodWatcher.prepareStatement(String.format("drop table %s.%s", CLASS_NAME, TABLE));
-        ps.execute();
+        try(PreparedStatement ps = methodWatcher.prepareStatement(String.format("drop table %s.%s", CLASS_NAME, TABLE))){
+            ps.execute();
+        }
 
-        HBaseAdmin admin = new HBaseAdmin(new Configuration());
-
-		try{
-			Set<String> beforeTables = getConglomerateSet(admin.listTables());
-			CallableStatement callableStatement = methodRule.prepareCall("call SYSCS_UTIL.VACUUM()");
-			callableStatement.execute();
-            Set<String> afterTables = getConglomerateSet(admin.listTables());
+        try(HBaseAdmin admin=new HBaseAdmin(new Configuration())){
+            Set<String> beforeTables=getConglomerateSet(admin.listTables());
+            try(CallableStatement callableStatement=methodRule.prepareCall("call SYSCS_UTIL.VACUUM()")){
+                callableStatement.execute();
+            }
+            Set<String> afterTables=getConglomerateSet(admin.listTables());
             Assert.assertTrue(beforeTables.contains(conglomerateString));
             Assert.assertFalse(afterTables.contains(conglomerateString));
-            Set<String> deletedTables = getDeletedTables(beforeTables, afterTables);
-            for (String t : deletedTables) {
-                long conglom = new Long(t);
-                Assert.assertTrue(conglom >= DataDictionary.FIRST_USER_TABLE_NUMBER);
+            Set<String> deletedTables=getDeletedTables(beforeTables,afterTables);
+            for(String t : deletedTables){
+                long conglom=new Long(t);
+                Assert.assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
             }
-		}finally{
-			admin.close();
-		}
-	}
+        }
+    }
 
     private Set<String> getConglomerateSet(HTableDescriptor[] tableDescriptors) {
         Set<String> conglomerates = new HashSet<>();

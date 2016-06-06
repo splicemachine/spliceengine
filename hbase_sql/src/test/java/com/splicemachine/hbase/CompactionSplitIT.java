@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.test.SlowTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -28,13 +29,16 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTestUtils;
 import com.splicemachine.test_tools.TableCreator;
+import org.junit.experimental.categories.Category;
 
 /**
  * Test MemstoreAwareObserver behavior during region compactions, splits
  */
+@Category({com.splicemachine.test.SerialTest.class,SlowTest.class})
 public class CompactionSplitIT {
     private static final Logger LOG = Logger.getLogger(CompactionSplitIT.class);
     private static final String SCHEMA = CompactionSplitIT.class.getSimpleName().toUpperCase();
@@ -56,8 +60,8 @@ public class CompactionSplitIT {
         // table A
         // shuffle rows in test tables so tests do no depend on order
         Collections.shuffle(tableRows);
-
-        new TableCreator(classWatcher.getOrCreateConnection())
+        TestConnection conn = classWatcher.getOrCreateConnection();
+        new TableCreator(conn)
             .withCreate("create table A (a bigint)")
             .withInsert("insert into A values(?)")
             .withRows(rows(tableRows)).create();
@@ -66,7 +70,7 @@ public class CompactionSplitIT {
         // shuffle rows in test tables so tests do no depend on order
         Collections.shuffle(tableRows);
 
-        new TableCreator(classWatcher.getOrCreateConnection())
+        new TableCreator(conn)
             .withCreate("create table B (a bigint)")
             .withInsert("insert into B values(?)")
             .withRows(rows(tableRows)).create();
@@ -75,7 +79,7 @@ public class CompactionSplitIT {
         // shuffle rows in test tables so tests do no depend on order
         Collections.shuffle(tableRows);
 
-        new TableCreator(classWatcher.getOrCreateConnection())
+        new TableCreator(conn)
             .withCreate("create table C (a bigint)")
             .withInsert("insert into C values(?)")
             .withRows(rows(tableRows)).create();
@@ -84,7 +88,7 @@ public class CompactionSplitIT {
         // shuffle rows in test tables so tests do no depend on order
         Collections.shuffle(tableRows);
 
-        new TableCreator(classWatcher.getOrCreateConnection())
+        new TableCreator(conn)
             .withCreate("create table D (a bigint)")
             .withInsert("insert into D values(?)")
             .withRows(rows(tableRows)).create();
@@ -93,7 +97,7 @@ public class CompactionSplitIT {
         // shuffle rows in test tables so tests do no depend on order
         Collections.shuffle(tableRows);
 
-        new TableCreator(classWatcher.getOrCreateConnection())
+        new TableCreator(conn)
                 .withCreate("create table E (a bigint)")
                 .withInsert("insert into E values(?)")
                 .withRows(rows(tableRows)).create();
@@ -102,7 +106,7 @@ public class CompactionSplitIT {
         // shuffle rows in test tables so tests do no depend on order
         Collections.shuffle(tableRows);
 
-        new TableCreator(classWatcher.getOrCreateConnection())
+        new TableCreator(conn)
                 .withCreate("create table F (a bigint)")
                 .withInsert("insert into F values(?)")
                 .withRows(rows(tableRows)).create();

@@ -64,20 +64,21 @@ public class ConstraintConstantOperationIT {
 
     @Before
     public void setupBefore() throws Exception {
-        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, EMP_NAME_TABLE_NAME, TASK_TABLE_NAME, EMP_PRIV_TABLE_NAME);
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+        new TableDAO(conn).drop(SCHEMA, EMP_NAME_TABLE_NAME, TASK_TABLE_NAME, EMP_PRIV_TABLE_NAME);
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
+        new TableCreator(conn)
             .withCreate(String.format("create table %s %s", empPrivTable, EMP_PRIV_TABLE_DEF))
             .withInsert(String.format("insert into %s (EmpId, dob, ssn, salary) values (?,?,?,?)", empPrivTable))
                               .withRows(rows(row(100, "03/08", "777-22-1234", 10001))).create();
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
+        new TableCreator(conn)
             .withCreate(String.format("create table %s %s", EMP_NAME_TABLE_NAME, EMP_NAME_TABLE_DEF))
             .withInsert(String.format("insert into %s (EmpId, fname, lname) values (?,?,?)", empNameTable))
             .withRows(rows(row(100, "'Fred'", "'Ziffle'"))).create();
 
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
+        new TableCreator(conn)
             .withCreate(String.format("create table %s %s", TASK_TABLE_NAME, TASK_TABLE_DEF))
             .withInsert(String.format("insert into %s (TaskId, empId, StartedAt, FinishedAt) values (?,?,?,?)", taskTable))
             .withRows(rows(row(10, 100, 1400, 1430))).create();

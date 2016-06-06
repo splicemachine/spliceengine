@@ -1,28 +1,33 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-/**
- * Created by jyuan on 11/3/15.
- */
-import com.splicemachine.customer.*;
+import com.splicemachine.customer.Price;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.log4j.Logger;
-import org.junit.*;
-
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
+/**
+ *
+ * Created by jyuan on 11/3/15.
+ */
+@Category(SerialTest.class) //serial because it loads a jar
 public class SpliceUDTIT extends SpliceUnitTest {
-
-    private static Logger LOG = Logger.getLogger(SpliceUDTIT.class);
     public static final String CLASS_NAME = SpliceUDTIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
@@ -55,31 +60,40 @@ public class SpliceUDTIT extends SpliceUnitTest {
         methodWatcher.execute("DROP TYPE price restrict");
     }
 
-    public static void createData(Connection conn) throws Exception {
-        methodWatcher.execute(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
-        methodWatcher.execute(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
-        methodWatcher.execute("create derby aggregate median for int external name 'com.splicemachine.customer.Median'");
+    private static void createData(Connection conn) throws Exception {
+        try(Statement s = conn.createStatement()){
+            s.execute(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
+        }catch(SQLException se){
+            if(!"SE014".equals(se.getSQLState())){
+                //write-conflict. That means someone ELSE is loading this same jar. That's cool, just keep going
+                throw se;
+            }
+        }
+        try(Statement s = conn.createStatement()){
+            s.execute(String.format(CALL_SET_CLASSPATH_FORMAT_STRING,JAR_FILE_SQL_NAME));
+            s.execute("create derby aggregate median for int external name 'com.splicemachine.customer.Median'");
 
-        new TableCreator(conn)
-                .withCreate("create table t(i int)")
-                .withInsert("insert into t values(?)")
-                .withRows(rows(
-                        row(1),
-                        row(2),
-                        row(3),
-                        row(4),
-                        row(5)))
-                .create();
+            new TableCreator(conn)
+                    .withCreate("create table t(i int)")
+                    .withInsert("insert into t values(?)")
+                    .withRows(rows(
+                            row(1),
+                            row(2),
+                            row(3),
+                            row(4),
+                            row(5)))
+                    .create();
 
-        methodWatcher.execute("CREATE TYPE price EXTERNAL NAME 'com.splicemachine.customer.Price' language Java");
-        methodWatcher.execute("CREATE FUNCTION makePrice(varchar(30), double)\n" +
-                "RETURNS Price\n" +
-                "LANGUAGE JAVA\n" +
-                "PARAMETER STYLE JAVA\n" +
-                "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
+            s.execute("CREATE TYPE price EXTERNAL NAME 'com.splicemachine.customer.Price' language Java");
+            s.execute("CREATE FUNCTION makePrice(varchar(30), double)\n"+
+                    "RETURNS Price\n"+
+                    "LANGUAGE JAVA\n"+
+                    "PARAMETER STYLE JAVA\n"+
+                    "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
 
-        methodWatcher.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
-        methodWatcher.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
+            s.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
+            s.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
+        }
     }
 
     @Test
@@ -103,7 +117,6 @@ public class SpliceUDTIT extends SpliceUnitTest {
     }
 
     @Test
-    // DB-4086:Testing selection of a UDA column
     public void TestSelectStatistics() throws Exception {
         methodWatcher.execute("analyze schema " + CLASS_NAME);
         ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syscolumnstatistics");

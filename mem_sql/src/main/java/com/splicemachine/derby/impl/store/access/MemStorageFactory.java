@@ -5,6 +5,13 @@ import com.splicemachine.db.io.StorageFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * @author Scott Fines
@@ -12,6 +19,7 @@ import java.io.IOException;
  */
 public class MemStorageFactory implements StorageFactory{
     private String canonicalName;
+    private final ConcurrentMap<String,MFile> fileMap= new ConcurrentHashMap<>();
 
     /**
      * Most of the initialization is done in the init method.
@@ -26,7 +34,21 @@ public class MemStorageFactory implements StorageFactory{
         doInit();
     }
 
-    void doInit() throws IOException{
+    List<Path> getChildren(Path path){
+        List<Path> children = new LinkedList<>();
+        Collection<MFile> values=fileMap.values();
+        for(MFile sf:values){
+            if(path.equals(sf.path().getParent()))
+                children.add(sf.path());
+        }
+        return children;
+    }
+
+    void remove(MFile mFile){
+        fileMap.remove(mFile.path().toString());
+    }
+
+    private void doInit() throws IOException{
     } // end of doInit
 
     @Override
@@ -40,12 +62,23 @@ public class MemStorageFactory implements StorageFactory{
 
     @Override
     public StorageFile newStorageFile(String path){
-        return new MFile(path,null);
+        StorageFile f = fileMap.get(path);
+        if(f==null){
+            boolean isDir = path.endsWith("/");
+            MFile newFile = new MFile(this,Paths.get(path),isDir);
+            f =fileMap.putIfAbsent(path,newFile);
+            if(f==null)
+                f = newFile;
+        }
+        return f;
     }
 
     @Override
     public StorageFile newStorageFile(String directoryName,String fileName){
-        return new MFile(directoryName,fileName);
+        if(fileName==null)
+            return newStorageFile(directoryName);
+        else
+            return newStorageFile(directoryName+"/"+fileName);
     }
 
     @Override

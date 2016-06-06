@@ -1,12 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -21,7 +19,7 @@ import static org.junit.Assert.*;
 /**
  * SerialTest because it clears the statement history table, SlowTests because it performs manual splits.
  */
-@Category(value = {SerialTest.class, SlowTest.class})
+@Category(value = {SerialTest.class,SlowTest.class})
 public class MultiRegionIT {
 
     private static final String SCHEMA_NAME = MultiRegionIT.class.getSimpleName().toUpperCase();
@@ -49,9 +47,11 @@ public class MultiRegionIT {
                                 ps.execute();
                             }
                         }
-                        spliceClassWatcher.splitTable(TABLE1_NAME, SCHEMA_NAME);
-                        spliceClassWatcher.splitTable(TABLE1_NAME, SCHEMA_NAME);
-                        spliceClassWatcher.splitTable(TABLE1_NAME, SCHEMA_NAME);
+
+                        long conglomId =spliceClassWatcher.getConglomId(TABLE1_NAME, SCHEMA_NAME);
+                        RegionUtils.splitTable(conglomId);
+                        RegionUtils.splitTable(conglomId);
+                        RegionUtils.splitTable(conglomId);
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);

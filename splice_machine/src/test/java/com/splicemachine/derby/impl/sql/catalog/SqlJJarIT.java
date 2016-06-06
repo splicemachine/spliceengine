@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
@@ -23,8 +24,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * @author David Winters
  *		 Created on: 9/25/14
  */
-@Category(SerialTest.class)
-//@Ignore("DB-4272")
+@Category(SerialTest.class) //serial because it loads a jar
 public class SqlJJarIT extends SpliceUnitTest {
 
 	public static final String CLASS_NAME = SqlJJarIT.class.getSimpleName().toUpperCase();
@@ -87,8 +87,13 @@ public class SqlJJarIT extends SpliceUnitTest {
 		int numSysFiles = resultSetSize(rs);
 
 		// Install the jar file of user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+		try{
+			rc=methodWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING,STORED_PROCS_JAR_FILE,JAR_FILE_SQL_NAME));
+			Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+		}catch(SQLException se){
+			if(!"SE014".equals(se.getSQLState())) //ignore WWConflicts
+				throw se;
+		}
 
 		// Add the jar file into the local DB class path.
 		rc = methodWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));

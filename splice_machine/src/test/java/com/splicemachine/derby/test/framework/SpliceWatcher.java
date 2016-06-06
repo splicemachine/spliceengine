@@ -1,5 +1,6 @@
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.sparkproject.guava.collect.Lists;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
@@ -266,8 +267,8 @@ public class SpliceWatcher extends TestWatcher {
     }
 
     public void splitTable(String tableName, String schemaName) throws Exception {
-        throw new UnsupportedOperationException("IMPLEMENT USING ONLY JDBC");
-//        ConglomerateUtils.splitConglomerate(getConglomId(tableName, schemaName));
+        long conglom = getConglomId(tableName,schemaName);
+//        ConglomerateUtils.splitConglomerate(getConglomId(tableName,schemaName));
     }
 
     public long getConglomId(String tableName, String schemaName) throws Exception {

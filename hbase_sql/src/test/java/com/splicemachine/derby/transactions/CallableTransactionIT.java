@@ -2,8 +2,10 @@ package com.splicemachine.derby.transactions;
 
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
 
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.Transactions;
 import org.junit.*;
@@ -21,7 +23,7 @@ import org.junit.rules.TestRule;
  * @author David Winters
  *		 Created on: 2/27/15
  */
-@Category({Transactions.class})
+@Category({Transactions.class,SerialTest.class}) //made serial because it loads a jar
 public class CallableTransactionIT extends SpliceUnitTest {
 
 	public static final String CLASS_NAME = CallableTransactionIT.class.getSimpleName().toUpperCase();
