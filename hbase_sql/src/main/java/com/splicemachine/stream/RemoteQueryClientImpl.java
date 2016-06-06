@@ -10,10 +10,10 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.derby.stream.spark.BroadcastedActivation;
@@ -51,6 +51,8 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
     private final SpliceBaseOperation root;
     private StreamListener streamListener;
+    private long offset = 0;
+    private long limit = -1;
 
     public RemoteQueryClientImpl(SpliceBaseOperation root) {
         this.root = root;
@@ -61,7 +63,8 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         ActivationHolder ah = new ActivationHolder(root.getActivation());
 
         try {
-            streamListener = new StreamListener();
+            updateLimitOffset();
+            streamListener = new StreamListener(limit, offset);
             HostAndPort hostAndPort = streamListener.start();
             String host = hostAndPort.getHostText();
             int port = hostAndPort.getPort();
@@ -97,6 +100,24 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             }.start();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
+        }
+    }
+
+    private void updateLimitOffset() throws StandardException {
+        if (root instanceof ScrollInsensitiveOperation
+                || root instanceof AnyOperation
+                || root instanceof OnceOperation) {
+
+            SpliceOperation source = root.getSubOperations().get(0);
+            if (!(source instanceof RowCountOperation))
+                return;
+
+            RowCountOperation rco = (RowCountOperation) source;
+            this.limit = rco.getFetchLimit();
+            this.offset = rco.getTotalOffset();
+            if (this.offset == -1) {
+                offset = 0;
+            }
         }
     }
 

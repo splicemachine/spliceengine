@@ -106,28 +106,6 @@ public class QueryJob implements Callable<Void>{
 
         Object result = streamableRDD.result();
 
-//        JavaFutureAction<List<Object>> collectFuture = streamed.collectAsync();
-//        while(!collectFuture.isDone()){
-//            try{
-//                collectFuture.get(tickTime,TimeUnit.MILLISECONDS);
-//            }catch(TimeoutException te){
-                /*
-                 * A TimeoutException just means that tickTime expired. That's okay, we just stick our
-                 * head up and make sure that the client is still operating
-                 */
-//            }
-//            if(!status.isRunning()){
-//                /*
-//                 * The client timed out, so cancel the query and terminate
-//                 */
-//                collectFuture.cancel(true);
-//                context.cancelJobGroup(queryRequest.jobGroup);
-//                return null;
-//            }
-//        }
-
-        //the compaction completed
-//        List<Object> results = collectFuture.get();
         status.markCompleted(new QueryResult(numPartitions));
 
         return null;

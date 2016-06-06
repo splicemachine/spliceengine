@@ -4,7 +4,6 @@ import com.google.common.net.HostAndPort;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.BaseStreamTest;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -182,5 +181,109 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
         assertEquals(100000, count);
     }
 
+    @Test
+    public void testOffsetLimit() throws StandardException {
+        StreamListener<ExecRow> sl = new StreamListener<>(400, 30000);
+        HostAndPort hostAndPort = sl.start();
 
+        List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
+        for(int i = 0; i < 100000; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 13);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), hostAndPort.getHostText(), hostAndPort.getPort());
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Object result = srdd.result();
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        int count = 0;
+        int first = 30000;
+        while (it.hasNext()) {
+            ExecRow execRow = it.next();
+            assertNotNull(execRow);
+            assertEquals(count+first, execRow.getColumn(1).getInt());
+            count++;
+        }
+        assertEquals(400, count);
+    }
+
+
+    @Test
+    public void testLimit() throws StandardException {
+        StreamListener<ExecRow> sl = new StreamListener<>(400, 0);
+        HostAndPort hostAndPort = sl.start();
+
+        List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
+        for(int i = 0; i < 100000; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 13);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), hostAndPort.getHostText(), hostAndPort.getPort());
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Object result = srdd.result();
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        int count = 0;
+        while (it.hasNext()) {
+            ExecRow execRow = it.next();
+            assertNotNull(execRow);
+            assertEquals(count, execRow.getColumn(1).getInt());
+            count++;
+        }
+        assertEquals(400, count);
+    }
+
+
+    @Test
+    public void testOffset() throws StandardException {
+        StreamListener<ExecRow> sl = new StreamListener<>(-1, 60000);
+        HostAndPort hostAndPort = sl.start();
+
+        List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
+        for(int i = 0; i < 100000; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 13);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), hostAndPort.getHostText(), hostAndPort.getPort());
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Object result = srdd.result();
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        int count = 0;
+        int first = 60000;
+        while (it.hasNext()) {
+            ExecRow execRow = it.next();
+            assertNotNull(execRow);
+            assertEquals(count+first, execRow.getColumn(1).getInt());
+            count++;
+        }
+        assertEquals(100000-60000, count);
+    }
 }

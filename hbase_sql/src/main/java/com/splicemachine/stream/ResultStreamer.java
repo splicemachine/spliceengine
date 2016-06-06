@@ -3,10 +3,7 @@ package com.splicemachine.stream;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.serializer.KryoRegistrator;
@@ -16,24 +13,19 @@ import org.sparkproject.io.netty.channel.*;
 import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
 import org.sparkproject.io.netty.channel.socket.SocketChannel;
 import org.sparkproject.io.netty.channel.socket.nio.NioSocketChannel;
-import org.sparkproject.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 
 /**
  * Created by dgomezferro on 5/25/16.
  */
 public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<Object>>, Serializable {
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
-    private static final StreamProtocol.Close CLOSE = new StreamProtocol.Close();
 
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
     private int numPartitions;
@@ -41,9 +33,11 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private int port;
     private Semaphore cont = new Semaphore(2);
     private volatile long sent = 0;
+    private volatile long offset = 0;
     private Integer partition;
     private Iterator<T> locatedRowIterator;
-    private ExecutorService executor;
+    private volatile Future<String> future;
+    private NioEventLoopGroup workerGroup;
 
     // Serialization
     public ResultStreamer() {
@@ -59,12 +53,26 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
         ctx.writeAndFlush(new StreamProtocol.Init(numPartitions, partition));
         LOG.trace("Written init");
-        this.executor = Executors.newFixedThreadPool(1);
-        this.executor.submit(new Runnable() {
+        this.future = this.workerGroup.submit(new Callable<String>() {
             @Override
-            public void run() {
-
+            public String call() {
                 while (locatedRowIterator.hasNext()) {
+                    if (sent < offset) {
+                        if (offset == Long.MAX_VALUE) {
+                            // We are finished, no more values required
+                            return "STOP";
+                        }
+                        long count = 0;
+                        while (locatedRowIterator.hasNext() && sent < offset) {
+                            locatedRowIterator.next();
+                            count++;
+                            sent++;
+                        }
+                        ctx.writeAndFlush(new StreamProtocol.Skipped(count));
+                        if (!locatedRowIterator.hasNext())
+                            break;
+                    }
+                    T lr = locatedRowIterator.next();
                     if (sent % 512 == 0) {
                         LOG.trace("Acquiring permit " + cont.toString() + " sent " + sent);
                         ctx.flush();
@@ -76,16 +84,16 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                         }
                         LOG.trace("Acquired permit " + cont.toString()+ " sent " + sent);
                     }
-                    T lr = locatedRowIterator.next();
-                    ctx.write(lr);
+                    ctx.write(lr, ctx.voidPromise());
 
                     sent++;
                 }
                 LOG.trace("Written data");
 
-                ctx.writeAndFlush(CLOSE);
+                ctx.writeAndFlush(new StreamProtocol.RequestClose());
 
                 LOG.trace("Written FIN");
+                return "CONTINUE";
             }
         });
     }
@@ -98,13 +106,27 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             LOG.trace("Releasing permit " + cont);
             cont.release();
             LOG.trace("Released permit " + cont);
-        } else if (msg instanceof StreamProtocol.Close) {
+        } else if (msg instanceof StreamProtocol.ConfirmClose) {
             try {
                 ctx.close().sync();
             } catch (InterruptedException e) {
                 LOG.error(e);
             }
             LOG.trace("Closed");
+        } else if (msg instanceof StreamProtocol.RequestClose) {
+            cont.release();
+            try {
+                // wait for the writing thread to finish
+                future.get();
+                ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
+                ctx.close().sync();
+            } catch (InterruptedException e) {
+                LOG.error(e);
+            }
+            LOG.trace("Closed");
+        } else if (msg instanceof StreamProtocol.Skip) {
+            StreamProtocol.Skip skip = (StreamProtocol.Skip) msg;
+            offset = skip.toSkip;
         }
     }
 
@@ -115,7 +137,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         this.locatedRowIterator = locatedRowIterator;
 
         Bootstrap bootstrap;
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        ThreadFactory tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ResultStreamer-"+host+":"+port+"["+partition+"]").build();
+        this.workerGroup = new NioEventLoopGroup(2, tf);
         try {
 
             bootstrap = new Bootstrap();
@@ -141,7 +164,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
             futureConnect.channel().closeFuture().sync();
 
-            return Collections.emptyIterator();
+            return Arrays.<Object>asList(future.get()).iterator();
         } finally {
             workerGroup.shutdownGracefully();
         }

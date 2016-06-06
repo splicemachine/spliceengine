@@ -12,7 +12,7 @@ import java.io.Serializable;
  */
 public class FunctionAdapter extends AbstractFunction1<Iterator<Object>, Object[]> implements Serializable {
 
-    private final static ClassTag<Object[]> tag = scala.reflect.ClassTag$.MODULE$.apply(Object[].class);
+    private final static ClassTag<Object> tag = scala.reflect.ClassTag$.MODULE$.apply(Object.class);
 
     @Override
     public Object[] apply(scala.collection.Iterator<Object> locatedRowIterator) {

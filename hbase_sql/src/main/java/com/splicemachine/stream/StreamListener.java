@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
 import org.apache.spark.serializer.KryoRegistrator;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import org.sparkproject.io.netty.bootstrap.ServerBootstrap;
 import org.sparkproject.io.netty.channel.*;
 import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
@@ -34,7 +35,9 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
     private static final Object SENTINEL = new Object();
     private static final StreamProtocol.Continue CONTINUE = new StreamProtocol.Continue();
-    private static final StreamProtocol.Close CLOSE = new StreamProtocol.Close();
+//    private static final StreamProtocol.Close CLOSE = new StreamProtocol.Close();
+    private long limit;
+    private long offset;
 
     private Channel serverChannel;
     private Map<Channel, Integer> partitionMap = new ConcurrentHashMap<>();
@@ -43,18 +46,30 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private boolean initialized = false;
 
     private T currentResult;
-    private int currentQueue = 0;
+    private int currentQueue = -1;
     private long numPartitions;
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workerGroup;
 
     public StreamListener() {
+        this(-1, 0);
+    }
+
+    public StreamListener(long limit, long offset) {
+        this.limit = limit;
+        this.offset = offset;
+        // start with this to force a channel advancement
+        PartitionState first = new PartitionState();
+        first.messages.add(SENTINEL);
+        first.sentSkip = true;
+        this.partitionStateMap.put(-1, first);
     }
 
     public HostAndPort start() throws StandardException {
-
-        this.bossGroup = new NioEventLoopGroup();
-        this.workerGroup = new NioEventLoopGroup();
+        ThreadFactory tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("StreamerListener-boss-%s").build();
+        this.bossGroup = new NioEventLoopGroup(2, tf);
+        tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("StreamerListener-worker-%s").build();
+        this.workerGroup = new NioEventLoopGroup(4, tf);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -88,9 +103,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             throw Exceptions.parseException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-//        } finally {
-//            workerGroup.shutdownGracefully();
-//            bossGroup.shutdownGracefully();
         }
 
     }
@@ -139,21 +151,28 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             partitionMap.put(channel, init.partition);
             partitionStateMap.putIfAbsent(init.partition, new PartitionState());
             channelMap.put(init.partition, channel);
-        } else if (msg instanceof StreamProtocol.Close) {
+        } else if (msg instanceof StreamProtocol.RequestClose) {
             Integer partition = partitionMap.get(channel);
             PartitionState state = partitionStateMap.get(partition);
             // We can't block here, we negotiate throughput with the server to guarantee it
             state.messages.add(SENTINEL);
             try {
                 // Let server know it can close the connection
-                ctx.writeAndFlush(CLOSE);
+                ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
+                ctx.close().sync();
+            } catch (InterruptedException e) {
+                LOG.error("While closing channel", e);
+                throw new RuntimeException(e);
+            }
+        } else if (msg instanceof StreamProtocol.ConfirmClose) {
+            try {
                 ctx.close().sync();
             } catch (InterruptedException e) {
                 LOG.error("While closing channel", e);
                 throw new RuntimeException(e);
             }
         } else {
-            // Data
+            // Data or StreamProtocol.Skipped
             Integer partition = partitionMap.get(channel);
             PartitionState state = partitionStateMap.get(partition);
             // We can't block here, we negotiate throughput with the server to guarantee it
@@ -179,8 +198,18 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             while (next == null) {
                 PartitionState state = partitionStateMap.get(currentQueue);
                 Object msg = state.messages.take();
+                if (offset > 0 && !state.sentSkip) {
+                    LOG.trace("Sending skip " + offset);
+                    channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Skip(offset));
+                    state.sentSkip = true;
+                }
                 if (msg == SENTINEL) {
                     LOG.trace("Moving queues");
+                    partitionStateMap.remove(currentQueue);
+                    Channel removedChannel = channelMap.remove(currentQueue);
+                    if (removedChannel != null)
+                        partitionMap.remove(removedChannel);
+
                     currentQueue++;
                     if (currentQueue >= numPartitions) {
                         // finished
@@ -192,8 +221,25 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                         partitionStateMap.putIfAbsent(currentQueue, new PartitionState());
                     }
                 } else {
-                    next = (T) msg;
-                    state.returned++;
+                    if (msg instanceof StreamProtocol.Skipped) {
+                        StreamProtocol.Skipped skipped = (StreamProtocol.Skipped) msg;
+                        offset -= skipped.skipped;
+                        state.returned += skipped.skipped;
+                    } else if (offset <= 0) {
+                        // We are returning a message
+                        next = (T) msg;
+                        state.returned++;
+                        if (limit > 0) {
+                            limit--;
+                            if (limit == 0) {
+                                stopAllStreams();
+                            }
+                        }
+                    } else {
+                        // We have to ignore 'offset' messages still
+                        offset--;
+                        state.returned++;
+                    }
                     if (state.returned % 512 == 0) {
                         LOG.trace("Writing CONT");
                         channelMap.get(currentQueue).writeAndFlush(CONTINUE);
@@ -204,6 +250,17 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void stopAllStreams() throws InterruptedException {
+        for (Channel channel : channelMap.values()) {
+            channel.writeAndFlush(new StreamProtocol.Skip(Long.MAX_VALUE));
+            channel.writeAndFlush(new StreamProtocol.RequestClose());
+        }
+        currentQueue = (int) numPartitions + 1;
+        PartitionState ps = new PartitionState();
+        ps.messages.add(SENTINEL);
+        partitionStateMap.putIfAbsent(currentQueue, ps);
     }
 
     private void close() {
@@ -220,5 +277,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 class PartitionState {
     ArrayBlockingQueue messages = new ArrayBlockingQueue(1025); // One more to account for the SENTINEL
     long returned;
+    boolean sentSkip;
 
 }

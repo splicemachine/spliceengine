@@ -11,10 +11,7 @@ import scala.reflect.ClassTag;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * Created by dgomezferro on 6/1/16.
@@ -27,7 +24,7 @@ public class StreamableRDD<T> {
     private final int port;
     private final String host;
     private final JavaRDD<T> rdd;
-    private final ExecutorCompletionService<Void> completionService;
+    private final ExecutorCompletionService<Object> completionService;
 
     public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort) {
         this.rdd = rdd;
@@ -55,10 +52,13 @@ public class StreamableRDD<T> {
         int submitted = 2;
         Exception error = null;
         while(received < batches && error == null) {
-            Future<Void> resultFuture = null;
+            Future<Object> resultFuture = null;
             try {
                 resultFuture = completionService.take();
-                resultFuture.get();
+                Object result = resultFuture.get();
+                if ("STOP".equals(result)) {
+                    break;
+                }
                 received++;
                 if (submitted < batches) {
                     submitBatch(submitted, batchSize, numPartitions, streamed);
@@ -72,6 +72,7 @@ public class StreamableRDD<T> {
         }
 
         if (error != null) {
+            LOG.error(error);
             throw Exceptions.parseException(error);
         }
 
@@ -85,13 +86,21 @@ public class StreamableRDD<T> {
         }
         LOG.warn("Submitting partitions " + list);
         final Seq objects = JavaConversions.asScalaBuffer(list).toList();
-        completionService.submit(new Runnable() {
+        completionService.submit(new Callable<Object>() {
             @Override
-            public void run() {
+            public Object call() {
                 LOG.trace("Running partitions " + list);
-                SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
+                Object[] results = (Object[]) SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
+                for (Object o : results) {
+                    for (Object o2: (Object[])o) {
+                        if ("STOP".equals(o2)) {
+                            return "STOP";
+                        }
+                    }
+                }
+                return "CONTINUE";
             }
-        }, null);
+        });
     }
 
 }
