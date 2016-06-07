@@ -585,7 +585,10 @@ public class DropColumnTransactionIT {
 
     /* Regression test for DB-5060 */
     @Test
-    public void testDropColumnBeforeInsertShiftedColumns2() throws Exception {
+    public void testDropColumnBeforeInsertUpdateShiftedColumns() throws Exception {
+        // Variation of testDropColumnBeforeInsertShiftedColumns but with more columns/cases
+        // and also Update coverage (not just Insert).
+
         String tableName = "DROPCOLEMP";
         String tableRef = schemaWatcher.schemaName + "." + tableName;
         methodWatcher.executeUpdate(String.format(
@@ -663,7 +666,17 @@ public class DropColumnTransactionIT {
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
 
         // Source select with target list
-        conn.createStatement().execute(String.format("insert into %s (id,gender,title) select idtwo,gendertwo,titletwo from %s", tableRef, tableRef2));
+        conn.createStatement().execute(String.format("insert into %s (id,gender,title) select idtwo,gendertwo,titletwo from %s where idtwo=10", tableRef, tableRef2));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
+            o(4,"f","my4title"),o(5,null,"my5title"),o(6,null,"my6title"),
+            o(7,"m","my7title"),o(10,"f","my1000title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*hh*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // Source select with target list in different order
+        conn.createStatement().execute(String.format("insert into %s (title,id,gender) select titletwo,idtwo,gendertwo from %s where idtwo=20", tableRef, tableRef2));
         expected = Arrays.asList(
             o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
             o(4,"f","my4title"),o(5,null,"my5title"),o(6,null,"my6title"),
@@ -671,5 +684,26 @@ public class DropColumnTransactionIT {
         rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*hh*/", tableRef));
         results = TestUtils.resultSetToArrays(rs);
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // Update 1 column (to the right of the dropped column)
+        conn.createStatement().execute(String.format("update %s set title='my1001title' where id=10", tableRef));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
+            o(4,"f","my4title"),o(5,null,"my5title"),o(6,null,"my6title"),
+            o(7,"m","my7title"),o(10,"f","my1001title"),o(20,"m","my2000title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*ii*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+        // Update 2 columns (to the right of the dropped column)
+        conn.createStatement().execute(String.format("update %s set gender='f', title='my2001title' where id=20", tableRef));
+        expected = Arrays.asList(
+            o(1,"f","my1title"),o(2,"m","my2title"),o(3,"m","my3title"),
+            o(4,"f","my4title"),o(5,null,"my5title"),o(6,null,"my6title"),
+            o(7,"m","my7title"),o(10,"f","my1001title"),o(20,"f","my2001title"));
+        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s order by id /*ii*/", tableRef));
+        results = TestUtils.resultSetToArrays(rs);
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
     }
 }
