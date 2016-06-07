@@ -17,7 +17,6 @@ import org.sparkproject.io.netty.channel.socket.nio.NioSocketChannel;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.*;
 
@@ -32,21 +31,25 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private String host;
     private int port;
     private Semaphore cont = new Semaphore(2);
+    private volatile long consumed = 0;
     private volatile long sent = 0;
     private volatile long offset = 0;
+    private volatile long limit = Long.MAX_VALUE;
     private Integer partition;
     private Iterator<T> locatedRowIterator;
     private volatile Future<String> future;
     private NioEventLoopGroup workerGroup;
+    private int batchSize;
 
     // Serialization
     public ResultStreamer() {
     }
 
-    public ResultStreamer(String host, int port, int numPartitions) {
+    public ResultStreamer(String host, int port, int numPartitions, int batchSize) {
         this.host = host;
         this.port = port;
         this.numPartitions = numPartitions;
+        this.batchSize = batchSize;
     }
 
     @Override
@@ -57,23 +60,22 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             @Override
             public String call() {
                 while (locatedRowIterator.hasNext()) {
-                    if (sent < offset) {
-                        if (offset == Long.MAX_VALUE) {
-                            // We are finished, no more values required
-                            return "STOP";
-                        }
+                    if (consumed < offset) {
                         long count = 0;
-                        while (locatedRowIterator.hasNext() && sent < offset) {
+                        while (locatedRowIterator.hasNext() && consumed < offset) {
                             locatedRowIterator.next();
                             count++;
-                            sent++;
+                            consumed++;
                         }
                         ctx.writeAndFlush(new StreamProtocol.Skipped(count));
                         if (!locatedRowIterator.hasNext())
                             break;
                     }
                     T lr = locatedRowIterator.next();
-                    if (sent % 512 == 0) {
+                    consumed++;
+                    ctx.write(lr, ctx.voidPromise());
+                    sent++;
+                    if ((sent - 1) % batchSize == 0) {
                         LOG.trace("Acquiring permit " + cont.toString() + " sent " + sent);
                         ctx.flush();
                         try {
@@ -84,9 +86,12 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                         }
                         LOG.trace("Acquired permit " + cont.toString()+ " sent " + sent);
                     }
-                    ctx.write(lr, ctx.voidPromise());
 
-                    sent++;
+                    if (consumed > limit) {
+                        ctx.flush();
+                        LOG.trace("Reached limit, stopping consumed " + consumed + " sent " + sent + " limit " + limit);
+                        return "STOP";
+                    }
                 }
                 LOG.trace("Written data");
 
@@ -126,7 +131,10 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             LOG.trace("Closed");
         } else if (msg instanceof StreamProtocol.Skip) {
             StreamProtocol.Skip skip = (StreamProtocol.Skip) msg;
-            offset = skip.toSkip;
+            offset = skip.offset;
+            if (skip.limit >= 0) {
+                limit = skip.limit;
+            }
         }
     }
 
@@ -164,7 +172,11 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
             futureConnect.channel().closeFuture().sync();
 
-            return Arrays.<Object>asList(future.get()).iterator();
+            String result = future.get();
+            if (consumed >= limit) {
+                result = "STOP";
+            }
+            return Arrays.<Object>asList(result).iterator();
         } finally {
             workerGroup.shutdownGracefully();
         }

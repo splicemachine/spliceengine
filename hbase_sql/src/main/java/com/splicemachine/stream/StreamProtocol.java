@@ -28,18 +28,38 @@ public class StreamProtocol implements Serializable {
     }
 
     public static class Skip implements Serializable {
-        public long toSkip;
+        public long limit;
+        public long offset;
 
         public Skip() {}
 
-        public Skip(long toSkip) {
-            this.toSkip = toSkip;
+        public Skip(long limit, long offset) {
+            this.limit = limit;
+            this.offset = offset;
         }
 
         @Override
         public String toString() {
             return "Skip{" +
-                    "toSkip=" + toSkip +
+                    "limit=" + limit +
+                    ", offset=" + offset +
+                    '}';
+        }
+    }
+
+    public static class Limit implements Serializable {
+        public long limit;
+
+        public Limit() {}
+
+        public Limit(long limit) {
+            this.limit = limit;
+        }
+
+        @Override
+        public String toString() {
+            return "Limit{" +
+                    "limit=" + limit +
                     '}';
         }
     }

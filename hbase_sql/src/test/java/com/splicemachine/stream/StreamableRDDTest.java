@@ -181,6 +181,85 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
         assertEquals(100000, count);
     }
 
+
+    @Test
+    public void testSmallOffsetLimit() throws StandardException {
+        int limit = 100;
+        int offset = 2000;
+        int total = 4000;
+        StreamListener<ExecRow> sl = new StreamListener<>(limit, offset);
+        HostAndPort hostAndPort = sl.start();
+
+        List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
+        for(int i = 0; i < total; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 1);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), hostAndPort.getHostText(), hostAndPort.getPort());
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Object result = srdd.result();
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        int count = 0;
+        int first = offset;
+        while (it.hasNext()) {
+            ExecRow execRow = it.next();
+            assertNotNull(execRow);
+            assertEquals(count+first, execRow.getColumn(1).getInt());
+            count++;
+        }
+        assertEquals(limit, count);
+    }
+
+    @Test
+    public void testSmallLimit() throws StandardException {
+        int limit = 2000;
+        int offset = 0;
+        int total = 4000;
+        int batchSize =512;
+        StreamListener<ExecRow> sl = new StreamListener<>(limit, offset, batchSize);
+        HostAndPort hostAndPort = sl.start();
+
+        List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
+        for(int i = 0; i < total; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 1);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), hostAndPort.getHostText(), hostAndPort.getPort(), batchSize);
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Object result = srdd.result();
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        int count = 0;
+        int first = offset;
+        while (it.hasNext()) {
+            ExecRow execRow = it.next();
+            assertNotNull(execRow);
+            assertEquals(count+first, execRow.getColumn(1).getInt());
+            count++;
+        }
+        assertEquals(limit, count);
+    }
+
+
     @Test
     public void testOffsetLimit() throws StandardException {
         StreamListener<ExecRow> sl = new StreamListener<>(400, 30000);

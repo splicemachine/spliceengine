@@ -35,7 +35,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
     private static final Object SENTINEL = new Object();
     private static final StreamProtocol.Continue CONTINUE = new StreamProtocol.Continue();
-//    private static final StreamProtocol.Close CLOSE = new StreamProtocol.Close();
+    private final int batchSize;
+    //    private static final StreamProtocol.Close CLOSE = new StreamProtocol.Close();
     private long limit;
     private long offset;
 
@@ -43,25 +44,30 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private Map<Channel, Integer> partitionMap = new ConcurrentHashMap<>();
     private Map<Integer, Channel> channelMap = new ConcurrentHashMap<>();
     private ConcurrentMap<Integer, PartitionState> partitionStateMap = new ConcurrentHashMap<>();
-    private boolean initialized = false;
 
     private T currentResult;
     private int currentQueue = -1;
-    private long numPartitions;
+    // There's at least one partition, this will be updated when we get a connection
+    private volatile long numPartitions = 1;
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workerGroup;
 
     public StreamListener() {
-        this(-1, 0);
+        this(-1, 0, 512);
     }
 
     public StreamListener(long limit, long offset) {
-        this.limit = limit;
+        this(limit, offset, 512);
+    }
+
+    public StreamListener(long limit, long offset, int batchSize) {
         this.offset = offset;
+        this.limit = limit;
+        this.batchSize = batchSize;
         // start with this to force a channel advancement
         PartitionState first = new PartitionState();
         first.messages.add(SENTINEL);
-        first.sentSkip = true;
+        first.initialized = true;
         this.partitionStateMap.put(-1, first);
     }
 
@@ -98,7 +104,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             InetSocketAddress socketAddress = (InetSocketAddress)this.serverChannel.localAddress();
             String host = InetAddress.getLocalHost().getHostName();
             int port = socketAddress.getPort();
-            return HostAndPort.fromParts(host, port);
+
+            HostAndPort result = HostAndPort.fromParts(host, port);
+            LOG.trace("Listening on " + result);
+            return result;
+
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         } catch (InterruptedException e) {
@@ -108,21 +118,9 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     }
 
     public Iterator<T> getIterator() {
-        int sleep = 100;
-        while (!initialized) {
-
-            LOG.warn("Waiting for initilization on iterator");
-            try {
-                Thread.sleep(sleep);
-                sleep = Math.min(2000, sleep*2);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        LOG.warn("Got iterator!");
         // Initialize first partition
         partitionStateMap.putIfAbsent(0, new PartitionState());
+        // This will block until some data is available
         advance();
         return this;
     }
@@ -141,13 +139,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         if (msg instanceof StreamProtocol.Init) {
             StreamProtocol.Init init = (StreamProtocol.Init) msg;
             LOG.trace("Received " + msg + " from " + channel);
-            synchronized (this) {
-                // Init global state for receiver
-                if (!initialized) {
-                    numPartitions = init.numPartitions;
-                    initialized = true;
-                }
-            }
+            numPartitions = init.numPartitions;
             partitionMap.put(channel, init.partition);
             partitionStateMap.putIfAbsent(init.partition, new PartitionState());
             channelMap.put(init.partition, channel);
@@ -167,6 +159,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             try {
                 ctx.close().sync();
+                channelMap.remove(partitionMap.get(channel));
             } catch (InterruptedException e) {
                 LOG.error("While closing channel", e);
                 throw new RuntimeException(e);
@@ -197,18 +190,20 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         try {
             while (next == null) {
                 PartitionState state = partitionStateMap.get(currentQueue);
+                // We take a message first to make sure we have a connection
                 Object msg = state.messages.take();
-                if (offset > 0 && !state.sentSkip) {
-                    LOG.trace("Sending skip " + offset);
-                    channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Skip(offset));
-                    state.sentSkip = true;
+                if (!state.initialized && (offset > 0 || limit > 0)) {
+                    LOG.trace("Sending skip " + limit + ", " + offset);
+                    // Limit on the server counts from its first element, we have to add offset to it
+                    long serverLimit = limit > 0 ? limit + offset : -1;
+                    channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Skip(serverLimit, offset));
                 }
+                state.initialized = true;
                 if (msg == SENTINEL) {
+                    // This queue is finished, start reading from the next queue
                     LOG.trace("Moving queues");
-                    partitionStateMap.remove(currentQueue);
-                    Channel removedChannel = channelMap.remove(currentQueue);
-                    if (removedChannel != null)
-                        partitionMap.remove(removedChannel);
+
+                    clearCurrentQueue();
 
                     currentQueue++;
                     if (currentQueue >= numPartitions) {
@@ -217,32 +212,35 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                         currentResult = null;
                         close();
                         return;
-                    } else {
-                        partitionStateMap.putIfAbsent(currentQueue, new PartitionState());
                     }
+
+                    // Set the partitionState so we can block on the queue in case the connection hasn't opened yet
+                    partitionStateMap.putIfAbsent(currentQueue, new PartitionState());
                 } else {
                     if (msg instanceof StreamProtocol.Skipped) {
                         StreamProtocol.Skipped skipped = (StreamProtocol.Skipped) msg;
                         offset -= skipped.skipped;
-                        state.returned += skipped.skipped;
-                    } else if (offset <= 0) {
+                    } else if (offset > 0) {
+                        // We still have to ignore 'offset' messages
+                        offset--;
+                        state.consumed++;
+                    } else {
                         // We are returning a message
                         next = (T) msg;
-                        state.returned++;
+                        state.consumed++;
+                        // Check the limit
                         if (limit > 0) {
                             limit--;
                             if (limit == 0) {
                                 stopAllStreams();
                             }
                         }
-                    } else {
-                        // We have to ignore 'offset' messages still
-                        offset--;
-                        state.returned++;
                     }
-                    if (state.returned % 512 == 0) {
+
+                    if (state.consumed > batchSize) {
                         LOG.trace("Writing CONT");
                         channelMap.get(currentQueue).writeAndFlush(CONTINUE);
+                        state.consumed -= batchSize;
                     }
                 }
             }
@@ -252,21 +250,34 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
     }
 
+    private void clearCurrentQueue() {
+        partitionStateMap.remove(currentQueue);
+        Channel removedChannel = channelMap.remove(currentQueue);
+        if (removedChannel != null)
+            partitionMap.remove(removedChannel);
+    }
+
     private void stopAllStreams() throws InterruptedException {
+        LOG.trace("Stopping all streams");
         for (Channel channel : channelMap.values()) {
-            channel.writeAndFlush(new StreamProtocol.Skip(Long.MAX_VALUE));
+            channel.writeAndFlush(new StreamProtocol.Skip(0, 0));
             channel.writeAndFlush(new StreamProtocol.RequestClose());
         }
+        // create fake queue with finish message so the next call to next() returns null
         currentQueue = (int) numPartitions + 1;
         PartitionState ps = new PartitionState();
         ps.messages.add(SENTINEL);
         partitionStateMap.putIfAbsent(currentQueue, ps);
     }
 
-    private void close() {
+    private void close() throws InterruptedException {
+        for (Channel channel : channelMap.values()) {
+            channel.closeFuture().sync();
+        }
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
     }
+
 
     @Override
     public void remove() {
@@ -275,8 +286,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 }
 
 class PartitionState {
-    ArrayBlockingQueue messages = new ArrayBlockingQueue(1025); // One more to account for the SENTINEL
-    long returned;
-    boolean sentSkip;
+    ArrayBlockingQueue messages = new ArrayBlockingQueue(1027); // Two more to account for the SENTINEL & Skipped
+    long consumed;
+    boolean initialized;
 
 }

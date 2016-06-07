@@ -22,27 +22,35 @@ public class StreamableRDD<T> {
 
     private static final ClassTag<Object[]> tag = scala.reflect.ClassTag$.MODULE$.apply(Object[].class);
     private final int port;
+    private final int batchSize;
     private final String host;
     private final JavaRDD<T> rdd;
     private final ExecutorCompletionService<Object> completionService;
+    private final ExecutorService executor;
+
 
     public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort) {
+        this(rdd, clientHost, clientPort, 512);
+    }
+
+    public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort, int batchSize) {
         this.rdd = rdd;
         this.host = clientHost;
         this.port = clientPort;
-        ExecutorService executor = Executors.newFixedThreadPool(PARALLEL_PARTITIONS);
+        this.executor = Executors.newFixedThreadPool(PARALLEL_PARTITIONS);
         completionService = new ExecutorCompletionService<>(executor);
+        this.batchSize = 512;
     }
 
     public Object result() throws StandardException {
-        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(host, port, rdd.getNumPartitions()), true);
+        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(host, port, rdd.getNumPartitions(), batchSize), true);
         int numPartitions = streamed.getNumPartitions();
         int batchSize = PARALLEL_PARTITIONS / 2;
         int batches = numPartitions / batchSize;
         if (numPartitions % batchSize > 0)
             batches++;
 
-        LOG.trace("Num partitions " + numPartitions);
+        LOG.trace("Num partitions " + numPartitions + " batches " + batches);
 
         submitBatch(0, batchSize, numPartitions, streamed);
         if (batches > 1)
@@ -56,10 +64,11 @@ public class StreamableRDD<T> {
             try {
                 resultFuture = completionService.take();
                 Object result = resultFuture.get();
+                received++;
                 if ("STOP".equals(result)) {
+                    LOG.trace("Stopping after receiving " + received + " batches of " + batches);
                     break;
                 }
-                received++;
                 if (submitted < batches) {
                     submitBatch(submitted, batchSize, numPartitions, streamed);
                     submitted++;
@@ -70,6 +79,7 @@ public class StreamableRDD<T> {
                 error = e;
             }
         }
+        executor.shutdown();
 
         if (error != null) {
             LOG.error(error);
@@ -84,12 +94,11 @@ public class StreamableRDD<T> {
         for (int j = batch*batchSize; j < numPartitions && j < (batch+1)*batchSize; j++) {
             list.add(j);
         }
-        LOG.warn("Submitting partitions " + list);
+        LOG.trace("Submitting batch " + batch + " with partitions " + list);
         final Seq objects = JavaConversions.asScalaBuffer(list).toList();
         completionService.submit(new Callable<Object>() {
             @Override
             public Object call() {
-                LOG.trace("Running partitions " + list);
                 Object[] results = (Object[]) SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
                 for (Object o : results) {
                     for (Object o2: (Object[])o) {
