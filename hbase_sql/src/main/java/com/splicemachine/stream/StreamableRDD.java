@@ -22,12 +22,12 @@ public class StreamableRDD<T> {
 
     private static final ClassTag<Object[]> tag = scala.reflect.ClassTag$.MODULE$.apply(Object[].class);
     private final int port;
-    private final int batchSize;
+    private final int clientBatchSize;
     private final String host;
     private final JavaRDD<T> rdd;
     private final ExecutorCompletionService<Object> completionService;
     private final ExecutorService executor;
-    private final int batches;
+    private final int clientBatches;
 
 
     public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort) {
@@ -40,39 +40,39 @@ public class StreamableRDD<T> {
         this.port = clientPort;
         this.executor = Executors.newFixedThreadPool(PARALLEL_PARTITIONS);
         completionService = new ExecutorCompletionService<>(executor);
-        this.batchSize = batchSize;
-        this.batches = batches;
+        this.clientBatchSize = batchSize;
+        this.clientBatches = batches;
     }
 
     public Object result() throws StandardException {
-        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(host, port, rdd.getNumPartitions(), batches, batchSize), true);
+        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
         int numPartitions = streamed.getNumPartitions();
-        int batchSize = PARALLEL_PARTITIONS / 2;
-        int batches = numPartitions / batchSize;
-        if (numPartitions % batchSize > 0)
-            batches++;
+        int partitionsBatchSize = PARALLEL_PARTITIONS / 2;
+        int partitionBatches = numPartitions / partitionsBatchSize;
+        if (numPartitions % partitionsBatchSize > 0)
+            partitionBatches++;
 
-        LOG.trace("Num partitions " + numPartitions + " batches " + batches);
+        LOG.trace("Num partitions " + numPartitions + " clientBatches " + partitionBatches);
 
-        submitBatch(0, batchSize, numPartitions, streamed);
-        if (batches > 1)
-            submitBatch(1, batchSize, numPartitions, streamed);
+        submitBatch(0, partitionsBatchSize, numPartitions, streamed);
+        if (partitionBatches > 1)
+            submitBatch(1, partitionsBatchSize, numPartitions, streamed);
 
         int received = 0;
         int submitted = 2;
         Exception error = null;
-        while(received < batches && error == null) {
+        while(received < partitionBatches && error == null) {
             Future<Object> resultFuture = null;
             try {
                 resultFuture = completionService.take();
                 Object result = resultFuture.get();
                 received++;
                 if ("STOP".equals(result)) {
-                    LOG.trace("Stopping after receiving " + received + " batches of " + batches);
+                    LOG.trace("Stopping after receiving " + received + " clientBatches of " + partitionBatches);
                     break;
                 }
-                if (submitted < batches) {
-                    submitBatch(submitted, batchSize, numPartitions, streamed);
+                if (submitted < partitionBatches) {
+                    submitBatch(submitted, partitionsBatchSize, numPartitions, streamed);
                     submitted++;
                 }
             } catch (InterruptedException e) {
