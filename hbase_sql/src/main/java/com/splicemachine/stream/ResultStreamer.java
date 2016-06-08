@@ -27,78 +27,114 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
+    private int batchSize;
     private int numPartitions;
     private String host;
     private int port;
-    private Semaphore cont = new Semaphore(2);
-    private volatile long consumed = 0;
-    private volatile long sent = 0;
+    private Semaphore permits;
     private volatile long offset = 0;
     private volatile long limit = Long.MAX_VALUE;
     private Integer partition;
     private Iterator<T> locatedRowIterator;
-    private volatile Future<String> future;
+    private volatile Future<Long> future;
     private NioEventLoopGroup workerGroup;
-    private int batchSize;
+    private int batches;
 
     // Serialization
     public ResultStreamer() {
     }
 
-    public ResultStreamer(String host, int port, int numPartitions, int batchSize) {
+    public ResultStreamer(String host, int port, int numPartitions, int batches, int batchSize) {
         this.host = host;
         this.port = port;
         this.numPartitions = numPartitions;
+        this.batches = batches;
         this.batchSize = batchSize;
+        this.permits = new Semaphore(batches - 1); // we start with one permit taken
+
     }
 
     @Override
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
+        LOG.trace("Starting result streamer " + this);
+        // Write init data right away
         ctx.writeAndFlush(new StreamProtocol.Init(numPartitions, partition));
-        LOG.trace("Written init");
-        this.future = this.workerGroup.submit(new Callable<String>() {
+
+        // Subsequent writes are from a separate thread, so we don't block this one
+        this.future = this.workerGroup.submit(new Callable<Long>() {
+            private long consumed;
+            private long sent;
+            private int currentBatch;
+
             @Override
-            public String call() {
+            public Long call() {
                 while (locatedRowIterator.hasNext()) {
-                    if (consumed < offset) {
-                        long count = 0;
-                        while (locatedRowIterator.hasNext() && consumed < offset) {
-                            locatedRowIterator.next();
-                            count++;
-                            consumed++;
-                        }
-                        ctx.writeAndFlush(new StreamProtocol.Skipped(count));
-                        if (!locatedRowIterator.hasNext())
-                            break;
-                    }
                     T lr = locatedRowIterator.next();
                     consumed++;
+
+
                     ctx.write(lr, ctx.voidPromise());
+                    currentBatch++;
                     sent++;
-                    if ((sent - 1) % batchSize == 0) {
-                        LOG.trace("Acquiring permit " + cont.toString() + " sent " + sent);
-                        ctx.flush();
-                        try {
-                            cont.acquire();
-                        } catch (InterruptedException e) {
-                            LOG.error(e);
-                            throw new RuntimeException(e);
-                        }
-                        LOG.trace("Acquired permit " + cont.toString()+ " sent " + sent);
+
+                    flushAndGetPermit();
+
+                    if (checkLimit()) {
+                        return consumed;
                     }
 
-                    if (consumed > limit) {
-                        ctx.flush();
-                        LOG.trace("Reached limit, stopping consumed " + consumed + " sent " + sent + " limit " + limit);
-                        return "STOP";
-                    }
+                    consumeOffset();
                 }
-                LOG.trace("Written data");
-
+                // Data has been written, request close
                 ctx.writeAndFlush(new StreamProtocol.RequestClose());
 
-                LOG.trace("Written FIN");
-                return "CONTINUE";
+                return consumed;
+            }
+
+            /**
+             * If the current batch exceeds the batch size, flush the connection and take a new permit, blocking if the client
+             * hasn't had time yet to process previous messages
+             */
+            private void flushAndGetPermit() {
+                if (currentBatch >= batchSize) {
+                    ctx.flush();
+                    currentBatch = 0;
+                    try {
+                        permits.acquire();
+                    } catch (InterruptedException e) {
+                        LOG.error(e);
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
+            /**
+             * If the client hast told us to ignore up to 'offset' messages, consume them here. The client request can
+             * arrive after we've already sent some messages.
+             */
+            private void consumeOffset() {
+                if (consumed < offset) {
+                    long count = 0;
+                    while (locatedRowIterator.hasNext() && consumed < offset) {
+                        locatedRowIterator.next();
+                        count++;
+                        consumed++;
+                    }
+                    ctx.writeAndFlush(new StreamProtocol.Skipped(count));
+                }
+            }
+
+            /**
+             * If the client told us to send no more than 'limit' messages, check it here
+             * @return true if there's a limit and we reached it, false otherwise
+             */
+            private boolean checkLimit() {
+                if (consumed > limit) {
+                    ctx.flush();
+                    LOG.trace("Reached limit, stopping consumed " + consumed + " sent " + sent + " limit " + limit);
+                    return true;
+                }
+                return false;
             }
         });
     }
@@ -108,9 +144,9 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         LOG.trace("Received message " + msg);
 
         if (msg instanceof StreamProtocol.Continue) {
-            LOG.trace("Releasing permit " + cont);
-            cont.release();
-            LOG.trace("Released permit " + cont);
+            StreamProtocol.Continue cont = (StreamProtocol.Continue) msg;
+            permits.release();
+            LOG.trace("Released permit " + permits);
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             try {
                 ctx.close().sync();
@@ -119,7 +155,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             }
             LOG.trace("Closed");
         } else if (msg instanceof StreamProtocol.RequestClose) {
-            cont.release();
+            permits.release();
             try {
                 // wait for the writing thread to finish
                 future.get();
@@ -172,13 +208,33 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
             futureConnect.channel().closeFuture().sync();
 
-            String result = future.get();
+            long consumed = future.get();
+            String result;
             if (consumed >= limit) {
+                // We reached the limit, stop processing partitions
                 result = "STOP";
+            } else {
+                // We didn't reach the limit, continue executing more partitions
+                result = "CONTINUE";
             }
             return Arrays.<Object>asList(result).iterator();
         } finally {
             workerGroup.shutdownGracefully();
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ResultStreamer{" +
+                "batchSize=" + batchSize +
+                ", numPartitions=" + numPartitions +
+                ", host='" + host + '\'' +
+                ", port=" + port +
+                ", permits=" + permits +
+                ", offset=" + offset +
+                ", limit=" + limit +
+                ", partition=" + partition +
+                ", batches=" + batches +
+                '}';
     }
 }

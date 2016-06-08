@@ -102,7 +102,7 @@ public class QueryJob implements Callable<Void>{
         String clientHost = queryRequest.host;
         int clientPort = queryRequest.port;
         int numPartitions = sparkDataSet.rdd.getNumPartitions();
-        StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, clientHost, clientPort, 512);
+        StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, clientHost, clientPort, 4, 512);
 
         Object result = streamableRDD.result();
 

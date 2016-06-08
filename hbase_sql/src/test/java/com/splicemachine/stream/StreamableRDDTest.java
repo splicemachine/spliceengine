@@ -225,8 +225,9 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
         int limit = 2000;
         int offset = 0;
         int total = 4000;
-        int batchSize =512;
-        StreamListener<ExecRow> sl = new StreamListener<>(limit, offset, batchSize);
+        int batches = 2;
+        int batchSize = 512;
+        StreamListener<ExecRow> sl = new StreamListener<>(limit, offset, batches, batchSize);
         HostAndPort hostAndPort = sl.start();
 
         List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
@@ -235,7 +236,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 1);
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), hostAndPort.getHostText(), hostAndPort.getPort(), batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
         new Thread() {
             @Override
             public void run() {

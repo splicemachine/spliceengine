@@ -34,9 +34,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private static final Logger LOG = Logger.getLogger(StreamListener.class);
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
     private static final Object SENTINEL = new Object();
-    private static final StreamProtocol.Continue CONTINUE = new StreamProtocol.Continue();
+    private final int queueSize;
     private final int batchSize;
-    //    private static final StreamProtocol.Close CLOSE = new StreamProtocol.Close();
     private long limit;
     private long offset;
 
@@ -53,19 +52,20 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private NioEventLoopGroup workerGroup;
 
     public StreamListener() {
-        this(-1, 0, 512);
+        this(-1, 0, 2, 512);
     }
 
     public StreamListener(long limit, long offset) {
-        this(limit, offset, 512);
+        this(limit, offset, 2, 512);
     }
 
-    public StreamListener(long limit, long offset, int batchSize) {
+    public StreamListener(long limit, long offset, int batches, int batchSize) {
         this.offset = offset;
         this.limit = limit;
         this.batchSize = batchSize;
+        this.queueSize = batches*batchSize;
         // start with this to force a channel advancement
-        PartitionState first = new PartitionState();
+        PartitionState first = new PartitionState(0);
         first.messages.add(SENTINEL);
         first.initialized = true;
         this.partitionStateMap.put(-1, first);
@@ -119,7 +119,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
     public Iterator<T> getIterator() {
         // Initialize first partition
-        partitionStateMap.putIfAbsent(0, new PartitionState());
+        partitionStateMap.putIfAbsent(0, new PartitionState(queueSize));
         // This will block until some data is available
         advance();
         return this;
@@ -141,7 +141,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             LOG.trace("Received " + msg + " from " + channel);
             numPartitions = init.numPartitions;
             partitionMap.put(channel, init.partition);
-            partitionStateMap.putIfAbsent(init.partition, new PartitionState());
+            partitionStateMap.putIfAbsent(init.partition, new PartitionState(queueSize));
             channelMap.put(init.partition, channel);
         } else if (msg instanceof StreamProtocol.RequestClose) {
             Integer partition = partitionMap.get(channel);
@@ -215,7 +215,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     }
 
                     // Set the partitionState so we can block on the queue in case the connection hasn't opened yet
-                    partitionStateMap.putIfAbsent(currentQueue, new PartitionState());
+                    partitionStateMap.putIfAbsent(currentQueue, new PartitionState(queueSize));
                 } else {
                     if (msg instanceof StreamProtocol.Skipped) {
                         StreamProtocol.Skipped skipped = (StreamProtocol.Skipped) msg;
@@ -239,7 +239,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
                     if (state.consumed > batchSize) {
                         LOG.trace("Writing CONT");
-                        channelMap.get(currentQueue).writeAndFlush(CONTINUE);
+                        channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Continue());
                         state.consumed -= batchSize;
                     }
                 }
@@ -265,7 +265,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
         // create fake queue with finish message so the next call to next() returns null
         currentQueue = (int) numPartitions + 1;
-        PartitionState ps = new PartitionState();
+        PartitionState ps = new PartitionState(0);
         ps.messages.add(SENTINEL);
         partitionStateMap.putIfAbsent(currentQueue, ps);
     }
@@ -286,8 +286,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 }
 
 class PartitionState {
-    ArrayBlockingQueue messages = new ArrayBlockingQueue(1027); // Two more to account for the SENTINEL & Skipped
+    ArrayBlockingQueue messages;
     long consumed;
     boolean initialized;
 
+    PartitionState(int queueSize) {
+        messages = new ArrayBlockingQueue(queueSize + 3);  // Two more to account for the SENTINEL & Skipped
+    }
 }

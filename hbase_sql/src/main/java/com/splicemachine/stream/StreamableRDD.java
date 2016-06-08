@@ -27,23 +27,25 @@ public class StreamableRDD<T> {
     private final JavaRDD<T> rdd;
     private final ExecutorCompletionService<Object> completionService;
     private final ExecutorService executor;
+    private final int batches;
 
 
     public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort) {
-        this(rdd, clientHost, clientPort, 512);
+        this(rdd, clientHost, clientPort, 2, 512);
     }
 
-    public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort, int batchSize) {
+    public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort, int batches, int batchSize) {
         this.rdd = rdd;
         this.host = clientHost;
         this.port = clientPort;
         this.executor = Executors.newFixedThreadPool(PARALLEL_PARTITIONS);
         completionService = new ExecutorCompletionService<>(executor);
-        this.batchSize = 512;
+        this.batchSize = batchSize;
+        this.batches = batches;
     }
 
     public Object result() throws StandardException {
-        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(host, port, rdd.getNumPartitions(), batchSize), true);
+        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(host, port, rdd.getNumPartitions(), batches, batchSize), true);
         int numPartitions = streamed.getNumPartitions();
         int batchSize = PARALLEL_PARTITIONS / 2;
         int batches = numPartitions / batchSize;
