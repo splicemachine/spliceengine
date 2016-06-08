@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline;
 
+import com.splicemachine.access.api.CallTimeoutException;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -1900,7 +1901,8 @@ public enum ErrorState {
 		SPLICE_TIMEOUT_EXCEPTION("SE007"){
 				@Override
 				public boolean accepts(Throwable t) {
-						return super.accepts(t)|| t instanceof SocketTimeoutException;
+						return super.accepts(t)|| t instanceof SocketTimeoutException
+                                || t instanceof CallTimeoutException;
 				}
 
 				@Override

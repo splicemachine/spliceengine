@@ -1,5 +1,6 @@
 package com.splicemachine.si.data;
 
+import org.apache.hadoop.hbase.ipc.CallTimeoutException;
 import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
@@ -94,7 +95,7 @@ public class HExceptionFactory implements ExceptionFactory{
 
     @Override
     public IOException processRemoteException(Throwable e){
-        e =Throwables.getRootCause(e);
+        e=Throwables.getRootCause(e);
         if(e instanceof RemoteException){
             Throwable t;
             try{
@@ -104,45 +105,47 @@ public class HExceptionFactory implements ExceptionFactory{
                  * undo what we take care of here, so we have to manually unwrap it using reflection
                  * to avoid setting the cause directly.
                  */
-                Class<?> errorClazz = Class.forName(((RemoteException)e).getClassName());
-                Constructor<?> cn = errorClazz.getConstructor(String.class);
+                Class<?> errorClazz=Class.forName(((RemoteException)e).getClassName());
+                Constructor<?> cn=errorClazz.getConstructor(String.class);
                 cn.setAccessible(true);
-                t = (Throwable)cn.newInstance(e.getMessage());
+                t=(Throwable)cn.newInstance(e.getMessage());
             }catch(ClassNotFoundException
-                    | NoSuchMethodException
-                    | InstantiationException
-                    | IllegalAccessException
-                    | InvocationTargetException err){
-                t = ((RemoteException)e).unwrapRemoteException();
+                    |NoSuchMethodException
+                    |InstantiationException
+                    |IllegalAccessException
+                    |InvocationTargetException err){
+                t=((RemoteException)e).unwrapRemoteException();
             }
             e=t;
         }
-        if(e instanceof NotServingRegionException) {
+        if(e instanceof NotServingRegionException){
             return new HNotServingRegion(e.getMessage());
-        } else if(e instanceof RegionTooBusyException){
-                return new HRegionTooBusy(e.getMessage());
-        } else if(e instanceof WrongRegionException){
+        }else if(e instanceof RegionTooBusyException){
+            return new HRegionTooBusy(e.getMessage());
+        }else if(e instanceof WrongRegionException){
             return new HWrongRegion(e.getMessage());
-        } else if(e instanceof WriteConflict){
-            assert e instanceof IOException: "Programmer error: WriteConflict should be an IOException";
+        }else if(e instanceof WriteConflict){
+            assert e instanceof IOException:"Programmer error: WriteConflict should be an IOException";
             return (IOException)e;
-        } else if(e instanceof ReadOnlyModificationException){
-            assert e instanceof IOException: "Programmer error: ReadOnlyModificationException should be an IOException";
+        }else if(e instanceof ReadOnlyModificationException){
+            assert e instanceof IOException:"Programmer error: ReadOnlyModificationException should be an IOException";
             return (IOException)e;
-        } else if(e instanceof TransactionTimeoutException) {
-            assert e instanceof IOException: "Programmer error: TransactionTimeoutException should be an IOException";
+        }else if(e instanceof TransactionTimeoutException){
+            assert e instanceof IOException:"Programmer error: TransactionTimeoutException should be an IOException";
             return (IOException)e;
-        } else if(e instanceof CannotCommitException) {
-            assert e instanceof IOException: "Programmer error: CannotCommitException should be an IOException";
+        }else if(e instanceof CannotCommitException){
+            assert e instanceof IOException:"Programmer error: CannotCommitException should be an IOException";
             return (IOException)e;
-        } else if(e instanceof RetriesExhaustedWithDetailsException){
-            RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)e;
-            for(Throwable c:rewde.getCauses()){
+        }else if(e instanceof RetriesExhaustedWithDetailsException){
+            RetriesExhaustedWithDetailsException rewde=(RetriesExhaustedWithDetailsException)e;
+            for(Throwable c : rewde.getCauses()){
                 if(c instanceof IOException){
                     return processRemoteException(c);
                 }
             }
             return processRemoteException(rewde.getCause(0));
+        }else if(e instanceof CallTimeoutException){
+            return new HCallTimeout(e.getMessage());
         }else if(e instanceof IOException) {
             return (IOException)e;
         } else
