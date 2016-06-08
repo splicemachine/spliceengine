@@ -1,7 +1,6 @@
 package com.splicemachine.si.data;
 
-import org.apache.hadoop.hbase.ipc.CallTimeoutException;
-import org.sparkproject.guava.base.Throwables;
+import com.splicemachine.access.api.OperationCancelledException;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.txn.Txn;
@@ -13,12 +12,17 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.ipc.CallTimeoutException;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.spark.SparkException;
+import org.sparkproject.guava.base.Throwables;
+
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.regex.Pattern;
 
 /**
  * @author Scott Fines
@@ -148,7 +152,19 @@ public class HExceptionFactory implements ExceptionFactory{
             return new HCallTimeout(e.getMessage());
         }else if(e instanceof IOException) {
             return (IOException)e;
+        } else if(e instanceof SparkException){
+            return parseSparkException((SparkException)e);
         } else
             return new IOException(e);
+    }
+
+    private static final Pattern SPARK_CANCELLATION_PATTERN = Pattern.compile("Job [0-9]+ cancelled");
+    private IOException parseSparkException(SparkException e){
+        String errMessage = e.getMessage();
+        if(errMessage==null)
+            return new IOException("Unknown Spark exception");
+        else if(SPARK_CANCELLATION_PATTERN.matcher(errMessage).find())
+            return new OperationCancelledException();
+        else return new IOException(e);
     }
 }
