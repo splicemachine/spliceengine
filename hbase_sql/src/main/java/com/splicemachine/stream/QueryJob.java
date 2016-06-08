@@ -110,30 +110,4 @@ public class QueryJob implements Callable<Void>{
 
         return null;
     }
-
-    private void sendPartitions(String host, int port, int partitions) throws InterruptedException {
-        InetSocketAddress socketAddr=new InetSocketAddress(host,port);
-
-        ClientBootstrap bootstrap;
-        ExecutorService workerExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-worker-%d").setDaemon(true).build());
-        ExecutorService bossExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-boss-%d").setDaemon(true).build());
-
-        NioClientSocketChannelFactory factory = new NioClientSocketChannelFactory(bossExecutor, workerExecutor);
-
-        bootstrap = new ClientBootstrap(factory);
-
-        bootstrap.getPipeline().addLast("encoder", new ObjectEncoder());
-
-        bootstrap.setOption("tcpNoDelay", false);
-        bootstrap.setOption("keepAlive", true);
-        bootstrap.setOption("reuseAddress", true);
-
-        ChannelFuture futureConnect = bootstrap.connect(socketAddr);
-
-        futureConnect.await();
-        Channel channel = futureConnect.getChannel();
-        channel.write((Long) (long) partitions).await();
-        channel.close();
-        bootstrap.releaseExternalResources();
-    }
 }
