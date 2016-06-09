@@ -1,6 +1,7 @@
 package com.splicemachine.stream;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 /**
  * Created by dgomezferro on 6/3/16.
@@ -8,12 +9,14 @@ import java.io.Serializable;
 public class StreamProtocol implements Serializable {
     private StreamProtocol(){}
     public static class Init implements Serializable {
+        public UUID uuid;
         public int numPartitions;
         public int partition;
 
         public Init(){}
 
-        public Init(int numPartitions, int partition) {
+        public Init(UUID uuid, int numPartitions, int partition) {
+            this.uuid = uuid;
             this.numPartitions = numPartitions;
             this.partition = partition;
         }
@@ -21,7 +24,8 @@ public class StreamProtocol implements Serializable {
         @Override
         public String toString() {
             return "Init{" +
-                    "numPartitions=" + numPartitions +
+                    "uuid=" + uuid +
+                    ", numPartitions=" + numPartitions +
                     ", partition=" + partition +
                     '}';
         }

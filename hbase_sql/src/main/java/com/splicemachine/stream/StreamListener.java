@@ -21,8 +21,7 @@ import org.sparkproject.io.netty.handler.logging.LoggingHandler;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 
@@ -32,14 +31,13 @@ import java.util.concurrent.*;
 @ChannelHandler.Sharable
 public class StreamListener<T> extends ChannelInboundHandlerAdapter implements Iterator<T> {
     private static final Logger LOG = Logger.getLogger(StreamListener.class);
-    private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
     private static final Object SENTINEL = new Object();
     private final int queueSize;
     private final int batchSize;
+    private final UUID uuid;
     private long limit;
     private long offset;
 
-    private Channel serverChannel;
     private Map<Channel, Integer> partitionMap = new ConcurrentHashMap<>();
     private Map<Integer, Channel> channelMap = new ConcurrentHashMap<>();
     private ConcurrentMap<Integer, PartitionState> partitionStateMap = new ConcurrentHashMap<>();
@@ -48,8 +46,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private int currentQueue = -1;
     // There's at least one partition, this will be updated when we get a connection
     private volatile long numPartitions = 1;
-    private NioEventLoopGroup bossGroup;
-    private NioEventLoopGroup workerGroup;
+    private List<AutoCloseable> closeables = new ArrayList<>();
 
     public StreamListener() {
         this(-1, 0, 2, 512);
@@ -69,52 +66,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         first.messages.add(SENTINEL);
         first.initialized = true;
         this.partitionStateMap.put(-1, first);
-    }
-
-    public HostAndPort start() throws StandardException {
-        ThreadFactory tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("StreamerListener-boss-%s").build();
-        this.bossGroup = new NioEventLoopGroup(2, tf);
-        tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("StreamerListener-worker-%s").build();
-        this.workerGroup = new NioEventLoopGroup(4, tf);
-        try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.INFO))
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
-                            Kryo encoder =  new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
-                            registry.registerClasses(encoder);
-                            Kryo decoder =  new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
-                            registry.registerClasses(decoder);
-                            ch.pipeline().addLast(
-                                    new KryoEncoder(encoder),
-                                    new KryoDecoder(decoder),
-                                    StreamListener.this);
-                        }
-                    })
-                    .option(ChannelOption.SO_BACKLOG, 128)
-                    .childOption(ChannelOption.SO_KEEPALIVE, true);
-
-            // Bind and start to accept incoming connections.
-            ChannelFuture f = b.bind(0).sync();
-
-            this.serverChannel = f.channel();
-            InetSocketAddress socketAddress = (InetSocketAddress)this.serverChannel.localAddress();
-            String host = InetAddress.getLocalHost().getHostName();
-            int port = socketAddress.getPort();
-
-            HostAndPort result = HostAndPort.fromParts(host, port);
-            LOG.trace("Listening on " + result);
-            return result;
-
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
+        this.uuid = UUID.randomUUID();
     }
 
     public Iterator<T> getIterator() {
@@ -136,14 +88,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         Channel channel = ctx.channel();
 
-        if (msg instanceof StreamProtocol.Init) {
-            StreamProtocol.Init init = (StreamProtocol.Init) msg;
-            LOG.trace("Received " + msg + " from " + channel);
-            numPartitions = init.numPartitions;
-            partitionMap.put(channel, init.partition);
-            partitionStateMap.putIfAbsent(init.partition, new PartitionState(queueSize));
-            channelMap.put(init.partition, channel);
-        } else if (msg instanceof StreamProtocol.RequestClose) {
+        if (msg instanceof StreamProtocol.RequestClose) {
             Integer partition = partitionMap.get(channel);
             PartitionState state = partitionStateMap.get(partition);
             // We can't block here, we negotiate throughput with the server to guarantee it
@@ -274,14 +219,39 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         for (Channel channel : channelMap.values()) {
             channel.closeFuture().sync();
         }
-        bossGroup.shutdownGracefully();
-        workerGroup.shutdownGracefully();
+        for (AutoCloseable c : closeables) {
+            try {
+                c.close();
+            } catch (Exception e) {
+                LOG.error(e);
+                throw new RuntimeException(e);
+            }
+        }
     }
-
 
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
+    }
+
+    public void accept(ChannelHandlerContext ctx, int numPartitions, int partition) {
+        LOG.info(String.format("Accepting connection from partition %d out of %d", partition, numPartitions));
+        Channel channel = ctx.channel();
+        this.numPartitions = numPartitions;
+
+        partitionMap.put(channel, partition);
+        partitionStateMap.putIfAbsent(partition, new PartitionState(queueSize));
+        channelMap.put(partition, channel);
+
+        ctx.pipeline().addLast(this);
+    }
+
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void addCloseable(AutoCloseable autoCloseable) {
+        this.closeables.add(autoCloseable);
     }
 }
 
@@ -291,6 +261,6 @@ class PartitionState {
     boolean initialized;
 
     PartitionState(int queueSize) {
-        messages = new ArrayBlockingQueue(queueSize + 3);  // Two more to account for the SENTINEL & Skipped
+        messages = new ArrayBlockingQueue(queueSize + 2);  // Two more to account for the SENTINEL & Skipped
     }
 }

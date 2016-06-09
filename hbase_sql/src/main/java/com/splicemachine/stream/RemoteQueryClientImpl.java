@@ -49,6 +49,8 @@ import java.util.concurrent.*;
 public class RemoteQueryClientImpl implements RemoteQueryClient {
     private static final Logger LOG = Logger.getLogger(RemoteQueryClientImpl.class);
 
+    private static StreamListenerServer server;
+
     private final SpliceBaseOperation root;
     private StreamListener streamListener;
     private long offset = 0;
@@ -58,6 +60,16 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         this.root = root;
     }
 
+    private StreamListenerServer getServer() throws StandardException {
+        synchronized (RemoteQueryClientImpl.class) {
+            if (server == null) {
+                server = new StreamListenerServer(59599);
+                server.start();
+            }
+        }
+        return server;
+    }
+
     @Override
     public void submit() throws StandardException {
         ActivationHolder ah = new ActivationHolder(root.getActivation());
@@ -65,11 +77,14 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         try {
             updateLimitOffset();
             streamListener = new StreamListener(limit, offset);
-            HostAndPort hostAndPort = streamListener.start();
+            StreamListenerServer server = getServer();
+            server.register(streamListener);
+            HostAndPort hostAndPort = server.getHostAndPort();
             String host = hostAndPort.getHostText();
             int port = hostAndPort.getPort();
+            UUID uuid = streamListener.getUuid();
 
-            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), host, port);
+            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port);
             final Future<OlapResult> future = EngineDriver.driver().getOlapClient().submit(jobRequest);
             new Thread() {
                 @Override

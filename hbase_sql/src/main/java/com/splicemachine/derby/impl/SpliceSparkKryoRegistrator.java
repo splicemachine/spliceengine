@@ -38,6 +38,7 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
+import de.javakaffee.kryoserializers.UUIDSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -361,6 +362,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(UUID.class, new UUIDSerializer());
         instance.register(IndexDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FormatableHashtable.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FormatableIntHolder.class,EXTERNALIZABLE_SERIALIZER);

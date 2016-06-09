@@ -46,6 +46,7 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 /**
@@ -101,8 +102,9 @@ public class QueryJob implements Callable<Void>{
         SparkDataSet<LocatedRow> sparkDataSet = (SparkDataSet<LocatedRow>) dataset;
         String clientHost = queryRequest.host;
         int clientPort = queryRequest.port;
+        UUID uuid = queryRequest.uuid;
         int numPartitions = sparkDataSet.rdd.getNumPartitions();
-        StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, clientHost, clientPort, 4, 512);
+        StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, uuid, clientHost, clientPort, 4, 512);
 
         Object result = streamableRDD.result();
 

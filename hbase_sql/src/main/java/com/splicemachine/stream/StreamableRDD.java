@@ -11,6 +11,7 @@ import scala.reflect.ClassTag;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 /**
@@ -28,14 +29,16 @@ public class StreamableRDD<T> {
     private final ExecutorCompletionService<Object> completionService;
     private final ExecutorService executor;
     private final int clientBatches;
+    private final UUID uuid;
 
 
-    public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort) {
-        this(rdd, clientHost, clientPort, 2, 512);
+    public StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
+        this(rdd, uuid, clientHost, clientPort, 2, 512);
     }
 
-    public StreamableRDD(JavaRDD<T> rdd, String clientHost, int clientPort, int batches, int batchSize) {
+    public StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort, int batches, int batchSize) {
         this.rdd = rdd;
+        this.uuid = uuid;
         this.host = clientHost;
         this.port = clientPort;
         this.executor = Executors.newFixedThreadPool(PARALLEL_PARTITIONS);
@@ -45,7 +48,7 @@ public class StreamableRDD<T> {
     }
 
     public Object result() throws StandardException {
-        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
+        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
         int numPartitions = streamed.getNumPartitions();
         int partitionsBatchSize = PARALLEL_PARTITIONS / 2;
         int partitionBatches = numPartitions / partitionsBatchSize;

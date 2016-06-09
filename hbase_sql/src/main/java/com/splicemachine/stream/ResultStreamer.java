@@ -18,6 +18,7 @@ import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 /**
@@ -27,6 +28,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
+    private UUID uuid;
     private int batchSize;
     private int numPartitions;
     private String host;
@@ -44,7 +46,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     public ResultStreamer() {
     }
 
-    public ResultStreamer(String host, int port, int numPartitions, int batches, int batchSize) {
+    public ResultStreamer(UUID uuid, String host, int port, int numPartitions, int batches, int batchSize) {
+        this.uuid = uuid;
         this.host = host;
         this.port = port;
         this.numPartitions = numPartitions;
@@ -58,7 +61,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
         LOG.trace("Starting result streamer " + this);
         // Write init data right away
-        ctx.writeAndFlush(new StreamProtocol.Init(numPartitions, partition));
+        ctx.writeAndFlush(new StreamProtocol.Init(uuid, numPartitions, partition));
 
         // Subsequent writes are from a separate thread, so we don't block this one
         this.future = this.workerGroup.submit(new Callable<Long>() {
