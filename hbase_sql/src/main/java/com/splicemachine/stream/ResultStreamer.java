@@ -24,7 +24,7 @@ import java.util.concurrent.*;
 /**
  * Created by dgomezferro on 5/25/16.
  */
-public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<Object>>, Serializable {
+public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable {
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
@@ -178,7 +178,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     }
 
     @Override
-    public Iterator<Object> call(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
+    public Iterator<String> call(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
         InetSocketAddress socketAddr=new InetSocketAddress(host,port);
         this.partition = partition;
         this.locatedRowIterator = locatedRowIterator;
@@ -220,7 +220,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 // We didn't reach the limit, continue executing more partitions
                 result = "CONTINUE";
             }
-            return Arrays.<Object>asList(result).iterator();
+            return Arrays.asList(result).iterator();
         } finally {
             workerGroup.shutdownGracefully();
         }

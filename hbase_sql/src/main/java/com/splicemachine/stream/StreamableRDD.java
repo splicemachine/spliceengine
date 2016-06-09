@@ -21,7 +21,7 @@ public class StreamableRDD<T> {
     private static final Logger LOG = Logger.getLogger(StreamableRDD.class);
     public static int PARALLEL_PARTITIONS = 4;
 
-    private static final ClassTag<Object[]> tag = scala.reflect.ClassTag$.MODULE$.apply(Object[].class);
+    private static final ClassTag<String> tag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
     private final int port;
     private final int clientBatchSize;
     private final String host;
@@ -48,7 +48,7 @@ public class StreamableRDD<T> {
     }
 
     public Object result() throws StandardException {
-        final JavaRDD<Object> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
+        final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
         int numPartitions = streamed.getNumPartitions();
         int partitionsBatchSize = PARALLEL_PARTITIONS / 2;
         int partitionBatches = numPartitions / partitionsBatchSize;
@@ -94,7 +94,7 @@ public class StreamableRDD<T> {
         return null;
     }
 
-    private void submitBatch(int batch, int batchSize, int numPartitions, final JavaRDD<Object> streamed) {
+    private void submitBatch(int batch, int batchSize, int numPartitions, final JavaRDD<String> streamed) {
         final List<Integer> list = new ArrayList<>();
         for (int j = batch*batchSize; j < numPartitions && j < (batch+1)*batchSize; j++) {
             list.add(j);
@@ -104,12 +104,10 @@ public class StreamableRDD<T> {
         completionService.submit(new Callable<Object>() {
             @Override
             public Object call() {
-                Object[] results = (Object[]) SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
-                for (Object o : results) {
-                    for (Object o2: (Object[])o) {
-                        if ("STOP".equals(o2)) {
-                            return "STOP";
-                        }
+                String[] results = (String[]) SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
+                for (String o2: results) {
+                    if ("STOP".equals(o2)) {
+                        return "STOP";
                     }
                 }
                 return "CONTINUE";

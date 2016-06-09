@@ -10,12 +10,15 @@ import java.io.Serializable;
 /**
  * Created by dgomezferro on 6/1/16.
  */
-public class FunctionAdapter extends AbstractFunction1<Iterator<Object>, Object[]> implements Serializable {
+public class FunctionAdapter extends AbstractFunction1<Iterator<String>, String> implements Serializable {
 
-    private final static ClassTag<Object> tag = scala.reflect.ClassTag$.MODULE$.apply(Object.class);
+    private final static ClassTag<String> tag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
 
     @Override
-    public Object[] apply(scala.collection.Iterator<Object> locatedRowIterator) {
-        return (Object[]) locatedRowIterator.toArray(tag);
+    public String apply(scala.collection.Iterator<String> it) {
+        String result = it.next();
+        // This iterator is what's returned on ResultStreamer.call(), which is a list of one element
+        assert !it.hasNext();
+        return result;
     }
 }
