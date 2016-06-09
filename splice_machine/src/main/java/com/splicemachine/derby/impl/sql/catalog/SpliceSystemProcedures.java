@@ -602,6 +602,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .varchar("schemaName", 128)
                         .varchar("ownerName", 128)
                         .build());
+
+                    procedures.add(Procedure.newBuilder().name("CANCEL_BACKUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .returnType(null).isDeterministic(false)
+                            .build());
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

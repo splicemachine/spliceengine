@@ -22,4 +22,6 @@ public interface BackupManager{
     void scheduleDailyBackup(String directory, String type, int hour) throws StandardException;
 
     void cancelDailyBackup(long jobId) throws StandardException;
+
+    void cancelBackup() throws StandardException;
 }

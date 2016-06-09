@@ -1911,5 +1911,16 @@ public interface SQLState {
     String SLAVE_OPERATION_DENIED_WHILE_CONNECTED                  = "XRE41.C";
     String REPLICATION_SLAVE_SHUTDOWN_OK                           = "XRE42.C";
     String REPLICATION_STOPSLAVE_NOT_INITIATED                     = "XRE43";
+
+	/*
+     * Backup and restore
+     */
+	String INVALID_BACKUP_TYPE                           		   = "BR001";
+	String INVALID_BACKUP_DIRECTORY                      		   = "BR002";
+    String NO_RESTORE_DURING_BACKUP                                = "BR003";
+    String INVALID_BACKUP_WINDOW                                   = "BR004";
+    String INVALID_BACKUP_HOUR                                     = "BR005";
+    String INVALID_BACKUP_JOB_ID                                   = "BR006";
+    String INVALID_BACKUP_ID                                       = "BR007";
 }
 

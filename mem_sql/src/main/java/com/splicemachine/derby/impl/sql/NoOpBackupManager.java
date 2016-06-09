@@ -54,4 +54,9 @@ public class NoOpBackupManager implements BackupManager{
     public void cancelDailyBackup(long jobId) throws StandardException {
 
     }
+
+    @Override
+    public void cancelBackup() throws StandardException {
+
+    }
 }

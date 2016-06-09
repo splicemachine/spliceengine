@@ -8707,6 +8707,47 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<text>Cannot disable statistics for column {0}: It is a primary key or indexed column</text>
 							<arg>column</arg>
 						</msg>
+
+                        <msg>
+                            <name>BR001</name>
+                            <text>Invalid backup type: {0}.</text>
+                            <arg>backupType</arg>
+                        </msg>
+
+                        <msg>
+                            <name>BR002</name>
+                            <text>Invalid backup directory: {0}.</text>
+                            <arg>backupDirectory</arg>
+                        </msg>
+
+                        <msg>
+                            <name>BR003</name>
+                            <text>Restore cannot run because backup {0} is running.</text>
+                            <arg>backupId</arg>
+                        </msg>
+
+                         <msg>
+                            <name>BR004</name>
+                            <text>Invalid backup window:{0}. </text>
+                            <arg>backupWindow</arg>
+                        </msg>
+
+                        <msg>
+                            <name>BR005</name>
+                            <text>Hour must be in range [0, 23].</text>
+                        </msg>
+
+                        <msg>
+                            <name>BR006</name>
+                            <text>Invalid backup job ID {0}.</text>
+                            <arg>backupJobId</arg>
+                        </msg>
+
+                        <msg>
+                            <name>BR007</name>
+                            <text>Invalid backup ID {0}.</text>
+                            <arg>backupId</arg>
+                        </msg>
        </family>
     </section>
 
