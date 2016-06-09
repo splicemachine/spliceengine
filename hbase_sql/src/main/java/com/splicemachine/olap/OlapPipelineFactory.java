@@ -1,7 +1,7 @@
 package com.splicemachine.olap;
 
 import com.google.protobuf.ExtensionRegistry;
-import com.splicemachine.backup.OlapMessage;
+import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.sparkproject.jboss.netty.channel.ChannelHandler;

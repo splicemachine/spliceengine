@@ -1,6 +1,6 @@
 package com.splicemachine.olap;
 
-import com.splicemachine.backup.OlapMessage;
+import com.splicemachine.olap.OlapMessage;
 import org.sparkproject.jboss.netty.channel.ChannelHandlerContext;
 import org.sparkproject.jboss.netty.channel.MessageEvent;
 import org.sparkproject.jboss.netty.channel.SimpleChannelUpstreamHandler;

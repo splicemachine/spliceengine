@@ -2,7 +2,7 @@ package com.splicemachine.olap;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
-import com.splicemachine.backup.OlapMessage;
+import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;

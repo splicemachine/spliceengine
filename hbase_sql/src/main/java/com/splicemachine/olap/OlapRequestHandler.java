@@ -2,7 +2,7 @@ package com.splicemachine.olap;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.backup.OlapMessage;
+import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import org.apache.log4j.Logger;
