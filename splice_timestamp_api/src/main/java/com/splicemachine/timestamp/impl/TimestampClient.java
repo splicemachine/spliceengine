@@ -16,7 +16,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.CountDownLatches;
 import com.splicemachine.timestamp.api.Callback;
 import com.splicemachine.timestamp.api.TimestampClientStatistics;

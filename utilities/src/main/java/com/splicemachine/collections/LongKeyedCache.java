@@ -1,7 +1,7 @@
 package com.splicemachine.collections;
 
-import com.google.common.base.Preconditions;
-import com.google.common.cache.CacheStats;
+import org.sparkproject.guava.base.Preconditions;
+import org.sparkproject.guava.cache.CacheStats;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.metrics.Counter;

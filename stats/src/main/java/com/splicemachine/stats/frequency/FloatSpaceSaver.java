@@ -1,8 +1,8 @@
 package com.splicemachine.stats.frequency;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
-import com.google.common.primitives.Floats;
+import org.sparkproject.guava.collect.Collections2;
+import org.sparkproject.guava.primitives.Floats;
 import com.splicemachine.hash.Hash32;
 
 import java.util.Collection;

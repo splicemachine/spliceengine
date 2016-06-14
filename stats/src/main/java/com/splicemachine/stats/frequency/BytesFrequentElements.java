@@ -1,6 +1,6 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.primitives.Longs;
+import org.sparkproject.guava.primitives.Longs;
 import com.splicemachine.annotations.Untested;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.primitives.ByteComparator;

@@ -1,6 +1,6 @@
 package com.splicemachine.stats.histogram;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.tools.Comparables;
 
 import java.util.Arrays;

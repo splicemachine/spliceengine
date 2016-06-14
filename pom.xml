@@ -412,6 +412,8 @@
                 <envClassifier>core</envClassifier>
             </properties>
             <modules>
+                <module>utilities</module>
+                <module>stats</module>
                 <module>db-build</module>
                 <module>db-shared</module>
                 <module>db-engine</module>
@@ -428,8 +430,6 @@
                 <module>pipeline_api</module>
                 <module>splice_access_api</module>
                 <module>splice_machine</module>
-                <module>utilities</module>
-                <module>stats</module>
             </modules>
         </profile>
         <profile>

@@ -1,6 +1,6 @@
 package com.splicemachine.encoding;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.primitives.Bytes;
 import org.junit.Test;
 import java.math.BigDecimal;

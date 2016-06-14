@@ -1,6 +1,6 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.primitives.Longs;
+import org.sparkproject.guava.primitives.Longs;
 
 /**
  * @author Scott Fines

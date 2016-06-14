@@ -1,7 +1,7 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.primitives.Longs;
-import com.google.common.primitives.Shorts;
+import org.sparkproject.guava.primitives.Longs;
+import org.sparkproject.guava.primitives.Shorts;
 import com.splicemachine.encoding.Encoder;
 
 import java.io.DataInput;

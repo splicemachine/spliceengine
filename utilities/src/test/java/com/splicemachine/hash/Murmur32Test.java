@@ -1,8 +1,8 @@
 package com.splicemachine.hash;
 
-import com.google.common.collect.Lists;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.hash.HashCode;
+import org.sparkproject.guava.hash.Hashing;
 import com.splicemachine.primitives.Bytes;
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,7 +1,7 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Doubles;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.primitives.Doubles;
 import com.splicemachine.hash.HashFunctions;
 import org.junit.Assert;
 import org.junit.Test;

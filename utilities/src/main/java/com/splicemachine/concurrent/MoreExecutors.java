@@ -1,6 +1,6 @@
 package com.splicemachine.concurrent;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.concurrent.*;
 

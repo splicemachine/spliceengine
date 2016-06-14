@@ -1,6 +1,6 @@
 package com.splicemachine.stats.histogram;
 
-import com.google.common.primitives.Ints;
+import org.sparkproject.guava.primitives.Ints;
 
 import java.util.List;
 

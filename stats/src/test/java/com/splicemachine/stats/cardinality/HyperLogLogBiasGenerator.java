@@ -1,8 +1,8 @@
 package com.splicemachine.stats.cardinality;
 
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hasher;
-import com.google.common.primitives.Longs;
+import org.sparkproject.guava.hash.HashFunction;
+import org.sparkproject.guava.hash.Hasher;
+import org.sparkproject.guava.primitives.Longs;
 import com.splicemachine.hash.Hash64;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.BigEndianBits;

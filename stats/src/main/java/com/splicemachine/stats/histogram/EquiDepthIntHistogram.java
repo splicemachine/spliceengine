@@ -1,7 +1,7 @@
 package com.splicemachine.stats.histogram;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.Arrays;
 import java.util.List;

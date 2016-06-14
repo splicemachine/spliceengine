@@ -178,7 +178,7 @@ public class SpliceWatcher extends TestWatcher {
      * Return columns from all rows.
      */
     public <T> List<Object[]> queryListMulti(String sql, int columns) throws Exception {
-        List<Object[]> resultList = com.google.common.collect.Lists.newArrayList();
+        List<Object[]> resultList = Lists.newArrayList();
         ResultSet rs = executeQuery(sql);
         while (rs.next()) {
             Object[] row = new Object[columns];

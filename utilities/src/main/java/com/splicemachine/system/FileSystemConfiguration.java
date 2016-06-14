@@ -1,8 +1,8 @@
 package com.splicemachine.system;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Lists;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

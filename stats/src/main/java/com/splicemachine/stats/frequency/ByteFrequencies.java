@@ -1,6 +1,6 @@
 package com.splicemachine.stats.frequency;
 
-import com.google.common.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.encoding.Encoder;
 
 import java.io.DataInput;

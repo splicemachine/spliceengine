@@ -1,7 +1,7 @@
 package com.splicemachine.concurrent;
 
 import com.google.common.base.Supplier;
-import com.google.common.primitives.Longs;
+import org.sparkproject.guava.primitives.Longs;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;

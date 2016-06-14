@@ -1,7 +1,7 @@
 package com.splicemachine.stats.random;
 
 import com.carrotsearch.hppc.IntLongOpenHashMap;
-import com.google.common.base.Strings;
+import org.sparkproject.guava.base.Strings;
 
 import java.util.Random;
 

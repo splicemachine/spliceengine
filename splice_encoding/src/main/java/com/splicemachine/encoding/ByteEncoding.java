@@ -1,6 +1,6 @@
 package com.splicemachine.encoding;
 
-import com.google.common.primitives.UnsignedBytes;
+import org.sparkproject.guava.primitives.UnsignedBytes;
 
 import java.nio.ByteBuffer;
 

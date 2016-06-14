@@ -1,6 +1,6 @@
 package com.splicemachine.stream;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import org.junit.Test;
 
 import java.io.IOException;
