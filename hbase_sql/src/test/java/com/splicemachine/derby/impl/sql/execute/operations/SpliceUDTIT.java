@@ -46,10 +46,11 @@ public class SpliceUDTIT extends SpliceUnitTest {
         createData(spliceClassWatcher.getOrCreateConnection());
     }
 
-    //@AfterClass
+    @AfterClass
     public static void tearDown() throws Exception {
         methodWatcher.execute(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
         methodWatcher.execute("DROP DERBY AGGREGATE Median RESTRICT");
+        methodWatcher.execute("DROP table orders");
         methodWatcher.execute("DROP FUNCTION makePrice");
         methodWatcher.execute("DROP TYPE price restrict");
     }

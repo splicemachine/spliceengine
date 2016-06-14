@@ -449,6 +449,7 @@ public class RegionTxnStore implements TxnPartition{
                 TxnMessage.Txn txn = allTxns.next();
                 int stateCode = txn.getState();
                 Txn.State state=Txn.State.fromInt(stateCode);
+                //If a transaction is uncommitted, return it
                 switch(state){
                     case ACTIVE:
                         current = txn;
@@ -458,6 +459,7 @@ public class RegionTxnStore implements TxnPartition{
                 }
 
 
+                //return a transaciton that is committed after afterTs
                 TxnMessage.TxnInfo info=txn.getInfo();
                 if(info.getBeginTs()>afterTs||
                         txn.getCommitTs()>afterTs ||

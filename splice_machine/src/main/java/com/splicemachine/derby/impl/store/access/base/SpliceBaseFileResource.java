@@ -158,4 +158,8 @@ public abstract class SpliceBaseFileResource implements FileResource{
     private String getVersionedName(String name,long generationId){
         return name.concat(".G".concat(Long.toString(generationId)));
     }
+
+    public StorageFactory getStorageFactory() {
+        return storageFactory;
+    }
 }
