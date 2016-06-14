@@ -43,12 +43,12 @@
             <dependency>
                 <groupId>com.splicemachine</groupId>
                 <artifactId>utilities</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.splicemachine</groupId>
                 <artifactId>stats</artifactId>
-                <version>1.0.1-SNAPSHOT</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.splicemachine</groupId>
@@ -428,6 +428,8 @@
                 <module>pipeline_api</module>
                 <module>splice_access_api</module>
                 <module>splice_machine</module>
+                <module>utilities</module>
+                <module>stats</module>
             </modules>
         </profile>
         <profile>
