@@ -1,6 +1,8 @@
 package com.splicemachine.derby.transactions;
 
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
+import java.sql.Types;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.Transactions;
@@ -68,6 +70,8 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT", SCHEMA_NAME);
 	private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT'", SCHEMA_NAME);
 	private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT", SCHEMA_NAME);
+    private static final String CREATE_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS = String.format("CREATE PROCEDURE %s.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(IN tableName VARCHAR(40), IN id INT, OUT errorCode VARCHAR(100), OUT errorMessage VARCHAR(100)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS'", SCHEMA_NAME);
+    private static final String DROP_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS = String.format("DROP PROCEDURE %s.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS", SCHEMA_NAME);
 
 	// SQL statements to call stored procedures.
 	private static final String CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".CREATE_EMPLOYEE_TABLE('%s')";
@@ -84,6 +88,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	private static final String CALL_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT('%s', 2, 'Barney', 'Rubble')";
 	private static final String CALL_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT('%s', 2, 'Barney', 'Rubble')";
 	private static final String CALL_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT('%s', 2, 'Barney', 'Rubble')";
+    private static final String CALL_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS = "CALL " + SCHEMA_NAME + ".GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(?, ?, ?, ?)";
 
 	// SQL queries.
 	private static final String SELECT_FROM_SYSTABLES_BY_TABLENAME = "SELECT * FROM SYS.SYSTABLES WHERE TABLENAME = ?";
@@ -478,4 +483,44 @@ public class CallableTransactionIT extends SpliceUnitTest {
 		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 	}
+
+    /**
+     * Tests ability for stored procedure to return not just a result set,
+     * but multiple OUTPUT parameters.
+     * @throws Exception
+     */
+    @Test
+    public void testProcedureWithMultipleOutputParameters() throws Exception {
+        String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "11";
+        int rc = 0;
+        ResultSet rs = null;
+
+        // Create the user-defined stored procedures.
+        rc = methodWatcher.executeUpdate(CREATE_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS);
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+        // Create the table.
+        rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+        CallableStatement stmt = methodWatcher.prepareCall(CALL_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS);
+        stmt.setString(1, employeeTableName);
+        stmt.setLong(2, 12345L); // won't be found
+        stmt.registerOutParameter(3, Types.VARCHAR);
+        stmt.registerOutParameter(4, Types.VARCHAR);
+
+        rs = stmt.executeQuery();
+        Assert.assertEquals("Incorrect # of rows returned!", 0, resultSetSize(rs));
+        Assert.assertEquals("Incorrect error code", "0", stmt.getString(3));
+        Assert.assertEquals("Incorrect error message", "Success", stmt.getString(4));
+        rs.close();
+
+        // Drop the user-defined stored procedures.
+        rc = methodWatcher.executeUpdate(DROP_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS);
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+        // Drop the table.
+        rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
+        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+    }
 }
