@@ -351,6 +351,38 @@ public class TxnTestProcs {
 		conn.close();
 	}
 
+    /**
+     * Searches for an employee by id and returns it, along with two OUTPUT parameters
+     * for error code and error message.
+     * @param tableName name of employee table
+     * @param id id of employee
+     * @param errorCode output parameter for error code
+     * @param errorMessage output parameter for error message
+     * @param rs result set
+     * @throws SQLException
+     */
+    public static void GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(
+        String tableName /* IN parameter */,
+        Integer id /* IN parameter */,
+        String[] errorCode /* OUT parameter */,
+        String[] errorMessage, /* OUT parameter */
+        ResultSet[] rs) throws SQLException {
+
+        String responseErrorCode = "0";
+        String responseErrorMessage = "Success";
+
+        Connection conn = DriverManager.getConnection("jdbc:default:connection");
+        try {
+            rs[0] = getEmployeeById(conn, tableName, id);
+        } catch (Exception e) {
+            responseErrorCode = "1";
+            responseErrorMessage = "Failure - exception fetching record";
+        } finally {
+            errorCode[0] = responseErrorCode;
+            errorMessage[0] = responseErrorMessage;
+        }
+    }
+
 	/*
 	 * ============================================================================================
 	 * Worker methods
@@ -359,7 +391,7 @@ public class TxnTestProcs {
 
 	/**
 	 * Worker method that creates the EMPLOYEE table.
-	 * @param conn
+	 * @param conn connection
 	 * @param tableName  name of EMPLOYEE table
 	 * @throws SQLException
 	 */
@@ -370,7 +402,7 @@ public class TxnTestProcs {
 
 	/**
 	 * Worker method that drops the EMPLOYEE table.
-	 * @param conn
+	 * @param conn connection
 	 * @param tableName  name of EMPLOYEE table
 	 * @throws SQLException
 	 */
@@ -381,7 +413,7 @@ public class TxnTestProcs {
 
 	/**
 	 * Worker method that inserts an employee into the EMPLOYEE table.
-	 * @param conn
+	 * @param conn connection
 	 * @param tableName  name of EMPLOYEE table
 	 * @param id       ID of employee
 	 * @param fname    first name of employee
@@ -398,7 +430,7 @@ public class TxnTestProcs {
 
 	/**
 	 * Worker method that updates the name of an employee in the EMPLOYEE table by ID.
-	 * @param conn
+	 * @param conn connection
 	 * @param tableName  name of EMPLOYEE table
 	 * @param id       ID of employee
 	 * @param fname    first name of employee
@@ -415,11 +447,9 @@ public class TxnTestProcs {
 
 	/**
 	 * Worker method that deletes an employee from the EMPLOYEE table.
-	 * @param conn
+	 * @param conn connection
 	 * @param tableName  name of EMPLOYEE table
 	 * @param id       ID of employee
-	 * @param fname    first name of employee
-	 * @param lname    last name of employee
 	 * @throws SQLException
 	 */
 	private static void deleteEmployee(Connection conn, String tableName, Integer id) throws SQLException {
@@ -430,7 +460,7 @@ public class TxnTestProcs {
 
 	/**
 	 * Worker method that returns an employee by ID.
-	 * @param conn
+	 * @param conn connection
 	 * @param tableName  name of EMPLOYEE table
 	 * @param id       ID of employee
 	 * @throws SQLException
@@ -443,7 +473,7 @@ public class TxnTestProcs {
 
 	/**
 	 * Worker method that returns all employee first names.
-	 * @param conn
+	 * @param conn connection
 	 * @param tableName  name of EMPLOYEE table
 	 * @throws SQLException
 	 */
@@ -454,7 +484,7 @@ public class TxnTestProcs {
 
 	/**
 	 * Worker method that returns all employee last names.
-	 * @param conn
+	 * @param conn connection
 	 * @param tableName  name of EMPLOYEE table
 	 * @throws SQLException
 	 */
