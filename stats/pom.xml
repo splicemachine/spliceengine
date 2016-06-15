@@ -25,12 +25,6 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>test-utilities</artifactId>
-			<version>1.0.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math3</artifactId>
 			<version>3.5</version>
