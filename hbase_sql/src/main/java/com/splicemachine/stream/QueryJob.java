@@ -81,22 +81,18 @@ public class QueryJob implements Callable<Void>{
             return null;
         }
 
-        JavaSparkContext context=SpliceSpark.getContext();
         ActivationHolder ah = queryRequest.ah;
         SpliceOperation root = ah.getOperationsMap().get(queryRequest.rootResultSetNumber);
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         Activation activation = ah.getActivation();
         root.setActivation(ah.getActivation());
-        String sql=activation.getPreparedStatement().getSource();
         if (!(activation.isMaterialized()))
             activation.materialize();
         long txnId=root.getCurrentTransaction().getTxnId();
-        sql=sql==null?this.toString():sql;
-        String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        if (dsp.getType() == DataSetProcessor.Type.SPARK) { // Only do this for spark jobs
-            this.jobName = userId + " <" + txnId + ">";
-            dsp.setJobGroup(jobName, sql);
-        }
+        String sql = queryRequest.sql;
+        String userId = queryRequest.userId;
+        this.jobName = userId + " <" + txnId + ">";
+        dsp.setJobGroup(jobName, sql);
         dsp.clearBroadcastedOperation();
         DataSet<LocatedRow> dataset = root.getDataSet(dsp);
         SparkDataSet<LocatedRow> sparkDataSet = (SparkDataSet<LocatedRow>) dataset;

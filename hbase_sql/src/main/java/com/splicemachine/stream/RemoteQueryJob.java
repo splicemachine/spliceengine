@@ -18,14 +18,17 @@ public class RemoteQueryJob extends DistributedJob {
     ActivationHolder ah;
     String host;
     int port;
-    String jobGroup;
+    String userId;
+    String sql;
 
-    public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port) {
+    public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port, String userId, String sql) {
         this.ah = ah;
         this.rootResultSetNumber = rootResultSetNumber;
         this.uuid = uuid;
         this.host = host;
         this.port = port;
+        this.userId = userId;
+        this.sql = sql;
     }
 
     @Override

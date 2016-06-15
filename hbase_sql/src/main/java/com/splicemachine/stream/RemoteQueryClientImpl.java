@@ -10,6 +10,7 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
@@ -72,7 +73,8 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
     @Override
     public void submit() throws StandardException {
-        ActivationHolder ah = new ActivationHolder(root.getActivation());
+        Activation activation = root.getActivation();
+        ActivationHolder ah = new ActivationHolder(activation);
 
         try {
             updateLimitOffset();
@@ -86,7 +88,11 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             int port = hostAndPort.getPort();
             UUID uuid = streamListener.getUuid();
 
-            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port);
+            String sql = activation.getPreparedStatement().getSource();
+            sql = sql == null ? root.toString() : sql;
+            String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+
+            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, userId, sql);
             final Future<OlapResult> future = EngineDriver.driver().getOlapClient().submit(jobRequest);
             new Thread() {
                 @Override
