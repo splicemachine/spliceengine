@@ -32,7 +32,7 @@ public class StreamableRDD<T> {
     private final UUID uuid;
 
 
-    public StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
+    StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
         this(rdd, uuid, clientHost, clientPort, 2, 512);
     }
 

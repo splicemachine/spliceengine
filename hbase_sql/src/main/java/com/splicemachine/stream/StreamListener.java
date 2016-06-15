@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import com.google.common.net.HostAndPort;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.pipeline.Exceptions;
@@ -48,11 +49,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private volatile long numPartitions = 1;
     private List<AutoCloseable> closeables = new ArrayList<>();
 
-    public StreamListener() {
-        this(-1, 0, 2, 512);
+    StreamListener() {
+        this(-1, 0);
     }
 
-    public StreamListener(long limit, long offset) {
+    StreamListener(long limit, long offset) {
         this(limit, offset, 2, 512);
     }
 

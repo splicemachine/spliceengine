@@ -76,7 +76,9 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
         try {
             updateLimitOffset();
-            streamListener = new StreamListener(limit, offset);
+            int streamingBatches = HConfiguration.getConfiguration().getSparkResultStreamingBatches();
+            int streamingBatchSize = HConfiguration.getConfiguration().getSparkResultStreamingBatchSize();
+            streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
             HostAndPort hostAndPort = server.getHostAndPort();

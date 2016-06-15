@@ -109,6 +109,9 @@ public interface SConfiguration {
 
     String getSparkIoCompressionCodec();
 
+    int getSparkResultStreamingBatches();
+    int getSparkResultStreamingBatchSize();
+
     // SIConfigurations
     int getActiveTransactionCacheSize();
 

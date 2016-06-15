@@ -76,6 +76,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long startupLockWaitPeriod;
     private final  long threadKeepaliveTime;
     private final  String sparkIoCompressionCodec;
+    private final int sparkResultStreamingBatches;
+    private final int sparkResultStreamingBatchSize;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -302,6 +304,16 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public String getSparkIoCompressionCodec() {
         return sparkIoCompressionCodec;
+    }
+
+    @Override
+    public int getSparkResultStreamingBatches() {
+        return sparkResultStreamingBatches;
+    }
+
+    @Override
+    public int getSparkResultStreamingBatchSize() {
+        return sparkResultStreamingBatchSize;
     }
 
     // SIConfigurations
@@ -613,6 +625,8 @@ public final class SConfigurationImpl implements SConfiguration {
         olapClientTickTime = builder.olapClientTickTime;
         olapServerBindPort = builder.olapServerBindPort;
         olapServerThreads = builder.olapServerThreads;
+        sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
+        sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

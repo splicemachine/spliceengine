@@ -104,7 +104,10 @@ public class QueryJob implements Callable<Void>{
         int clientPort = queryRequest.port;
         UUID uuid = queryRequest.uuid;
         int numPartitions = sparkDataSet.rdd.getNumPartitions();
-        StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, uuid, clientHost, clientPort, 4, 512);
+
+        int streamingBatches = HConfiguration.getConfiguration().getSparkResultStreamingBatches();
+        int streamingBatchSize = HConfiguration.getConfiguration().getSparkResultStreamingBatchSize();
+        StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, uuid, clientHost, clientPort, streamingBatches, streamingBatchSize);
 
         Object result = streamableRDD.result();
 
