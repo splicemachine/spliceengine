@@ -26,7 +26,6 @@ import static org.junit.Assert.*;
 /**
  * Foreign Key tests for *defining* FK constraints.
  */
-//@Category(SerialTest.class)
 public class ForeignKey_Define_IT{
 
     private static final String SCHEMA=ForeignKey_Define_IT.class.getSimpleName();
@@ -60,7 +59,6 @@ public class ForeignKey_Define_IT{
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-//    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void createTable_colLevel() throws Exception{
         try(Statement s=conn.createStatement()){
             s.executeUpdate("create table P (id int, a int, b int, c int, primary key(id))");
@@ -217,7 +215,6 @@ public class ForeignKey_Define_IT{
     }
 
     @Test
-//    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void alterTable_referencingUnique() throws Exception{
         try(Statement s=conn.createStatement()){
             s.executeUpdate("create table P (id int unique, a int, b int, c int)");

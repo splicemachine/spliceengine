@@ -21,7 +21,6 @@ import static org.junit.Assert.*;
 /**
  * Foreign key tests for concurrent transactions deleting parent rows and inserting child rows.
  */
-//@Category(SerialTest.class)
 public class ForeignKey_Concurrent_IT {
 
     private static final String SCHEMA = ForeignKey_Concurrent_IT.class.getSimpleName();

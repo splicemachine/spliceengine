@@ -8,9 +8,12 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.DataFilter;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
 
@@ -82,13 +85,32 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler{
          * by 0x00 (in unsigned sort order). Therefore, we make the end key
          * [startKey | 0x00].
          */
-        byte[] endKey = new byte[startKey.length+1];
-        System.arraycopy(startKey,0,endKey,0,startKey.length);
+        byte[] endKey = Bytes.unsignedCopyAndIncrement(startKey);//new byte[startKey.length+1];
+//        System.arraycopy(startKey,0,endKey,0,startKey.length);
         scan = scan.stopKey(endKey);
 
         try(DataScanner scanner = ctx.getRegion().openScanner(scan)){
             List<DataCell> next=scanner.next(1); //all we need is one row to be good
-            return next.size()>0;
+            if(next.size()<=0) return false;
+            TxnFilter txnFilter=ctx.txnRegion().unpackedFilter(ctx.getTxn());
+            int cellCount = next.size();
+            for(DataCell dc:next){
+                DataFilter.ReturnCode rC = txnFilter.filterCell(dc);
+                switch(rC){
+                    case NEXT_ROW:
+                        return false; //the entire row is filtered
+                    case SKIP:
+                    case NEXT_COL:
+                    case SEEK:
+                        cellCount--; //the cell is filtered
+                        break;
+                    case INCLUDE:
+                    case INCLUDE_AND_NEXT_COL: //the cell is included
+                    default:
+                        break;
+                }
+            }
+            return cellCount>0;
         }
     }
 

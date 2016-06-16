@@ -3,13 +3,12 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.util.StatementUtils;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 
-import java.sql.Connection;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -22,8 +21,6 @@ import static org.junit.Assert.fail;
  * ON DELETE SET NULL
  * ON UPDATE NO ACTION
  */
-//@Category(SerialTest.class)
-@Ignore("DB-4272")
 public class ForeignKey_Action_IT {
 
     private static final String SCHEMA = ForeignKey_Action_IT.class.getSimpleName();
@@ -34,11 +31,18 @@ public class ForeignKey_Action_IT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
+    private TestConnection conn;
     @Before
     public void deleteTables() throws Exception {
-        Connection connection = methodWatcher.getOrCreateConnection();
-        connection.setAutoCommit(false);
-        new TableDAO(connection).drop(SCHEMA, "C", "P");
+        conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+        new TableDAO(conn).drop(SCHEMA, "C", "P");
+    }
+
+    @After
+    public void tearDown() throws Exception{
+        conn.rollback();
+        conn.reset();
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -49,24 +53,28 @@ public class ForeignKey_Action_IT {
 
     @Test
     public void onDeleteNoAction() throws Exception {
-        methodWatcher.executeUpdate("create table P (a int unique, b int)");
-        methodWatcher.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a) ON DELETE NO ACTION)");
-        methodWatcher.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
-        methodWatcher.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P (a int unique, b int)");
+            s.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a) ON DELETE NO ACTION)");
+            s.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
+            s.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
 
-        assertQueryFail("delete from P where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("update P set a=-1 where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"delete from P where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"update P set a=-1 where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+        }
     }
 
     @Test
     public void onDeleteNoActionImplicit() throws Exception {
-        methodWatcher.executeUpdate("create table P (a int unique, b int)");
-        methodWatcher.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a))");
-        methodWatcher.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
-        methodWatcher.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P (a int unique, b int)");
+            s.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a))");
+            s.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
+            s.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
 
-        assertQueryFail("delete from P where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("update P set a=-1 where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"delete from P where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"update P set a=-1 where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,55 +85,61 @@ public class ForeignKey_Action_IT {
 
     @Test
     public void onDeleteNoAction_primaryKey() throws Exception {
-        methodWatcher.executeUpdate("create table P (a int primary key, b int)");
-        methodWatcher.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a) ON DELETE NO ACTION)");
-        methodWatcher.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
-        methodWatcher.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P (a int primary key, b int)");
+            s.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a) ON DELETE NO ACTION)");
+            s.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
+            s.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
 
-        assertQueryFail("delete from P where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("update P set a=-1 where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"delete from P where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"update P set a=-1 where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+        }
     }
 
     /* Make sure FKs still work when we create the parent, write to it first, then create the child that actually has the FK */
     @Test
     public void onDeleteNoAction_primaryKey_initializeWriteContextOfParentFirst() throws Exception {
-        methodWatcher.executeUpdate("create table P (a int primary key, b int unique)");
-        methodWatcher.executeUpdate("insert into P values(1,10),(2,20),(3,30),(4,40)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P (a int primary key, b int unique)");
+            s.executeUpdate("insert into P values(1,10),(2,20),(3,30),(4,40)");
 
-        methodWatcher.executeUpdate("create table C1 (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a))");
-        methodWatcher.executeUpdate("insert into C1 values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
+            s.executeUpdate("create table C1 (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a))");
+            s.executeUpdate("insert into C1 values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
 
-        assertQueryFail("delete from P where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("update P set a=-1 where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"delete from P where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"update P set a=-1 where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
 
-        methodWatcher.executeUpdate("create table C2 (a int, b int, CONSTRAINT FK_2 FOREIGN KEY (b) REFERENCES P(b))");
-        methodWatcher.executeUpdate("insert into C2 values(4,40)");
+            s.executeUpdate("create table C2 (a int, b int, CONSTRAINT FK_2 FOREIGN KEY (b) REFERENCES P(b))");
+            s.executeUpdate("insert into C2 values(4,40)");
 
-        // verify NEW FK constraint works
-        assertQueryFail("delete from P where a = 4", "Operation on table 'P' caused a violation of foreign key constraint 'FK_2' for key (B).  The statement has been rolled back.");
-        assertQueryFail("update P set b=-1 where a = 4", "Operation on table 'P' caused a violation of foreign key constraint 'FK_2' for key (B).  The statement has been rolled back.");
+            // verify NEW FK constraint works
+            assertQueryFail(s,"delete from P where a = 4","Operation on table 'P' caused a violation of foreign key constraint 'FK_2' for key (B).  The statement has been rolled back.");
+            assertQueryFail(s,"update P set b=-1 where a = 4","Operation on table 'P' caused a violation of foreign key constraint 'FK_2' for key (B).  The statement has been rolled back.");
 
-        // verify FIRST FK constraint STILL works
-        assertQueryFail("delete from P where a = 1", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("update P set a=-1 where a = 1", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            // verify FIRST FK constraint STILL works
+            assertQueryFail(s,"delete from P where a = 1","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"update P set a=-1 where a = 1","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+        }
     }
 
     @Test
     public void onDeleteNoAction_primaryKey_successAfterDeleteReference() throws Exception {
-        methodWatcher.executeUpdate("create table P (a int primary key, b int)");
-        methodWatcher.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a) ON DELETE NO ACTION)");
-        methodWatcher.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
-        methodWatcher.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P (a int primary key, b int)");
+            s.executeUpdate("create table C (a int, b int, CONSTRAINT FK_1 FOREIGN KEY (a) REFERENCES P(a) ON DELETE NO ACTION)");
+            s.executeUpdate("insert into P values(1,10),(2,20),(3,30)");
+            s.executeUpdate("insert into C values(1,10),(1,15),(2,20),(2,20),(3,30),(3,35)");
 
-        assertQueryFail("delete from P where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("update P set a=-1 where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"delete from P where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+            assertQueryFail(s,"update P set a=-1 where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
 
-        // delete references
-        methodWatcher.executeUpdate("delete from C where a=2");
+            // delete references
+            s.executeUpdate("delete from C where a=2");
 
-        // now delete from parent should succeed
-        assertEquals(4L, methodWatcher.query("select count(*) from C"));
-        assertEquals(1L, methodWatcher.executeUpdate("delete from P where a = 2"));
+            // now delete from parent should succeed
+            assertEquals(4L,StatementUtils.onlyLong(s,"select count(*) from C"));
+            assertEquals(1L,s.executeUpdate("delete from P where a = 2"));
+        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -134,9 +148,9 @@ public class ForeignKey_Action_IT {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    private void assertQueryFail(String sql, String expectedExceptionMessage) {
-        try {
-            methodWatcher.executeUpdate(sql);
+    private void assertQueryFail(Statement s,String sql, String expectedExceptionMessage) {
+        try{
+            s.executeUpdate(sql);
             fail("expected query to fail: " + sql);
         } catch (Exception e) {
             assertEquals(expectedExceptionMessage, e.getMessage());

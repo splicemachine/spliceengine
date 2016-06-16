@@ -144,8 +144,8 @@ public class MCell implements DataCell{
     }
 
     @Override
-    public DataCell copyValue(byte[] newValue){
-        return new MCell(key,family,qualifier,version,newValue,cellType);
+    public DataCell copyValue(byte[] newValue,CellType newCellType){
+        return new MCell(key,family,qualifier,version,newValue,newCellType);
     }
 
     @Override

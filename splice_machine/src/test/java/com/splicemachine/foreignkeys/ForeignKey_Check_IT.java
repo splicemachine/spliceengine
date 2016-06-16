@@ -16,7 +16,6 @@ import static org.junit.Assert.*;
 /**
  * Foreign key tests for *checking* that the FK constraint is enforced in various scenarios.
  */
-@Ignore("DB-5323")
 public class ForeignKey_Check_IT {
 
     private static final String SCHEMA = ForeignKey_Check_IT.class.getSimpleName();
