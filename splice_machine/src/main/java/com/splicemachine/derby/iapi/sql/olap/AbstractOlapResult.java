@@ -1,4 +1,4 @@
-package com.splicemachine.olap;
+package com.splicemachine.derby.iapi.sql.olap;
 
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 

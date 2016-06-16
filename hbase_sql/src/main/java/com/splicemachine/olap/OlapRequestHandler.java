@@ -92,7 +92,7 @@ class OlapRequestHandler extends AbstractOlapHandler{
 
     private ExecutorService configureThreadPool(SConfiguration config){
         //TODO -sf- bound this by the number of possible Spark tasks which can run in YARN
-        ThreadFactory tf =new ThreadFactoryBuilder().setDaemon(true).setNameFormat("compaction-watcher-%d").build();
+        ThreadFactory tf =new ThreadFactoryBuilder().setDaemon(true).setNameFormat("olap-worker-%d").build();
         return Executors.newCachedThreadPool(tf);
     }
 }

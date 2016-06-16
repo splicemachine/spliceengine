@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
+import com.splicemachine.derby.stream.iapi.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.EngineDriver;
@@ -24,10 +26,6 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.function.InsertPairFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
@@ -254,11 +252,15 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
     @Override
     public void openCore() throws StandardException{
-        DataSetProcessorFactory dspf=EngineDriver.driver().processorFactory();
-        if(statusDirectory!=null) // Always go distributed...
-            openCore(dspf.distributedProcessor());
-        else
-            openCore(dspf.chooseProcessor(activation,this));
+
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
+        if (statusDirectory != null || dsp.getType() == DataSetProcessor.Type.SPARK) {
+            RemoteQueryClient remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
+            remoteQueryClient.submit();
+            locatedRowIterator = remoteQueryClient.getIterator();
+        } else {
+            openCore(dsp);
+        }
     }
 
 }

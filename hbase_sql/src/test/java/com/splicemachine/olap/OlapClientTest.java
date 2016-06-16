@@ -3,6 +3,7 @@ package com.splicemachine.olap;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;

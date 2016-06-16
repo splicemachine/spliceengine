@@ -25,10 +25,7 @@ import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,6 +38,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     private static final Logger LOG=Logger.getLogger(AsyncOlapNIOLayer.class);
 
     private final ChannelPool channelPool;
+    private final ScheduledExecutorService executorService;
     private final ProtobufDecoder decoder=new ProtobufDecoder(OlapMessage.Response.getDefaultInstance(),buildExtensionRegistry());
 
     private ExtensionRegistry buildExtensionRegistry(){
@@ -73,6 +71,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 p.addLast("protobufDecoder",decoder);
             }
         });
+        executorService = group;
     }
 
     @Override
@@ -113,7 +112,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
     }
 
-    private class OlapFuture implements java.util.concurrent.Future<OlapResult>{
+    private class OlapFuture implements java.util.concurrent.Future<OlapResult>, Runnable {
         private final DistributedJob job;
         private final Lock checkLock=new ReentrantLock();
         private final Condition signal=checkLock.newCondition();
@@ -137,6 +136,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         private volatile boolean submitted=false;
         private volatile Throwable cause=null;
         private volatile long tickTimeNanos=TimeUnit.MILLISECONDS.toNanos(1000L);
+        private ScheduledFuture<?> keepAlive;
 
         OlapFuture(DistributedJob job){
             this.job=job;
@@ -189,20 +189,11 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 if(Thread.currentThread().isInterrupted())
                     throw new InterruptedException();
 
-                if (submitted) {
-                    // don't request status until submitted
-                    Future<Channel> cFut = channelPool.acquire();
-                    cFut.addListener(new StatusListener(this)).sync();
-                }
                 checkLock.lock();
                 try{
-                    long window=Math.min(tickTimeNanos,nanosRemaining);
-                    long remaining=signal.awaitNanos(window);
-                    nanosRemaining-=(window-remaining);
-                    long millisRemaining = TimeUnit.NANOSECONDS.toMillis(remaining);
-                    if (!isDone() && millisRemaining > 0) {
-                        // we are not done yet, wait the whole window before a new status check
-                        Thread.sleep(millisRemaining);
+                    if (!isDone()) {
+                        long remaining = signal.awaitNanos(nanosRemaining);
+                        nanosRemaining -= remaining;
                     }
                 }finally{
                     checkLock.unlock();
@@ -221,11 +212,13 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             Future<Channel> channelFuture=channelPool.acquire();
             channelFuture.addListener(new CancelCommand(job.getUniqueName()));
             cancelled=true;
+            signal();
         }
 
         void fail(Throwable cause){
             this.cause=cause;
             failed=true;
+            keepAlive.cancel(false);
         }
 
         void doSubmit() throws IOException{
@@ -241,6 +234,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                  */
                 Thread.currentThread().interrupt();
             }
+            this.keepAlive = executorService.scheduleWithFixedDelay(this, tickTimeNanos, tickTimeNanos, TimeUnit.NANOSECONDS);
         }
 
         void signal(){
@@ -249,6 +243,15 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 signal.signalAll();
             }finally{
                 checkLock.unlock();
+            }
+        }
+
+        @Override
+        public void run() {
+            if (submitted && !isDone()) {
+                // don't request status until submitted
+                Future<Channel> cFut = channelPool.acquire();
+                cFut.addListener(new StatusListener(this));
             }
         }
     }
@@ -390,10 +393,14 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 future.fail(new IOException("Status not available, assuming aborted due to client timeout"));
             }else if(or.isSuccess()){
                 future.finalResult=or;
+                future.keepAlive.cancel(false);
             }else{
+                // It should have a throwable
                 Throwable t=or.getThrowable();
                 if(t!=null){
                     future.fail(t);
+                } else {
+                    LOG.error("Message doesn't match any type of expected results: " + or);
                 }
             }
             ctx.pipeline().remove(this); //we don't want this in the pipeline anymore
