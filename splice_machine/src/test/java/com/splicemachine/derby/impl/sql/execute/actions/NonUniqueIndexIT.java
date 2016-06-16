@@ -432,20 +432,24 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
      * showing up in wrong column. */
     @Test
     public void testIndexWithNullValuesInSourceTable() throws Exception {
-        methodWatcher.prepareStatement("insert into " + TABLE_NAME_10 +" values (1, null), (2,3), (4, null)").execute();
-        methodWatcher.prepareStatement("create index " + INDEX_J + " on " + TABLE_NAME_10 + " (j,i)").execute();
-        ResultSet rs = methodWatcher.executeQuery("select j,i from " + TABLE_NAME_10 + "  --SPLICE-PROPERTIES index=" + INDEX_J);
-        List<Pair<Integer,Integer>> rows = Lists.newArrayList();
-        while(rs.next()) {
-            Pair<Integer, Integer> par = new Pair<Integer, Integer>();
-            par.setFirst((Integer) rs.getObject(1));
-            par.setSecond((Integer) rs.getObject(2));
-            rows.add(par);
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into "+TABLE_NAME_10+" values (1, null), (2,3), (4, null)");
+            s.execute("create index "+INDEX_J+" on "+TABLE_NAME_10+" (j,i)");
+            List<Pair<Integer, Integer>> rows=Lists.newArrayList();
+            try(ResultSet rs=s.executeQuery("select j,i from "+TABLE_NAME_10+"  --SPLICE-PROPERTIES index="+INDEX_J)){
+                while(rs.next()){
+                    Pair<Integer, Integer> par=new Pair<>();
+                    par.setFirst((Integer)rs.getObject(1));
+                    par.setSecond((Integer)rs.getObject(2));
+                    rows.add(par);
+                }
+            }
+            assertEquals(3,rows.size());
+            assertTrue(rows.contains(new Pair<Integer, Integer>(null,1)));
+            assertTrue(rows.contains(new Pair<Integer, Integer>(null,4)));
+            assertTrue(rows.contains(new Pair<>(3,2)));
         }
-        assertEquals(3, rows.size());
-        assertTrue(rows.contains(new Pair<Integer,Integer>(null, 1)));
-        assertTrue(rows.contains(new Pair<Integer,Integer>(null, 4)));
-        assertTrue(rows.contains(new Pair<Integer,Integer>(3, 2)));
     }
 
     @Test
