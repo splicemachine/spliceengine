@@ -254,7 +254,6 @@ done
 echo "starting hbase"
 start_service hbase
 wait_for_service_state hbase STARTED
-install_yarn_site
 check_hbase_ready
 
 echo "done"
