@@ -74,7 +74,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     @Override
     public void submit() throws StandardException {
         Activation activation = root.getActivation();
-        ActivationHolder ah = new ActivationHolder(activation);
+        ActivationHolder ah = new ActivationHolder(activation, root);
 
         try {
             updateLimitOffset();

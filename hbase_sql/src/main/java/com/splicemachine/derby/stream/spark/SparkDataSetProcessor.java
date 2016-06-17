@@ -121,7 +121,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
-        setupBroadcastedActivation(spliceOperation.getActivation());
+        setupBroadcastedActivation(spliceOperation.getActivation(), spliceOperation);
         OperationContext<Op> operationContext =new SparkOperationContext<>(spliceOperation,broadcastedActivation.get());
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
@@ -245,10 +245,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     private transient ThreadLocal<BroadcastedActivation> broadcastedActivation = new ThreadLocal<>();
 
-    private void setupBroadcastedActivation(Activation activation){
+    private void setupBroadcastedActivation(Activation activation, SpliceOperation root){
         if(broadcastedActivation.get()==null){
-            broadcastedActivation.set(new BroadcastedActivation(activation));
-
+            broadcastedActivation.set(new BroadcastedActivation(activation, root));
         }
     }
 

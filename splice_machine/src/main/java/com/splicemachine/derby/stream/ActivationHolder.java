@@ -1,5 +1,7 @@
 package com.splicemachine.derby.stream;
 
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -33,6 +35,8 @@ import java.util.Map;
  */
 @NotThreadSafe
 public class ActivationHolder implements Externalizable {
+    private static final Logger LOG = Logger.getLogger(ActivationHolder.class);
+
     private Map<Integer, SpliceOperation> operationsMap = Maps.newHashMap();
     private List<SpliceOperation> operationsList = new ArrayList<>();
     private Activation activation;
@@ -44,7 +48,7 @@ public class ActivationHolder implements Externalizable {
 
     }
 
-    public ActivationHolder(Activation activation) {
+    public ActivationHolder(Activation activation, SpliceOperation operation) {
         this.activation = activation;
         this.initialized = true;
         addSubOperations(operationsMap, (SpliceOperation) activation.getResultSet());
@@ -72,7 +76,12 @@ public class ActivationHolder implements Externalizable {
                 throw new RuntimeException(e);
             }
         }
-        txn = getTransaction(activation);
+        try {
+            txn = operation != null ? operation.getCurrentTransaction() : getTransaction(activation);
+        } catch (StandardException e) {
+            LOG.warn("Exception getting transaction from " + operation + ", falling back to activation");
+            txn = getTransaction(activation);
+        }
     }
 
     private TxnView getTransaction(Activation activation) {

@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -102,7 +103,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                     }
                 }
             }
-            return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow))));
     }
 
     @Override
