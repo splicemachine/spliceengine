@@ -999,7 +999,7 @@ public class SubqueryNode extends ValueNode{
 		 */
 
 		/* Optimize the underlying result set */
-        resultSet=resultSet.optimize(dataDictionary,null,outerRows);
+        resultSet=resultSet.optimize(dataDictionary, null, outerRows);
     }
 
     /**
@@ -1867,9 +1867,14 @@ public class SubqueryNode extends ValueNode{
                                           boolean flattenableNotExists) throws StandardException{
         SelectNode select=(SelectNode)resultSet;
 
+        boolean matchRowId = false;
+        if(leftOperand instanceof ColumnReference) {
+            ColumnReference cr = (ColumnReference) leftOperand;
+            matchRowId = cr.isRowIdColumn();;
+        }
         // Replace the FromBaseTables in the from list with ExistBaseTables
         select.getFromList().genExistsBaseTables(resultSet.getReferencedTableMap(),
-                outerFromList,flattenableNotExists);
+                outerFromList,flattenableNotExists, matchRowId);
 
         for(Predicate pred : ((SelectNode) resultSet).getWherePredicates()){
             pred.pushable = false;

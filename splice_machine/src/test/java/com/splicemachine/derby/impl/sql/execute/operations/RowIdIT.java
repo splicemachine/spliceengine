@@ -21,13 +21,19 @@ public class RowIdIT extends SpliceUnitTest {
     public static final String TABLE1_NAME = "A";
     public static final String TABLE2_NAME = "B";
     public static final String TABLE3_NAME = "C";
+    public static final String TABLE4_NAME = "D";
+    public static final String TABLE5_NAME = "E";
+
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(I INT)";
     private static String tableDef2 = "(I INT, J INT)";
+    private static String tableDef3 = "(I INT, J INT, primary key(i))";
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1_NAME,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3_NAME,CLASS_NAME, tableDef2);
+    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE4_NAME,CLASS_NAME, tableDef3);
+    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE5_NAME,CLASS_NAME, tableDef3);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -80,6 +86,32 @@ public class RowIdIT extends SpliceUnitTest {
                     }  catch (Exception e) {
                         throw new RuntimeException(e);
                     }
+                }
+            })
+            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher5)
+            .around(new SpliceDataWatcher() {
+
+                private void populateTable(SpliceTableWatcher spliceTableWatcher) {
+                    PreparedStatement ps;
+                    try {
+                        ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s values (?,?)", spliceTableWatcher));
+                        for (int i = 0; i < nRows; ++i) {
+                            ps.setInt(1, i);
+                            ps.setInt(2, i);
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+
+                    }  catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                }
+                @Override
+                protected void starting(Description description) {
+                    populateTable(spliceTableWatcher4);
+                    populateTable(spliceTableWatcher5);
                 }
             });
 
@@ -285,5 +317,18 @@ public class RowIdIT extends SpliceUnitTest {
         RowId rowId3 = rs.getRowId(1);
 
         Assert.assertEquals(rowId1.toString(), rowId3.toString());
+    }
+
+    @Test
+    public void testSuquery() throws Exception {
+        String sqlText = String.format("update %s set j=j+3 where rowid in (select rowid from %s)",
+                spliceTableWatcher4, spliceTableWatcher5);
+        int n = methodWatcher.executeUpdate(sqlText);
+        Assert.assertEquals("Wrong number of rows updated", n, nRows);
+
+        sqlText = String.format("delete from %s where rowid in (select rowid from %s)",
+                spliceTableWatcher4, spliceTableWatcher5);
+        n = methodWatcher.executeUpdate(sqlText);
+        Assert.assertEquals("Wrong number of rows updated", n, nRows);
     }
 }

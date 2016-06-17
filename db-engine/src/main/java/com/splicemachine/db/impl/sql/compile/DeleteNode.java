@@ -546,9 +546,11 @@ public class DeleteNode extends DMLModStatementNode
 			 * RESOLVE - Need to deal with the type of the field.
 			 */
 
-			acb.newFieldDeclaration(Modifier.PRIVATE, 
-									ClassName.CursorResultSet, 
-									acb.getRowLocationScanResultSetName());
+            String type = ClassName.CursorResultSet;
+            String name = acb.getRowLocationScanResultSetName();
+            if (!acb.cb.existsField(type, name)) {
+                acb.newFieldDeclaration(Modifier.PRIVATE, type, name);
+            }
 
 			if(cascadeDelete || isDependentTable)
 			{

@@ -1435,4 +1435,8 @@ public class ColumnReference extends ValueNode {
 	public ColumnReference getHashableJoinColumnReference() {
 		return this;
 	}
+
+	public boolean isRowIdColumn() {
+        return columnName.compareToIgnoreCase("ROWID")==0;
+	}
 }
