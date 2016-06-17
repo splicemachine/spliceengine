@@ -60,15 +60,43 @@
                         </goals>
                         <configuration>
                             <includeArtifactIds>
-                                hppc,kryo,gson,protobuf-java,disruptor,
-                                kryo-serializers,ehcache-core,opencsv,super-csv,
-                                lucene-core,spark,concurrentlinkedhashmap-lru,
-                                db-engine,db-drda,db-client,db-tools-ij,
-                                utilities,stats,pipeline_api,splice_access_api,splice_encoding,
-                                splice_machine,splice_protocol,splice_si_api,
-                                splice_timestamp_api,hbase_pipeline-${envClassifier},
-                                hbase_storage-${envClassifier},hbase_sql-${envClassifier},
-                                ${spark-assembly-id}
+                                <!-- third party libs -->
+                                concurrentlinkedhashmap-lru,
+                                disruptor,
+                                ehcache-core,
+                                gson,
+                                hppc,
+                                kryo,
+                                kryo-serializers,
+                                lucene-core,
+                                opencsv,
+                                protobuf-java,
+                                spark,
+                                ${spark-assembly-id},
+                                super-csv,
+                                <!-- spliceengine core libs -->
+                                db-build,
+                                db-client,
+                                db-drda,
+                                db-engine,
+                                db-shared,
+                                db-testing,
+                                db-tools-i18n,
+                                db-tools-ij,
+                                db-tools-testing,
+                                pipeline_api,
+                                splice_access_api,
+                                splice_encoding,
+                                splice_machine,
+                                splice_protocol,
+                                splice_si_api,
+                                splice_timestamp_api,
+                                stats,
+                                utilities,
+                                <!-- spliceengine platform libs -->
+                                hbase_pipeline-${envClassifier},
+                                hbase_sql-${envClassifier},
+                                hbase_storage-${envClassifier}
                             </includeArtifactIds>
                         </configuration>
                     </execution>
