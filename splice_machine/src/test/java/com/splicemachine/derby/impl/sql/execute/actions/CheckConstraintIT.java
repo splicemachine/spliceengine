@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 
 import com.splicemachine.derby.test.framework.TestConnection;

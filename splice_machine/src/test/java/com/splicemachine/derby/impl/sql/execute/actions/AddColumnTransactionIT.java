@@ -1,24 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import static org.junit.Assert.assertEquals;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -26,7 +7,17 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.test.Transactions;
-import com.splicemachine.test_dao.TableDAO;
+import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Scott Fines
@@ -93,7 +84,6 @@ public class AddColumnTransactionIT {
         conn2.setAutoCommit(false);
         conn1Txn = conn1.getCurrentTransactionId();
         conn2Txn = conn2.getCurrentTransactionId();
-        tableDAO = new TableDAO(classWatcher.getOrCreateConnection());
     }
 
     @Test
@@ -405,67 +395,67 @@ public class AddColumnTransactionIT {
 
     }
 
-    private TableDAO tableDAO;
-
     @Test
     public void testAlterTableAddColumn() throws Exception {
         String tableName = "alterTableAddColumn".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
-        tableDAO.drop(schemaWatcher.schemaName, tableName);
 
-        Connection c1 = classWatcher.createConnection();
-        c1.setAutoCommit(false);
-        Statement s1 = c1.createStatement();
+        try(Statement s1 = conn1.createStatement()){
+            s1.execute("drop table if exists "+ tableRef);
 
-        s1.execute(String.format("create table %s(num int, addr varchar(50), zip char(5))", tableRef));
+            s1.execute(String.format("create table %s(num int, addr varchar(50), zip char(5))",tableRef));
 
-        c1.commit();
+//            c1.commit();
 
-        s1.execute(String.format("insert into %s values(100, '100F: 101 California St', '94114')", tableRef));
-        s1.execute(String.format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')", tableRef));
-        s1.execute(String.format("insert into %s values(300, '300F: my addr', '34166')", tableRef));
-        s1.execute(String.format("insert into %s values(400, '400F: 182 Second St.', '94114')", tableRef));
-        s1.execute(String.format("insert into %s(num) values(500)", tableRef));
+            s1.execute(String.format("insert into %s values(100, '100F: 101 California St', '94114')",tableRef));
+            s1.execute(String.format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')",tableRef));
+            s1.execute(String.format("insert into %s values(300, '300F: my addr', '34166')",tableRef));
+            s1.execute(String.format("insert into %s values(400, '400F: 182 Second St.', '94114')",tableRef));
+            s1.execute(String.format("insert into %s(num) values(500)",tableRef));
 
-        c1.commit();
+            conn1.commit();
 
-        s1.execute(String.format("Alter table %s add column salary float default 0.0", tableRef));
+            s1.execute(String.format("Alter table %s add column salary float default 0.0",tableRef));
 
-        c1.commit();
+            conn1.commit();
 
-        Connection c2 = classWatcher.createConnection();
-        c2.setAutoCommit(false);
-        Statement s2 = c2.createStatement();
+            conn2.setAutoCommit(false);
+            try(Statement s2=conn2.createStatement()){
 
-        s1.execute(String.format("update %s set salary=1000.0 where zip='94114'", tableRef));
-        s1.execute(String.format("update %s set salary=5000.85 where zip='94509'", tableRef));
+                s1.execute(String.format("update %s set salary=1000.0 where zip='94114'",tableRef));
+                s1.execute(String.format("update %s set salary=5000.85 where zip='94509'",tableRef));
 
-        ResultSet rs = s1.executeQuery(String.format("select zip, salary from %s where salary > 0", tableRef));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            Assert.assertNotNull("Salary is null!",rs.getFloat(2));
+                try(ResultSet rs=s1.executeQuery(String.format("select zip, salary from %s where salary > 0",tableRef))){
+                    int count=0;
+                    while(rs.next()){
+                        count++;
+                        Assert.assertNotNull("Salary is null!",rs.getFloat(2));
+                    }
+                    assertEquals("Salary Cannot Be Queried after added!",3,count);
+                }
+
+                try(ResultSet rs=s2.executeQuery(String.format("select zip, salary from %s where salary > 0",tableRef))){
+                    int count=0;
+                    while(rs.next()){
+                        count++;
+                        Assert.assertNotNull("Salary is null!",rs.getFloat(2));
+                    }
+                    assertEquals("Salary Cannot Be Queried after added!",0,count);
+                }
+
+                // updates will not be seen by c2 until both have committed
+                conn1.commit();
+                conn2.commit();
+                try(ResultSet rs=s2.executeQuery(String.format("select zip, salary from %s where salary > 0",tableRef))){
+                    int count=0;
+                    while(rs.next()){
+                        count++;
+                        Assert.assertNotNull("Salary is null!",rs.getFloat(2));
+                    }
+                    assertEquals("Salary Cannot Be Queried after added!",3,count);
+                }
+            }
         }
-        assertEquals("Salary Cannot Be Queried after added!", 3,count);
-
-        rs = s2.executeQuery(String.format("select zip, salary from %s where salary > 0", tableRef));
-        count = 0;
-        while (rs.next()) {
-            count++;
-            Assert.assertNotNull("Salary is null!",rs.getFloat(2));
-        }
-        assertEquals("Salary Cannot Be Queried after added!", 0, count);
-
-        // updates will not be seen by c2 until both have committed
-        c1.commit();
-        c2.commit();
-        rs = s2.executeQuery(String.format("select zip, salary from %s where salary > 0", tableRef));
-        count = 0;
-        while (rs.next()) {
-            count++;
-            Assert.assertNotNull("Salary is null!",rs.getFloat(2));
-        }
-        assertEquals("Salary Cannot Be Queried after added!", 3,count);
     }
 
     @Test
@@ -473,41 +463,40 @@ public class AddColumnTransactionIT {
         // DB-3711: if UC on a col, can't update added col
         String tableName = "fred".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
-        tableDAO.drop(schemaWatcher.schemaName, tableName);
 
-        Connection c1 = classWatcher.createConnection();
-        c1.setAutoCommit(false);
-        Statement s1 = c1.createStatement();
+        try(Statement s1 = conn1.createStatement()){
+            s1.execute("drop table if exists"+tableRef);
+            s1.execute(String.format("create table %s(id int unique)",tableRef));
 
-        s1.execute(String.format("create table %s(id int unique)", tableRef));
-        c1.commit();
+            s1.execute(String.format("insert into %s values(1)",tableRef));
+            s1.execute(String.format("insert into %s values(2)",tableRef));
 
-        s1.execute(String.format("insert into %s values(1)", tableRef));
-        s1.execute(String.format("insert into %s values(2)", tableRef));
+            s1.execute(String.format("alter table %s add column loc varchar(3) default 'ZZZ'",tableRef));
+            conn1.commit();
 
-        s1.execute(String.format("alter table %s add column loc varchar(3) default 'ZZZ'", tableRef));
-        c1.commit();
+            s1.execute(String.format("update %s set loc = 'AAA'",tableRef));
+            s1.execute(String.format("update %s set loc = 'MMM' where id = 1",tableRef));
+            conn1.commit();
 
-        s1.execute(String.format("update %s set loc = 'AAA'", tableRef));
-        s1.execute(String.format("update %s set loc = 'MMM' where id = 1", tableRef));
-        c1.commit();
+            try(ResultSet rs=s1.executeQuery(String.format("select id from %s where id = 1",tableRef))){
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    assertEquals("Expected id = 1",1,rs.getInt(1));
+                }
+                assertEquals("Expected one id equal to 1",1,count);
+            }
 
-        ResultSet rs = s1.executeQuery(String.format("select id from %s where id = 1", tableRef));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            assertEquals("Expected id = 1", 1, rs.getInt(1));
+            try(ResultSet rs=s1.executeQuery(String.format("select * from %s where id = 1",tableRef))){
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    assertEquals("Expected id = 1",1,rs.getInt(1));
+                    assertEquals("Expected loc = 'MMM'","MMM",rs.getString(2));
+                }
+                assertEquals("Expected one id equal to 1",1,count);
+            }
         }
-        assertEquals("Expected one id equal to 1", 1, count);
-
-        rs = s1.executeQuery(String.format("select * from %s where id = 1", tableRef));
-        count = 0;
-        while (rs.next()) {
-            count++;
-            assertEquals("Expected id = 1", 1, rs.getInt(1));
-            assertEquals("Expected loc = 'MMM'", "MMM", rs.getString(2));
-        }
-        assertEquals("Expected one id equal to 1", 1, count);
     }
 
     @Test
@@ -515,40 +504,38 @@ public class AddColumnTransactionIT {
         // DB-3711: add UC on a col, can't add another col
         String tableName = "employees".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
-        tableDAO.drop(schemaWatcher.schemaName, tableName);
 
-        Connection c1 = classWatcher.createConnection();
-        c1.setAutoCommit(false);
-        Statement s1 = c1.createStatement();
+        try(Statement s1 = conn1.createStatement()){
+            s1.execute(String.format("create table %s(emplid INTEGER NOT NULL, lastname VARCHAR(25) NOT NULL, firstname "+
+                    "VARCHAR(25) NOT NULL, reportsto INTEGER)",tableRef));
 
-        s1.execute(String.format("create table %s(emplid INTEGER NOT NULL, lastname VARCHAR(25) NOT NULL, firstname " +
-                                     "VARCHAR(25) NOT NULL, reportsto INTEGER)", tableRef));
-        c1.commit();
+            s1.execute(String.format("insert into %s values(7725070,'Anuradha','Kottapalli',8852090)",tableRef));
+            conn1.commit();
 
-        s1.execute(String.format("insert into %s values(7725070,'Anuradha','Kottapalli',8852090)", tableRef));
-        c1.commit();
+            s1.execute(String.format("alter table %s add constraint emp_uniq unique(emplid)",tableRef));
+            s1.execute(String.format("alter table %s add column foo int",tableRef));
+            conn1.commit();
 
-        s1.execute(String.format("alter table %s add constraint emp_uniq unique(emplid)", tableRef));
-        s1.execute(String.format("alter table %s add column foo int", tableRef));
-        c1.commit();
+            try(ResultSet rs=s1.executeQuery(String.format("select * from %s",tableRef))){
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    assertEquals("FOO col add!",0,rs.getInt(5));
+                }
+                assertEquals("Expected one employee!",1,count);
+            }
 
-        ResultSet rs = s1.executeQuery(String.format("select * from %s", tableRef));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            assertEquals("FOO col add!", 0, rs.getInt(5));
+            s1.execute(String.format("update %s set foo = 9 where emplid = 7725070",tableRef));
+            conn1.commit();
+
+            try(ResultSet rs=s1.executeQuery(String.format("select * from %s where emplid = 7725070",tableRef))){
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    assertEquals("FOO update!",9,rs.getInt(5));
+                }
+                assertEquals("Expected one employee!",1,count);
+            }
         }
-        assertEquals("Expected one employee!", 1, count);
-
-        s1.execute(String.format("update %s set foo = 9 where emplid = 7725070", tableRef));
-        c1.commit();
-
-        rs = s1.executeQuery(String.format("select * from %s where emplid = 7725070", tableRef));
-        count = 0;
-        while (rs.next()) {
-            count++;
-            assertEquals("FOO update!", 9, rs.getInt(5));
-        }
-        assertEquals("Expected one employee!", 1, count);
     }
 }
