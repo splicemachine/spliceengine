@@ -430,6 +430,7 @@
                 <module>pipeline_api</module>
                 <module>splice_access_api</module>
                 <module>splice_machine</module>
+                <module>sqlj-it-procs</module>
             </modules>
         </profile>
         <profile>

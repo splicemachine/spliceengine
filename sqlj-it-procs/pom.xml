@@ -9,20 +9,9 @@
 	<description>Splice Machine sqlj IT jar</description>
 	<parent>
 		<groupId>com.splicemachine</groupId>
-		<artifactId>splice-maven-parent</artifactId>
-		<version>1.0.3</version>
+		<artifactId>spliceengine-parent</artifactId>
+		<version>2.0.1.14-SNAPSHOT</version>
 	</parent>
-	<scm>
-		<connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
-		<developerConnection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</developerConnection>
-		<url>https://github.com/splicemachine/${project.artifactId}</url>
-	</scm>
-	<repositories>
-		<repository>
-			<id>splicemachine</id>
-			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
-		</repository>
-	</repositories>
 	<build>
 		<plugins>
 			<plugin>
