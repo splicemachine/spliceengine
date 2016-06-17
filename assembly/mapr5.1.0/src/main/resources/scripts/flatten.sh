@@ -154,12 +154,14 @@ stop_service()
 {
 	local service_name=${1}
 	curl ${curl_opts} --data "name=${service_name}" --data 'action=stop' --data-urlencode "filter=[csvc==${service_name}]" ${mapr_rest}/node/services
+    echo
 }
 
 start_service()
 {
 	local service_name=${1}
 	curl ${curl_opts} --data "name=${service_name}" --data 'action=start' --data-urlencode "filter=[csvc==${service_name}]" ${mapr_rest}/node/services
+    echo
 }
 
 wait_for_service_state()
@@ -174,6 +176,7 @@ wait_for_service_state()
 			sleep 5
 		fi
 	done
+    echo
 }
 
 # XXX - CDH / HDP, needed on MapR?
@@ -186,6 +189,7 @@ wait_for_service_health()
 		health=$(curl ${curl_opts} ${ambari_url}/clusters/${cluster_name}/services/${service_name}?fields=ServiceInfo/state | sed 's/[",]//g' | awk '/state/ && ! /http/ {print $3}')
 		sleep 5
 	done
+    echo
 }
 
 clean_out_zookeeper()
@@ -218,6 +222,7 @@ delete_hbase_root_dir()
 	sudo -su ${mapr_user} hadoop fs -ls /hbase
 	sudo -su ${mapr_user} hadoop fs -rm -r -f -skipTrash /hbase /BAD
 	sudo -su ${mapr_user} hadoop fs -expunge
+    echo
 }
 
 create_hbase_root_dir()
@@ -226,6 +231,7 @@ create_hbase_root_dir()
 	sudo -su ${mapr_user} hadoop fs -mkdir -p /hbase/data /BAD
 	sudo -su ${mapr_user} hadoop fs -chown -R ${mapr_user}:${mapr_user} /hbase /BAD
 	sudo -su ${mapr_user} hadoop fs -chmod 755 /hbase /BAD
+    echo
 }
 
 check_hbase_ready()
@@ -243,6 +249,7 @@ check_hbase_ready()
 			fi
 		done
 	done
+    echo
 }
 
 #############################################
