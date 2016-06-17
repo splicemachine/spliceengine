@@ -476,6 +476,7 @@ public class AddColumnTransactionIT {
             s1.execute(String.format("update %s set loc = 'AAA'",tableRef));
             s1.execute(String.format("update %s set loc = 'MMM' where id = 1",tableRef));
             conn1.commit();
+            conn2.commit();
 
             try(ResultSet rs=s1.executeQuery(String.format("select id from %s where id = 1",tableRef))){
                 int count=0;
