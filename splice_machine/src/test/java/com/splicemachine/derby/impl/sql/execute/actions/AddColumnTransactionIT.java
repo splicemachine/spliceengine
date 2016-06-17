@@ -405,7 +405,6 @@ public class AddColumnTransactionIT {
 
             s1.execute(String.format("create table %s(num int, addr varchar(50), zip char(5))",tableRef));
 
-//            c1.commit();
 
             s1.execute(String.format("insert into %s values(100, '100F: 101 California St', '94114')",tableRef));
             s1.execute(String.format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')",tableRef));
@@ -413,11 +412,11 @@ public class AddColumnTransactionIT {
             s1.execute(String.format("insert into %s values(400, '400F: 182 Second St.', '94114')",tableRef));
             s1.execute(String.format("insert into %s(num) values(500)",tableRef));
 
-            conn1.commit();
 
             s1.execute(String.format("Alter table %s add column salary float default 0.0",tableRef));
 
             conn1.commit();
+            conn2.commit(); //move both connection's transactions forward
 
             conn2.setAutoCommit(false);
             try(Statement s2=conn2.createStatement()){
