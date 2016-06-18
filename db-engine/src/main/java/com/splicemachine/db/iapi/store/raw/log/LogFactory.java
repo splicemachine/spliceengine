@@ -23,7 +23,6 @@ package com.splicemachine.db.iapi.store.raw.log;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
-import com.splicemachine.db.iapi.store.replication.master.MasterFactory;
 import com.splicemachine.db.iapi.store.raw.data.DataFactory;
 import com.splicemachine.db.iapi.store.raw.Corruptable;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
@@ -32,7 +31,6 @@ import com.splicemachine.db.iapi.store.raw.xact.TransactionFactory;
 import com.splicemachine.db.io.StorageFile;
 import com.splicemachine.db.iapi.store.access.DatabaseInstant;
 import com.splicemachine.db.iapi.reference.Property;
-
 import java.io.File;
 
 public interface LogFactory extends Corruptable {
@@ -382,26 +380,6 @@ public interface LogFactory extends Corruptable {
                                 String feature) 
         throws StandardException;
 
-    /**
-     * Make this LogFactory pass log records to the MasterFactory
-     * every time a log record is appended to the log on disk, and
-     * notify the MasterFactory when a log disk flush has taken place.
-     * Not implemented by ReadOnly.
-     * @param masterFactory The MasterFactory service responsible for
-     * controlling the master side replication behaviour.
-     * @exception StandardException Standard Derby exception policy,
-     * thrown on replication startup error. Will only be thrown if
-     * replication is attempted started on a readonly database.
-     */
-    public void startReplicationMasterRole(MasterFactory masterFactory)
-        throws StandardException;
-
-    /**
-     * Stop this LogFactory from passing log records to the
-     * MasterFactory and from notifying the MasterFactory when a log
-     * disk flush has taken place. Not implemented by ReadOnly.
-     */
-    public void stopReplicationMasterRole();
 
 }
 
