@@ -697,7 +697,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
-                                <argument>-Xmx8g</argument>
+                                <argument>-Xmx6g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
@@ -810,7 +810,7 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
-                                <argument>-Xmx2g</argument>
+                                <argument>-Xmx4g</argument>
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>
