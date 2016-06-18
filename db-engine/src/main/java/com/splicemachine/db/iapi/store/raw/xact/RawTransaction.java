@@ -33,7 +33,6 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.store.raw.GlobalTransactionId;
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
 import com.splicemachine.db.iapi.store.raw.log.LogFactory;
-import com.splicemachine.db.iapi.store.raw.data.RawContainerHandle;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.util.ByteArray;
@@ -243,24 +242,6 @@ public abstract class RawTransaction extends Observable implements Transaction {
 
 	public abstract RawTransaction startNestedTopTransaction() throws StandardException;
 
-
-	/**
-		Open a container that may be dropped - use only by logging and recovery.
-		During recovery redo, a log record may refer to a container that has
-		long been dropped.  This interface is provided so a dropped container
-		may be opened.
-
-		If the container has been dropped and is known to be committed, then
-		even if we open the dropped container with forUpdate true, the
-		container will be silently opened as read only.  Logging and recovery
-		code always check for committed drop status.  Anybody else wanting to
-		use this interface must keep this in mind.
-
-		@exception StandardException  Standard Derby exception policy
-	*/
-	public abstract RawContainerHandle openDroppedContainer
-		(ContainerKey containerId, LockingPolicy locking)
-		 throws StandardException;
 
 	/**
 		Recreate a container during redo recovery.

@@ -22,11 +22,9 @@
 package com.splicemachine.db.iapi.store.raw.data;
 
 import com.splicemachine.db.iapi.store.raw.ContainerKey;
-
 import com.splicemachine.db.iapi.services.daemon.DaemonService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.raw.ContainerHandle;
 import com.splicemachine.db.iapi.store.raw.Corruptable;
@@ -89,19 +87,6 @@ public interface DataFactory extends Corruptable {
 										 LockingPolicy locking,
 										 int mode)
 		 throws StandardException;
-
-	/**
-		Open a container that may have been dropped.
-		Only internal raw store code should call this, e.g. recovery.
-
-		@see #openContainer
-		@exception StandardException Standard Derby error policy
-	*/
-	public RawContainerHandle openDroppedContainer(RawTransaction t,
-												   ContainerKey containerId,
-												   LockingPolicy locking,
-												   int mode)
-		throws StandardException;
 
 	/**
 		Add a container.
