@@ -236,7 +236,7 @@ public class Scans extends SpliceUtils {
                 generateStartKey = true;
                 for (int i = 0; i < startKeyValue.length; i++) {
                     DataValueDescriptor startDesc = startKeyValue[i];
-                    if (startDesc == null || startDesc.isNull()) {
+                    if (startDesc == null) {
                         generateStartKey = false; // if any null encountered, don't make a start key
                         break;
                     }
@@ -257,7 +257,7 @@ public class Scans extends SpliceUtils {
                 generateStopKey = true;
                 for (int i = 0; i < stop.length; i++) {
                     DataValueDescriptor stopDesc = stop[i];
-                    if (stopDesc == null || stopDesc.isNull()) {
+                    if (stopDesc == null) {
                         generateStopKey = false; // if any null encountered, don't make a stop key
                         break;
                     }
