@@ -464,7 +464,7 @@ public class AddColumnTransactionIT {
         String tableRef = schemaWatcher.schemaName+"."+tableName;
 
         try(Statement s1 = conn1.createStatement()){
-            s1.execute("drop table if exists"+tableRef);
+            s1.execute("drop table if exists "+tableRef);
             s1.execute(String.format("create table %s(id int unique)",tableRef));
 
             s1.execute(String.format("insert into %s values(1)",tableRef));
