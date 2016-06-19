@@ -4,9 +4,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.BackingStoreHashtable;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.store.access.RowUtil;
 import com.splicemachine.db.iapi.store.access.ScanInfo;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -55,7 +53,6 @@ public class SpliceScan implements ScanManager, LazyScan{
     protected boolean isKeyed;
     protected boolean scannerInitialized=false;
     protected String tableName;
-    private EntryDecoder entryDecoder;
 
     private TxnOperationFactory opFactory;
     private PartitionFactory partitionFactory;
@@ -97,9 +94,6 @@ public class SpliceScan implements ScanManager, LazyScan{
     }
 
     public void close() throws StandardException{
-        if(entryDecoder!=null)
-            entryDecoder.close();
-
         try{
             if(scanner!=null) scanner.close();
         }catch(IOException ignored){ }
@@ -278,47 +272,6 @@ public class SpliceScan implements ScanManager, LazyScan{
 
     public void setEstimatedRowCount(long estimatedRowCount) throws StandardException{
         this.estimatedRowCount=estimatedRowCount;
-    }
-
-    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
-    public void fetchSet(long max_rowcnt,int[] key_column_numbers,BackingStoreHashtable hashTable) throws StandardException{
-        SpliceLogUtils.trace(LOG,"IndexScan fetchSet for number of rows %d",max_rowcnt);
-        initialize();
-        if(max_rowcnt==0)
-            return;
-        if(max_rowcnt==-1)
-            max_rowcnt=Long.MAX_VALUE;
-        int rowCount=0;
-        DataValueDescriptor[] fetchedRow=null;
-        try{
-            while((currentResult=scanner.next())!=null){
-                SpliceLogUtils.trace(LOG,"fetch set iterator %s",currentResult);
-                if(entryDecoder==null)
-                    entryDecoder=new EntryDecoder();
-
-                fetchedRow=RowUtil.newTemplate(
-                        spliceConglomerate.getTransaction().getDataValueFactory(),
-                        null,spliceConglomerate.getFormatIds(),spliceConglomerate.getCollationIds());
-                DescriptorSerializer[] serializers=VersionedSerializers.forVersion("1.0",true).getSerializers(fetchedRow);
-
-                try(EntryDataDecoder decoder=new EntryDataDecoder(null,null,serializers)){
-                    ExecRow row=new ValueRow(fetchedRow.length);
-                    row.setRowArray(fetchedRow);
-                    DataCell kv=currentResult.userData();//dataLib.matchDataColumn(currentResult);
-                    decoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());//edataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
-                    decoder.decode(row);
-                }
-                hashTable.putRow(false,fetchedRow);
-                this.currentRowLocation=new HBaseRowLocation(currentResult.key());
-                rowCount++;
-                if(rowCount==max_rowcnt)
-                    break;
-            }
-            this.currentRow=fetchedRow;
-        }catch(Exception e){
-            LOG.error(e.getMessage(),e);
-            throw StandardException.newException("Error during fetchSet "+e);
-        }
     }
 
     public int fetchNextGroup(DataValueDescriptor[][] row_array,RowLocation[] oldrowloc_array,RowLocation[] newrowloc_array) throws StandardException{

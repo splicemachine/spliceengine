@@ -26,13 +26,9 @@ import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
 import com.splicemachine.db.iapi.store.access.FileResource;
-import com.splicemachine.db.iapi.store.access.RowSource;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.types.DataValueFactory;
-
-import java.util.Properties;
-
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 
 /**
@@ -91,61 +87,6 @@ public interface Transaction {
 		May return null if this transaction has no globalId.
 	*/
 	public GlobalTransactionId getGlobalId();
-
-	/**
-		Get the current default locking policy for all operations within this
-		transaction. The transaction is initially started with a default
-		locking policy equivalent to
-		<PRE>
-			 newLockingPolicy(
-              LockingPolicy.MODE_RECORD, LockingPolicy.ISOLATION_SERIALIZABLE, true);
-		</PRE>
-        This default can be changed by subsequent calls to 
-        setDefaultLockingPolicy(LockingPolicy policy).
-
-
-		@return The current default locking policy in this transaction.
-	*/
-
-	public LockingPolicy getDefaultLockingPolicy();
-
-
-	/**
-		Obtain a locking policy for use in openContainer(). The mode
-		and isolation must be constants from LockingPolicy. If higherOK is true
-		then the object returned may implement a stricter form of locking than
-		the one requested.
-		<BR>
-		A null LockingPolicy reference is identical to a LockingPolicy obtained 
-        by using MODE_NONE which is guaranteed to exist.
-
-		@param mode A constant of the form LockingPolicy.MODE_*
-		@param isolation A constant of the form LockingPolicy.ISOLATION_*
-		@param stricterOk True if a stricter level of locking is acceptable, 
-        false if an exact match is required.
-
-		@return A object that can be used in an openContainer call, 
-        null if a matching policy cannot be found.
-	*/
-
-	public LockingPolicy newLockingPolicy(int mode, int isolation, boolean stricterOk);
-
-
-	/**
-		Set the default locking policy for all operations within this
-		transaction. The transaction is intially started with a default
-		locking policy equivalent to
-		<PRE>
-			 newLockingPolicy(
-              LockingPolicy.MODE_RECORD, LockingPolicy.ISOLATION_SERIALIZABLE, true);
-		</PRE>
-
-		@param policy The lock policy to use, if null then then a no locking 
-        policy will be installed as the default.
-	*/
-
-	public void setDefaultLockingPolicy(LockingPolicy policy);
-
 
 	/**
 		Commit this transaction. All savepoints within this transaction are 
@@ -302,173 +243,7 @@ public interface Transaction {
 	*/
 	public int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
-	/**
 
-		Open a container, with the transaction's default locking policy.
-
-        <p>
-        Note that if NOWAIT has been specified lock will be 
-        requested with no wait time, and if lock is not granted a 
-        SQLState.LOCK_TIMEOUT exception will be thrown.
-		<P>
-		The release() method of ContainerHandle will be called when this 
-        transaction is aborted or commited, it may be called explicitly to
-		release the ContainerHandle before the end of the transaction.
-
-
-		@return a valid ContainerHandle or null if the container does not exist.
-
-		@exception StandardException  Standard Derby exception policy
-
-	*/
-	public ContainerHandle openContainer(ContainerKey containerId,  int mode)
-		throws StandardException;
-
-	/**
-
-		Open a container, with the defined locking policy, otherwise
-		as openContainer(int containerId,  boolean forUpdate).
-
-		<P>
-		Calls locking.lockContainer(this, returnValue, forUpdate) to lock the
-        container.  Note that if NOWAIT has been specified lock will be 
-        requested with no wait time, and if lock is not granted a 
-        SQLState.LOCK_TIMEOUT exception will be thrown.
-
-		@param locking The lock policy to use, if null then then a no locking 
-                       policy will be used.
-
-		@return a valid ContainerHandle or null if the container does not exist.
-
-		@exception StandardException  Standard Derby exception policy
-
-	*/
-
-	public ContainerHandle openContainer(
-    ContainerKey    containerId,
-    LockingPolicy   locking, 
-    int             mode) 
-		throws StandardException;
-
-
-	/**
-		Add a new container to the segment. The new container initially has
-		one page, page Container.FIRST_PAGE_NUMBER.
-
-		<BR>
-		If pageSize is equal to ContainerHandle.DEFAULT_PAGESIZE or invalid 
-        then a default page size will be picked.
-		<BR>
-		SpareSpace indicates that percent (0% - 100%) of page space that will 
-        be attempted to be reserved for updates. E.g. with a value of 20 a page
-        that would normally hold 40 rows will be limited to 32 rows,
-		actual calculation for the threshold where no more inserts are all 
-        accepted is up to the implementation.  Whatever the value of 
-        spaceSpace an empty page will always accept at least one insert.
-		If spare space is equal to ContainerHandle.DEFAULT_PAGESIZE or invalid 
-        then a default value will be used.
-
-	    <P><B>Synchronisation</B>
-		<P>
-		The new container is exclusivly locked by this transaction until
-		it commits.
-
-		@param segmentId    segment to create the container in.
-		@param containerId  If not equal to 0 then this container id will be 
-                            used to create the container, else if set to 0 then
-                            the raw store will assign a number.
-		@param mode mode description in @see ContainerHandle.  This mode is
-		only effective for the duration of the addContainer call and not stored
-		persistently for the lifetime of the container.
-		@param tableProperties Implementation-specific properties of the
-		conglomerate.
-
-		@return a container identifer that can be used in openContainer()
-		This id is only valid within this RawStoreFactory.  Returns a negative 
-        number if a container could not be allocated.
-
-		@exception StandardException Standard Derby error policy
-
-	*/
-	public long addContainer(
-    long        segmentId, 
-    long        containerId,
-    int         mode, 
-    Properties  tableProperties, 
-    int         temporaryFlag) 
-		throws StandardException;
-
-	/**
-		Drop a container.
-
-	    <P><B>Synchronisation</B>
-		<P>
-		This call will mark the container as dropped and then obtain an CX lock
-		on the container. Once a container has been marked as dropped it cannot
-		be retrieved by any openContainer() call.
-		<P>
-		Once the exclusive lock has been obtained the container is removed
-		and all its pages deallocated. The container will be fully removed
-		at the commit time of the transaction.
-
-		@exception StandardException Standard Derby error policy
-
-	*/
-	public void dropContainer(ContainerKey containerId)
-		throws StandardException;
-
-	/**
-		Add a new stream container to the segment and load the stream container.
-		
-		This stream container doesn't not have locks, and do not log.
-		It does not have the concept of a page.
-		It is used by the external sort only.
-
-	    <P><B>Synchronisation</B>
-		<P>
-		This call will mark the container as dropped and then obtain an CX lock
-		on the container. Once a container has been marked as dropped it cannot
-		be retrieved by any openContainer() call.
-		<P>
-		Once the exclusive lock has been obtained the container is removed
-		and all its pages deallocated. The container will be fully removed
-		at the commit time of the transaction.
-
-		@exception StandardException Standard Derby error policy
-
-	*/
-	public long addAndLoadStreamContainer(
-			long segmentId, Properties tableProperties, RowSource rowSource)
-		throws StandardException;
-
-
-	/**
-		Open a stream container.
-
-		@return a valid StreamContainerHandle or null if the container does not exist.
-
-		@exception StandardException  Standard Derby exception policy
-
-	*/
-	public StreamContainerHandle openStreamContainer(
-    long    segmentId, 
-    long    containerId,
-    boolean hold)
-		throws StandardException;
-
-	/**
-		Drop a stream container.
-
-	    <P><B>Synchronisation</B>
-		<P>
-		This call will remove the container.
-
-		@exception StandardException Standard Derby error policy
-
-	*/
-	public abstract void dropStreamContainer(long segmentId, long containerId)
-		throws StandardException;
-		
 	/**
 		Log an operation and then action it in the context of this transaction.
 		The Loggable Operation is logged in the transaction log file and then 

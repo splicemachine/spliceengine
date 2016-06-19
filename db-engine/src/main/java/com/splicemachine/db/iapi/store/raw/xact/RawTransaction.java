@@ -21,27 +21,16 @@
 
 package com.splicemachine.db.iapi.store.raw.xact;
 
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
-
 import com.splicemachine.db.iapi.services.locks.LockFactory;
-
 import com.splicemachine.db.iapi.store.raw.data.DataFactory;
-import com.splicemachine.db.iapi.store.raw.Compensation;
-import com.splicemachine.db.iapi.store.raw.LockingPolicy;
 import com.splicemachine.db.iapi.store.raw.Loggable;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.store.raw.GlobalTransactionId;
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
-import com.splicemachine.db.iapi.store.raw.log.LogFactory;
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
-
-
 import java.util.Observable;
-
-import com.splicemachine.db.iapi.services.io.LimitObjectInput;
 
 /**
 	RawTransaction is the form of Transaction used within the raw store. This
@@ -83,36 +72,10 @@ public abstract class RawTransaction extends Observable implements Transaction {
 	*/
 	public abstract DataFactory getDataFactory();
 
-	/**	
-		Get the log factory to be used during this transaction.
-	*/
-	public abstract LogFactory getLogFactory();
-
 	/**
 		Get the log buffer to be used during this transaction.
 	*/
 	public abstract DynamicByteArrayOutputStream getLogBuffer();
-
-	/**
-		Log a compensation operation and then action it in the context of this 
-        transaction.
-		The CompensationOperation is logged in the transaction log file and 
-        then its doMe method is called to perform the required change.  This 
-        compensation operation will rollback the change that was done by the 
-        Loggable Operation at undoInstant. 
-
-		@param compensation	the Compensation Operation
-		@param undoInstant	the LogInstant of the Loggable Operation this 
-							compensation operation is going to roll back
-		@param in			optional data for the rollback operation
-
-		@see Compensation
-
-		@exception StandardException  Standard Derby exception policy
-	*/
-	public abstract void logAndUndo(Compensation compensation, LogInstant undoInstant, 
-									LimitObjectInput in) 
-		throws StandardException;
 
 	/** Methods to help logging and recovery */
 

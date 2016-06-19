@@ -1,22 +1,17 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.RowUtil;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.LockingPolicy;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-
 import java.util.Arrays;
 
 /**
@@ -30,9 +25,6 @@ public class OpenSpliceConglomerate  {
 	protected SpliceConglomerate conglomerate;
 	protected TransactionManager transactionManager;
 	protected Transaction transaction;
-	protected int openMode;
-	protected int lockLevel;
-	protected LockingPolicy lockingPolicy;
 	protected StaticCompiledOpenConglomInfo staticCompiledOpenConglomInfo;
 	protected DynamicCompiledOpenConglomInfo dynamicCompiledOpenConglomInfo;
 	protected boolean hold;	
@@ -41,9 +33,6 @@ public class OpenSpliceConglomerate  {
 	public OpenSpliceConglomerate(TransactionManager transactionManager,
                                   Transaction transaction,
                                   boolean hold,
-                                  int openMode,
-                                  int lockLevel,
-                                  LockingPolicy lockingPolicy,
                                   StaticCompiledOpenConglomInfo staticCompiledOpenConglomInfo,
                                   DynamicCompiledOpenConglomInfo dynamicCompiledOpenConglomInfo,
                                   SpliceConglomerate conglomerate) {
@@ -55,11 +44,8 @@ public class OpenSpliceConglomerate  {
         throw new RuntimeException(e);
 		}
 		this.hold = hold;
-		this.lockLevel = lockLevel;
-		this.lockingPolicy = lockingPolicy;
 		this.staticCompiledOpenConglomInfo = staticCompiledOpenConglomInfo;
 		this.dynamicCompiledOpenConglomInfo = dynamicCompiledOpenConglomInfo;
-		this.openMode = openMode;
 		this.conglomerate = conglomerate;
 	}
     
@@ -105,18 +91,6 @@ public class OpenSpliceConglomerate  {
 
 	public Transaction getTransaction() {
 		return transaction;
-	}
-
-	public int getOpenMode() {
-		return openMode;
-	}
-
-	public int getLockLevel() {
-		return lockLevel;
-	}
-
-	public LockingPolicy getLockingPolicy() {
-		return lockingPolicy;
 	}
 
 	public StaticCompiledOpenConglomInfo getStaticCompiledOpenConglomInfo() {

@@ -11,13 +11,10 @@ import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.ContainerHandle;
 import com.splicemachine.db.iapi.store.raw.ContainerKey;
-import com.splicemachine.db.iapi.store.raw.LockingPolicy;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
-import com.splicemachine.db.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
@@ -158,24 +155,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
         }
     }
 
-    public boolean fetchMaxOnBTree(
-            TransactionManager xact_manager,
-            Transaction rawtran,
-            long conglomId,
-            int open_mode,
-            int lock_level,
-            LockingPolicy locking_policy,
-            int isolation_level,
-            FormatableBitSet scanColumnList,
-            DataValueDescriptor[] fetchRow)
-            throws StandardException{
-        if(LOG.isTraceEnabled())
-            LOG.trace("fetchMaxOnBTree ");
-
-        // no support for max on a hbase table.
-        throw (StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE));
-    }
-
     /**
      * Return dynamic information about the conglomerate to be dynamically
      * reused in repeated execution of a statement.
@@ -196,7 +175,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
         if(LOG.isTraceEnabled())
             LOG.trace("getDynamicCompiledConglomInfo ");
         //FIXME: do we need this
-        return (new OpenConglomerateScratchSpace(format_ids,collation_ids,hasCollatedTypes));
+        return null;
+//        return (new OpenConglomerateScratchSpace(format_ids,collation_ids,hasCollatedTypes));
     }
 
     /**
@@ -243,16 +223,16 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * @throws StandardException Standard exception policy.
      * @see Conglomerate#open
      **/
+    @Override
     public ConglomerateController open(TransactionManager xact_manager,
                                        Transaction rawtran,
                                        boolean hold,
                                        int open_mode,
                                        int lock_level,
-                                       LockingPolicy locking_policy,
                                        StaticCompiledOpenConglomInfo static_info,
                                        DynamicCompiledOpenConglomInfo dynamic_info) throws StandardException{
         SpliceLogUtils.trace(LOG,"open conglomerate id: %d",id.getContainerId());
-        OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level,locking_policy,static_info,dynamic_info,this);
+        OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
         return new HBaseController(open_conglom,rawtran,partitionFactory,opFactory);
     }
 
@@ -269,7 +249,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
             boolean hold,
             int open_mode,
             int lock_level,
-            LockingPolicy locking_policy,
             int isolation_level,
             FormatableBitSet scanColumnList,
             DataValueDescriptor[] startKeyValue,
@@ -283,8 +262,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
         SpliceLogUtils.trace(LOG,"open scan: %s",id);
         if(!RowUtil.isRowEmpty(startKeyValue) || !RowUtil.isRowEmpty(stopKeyValue))
             throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
-        OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,
-                lock_level,locking_policy,static_info,dynamic_info,this);
+        OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
         return new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,
                 qualifier,stopKeyValue,stopSearchOperator,rawtran,false,opFactory,partitionFactory);
     }
@@ -296,26 +274,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
     public void compressConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException{
         SpliceLogUtils.trace(LOG,"compressConglomerate: %s",id);
     }
-
-    /**
-     * Open a hbase compress scan.
-     * <p/>
-     *
-     * @throws StandardException Standard exception policy.
-     * @see Conglomerate#defragmentConglomerate
-     **/
-    public ScanManager defragmentConglomerate(
-            TransactionManager xact_manager,
-            Transaction rawtran,
-            boolean hold,
-            int open_mode,
-            int lock_level,
-            LockingPolicy locking_policy,
-            int isolation_level) throws StandardException{
-        SpliceLogUtils.trace(LOG,"defragmentConglomerate: %s",id);
-        return null;
-    }
-
 
     /**
      * Return an open StoreCostController for the conglomerate.
@@ -336,8 +294,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                                              TransactionManager xact_manager,
                                              Transaction rawtran) throws StandardException{
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,false,
-                ContainerHandle.MODE_READONLY,
-                TransactionController.MODE_TABLE,null,null,null,this);
+                null,null,this);
         return new StatsStoreCostController(open_conglom);
     }
 

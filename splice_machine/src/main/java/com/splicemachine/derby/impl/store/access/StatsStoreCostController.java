@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.store.access;
 import java.util.BitSet;
 import java.util.List;
 
-import com.splicemachine.derby.impl.stats.ColumnAverage;
 import com.splicemachine.derby.impl.stats.PartitionAverage;
 import org.apache.log4j.Logger;
 
@@ -14,7 +13,6 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
 import com.splicemachine.derby.impl.stats.OverheadManagedTableStatistics;
 import com.splicemachine.derby.impl.stats.PartitionStatsStore;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -30,7 +28,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Scott Fines
  *         Date: 3/4/15
  */
-public class StatsStoreCostController extends GenericController implements StoreCostController {
+public class StatsStoreCostController implements StoreCostController {
     private static Logger LOG = Logger.getLogger(StatsStoreCostController.class);
     protected OverheadManagedTableStatistics conglomerateStatistics;
     protected OpenSpliceConglomerate baseConglomerate;

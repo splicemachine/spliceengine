@@ -31,12 +31,8 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.raw.ContainerKey;
-
-import com.splicemachine.db.iapi.store.raw.LockingPolicy;
 import com.splicemachine.db.iapi.store.raw.Transaction;
-
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
@@ -116,66 +112,6 @@ public interface Conglomerate extends Storable, DataValueDescriptor
      **/
     void drop(TransactionManager  xact_manager)
             throws StandardException;
-
-    /**
-     * Retrieve the maximum value row in an ordered conglomerate.
-     * <p>
-     * Returns true and fetches the rightmost row of an ordered conglomerate 
-     * into "fetchRow" if there is at least one row in the conglomerate.  If
-     * there are no rows in the conglomerate it returns false.
-     * <p>
-     * Non-ordered conglomerates will not implement this interface, calls
-     * will generate a StandardException.
-     * <p>
-     * RESOLVE - this interface is temporary, long term equivalent (and more) 
-     * functionality will be provided by the openBackwardScan() interface.  
-     *
-     * @param xact_manager    The TransactionController under which this
-     *                        operation takes place.
-     *
-     * @param rawtran         The raw store xact to associate all ops with.
-     *
-     * @param conglomId       The identifier of the conglomerate
-     *                        to open the scan for.
-     *
-     * @param open_mode       Specifiy flags to control opening of table.
-     *                        OPENMODE_FORUPDATE - if set open the table for
-     *                        update otherwise open table shared.
-     * @param lock_level      One of (MODE_TABLE, MODE_RECORD, or MODE_NONE).
-     *
-     * @param locking_policy  The LockingPolicy to use to open the conglomerate.
-     *
-     * @param isolation_level The isolation level to lock the conglomerate at.
-     *                        One of (ISOLATION_READ_COMMITTED, 
-     *                        ISOLATION_REPEATABLE_READ, or 
-     *                        ISOLATION_SERIALIZABLE).
-     *
-     * @param scanColumnList  A description of which columns to return from
-     *                        every fetch in the scan. fetchRow  
-     *                        and scanColumnList work together
-     *                        to describe the row to be returned by the scan - 
-     *                        see RowUtil for description of how these three 
-     *                        parameters work together to describe a "row".
-     *
-     * @param fetchRow        The row to retrieve the maximum value into.
-     *
-     * @return boolean indicating if a row was found and retrieved or not.
-     *
-     * @exception  StandardException  Standard exception policy.
-     **/
-
-    boolean fetchMaxOnBTree(
-            TransactionManager      xact_manager,
-            Transaction             rawtran,
-            long                    conglomId,
-            int                     open_mode,
-            int                     lock_level,
-            LockingPolicy           locking_policy,
-            int                     isolation_level,
-            FormatableBitSet                 scanColumnList,
-            DataValueDescriptor[]   fetchRow)
-            throws StandardException;
-
 
     /**
      * Get the containerid of conglomerate.
@@ -303,7 +239,6 @@ public interface Conglomerate extends Storable, DataValueDescriptor
      * @param lock_level     Either TransactionController.MODE_TABLE or
      *                       TransactionController.MODE_RECORD, as passed into
      *                       the openConglomerate() call.
-     * @param locking_policy The LockingPolicy to use to open the conglomerate.
      *
      * @exception  StandardException  Standard exception policy.
      *
@@ -315,7 +250,6 @@ public interface Conglomerate extends Storable, DataValueDescriptor
             boolean                         hold,
             int                             open_mode,
             int                             lock_level,
-            LockingPolicy                   locking_policy,
             StaticCompiledOpenConglomInfo   static_info,
             DynamicCompiledOpenConglomInfo  dynamic_info)
             throws StandardException;
@@ -331,7 +265,6 @@ public interface Conglomerate extends Storable, DataValueDescriptor
             boolean                         hold,
             int                             open_mode,
             int                             lock_level,
-            LockingPolicy                   locking_policy,
             int                             isolation_level,
             FormatableBitSet				scanColumnList,
             DataValueDescriptor[]	        startKeyValue,
@@ -341,50 +274,6 @@ public interface Conglomerate extends Storable, DataValueDescriptor
             int                             stopSearchOperator,
             StaticCompiledOpenConglomInfo   static_info,
             DynamicCompiledOpenConglomInfo  dynamic_info)
-            throws StandardException;
-
-    /**
-     * Online compress table.
-     *
-     * Returns a ScanManager which can be used to move rows
-     * around in a table, creating a block of free pages at the end of the
-     * table.  The process of executing the scan will move rows from the end 
-     * of the table toward the beginning.  The GroupFetchScanController will
-     * return the old row location, the new row location, and the actual data 
-     * of any row moved.  Note that this scan only returns moved rows, not an
-     * entire set of rows, the scan is designed specifically to be
-     * used by either explicit user call of the SYSCS_ONLINE_COMPRESS_TABLE()
-     * procedure, or internal background calls to compress the table.
-     *
-     * The old and new row locations are returned so that the caller can
-     * update any indexes necessary.
-     *
-     * This scan always returns all collumns of the row.
-     *
-     * All inputs work exactly as in openScan().  The return is 
-     * a GroupFetchScanController, which only allows fetches of groups
-     * of rows from the conglomerate.
-     * <p>
-     * Note that all Conglomerates may not implement openCompressScan(), 
-     * currently only the Heap conglomerate implements this scan.
-     *
-     * @return The GroupFetchScanController to be used to fetch the rows.
-     *
-     * @param hold                  see openScan()
-     * @param open_mode             see openScan()
-     * @param lock_level            see openScan()
-     * @param isolation_level       see openScan()
-     *
-     * @exception  StandardException  Standard exception policy.
-     **/
-    ScanManager defragmentConglomerate(
-            TransactionManager              xact_manager,
-            Transaction                     rawtran,
-            boolean                         hold,
-            int                             open_mode,
-            int                             lock_level,
-            LockingPolicy                   locking_policy,
-            int                             isolation_level)
             throws StandardException;
 
     void purgeConglomerate(

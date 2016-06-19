@@ -26,9 +26,7 @@ import com.splicemachine.db.iapi.services.daemon.DaemonService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.raw.ContainerHandle;
 import com.splicemachine.db.iapi.store.raw.Corruptable;
-import com.splicemachine.db.iapi.store.raw.LockingPolicy;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
 import com.splicemachine.db.iapi.store.raw.RecordHandle;
 import com.splicemachine.db.iapi.store.raw.StreamContainerHandle;
@@ -40,7 +38,6 @@ import com.splicemachine.db.iapi.store.access.RowSource;
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.catalog.UUID;
-
 import java.util.Properties;
 import java.io.File;
 
@@ -68,25 +65,6 @@ public interface DataFactory extends Corruptable {
 	*/
 	public boolean isReadOnly();
 
-
-	/**
-		Open a container that is not droped.
-
-		@param t the raw transaction that is opening the container
-		@param containerId the container's identity
-		@param locking the locking policy
-		@param mode see the different mode in @see ContainerHandle
-		then will return a null handle if the container is dropped.
-
-		@return the handle to the opened container
-		@exception StandardException Standard Derby error policy
-
-	 */
-	public ContainerHandle openContainer(RawTransaction t,
-										 ContainerKey containerId,
-										 LockingPolicy locking,
-										 int mode)
-		 throws StandardException;
 
 	/**
 		Add a container.

@@ -22,7 +22,6 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.StatisticsImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -1026,7 +1025,7 @@ class CreateIndexConstantAction extends IndexConstantAction
             ** We've just done a full scan on the heap, so set the number
             ** of rows so the optimizer will have an accurate count.
             */
-            scan.setEstimatedRowCount(rowCount);
+//            scan.setEstimatedRowCount(rowCount);
         }
         finally
         {

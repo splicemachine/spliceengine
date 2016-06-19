@@ -6,15 +6,12 @@ import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.store.access.FileResource;
-import com.splicemachine.db.iapi.store.access.RowSource;
 import com.splicemachine.db.iapi.store.raw.*;
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
-import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -90,39 +87,6 @@ public abstract class BaseSpliceTransaction implements Transaction{
     }
 
     @Override
-    public ContainerHandle openContainer(ContainerKey containerId,int mode) throws StandardException{
-        return null;
-    }
-
-    @Override
-    public ContainerHandle openContainer(ContainerKey containerId,LockingPolicy locking,int mode) throws StandardException{
-        return null;
-    }
-
-    @Override
-    public long addContainer(long segmentId,long containerId,int mode,Properties tableProperties,int temporaryFlag) throws StandardException{
-        return 0;
-    }
-
-    @Override
-    public void dropContainer(ContainerKey containerId) throws StandardException{
-    }
-
-    @Override
-    public long addAndLoadStreamContainer(long segmentId,Properties tableProperties,RowSource rowSource) throws StandardException{
-        return 0;
-    }
-
-    @Override
-    public StreamContainerHandle openStreamContainer(long segmentId,long containerId,boolean hold) throws StandardException{
-        return null;
-    }
-
-    @Override
-    public void dropStreamContainer(long segmentId,long containerId) throws StandardException{
-    }
-
-    @Override
     public void logAndDo(Loggable operation) throws StandardException{
     }
 
@@ -189,20 +153,6 @@ public abstract class BaseSpliceTransaction implements Transaction{
     @Override
     public GlobalTransactionId getGlobalId(){
         return null;
-    }
-
-    @Override
-    public LockingPolicy getDefaultLockingPolicy(){
-        return null;
-    }
-
-    @Override
-    public LockingPolicy newLockingPolicy(int mode,int isolation,boolean stricterOk){
-        return null;
-    }
-
-    @Override
-    public void setDefaultLockingPolicy(LockingPolicy policy){
     }
 
     @Override

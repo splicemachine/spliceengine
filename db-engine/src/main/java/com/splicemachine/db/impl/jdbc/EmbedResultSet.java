@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecCursorTableReference;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-import com.splicemachine.db.impl.sql.execute.ScrollInsensitiveResultSet;
 
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
@@ -67,11 +66,9 @@ import java.net.URL;
 
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Map;
 
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
 import com.splicemachine.db.iapi.services.io.CloseFilterInputStream;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -2186,7 +2183,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 		try {
 			if (isForUpdate() && 
 					getType() == java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE) {
-				rvalue = ((ScrollInsensitiveResultSet)theResults).isUpdated();
+				throw new RuntimeException("cursor work");
+//				rvalue = ((ScrollInsensitiveResultSet)theResults).isUpdated();
 			}
 		} catch (Throwable t) {
 				handleException(t);
@@ -2238,7 +2236,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 		try {
 			if (isForUpdate() && 
 					getType() == java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE) {
-				rvalue = ((ScrollInsensitiveResultSet)theResults).isDeleted();
+				throw new RuntimeException("cursor work");
+//				rvalue = ((ScrollInsensitiveResultSet)theResults).isDeleted();
 			}
 		} catch (Throwable t) {
 			handleException(t);
