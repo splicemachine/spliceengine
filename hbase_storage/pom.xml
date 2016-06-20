@@ -147,10 +147,6 @@
                     <artifactId>hadoop-core</artifactId>
                 </exclusion>
               <exclusion>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-common</artifactId>
-              </exclusion>
-              <exclusion>
                     <artifactId>org.mortbay.jetty</artifactId>
                     <groupId>jetty-sslengine</groupId>
                 </exclusion>

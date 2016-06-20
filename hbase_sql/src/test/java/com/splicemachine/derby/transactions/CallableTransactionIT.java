@@ -32,7 +32,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
-	private static final String STORED_PROCS_JAR_FILE = getResourceDirectory() + "/txn-it-procs/txn-it-procs-1.0.2.jar";
+	private static final String STORED_PROCS_JAR_FILE = getBaseDirectory() + "/../txn-it-procs/target/txn-it-procs-2.0.1.14-SNAPSHOT.jar";
 	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".TXN_IT_PROCS_JAR";
 	private static final String EMPLOYEE_TABLE_NAME_BASE = SCHEMA_NAME + ".EMPLOYEE";
 
