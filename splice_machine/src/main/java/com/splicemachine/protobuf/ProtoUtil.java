@@ -1,6 +1,7 @@
 package com.splicemachine.protobuf;
 
 import com.google.common.base.Function;
+import com.splicemachine.ddl.DDLMessage;
 import org.sparkproject.guava.base.Joiner;
 import org.sparkproject.guava.collect.Lists;
 import com.google.protobuf.ByteString;
@@ -205,12 +206,16 @@ public class ProtoUtil {
         assert td!=null:"TableDescriptor is null";
         assert td.getFormatIds()!=null:"No Format ids";
         SpliceConglomerate sc = (SpliceConglomerate)((SpliceTransactionManager)lcc.getTransactionExecute()).findConglomerate(conglomerate);
-        return Table.newBuilder()
+        Table.Builder builder=Table.newBuilder()
                 .setConglomerate(conglomerate)
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
                 .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
-                .setTableVersion(DataDictionaryUtils.getTableVersion(lcc,td.getUUID()))
-                .setTableUuid(transferDerbyUUID((BasicUUID)td.getUUID())).build();
+                .setTableUuid(transferDerbyUUID((BasicUUID)td.getUUID()));
+        String tV = DataDictionaryUtils.getTableVersion(lcc,td.getUUID());
+        if(tV!=null)
+            builder = builder.setTableVersion(tV);
+
+        return builder.build();
     }
 
     public static DDLChange createTentativeIndexChange(long txnId, LanguageConnectionContext lcc, long baseConglomerate, long indexConglomerate,
