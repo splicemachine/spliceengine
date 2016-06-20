@@ -18,7 +18,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.google.protobuf.tools</groupId>
+                <groupId>net.dongliu</groupId>
                 <artifactId>maven-protoc-plugin</artifactId>
                 <configuration>
                     <protocExecutable>protoc</protocExecutable>

@@ -11,7 +11,7 @@
 	</parent>
   <properties>
     <spark.version>1.6.1</spark.version>
-    <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.8</spark-assembly-id>
+    <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
   </properties>
   <dependencies>
     <dependency>
