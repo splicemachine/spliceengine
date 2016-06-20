@@ -320,7 +320,7 @@
                         <configuration>
                             <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
                             <parallel>classes</parallel>
-                            <threadCount>4</threadCount>
+														<threadCount>1</threadCount> <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
                             <argLine>-Xmx4g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
