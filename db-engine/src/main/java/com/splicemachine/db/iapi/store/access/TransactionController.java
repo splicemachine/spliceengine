@@ -27,14 +27,9 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.services.io.Storable;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.raw.Loggable;
-
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
 /**

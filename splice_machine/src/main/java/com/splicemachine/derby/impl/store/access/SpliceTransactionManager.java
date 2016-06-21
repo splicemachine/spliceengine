@@ -11,7 +11,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
-import com.splicemachine.db.iapi.store.raw.Loggable;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;

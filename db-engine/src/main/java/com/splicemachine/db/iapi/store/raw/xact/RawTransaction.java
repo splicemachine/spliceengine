@@ -23,7 +23,6 @@ package com.splicemachine.db.iapi.store.raw.xact;
 
 import com.splicemachine.db.iapi.services.locks.LockFactory;
 import com.splicemachine.db.iapi.store.raw.data.DataFactory;
-import com.splicemachine.db.iapi.store.raw.Loggable;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.store.raw.GlobalTransactionId;
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
@@ -111,30 +110,6 @@ public abstract class RawTransaction extends Observable implements Transaction {
 		Change the state of transaction in table to prepare.
 	*/
 	public abstract void prepareTransaction();
-
-	/**
-		Set the log instant for the first log record written by this 
-        transaction.
-	*/
-	abstract public void setFirstLogInstant(LogInstant instant);
-
-	/**
-		Get the log instant for the first log record written by this 
-        transaction.
-	*/
-	abstract public LogInstant getFirstLogInstant();
-
-	/**
-		Set the log instant for the last log record written by this transaction. 
-	*/
-	abstract public void setLastLogInstant(LogInstant instant);
-
-	/**
-		Get the log instant for the last log record written by this transaction. 
-		If the transaction is unclear what its last log instant is, 
-		than it may return null.
-	*/
-	abstract public LogInstant getLastLogInstant();
 
 
 	/**
@@ -255,21 +230,6 @@ public abstract class RawTransaction extends Observable implements Transaction {
 	 *Retunrs true if the transaction is part of rollforward recovery
 	 */
 	public abstract boolean inRollForwardRecovery();
-
-
-	/**	
-     * Redo a checkpoint during rollforward recovery.
-     *
-     * @param cinstant The LogInstant of the checkpoint
-     * @param redoLWM  Redo Low Water Mark in the check point record
-     * @param undoLWM Undo Low Water Mark in the checkpoint
-     * @exception StandardException Exception encountered during checkpoint
-	 */
-	public abstract void checkpointInRollForwardRecovery(LogInstant cinstant,
-														 long redoLWM,
-														 long undoLWM)
-		throws StandardException;
-
 	
     /**
      * Make the transaction block the online backup.
