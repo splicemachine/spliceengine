@@ -35,6 +35,11 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SNOWFLAKE_PATH = "/splice_snowflake";
 
     /**
+     * Path in Zookeeper for coordinating booking tasks in Spark
+     */
+    public static final String BOOKINGS_PATH = "/spark_bookings";
+
+    /**
      * The Path in zookeeper for manipulating transactional information.
      * Set to [SpliceRootPath]/transactions
      */
@@ -112,7 +117,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
         MAX_RESERVED_TIMESTAMP_PATH,
         DDL_CHANGE_PATH,
         DDL_PATH,
-        SNOWFLAKE_PATH
+        SNOWFLAKE_PATH,
+        BOOKINGS_PATH
     ));
 
     // Splice Internal Tables

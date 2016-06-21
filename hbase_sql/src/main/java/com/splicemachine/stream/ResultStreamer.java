@@ -40,6 +40,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private Iterator<T> locatedRowIterator;
     private volatile Future<Long> future;
     private NioEventLoopGroup workerGroup;
+    private transient CountDownLatch active;
     private int batches;
 
     // Serialization
@@ -140,6 +141,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 return false;
             }
         });
+        active.countDown();
     }
 
     @Override
@@ -182,6 +184,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         InetSocketAddress socketAddr=new InetSocketAddress(host,port);
         this.partition = partition;
         this.locatedRowIterator = locatedRowIterator;
+        this.active = new CountDownLatch(1);
 
         Bootstrap bootstrap;
         ThreadFactory tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ResultStreamer-"+host+":"+port+"["+partition+"]").build();
@@ -209,9 +212,11 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
 
 
             ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
+
+            active.await();
+            long consumed = future.get();
             futureConnect.channel().closeFuture().sync();
 
-            long consumed = future.get();
             String result;
             if (consumed >= limit) {
                 // We reached the limit, stop processing partitions
