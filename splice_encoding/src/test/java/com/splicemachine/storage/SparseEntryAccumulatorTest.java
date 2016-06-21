@@ -1,7 +1,7 @@
 package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.BitSet;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.encoding.TestType;

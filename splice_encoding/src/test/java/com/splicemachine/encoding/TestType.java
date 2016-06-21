@@ -1,6 +1,6 @@
 package com.splicemachine.encoding;
 
-import com.google.common.base.Charsets;
+import org.sparkproject.guava.base.Charsets;
 import org.junit.Assert;
 
 import java.math.BigDecimal;

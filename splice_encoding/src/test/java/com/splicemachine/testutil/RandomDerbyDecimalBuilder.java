@@ -1,6 +1,6 @@
 package com.splicemachine.testutil;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import org.apache.commons.lang.RandomStringUtils;
 
 import java.math.BigDecimal;

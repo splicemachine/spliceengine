@@ -20,12 +20,6 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>utilities</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>com.google.guava</artifactId>
-                    <groupId>guava</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>

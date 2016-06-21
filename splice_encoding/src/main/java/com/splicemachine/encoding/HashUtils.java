@@ -1,8 +1,8 @@
 package com.splicemachine.encoding;
 
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
+import org.sparkproject.guava.hash.HashFunction;
+import org.sparkproject.guava.hash.Hasher;
+import org.sparkproject.guava.hash.Hashing;
 
 public class HashUtils {
 

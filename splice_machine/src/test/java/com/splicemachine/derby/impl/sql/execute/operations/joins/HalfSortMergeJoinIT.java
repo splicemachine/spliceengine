@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;

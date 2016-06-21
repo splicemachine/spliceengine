@@ -34,7 +34,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
-	private static final String STORED_PROCS_JAR_FILE = getResourceDirectory() + "/sqlj-it-procs/sqlj-it-procs-1.0.3.jar";
+	private static final String STORED_PROCS_JAR_FILE = getBaseDirectory() + "/../sqlj-it-procs/target/sqlj-it-procs-2.0.1.14-SNAPSHOT.jar";
 	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".SQLJ_IT_PROCS_JAR";
 
 	// SQL statements to create and drop stored procedures.
