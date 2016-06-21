@@ -121,9 +121,6 @@ public final class ContainerKey implements Matchable, Lockable
 		if (equals(key))
 			return true;
 
-		if (key instanceof PageKey)
-			return equals(((PageKey) key).getContainerId());
-
 		if (key instanceof RecordHandle) {
 			return equals(((RecordHandle) key).getContainerId());
 		}
@@ -138,15 +135,7 @@ public final class ContainerKey implements Matchable, Lockable
 	 
 
 	public boolean requestCompatible(Object requestedQualifier, Object grantedQualifier) {
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(requestedQualifier instanceof ContainerLock);
-			SanityManager.ASSERT(grantedQualifier instanceof ContainerLock);
-		}
-
-		ContainerLock clRequested = (ContainerLock) requestedQualifier;
-		ContainerLock clGranted  = (ContainerLock) grantedQualifier;
-
-		return clRequested.isCompatible(clGranted);
+		return true;
 	}
 
 	/**

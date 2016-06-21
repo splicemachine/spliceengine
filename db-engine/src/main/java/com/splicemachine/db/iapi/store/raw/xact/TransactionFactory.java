@@ -26,15 +26,10 @@ import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.locks.LockFactory;
-
 import com.splicemachine.db.iapi.store.access.TransactionInfo;
-
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
 import com.splicemachine.db.iapi.store.raw.Transaction;
-import com.splicemachine.db.iapi.store.raw.Corruptable;
-
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
-
 import com.splicemachine.db.iapi.error.StandardException;
 
 /**
@@ -51,7 +46,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 	@see Transaction
 */
 
-public interface TransactionFactory extends Corruptable {
+public interface TransactionFactory {
 
 	public static String MODULE =
         "com.splicemachine.db.iapi.store.raw.xact.TransactionFactory";
