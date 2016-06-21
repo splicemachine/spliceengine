@@ -1,17 +1,24 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import static org.junit.Assert.assertTrue;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.splicemachine.test.SerialTest;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.splicetest.sqlj.SqlJTestProcs;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 
 /**
  * This class tests the SQLJ JAR file loading system procedures (INSTALL_JAR, REPLACE_JAR, and REMOVE_JAR).
@@ -34,7 +41,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
-	private static final String STORED_PROCS_JAR_FILE = getBaseDirectory() + "/../sqlj-it-procs/target/sqlj-it-procs-2.0.1.14-SNAPSHOT.jar";
+	private static String STORED_PROCS_JAR_FILE;
 	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".SQLJ_IT_PROCS_JAR";
 
 	// SQL statements to create and drop stored procedures.
@@ -62,7 +69,14 @@ public class SqlJJarIT extends SpliceUnitTest {
 	@Rule
 	public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-	/*
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        STORED_PROCS_JAR_FILE = getJarFileForClass(SqlJTestProcs.class);
+        assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
+            STORED_PROCS_JAR_FILE.endsWith("jar"));
+    }
+
+    /*
 	 * PLEASE NOTE:
 	 * I would personally rather see smaller tests without as many assertions as this one.
 	 * Unfortunately, it would be difficult to split this test into multiple tests unless
@@ -105,7 +119,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 		// Call the user-defined stored procedure.
 		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
-		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
+		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
 
 		// Replace the jar file.
 		rc = methodWatcher.executeUpdate(String.format(CALL_REPLACE_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
@@ -113,7 +127,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 		// Call the user-defined stored procedure again.
 		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
-		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
+		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
 
 		// Drop the user-defined stored procedure.
 		rc = methodWatcher.executeUpdate(DROP_PROC_SIMPLE_ONE_ARG);
@@ -156,7 +170,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 		// Call the user-defined stored procedure.
 		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
-		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
+		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
 
 		// Replace the jar file.
 		rc = methodWatcher.executeUpdate(String.format(CALL_REPLACE_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
@@ -164,7 +178,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 		// Call the user-defined stored procedure again.
 		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
-		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
+		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
 
 		// Drop the user-defined stored procedure.
 		rc = methodWatcher.executeUpdate(DROP_PROC_SIMPLE_ONE_ARG);

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.test.framework;
 
 import java.io.*;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -525,5 +526,12 @@ public class SpliceUnitTest {
         }
     }
 
-
+    public static String getJarFileForClass(Class clazz) throws Exception {
+        if (clazz == null)
+            return null;
+        URL jarURL = clazz.getProtectionDomain().getCodeSource().getLocation();
+        if (jarURL == null)
+            return null;
+        return jarURL.toURI().getPath();
+    }
 }

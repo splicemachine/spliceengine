@@ -1,17 +1,28 @@
 package com.splicemachine.derby.transactions;
 
+import static org.junit.Assert.assertTrue;
+
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Types;
 
-import com.splicemachine.test.SerialTest;
-import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.test.Transactions;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.splicetest.txn.TxnTestProcs;
+
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
+import com.splicemachine.test.Transactions;
 
 /**
  * This class tests the transactional correctness of the Splice Machine stored procedure execution framework.
@@ -33,7 +44,6 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
-	private static final String STORED_PROCS_JAR_FILE = getBaseDirectory() + "/../txn-it-procs/target/txn-it-procs-2.0.1.14-SNAPSHOT.jar";
 	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".TXN_IT_PROCS_JAR";
 	private static final String EMPLOYEE_TABLE_NAME_BASE = SCHEMA_NAME + ".EMPLOYEE";
 
@@ -104,8 +114,11 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        String STORED_PROCS_JAR_FILE = getJarFileForClass(TxnTestProcs.class);
+        assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
+            STORED_PROCS_JAR_FILE.endsWith("jar"));
 
-		// Install the jar file of user-defined stored procedures.
+        // Install the jar file of user-defined stored procedures.
 		spliceClassWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
 
 		// Add the jar file into the DB class path.

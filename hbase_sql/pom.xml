@@ -256,6 +256,18 @@
                 </exclusion>
             </exclusions>
         </dependency>
+      <dependency>
+        <groupId>org.splicetest.sqlj</groupId>
+        <artifactId>sqlj-it-procs</artifactId>
+        <type>jar</type>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.splicetest.txn</groupId>
+        <artifactId>txn-it-procs</artifactId>
+        <type>jar</type>
+        <scope>test</scope>
+      </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
