@@ -871,24 +871,6 @@ public class SpliceTransactionManager implements XATransactionController,
         return (conglom.load(this, createConglom, rowSource));
     }
 
-    /**
-     * Log an operation and then action it in the context of this transaction.
-     * <p>
-     * This simply passes the operation to the RawStore which logs and does it.
-     * <p>
-     *
-     * @param operation
-     *            the operation that is to be applied
-     *
-     * @exception StandardException
-     *                Standard exception policy.
-     **/
-    public void logAndDo(Loggable operation) throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("logAndDo operation " + operation);
-        rawtran.logAndDo(operation);
-    }
-
     public ConglomerateController openCompiledConglomerate(boolean hold,
                                                            int open_mode, int lock_level, int isolation_level,
                                                            StaticCompiledOpenConglomInfo static_info,

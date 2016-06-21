@@ -87,10 +87,6 @@ public abstract class BaseSpliceTransaction implements Transaction{
     }
 
     @Override
-    public void logAndDo(Loggable operation) throws StandardException{
-    }
-
-    @Override
     public void addPostCommitWork(Serviceable work){
     }
 

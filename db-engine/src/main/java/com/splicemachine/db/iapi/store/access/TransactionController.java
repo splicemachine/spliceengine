@@ -1370,22 +1370,6 @@ public interface TransactionController
      * Interfaces previously defined in TcLogIface:
      **************************************************************************
      */
-	/**
-    Log an operation and then action it in the context of this
-    transaction.
-
-    <P>This simply passes the operation to the RawStore which logs and
-    does it.
-    
-
-    @param operation the operation that is to be applied
-
-    @see com.splicemachine.db.iapi.store.raw.Loggable
-    @see com.splicemachine.db.iapi.store.raw.Transaction#logAndDo
-    @exception StandardException  Standard Derby exception policy
-	**/
-	public void logAndDo(Loggable operation) throws StandardException;
-
 
     /**************************************************************************
      * Interfaces previously defined in TcSortIface:

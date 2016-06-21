@@ -243,25 +243,6 @@ public interface Transaction {
 	*/
 	public int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
-
-	/**
-		Log an operation and then action it in the context of this transaction.
-		The Loggable Operation is logged in the transaction log file and then 
-        its doMe method is called to perform the required change. If this 
-        transaction aborts or a rollback is performed of the current savepoint 
-        (if any) then a compensation Operation needs to be generated that will 
-        compensate for the change of this Operation. 
-
-		@param operation the operation that is to be applied
-
-		@see Loggable
-
-		@exception StandardException  Standard Derby exception policy
-
-	*/
-	public void logAndDo(Loggable operation) throws StandardException;
-
-
 	/**
 		Add to the list of post commit work that may be processed after this
 		transaction commits.  If this transaction aborts, then the post commit

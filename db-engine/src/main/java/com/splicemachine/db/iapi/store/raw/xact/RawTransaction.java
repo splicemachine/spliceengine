@@ -84,12 +84,6 @@ public abstract class RawTransaction extends Observable implements Transaction {
 	*/
 	public abstract void setTransactionId(GlobalTransactionId id, TransactionId shortId);
 
-	/**
-		Set the transactionId (Global and internal) of this transaction using a
-		log record that contains the Global id
-	*/
-	abstract public void setTransactionId(Loggable beginXact, TransactionId shortId);
-
 		
 	/**
 		Get the shortId of this transaction.  May return null if transactio

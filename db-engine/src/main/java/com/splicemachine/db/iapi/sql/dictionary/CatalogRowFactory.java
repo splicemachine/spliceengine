@@ -252,10 +252,6 @@ public abstract	class CatalogRowFactory
 	public Properties getCreateHeapProperties()
 	{
 		Properties properties = new Properties();
-		// default properties for system tables:
-		properties.put(Property.PAGE_SIZE_PARAMETER,"1024");
-		properties.put(RawStoreFactory.PAGE_RESERVED_SPACE_PARAMETER,"0");
-		properties.put(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER,"1");
 		return properties;
 	}
 
@@ -269,8 +265,6 @@ public abstract	class CatalogRowFactory
 	public Properties getCreateIndexProperties(int indexNumber)
 	{
 		Properties properties = new Properties();
-		// default properties for system indexes:
-		properties.put(Property.PAGE_SIZE_PARAMETER,"1024");
 		return properties;
 	}
 
