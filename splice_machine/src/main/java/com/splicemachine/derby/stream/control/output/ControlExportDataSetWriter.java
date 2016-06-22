@@ -4,6 +4,7 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -79,7 +80,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         }
 
         ValueRow valueRow = new ValueRow(2);
-        valueRow.setColumn(1,new SQLInteger(count));
+        valueRow.setColumn(1,new SQLLongint(count));
         valueRow.setColumn(2,new SQLInteger(0));
         return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
     }

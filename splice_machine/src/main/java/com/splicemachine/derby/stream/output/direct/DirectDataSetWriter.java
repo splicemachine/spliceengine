@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.output.direct;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.control.ControlDataSet;
@@ -40,7 +41,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
             pipelineWriter.close(); //make sure everything gets written
 
             ValueRow valueRow=new ValueRow(1);
-            valueRow.setColumn(1,new SQLInteger(rows.count));
+            valueRow.setColumn(1,new SQLLongint(rows.count));
             return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
         }catch(Exception e){
             throw Exceptions.parseException(e);
@@ -68,7 +69,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
     }
 
     private class CountingIterator implements Iterator<KVPair>{
-        private int count = 0;
+        private long count = 0;
         private Iterator<KVPair> delegate;
 
         public CountingIterator(Iterator<KVPair> delegate){

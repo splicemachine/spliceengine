@@ -620,6 +620,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>22003.S.0</name>
+                <text>The modified row count was larger than can be held in an integer which is required by the JDBC spec. The real modified row count was {0}.</text>
+                <arg>modifiedRowCount</arg>
+            </msg>
+
+            <msg>
                 <name>22003.S.1</name>
                 <text>Year ({0}) exceeds the maximum '{1}'.</text>
                 <arg>value</arg>

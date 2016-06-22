@@ -1,5 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.SQLWarning;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -11,7 +28,12 @@ import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
-import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.sql.execute.RowChanger;
+import com.splicemachine.db.iapi.sql.execute.TargetResultSet;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -20,24 +42,17 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
-import java.io.*;
-import java.sql.SQLWarning;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -121,17 +136,24 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
-    public int modifiedRowCount(){
-        try{
-            int modifiedRowCount=0;
-            while(locatedRowIterator.hasNext()){
-                LocatedRow next=locatedRowIterator.next();
-                modifiedRowCount+=next.getRow().getColumn(1).getInt();
+    public int modifiedRowCount() {
+        long modifiedRowCount = 0;
+        while (locatedRowIterator.hasNext()) {
+            LocatedRow next = locatedRowIterator.next();
+            try {
+                modifiedRowCount += next.getRow().getColumn(1).getLong();
+            } catch (StandardException se) {
+                // not a long
+                throw new RuntimeException(se);
             }
-            return modifiedRowCount;
-        }catch(StandardException se){
-            throw new RuntimeException(se);
         }
+        if (modifiedRowCount > Integer.MAX_VALUE || modifiedRowCount < Integer.MIN_VALUE) {
+            // DB-5369: int overflow when modified rowcount is larger than max int
+            // Add modified row count as a long value in warning
+            activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
+            return -1;
+        }
+        return (int) modifiedRowCount;
     }
 
     @Override

@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Iterator;
 
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -80,14 +81,14 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         job.getConfiguration().set("mapred.output.dir",directory);
 
         JavaRDD<V> cached=rdd.cache();
-        int writtenRows=(int)cached.count();
+        long writtenRows=cached.count();
         rdd.keyBy(new NullFunction<V>())
             .setName(String.format("Export Directory: %s", directory))
             .saveAsNewAPIHadoopDataset(job.getConfiguration());
         cached.unpersist();
 
         ValueRow valueRow=new ValueRow(2);
-        valueRow.setColumn(1,new SQLInteger(writtenRows));
+        valueRow.setColumn(1,new SQLLongint(writtenRows));
         valueRow.setColumn(2,new SQLInteger(0));
         return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
     }

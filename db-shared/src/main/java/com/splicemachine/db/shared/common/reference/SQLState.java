@@ -694,6 +694,7 @@ public interface SQLState {
 	String LANG_STRING_TRUNCATION                                      = "22001";
 	String LANG_CONCAT_STRING_OVERFLOW                                      = "54006";
 	String LANG_OUTSIDE_RANGE_FOR_DATATYPE                             = "22003";
+	String LANG_MODIFIED_ROW_COUNT_TOO_LARGE                           = "22003.S.0";
     String YEAR_EXCEEDS_MAXIMUM                                        = "22003.S.1";
     String DECIMAL_TOO_MANY_DIGITS                                     = "22003.S.2";
     String NUMERIC_OVERFLOW                                            = "22003.S.3";
