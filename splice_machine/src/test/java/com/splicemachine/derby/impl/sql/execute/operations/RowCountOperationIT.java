@@ -540,6 +540,19 @@ public class RowCountOperationIT {
         validateUnOrdered(3, query);
     }
 
+    @Test
+    public void createTableAsTopN() throws Exception {
+        int updates = methodWatcher.executeUpdate("create table topn as select top 10 a from A with data");
+        assertEquals("Row count does not match expectation", 10, updates);
+    }
+
+    @Test
+    public void createTableAsLimit() throws Exception {
+        int updates = methodWatcher.executeUpdate("create table tablelim as select a from A {limit 10} with data");
+        assertEquals("Row count does not match expectation", 10, updates);
+    }
+
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // test utils

@@ -9414,6 +9414,11 @@ insertColumnsAndSource(QueryTreeNode targetTable)
             throw StandardException.newException( SQLState.LANG_SYNTAX_ERROR, tokenName );
         }
 
+        if (topNOut[0] != null) {
+            hasJDBClimitClause = true;
+            offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
+        }
+
 		return (StatementNode) nodeFactory.getNode(
 							C_NodeTypes.INSERT_NODE,
 							targetTable,
@@ -11537,7 +11542,11 @@ tableDefinition() throws StandardException :
 	ResultColumnList	resultColumns = null;
 	QueryTreeNode		queryExpression;
 	boolean				withData = true;
+	boolean             hasJDBClimitClause = false;
 	String              queryString = null;
+	OrderByList orderCols = null;
+    ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
+	ValueNode[] topNOut = new ValueNode[ 1 ];
 }
 {
 	<TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
@@ -11560,7 +11569,10 @@ tableDefinition() throws StandardException :
 		|
 			[ <LEFT_PAREN> resultColumns = tableColumnList() <RIGHT_PAREN> ]
 			<AS>
-			queryExpression = queryExpression(null, NO_SET_OP, null)
+			queryExpression = queryExpression(null, NO_SET_OP, topNOut)
+            [ orderCols = orderByClause() ]
+               hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
+
 			<WITH> [ <NO> { withData = false; } ] <DATA>
 			{
                 if (withData) {

@@ -409,7 +409,14 @@ public class SortOperationIT extends SpliceUnitTest {
         Assert.assertFalse("unexpected sort order", rs.getBoolean(1));
     }
 
-    @Test
+	@Test
+	public void createTableAsWithOrderBy() throws Exception {
+		int returnValue = methodWatcher.executeUpdate("create table foo4 as select * from bool_table order by 1 with data");
+		Assert.assertEquals("updated results do not match",returnValue,3);
+	}
+
+
+	@Test
     public void testSortAscNullLast() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select * from bool_table order by 1 asc nulls last");
         Assert.assertTrue(rs.next());
