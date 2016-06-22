@@ -152,8 +152,29 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     "No probe values found for multi-probe scan.");
         }
         this.sortRequired = sortRequired;
-        if(this.sortRequired!=RowOrdering.DONTCARE)
-            sortProbeValues();
+
+
+        if (sortRequired == RowOrdering.DONTCARE) // Already Sorted
+            probeValues = probingVals;
+        else {
+            /* RESOLVE: For some reason sorting the probeValues array
+             * directly leads to incorrect parameter value assignment when
+             * executing a prepared statement multiple times.  Need to figure
+             * out why (maybe related to DERBY-827?).  In the meantime, if
+             * we're going to sort the values we use clones.  This is not
+             * ideal, but it works for now.
+             */
+            DataValueDescriptor[] probeValues =
+                    new DataValueDescriptor[probingVals.length];
+
+            for (int i = 0; i < probeValues.length; i++)
+                probeValues[i] = probingVals[i].cloneValue(false);
+
+            if (sortRequired == RowOrdering.ASCENDING)
+                Arrays.sort(probeValues);
+            else
+                Arrays.sort(probeValues, Collections.reverseOrder());
+        }
         this.scanInformation = new MultiProbeDerbyScanInformation(
                 resultRowAllocator.getMethodName(),
                 startKeyGetter==null?null:startKeyGetter.getMethodName(),
@@ -170,13 +191,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         init();
     }
 
-    private void sortProbeValues() {
-
-    	if(sortRequired==RowOrdering.ASCENDING)
-            Arrays.sort(probeValues);
-        else
-            Arrays.sort(probeValues,Collections.reverseOrder());
-    }
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
