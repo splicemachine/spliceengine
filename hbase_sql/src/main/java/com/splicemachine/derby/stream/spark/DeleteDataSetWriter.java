@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -42,7 +43,7 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
             operationContext.getOperation().fireAfterStatementTriggers();
         }
         ValueRow valueRow=new ValueRow(1);
-        valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
+        valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
         return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
     }
 

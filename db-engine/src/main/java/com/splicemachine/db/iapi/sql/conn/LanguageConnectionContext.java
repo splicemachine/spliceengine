@@ -1284,7 +1284,7 @@ public interface LanguageConnectionContext extends Context {
 
     void resetFailedRecords();
 
-    void setRecordsImported(long failedRecords);
+    void setRecordsImported(long recordsImported);
 
     long getRecordsImported();
 
