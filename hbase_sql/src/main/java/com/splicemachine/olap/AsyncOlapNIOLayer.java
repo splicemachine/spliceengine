@@ -67,7 +67,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 ChannelPipeline p=channel.pipeline();
                 p.addLast("frameEncoder",new LengthFieldPrepender(4));
                 p.addLast("protobufEncoder",new ProtobufEncoder());
-                p.addLast("frameDecoder",new LengthFieldBasedFrameDecoder(1<<20,0,4,0,4));
+                p.addLast("frameDecoder",new LengthFieldBasedFrameDecoder(1<<30,0,4,0,4));
                 p.addLast("protobufDecoder",decoder);
             }
         });

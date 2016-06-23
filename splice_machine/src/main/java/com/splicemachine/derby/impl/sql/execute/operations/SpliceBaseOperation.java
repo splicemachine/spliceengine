@@ -370,10 +370,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }
     }
 
+    protected boolean isOlapServer() {
+        return Thread.currentThread().currentThread().getName().startsWith("olap-worker");
+    }
+
     @Override
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
-        if (dsp.getType() == DataSetProcessor.Type.SPARK) {
+        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer()) {
             RemoteQueryClient remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
             remoteQueryClient.submit();
             locatedRowIterator = remoteQueryClient.getIterator();

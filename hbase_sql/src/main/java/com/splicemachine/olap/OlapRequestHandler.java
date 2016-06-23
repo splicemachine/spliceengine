@@ -48,7 +48,7 @@ class OlapRequestHandler extends AbstractOlapHandler{
         if(LOG.isTraceEnabled())
             LOG.trace("Submitting job request "+ jobRequest.getUniqueName());
 
-        OlapJobStatus jobStatus=jobRegistry.register(jobRequest.getUniqueName());
+        final OlapJobStatus jobStatus=jobRegistry.register(jobRequest.getUniqueName());
 
         OlapJobStatus.State state=jobStatus.currentState();
         switch(state){
@@ -76,9 +76,22 @@ class OlapRequestHandler extends AbstractOlapHandler{
             default:
                 throw new IllegalStateException("Unexpected job state: "+state);
         }
-        Callable<Void> job=jr.toCallable(jobStatus,clock,clientCheckTimeMs);
+        final Callable<Void> job=jr.toCallable(jobStatus,clock,clientCheckTimeMs);
 
-        executionPool.submit(job);
+        executionPool.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                try {
+                    return job.call();
+                } catch (Throwable t) {
+                    LOG.error("Uncaught exception", t);
+                    if (jobStatus.isRunning()) {
+                        jobStatus.markCompleted(new FailedOlapResult(t));
+                    }
+                }
+                return null;
+            }
+        });
         if(LOG.isTraceEnabled())
             LOG.trace("Job "+ jobRequest.getUniqueName()+" successfully submitted");
         writeResponse(e,jr.getUniqueName(),jobStatus);

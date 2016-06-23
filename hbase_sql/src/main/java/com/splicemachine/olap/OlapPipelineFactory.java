@@ -36,7 +36,7 @@ public class OlapPipelineFactory implements ChannelPipelineFactory {
     public ChannelPipeline getPipeline() throws Exception {
         SpliceLogUtils.trace(LOG, "Creating new channel pipeline...");
         ChannelPipeline pipeline = Channels.pipeline();
-        pipeline.addLast("frameDecoder",new LengthFieldBasedFrameDecoder(1<<20,0,4,0,4)); //max frame size is 1MB=2^20 bytes
+        pipeline.addLast("frameDecoder",new LengthFieldBasedFrameDecoder(1<<30,0,4,0,4)); //max frame size is 1GB=2^30 bytes
         pipeline.addLast("protobufDecoder",decoder);
         pipeline.addLast("frameEncoder",new LengthFieldPrepender(4));
         pipeline.addLast("protobufEncoder",new ProtobufEncoder());

@@ -103,7 +103,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                     }
                 }
             }
-            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow))));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
     }
 
     @Override

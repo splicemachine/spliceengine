@@ -32,8 +32,8 @@ public class OlapServer {
 
     public void startServer(SConfiguration config) {
 
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(20, new ThreadFactoryBuilder().setNameFormat("OlapServer-%d").setDaemon(true).build());
-        this.factory = new NioServerSocketChannelFactory(executor, executor);
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(15, new ThreadFactoryBuilder().setNameFormat("OlapServer-%d").setDaemon(true).build());
+        this.factory = new NioServerSocketChannelFactory(executor, 2, executor, 10);
 
         SpliceLogUtils.info(LOG, "Olap Server starting (binding to port %s)...", port);
 
