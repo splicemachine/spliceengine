@@ -40,7 +40,11 @@
         <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
-    </properties>
+        <spark.version>1.6.1</spark.version>
+        <!-- Dependency added so Splice Machine will use the shaded libraries for Guava and Netty -->
+        <!-- TODO: Remove CDH version dependency in favor of generic apache hbase spark assembly -->
+        <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
+  </properties>
 
   <!-- TODO: Will need to point this to splice open repo -->
   <scm>
