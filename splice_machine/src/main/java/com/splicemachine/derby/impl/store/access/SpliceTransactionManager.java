@@ -1772,7 +1772,6 @@ public class SpliceTransactionManager implements XATransactionController,
             LOG.trace("startNestedUserTransaction ");
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "Before startNestedUserTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
-        assert (rawtran instanceof SpliceTransaction) : "rawtran is not an instance of SpliceTransaction";
         // Get the context manager.
         ContextManager cm = getContextManager();
 
@@ -1787,24 +1786,16 @@ public class SpliceTransactionManager implements XATransactionController,
         // from "this", thus the new transaction shares the compatibility space
         // of the current transaction.
 
-        String txnName;
-        Txn txn = ((SpliceTransaction)rawtran).getActiveStateTxn();
-        if(!readOnly){
-            if(parent_tran!=null)
-                parent_tran.elevate(txn,"unknown");
-            txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
-            elevate("unknown");
-//            ((SpliceTransaction) rawtran).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with a known destination table
-            txn = ((SpliceTransaction)rawtran).getTxn();
-        }else
-            txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
+        Transaction childTxn;
+        if(rawtran instanceof SpliceTransaction)
+            childTxn=getChildTransaction(readOnly,cm,(SpliceTransaction)rawtran);
+        else
+            childTxn = getChildTransactionFromView(readOnly,cm,(SpliceTransactionView)rawtran);
 
-        Transaction childTxn = accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
         if(!readOnly)
             ((SpliceTransaction)childTxn).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with an actual name
 
-        SpliceTransactionManager rt = new SpliceTransactionManager(
-                accessmanager, childTxn, this);
+        SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, childTxn, this);
 
         //this actually does some work, so don't remove it
         @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
@@ -1814,6 +1805,35 @@ public class SpliceTransactionManager implements XATransactionController,
 	    	SpliceLogUtils.debug(LOG, "After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s", childTxn, rt.getNestedTransactionStackString());
 
         return (rt);
+    }
+
+    private Transaction getChildTransaction(boolean readOnly,ContextManager cm,SpliceTransaction spliceTxn) throws StandardException{
+        String txnName;
+        Txn txn = spliceTxn.getActiveStateTxn();
+        if(!readOnly){
+            if(parent_tran!=null)
+                parent_tran.elevate(txn,"unknown");
+            txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
+            elevate("unknown");
+            txn = ((SpliceTransaction)rawtran).getTxn();
+        }else
+            txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
+
+        return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
+    }
+
+    private Transaction getChildTransactionFromView(boolean readOnly,ContextManager cm,SpliceTransactionView spliceTxn) throws StandardException{
+        String txnName;
+        TxnView txn = spliceTxn.getActiveStateTxn();
+        if(!readOnly){
+            if(!txn.allowsWrites())
+                throw StandardException.newException(SQLState.XACT_INTERNAL_TRANSACTION_EXCEPTION,"Unable to create a writable child of a read only view");
+            txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
+            txn = ((SpliceTransaction)rawtran).getTxn();
+        }else
+            txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
+
+        return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
     }
 
     private void elevate(Txn knownChild,String tableName) throws StandardException{
