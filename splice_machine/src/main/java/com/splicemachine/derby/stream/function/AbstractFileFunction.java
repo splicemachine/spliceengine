@@ -161,8 +161,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             preference=new CsvPreference.Builder(
                     characterDelimiter!=null && characterDelimiter.length()>0?characterDelimiter.charAt(0):DEFAULT_STRIP_STRING,
                     columnDelimiter!=null && columnDelimiter.length()>0?columnDelimiter.charAt(0):DEFAULT_COLUMN_DELIMITTER,
-                    "\n",
-                    maxQuotedLines).useNullForEmptyColumns(false).build();
+                    "\n").maxLinesPerRow(maxQuotedLines).build();
         }
     }
 
