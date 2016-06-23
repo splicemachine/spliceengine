@@ -1225,7 +1225,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         List<PartitionStatisticsDescriptor> partitionStatisticsDescriptors = dataDictionaryCache.partitionStatisticsCacheFind(conglomerate);
         if (partitionStatisticsDescriptors!=null)
             return partitionStatisticsDescriptors;
-        partitionStatisticsDescriptors = new ArrayList();
+        partitionStatisticsDescriptors = new ArrayList<>();
         TabInfoImpl ti=getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
         DataValueDescriptor startStop =new SQLLongint(conglomerate);
 		/* Set up the start/stop position for the scan */
