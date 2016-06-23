@@ -343,21 +343,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .ownerClass(SYSTEM_PROCEDURES)
                     .catalog("KEY").build()
             ,
-            Procedure.newBuilder().name("SYSCS_SET_USER_ACCESS")
-                .numOutputParams(0).numResultSets(0).modifiesSql()
-                .returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("USERNAME")
-                .catalog("CONNECTIONPERMISSION")
-                .build()
-            ,
-            Procedure.newBuilder().name("SYSCS_GET_USER_ACCESS")
-                .numOutputParams(0).numResultSets(0).readsSqlData()
-                .readsSqlData().returnType(CATALOG_TYPE_SYSTEM_IDENTIFIER).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .varchar("USERNAME",32672)
-                .build()
-            ,
             Procedure.newBuilder().name("SYSCS_EMPTY_STATEMENT_CACHE")
                 .numOutputParams(0).numResultSets(0).sqlControl(RoutineAliasInfo.NO_SQL)
                 .returnType(null).isDeterministic(false)

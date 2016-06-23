@@ -1106,17 +1106,20 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
             + "SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.storag"
             + "e.pageSize')");
 
+        /*
         PreparedStatement psgua = samConnection.prepareStatement(
             "VALUES SYSCS_UTIL.SYSCS_GET_USER_ACCESS(CURRENT_USER)");
-        
         assertStatementError("42504", psgua);
         psgua.close();
+        */
 
+        /*
         cSt = samConnection.prepareCall(
              "CALL SYSCS_UTIL.SYSCS_SET_USER_ACCESS(CURRENT_USER, NULL)");
         assertStatementError("42504", cSt);
         cSt.close();
-        
+        */
+
         cSt = samConnection.prepareCall(
         "CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
             assertStatementError("42504", cSt);

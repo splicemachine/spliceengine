@@ -158,9 +158,6 @@ public class TestDbMetaData extends BaseJDBCTestCase {
         { null, "SYSCS_UTIL", "SYSCS_GET_RUNTIMESTATISTICS",
           "com.splicemachine.db.catalog.SystemProcedures." +
           "SYSCS_GET_RUNTIMESTATISTICS", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSCS_UTIL", "SYSCS_GET_USER_ACCESS",
-          "com.splicemachine.db.catalog.SystemProcedures." +
-          "SYSCS_GET_USER_ACCESS", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_GET_XPLAIN_MODE",
           "com.splicemachine.db.catalog.SystemProcedures." +
           "SYSCS_GET_XPLAIN_MODE", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },

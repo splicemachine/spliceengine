@@ -8814,45 +8814,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                   Set<String> newlyCreatedRoutines) throws StandardException{
         UUID sysUtilUUID=getSystemUtilSchemaDescriptor().getUUID();
 
-
-
-        // void SYSCS_UTIL.SYSCS_SET_USER_ACCESS(USER_NAME VARCHAR(128),
-        // CONNECTION_PERMISSION VARCHAR(128))
-        {
-            TypeDescriptor[] arg_types={CATALOG_TYPE_SYSTEM_IDENTIFIER,CATALOG_TYPE_SYSTEM_IDENTIFIER};
-
-            createSystemProcedureOrFunction(
-                    "SYSCS_SET_USER_ACCESS",
-                    sysUtilUUID,
-                    new String[]{"USERNAME","CONNECTIONPERMISSION"},
-                    arg_types,
-                    0,
-                    0,
-                    RoutineAliasInfo.MODIFIES_SQL_DATA,
-                    false,
-                    null,
-                    newlyCreatedRoutines,
-                    tc);
-        }
-
-        // VARCHAR(128) SYSCS_UTIL.SYSCS_SET_USER_ACCESS(USER_NAME VARCHAR(128))
-        {
-            TypeDescriptor[] arg_types={CATALOG_TYPE_SYSTEM_IDENTIFIER};
-
-            createSystemProcedureOrFunction(
-                    "SYSCS_GET_USER_ACCESS",
-                    sysUtilUUID,
-                    new String[]{"USERNAME"},
-                    arg_types,
-                    0,
-                    0,
-                    RoutineAliasInfo.READS_SQL_DATA,
-                    false,
-                    CATALOG_TYPE_SYSTEM_IDENTIFIER,
-                    newlyCreatedRoutines,
-                    tc);
-        }
-
         // void SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()
         {
             createSystemProcedureOrFunction(
