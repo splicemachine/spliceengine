@@ -69,14 +69,32 @@
   </issueManagement>
 
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Fail the build if not using maven >= 3.0.1  Just a sanity check.  3.0.1 because this
+   Fail the build if not using maven >= 3.3.0  Just a sanity check.  3.3.0 because this
    is currently the min supported version by our plugins.
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
   <prerequisites>
-    <maven>3.0.1</maven>
+    <maven>3.3.0</maven>
   </prerequisites>
 
+  <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   distributionManagement -
+
+  Where 'mvn deploy' uploads files to.
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
   <distributionManagement>
+<!--TODO: public nexus required for open src -->
+    <repository>
+      <id>splicemachine</id>
+      <name>Splice Machine Releases</name>
+      <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+      <uniqueVersion>false</uniqueVersion>
+    </repository>
+    <snapshotRepository>
+      <id>splicemachine</id>
+      <name>Splice Machine Snapshots</name>
+      <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+      <uniqueVersion>false</uniqueVersion>
+    </snapshotRepository>
         <site>
             <id>SpliceMachine</id>
             <url>file://${basedir}/target/site</url>
@@ -430,6 +448,17 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.3</version>
+                <configuration>
+                  <source>1.7</source>
+                  <target>1.7</target>
+                  <encoding>UTF-8</encoding>
+                  <compilerArgs>
+                    <arg>-XDignore.symbol.file</arg>
+                  </compilerArgs>
+                  <fork>true</fork>
+                  <showWarnings>true</showWarnings>
+                  <showDeprecation>true</showDeprecation>
+                </configuration>
               </plugin>
               <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -448,11 +477,6 @@
               </plugin>
               <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.6</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.10.3</version>
               </plugin>
@@ -463,23 +487,35 @@
               </plugin>
               <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.4</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.19</version>
               </plugin>
               <plugin>
+                <!-- TODO: will need to use splice open source github repo -->
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
                 <version>1.4</version>
+                <executions>
+                  <execution>
+                    <phase>validate</phase>
+                    <goals>
+                      <goal>create</goal>
+                    </goals>
+                  </execution>
+                </executions>
+                <configuration>
+                  <shortRevisionLength>10</shortRevisionLength>
+                  <doCheck>false</doCheck>
+                  <doUpdate>false</doUpdate>
+                </configuration>
               </plugin>
               <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.4.0</version>
+                <configuration>
+                  <killAfter>-1</killAfter>
+                </configuration>
               </plugin>
               <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -501,17 +537,11 @@
                 <artifactId>cobertura-maven-plugin</artifactId>
                 <version>2.7</version>
               </plugin>
-              <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>exec-maven-plugin</artifactId>
-                    <configuration>
-                        <killAfter>-1</killAfter>
-                    </configuration>
-                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <executions>
+                  <version>2.4</version>
+                  <executions>
                         <execution>
                             <goals>
                                 <goal>jar</goal>
@@ -522,6 +552,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
+                    <version>2.6</version>
                     <configuration>
                         <archive>
                             <manifestEntries>
@@ -547,55 +578,21 @@
                         </execution>
                     </executions>
                 </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <configuration>
-                        <source>1.7</source>
-                        <target>1.7</target>
-                        <encoding>UTF-8</encoding>
-                        <compilerArgs>
-                            <arg>-XDignore.symbol.file</arg>
-                        </compilerArgs>
-                        <fork>true</fork>
-                        <showWarnings>true</showWarnings>
-                        <showDeprecation>true</showDeprecation>
-                    </configuration>
-                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
-          <!-- Always attach source artifact -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>attach-sources</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
           </plugin>
-          <!-- TODO: will need to use splice open source github repo -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>create</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <shortRevisionLength>10</shortRevisionLength>
-                    <doCheck>false</doCheck>
-                    <doUpdate>false</doUpdate>
-                </configuration>
             </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+          </plugin>
         </plugins>
     </build>
     <profiles>
