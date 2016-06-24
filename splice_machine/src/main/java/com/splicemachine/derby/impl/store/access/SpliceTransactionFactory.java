@@ -107,7 +107,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		 */
 		public Transaction startNestedTransaction(HBaseStore hbaseStore,
 												  ContextManager contextMgr,
-												  Txn parentTxn) throws StandardException {
+												  TxnView parentTxn) throws StandardException {
 			checkContextAndStore(hbaseStore, contextMgr, "startNestedTransaction");
 			
 			return startNestedTransaction(hbaseStore, contextMgr,
@@ -153,7 +153,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                              boolean abortAll,
                                                              String contextName,
                                                              boolean additive,
-                                                             Txn parentTxn) {
+                                                             TxnView parentTxn) {
         try {
             TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
 						/*

@@ -1,18 +1,5 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.si.api.ReadOnlyModificationException;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.utils.SpliceLogUtils;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Stack;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -21,6 +8,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
 import com.splicemachine.db.iapi.store.raw.ContainerHandle;
@@ -30,11 +18,21 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.api.ReadOnlyModificationException;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.exception.Exceptions;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Properties;
+import java.util.Stack;
 
 public class SpliceTransactionManager implements XATransactionController,
         TransactionManager {
@@ -106,8 +104,8 @@ public class SpliceTransactionManager implements XATransactionController,
         this.rawtran = theRawTran;
         this.parent_tran = parent_tran;
         accessmanager = myaccessmanager;
-        scanControllers = new ArrayList<ScanController>();
-        conglomerateControllers = new ArrayList<ConglomerateController>();
+        scanControllers =new ArrayList<>();
+        conglomerateControllers =new ArrayList<>();
 
         sorts = null; // allocated on demand.
         freeSortIds = null; // allocated on demand.
@@ -639,7 +637,7 @@ public class SpliceTransactionManager implements XATransactionController,
         long conglomId = conglom.getContainerid();
         if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
             if (tempCongloms == null)
-                tempCongloms = new HashMap<Long, Conglomerate>();
+                tempCongloms =new HashMap<>();
             tempCongloms.put(conglomId, conglom);
         } else {
             accessmanager.conglomCacheAddEntry(conglomId, conglom);
@@ -1336,8 +1334,8 @@ public class SpliceTransactionManager implements XATransactionController,
 
         // Add the sort to the sorts vector
         if (sorts == null) {
-            sorts = new ArrayList<Sort>();
-            freeSortIds = new ArrayList<Integer>();
+            sorts =new ArrayList<>();
+            freeSortIds =new ArrayList<>();
         }
 
         int sortid;
@@ -1474,7 +1472,7 @@ public class SpliceTransactionManager implements XATransactionController,
 
         // Keep track of it so we can release on close.
         if (sortControllers == null)
-            sortControllers = new ArrayList<SortController>();
+            sortControllers =new ArrayList<>();
         sortControllers.add(sc);
 
         return sc;
@@ -1914,7 +1912,6 @@ public class SpliceTransactionManager implements XATransactionController,
         // above the access context, which is required for
         // error handling assumptions to be correct.
 
-        //TODO -sf- this behavior might not be 100% correct w.r.t error handling, although I think it is, but it probably won't be called anyway
         return (TransactionManager)accessmanager.getTransaction(cm);
     }
 
@@ -1925,10 +1922,9 @@ public class SpliceTransactionManager implements XATransactionController,
             SpliceLogUtils.debug(LOG, "Before startIndependentInternalTransaction: parentTxn=%s, readOnly=%b", getRawTransaction(), readOnly);
         // Get the context manager.
         ContextManager cm = getContextManager();
-        String txnName;
         Transaction global = accessmanager.getRawStore().startGlobalTransaction(cm,1,new byte[0],new byte[0]);
         if(!readOnly)
-            ((SpliceTransaction)global).elevate("unknown".getBytes()); //TODO -sf- replace this with an actual name
+            ((SpliceTransaction)global).elevate("unknown".getBytes());
 
         SpliceTransactionManager rt = new SpliceTransactionManager(
                 accessmanager, global, this);
@@ -1998,11 +1994,11 @@ public class SpliceTransactionManager implements XATransactionController,
             LOG.trace("startNestedUserTransaction ");
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "Before startNestedUserTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
-        assert (rawtran instanceof SpliceTransaction) : "rawtran is not an instance of SpliceTransaction";
         // Get the context manager.
         ContextManager cm = getContextManager();
 
         // Allocate a new transaction no matter what.
+
 
         // Create a transaction, make a context for it, and push the context.
         // Note this puts the raw store transaction context
@@ -2013,30 +2009,51 @@ public class SpliceTransactionManager implements XATransactionController,
         // from "this", thus the new transaction shares the compatibility space
         // of the current transaction.
 
-        String txnName;
-        Txn txn = ((SpliceTransaction)rawtran).getActiveStateTxn();
+        Transaction child;
+        if(rawtran instanceof SpliceTransaction)
+            child= newNestedTransaction(readOnly,cm,(SpliceTransaction)rawtran);
+        else
+            child = newNestedTransactionFromView(readOnly,cm,(SpliceTransactionView)rawtran);
+
         if(!readOnly){
-            txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
-            ((SpliceTransaction) rawtran).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with a known destination table
-            txn = ((SpliceTransaction)rawtran).getTxn();
-        }else
-            txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
-
-        Transaction childTxn = accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
-        if(!readOnly)
-            ((SpliceTransaction)childTxn).elevate("unknown".getBytes()); //TODO -sf- replace this with an actual name
-
-        SpliceTransactionManager rt = new SpliceTransactionManager(
-                accessmanager, childTxn, this);
-
+            ((SpliceTransaction)child).elevate("unknown".getBytes());
+        }
+        SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, child, this);
         //this actually does some work, so don't remove it
         @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
                 cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
 
-	    if (LOG.isDebugEnabled())
-	    	SpliceLogUtils.debug(LOG, "After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s", childTxn, rt.getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s",child,rt.getNestedTransactionStackString());
 
-        return (rt);
+        return rt;
+    }
+
+    private Transaction newNestedTransactionFromView(boolean readOnly,ContextManager cm,SpliceTransactionView rawtran) throws StandardException{
+        String txnName;
+        TxnView view = rawtran.getActiveStateTxn();
+        if(!readOnly){
+            if(!view.allowsWrites())
+                throw StandardException.newException(SQLState.XACT_INTERNAL_TRANSACTION_EXCEPTION,"Parent transaction was not elevated");
+            txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
+        }else{
+            txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
+        }
+
+        return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,view);
+    }
+
+    private Transaction newNestedTransaction(boolean readOnly,ContextManager cm,SpliceTransaction spliceTxn) throws StandardException{
+        String txnName;
+        Txn txn = spliceTxn.getActiveStateTxn();
+        if(!readOnly){
+            txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
+            spliceTxn.elevate(Bytes.toBytes("unknown"));
+            txn = spliceTxn.getTxn();
+        }else
+            txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
+
+        return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
     }
 
     /**
@@ -2140,7 +2157,7 @@ public class SpliceTransactionManager implements XATransactionController,
 
     @Override
     public String toString() {
-        String str = null;
+        String str;
         if (SanityManager.DEBUG) {
             str = "rawtran = " + rawtran;
         }
@@ -2153,7 +2170,7 @@ public class SpliceTransactionManager implements XATransactionController,
      */
     private String getNestedTransactionStackString() {
     	SpliceTransactionManager currentTxnMgr = parent_tran;
-    	Stack<SpliceTransactionManager> txnStack = new Stack<SpliceTransactionManager>();
+    	Stack<SpliceTransactionManager> txnStack =new Stack<>();
     	while (currentTxnMgr != null) {
     		txnStack.push(currentTxnMgr);
     		currentTxnMgr = currentTxnMgr.parent_tran;
