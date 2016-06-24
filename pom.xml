@@ -25,6 +25,10 @@
       <id>hortonworks-hadoop</id>
       <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
     </repository>
+    <repository>
+      <id>splicemachine</id>
+      <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+    </repository>
   </repositories>
 
   <properties>
