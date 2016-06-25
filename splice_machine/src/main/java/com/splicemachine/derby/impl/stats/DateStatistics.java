@@ -29,7 +29,7 @@ public class DateStatistics extends TimeStatistics{
         super(baseStats);
     }
 
-    @Override public ColumnStatistics<DataValueDescriptor> getClone(){ return new DateStatistics(baseStats); }
+    @Override public ColumnStatistics<DataValueDescriptor> getClone(){ return new DateStatistics((LongColumnStatistics)baseStats.getClone()); }
     @Override protected DataValueDescriptor wrap(long value){ return wrapLong(value); }
 
     @Override
