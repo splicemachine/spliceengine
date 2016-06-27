@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLDouble;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.DoubleColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.DoubleDistribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
@@ -73,6 +74,17 @@ public class DoubleStats extends BaseDvdStatistics{
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         baseStats = stats = DoubleColumnStatistics.encoder().decode(in);
     }
+
+    @Override
+    public long totalBytes(){
+        return stats.totalBytes();
+    }
+
+    @Override
+    public CardinalityEstimator getCardinalityEstimator(){
+        return stats.getCardinalityEstimator();
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     static class DoubleFreqs implements FrequentElements<DataValueDescriptor> {

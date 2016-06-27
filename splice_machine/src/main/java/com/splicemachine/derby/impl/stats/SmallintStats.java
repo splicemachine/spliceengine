@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.types.SQLSmallint;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.CombinedShortColumnStatistics;
 import com.splicemachine.stats.ShortColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.ShortDistribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
@@ -58,6 +59,16 @@ public class SmallintStats extends BaseDvdStatistics {
     @Override
     public ColumnStatistics<DataValueDescriptor> getClone() {
         return new SmallintStats((ShortColumnStatistics)stats.getClone());
+    }
+
+    @Override
+    public long totalBytes(){
+        return stats.totalBytes();
+    }
+
+    @Override
+    public CardinalityEstimator getCardinalityEstimator(){
+        return stats.getCardinalityEstimator();
     }
 
     /* ****************************************************************************************************************/

@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.stats.BooleanColumnStatistics;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.BooleanDistribution;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.BooleanFrequencyEstimate;
@@ -69,6 +70,16 @@ public class BooleanStats extends BaseDvdStatistics {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.baseStats = baseStats = BooleanColumnStatistics.encoder().decode(in);
+    }
+
+    @Override
+    public long totalBytes(){
+        return baseStats.totalBytes();
+    }
+
+    @Override
+    public CardinalityEstimator getCardinalityEstimator(){
+        return baseStats.getCardinalityEstimator();
     }
 
     /* ****************************************************************************************************************/

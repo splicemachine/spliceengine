@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.IntColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.IntDistribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
@@ -60,6 +61,16 @@ public class IntStats extends BaseDvdStatistics {
     @Override
     protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
         return new IntDist((IntColumnStatistics)baseStats);
+    }
+
+    @Override
+    public long totalBytes(){
+        return intStats.totalBytes();
+    }
+
+    @Override
+    public CardinalityEstimator getCardinalityEstimator(){
+        return intStats.getCardinalityEstimator();
     }
 
     /* ****************************************************************************************************************/

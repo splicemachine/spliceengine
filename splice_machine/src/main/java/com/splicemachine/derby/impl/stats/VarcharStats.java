@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.utils.StringUtils;
@@ -41,6 +42,7 @@ public class VarcharStats extends StringStatistics {
     protected String safeGetString(DataValueDescriptor element){
         return StringUtils.trimTrailingSpaces(super.safeGetString(element));
     }
+
 
     /* ***************************************************************************************************************/
     /*private helper methods*/

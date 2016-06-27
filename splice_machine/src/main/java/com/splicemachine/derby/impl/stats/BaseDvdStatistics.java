@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.EmptyDistribution;
 
@@ -31,6 +32,16 @@ public abstract class BaseDvdStatistics implements ColumnStatistics<DataValueDes
 
     @Override public Distribution<DataValueDescriptor> getDistribution() {
         return newDistribution(baseStats);
+    }
+
+    @Override
+    public long totalBytes(){
+        return baseStats.totalBytes();
+    }
+
+    @Override
+    public CardinalityEstimator getCardinalityEstimator(){
+        return baseStats.getCardinalityEstimator();
     }
 
     @Override

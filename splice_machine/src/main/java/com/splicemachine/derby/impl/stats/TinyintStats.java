@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLTinyint;
 import com.splicemachine.stats.ByteColumnStatistics;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.ByteDistribution;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.ByteFrequencyEstimate;
@@ -56,6 +57,16 @@ public class TinyintStats extends BaseDvdStatistics {
     @Override
     public ColumnStatistics<DataValueDescriptor> getClone() {
         return new TinyintStats((ByteColumnStatistics)stats.getClone());
+    }
+
+    @Override
+    public long totalBytes(){
+        return stats.totalBytes();
+    }
+
+    @Override
+    public CardinalityEstimator getCardinalityEstimator(){
+        return stats.getCardinalityEstimator();
     }
 
     /* ****************************************************************************************************************/

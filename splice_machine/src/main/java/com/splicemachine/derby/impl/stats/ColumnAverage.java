@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.stats.*;
+import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.cardinality.FixedCardinalityEstimate;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.UniformShortDistribution;
@@ -80,11 +81,18 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         return columnId;
     }
 
-    protected abstract void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats);
-
-    protected long totalBytes() {
+    @Override
+    public long totalBytes() {
         return avgColumnWidth()*nonNullCount();
     }
+
+    @Override
+    public CardinalityEstimator getCardinalityEstimator(){
+        return new FixedCardinalityEstimate(cardinality());
+    }
+
+    protected abstract void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats);
+
 
     public static ColumnStatistics<DataValueDescriptor> avgStats(int columnId,int typeFormatId, int maxLength){
         switch(typeFormatId){
