@@ -94,6 +94,9 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
     	return indexAction; 
     }
 
+	public void validateSupported() throws StandardException{
+	}
+
 	/**
 	 * Make sure that the foreign key constraint is valid
 	 * with the existing data in the target table.  Open
