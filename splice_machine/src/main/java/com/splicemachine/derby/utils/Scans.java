@@ -243,7 +243,7 @@ public class Scans extends SpliceUtils {
 
                     // we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0) {
-                        int targetColFormatId = columnTypes[keyDecodingMap[i]];
+                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
                         if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
                         }
@@ -264,7 +264,7 @@ public class Scans extends SpliceUtils {
 
                     //  we just rely on key table positions
                     if (!isEmpty(keyDecodingMap)) {
-                        int targetColFormatId = columnTypes[keyDecodingMap[i]];
+                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
                         if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
                         }

@@ -42,6 +42,7 @@ public class TableScanOperationIT{
     private static SpliceTableWatcher spliceTableWatcher7=new SpliceTableWatcher("CHICKEN2",SCHEMA,"(c1 timestamp, c2 date, c3 time, primary key (c2))");
     private static SpliceTableWatcher spliceTableWatcher8=new SpliceTableWatcher("CHICKEN3",SCHEMA,"(c1 timestamp, c2 date, c3 time, primary key (c3))");
     private static SpliceTableWatcher spliceTableWatcher9=new SpliceTableWatcher("NUMBERS",SCHEMA,"(i int, l bigint, s smallint, d double precision, r real, dc decimal(10,2), PRIMARY KEY(i))");
+    private static SpliceTableWatcher spliceTableWatcher10=new SpliceTableWatcher("CONSUMER_DATA",SCHEMA,"(SEQUENCE_ID bigint NOT NULL,CONSUMER_ID bigint NOT NULL,CONTRIBUTOR_ID varchar(128) NOT NULL,WINDOW_KEY_ADDRESS varchar(128) NOT NULL,ADDRESS_HASH varchar(128) NOT NULL,PRIMARY KEY (WINDOW_KEY_ADDRESS, CONSUMER_ID, CONTRIBUTOR_ID))");
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -54,6 +55,7 @@ public class TableScanOperationIT{
             .around(spliceTableWatcher7)
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
+            .around(spliceTableWatcher10)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description){
@@ -73,7 +75,7 @@ public class TableScanOperationIT{
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",SCHEMA,"CHICKEN1"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",SCHEMA,"CHICKEN2"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",SCHEMA,"CHICKEN3"));
-
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,1,'contributor_id','window_key_address','address_hash')",SCHEMA,"CONSUMER_DATA"));
                     }catch(Exception e){
                         throw new RuntimeException(e);
                     }finally{
@@ -857,6 +859,21 @@ public class TableScanOperationIT{
             }
         }
     }
+
+    @Test
+    // DB-5413
+    public void testScanOfCompoundPrimaryKeys() throws Exception{
+        try(Statement s=conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(format("select a.CONSUMER_ID, a.ADDRESS_HASH ADDRESS_HASH_A from %s a where a.window_key_address = 'window_key_address'",spliceTableWatcher10))){
+                int count=0;
+                while(rs.next()){
+                    count++;
+                }
+                assertEquals("Incorrect count returned!",1,count);
+            }
+        }
+    }
+
 
     @Test
     // Test for DB-1101
