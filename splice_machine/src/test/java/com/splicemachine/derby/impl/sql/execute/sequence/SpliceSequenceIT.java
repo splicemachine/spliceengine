@@ -80,6 +80,7 @@ public class SpliceSequenceIT {
             assertEquals(first + 5, methodWatcher.query("select next value for FOOSEQ from foo"));
             assertEquals(first + 6, methodWatcher.query("select next value for FOOSEQ from foo"));
             assertEquals(first + 7, methodWatcher.query("select next value for FOOSEQ from foo --splice-properties useSpark=true"));
+            // Spark by default allocates a 1K increment
             assertEquals(first + 1007, methodWatcher.query("select next value for FOOSEQ from foo"));
             assertEquals(first + 1008, methodWatcher.query("select next value for FOOSEQ from foo"));
             assertEquals(first + 1009, methodWatcher.query("select next value for FOOSEQ from foo"));
@@ -102,6 +103,7 @@ public class SpliceSequenceIT {
             assertEquals(first + 5, methodWatcher.query("select next value for FOOSEQ2 from foo"));
             assertEquals(first + 6, methodWatcher.query("select next value for FOOSEQ2 from foo"));
             assertEquals(first + 7, methodWatcher.query("select next value for FOOSEQ2 from foo --splice-properties useSpark=true"));
+            // Spark by default allocates a 1K increment
             assertEquals(first + 1007, methodWatcher.query("select next value for FOOSEQ2 from foo"));
             assertEquals(first + 1008, methodWatcher.query("select next value for FOOSEQ2 from foo"));
             assertEquals(first + 1009, methodWatcher.query("select next value for FOOSEQ2 from foo"));
@@ -124,6 +126,7 @@ public class SpliceSequenceIT {
             assertEquals(first + 50, methodWatcher.query("select next value for FOOSEQ3 from foo"));
             assertEquals(first + 60, methodWatcher.query("select next value for FOOSEQ3 from foo"));
             assertEquals(first + 70, methodWatcher.query("select next value for FOOSEQ3 from foo --splice-properties useSpark=true"));
+            // Spark by default allocates a 1K increment
             assertEquals(first + 1070, methodWatcher.query("select next value for FOOSEQ3 from foo"));
             assertEquals(first + 1080, methodWatcher.query("select next value for FOOSEQ3 from foo"));
             assertEquals(first + 1090, methodWatcher.query("select next value for FOOSEQ3 from foo"));
