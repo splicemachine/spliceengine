@@ -40,7 +40,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected SpliceSequence[] spliceSequences;
     protected PairEncoder encoder;
     protected InsertOperation insertOperation;
-    protected OperationContext operationContext;
     protected boolean isUpsert;
     private Partition table;
 
@@ -54,7 +53,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                                 TxnView txn,
                                 OperationContext operationContext,
                                 boolean isUpsert) {
-        super(txn,heapConglom);
+        super(txn,heapConglom,operationContext);
         assert txn !=null:"txn not supplied";
         this.pkCols = pkCols;
         this.tableVersion = tableVersion;
@@ -65,8 +64,9 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
         this.isUpsert = isUpsert;
         this.dataType = isUpsert?KVPair.Type.UPSERT:KVPair.Type.INSERT;
-        if (operationContext!=null)
-            this.insertOperation = (InsertOperation)operationContext.getOperation();
+        if (operationContext!=null) {
+            this.insertOperation = (InsertOperation) operationContext.getOperation();
+        }
     }
 
     public void open() throws StandardException {

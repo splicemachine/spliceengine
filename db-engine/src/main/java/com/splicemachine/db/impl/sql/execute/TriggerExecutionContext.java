@@ -409,7 +409,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         out.writeObject(afterRow);
         if (event != null) {
             out.writeBoolean(true);
-            out.write(event.ordinal());
+            out.writeInt(event.ordinal());
         } else {
             out.writeBoolean(false);
         }

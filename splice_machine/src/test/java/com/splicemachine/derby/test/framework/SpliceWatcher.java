@@ -36,11 +36,15 @@ public class SpliceWatcher extends TestWatcher {
     private final List<ResultSet> resultSets = new CopyOnWriteArrayList<>();
 
     public SpliceWatcher() {
-        this(null);
+        this((String)null);
     }
 
     public SpliceWatcher(String defaultSchema) {
         this.defaultSchema = defaultSchema == null ? null : defaultSchema.toUpperCase();
+    }
+
+    public void setConnection(Connection connection) throws SQLException{
+        currentConnection = new TestConnection(connection);
     }
 
     /**

@@ -2,6 +2,7 @@ package com.splicemachine.stream.output;
 
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.JobStatus;
@@ -61,13 +62,16 @@ public class SpliceOutputCommitter extends OutputCommitter {
 
     @Override
     public void setupTask(TaskAttemptContext taskContext) throws IOException {
+
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"setupTask");
         // Create child additive transaction so we don't read rows inserted by ourselves in this operation
-        TxnView childTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, destinationTable);
-        taskAttemptMap.put(taskContext.getTaskAttemptID(),childTxn);
+        TxnView txn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, destinationTable);
+        ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, parentTxn.isAdditive(), parentTxn.getIsolationLevel());
+        taskAttemptMap.put(taskContext.getTaskAttemptID(), childTxn);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"beginTxn=%s and destinationTable=%s",childTxn,destinationTable);
+
     }
 
     @Override

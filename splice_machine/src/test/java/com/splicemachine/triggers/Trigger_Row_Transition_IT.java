@@ -3,11 +3,18 @@ package com.splicemachine.triggers;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.sparkproject.guava.collect.Lists;
 
 import java.sql.*;
+import java.util.Collection;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
@@ -15,6 +22,8 @@ import static org.junit.Assert.*;
 /**
  * Test ROW triggers with transition variables.
  */
+@Category(value = {SerialTest.class})
+@RunWith(Parameterized.class)
 public class Trigger_Row_Transition_IT {
 
     private static final String SCHEMA = Trigger_Row_Transition_IT.class.getSimpleName();
@@ -31,6 +40,21 @@ public class Trigger_Row_Transition_IT {
     private TriggerBuilder tb = new TriggerBuilder();
 
     private TestConnection conn;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        return params;
+    }
+
+    private String connectionString;
+
+    public Trigger_Row_Transition_IT(String connecitonString) {
+        this.connectionString = connecitonString;
+    }
+
     /* Create tables once */
     @BeforeClass
     public static void createSharedTables() throws Exception {
@@ -46,7 +70,8 @@ public class Trigger_Row_Transition_IT {
     /* Each test starts with same table state */
     @Before
     public void initTable() throws Exception {
-        conn = methodWatcher.getOrCreateConnection();
+        conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        conn.setSchema(SCHEMA.toUpperCase());
         conn.setAutoCommit(false);
     }
 

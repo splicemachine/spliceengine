@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
@@ -23,15 +24,18 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected static final KVPair.Type dataType = KVPair.Type.DELETE;
     protected PairEncoder encoder;
     public int rowsDeleted = 0;
-    protected OperationContext operationContext;
+    protected DeleteOperation deleteOperation;
 
     public DeletePipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) throws StandardException {
-        super(txn,heapConglom);
+        super(txn,heapConglom,operationContext);
         this.operationContext = operationContext;
+        if (operationContext != null) {
+            deleteOperation = (DeleteOperation)operationContext.getOperation();
+        }
     }
 
     public void open() throws StandardException {
-        open(null,null);
+        open(deleteOperation != null ? deleteOperation.getTriggerHandler() : null, deleteOperation);
     }
 
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {

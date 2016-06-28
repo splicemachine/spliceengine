@@ -153,6 +153,10 @@ public class TriggerHandler {
         }
     }
 
+    public LanguageConnectionContext getLcc() {
+        return triggerActivator.getLcc();
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Static convenience methods for invoking methods in this class on an instance that may be null.
     //

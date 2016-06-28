@@ -91,4 +91,9 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     public byte[] getDestinationTable(){
         return Bytes.toBytes(Long.toString(destConglomerate));
     }
+
+    @Override
+    public OperationContext getOperationContext() {
+        return opCtx;
+    }
 }

@@ -19,7 +19,7 @@ public class SimplePipelineWriter extends AbstractPipelineWriter<KVPair>{
     private boolean skipIndex;
 
     public SimplePipelineWriter(TxnView txn,long heapConglom,boolean skipIndex){
-        super(txn,heapConglom);
+        super(txn,heapConglom,null);
         this.skipIndex=skipIndex;
     }
 

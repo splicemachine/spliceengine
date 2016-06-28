@@ -1,10 +1,22 @@
 package com.splicemachine.triggers;
 
+import com.splicemachine.db.client.am.ResultSet;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.sparkproject.guava.collect.Lists;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.Collection;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -12,7 +24,8 @@ import static org.junit.Assert.fail;
 /**
  * Test STATEMENT triggers.
  */
-@Ignore("DB-4732 Need to make Spark work...")
+@Category(value = {SerialTest.class})
+@RunWith(Parameterized.class)
 public class Trigger_Statement_IT {
 
     private static final String SCHEMA = Trigger_Statement_IT.class.getSimpleName();
@@ -29,6 +42,20 @@ public class Trigger_Statement_IT {
     private TriggerBuilder tb = new TriggerBuilder();
     private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
+        return params;
+    }
+
+    private String connectionString;
+
+    public Trigger_Statement_IT(String connecitonString) {
+        this.connectionString = connecitonString;
+    }
+
     @BeforeClass
     public static void createSharedTables() throws Exception {
         classWatcher.executeUpdate("create table T (a int, b int, c int)");
@@ -37,12 +64,14 @@ public class Trigger_Statement_IT {
 
     @Before
     public void resetTables() throws Exception {
-        triggerDAO.dropAllTriggers("T");
+        triggerDAO.dropAllTriggers(SCHEMA, "T");
         methodWatcher.executeUpdate("delete from T");
         methodWatcher.executeUpdate("delete from RECORD");
         methodWatcher.executeUpdate("insert into T values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5),(6,6,6)");
+        Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        conn.setSchema(SCHEMA.toUpperCase());
+        methodWatcher.setConnection(conn);
     }
-
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // AFTER statement triggers
@@ -192,10 +221,12 @@ public class Trigger_Statement_IT {
     public void beforeDelete() throws Exception {
         methodWatcher.executeUpdate(tb.before().delete().on("T").statement().then("select 1/0 from sys.systables").build());
 
+        Long count = methodWatcher.query("select count(*) from T where a = 1");
         assertQueryFails("delete from T where a = 1", "Attempt to divide by zero.");
 
         // triggering statement should have had no affect.
-        Assert.assertEquals(1L,methodWatcher.query("select count(*) from T where a = 1"));
+
+        Assert.assertEquals(count,methodWatcher.query("select count(*) from T where a = 1"));
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -227,12 +258,13 @@ public class Trigger_Statement_IT {
         // given
         methodWatcher.executeUpdate(tb.after().insert().on("T").statement().then("insert into T values(1,1,1)").build());
 
+        Long count = methodWatcher.query("select count(*) from T");
         // when
         assertQueryFails("insert into T select * from T", "Maximum depth of nested triggers was exceeded.");
         assertQueryFails("insert into T values(1,1,1)", "Maximum depth of nested triggers was exceeded.");
 
         // then
-        Assert.assertEquals("expected unchanged row count",6L,methodWatcher.query("select count(*) from T"));
+        Assert.assertEquals("expected unchanged row count",count,methodWatcher.query("select count(*) from T"));
     }
 
     @Test
@@ -269,7 +301,7 @@ public class Trigger_Statement_IT {
 
         methodWatcher.executeUpdate("drop trigger trig2");
 
-        methodWatcher.executeUpdate("delete from a");
+        methodWatcher.executeUpdate("drop table a");
     }
 
     private void assertQueryFails(String query, String expectedError) {

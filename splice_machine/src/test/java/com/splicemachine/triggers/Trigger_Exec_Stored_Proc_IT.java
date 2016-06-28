@@ -1,22 +1,19 @@
 package com.splicemachine.triggers;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.Timestamp;
+import java.io.File;
+import java.sql.*;
+import java.util.Collection;
+import java.util.Properties;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import com.splicemachine.derby.test.framework.TestConnection;
+import org.junit.*;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.sparkproject.guava.collect.Lists;
 
 /**
  * Tests trigger execution of stored procedures.
@@ -24,8 +21,8 @@ import com.splicemachine.test_dao.TriggerDAO;
  * Note the dependency on user-defined stored procedures in this test class.<br/>
  * See {@link TriggerProcs} for instructions on adding/modifying store procedures.
  */
-
-@Ignore("DB-4272")
+@Ignore
+@RunWith(Parameterized.class)
 public class Trigger_Exec_Stored_Proc_IT {
 
     private static final String SCHEMA = Trigger_Exec_Stored_Proc_IT.class.getSimpleName();
@@ -65,26 +62,39 @@ public class Trigger_Exec_Stored_Proc_IT {
             "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 " +
             "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_exec_sql'";
 
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+    @ClassRule
+    public static SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     private TriggerBuilder tb = new TriggerBuilder();
     private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        return params;
+    }
+
+    private String connectionString;
+
+    public Trigger_Exec_Stored_Proc_IT(String connecitonString) {
+        this.connectionString = connecitonString;
+    }
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        Assert.fail("IMPLEMENT PROPERLY");
-//        String storedProcsJarFilePath = TriggerProcs.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-//        // Install the jar file of stored procedures.
-//        File jar = new File(storedProcsJarFilePath);
-//        Assert.assertTrue("Can't run test without " + storedProcsJarFilePath, jar.exists());
-//        classWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", storedProcsJarFilePath, DERBY_JAR_NAME));
-//        classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
-//        classWatcher.executeUpdate(CREATE_PROC);
-//        classWatcher.executeUpdate(CREATE_PROC_WITH_TRANSITION_VAR);
-//        classWatcher.executeUpdate(CREATE_PROC_WITH_RESULT);
-//        classWatcher.executeUpdate(CREATE_EXEC_PROC);
+
+        String storedProcsJarFilePath = TriggerProcs.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+        // Install the jar file of stored procedures.
+        File jar = new File(storedProcsJarFilePath);
+        Assert.assertTrue("Can't run test without " + storedProcsJarFilePath, jar.exists());
+        classWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", storedProcsJarFilePath, DERBY_JAR_NAME));
+        classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
+        classWatcher.executeUpdate(CREATE_PROC);
+        classWatcher.executeUpdate(CREATE_PROC_WITH_TRANSITION_VAR);
+        classWatcher.executeUpdate(CREATE_PROC_WITH_RESULT);
+        classWatcher.executeUpdate(CREATE_EXEC_PROC);
     }
 
     @AfterClass
@@ -124,8 +134,16 @@ public class Trigger_Exec_Stored_Proc_IT {
         classWatcher.executeUpdate("create table t_slave(id int, description varchar(10),tm_time timestamp)");
         classWatcher.executeUpdate("drop table if exists t_slave2");
         classWatcher.executeUpdate("create table t_slave2(id int, description varchar(10),tm_time timestamp)");
+
+        Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        conn.setSchema(SCHEMA.toUpperCase());
+        methodWatcher.setConnection(conn);
     }
 
+    @After
+    public void cleanup() throws Exception {
+        triggerDAO.dropAllTriggers(SCHEMA, "S");
+    }
     /**
      * Create/fire a statement trigger that records username and timestamp of an insert in another table.
      */
