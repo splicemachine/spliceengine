@@ -96,11 +96,11 @@ public final class StaticClassFieldReferenceNode extends JavaValueNode {
 		ClassInspector classInspector = getClassFactory().getClassInspector();
 
 
-		if (((getCompilerContext().getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
-			|| !javaClassName.startsWith("java.sql.")) {
-
-			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, javaClassName + "::" + fieldName);
-		}
+//		if (((getCompilerContext().getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
+//			|| !javaClassName.startsWith("java.sql.")) {
+//
+//			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, javaClassName + "::" + fieldName);
+//		}
 
 		verifyClassExist(javaClassName);
 

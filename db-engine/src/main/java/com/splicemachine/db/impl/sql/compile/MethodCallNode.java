@@ -644,13 +644,13 @@ abstract class MethodCallNode extends JavaValueNode
 				throws StandardException
 	{
 		// only allow direct method calls through routines and internal SQL.
-		if (routineInfo == null && !internalCall)
-		{
-			// See if we are being executed in an internal context
-			if ((getCompilerContext().getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0) {
-				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,  javaClassName + (staticMethod ? "::" : ".") + methodName);
-			}
-		}
+//		if (routineInfo == null && !internalCall)
+//		{
+//			// See if we are being executed in an internal context
+//			if ((getCompilerContext().getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0) {
+//				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,  javaClassName + (staticMethod ? "::" : ".") + methodName);
+//			}
+//		}
 
 		int			count = signature.length;
 
