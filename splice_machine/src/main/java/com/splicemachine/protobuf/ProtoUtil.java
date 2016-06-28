@@ -129,6 +129,13 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange dropSequence(long txnId, String schemaName, String sequenceName) {
+        return DDLChange.newBuilder().setTxnId(txnId).setDropSequence(DropSequence.newBuilder()
+                .setSchemaName(schemaName)
+                .setSequenceName(sequenceName))
+                .setDdlChangeType(DDLChangeType.DROP_SEQUENCE)
+                .build();
+    }
 
     public static DDLChange createAlterTable(long txnId, BasicUUID basicUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setAlterTable(AlterTable.newBuilder()

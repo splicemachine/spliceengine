@@ -715,7 +715,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         ( String sequenceUUIDstring, int typeFormatID )
 	       throws StandardException
 	{
-        ContextManager contextManager = ContextService.getFactory().getCurrentContextManager();
+//        ContextManager contextManager = ContextService.getFactory().getCurrentContextManager();
         try {
             cm.setActiveThread();
             cm.pushContext(lcc);
@@ -723,13 +723,12 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
             ContextService.getFactory().setCurrentContextManager(cm);
 
             NumberDataValue ndv = (NumberDataValue) getDataValueFactory().getNull(typeFormatID, StringDataValue.COLLATION_TYPE_UCS_BASIC);
-
-            lcc.getDataDictionary().getCurrentValueAndAdvance(sequenceUUIDstring, ndv);
-
+            lcc.getDataDictionary().getCurrentValueAndAdvance(sequenceUUIDstring, ndv,
+					willRunInSpark());
             return ndv;
         }
         finally {
-            ContextService.getFactory().resetCurrentContextManager(contextManager);
+            ContextService.getFactory().resetCurrentContextManager(cm);
         }
     }
 
@@ -1693,4 +1692,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     public void setScanKeys(int[] keys) {
         scanKeys = keys;
     }
+
+	public boolean willRunInSpark() {
+		return useSpark() || getLanguageConnectionContext().getDataSetProcessorType()
+				.equals(CompilerContext.DataSetProcessorType.FORCED_SPARK);
+	}
 }

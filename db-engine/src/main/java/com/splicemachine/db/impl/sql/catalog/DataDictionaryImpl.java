@@ -7768,7 +7768,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public abstract void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue) throws StandardException;
+    public abstract void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue, boolean useBatch) throws StandardException;
 
     @Override
     public Long peekAtSequence(String schemaName,String sequenceName) throws StandardException{

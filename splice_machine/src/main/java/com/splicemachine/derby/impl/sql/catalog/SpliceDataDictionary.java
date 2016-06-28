@@ -413,20 +413,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    public void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue)
+    public void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue, boolean useBatch)
             throws StandardException{
 
         try{
             if(sequenceRowLocationBytesMap==null){
                 sequenceRowLocationBytesMap=new ConcurrentLinkedHashMap.Builder<String, byte[]>()
-                        .maximumWeightedCapacity(1024)
+                        .maximumWeightedCapacity(512)
                         .concurrencyLevel(64)
                         .build();
             }
 
             if(sequenceDescriptorMap==null){
                 sequenceDescriptorMap=new ConcurrentLinkedHashMap.Builder<String, SequenceDescriptor[]>()
-                        .maximumWeightedCapacity(1024)
+                        .maximumWeightedCapacity(512)
                         .concurrencyLevel(64)
                         .build();
             }
@@ -453,10 +453,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             PartitionFactory partFactory = siDriver.getTableFactory();
             TxnOperationFactory txnOpFactory = siDriver.getOperationFactory();
             SpliceSequence sequence=EngineDriver.driver().sequencePool().
-            get(new SequenceKey(sequenceRowLocationBytes,start,increment,1l,partFactory,txnOpFactory));
-
+            get(new SequenceKey(sequenceRowLocationBytes,useBatch?SIDriver.driver().getConfiguration().getSequenceBlockSize():1l,start,increment,partFactory,txnOpFactory));
             returnValue.setValue(sequence.getNext());
-
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

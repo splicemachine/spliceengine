@@ -306,6 +306,9 @@ public class SpliceDatabase extends BasicDatabase{
                     case DROP_INDEX:
                         DDLUtils.preDropIndex(change,dataDictionary,dependencyManager);
                         break;
+                    case DROP_SEQUENCE:
+                        DDLUtils.preDropSequence(change,dataDictionary,dependencyManager);
+                        break;
                     case CHANGE_PK:
                     case ADD_CHECK:
                     case ADD_FOREIGN_KEY:
