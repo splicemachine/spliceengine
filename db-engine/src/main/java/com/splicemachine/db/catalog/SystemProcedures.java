@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
 import com.splicemachine.db.impl.jdbc.Util;
-import com.splicemachine.db.impl.load.Export;
 import com.splicemachine.db.impl.load.Import;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
@@ -1324,130 +1323,6 @@ public class SystemProcedures  {
 			throw StandardException.newException(SQLState.ID_PARSE_ERROR);
 		}
 	}
-
-	/**
-     * Export data from a table to given file.
-     * <p>
-     * Will be called by system procedure:
-	 * SYSCS_EXPORT_TABLE(IN SCHEMANAME  VARCHAR(128), 
-	 * IN TABLENAME    VARCHAR(128),  IN FILENAME VARCHAR(32672) , 
-	 * IN COLUMNDELIMITER CHAR(1),  IN CHARACTERDELIMITER CHAR(1) ,  
-	 * IN CODESET VARCHAR(128))
-	 * @exception  StandardException  Standard exception policy.
-     **/
-	public static void SYSCS_EXPORT_TABLE(
-	String  schemaName,
-    String  tableName,
-	String  fileName,
-	String  columnDelimiter,
-	String  characterDelimiter,
-	String  codeset)
-        throws SQLException
-    {
-		Connection conn = getDefaultConn();
-		Export.exportTable(conn, schemaName , tableName , fileName ,
-							  columnDelimiter , characterDelimiter, codeset);
-		//export finished successfully, issue a commit 
-		conn.commit();
-	}
-
-
-    /**
-     * Export data from a table to given files. Large objects 
-     * are exported to an external file and the reference to it is written 
-     * in the main export file. 
-     * <p>
-     * Will be called by system procedure:
-     * SYSCS_EXPORT_TABLE_LOBS_TO_EXTFILE(IN SCHEMANAME  VARCHAR(128), 
-     * IN TABLENAME    VARCHAR(128),  IN FILENAME VARCHAR(32672) , 
-     * IN COLUMNDELIMITER CHAR(1),  IN CHARACTERDELIMITER CHAR(1) ,  
-     * IN CODESET VARCHAR(128), IN LOBSFILENAME VARCHAR(32672))
-     * @exception  StandardException  Standard exception policy.
-     **/
-    public static void SYSCS_EXPORT_TABLE_LOBS_TO_EXTFILE(
-    String  schemaName,
-    String  tableName,
-    String  fileName,
-    String  columnDelimiter,
-    String  characterDelimiter,
-    String  codeset,
-    String  lobsFileName)
-        throws SQLException
-    {
-        Connection conn = getDefaultConn();
-        Export.exportTable(conn, schemaName , tableName , fileName ,
-                           columnDelimiter , characterDelimiter, 
-                           codeset, lobsFileName);
-        //export finished successfully, issue a commit 
-        conn.commit();
-    }
-
-	
-
-	
-	/**
-     * Export data from a  select statement to given file.
-     * <p>
-     * Will be called as 
-	 * SYSCS_EXPORT_QUERY(IN SELECTSTATEMENT  VARCHAR(32672), 
-	 * IN FILENAME VARCHAR(32672) , 
-	 * IN COLUMNDELIMITER CHAR(1),  IN CHARACTERDELIMITER CHAR(1) ,  
-	 * IN CODESET VARCHAR(128))
-	 *
-	 * @exception  StandardException  Standard exception policy.
-     **/
-	public static void SYSCS_EXPORT_QUERY(
-    String  selectStatement,
-	String  fileName,
-	String  columnDelimiter,
-	String  characterDelimiter,
-	String  codeset)
-        throws SQLException
-    {
-		Connection conn = getDefaultConn();
-		Export.exportQuery(conn, selectStatement, fileName ,
-							   columnDelimiter , characterDelimiter, codeset);
-		
-		//export finished successfully, issue a commit 
-		conn.commit();
-	}
-
-    
-
-    /**
-     * Export data from a  select statement to given file. Large objects 
-     * are exported to an external file and the reference to it is written 
-     * in the main export file. 
-     * <p>
-     * Will be called as 
-     * SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE(IN SELECTSTATEMENT  VARCHAR(32672),
-     * IN FILENAME VARCHAR(32672) , 
-     * IN COLUMNDELIMITER CHAR(1),  IN CHARACTERDELIMITER CHAR(1) ,  
-     * IN CODESET VARCHAR(128), IN LOBSFILENAME VARCHAR(32672))
-     *
-     * @exception  StandardException  Standard exception policy.
-     **/
-    public static void SYSCS_EXPORT_QUERY_LOBS_TO_EXTFILE(
-    String  selectStatement,
-    String  fileName,
-    String  columnDelimiter,
-    String  characterDelimiter,
-    String  codeset,
-    String  lobsFileName)
-        throws SQLException
-    {
-        Connection conn = getDefaultConn();
-        Export.exportQuery(conn, selectStatement, fileName ,
-                           columnDelimiter , characterDelimiter, 
-                           codeset, lobsFileName);
-
-        //export finished successfully, issue a commit 
-        conn.commit();
-    }
-
-
-
-
 
 	/**
      * Import  data from a given file to a table.
