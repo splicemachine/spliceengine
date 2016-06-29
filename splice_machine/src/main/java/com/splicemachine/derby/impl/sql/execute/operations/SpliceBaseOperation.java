@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -130,7 +131,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             }
             return modifiedRowCount;
         }catch(StandardException se){
-            throw new RuntimeException(se);
+            Exceptions.throwAsRuntime(PublicAPI.wrapStandardException(se));
+            return 0; //never reached
         }
     }
 
