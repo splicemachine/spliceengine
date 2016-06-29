@@ -9,7 +9,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.0.1.13-SNAPSHOT</version>
+        <version>2.0.1.16-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -22,6 +22,88 @@
         <jenkins.build.number>1</jenkins.build.number>
         <parcel.patch>p0.${jenkins.build.number}</parcel.patch>
     </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.9.1</version>
+                <executions>
+                    <execution>
+                        <id>add-resource</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>add-resource</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>${envClassifier}/src/main/resources</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- This used to be confinded to the spark-prepare profile, but is now done always by default
+                     To disable, use skipSparkPrepare on the command line -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.10</version>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeArtifactIds>
+                                <!-- third party libs -->
+                                concurrentlinkedhashmap-lru,
+                                disruptor,
+                                ehcache-core,
+                                gson,
+                                hppc,
+                                kryo,
+                                kryo-serializers,
+                                lucene-core,
+                                opencsv,
+                                protobuf-java,
+                                spark,
+                                ${spark-assembly-id},
+                                super-csv,
+                                <!-- spliceengine core libs -->
+                                db-build,
+                                db-client,
+                                db-drda,
+                                db-engine,
+                                db-shared,
+                                db-testing,
+                                db-tools-i18n,
+                                db-tools-ij,
+                                db-tools-testing,
+                                pipeline_api,
+                                splice_access_api,
+                                splice_encoding,
+                                splice_machine,
+                                splice_protocol,
+                                splice_si_api,
+                                splice_timestamp_api,
+                                stats,
+                                utilities,
+                                <!-- spliceengine platform libs -->
+                                hbase_pipeline-${envClassifier},
+                                hbase_sql-${envClassifier},
+                                hbase_storage-${envClassifier}
+                            </includeArtifactIds>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
     <profiles>
         <profile>
             <id>parcel</id>
@@ -33,35 +115,6 @@
             </activation>
             <build>
                 <plugins>
-                    <plugin>
-                        <!-- This used to be confinded to the spark-prepare profile, but is now done always by default
-                             To disable, use skipSparkPrepare on the command line -->
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.10</version>
-                        <executions>
-                            <execution>
-                                <id>copy</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-dependencies</goal>
-                                </goals>
-                                <configuration>
-                                    <includeArtifactIds>
-                                        hppc,kryo,gson,protobuf-java,disruptor,
-                                        kryo-serializers,ehcache-core,opencsv,super-csv,
-                                        lucene-core,spark,concurrentlinkedhashmap-lru,
-                                        db-engine,db-drda,db-client,db-tools-ij,
-                                        utilities,stats,pipeline_api,splice_access_api,splice_encoding,
-                                        splice_machine,splice_protocol,splice_si_api,
-                                        splice_timestamp_api,hbase_pipeline-${envClassifier},
-                                        hbase_storage-${envClassifier},hbase_sql-${envClassifier},
-                                        ${spark-assembly-id}
-                                    </includeArtifactIds>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
@@ -87,7 +140,7 @@
                                         <replace token="CDH_VERSION" value="${cdh.parcel.version}" dir="target/classes/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice/">
+                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
                                             <fileset dir="target/dependency" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
@@ -96,51 +149,71 @@
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <fileset dir="target/classes/bin" includes="**/*"/>
                                         </copy>
-                                        <chmod dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" perm="755" includes="**/*.sh"/>
+                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
+                                            <fileset dir="target/classes/scripts" includes="**/*"/>
+                                        </copy>
                                         <!-- el6 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-el6" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-el6.parcel">
-                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
+                                        <tar compression="gzip" destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-el6.parcel">
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
                                         </tar>
                                         <!-- el7 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-el7" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-el7.parcel">
-                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
+                                        <tar compression="gzip" destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-el7.parcel">
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
                                         </tar>
                                         <!-- sles11 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-sles11" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-sles11.parcel">
-                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
+                                        <tar compression="gzip" destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-sles11.parcel">
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
                                         </tar>
                                         <!-- precise -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-precise" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-precise.parcel">
-                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
+                                        <tar compression="gzip" destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-precise.parcel">
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
                                         </tar>
                                         <!-- wheezy -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-wheezy" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-wheezy.parcel">
-                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
+                                        <tar compression="gzip" destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-wheezy.parcel">
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
                                         </tar>
                                         <!-- trusty -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-trusty" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
                                         </replace>
-                                        <tar destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-trusty.parcel">
-                                            <tarfileset username="root" group="root" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}"/>
+                                        <tar compression="gzip" destfile="target/parcels/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}-trusty.parcel">
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
                                         </tar>
                                         <exec executable="python2.7" failonerror="true" dir="target/parcels">
-                                            <arg line="${project.basedir}/src/main/resources/python/make_manifest.py"/>
+                                            <arg line="${project.build.directory}/classes/python/make_manifest.py"/>
                                         </exec>
                                     </target>
                                 </configuration>
@@ -154,72 +227,45 @@
             </build>
         </profile>
         <profile>
-            <id>complete</id>
+            <id>installer</id>
             <activation>
                 <property>
-                    <name>complete</name>
-                    <value>complete</value>
+                    <name>installer</name>
+                    <value>installer</value>
                 </property>
             </activation>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-shade-plugin</artifactId>
-                        <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>${envClassifier}_complete</shadedClassifierName>
-                            <artifactSet>
-                                <includes>
-                                    <include>com.carrotsearch:hppc</include>
-                                    <include>com.esotericsoftware.kryo:kryo</include>
-                                    <include>com.google.code.gson:gson</include>
-                                    <include>com.google.protobuf:protobuf-java</include>
-                                    <include>com.lmax:disruptor</include>
-                                    <include>de.javakaffee:kryo-serializers</include>
-                                    <include>net.sf.ehcache:ehcache-core</include>
-                                    <include>net.sf.opencsv:opencsv</include>
-                                    <include>net.sf.supercsv:super-csv</include>
-                                    <include>org.apache.lucene:lucene-core</include>
-                                    <include>org.apache.spark</include>
-                                    <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
-                                    <include>com.splicemachine:*</include>
-                                    <include>org.sparkproject.guava:*</include>
-                                </includes>
-                            </artifactSet>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <!-- exclude signing keys from uber-jar -->
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>**/yarn-site.xml</exclude>
-                                        <exclude>**/core-site.xml</exclude>
-                                        <exclude>**/splice-site.xml</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                        </configuration>
+                        <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
                             <execution>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>shade</goal>
-                                </goals>
+                                <phase>pre-integration-test</phase>
                                 <configuration>
-                                    <transformers>
-                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                            <manifestEntries>
-                                                <Implementation-Version>${buildNumber}</Implementation-Version>
-                                                <Release>${project.version}</Release>
-                                                <Build-Time>${maven.build.timestamp}</Build-Time>
-                                                <URL>http://www.splicemachine.com</URL>
-                                            </manifestEntries>
-                                        </transformer>
-                                    </transformers>
+                                    <target>
+                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
+                                            <fileset dir="target/classes/bin" includes="**/*"/>
+                                        </copy>
+                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf">
+                                            <fileset dir="target/classes/conf" includes="**/*"/>
+                                        </copy>
+                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
+                                            <fileset dir="target/classes/scripts" includes="**/*"/>
+                                        </copy>
+                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
+                                            <fileset dir="target/dependency" includes="**/*"/>
+                                        </copy>
+                                        <tar compression="gzip" destfile="target/installer/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}.tar.gz">
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
+                                            <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
+                                        </tar>
+                                    </target>
                                 </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>

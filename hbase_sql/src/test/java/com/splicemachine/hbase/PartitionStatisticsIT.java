@@ -5,9 +5,10 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.test.SerialTest;
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
@@ -16,6 +17,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,15 +29,14 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 3/28/16.
  */
-@Category(SerialTest.class)
+@Category({SerialTest.class,SlowTest.class})
 public class PartitionStatisticsIT {
     private static final String SCHEMA=PartitionStatisticsIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher=new SpliceWatcher(SCHEMA);
     private static final SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA);
 
     private static final String TABLE="T";
-    private static HBaseAdmin admin;
-    private static String hTableName;
+    private static TableName hTableName;
     private static List<HRegionInfo> regionInfoList;
 
     @ClassRule
@@ -59,58 +60,72 @@ public class PartitionStatisticsIT {
                 .withRows(rows(row(1, 1), row(2,2), row(3,3), row(4,4)))
                 .create();
 
-        PreparedStatement ps = conn.prepareStatement("insert into t select * from t");
-        for (int i = 0; i < 10; ++i) {
-            ps.execute();
+        try(PreparedStatement ps = conn.prepareStatement("insert into t select * from t")){
+            for(int i=0;i<5;++i){
+                ps.execute();
+            }
         }
 
         //split the table
-        Configuration config = HConfiguration.unwrapDelegate();
-        admin = new HBaseAdmin(config);
         long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, TABLE);
-        hTableName = "splice:" + Long.toString(conglomId[0]);
-        admin.split(hTableName);
-        regionInfoList = admin.getTableRegions(Bytes.toBytes(hTableName));
-        while(regionInfoList.size() == 1) {
-            Thread.sleep(2000);
-            regionInfoList = admin.getTableRegions(Bytes.toBytes(hTableName));
-        }
+        hTableName = TableName.valueOf("splice" ,Long.toString(conglomId[0]));
+        syncSplit(null);
     }
 
+
     @Test
-    // DB-4851
     public void testStatisticsCorrectAfterRegionSplit() throws Exception {
         Connection conn=spliceClassWatcher.getOrCreateConnection();
         // collect statistics
-        PreparedStatement ps = conn.prepareStatement("analyze table t");
-        ps.execute();
+        try(PreparedStatement ps = conn.prepareStatement("analyze table t")){
+            ps.execute();
+        }
 
         // run the query to populate partition cache
-        ps = conn.prepareStatement("explain select count(a) from t");
-        ResultSet rs = ps.executeQuery();
-        while(rs.next()) {
-            String s = rs.getString(1);
+        try(PreparedStatement ps = conn.prepareStatement("explain select count(a) from t")){
+            try(ResultSet rs=ps.executeQuery()){
+                while(rs.next()){
+                    String s=rs.getString(1);
+                }
+            }
         }
 
         // split a region
-        HRegionInfo regionInfo = regionInfoList.get(1);
-        String regionName = regionInfo.getEncodedName();
-        admin.split(regionName);
-
-        regionInfoList = admin.getTableRegions(Bytes.toBytes(hTableName));
-        while(regionInfoList.size() == 2) {
-            Thread.sleep(2000);
-            regionInfoList = admin.getTableRegions(Bytes.toBytes(hTableName));
-        }
+        syncSplit(regionInfoList.get(1).getEncodedName());
         // collect statistics again on new partitions
-        ps = conn.prepareStatement("analyze table t");
-        ps.execute();
+        try(PreparedStatement ps = conn.prepareStatement("analyze table t")){
+            ps.execute();
+        }
 
         // now partition cache has two paritions, make sure the query can run
-        ps = conn.prepareStatement("explain select count(a) from t");
-        rs = ps.executeQuery();
-        while (rs.next()) {
-            String s = rs.getString(1);
+        try(PreparedStatement ps = conn.prepareStatement("explain select count(a) from t")){
+            try(ResultSet rs=ps.executeQuery()){
+                while(rs.next()){
+                    String s=rs.getString(1);
+                }
+            }
+        }
+    }
+
+    private static void syncSplit(String regionName) throws IOException, InterruptedException{
+        try(HBaseAdmin admin = new HBaseAdmin(HConfiguration.unwrapDelegate())){
+            regionInfoList=admin.getTableRegions(hTableName);
+            int startSize=regionInfoList.size();
+            if(regionName==null){
+                admin.flush(hTableName);
+                admin.split(hTableName);
+            }else{
+                admin.flush(regionName);
+                admin.split(regionName);
+            }
+
+            int s;
+            do{
+                Thread.sleep(200);
+                regionInfoList=admin.getTableRegions(hTableName);
+                s=regionInfoList.size();
+                System.out.printf("origSize=%d,newSize=%d%n",startSize,s);
+            }while(s==startSize);
         }
     }
 }

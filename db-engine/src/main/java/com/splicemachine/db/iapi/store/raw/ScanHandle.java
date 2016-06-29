@@ -46,26 +46,10 @@ public interface ScanHandle
 	public int getGroup() throws StandardException;
 
 	/**
-	  Get the Loggable associated with the currentLogRecord
-	  @exception StandardException Oops
-	  */
-	public Loggable getLoggable() throws StandardException;
-	/**
-	  Get an InputStream for reading the optional data associated with
-	  the current log record. This may only be called once per log record.
-	  @exception StandardException Oops
-	  */
-    public InputStream getOptionalData() throws StandardException;
-	/**
 	  Get the DatabaseInstant for the current log record.
 	  @exception StandardException Oops
 	  */
     public DatabaseInstant getInstant() throws StandardException;
-	/**
-	  Get the TransactionId for the current log record.
-	  @exception StandardException Oops
-	  */
-	public Object getTransactionId() throws StandardException;
 	/**
 	  Close this scan.
 	  */

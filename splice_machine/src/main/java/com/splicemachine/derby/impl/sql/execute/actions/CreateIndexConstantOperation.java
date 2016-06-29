@@ -776,7 +776,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
         }
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(), activation.getLanguageConnectionContext(), td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(),
+                activation.getLanguageConnectionContext(),
+                td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor);
         String changeId = DDLUtils.notifyMetadataChange(ddlChange);
         tc.prepareDataDictionaryChange(changeId);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);

@@ -23,6 +23,7 @@ public class TestConnection implements Connection{
     private final List<Statement> statements = Lists.newArrayList();
 
     private boolean oldAutoCommit;
+    private String oldSchema;
 
     public TestConnection(Connection delegate) throws SQLException {
         this.delegate = delegate;
@@ -31,8 +32,7 @@ public class TestConnection implements Connection{
 
     public ResultSet query(String sql) throws SQLException{
         Statement s = createStatement();
-        ResultSet rs = s.executeQuery(sql);
-        return rs;
+        return s.executeQuery(sql);
     }
 
     @Override
@@ -80,6 +80,8 @@ public class TestConnection implements Connection{
 
     public void reset() throws SQLException {
         delegate.setAutoCommit(oldAutoCommit);
+        if(oldSchema!=null)
+            delegate.setSchema(oldSchema);
     }
 
     @Override public boolean isClosed() throws SQLException { return delegate.isClosed(); }
@@ -185,6 +187,7 @@ public class TestConnection implements Connection{
     @Override public Array createArrayOf(String typeName, Object[] elements) throws SQLException { return delegate.createArrayOf(typeName,elements); }
     @Override public Struct createStruct(String typeName, Object[] attributes) throws SQLException { return delegate.createStruct(typeName, attributes); }
     public void setSchema(String schema) throws SQLException {
+        oldSchema = delegate.getSchema();
         delegate.setSchema(schema);
     }
 

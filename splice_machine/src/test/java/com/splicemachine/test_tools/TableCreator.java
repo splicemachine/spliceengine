@@ -46,6 +46,7 @@ public class TableCreator {
     private String insertSql;
     private List<String> indexSqlList = Lists.newArrayList();
     private RowCreator rowCreator;
+    private String constraints;
 
     public TableCreator(Connection connection) {
         this.connection = connection;
@@ -53,6 +54,11 @@ public class TableCreator {
 
     public TableCreator withTableName(String tableName) {
         this.tableName = tableName;
+        return this;
+    }
+
+    public TableCreator withConstraints(String constraints){
+        this.constraints = constraints;
         return this;
     }
 
@@ -91,7 +97,12 @@ public class TableCreator {
     }
 
     private void createTable() throws SQLException {
-        String CREATE_SQL = tableName == null ? createSql : String.format(createSql, tableName);
+        String baseSql = createSql;
+        if(constraints!=null){
+            int lastParenthesis = baseSql.lastIndexOf(")");
+            baseSql = baseSql.substring(0,lastParenthesis)+","+constraints+")";
+        }
+        String CREATE_SQL=tableName!=null?String.format(baseSql,tableName):baseSql;
         Statement statement = connection.createStatement();
         try {
             statement.execute(CREATE_SQL);

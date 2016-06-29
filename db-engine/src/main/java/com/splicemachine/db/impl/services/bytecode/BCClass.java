@@ -105,6 +105,11 @@ class BCClass extends GClass {
 		return new BCLocalField(type, cpi);
 	}
 
+	@Override
+	public boolean existsField(String javaType, String name) {
+		Type type = factory.type(javaType);
+		return classHold.existsField(name, type.vmName());
+	}
 	/**
 	 * At the time the class is completed and bytecode
 	 * generated, if there are no constructors then
@@ -300,7 +305,7 @@ class BCClass extends GClass {
 	 * Let those that need to get to the
 	 * classModify tool to alter the class definition.
 	 */
-	ClassHolder modify() {
+	public ClassHolder modify() {
 		return classHold;
 	}
 

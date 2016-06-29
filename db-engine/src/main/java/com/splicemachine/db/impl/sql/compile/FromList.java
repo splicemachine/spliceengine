@@ -1190,7 +1190,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      */
     void genExistsBaseTables(JBitSet referencedTableMap,
                              FromList outerFromList,
-                             boolean isNotExists) throws StandardException{
+                             boolean isNotExists,
+                             boolean matchRowId) throws StandardException{
         JBitSet dependencyMap=(JBitSet)referencedTableMap.clone();
 
         // We currently only flatten single table from lists
@@ -1227,7 +1228,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                 ProjectRestrictNode prn=(ProjectRestrictNode)fromTable;
                 if(prn.getChildResult() instanceof FromBaseTable){
                     FromBaseTable fbt=(FromBaseTable)prn.getChildResult();
-                    fbt.setExistsBaseTable(true,(JBitSet)dependencyMap.clone(),isNotExists);
+                    fbt.setExistsBaseTable(true,(JBitSet)dependencyMap.clone(),isNotExists, matchRowId);
                 }
             }
         }

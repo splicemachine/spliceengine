@@ -12,15 +12,17 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 /**
+ *
  * Created by akorotenko on 1/22/16.
  */
 public class ImportBinaryValueIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String CLASS_NAME = ImportDefaultValueIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = ImportBinaryValueIT.class.getSimpleName().toUpperCase();
     protected static SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
 
     protected static SpliceTableWatcher blobTale = new SpliceTableWatcher("BLOB_TABLE", schema.schemaName, "(VAL1 BLOB)");
@@ -29,10 +31,11 @@ public class ImportBinaryValueIT extends SpliceUnitTest {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(schema)
             .around(blobTale);
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     private static File BADDIR;
+
     @BeforeClass
     public static void beforeClass() throws Exception {
         BADDIR = SpliceUnitTest.createBadLogDirectory(schema.schemaName);
@@ -45,7 +48,8 @@ public class ImportBinaryValueIT extends SpliceUnitTest {
         String file = "field_with_blob.csv";
 
         String inputFilePath = getResourceDirectory()+"import/"+file;
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+        Connection conn = methodWatcher.getOrCreateConnection();
+        try(PreparedStatement ps = conn.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
                         "null," +  // insert column list
@@ -60,9 +64,9 @@ public class ImportBinaryValueIT extends SpliceUnitTest {
                         "'true'," +  // has one line records
                         "null)",   // char set
                 schema.schemaName, table, inputFilePath,
-                0, BADDIR.getCanonicalPath()));
-
-        ps.execute();
+                0, BADDIR.getCanonicalPath()))){
+            ps.execute();
+        }
 
         Path badFile = Paths.get(BADDIR.getCanonicalPath() + "/" + file + ".bad");
 

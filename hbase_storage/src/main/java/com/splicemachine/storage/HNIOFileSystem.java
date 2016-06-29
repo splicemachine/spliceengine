@@ -30,12 +30,14 @@ import java.util.Set;
  */
 public class HNIOFileSystem extends DistributedFileSystem{
     private final org.apache.hadoop.fs.FileSystem fs;
+    private final boolean isDistributedFS;
     private final ExceptionFactory exceptionFactory;
     private static Logger LOG=Logger.getLogger(HNIOFileSystem.class);
 
     public HNIOFileSystem(org.apache.hadoop.fs.FileSystem fs,ExceptionFactory ef){
         this.fs=fs;
         this.exceptionFactory = ef;
+        this.isDistributedFS = (fs instanceof org.apache.hadoop.hdfs.DistributedFileSystem);
     }
 
     @Override
@@ -204,6 +206,24 @@ public class HNIOFileSystem extends DistributedFileSystem{
         org.apache.hadoop.fs.Path path=new org.apache.hadoop.fs.Path(dir,fileName);
         if(!fs.createNewFile(path)){
             throw new FileAlreadyExistsException(path.toString());
+        }
+    }
+
+    @Override
+    public void concat(Path target, Path... sources)  throws IOException {
+        org.apache.hadoop.fs.Path[] srcPaths = new org.apache.hadoop.fs.Path[sources.length];
+        for (int i=0; i<sources.length; i++) {
+            srcPaths[i] = new org.apache.hadoop.fs.Path(sources[i].getParent().toString(), sources[i].getFileName().toString());
+        }
+        org.apache.hadoop.fs.Path targetPath = new org.apache.hadoop.fs.Path(target.getParent().toString(), target.getFileName().toString());
+
+
+        if (isDistributedFS) {
+            fs.concat(targetPath, srcPaths);
+        } else {
+            for (org.apache.hadoop.fs.Path src : srcPaths) {
+                fs.copyFromLocalFile(true, false, src, targetPath);
+            }
         }
     }
 

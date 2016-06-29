@@ -3,7 +3,7 @@ package com.splicemachine.timestamp.impl;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;

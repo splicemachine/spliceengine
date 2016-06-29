@@ -1,6 +1,7 @@
 package com.splicemachine.derby.test.framework;
 
 import java.io.*;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -208,14 +209,15 @@ public class SpliceUnitTest {
     }
 
     protected void rowContainsQuery(int level, String query, String contains, SpliceWatcher methodWatcher) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        for (int i = 0; i< level;i++) {
-            resultSet.next();
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            for(int i=0;i<level;i++){
+                resultSet.next();
+            }
+            String actualString=resultSet.getString(1);
+            String failMessage=String.format("expected result of query '%s' to contain '%s' at row %,d but did not, actual result was '%s'",
+                    query,contains,level,actualString);
+            Assert.assertTrue(failMessage,actualString.contains(contains));
         }
-        String actualString = resultSet.getString(1);
-        String failMessage = String.format("expected result of query '%s' to contain '%s' at row %,d but did not, actual result was '%s'",
-                query, contains, level, actualString);
-        Assert.assertTrue(failMessage, actualString.contains(contains));
     }
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
@@ -298,15 +300,27 @@ public class SpliceUnitTest {
     public static File createBadLogDirectory(String schemaName) {
         File badImportLogDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/BAD/"+schemaName);
         if (badImportLogDirectory.exists()) {
-            //noinspection ConstantConditions
-            for (File file : badImportLogDirectory.listFiles()) {
-                assertTrue("Couldn't create "+file,file.delete());
-            }
-            assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.delete());
+            recursiveDelete(badImportLogDirectory);
         }
         assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.mkdirs());
         assertTrue("Failed to create "+badImportLogDirectory,badImportLogDirectory.exists());
         return badImportLogDirectory;
+    }
+
+    public static void recursiveDelete(File file) {
+        if (file != null) {
+            File[] directoryFiles = file.listFiles();
+            if (directoryFiles != null) {
+                for (File aFile : directoryFiles) {
+                    if (aFile.isDirectory()) {
+                        recursiveDelete(aFile);
+                    } else {
+                        assertTrue("Couldn't delete " + aFile, aFile.delete());
+                    }
+                }
+            }
+            assertTrue("Couldn't delete "+file,file.delete());
+        }
     }
 
     public static File createImportFileDirectory(String schemaName) {
@@ -512,5 +526,12 @@ public class SpliceUnitTest {
         }
     }
 
-
+    public static String getJarFileForClass(Class clazz) throws Exception {
+        if (clazz == null)
+            return null;
+        URL jarURL = clazz.getProtectionDomain().getCodeSource().getLocation();
+        if (jarURL == null)
+            return null;
+        return jarURL.toURI().getPath();
+    }
 }

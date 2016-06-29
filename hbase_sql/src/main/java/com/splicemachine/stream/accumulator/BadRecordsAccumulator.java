@@ -1,33 +1,33 @@
 package com.splicemachine.stream.accumulator;
 
 import org.apache.spark.AccumulableParam;
-import java.util.ArrayList;
-import java.util.List;
+import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 
 /**
  *
- * Accumulator for Bad Records in a Map.
+ * Accumulator for Bad Records from bulk import.
+ * <p/>
+ * Uses a {@link BadRecordsRecorder} to record each bad record to a temp file. Temp files
+ * will be merged {@link #addInPlace(BadRecordsRecorder, BadRecordsRecorder)}.
  *
  * @see org.apache.spark.AccumulableParam
  *
  */
-public class BadRecordsAccumulator implements AccumulableParam<List<String>,String> {
-
+public class BadRecordsAccumulator implements AccumulableParam<BadRecordsRecorder, String> {
 
     @Override
-    public List<String> addAccumulator(List<String> strings, String s) {
-        strings.add(s);
-        return strings;
+    public BadRecordsRecorder addAccumulator(BadRecordsRecorder r, String s) {
+        r.recordBadRecord(s);
+        return r;
     }
 
     @Override
-    public List<String> addInPlace(List<String> strings, List<String> strings2) {
-        strings.addAll(strings2);
-        return strings;
+    public BadRecordsRecorder addInPlace(BadRecordsRecorder r1, BadRecordsRecorder r2) {
+        return r1.merge(r2); // r1 or r2 may have no files...
     }
 
     @Override
-    public List<String> zero(List<String> strings) {
-        return new ArrayList<>(strings);
+    public BadRecordsRecorder zero(BadRecordsRecorder r) {
+        return r;
     }
 }

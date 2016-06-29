@@ -1628,9 +1628,10 @@ public interface DataDictionary{
      *
      * @param sequenceUUIDstring String value of the UUID which identifies the sequence
      * @param returnValue        This is a data value to be stuffed with the next sequence number.
+     * @param useBatch        This is whether to allocate a bunch of current values or a single value.
      * @throws StandardException if the sequence does not cycle and its range is exhausted
      */
-    void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue) throws StandardException;
+    void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue, boolean useBatch) throws StandardException;
 
     /**
      * <p>

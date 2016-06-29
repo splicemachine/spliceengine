@@ -197,4 +197,6 @@ service TxnLifecycleService{
     rpc getActiveTransactionIds(ActiveTxnRequest) returns (ActiveTxnIdResponse);
 
     rpc getActiveTransactions(ActiveTxnRequest) returns (ActiveTxnResponse);
+
+    rpc rollbackTransactionsAfter(TxnRequest) returns (VoidResponse);
 }

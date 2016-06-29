@@ -209,4 +209,14 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         return lifecycleStore.keepAlive(txnId);
     }
 
+    @Override
+    public void rollbackTransactionsAfter(RpcController controller, TxnMessage.TxnRequest request, RpcCallback<TxnMessage.VoidResponse> done) {
+
+        try{
+            lifecycleStore.rollbackTransactionsAfter(request.getTxnId());
+            done.run(TxnMessage.VoidResponse.getDefaultInstance());
+        }catch(IOException ioe){
+            ResponseConverter.setControllerException(controller,ioe);
+        }
+    }
 }

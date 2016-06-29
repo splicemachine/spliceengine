@@ -1449,6 +1449,11 @@ public class HdfsImportIT extends SpliceUnitTest {
         TableDAO td = new TableDAO(methodWatcher.getOrCreateConnection());
         td.drop(spliceSchemaWatcher.schemaName, tableName);
 
+        File badFile = new File(BADDIR, "salary_check_constraint.csv" + ".bad");
+        if (badFile.exists()) {
+            assertTrue("Cannot delete "+badFile.getCanonicalPath(),badFile.delete());
+        }
+
         methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
                 format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+
                         "(EMPNO CHAR(6) NOT NULL CONSTRAINT EMP_PK PRIMARY KEY, " +
@@ -1496,10 +1501,9 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
         Assert.assertEquals(format("Expected %s row1 imported", insertRowsExpected), insertRowsExpected, results.size());
 
-        File badFile = new File(BADDIR, "salary_check_constraint.csv" + ".bad");
-        assertTrue("Files does not exists: " + badFile, badFile.exists());
+        assertTrue("Files does not exist: " + badFile, badFile.exists());
         List<String> badLines = Files.readAllLines(badFile.toPath(), Charset.defaultCharset());
-        assertEquals("Expected 2 lines in bad file", 2, badLines.size());
+        assertEquals("Expected 2 lines in bad file "+badFile.getCanonicalPath(), 2, badLines.size());
         assertContains(badLines, containsString("BONUS_CK"));
         assertContains(badLines, containsString(spliceSchemaWatcher.schemaName+"."+tableName));
         assertContains(badLines, containsString("SAL_CK"));

@@ -1,60 +1,96 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.db.io.StorageFile;
 import com.splicemachine.db.io.StorageRandomAccessFile;
 
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Scott Fines
  *         Date: 1/21/16
  */
 class MFile implements StorageFile{
-    private final String directoryName;
-    private final String fileName;
+    private final MemStorageFactory storage;
+    private final Path path;
+    private final boolean isDir;
     private byte[] data;
 
-    public MFile(String directoryName,String fileName){
-        this.directoryName=directoryName;
-        this.fileName=fileName;
+    private boolean created = false;
+
+    public MFile(MemStorageFactory storage,
+            String directoryName,
+                 String fileName){
+        if(fileName!=null){
+            this.path=Paths.get(directoryName,fileName);
+            this.isDir=false;
+        }else{
+            this.path=Paths.get(directoryName);
+            this.isDir=false;
+        }
+        this.storage = storage;
+    }
+    public MFile(MemStorageFactory storage,Path p,boolean isDir){
+        this.path = p;
+        this.storage = storage;
+        this.isDir = isDir;
+    }
+
+    @Override
+    public String toString(){
+        return getPath();
     }
 
     @Override
     public String[] list(){
-        return new String[]{fileName};
+        List<Path> children = storage.getChildren(path);
+        String[] childNames = new String[children.size()];
+        int i=0;
+        for(Path p:children){
+            childNames[i] = p.getFileName().toString();
+            i++;
+        }
+        return childNames;
     }
 
     @Override
     public boolean canWrite(){
-        return fileName!=null;
+        return !isDir;
     }
 
     @Override
     public boolean exists(){
-        return true;
+        return created;
     }
 
     @Override
     public boolean isDirectory(){
-        return fileName==null;
+        return isDir;
     }
 
     @Override
     public boolean delete(){
+        data = null;
+        created=false;
+        storage.remove(this);
         return true;
     }
 
     @Override
     public boolean deleteAll(){
-        return true;
+        return delete();
     }
 
     @Override
     public String getPath(){
-        return directoryName+"/"+fileName;
+        return path.toAbsolutePath().toString();
     }
 
     @Override
@@ -64,16 +100,18 @@ class MFile implements StorageFile{
 
     @Override
     public String getName(){
-        return fileName!=null? fileName:directoryName;
+        Path fileName=path.getFileName();
+        return fileName.toString();
     }
 
     @Override
     public URL getURL() throws MalformedURLException{
-        return null;
+        return path.toUri().toURL();
     }
 
     @Override
     public boolean createNewFile() throws IOException{
+        created=true;
         return true;
     }
 
@@ -84,11 +122,13 @@ class MFile implements StorageFile{
 
     @Override
     public boolean mkdir(){
+        created=true;
         return true;
     }
 
     @Override
     public boolean mkdirs(){
+        created=true;
         return true;
     }
 
@@ -99,7 +139,10 @@ class MFile implements StorageFile{
 
     @Override
     public StorageFile getParentDir(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        Path parent=path.getParent();
+        if(parent==null)
+            return new MFile(storage,"/",null);
+        else return new MFile(storage,parent,true);
     }
 
     @Override
@@ -125,7 +168,10 @@ class MFile implements StorageFile{
 
     @Override
     public InputStream getInputStream() throws FileNotFoundException{
-        return new ByteArrayInputStream(this.data);
+        if(this.data==null)
+            return new ByteArrayInputStream(new byte[]{});
+        else
+            return new ByteArrayInputStream(this.data);
     }
 
     @Override
@@ -146,5 +192,9 @@ class MFile implements StorageFile{
     @Override
     public void limitAccessToOwner(){
 
+    }
+
+    Path path(){
+        return path;
     }
 }

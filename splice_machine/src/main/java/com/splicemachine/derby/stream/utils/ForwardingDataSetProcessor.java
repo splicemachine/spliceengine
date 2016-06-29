@@ -116,13 +116,8 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public void setPermissive(){
-        delegate.setPermissive();
-    }
-
-    @Override
-    public void setFailBadRecordCount(int failBadRecordCount){
-        delegate.setFailBadRecordCount(failBadRecordCount);
+    public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold){
+        delegate.setPermissive(statusDirectory, importFileName, badRecordThreshold);
     }
 
     @Override

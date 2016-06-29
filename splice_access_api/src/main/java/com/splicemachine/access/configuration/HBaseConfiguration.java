@@ -82,7 +82,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String LEADER_ELECTION = "/leaderElection";
 
     public static final String SPLICE_ROOT_PATH = "splice.root.path";
-    protected static final String DEFAULT_ROOT_PATH="/splice";
+    public static final String DEFAULT_ROOT_PATH="/splice";
 
     /**
      * The number of timestamps to 'reserve' at a time in the Timestamp Server.

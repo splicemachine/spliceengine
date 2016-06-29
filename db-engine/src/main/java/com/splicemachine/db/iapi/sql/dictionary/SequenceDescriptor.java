@@ -123,28 +123,6 @@ public class SequenceDescriptor extends TupleDescriptor
     }
 
     /**
-     * Drop this sequence descriptor. Only restricted drops allowed right now.
-     *
-     * @throws StandardException Could not be dropped.
-     */
-    public void drop(LanguageConnectionContext lcc) throws StandardException
-    {
-        DataDictionary dd = getDataDictionary();
-        DependencyManager dm = getDataDictionary().getDependencyManager();
-        TransactionController tc = lcc.getTransactionExecute();
-
-        // invalidate compiled statements which depend on this sequence
-        dm.invalidateFor(this, DependencyManager.DROP_SEQUENCE, lcc);
-
-        // drop the sequence
-        dd.dropSequenceDescriptor(this, tc);
-
-        // Clear the dependencies for the sequence
-        dm.clearDependencies(lcc, this);
-
-    }
-
-    /**
 	 * Check that all of the dependent's dependencies are valid.
 	 *
 	 * @return true if the dependent is currently valid

@@ -165,6 +165,7 @@ public class FromBaseTable extends FromTable {
     /* Variables for EXISTS FBTs */
     private boolean existsBaseTable;
     private boolean isNotExists;  //is a NOT EXISTS base table
+    private boolean matchRowId;
     private JBitSet dependencyMap;
 
     private boolean getUpdateLocks;
@@ -901,10 +902,10 @@ public class FromBaseTable extends FromTable {
      * @param dependencyMap   The dependency map for the EXISTS FBT.
      * @param isNotExists     Whether or not for NOT EXISTS, more specifically.
      */
-    void setExistsBaseTable(boolean existsBaseTable,JBitSet dependencyMap,boolean isNotExists){
+    void setExistsBaseTable(boolean existsBaseTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId){
         this.existsBaseTable=existsBaseTable;
         this.isNotExists=isNotExists;
-
+        this.matchRowId = matchRowId;
 		/* Set/clear the dependency map as needed */
         if(existsBaseTable){
             this.dependencyMap=dependencyMap;
@@ -1958,10 +1959,12 @@ public class FromBaseTable extends FromTable {
                         (bulkFetch!=UNSET),multiProbing),
                 ClassName.NoPutResultSet,nargs);
 
-        if(rowIdColumn!=null && updateOrDelete!=DELETE){
-            acb.newFieldDeclaration(Modifier.PRIVATE,
-                    ClassName.CursorResultSet,
-                    acb.newRowLocationScanResultSetName());
+        if (rowIdColumn != null) {
+            String type = ClassName.CursorResultSet;
+            String name = acb.newRowLocationScanResultSetName();
+            if (!acb.cb.existsField(type, name)) {
+                acb.newFieldDeclaration(Modifier.PRIVATE, type, name);
+            }
         }
 		/* If this table is the target of an update or a delete, then we must 
 		 * wrap the Expression up in an assignment expression before 
@@ -2529,7 +2532,10 @@ public class FromBaseTable extends FromTable {
     @Override
     public boolean isOneRowResultSet() throws StandardException{
         // EXISTS FBT will only return a single row
-        if(existsBaseTable){
+        if (matchRowId) {
+            return false;
+        }
+        if(existsBaseTable ){
             return true;
         }
 

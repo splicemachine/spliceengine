@@ -1,10 +1,11 @@
 package com.splicemachine.derby.stream.iapi;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.si.api.txn.TxnView;
 import java.io.Externalizable;
-import java.util.List;
 
 /**
  * Created by jleach on 4/17/15.
@@ -24,12 +25,15 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     long getRecordsFiltered();
     long getRecordsWritten();
 
-    void recordBadRecord(String badRecord, Exception exception);
+    void recordBadRecord(String badRecord, Exception exception) throws StandardException;
+
+    BadRecordsRecorder getBadRecordsRecorder();
+
     boolean isPermissive();
-    void setPermissive();
-    void setFailBadRecordCount(int failBadRecordCount);
+    void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold);
     boolean isFailed();
-    List<String> getBadRecords();
+    long getBadRecords();
+    String getBadRecordFileName();
 
     enum Scope{
         READ_TEXT_FILE("Read File"),

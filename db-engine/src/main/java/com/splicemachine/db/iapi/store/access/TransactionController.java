@@ -27,14 +27,9 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.services.io.Storable;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.raw.Loggable;
-
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
 /**
@@ -1212,143 +1207,6 @@ public interface TransactionController
 			throws StandardException;
 
     /**
-     * Compress table in place.
-     * <p>
-     * Returns a GroupFetchScanController which can be used to move rows
-     * around in a table, creating a block of free pages at the end of the
-     * table.  The process will move rows from the end of the table toward
-     * the beginning.  The GroupFetchScanController will return the 
-     * old row location, the new row location, and the actual data of any
-     * row moved.  Note that this scan only returns moved rows, not an
-     * entire set of rows, the scan is designed specifically to be
-     * used by either explicit user call of the SYSCS_ONLINE_COMPRESS_TABLE()
-     * procedure, or internal background calls to compress the table.
-     *
-     * The old and new row locations are returned so that the caller can
-     * update any indexes necessary.
-     *
-     * This scan always returns all collumns of the row.
-     * 
-     * All inputs work exactly as in openScan().  The return is 
-     * a GroupFetchScanController, which only allows fetches of groups
-     * of rows from the conglomerate.
-     * <p>
-     *
-	 * @return The GroupFetchScanController to be used to fetch the rows.
-     *
-	 * @param conglomId             see openScan()
-     * @param hold                  see openScan()
-     * @param open_mode             see openScan()
-     * @param lock_level            see openScan()
-     * @param isolation_level       see openScan()
-     *
-	 * @exception  StandardException  Standard exception policy.
-     *
-     * @see ScanController
-     * @see GroupFetchScanController
-     **/
-	GroupFetchScanController defragmentConglomerate(
-		long                            conglomId,
-        boolean                         online,
-		boolean                         hold,
-		int                             open_mode,
-        int                             lock_level,
-        int                             isolation_level)
-			throws StandardException;
-
-    /**
-     * Purge all committed deleted rows from the conglomerate.
-     * <p>
-     * This call will purge committed deleted rows from the conglomerate,
-     * that space will be available for future inserts into the conglomerate.
-     * <p>
-     *
-     * @param conglomId Id of the conglomerate to purge.
-     *
-	 * @exception  StandardException  Standard exception policy.
-     **/
-	void purgeConglomerate(long conglomId)
-			throws StandardException;
-
-    /**
-     * Return free space from the conglomerate back to the OS.
-     * <p>
-     * Returns free space from the conglomerate back to the OS.  Currently
-     * only the sequential free pages at the "end" of the conglomerate can
-     * be returned to the OS.
-     * <p>
-     *
-     * @param conglomId Id of the conglomerate to purge.
-     *
-	 * @exception  StandardException  Standard exception policy.
-     **/
-	void compressConglomerate(long conglomId)
-			throws StandardException;
-
-
-    /**
-     * Retrieve the maximum value row in an ordered conglomerate.
-     * <p>
-     * Returns true and fetches the rightmost non-null row of an ordered 
-     * conglomerate into "fetchRow" if there is at least one non-null row in 
-     * the conglomerate.  If there are no non-null rows in the conglomerate it 
-     * returns false.  Any row with
-     * a first column with a Null is considered a "null" row.
-     * <p>
-     * Non-ordered conglomerates will not implement this interface, calls
-     * will generate a StandardException.
-     * <p>
-     * RESOLVE - this interface is temporary, long term equivalent (and more) 
-     * functionality will be provided by the openBackwardScan() interface.  
-     * <p>
-     * ISOLATION_SERIALIZABLE and MODE_RECORD locking for btree max:
-     * The "BTREE" implementation will at the very least get a shared row lock
-     * on the max key row and the key previous to the max.  
-     * This will be the case where the max row exists in the rightmost page of
-     * the btree.  These locks won't be released.  If the row does not exist in
-     * the last page of the btree then a scan of the entire btree will be
-     * performed, locks acquired in this scan will not be released.
-     * <p>
-     * Note that under ISOLATION_READ_COMMITTED, all locks on the table
-     * are released before returning from this call.
-     *
-	 * @param conglomId       The identifier of the conglomerate
-	 *                        to open the scan for.
-     *
-	 * @param open_mode       Specifiy flags to control opening of table.  
-     *                        OPENMODE_FORUPDATE - if set open the table for
-     *                        update otherwise open table shared.
-     * @param lock_level      One of (MODE_TABLE, MODE_RECORD).
-     *
-     * @param isolation_level   The isolation level to lock the conglomerate at.
-     *                          One of (ISOLATION_READ_COMMITTED, 
-     *                          ISOLATION_REPEATABLE_READ or 
-     *                          ISOLATION_SERIALIZABLE).
-     *
-	 * @param scanColumnList  A description of which columns to return from 
-     *                        every fetch in the scan.  template, and 
-     *                        scanColumnList work together
-     *                        to describe the row to be returned by the scan - 
-     *                        see RowUtil for description of how these three 
-     *                        parameters work together to describe a "row".
-     *
-     * @param fetchRow        The row to retrieve the maximum value into.
-     *
-	 * @return boolean indicating if a row was found and retrieved or not.
-     *
-	 * @exception  StandardException  Standard exception policy.
-     **/
-	boolean fetchMaxOnBtree(
-		long                    conglomId,
-		int                     open_mode,
-        int                     lock_level,
-        int                     isolation_level,
-		FormatableBitSet                 scanColumnList,
-		DataValueDescriptor[]   fetchRow)
-			throws StandardException;
-
-
-    /**
      * Return an open StoreCostController for the given conglomid.
      * <p>
      * Return an open StoreCostController which can be used to ask about 
@@ -1507,22 +1365,6 @@ public interface TransactionController
      * Interfaces previously defined in TcLogIface:
      **************************************************************************
      */
-	/**
-    Log an operation and then action it in the context of this
-    transaction.
-
-    <P>This simply passes the operation to the RawStore which logs and
-    does it.
-    
-
-    @param operation the operation that is to be applied
-
-    @see com.splicemachine.db.iapi.store.raw.Loggable
-    @see com.splicemachine.db.iapi.store.raw.Transaction#logAndDo
-    @exception StandardException  Standard Derby exception policy
-	**/
-	public void logAndDo(Loggable operation) throws StandardException;
-
 
     /**************************************************************************
      * Interfaces previously defined in TcSortIface:

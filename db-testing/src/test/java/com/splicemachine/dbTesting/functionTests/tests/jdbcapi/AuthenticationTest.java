@@ -46,6 +46,7 @@ import com.splicemachine.dbTesting.junit.JDBC;
 import com.splicemachine.dbTesting.junit.JDBCDataSource;
 import com.splicemachine.dbTesting.junit.SystemPropertyTestSetup;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
+import org.junit.Ignore;
 
 /**
  * Tests authentication and connection level authorization.
@@ -210,6 +211,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
      * Test how user names behave with casing.
      * @throws SQLException
      */
+    @Ignore("GET[SET]_USER_ACCESS procedures desupported")
     public void testUserCasing() throws SQLException
     {
         for (int i = 0; i < USERS.length; i++)
@@ -703,7 +705,8 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         conn1.commit();
         conn1.close();
     }
-    
+
+    @Ignore("GET[SET]_USER_ACCESS procedures desupported")
     public void testNotFullAccessUsers() throws SQLException
     {
         // use valid user/pwd to set the full accessusers.
@@ -945,6 +948,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
      * to setting and getting connection level access.
      * @throws SQLException
      */
+    @Ignore("GET[SET]_USER_ACCESS procedures desupported")
     public void testUserAccessRoutines() throws SQLException
     {
         // use valid user/pwd to set the full accessusers.

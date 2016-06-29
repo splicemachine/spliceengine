@@ -78,6 +78,11 @@ message DropTable {
         optional UUID tableId = 3;
 }
 
+message DropSequence {
+        required string schemaName = 1;
+        required string sequenceName = 2;
+}
+
 message DropRole {
         optional string roleName = 1;
 }
@@ -269,6 +274,7 @@ enum DDLChangeType {
     DROP_ALIAS = 30;
     CREATE_VIEW = 31;
     DROP_VIEW = 32;
+    DROP_SEQUENCE = 33;
 }
 
 message DDLChange {
@@ -301,4 +307,5 @@ message DDLChange {
     optional DropAlias dropAlias = 27;
     optional CreateView createView = 28;
     optional DropView dropView = 29;
+    optional DropSequence dropSequence = 30;
 }

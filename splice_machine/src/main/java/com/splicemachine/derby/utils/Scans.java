@@ -236,14 +236,14 @@ public class Scans extends SpliceUtils {
                 generateStartKey = true;
                 for (int i = 0; i < startKeyValue.length; i++) {
                     DataValueDescriptor startDesc = startKeyValue[i];
-                    if (startDesc == null || startDesc.isNull()) {
+                    if (startDesc == null) {
                         generateStartKey = false; // if any null encountered, don't make a start key
                         break;
                     }
 
                     // we just rely on key table positions
-                    if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0) {
-                        int targetColFormatId = columnTypes[keyDecodingMap[i]];
+                    if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0 && !isEmpty(keyTablePositionMap)) {
+                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
                         if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
                         }
@@ -257,14 +257,14 @@ public class Scans extends SpliceUtils {
                 generateStopKey = true;
                 for (int i = 0; i < stop.length; i++) {
                     DataValueDescriptor stopDesc = stop[i];
-                    if (stopDesc == null || stopDesc.isNull()) {
+                    if (stopDesc == null) {
                         generateStopKey = false; // if any null encountered, don't make a stop key
                         break;
                     }
 
                     //  we just rely on key table positions
-                    if (!isEmpty(keyDecodingMap)) {
-                        int targetColFormatId = columnTypes[keyDecodingMap[i]];
+                    if (!isEmpty(keyDecodingMap) && !isEmpty(keyTablePositionMap)) {
+                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
                         if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
                         }

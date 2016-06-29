@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.api.SConfiguration;
@@ -19,24 +20,6 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.PermDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PrivilegedSQLObject;
-import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
-import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TablePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
@@ -580,6 +563,34 @@ public class DDLUtils {
             throw StandardException.plainWrapException(e);
         }
     }
+
+    public static void preDropSequence(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropSequence with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            boolean prepared = false;
+            try{
+                prepared = transactionResource.marshallTransaction(txn);
+                DDLMessage.DropSequence dropSequence=change.getDropSequence();
+                TransactionController tc = transactionResource.getLcc().getTransactionExecute();
+                SchemaDescriptor sd = dd.getSchemaDescriptor(dropSequence.getSchemaName(),tc,true);
+                if(sd==null) // Table Descriptor transaction never committed
+                    return;
+                SequenceDescriptor seqDesc = dd.getSequenceDescriptor(sd,dropSequence.getSequenceName());
+                if (seqDesc==null)
+                    return;
+                dm.invalidateFor(seqDesc, DependencyManager.DROP_SEQUENCE, transactionResource.getLcc());
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
 
 
     public static void preCreateTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {

@@ -21,17 +21,11 @@
 
 package com.splicemachine.db.impl.store.access;
 
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Properties;
 
 public class PC_XenaVersion implements Formatable
 {
@@ -50,19 +44,6 @@ public class PC_XenaVersion implements Formatable
 		return
 			fromVersion == null ||
 			getMajorVersionNumber() != fromVersion.getMajorVersionNumber();
-	}
-
-	public void upgradeIfNeeded(TransactionController tc,
-								PropertyConglomerate pc,
-								Properties serviceProperties)
-		 throws StandardException
-	{
-		PC_XenaVersion dbVersion =
-			(PC_XenaVersion)pc.getProperty(tc,DataDictionary.PROPERTY_CONGLOMERATE_VERSION);
-		if (isUpgradeNeeded(dbVersion))
-		{
-			throw StandardException.newException(SQLState.UPGRADE_UNSUPPORTED, dbVersion, this);
-		}
 	}
 
 	public int getMajorVersionNumber() {return XENA_MAJOR_VERSION;}

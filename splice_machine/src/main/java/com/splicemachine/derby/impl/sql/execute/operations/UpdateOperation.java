@@ -6,7 +6,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
@@ -20,22 +19,12 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
-import com.splicemachine.pipeline.callbuffer.PreFlushHook;
-import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
-import com.splicemachine.pipeline.client.WriteCoordinator;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 
 /**
  * @author jessiezhang
@@ -45,7 +34,8 @@ public class UpdateOperation extends DMLWriteOperation{
     private static final Logger LOG=Logger.getLogger(UpdateOperation.class);
     private DataValueDescriptor[] kdvds;
     public int[] colPositionMap;
-    public FormatableBitSet heapList;
+    public FormatableBitSet heapList; // 1-based
+    public FormatableBitSet heapListStorage; // 1-based
     protected int[] columnOrdering;
     protected int[] format_ids;
 
@@ -79,7 +69,6 @@ public class UpdateOperation extends DMLWriteOperation{
         heapConglom=writeInfo.getConglomerateId();
         pkCols=writeInfo.getPkColumnMap();
         pkColumns=writeInfo.getPkColumns();
-
         SpliceConglomerate conglomerate=(SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
         format_ids=conglomerate.getFormat_ids();
         columnOrdering=conglomerate.getColumnOrdering();
@@ -87,7 +76,6 @@ public class UpdateOperation extends DMLWriteOperation{
         for(int i=0;i<columnOrdering.length;++i){
             kdvds[i]=LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
         }
-
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
@@ -143,45 +131,20 @@ public class UpdateOperation extends DMLWriteOperation{
         return heapList;
     }
 
-    private boolean modifiedPrimaryKeys(FormatableBitSet heapList){
-        boolean modifiedPrimaryKeys=false;
-        if(pkColumns!=null){
-            for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
-                if(heapList.isSet(pkCol+1)){
-                    modifiedPrimaryKeys=true;
-                    break;
-                }
+    private FormatableBitSet getHeapListStorage() throws StandardException{
+        // Creates the equivalent of heapList (which is based on ordinal column positions)
+        // but where the bits represent storage positions of columns being updated.
+        if (heapListStorage==null) {
+            FormatableBitSet heapList = getHeapList();
+            int[] storagePositionIds = ((UpdateConstantOperation)writeInfo.getConstantAction()).getStoragePositionIds();
+            heapListStorage = new FormatableBitSet(heapList.getLength());
+            for(int i=heapList.anySetBit();i>=0;i=heapList.anySetBit(i)) {
+                int storagePos = storagePositionIds[i-1]+1;
+                heapListStorage.grow(storagePos+1);
+                heapListStorage.set(storagePos);
             }
         }
-        return modifiedPrimaryKeys;
-    }
-
-    public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
-        if(modifiedPrimaryKeys(getHeapList())){
-            TxnView txn=bufferToTransform.getTxn();
-            WriteCoordinator writeCoordinator=PipelineDriver.driver().writeCoordinator();
-            return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(bufferToTransform.destinationPartition(),txn,new PreFlushHook(){
-                @Override
-                public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception{
-                    bufferToTransform.flushBufferAndWait();
-                    return new ArrayList<>(buffer); // Remove this but here to match no op...
-                }
-            })){
-                @Override
-                public void add(KVPair element) throws Exception{
-                    byte[] oldLocation=((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
-                    if(!Bytes.equals(oldLocation,element.getRowKey())){
-                        bufferToTransform.add(new KVPair(oldLocation,SIConstants.EMPTY_BYTE_ARRAY,KVPair.Type.DELETE));
-                        element.setType(KVPair.Type.INSERT);
-                    }else{
-                        element.setType(KVPair.Type.UPDATE);
-                    }
-                    delegate.add(element);
-                }
-
-            };
-        }else
-            return bufferToTransform;
+        return heapListStorage;
     }
 
     @Override
@@ -207,7 +170,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     .pkColumns(pkColumns)
                     .formatIds(format_ids)
                     .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
-                    .heapList(getHeapList())
+                    .heapList(getHeapListStorage())
                     .tableVersion(tableVersion)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)

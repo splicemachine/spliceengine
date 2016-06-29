@@ -27,21 +27,12 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.CompressedNumber;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.FormatIdUtil;
-
-import com.splicemachine.db.iapi.store.access.RowUtil;
-
-import com.splicemachine.db.iapi.store.raw.FetchDescriptor;
-import com.splicemachine.db.iapi.store.raw.Page;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
-import com.splicemachine.db.iapi.store.raw.RecordHandle;
-
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
-
 import java.io.IOException; 
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-
 import java.util.Properties;
 
 /**
@@ -336,76 +327,4 @@ public final class ConglomerateUtil
         return num_compressed_entries > 0;
 	}
 
-	/**
-	 ** Format a page of data, as access see's it.
-	 **/
-
-	public static String debugPage(
-    Page                    page,
-    int                     start_slot,
-    boolean                 full_rh,
-    DataValueDescriptor[]   template)
-    {
-        if (SanityManager.DEBUG)
-        {
-            StringBuffer string = new StringBuffer(4096);
-
-            string.append("PAGE:(");
-            string.append(page.getPageNumber());
-            string.append(")------------------------------------------:\n");
-
-            try
-            {
-                if (page != null)
-                {
-                    int numrows   = page.recordCount();
-
-                    for (int slot_no = start_slot; slot_no < numrows; slot_no++)
-                    {
-                        RecordHandle rh = 
-                            page.fetchFromSlot(
-                               (RecordHandle) null, slot_no, template, 
-                               (FetchDescriptor) null,
-                               true);
-
-                        // pre-pend either "D:" if deleted, or " :" if not.
-                        string.append(
-                            page.isDeletedAtSlot(slot_no) ? "D:" : " :");
-
-                        // row[slot,id]:
-                        string.append("row[");
-                        string.append(slot_no);
-                        string.append("](id:");
-                        string.append(rh.getId());
-                        string.append("):\t");
-
-                        // long record handle: 
-                        //   Record id=78 Page(31,Container(0, 919707766934))
-                        if (full_rh)
-                        {
-                            string.append("[");
-                            string.append(rh.toString());
-                            string.append("]:");
-                        }
-
-                        // row:
-                        string.append(RowUtil.toString(template));
-                        string.append("\n");
-                    }
-
-                    // string.append(page.toString());
-                }
-            }
-            catch (Throwable t)
-            {
-                string.append("Error encountered while building string");
-            }
-
-            return(string.toString());
-        }
-        else
-        {
-            return(null);
-        }
-    }
 }

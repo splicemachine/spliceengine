@@ -90,7 +90,7 @@ public class JoinOperationIT extends SpliceUnitTest{
         Assert.assertEquals(String.format("Wrong min for %s", joinStrategy),3,rs.getInt(2));
     }
     @Test
-    @Ignore("DB-4272 no valid plan execution for sortmerge, bcast and merge")
+    @Ignore("DB-5173 no valid plan execution for sortmerge, bcast and merge")
     public void testInnerAntiJoinNoRestriction() throws Exception {
         System.out.println(joinStrategy);
         ResultSet rs = methodWatcher.executeQuery(String.format(

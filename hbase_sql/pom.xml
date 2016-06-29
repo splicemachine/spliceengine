@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>hbase_sql-${envClassifier}</artifactId>
     <description>SQL engine based on HBase</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.0.1.13-SNAPSHOT</version>
+        <version>2.0.1.16-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -67,6 +68,10 @@
                     <groupId>org.jboss.netty</groupId>
                     <artifactId>netty</artifactId>
                 </exclusion>
+              <exclusion>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+              </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -128,6 +133,11 @@
             <version>${hadoop.version}</version>
         </dependency>
 -->
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-beeline</artifactId>
@@ -235,7 +245,29 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-tools</artifactId>
             <version>${hadoop.tools.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>hadoop-core</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-common</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
+      <dependency>
+        <groupId>org.splicetest.sqlj</groupId>
+        <artifactId>sqlj-it-procs</artifactId>
+        <type>jar</type>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.splicetest.txn</groupId>
+        <artifactId>txn-it-procs</artifactId>
+        <type>jar</type>
+        <scope>test</scope>
+      </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
@@ -287,7 +319,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <!--<groups>com.splicemachine.test.SerialTest</groups>-->
+                            <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>${excluded.categories}</excludedGroups>
                             <argLine>-Xmx3g -XX:MaxPermSize=256m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -298,35 +330,38 @@
                                 <include>**/*IT.java</include>
                             </includes>
                             <excludes>
-                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/** </exclude>
+                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**
+                                </exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
-                    <!--<execution>-->
-                    <!--<id>integration-tests-parallel</id>-->
-                    <!--<goals>-->
-                    <!--<goal>integration-test</goal>-->
-                    <!--<goal>verify</goal>-->
-                    <!--</goals>-->
-                    <!--<configuration>-->
-                    <!--<excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>-->
-                    <!--<skipTests>${skip.integration.tests}</skipTests>-->
-                    <!--<parallel>classes</parallel>-->
-                    <!--<threadCount>1</threadCount>-->
-                    <!--<perCoreThreadCount>false</perCoreThreadCount>-->
-                    <!--<argLine>-Xmx3g</argLine>-->
-                    <!--<redirectTestOutputToFile>true</redirectTestOutputToFile>-->
-                    <!--<includes>-->
-                    <!--<include>**/*IT.java</include>-->
-                    <!--</includes>-->
-                    <!--<excludes>-->
-                    <!--&lt;!&ndash; Skip all unit tests &ndash;&gt;-->
-                    <!--<exclude>**/*Test.java</exclude>-->
-                    <!--</excludes>-->
-                    <!--<runOrder>alphabetical</runOrder>-->
-                    <!--</configuration>-->
-                    <!--</execution>-->
+                    <execution>
+                        <id>integration-tests-parallel</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+                            <parallel>classes</parallel>
+														<threadCount>1</threadCount> <!-- -sf- single-threaded for now -->
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <argLine>-Xmx4g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_machine</dependency>
+                            </dependenciesToScan>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludes>
+                                <!-- Skip all unit tests -->
+                                <exclude>**/*Test.java</exclude>
+                            </excludes>
+                            <!--<runOrder>alphabetical</runOrder>-->
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -338,7 +373,8 @@
                         <configuration>
                             <skip>${skipTests}</skip>
                             <target name="StartSpliceServer" unless="${server.skip.start}">
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath"/>
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"
+                                         classpathref="maven.plugin.classpath"/>
                                 <if>
                                     <istrue value="${failTasksRandomly}"/>
                                     <!-- run with chaos monkey (default) -->
@@ -359,7 +395,8 @@
                                 </if>
                                 <property name="classpath.test" refid="maven.test.classpath"/>
                                 <!--suppress MavenModelInspection -->
-                                <java classname="com.splicemachine.test.SpliceTestPlatformWait" classpath="${classpath.test}" spawn="false">
+                                <java classname="com.splicemachine.test.SpliceTestPlatformWait"
+                                      classpath="${classpath.test}" spawn="false">
                                     <arg value="localhost"/>
                                     <arg value="1527"/>
                                 </java>
@@ -516,7 +553,9 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>-Djava.awt.headless=true</argument>
-                                <argument> -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties </argument>
+                                <argument>
+                                    -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
+                                </argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
@@ -585,7 +624,9 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>-Djava.awt.headless=true</argument>
-                                <argument> -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties </argument>
+                                <argument>
+                                    -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
+                                </argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
@@ -681,7 +722,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
-                                <argument>-Xmx8g</argument>
+                                <argument>-Xmx6g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
@@ -794,7 +835,7 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
-                                <argument>-Xmx2g</argument>
+                                <argument>-Xmx4g</argument>
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>

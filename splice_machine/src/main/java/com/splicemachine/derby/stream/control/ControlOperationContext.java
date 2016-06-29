@@ -5,13 +5,11 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.ActivationHolder;import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -29,23 +27,21 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     private static Logger LOG = Logger.getLogger(ControlOperationContext.class);
 
     long rowsRead;
-        long rowsFiltered;
-        long rowsWritten;
-        long rowsJoinedLeft;
-        long rowsJoinedRight;
-        long rowsProduced;
-        List<String> badRecords;
-        public ActivationHolder activationHolder;
-        public SpliceTransactionResourceImpl impl;
-        public Activation activation;
-        public SpliceOperationContext context;
-        public Op op;
-        public TxnView txn;
-        private int failBadRecordCount = -1;
-        private boolean permissive;
-        private boolean failed;
-        private int numberBadRecords = 0;
-
+    long rowsFiltered;
+    long rowsWritten;
+    long rowsJoinedLeft;
+    long rowsJoinedRight;
+    long rowsProduced;
+    List<String> badRecords;
+    public ActivationHolder activationHolder;
+    public SpliceTransactionResourceImpl impl;
+    public Activation activation;
+    public SpliceOperationContext context;
+    public Op op;
+    public TxnView txn;
+    private boolean permissive;
+    private BadRecordsRecorder badRecordsRecorder;
+    private boolean failed;
 
     public ControlOperationContext() {
         }
@@ -73,6 +69,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
                 activationHolder = new ActivationHolder(activation, op);
             out.writeObject(activationHolder);
             out.writeObject(op);
+            out.writeObject(badRecordsRecorder);
             SIDriver.driver().getOperationFactory().writeTxn(txn, out);
        }
 
@@ -80,6 +77,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             activationHolder = (ActivationHolder)in.readObject();
             op = (Op) in.readObject();
+            badRecordsRecorder = (BadRecordsRecorder) in.readObject();
             txn = SIDriver.driver().getOperationFactory().readTxn(in);
             boolean prepared = false;
             try {
@@ -196,24 +194,33 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
-    public void recordBadRecord(String badRecord, Exception e) {
-        numberBadRecords++;
-        String errorState = "";
-        if (e != null) {
-            if (e instanceof SQLException) {
-                errorState = ((SQLException)e).getSQLState();
-            } else if (e instanceof StandardException) {
-                errorState = ((StandardException)e).getSQLState();
+    public void recordBadRecord(String badRecord, Exception e) throws StandardException {
+        if (! failed) {
+            String errorState = "";
+            if (e != null) {
+                if (e instanceof SQLException) {
+                    errorState = ((SQLException)e).getSQLState();
+                } else if (e instanceof StandardException) {
+                    errorState = ((StandardException)e).getSQLState();
+                }
             }
+            failed = badRecordsRecorder.recordBadRecord(errorState + " " + badRecord+LINE_SEP);
         }
-        badRecords.add(errorState + " " + badRecord+LINE_SEP);
-        if (failBadRecordCount>=0 && numberBadRecords> this.failBadRecordCount)
-            failed=true;
     }
 
     @Override
-    public List<String> getBadRecords() {
-        return badRecords;
+    public long getBadRecords() {
+        return (badRecordsRecorder != null ? badRecordsRecorder.getNumberOfBadRecords() : 0);
+    }
+
+    @Override
+    public String getBadRecordFileName() {
+        return (badRecordsRecorder != null ? badRecordsRecorder.getBadRecordFileName() : "");
+    }
+
+    @Override
+    public BadRecordsRecorder getBadRecordsRecorder() {
+        return badRecordsRecorder;
     }
 
     @Override
@@ -227,12 +234,8 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
-    public void setPermissive() {
+    public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold) {
         this.permissive=true;
-    }
-
-    @Override
-    public void setFailBadRecordCount(int failBadRecordCount) {
-        this.failBadRecordCount = failBadRecordCount;
+        this.badRecordsRecorder = new BadRecordsRecorder(statusDirectory, importFileName, badRecordThreshold);
     }
 }

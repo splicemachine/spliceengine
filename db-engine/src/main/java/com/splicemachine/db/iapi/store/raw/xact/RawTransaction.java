@@ -21,28 +21,15 @@
 
 package com.splicemachine.db.iapi.store.raw.xact;
 
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
-
 import com.splicemachine.db.iapi.services.locks.LockFactory;
-
 import com.splicemachine.db.iapi.store.raw.data.DataFactory;
-import com.splicemachine.db.iapi.store.raw.Compensation;
-import com.splicemachine.db.iapi.store.raw.LockingPolicy;
-import com.splicemachine.db.iapi.store.raw.Loggable;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.store.raw.GlobalTransactionId;
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
-import com.splicemachine.db.iapi.store.raw.log.LogFactory;
-import com.splicemachine.db.iapi.store.raw.data.RawContainerHandle;
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
-
-
 import java.util.Observable;
-
-import com.splicemachine.db.iapi.services.io.LimitObjectInput;
 
 /**
 	RawTransaction is the form of Transaction used within the raw store. This
@@ -84,36 +71,10 @@ public abstract class RawTransaction extends Observable implements Transaction {
 	*/
 	public abstract DataFactory getDataFactory();
 
-	/**	
-		Get the log factory to be used during this transaction.
-	*/
-	public abstract LogFactory getLogFactory();
-
 	/**
 		Get the log buffer to be used during this transaction.
 	*/
 	public abstract DynamicByteArrayOutputStream getLogBuffer();
-
-	/**
-		Log a compensation operation and then action it in the context of this 
-        transaction.
-		The CompensationOperation is logged in the transaction log file and 
-        then its doMe method is called to perform the required change.  This 
-        compensation operation will rollback the change that was done by the 
-        Loggable Operation at undoInstant. 
-
-		@param compensation	the Compensation Operation
-		@param undoInstant	the LogInstant of the Loggable Operation this 
-							compensation operation is going to roll back
-		@param in			optional data for the rollback operation
-
-		@see Compensation
-
-		@exception StandardException  Standard Derby exception policy
-	*/
-	public abstract void logAndUndo(Compensation compensation, LogInstant undoInstant, 
-									LimitObjectInput in) 
-		throws StandardException;
 
 	/** Methods to help logging and recovery */
 
@@ -121,12 +82,6 @@ public abstract class RawTransaction extends Observable implements Transaction {
 		Set the transaction Ids (Global and internal) of this transaction
 	*/
 	public abstract void setTransactionId(GlobalTransactionId id, TransactionId shortId);
-
-	/**
-		Set the transactionId (Global and internal) of this transaction using a
-		log record that contains the Global id
-	*/
-	abstract public void setTransactionId(Loggable beginXact, TransactionId shortId);
 
 		
 	/**
@@ -155,30 +110,6 @@ public abstract class RawTransaction extends Observable implements Transaction {
 		Change the state of transaction in table to prepare.
 	*/
 	public abstract void prepareTransaction();
-
-	/**
-		Set the log instant for the first log record written by this 
-        transaction.
-	*/
-	abstract public void setFirstLogInstant(LogInstant instant);
-
-	/**
-		Get the log instant for the first log record written by this 
-        transaction.
-	*/
-	abstract public LogInstant getFirstLogInstant();
-
-	/**
-		Set the log instant for the last log record written by this transaction. 
-	*/
-	abstract public void setLastLogInstant(LogInstant instant);
-
-	/**
-		Get the log instant for the last log record written by this transaction. 
-		If the transaction is unclear what its last log instant is, 
-		than it may return null.
-	*/
-	abstract public LogInstant getLastLogInstant();
 
 
 	/**
@@ -245,24 +176,6 @@ public abstract class RawTransaction extends Observable implements Transaction {
 
 
 	/**
-		Open a container that may be dropped - use only by logging and recovery.
-		During recovery redo, a log record may refer to a container that has
-		long been dropped.  This interface is provided so a dropped container
-		may be opened.
-
-		If the container has been dropped and is known to be committed, then
-		even if we open the dropped container with forUpdate true, the
-		container will be silently opened as read only.  Logging and recovery
-		code always check for committed drop status.  Anybody else wanting to
-		use this interface must keep this in mind.
-
-		@exception StandardException  Standard Derby exception policy
-	*/
-	public abstract RawContainerHandle openDroppedContainer
-		(ContainerKey containerId, LockingPolicy locking)
-		 throws StandardException;
-
-	/**
 		Recreate a container during redo recovery.
 
         Used during redo recovery when processing log records trying to 
@@ -317,21 +230,6 @@ public abstract class RawTransaction extends Observable implements Transaction {
 	 *Retunrs true if the transaction is part of rollforward recovery
 	 */
 	public abstract boolean inRollForwardRecovery();
-
-
-	/**	
-     * Redo a checkpoint during rollforward recovery.
-     *
-     * @param cinstant The LogInstant of the checkpoint
-     * @param redoLWM  Redo Low Water Mark in the check point record
-     * @param undoLWM Undo Low Water Mark in the checkpoint
-     * @exception StandardException Exception encountered during checkpoint
-	 */
-	public abstract void checkpointInRollForwardRecovery(LogInstant cinstant,
-														 long redoLWM,
-														 long undoLWM)
-		throws StandardException;
-
 	
     /**
      * Make the transaction block the online backup.

@@ -85,7 +85,7 @@ public abstract class SpliceController implements ConglomerateController{
     }
 
     public void checkConsistency() throws StandardException{
-        throw new UnsupportedOperationException("checkConsistency not enabled");
+        //nothing to do here
     }
 
     public boolean lockRow(RowLocation loc,int lock_oper,boolean wait,int lock_duration) throws StandardException{
@@ -107,7 +107,7 @@ public abstract class SpliceController implements ConglomerateController{
     }
 
     public void debugConglomerate() throws StandardException{
-        throw new UnsupportedOperationException("DebugConglomerate Not enabled");
+        //no-op
     }
 
     public boolean isKeyed(){

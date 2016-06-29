@@ -14,9 +14,11 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.List;
 
 /**
@@ -34,7 +36,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
-        region = (HRegion) ((RegionCoprocessorEnvironment) e).getRegion();
+        region =((RegionCoprocessorEnvironment) e).getRegion();
         String[] name = region.getTableDesc().getNameAsString().split(":");
         if (name.length == 2) {
             namespace = name[0];
@@ -57,32 +59,47 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     @Override
     public void prepareBackup(
             com.google.protobuf.RpcController controller,
-            com.splicemachine.coprocessor.SpliceMessage.PrepareBackupRequest request,
-            com.google.protobuf.RpcCallback<com.splicemachine.coprocessor.SpliceMessage.PrepareBackupResponse> done) {
+            SpliceMessage.PrepareBackupRequest request,
+            com.google.protobuf.RpcCallback<SpliceMessage.PrepareBackupResponse> done) {
 
         try {
             SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
             if (isSplitting) {
-                // return an error if the region is being split
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "%s:%s is being split before trying to prepare for backup", tableName, regionName);
+                }
+                // return false to client if the region is being split
                 responseBuilder.setReadyForBackup(false);
             } else {
-                HBasePlatformUtils.flush(region);
-                // Create a ZNode to indicate that the region is being copied
-                ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                // A region might have been in backup
+                if (!regionIsBeingBackup()) {
+                    HBasePlatformUtils.flush(region);
+                    // Create a ZNode to indicate that the region is being copied
+                    ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                }
                 // check again if the region is being split. If so, return an error
                 if (isSplitting) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "%s:%s is being split when trying to prepare for backup", tableName, regionName);
+                    }
                     responseBuilder.setReadyForBackup(false);
                     //delete the ZNode
                     ZkUtils.recursiveDelete(path);
                 } else {
                     //wait for all compaction and flush to complete
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "%s:%s waits for flush and compaction to complete", tableName, regionName);
+                    }
                     region.waitForFlushesAndCompactions();
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "%s:%s is ready for backup", tableName, regionName);
+                    }
                     responseBuilder.setReadyForBackup(true);
                 }
             }
             done.run(responseBuilder.build());
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            controller.setFailed(e.getMessage());
         }
     }
 
@@ -93,6 +110,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
         waitForBackupToComplete();
         isSplitting = true;
+        super.preSplit(e);
     }
 
     @Override
@@ -100,6 +118,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.postSplit()");
         isSplitting = false;
+        super.postSplit(e, l, r);
     }
 
     @Override
@@ -124,6 +143,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush()");
         waitForBackupToComplete();
+        super.preFlush(e);
     }
 
     @Override
@@ -133,46 +153,42 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
     private void waitForBackupToComplete() throws IOException{
         int i = 0;
-        while (regionIsBeingBackup()) {
-            try {
-                if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG, "wait for backup to complete");
-                Thread.sleep(100 * (long) Math.pow(2, i));
+        try {
+            while(regionIsBeingBackup()){
+                if(LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG,"wait for backup to complete");
+                Thread.sleep(100*(long)Math.pow(2,i));
                 i++;
             }
-            catch (InterruptedException e) {
-                throw new IOException(e);
-            }
+        }catch(InterruptedException e){
+            throw new InterruptedIOException();
         }
     }
 
-    private boolean regionIsBeingBackup() {
-        boolean isBackup = false;
-        try {
-            RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-            if (zooKeeper.exists(path, false) == null) {
-                if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG, "Table %s region %s is not in backup", tableName, regionName);
-                isBackup = false;
-            }
-            else {
-                byte[] status = ZkUtils.getData(path);
-                if (Bytes.compareTo(status, HConfiguration.BACKUP_IN_PROGRESS) == 0) {
-                    if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "Table %s region %s is in backup", tableName, regionName);
-                    isBackup = true;
-                }
-                else if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
-                    if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "Table %s region %s is done with backup", tableName, regionName);
-                    isBackup = false;
-                }
-                else {
-                    throw new RuntimeException("Unexpected data in node:" + path);
+    private boolean regionIsBeingBackup() throws IOException, InterruptedException{
+        boolean isBackup;
+        RecoverableZooKeeper zooKeeper=ZkUtils.getRecoverableZooKeeper();
+        try{
+            if(zooKeeper.exists(path,false)==null){
+                if(LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG,"Table %s region %s is not in backup",tableName,regionName);
+                isBackup=false;
+            }else{
+                byte[] status=ZkUtils.getData(path);
+                if(Bytes.compareTo(status,HConfiguration.BACKUP_IN_PROGRESS)==0){
+                    if(LOG.isDebugEnabled())
+                        SpliceLogUtils.debug(LOG,"Table %s region %s is in backup",tableName,regionName);
+                    isBackup=true;
+                }else if(Bytes.compareTo(status,HConfiguration.BACKUP_DONE)==0){
+                    if(LOG.isDebugEnabled())
+                        SpliceLogUtils.debug(LOG,"Table %s region %s is done with backup",tableName,regionName);
+                    isBackup=false;
+                }else{
+                    throw new RuntimeException("Unexpected data in node:"+path);
                 }
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        }catch(KeeperException ke){
+            throw new IOException(ke);
         }
 
         return isBackup;

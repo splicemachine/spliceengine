@@ -10,6 +10,8 @@ import com.splicemachine.access.configuration.ConfigurationDefault;
 import com.splicemachine.access.configuration.ConfigurationSource;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
+import com.splicemachine.concurrent.ConcurrentTicker;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -24,7 +26,8 @@ public class MemDatabase{
 
     public static void main(String...args) throws Exception{
         //load SI
-        MemSIEnvironment env=new MemSIEnvironment(new MPipelinePartitionFactory(new MTxnPartitionFactory(new MPartitionFactory())));
+        MPipelinePartitionFactory tableFactory=new MPipelinePartitionFactory(new MTxnPartitionFactory(new MPartitionFactory()));
+        MemSIEnvironment env=new MemSIEnvironment(tableFactory,new ConcurrentTicker(0L));
         MemSIEnvironment.INSTANCE = env;
         SConfiguration config = new ConfigurationBuilder().build(new HConfigurationDefaultsList().addConfig(new MemDatabaseTestConfig()),
                                                                  new ReflectingConfigurationSource());

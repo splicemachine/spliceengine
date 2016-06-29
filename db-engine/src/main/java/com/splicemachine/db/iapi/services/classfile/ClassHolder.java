@@ -276,6 +276,10 @@ public class ClassHolder {
 		return item;
 	}
 
+	public boolean existsField(String simpleName, String descriptor) {
+		return field_info.find(simpleName, descriptor) != null;
+	}
+
 	/** @see ClassHolder#addFieldReference */
 	public int addFieldReference(String className, String simpleName, String descriptor) {
 		return addReference(VMDescriptor.CONSTANT_Fieldref, className, simpleName, descriptor);

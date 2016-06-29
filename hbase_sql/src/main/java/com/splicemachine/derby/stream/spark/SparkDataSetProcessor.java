@@ -48,8 +48,10 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author jleach
  */
 public class SparkDataSetProcessor implements DistributedDataSetProcessor, Serializable {
-    private int failBadRecordCount = -1;
+    private long failBadRecordCount = -1;
     private boolean permissive;
+    private String statusDirectory;
+    private String importFileName;
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
@@ -125,8 +127,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         OperationContext<Op> operationContext =new SparkOperationContext<>(spliceOperation,broadcastedActivation.get());
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
-            operationContext.setPermissive();
-            operationContext.setFailBadRecordCount(failBadRecordCount);
+            operationContext.setPermissive(statusDirectory, importFileName, failBadRecordCount);
         }
         return operationContext;
     }
@@ -223,13 +224,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public void setPermissive() {
+    public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold) {
         this.permissive = true;
-    }
-
-    @Override
-    public void setFailBadRecordCount(int failBadRecordCount) {
-        this.failBadRecordCount = failBadRecordCount;
+        this.statusDirectory = statusDirectory;
+        this.importFileName = importFileName;
+        this.failBadRecordCount = badRecordThreshold;
     }
 
 

@@ -63,26 +63,41 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         try {
             SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
             if (isSplitting) {
-                // return an error if the region is being split
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "%s:%s is being split before trying to prepare for backup", tableName, regionName);
+                }
+                // return false to client if the region is being split
                 responseBuilder.setReadyForBackup(false);
             } else {
-                HBasePlatformUtils.flush(region);
-                // Create a ZNode to indicate that the region is being copied
-                ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                // A region might have been in backup
+                if (!regionIsBeingBackup()) {
+                    HBasePlatformUtils.flush(region);
+                    // Create a ZNode to indicate that the region is being copied
+                    ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                }
                 // check again if the region is being split. If so, return an error
                 if (isSplitting) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "%s:%s is being split when trying to prepare for backup", tableName, regionName);
+                    }
                     responseBuilder.setReadyForBackup(false);
                     //delete the ZNode
                     ZkUtils.recursiveDelete(path);
                 } else {
                     //wait for all compaction and flush to complete
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "%s:%s waits for flush and compaction to complete", tableName, regionName);
+                    }
                     region.waitForFlushesAndCompactions();
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "%s:%s is ready for backup", tableName, regionName);
+                    }
                     responseBuilder.setReadyForBackup(true);
                 }
             }
             done.run(responseBuilder.build());
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            controller.setFailed(e.getMessage());
         }
     }
 
@@ -93,6 +108,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
         waitForBackupToComplete();
         isSplitting = true;
+        super.preSplit(e);
     }
 
     @Override
@@ -100,6 +116,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.postSplit()");
         isSplitting = false;
+        super.postSplit(e, l, r);
     }
 
     @Override
@@ -124,6 +141,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush()");
         waitForBackupToComplete();
+        super.preFlush(e);
     }
 
     @Override

@@ -22,7 +22,7 @@ import static org.junit.Assert.fail;
  * ON DELETE SET NULL
  * ON UPDATE NO ACTION
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 @Ignore("DB-4272")
 public class ForeignKey_Action_IT {
 

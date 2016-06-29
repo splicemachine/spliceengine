@@ -19,7 +19,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  * @author Scott Fines
  *         Date: 3/2/15
  */
-@Category(SerialTest.class)
+//@Category(SerialTest.class)
 public class StatisticsAdminIT{
     private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";

@@ -105,9 +105,6 @@ public class T_XA extends T_Generic
 		// remove the service directory to ensure a clean run
 		startParams.put(Property.DELETE_ON_CREATE, Boolean.TRUE.toString());
 
-		// see if we are testing encryption
-		startParams = T_Util.setEncryptionParam(startParams);
-
 		try {
 			store = (AccessFactory) Monitor.createPersistentService(
 				getModuleToTestProtocolName(), testService, startParams);

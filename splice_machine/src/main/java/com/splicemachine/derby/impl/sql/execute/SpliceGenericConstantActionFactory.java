@@ -409,7 +409,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                 streamStorableHeapColIds,
                 numColumns,
                 positionedUpdate,
-                singleRowSource
+                singleRowSource,
+                storagePositionArray
         );
     }
 

@@ -4,6 +4,7 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
@@ -55,10 +56,11 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
             pipelineWriter.open(operation.getTriggerHandler(),operation);
             pipelineWriter.write(dataSet.values().toLocalIterator());
             ValueRow valueRow=new ValueRow(1);
-            valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
+            valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
+            operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
             if(operation instanceof InsertOperation){
                 InsertOperation insertOperation = (InsertOperation)operation;
-                List<String> badRecords=operationContext.getBadRecords();
+                BadRecordsRecorder brr = operationContext.getBadRecordsRecorder();
                 /*
                  * In Control-side execution, we have different operation contexts for each operation,
                  * and all operations are held in this JVM. this means that parse errors could be present
@@ -68,17 +70,19 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                 List<SpliceOperation> ops =insertOperation.getOperationStack();
                 for(SpliceOperation op:ops){
                     if(op==null || op==insertOperation || op.getOperationContext()==null) continue;
-                    badRecords.addAll(op.getOperationContext().getBadRecords());
+                    if (brr != null) {
+                        brr = brr.merge(op.getOperationContext().getBadRecordsRecorder());
+                    } else {
+                        brr = op.getOperationContext().getBadRecordsRecorder();
+                    }
                 }
-                operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
-                if(badRecords.size()>0){
-                    DataSet dataSet=new ControlDataSet<>(badRecords);
-                    DistributedFileSystem fileSystem=SIDriver.driver().fileSystem();
-                    Path path = generateFileSystemPathForWrite(insertOperation.statusDirectory,fileSystem,insertOperation);
-                    dataSet.saveAsTextFile(path.toString());
-                    operationContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
-                    if(insertOperation.isAboveFailThreshold(badRecords.size())){
-                        throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path.toString());
+                long badRecords = (brr != null ? brr.getNumberOfBadRecords() : 0);
+                operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
+                if(badRecords > 0){
+                    String fileName = operationContext.getBadRecordFileName();
+                    operationContext.getActivation().getLanguageConnectionContext().setBadFile(fileName);
+                    if (insertOperation.isAboveFailThreshold(badRecords)) {
+                        throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
                     }
                 }
             }
@@ -123,34 +127,5 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
     @Override
     public byte[] getDestinationTable(){
         return pipelineWriter.getDestinationTable();
-    }
-
-    /* ********************************************************************************************/
-    /*private helper methods*/
-    private static Path generateFileSystemPathForWrite(String badDirectory,
-                                                       DistributedFileSystem fileSystem,
-                                                       SpliceOperation spliceOperation) throws StandardException {
-
-        Path inputFilePath = fileSystem.getPath(spliceOperation.getVTIFileName());
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "generateFileSystemPathForWrite(): badDirectory=%s, filePath=%s", badDirectory, inputFilePath);
-        assert inputFilePath !=null;
-        String vtiFileName=inputFilePath.getFileName().toString();
-
-        if (badDirectory == null || badDirectory.isEmpty() || badDirectory.toUpperCase().equals("NULL")) {
-            badDirectory = inputFilePath.getParent().toString();
-        }
-
-        ImportUtils.validateWritable(badDirectory,true);
-        int i=0;
-        while(true){
-            String fileName=badDirectory+"/"+vtiFileName;
-            fileName=fileName+(i==0?".bad":"_"+i+".bad");
-            Path fileSystemPathForWrites=fileSystem.getPath(fileName);
-            if(!Files.exists(fileSystemPathForWrites)){
-                return fileSystemPathForWrites;
-            }
-            i++;
-        }
     }
 }

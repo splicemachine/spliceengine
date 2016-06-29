@@ -1,5 +1,6 @@
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.sparkproject.guava.collect.Lists;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
@@ -178,7 +179,7 @@ public class SpliceWatcher extends TestWatcher {
      * Return columns from all rows.
      */
     public <T> List<Object[]> queryListMulti(String sql, int columns) throws Exception {
-        List<Object[]> resultList = com.google.common.collect.Lists.newArrayList();
+        List<Object[]> resultList = Lists.newArrayList();
         ResultSet rs = executeQuery(sql);
         while (rs.next()) {
             Object[] row = new Object[columns];
@@ -266,8 +267,8 @@ public class SpliceWatcher extends TestWatcher {
     }
 
     public void splitTable(String tableName, String schemaName) throws Exception {
-        throw new UnsupportedOperationException("IMPLEMENT USING ONLY JDBC");
-//        ConglomerateUtils.splitConglomerate(getConglomId(tableName, schemaName));
+        long conglom = getConglomId(tableName,schemaName);
+//        ConglomerateUtils.splitConglomerate(getConglomId(tableName,schemaName));
     }
 
     public long getConglomId(String tableName, String schemaName) throws Exception {

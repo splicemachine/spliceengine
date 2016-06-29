@@ -21,6 +21,7 @@ public class SpliceLocalFileResource extends SpliceBaseFileResource {
 
 	@Override
 	protected void syncOutputStream(OutputStream os) throws IOException {
-		((FileOutputStream) os).getFD().sync();
+		if(os instanceof FileOutputStream)
+			((FileOutputStream) os).getFD().sync();
 	}
 }

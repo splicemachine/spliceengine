@@ -34,8 +34,8 @@ public class OlapClientTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Logger.getLogger(MappedJobRegistry.class).setLevel(Level.DEBUG);
-        Logger.getLogger(OlapPipelineFactory.class).setLevel(Level.DEBUG);
+        Logger.getLogger(MappedJobRegistry.class).setLevel(Level.INFO);
+        Logger.getLogger(OlapPipelineFactory.class).setLevel(Level.INFO);
         Logger.getLogger("splice.config").setLevel(Level.WARN);
         Logger.getLogger(OlapRequestHandler.class).setLevel(Level.WARN);
         setupServer();
@@ -112,7 +112,6 @@ public class OlapClientTest {
                     try {
                         results[j] = olapClient.execute(new DumbDistributedJob(sleep,j));
                     } catch (IOException e) {
-                        e.printStackTrace();
                         results[j] = null;
                     }catch(TimeoutException te){
                         Assert.fail("Timed out");
@@ -145,7 +144,6 @@ public class OlapClientTest {
                     try {
                         results[j] = olapClient.execute(new SameNameJob(sleep,j));
                     } catch (IOException e) {
-                        e.printStackTrace();
                         results[j] = null;
                     }catch(TimeoutException te){
                         Assert.fail("Timed out");
@@ -178,7 +176,6 @@ public class OlapClientTest {
                     try {
                         results[j] = olapClient.execute(new DumbDistributedJob(sleep,j));
                     } catch (IOException e) {
-                        e.printStackTrace();
                         results[j] = null;
                     }catch(TimeoutException te){
                         Assert.fail("Timed out");

@@ -161,6 +161,10 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
         return baseStore.getActiveTxns(startId,endId,destTable);
     }
 
+    @Override
+    public void rollbackTransactionsAfter(long txnId) throws IOException {
+        baseStore.rollbackTransactionsAfter(txnId);
+    }
     /* ***************************************************************************************************************/
     /*private helper methods*/
     private void unlock(Lock lock) throws IOException{

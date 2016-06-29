@@ -3,11 +3,17 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
 
 /**
  * This class  describes actions that are ALWAYS performed for a
@@ -54,6 +60,17 @@ public class DropSequenceConstantOperation extends DDLConstantOperation {
             throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "SEQUENCE",
                     (schemaDescriptor.getObjectName() + "." + sequenceName));
         }
-        sequenceDescriptor.drop(lcc);
+        DependencyManager dm = dd.getDependencyManager();
+        TransactionController tc = lcc.getTransactionExecute();
+        // invalidate compiled statements which depend on this sequence
+        dm.invalidateFor(sequenceDescriptor, DependencyManager.DROP_SEQUENCE, lcc);
+
+        DDLMessage.DDLChange ddlChange = ProtoUtil.dropSequence(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), schemaDescriptor.getSchemaName(),sequenceName);
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        // drop the sequence
+        dd.dropSequenceDescriptor(sequenceDescriptor, tc);
+        // Clear the dependencies for the sequence
+        dm.clearDependencies(lcc, sequenceDescriptor);
     }
 }

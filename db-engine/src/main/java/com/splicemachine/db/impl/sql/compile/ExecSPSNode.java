@@ -386,5 +386,8 @@ public class ExecSPSNode extends StatementNode
 //        @Override
         public void newFieldWithAccessors(String getter, String setter, int methodModifier, boolean staticField, String type) {
         }
+
+		@Override
+		public boolean existsField(String javaType, String name) {return false;}
     }
 }

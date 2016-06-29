@@ -2,28 +2,17 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.SerialTest;
-import com.splicemachine.test_dao.StatementHistory;
-import com.splicemachine.test_dao.StatementHistoryDAO;
-import com.splicemachine.test_dao.TaskHistory;
-import com.splicemachine.test_dao.TaskHistoryDAO;
 import com.splicemachine.test_tools.IntegerRows;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import static com.splicemachine.homeless.TestUtils.FormattedResult.ResultFactory;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 
-@Category(SerialTest.class) //made sequential because of joinWithStatistics() test
+//@Category(SerialTest.class) //made sequential because of joinWithStatistics() test
 public class HashNestedLoopJoinIT {
 
     private static final String CLASS_NAME = HashNestedLoopJoinIT.class.getSimpleName().toUpperCase();

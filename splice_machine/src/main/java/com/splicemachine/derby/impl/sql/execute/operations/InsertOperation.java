@@ -92,7 +92,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             writeInfo.initialize(context);
             heapConglom=writeInfo.getConglomerateId();
             pkCols=writeInfo.getPkColumnMap();
-            autoIncrementRowLocationArray=writeInfo.getConstantAction()!=null &&
+            autoIncrementRowLocationArray=writeInfo. getConstantAction()!=null &&
                     ((InsertConstantOperation)writeInfo.getConstantAction()).getAutoincRowLocation()!=null?
                     ((InsertConstantOperation)writeInfo.getConstantAction()).getAutoincRowLocation():new RowLocation[0];
             defaultAutoIncrementValues=WriteReadUtils.getStartAndIncrementFromSystemTables(autoIncrementRowLocationArray,
@@ -109,7 +109,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     SConfiguration config=context.getSystemConfiguration();
                     SequenceKey key=new SequenceKey(
                             rlBytes,
-                            (isSingleRowResultSet())?1l:config.getSequenceBlockSize(),
+                            !((BaseActivation) activation).willRunInSpark()?1l:config.getSequenceBlockSize(),
                             defaultAutoIncrementValues[i].getFirst(),
                             defaultAutoIncrementValues[i].getSecond(),
                             SIDriver.driver().getTableFactory(),
@@ -137,6 +137,18 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         return "Insert"+super.prettyPrint(indentLevel);
     }
 
+    /**
+     *
+     * Called from BaseActivation.getSetAutoIncrementValue
+     *
+     * @param columnPosition	position of the column in the table (1-based)
+     * @param increment				the amount to increment by
+     *
+     * @return
+     * @throws StandardException
+     *
+     * @see BaseActivation#getSetAutoincrementValue(int, long)
+     */
     @Override
     public DataValueDescriptor increment(int columnPosition,long increment) throws StandardException{
         assert activation!=null && spliceSequences!=null:"activation or sequences are null";
@@ -209,8 +221,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         if(statusDirectory != null) {
             // if we have a status directory, we're an import and so permissive
-            dsp.setPermissive();
-            dsp.setFailBadRecordCount(this.failBadRecordCount);
+            dsp.setPermissive(statusDirectory, getVTIFileName(), failBadRecordCount);
         }
         DataSet set=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);

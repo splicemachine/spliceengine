@@ -312,10 +312,24 @@ public final class JarLoader extends SecureClassLoader {
 				return null;
 			}
 
-			if (e.getName().equals(jvmClassName)) {
+			String eName = e.getName();
+			if(eName.equals(jvmClassName)){
 				Class c = loadClassData(e, jarIn, className, resolve);
 				jarIn.close();
 				return c;
+			}else if(!eName.contains("/")){
+				/*
+				 * Some weird goofiness with the mem env. Sometimes we don't end up
+				 * with a / in the read-in class name
+				 */
+				String shortenedJvmName = jvmClassName.substring(jvmClassName.lastIndexOf("/")+1);
+				if(eName.equals(shortenedJvmName)){
+					Class c = loadClassData(e, jarIn, className, resolve);
+					if(c.getCanonicalName().equals(className)){
+						jarIn.close();
+						return c;
+					}
+				}
 			}
 		}
 		

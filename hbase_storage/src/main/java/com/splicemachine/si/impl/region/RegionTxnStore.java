@@ -296,6 +296,16 @@ public class RegionTxnStore implements TxnPartition{
         return TxnStoreUtils.adjustStateForTimeout(currentState,keepAliveCell,clock,keepAliveTimeoutMs);
     }
 
+    @Override
+    public void rollbackTransactionsAfter(long txnId) throws IOException {
+        final Source<TxnMessage.Txn> allTxns = getAllTxns(0l, Long.MAX_VALUE);
+        final Source<TxnMessage.Txn> uncommittedAfter = new UncommittedAfterSource(allTxns, txnId);
+        while (uncommittedAfter.hasNext()) {
+            TxnMessage.Txn txn = uncommittedAfter.next();
+            recordRollback(txn.getInfo().getTxnId());
+        }
+        uncommittedAfter.close();
+    }
     /******************************************************************************************************************/
 	/*private helper methods*/
 
@@ -420,6 +430,57 @@ public class RegionTxnStore implements TxnPartition{
         @Override
         public void close() throws IOException{
             regionScanner.close();
+        }
+    }
+
+    private class UncommittedAfterSource implements Source<TxnMessage.Txn> {
+        private final Source<TxnMessage.Txn> allTxns;
+        private final long afterTs;
+
+        private TxnMessage.Txn current = null;
+        public UncommittedAfterSource(Source<TxnMessage.Txn> allTxns,long afterTs){
+            this.allTxns=allTxns;
+            this.afterTs=afterTs;
+        }
+
+        @Override
+        public boolean hasNext() throws IOException{
+            while(current==null && allTxns.hasNext()){
+                TxnMessage.Txn txn = allTxns.next();
+                int stateCode = txn.getState();
+                Txn.State state=Txn.State.fromInt(stateCode);
+                //If a transaction is uncommitted, return it
+                switch(state){
+                    case ACTIVE:
+                        current = txn;
+                        return true;
+                    case ROLLEDBACK:
+                        continue;
+                }
+
+
+                //return a transaciton that is committed after afterTs
+                TxnMessage.TxnInfo info=txn.getInfo();
+                if(info.getBeginTs()>afterTs||
+                        txn.getCommitTs()>afterTs ||
+                        txn.getGlobalCommitTs()>afterTs){
+                    current = txn;
+                }
+            }
+            return current!=null;
+        }
+
+        @Override
+        public TxnMessage.Txn next() throws IOException{
+            if(!hasNext()) throw new NoSuchElementException();
+            TxnMessage.Txn txn = current;
+            current = null;
+            return txn;
+        }
+
+        @Override
+        public void close() throws IOException{
+            allTxns.close();
         }
     }
 }

@@ -6,13 +6,13 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.0.1.13-SNAPSHOT</version>
+        <version>2.0.1.16-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>2.0.1.13-SNAPSHOT</version>
+            <version>2.0.1.16-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -21,27 +21,27 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
-            <version>2.0.1.13-SNAPSHOT</version>
+            <version>2.0.1.16-SNAPSHOT</version>
         </dependency>
         <!--Test jars -->
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>2.0.1.13-SNAPSHOT</version>
+            <version>2.0.1.16-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_si_api</artifactId>
-            <version>2.0.1.13-SNAPSHOT</version>
+            <version>2.0.1.16-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_storage</artifactId>
-            <version>2.0.1.13-SNAPSHOT</version>
+            <version>2.0.1.16-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -54,12 +54,12 @@
             <artifactId>pipeline_api</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>2.0.1.13-SNAPSHOT</version>
+            <version>2.0.1.16-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
-            <version>2.0.1.13-SNAPSHOT</version>
+            <version>2.0.1.16-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -68,6 +68,13 @@
             <artifactId>commons-dbutils</artifactId>
             <scope>test</scope>
         </dependency>
+      <dependency>
+        <groupId>org.splicetest.sqlj</groupId>
+        <artifactId>sqlj-it-procs</artifactId>
+        <version>2.0.1.16-SNAPSHOT</version>
+        <type>jar</type>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
@@ -97,7 +104,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <!--<groups>com.splicemachine.test.SerialTest</groups>-->
+                            <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>${excluded.categories}</excludedGroups>
                             <argLine>-Xmx3g -XX:MaxPermSize=256m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -108,36 +115,39 @@
                                 <include>**/*IT.java</include>
                             </includes>
                             <excludes>
-                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**
-                                </exclude>
+                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
-                    <!--<execution>-->
-                    <!--<id>integration-tests-parallel</id>-->
-                    <!--<goals>-->
-                    <!--<goal>integration-test</goal>-->
-                    <!--<goal>verify</goal>-->
-                    <!--</goals>-->
-                    <!--<configuration>-->
-                    <!--<excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>-->
-                    <!--<skipTests>${skip.integration.tests}</skipTests>-->
-                    <!--<parallel>classes</parallel>-->
-                    <!--<threadCount>1</threadCount>-->
-                    <!--<perCoreThreadCount>false</perCoreThreadCount>-->
-                    <!--<argLine>-Xmx3g</argLine>-->
-                    <!--<redirectTestOutputToFile>true</redirectTestOutputToFile>-->
-                    <!--<includes>-->
-                    <!--<include>**/*IT.java</include>-->
-                    <!--</includes>-->
-                    <!--<excludes>-->
-                    <!--&lt;!&ndash; Skip all unit tests &ndash;&gt;-->
-                    <!--<exclude>**/*Test.java</exclude>-->
-                    <!--</excludes>-->
-                    <!--<runOrder>alphabetical</runOrder>-->
-                    <!--</configuration>-->
-                    <!--</execution>-->
+                    <execution>
+                        <id>integration-tests-parallel</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+                            <!--<skipTests>${skip.integration.tests}</skipTests>-->
+                            <parallel>classes</parallel>
+                            <threadCount>4</threadCount>
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <argLine>-Xmx3g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_machine</dependency>
+                            </dependenciesToScan>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludes>
+                                <!-- Skip all unit tests -->
+                                <exclude>**/*Test.java</exclude>
+                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
+                            </excludes>
+                            <runOrder>alphabetical</runOrder>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>

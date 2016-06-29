@@ -189,4 +189,6 @@ public interface ClassBuilder {
 	*/
 	void newFieldWithAccessors(String getter, String setter, int methodModifier,
 		boolean staticField, String type);
+
+	boolean existsField(String javaType, String name);
 }

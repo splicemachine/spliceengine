@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -51,7 +52,7 @@ public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
     public DataSet<LocatedRow> write() throws StandardException{
         rdd.saveAsNewAPIHadoopDataset(conf);
         ValueRow valueRow=new ValueRow(1);
-        valueRow.setColumn(1,new SQLInteger(0));
+        valueRow.setColumn(1,new SQLLongint(0));
         return new SparkDataSet<>(context.parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
     }
 

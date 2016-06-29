@@ -54,14 +54,20 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             return null;
         }
     };
-    private static final ThreadLocal<Long> failedRecords = new ThreadLocal<Long>() {
+
+    private static final ThreadLocal<Long> recordsImported = new ThreadLocal<Long>() {
         @Override
         protected Long initialValue() {
-            return 0l;
+            return 0L;
         }
     };
 
-
+    private static final ThreadLocal<Long> failedRecords = new ThreadLocal<Long>() {
+        @Override
+        protected Long initialValue() {
+            return 0L;
+        }
+    };
     // make sure these are not zeros
     private final static int NON_XA=0;
     private final static int XA_ONE_PHASE=1;
@@ -3429,6 +3435,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void resetFailedRecords() {
         failedRecords.remove();
+    }
+
+    @Override
+    public long getRecordsImported() {
+        return recordsImported.get();
+    }
+
+    @Override
+    public void setRecordsImported(long recordsImported) {
+        this.recordsImported.set(recordsImported);
+    }
+
+    @Override
+    public void resetRecordsImported() {
+        recordsImported.remove();
     }
 
     @Override

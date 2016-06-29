@@ -512,7 +512,7 @@ public class ConstraintTransactionIT {
     }
 
     @Test
-    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
+//    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void testVerifyCheckConstraint() throws Exception {
         String tableName = "testVerifyCheckConstraint".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;

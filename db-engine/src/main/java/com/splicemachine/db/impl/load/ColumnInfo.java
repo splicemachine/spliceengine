@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.load;
 
+import java.io.ObjectOutputStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -33,7 +34,9 @@ import java.util.Map;
 
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
+import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.iapi.util.StringUtil;
 
 /**
  *	
@@ -264,12 +267,25 @@ public class ColumnInfo {
         return sb.toString();
     }
 
+	// write a Serializable as a string
+	public static String stringifyObject( Object udt ) throws Exception {
+		DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream( dbaos );
 
-    /**
+		oos.writeObject( udt );
+
+		byte[] buffer = dbaos.getByteArray();
+		int length = dbaos.getUsed();
+
+		return StringUtil.toHexString( buffer, 0, length );
+	}
+
+
+	/**
      * Get the class names of udt columns as a string.
      */
     public String getUDTClassNames() throws Exception {
-        return ExportAbstract.stringifyObject( udtClassNames );
+        return stringifyObject( udtClassNames );
     }
 
 	/* returns comma seperated column Names delimited by quotes for the insert

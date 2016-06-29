@@ -37,6 +37,7 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 	** Integer array of columns that are being updated.
 	*/
 	int[]	changedColumnIds;
+    int[]	storagePositionIds;
 	private boolean positionedUpdate;
 	int numColumns;
 	// CONSTRUCTORS
@@ -94,13 +95,15 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 								int[] streamStorableHeapColIds,
 								int	numColumns,
 								boolean positionedUpdate,
-								boolean singleRowSource) {
+								boolean singleRowSource,
+                                int[] storagePositionArray) {
 		super(conglomId, heapSCOCI, pkColumns, irgs, indexCIDS, indexSCOCIs, indexNames, 
 			deferred,null, targetUUID, lockMode, fkInfo, triggerInfo, emptyHeapRow,
 			baseRowReadList, baseRowReadMap, streamStorableHeapColIds, singleRowSource);
-		this.changedColumnIds = changedColumnIds;
-		this.positionedUpdate = positionedUpdate;
-		this.numColumns = numColumns;
+        this.changedColumnIds = changedColumnIds;
+        this.storagePositionIds = storagePositionArray;
+        this.positionedUpdate = positionedUpdate;
+        this.numColumns = numColumns;
 	}
 
 	// INTERFACE METHODS
@@ -116,18 +119,19 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
 		super.readExternal(in);
 		changedColumnIds = ArrayUtil.readIntArray(in);
+        storagePositionIds = ArrayUtil.readIntArray(in);
 		positionedUpdate = in.readBoolean();
 		numColumns = in.readInt();
 	}
 
 	/**
-
 	  @see java.io.Externalizable#writeExternal
 	  @exception IOException thrown on error
 	  */
 	public void writeExternal( ObjectOutput out ) throws IOException {
 		super.writeExternal(out);
 		ArrayUtil.writeIntArray(out,changedColumnIds);
+        ArrayUtil.writeIntArray(out,storagePositionIds);
 		out.writeBoolean(positionedUpdate);
 		out.writeInt(numColumns);
 	}
@@ -137,8 +141,12 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 	 *
 	 *	@return	the formatID of this class
 	 */
-	public	int getTypeFormatId()	{ 
+	public int getTypeFormatId()	{
 		return StoredFormatIds.UPDATE_CONSTANT_ACTION_V01_ID; 
 	}
+
+    public int[] getStoragePositionIds() {
+        return storagePositionIds;
+    }
 
 }

@@ -13,11 +13,15 @@ public interface BackupManager{
 
     void incrementalBackup(String directory) throws StandardException;
 
-    String getRunningBackup();
+    long getRunningBackup() throws StandardException;
 
     void restoreDatabase(String directory,long backupId)throws StandardException;
 
     void removeBackup(long backupId) throws StandardException;
 
-    Iterator<RestoreItem> listRestoreItems() throws StandardException;
+    void scheduleDailyBackup(String directory, String type, int hour) throws StandardException;
+
+    void cancelDailyBackup(long jobId) throws StandardException;
+
+    void cancelBackup() throws StandardException;
 }

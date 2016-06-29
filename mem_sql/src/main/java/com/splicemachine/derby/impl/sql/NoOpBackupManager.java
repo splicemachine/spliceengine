@@ -31,8 +31,8 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public String getRunningBackup(){
-        return null;
+    public long getRunningBackup() throws StandardException{
+        return 0;
     }
 
     @Override
@@ -46,7 +46,17 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public Iterator<RestoreItem> listRestoreItems() throws StandardException{
-        return Collections.emptyIterator();
+    public void scheduleDailyBackup(String directory, String type, int hour) throws StandardException {
+
+    }
+
+    @Override
+    public void cancelDailyBackup(long jobId) throws StandardException {
+
+    }
+
+    @Override
+    public void cancelBackup() throws StandardException {
+
     }
 }

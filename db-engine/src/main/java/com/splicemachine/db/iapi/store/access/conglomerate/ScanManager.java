@@ -25,8 +25,6 @@ import com.splicemachine.db.iapi.store.access.GroupFetchScanController;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.error.StandardException;
 
-import com.splicemachine.db.iapi.store.access.BackingStoreHashtable;
-
 /**
 
 The ScanManager interface contains those methods private to access method
@@ -63,110 +61,4 @@ public interface ScanManager extends ScanController, GroupFetchScanController
     boolean closeForEndTransaction(boolean closeHeldScan)
 		throws StandardException;
 
-    /**
-     * Insert all rows that qualify for the current scan into the input
-     * Hash table.  
-     * <p>
-     * This routine scans executes the entire scan as described in the 
-     * openScan call.  For every qualifying unique row value an entry is
-     * placed into the HashTable. For unique row values the entry in the
-     * Hashtable has a key value of the object stored in 
-     * row[key_column_number], and the value of the data is row.  For row 
-     * values with duplicates, the key value is also row[key_column_number], 
-     * but the value of the data is a Vector of
-     * rows.  The caller will have to call "instanceof" on the data value
-     * object if duplicates are expected, to determine if the data value
-     * of the Hashtable entry is a row or is a Vector of rows.
-     * <p>
-     * Note, that for this routine to work efficiently the caller must 
-     * ensure that the object in row[key_column_number] implements 
-     * the hashCode and equals method as appropriate for it's datatype.
-     * <p>
-     * It is expected that this call will be the first and only call made in
-     * an openscan.  Qualifiers and stop position of the openscan are applied
-     * just as in a normal scan.  This call is logically equivalent to the 
-     * caller performing the following:
-     *
-     * import java.util.Hashtable;
-     *
-     * hash_table = new Hashtable();
-     *
-     * while (next())
-     * {
-     *     row = create_new_row();
-     *     fetch(row);
-     *     if ((duplicate_value = 
-     *         hash_table.put(row[key_column_number], row)) != null)
-     *     {
-     *         Vector row_vec;
-     *
-     *         // inserted a duplicate
-     *         if ((duplicate_value instanceof vector))
-     *         {
-     *             row_vec = (Vector) duplicate_value;
-     *         }
-     *         else
-     *         {
-     *             // allocate vector to hold duplicates
-     *             row_vec = new Vector(2);
-     *
-     *             // insert original row into vector
-     *             row_vec.addElement(duplicate_value);
-     *
-     *             // put the vector as the data rather than the row
-     *             hash_table.put(row[key_column_number], row_vec);
-     *         }
-     *         
-     *         // insert new row into vector
-     *         row_vec.addElement(row);
-     *     }
-     * }
-     * <p>
-     * The columns of the row will be the standard columns returned as
-     * part of a scan, as described by the validColumns - see openScan for
-     * description.
-     * RESOLVE - is this ok?  or should I hard code somehow the row to
-     *           be the first column and the row location?
-     * <p>
-     * No overflow to external storage is provided, so calling this routine
-     * on a 1 gigabyte conglomerate will incur at least 1 gigabyte of memory
-     * (probably failing with a java out of memory condition).  If this
-     * routine gets an out of memory condition, or if "max_rowcnt" is 
-     * exceeded then then the routine will give up, empty the Hashtable, 
-     * and return "false."
-     * <p>
-     * On exit from this routine, whether the fetchSet() succeeded or not
-     * the scan is complete, it is positioned just the same as if the scan
-     * had been drained by calling "next()" until it returns false (ie. 
-     * fetchNext() and next() calls will return false).  
-     * reopenScan() can be called to restart the scan.
-     * <p>
-     *
-     * RESOLVE - until we get row counts what should we do for sizing the
-     *           the size, capasity, and load factor of the hash table.
-     *           For now it is up to the caller to create the Hashtable,
-     *           Access does not reset any parameters.
-     * <p>
-     * RESOLVE - I am not sure if access should be in charge of allocating
-     *           the new row objects.  I know that I can do this in the
-     *           case of btree's, but I don't think I can do this in heaps.
-     *           Maybe this is solved by work to be done on the sort 
-     *           interface.
-     *
-     *
-     * @param max_rowcnt        The maximum number of rows to insert into the 
-     *                          Hash table.  Pass in -1 if there is no maximum.
-     * @param key_column_numbers The column numbers of the columns in the
-     *                          scan result row to be the key to the Hashtable.
-     *                          "0" is the first column in the scan result
-     *                          row (which may be different than the first
-     *                          row in the table of the scan).
-     *
-	 * @exception  StandardException  Standard exception policy.
-     **/
-    void fetchSet(
-    long                    max_rowcnt,
-    int[]                   key_column_numbers,
-    BackingStoreHashtable   hash_table)
-        throws StandardException;
 }

@@ -91,7 +91,7 @@ import java.io.Serializable;
     @see ContainerHandle */
 
 
-public interface RawStoreFactory extends Corruptable {
+public interface RawStoreFactory {
 
     /** Store engine version numbers indicating the database must be upgraded to 
      * or created at the current engine level 

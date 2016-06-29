@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import org.sparkproject.guava.base.Preconditions;
-import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.primitives.Bytes;
@@ -33,9 +32,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.ContainerHandle;
 import com.splicemachine.db.iapi.store.raw.ContainerKey;
-import com.splicemachine.db.iapi.store.raw.LockingPolicy;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.shared.common.reference.Attribute;
 import com.splicemachine.si.api.txn.TxnView;
@@ -50,22 +47,14 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     private int system_lock_level = TransactionController.MODE_RECORD;
     private Hashtable formathash;
     private Properties serviceProperties;
-    LockingPolicy system_default_locking_policy;
     private PropertyConglomerate xactProperties;
     private PropertyFactory 	pf;
-    protected LockingPolicy table_level_policy[];
-    protected LockingPolicy record_level_policy[];
     protected ConglomerateFactory conglom_map[];
     protected SpliceDatabase database;
 
     public SpliceAccessManager() {
         implhash   = new Hashtable();
         formathash = new Hashtable();
-    }
-
-
-    protected LockingPolicy getDefaultLockingPolicy() {
-        return(system_default_locking_policy);
     }
 
     PropertyConglomerate getTransactionalProperties() {
@@ -356,15 +345,10 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         SpliceTransactionManager rt = new SpliceTransactionManager(this, rawtran, null);
 
         rtc = new SpliceTransactionManagerContext(cm, AccessFactoryGlobals.RAMXACT_CONTEXT_ID, rt, false /* abortAll */);
-
         TransactionController tc = rtc.getTransactionManager();
-
         if (xactProperties != null) {
             rawtran.setup(tc);
         }
-        //in Splice, this is meaningless, since we don't use locks
-        rawtran.setDefaultLockingPolicy(system_default_locking_policy);
-
         return tc;
     }
 
@@ -474,8 +458,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
                         TransactionController.RELEASE_LOCKS |
                                 TransactionController.READONLY_TRANSACTION_INITIALIZATION);
             }
-
-            rawtran.setDefaultLockingPolicy(system_default_locking_policy);
 
             // HACK - special support has been added to the commitNoSync
             // of a global xact, to allow committing of read only xact,
@@ -664,83 +646,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         // system_default_locking_policy, so during boot do table level
         // locking and then look up the "right" locking level.
 
-        int lock_mode = LockingPolicy.MODE_CONTAINER;
-
-        system_default_locking_policy =
-                tc.getRawStoreXact().newLockingPolicy(
-                        lock_mode,
-                        TransactionController.ISOLATION_SERIALIZABLE, true);
-
-
-        // RESOLVE - code reduction - get rid of this table, and somehow
-        // combine it with the raw store one.
-
-        table_level_policy = new LockingPolicy[6];
-
-        table_level_policy[TransactionController.ISOLATION_NOLOCK] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_CONTAINER,
-                        TransactionController.ISOLATION_NOLOCK, true);
-
-        table_level_policy[TransactionController.ISOLATION_READ_UNCOMMITTED] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_CONTAINER,
-                        TransactionController.ISOLATION_READ_UNCOMMITTED, true);
-
-        table_level_policy[TransactionController.ISOLATION_READ_COMMITTED] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_CONTAINER,
-                        TransactionController.ISOLATION_READ_COMMITTED, true);
-
-        table_level_policy[TransactionController.ISOLATION_READ_COMMITTED_NOHOLDLOCK] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_CONTAINER,
-                        TransactionController.ISOLATION_READ_COMMITTED_NOHOLDLOCK,
-                        true);
-
-        table_level_policy[TransactionController.ISOLATION_REPEATABLE_READ] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_CONTAINER,
-                        TransactionController.ISOLATION_REPEATABLE_READ, true);
-
-        table_level_policy[TransactionController.ISOLATION_SERIALIZABLE] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_CONTAINER,
-                        TransactionController.ISOLATION_SERIALIZABLE, true);
-
-        record_level_policy = new LockingPolicy[6];
-
-        record_level_policy[TransactionController.ISOLATION_NOLOCK] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_RECORD,
-                        TransactionController.ISOLATION_NOLOCK, true);
-
-        record_level_policy[TransactionController.ISOLATION_READ_UNCOMMITTED] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_RECORD,
-                        TransactionController.ISOLATION_READ_UNCOMMITTED, true);
-
-        record_level_policy[TransactionController.ISOLATION_READ_COMMITTED] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_RECORD,
-                        TransactionController.ISOLATION_READ_COMMITTED, true);
-
-        record_level_policy[TransactionController.ISOLATION_READ_COMMITTED_NOHOLDLOCK] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_RECORD,
-                        TransactionController.ISOLATION_READ_COMMITTED_NOHOLDLOCK,
-                        true);
-
-        record_level_policy[TransactionController.ISOLATION_REPEATABLE_READ] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_RECORD,
-                        TransactionController.ISOLATION_REPEATABLE_READ, true);
-
-        record_level_policy[TransactionController.ISOLATION_SERIALIZABLE] =
-                tc.getRawStoreXact().newLockingPolicy(
-                        LockingPolicy.MODE_RECORD,
-                        TransactionController.ISOLATION_SERIALIZABLE, true);
-
         if (SanityManager.DEBUG) {
             for (int i = 0;i < TransactionController.ISOLATION_SERIALIZABLE;i++) {
 				/*
@@ -773,10 +678,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         // which may do conglomerate access.
         bootLookupSystemLockLevel(tc);
 
-        lock_mode = (getSystemLockLevel() == TransactionController.MODE_TABLE ? LockingPolicy.MODE_CONTAINER : LockingPolicy.MODE_RECORD);
-
-        system_default_locking_policy =tc.getRawStoreXact().newLockingPolicy(lock_mode,TransactionController.ISOLATION_SERIALIZABLE, true);
-
         // set up the callbacl for the lock manager with initialization
         addPropertySetNotification(getLockFactory(), tc);
 
@@ -794,21 +695,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
             // same, but for modularity reasons there are 2 sets.  Probably
             // should only be one set.  For now just make sure they are the
             // same value.
-            SanityManager.ASSERT(
-                    TransactionController.OPENMODE_USE_UPDATE_LOCKS ==
-                            ContainerHandle.MODE_USE_UPDATE_LOCKS);
-            SanityManager.ASSERT(
-                    TransactionController.OPENMODE_SECONDARY_LOCKED ==
-                            ContainerHandle.MODE_SECONDARY_LOCKED);
-            SanityManager.ASSERT(
-                    TransactionController.OPENMODE_BASEROW_INSERT_LOCKED ==
-                            ContainerHandle.MODE_BASEROW_INSERT_LOCKED);
-            SanityManager.ASSERT(
-                    TransactionController.OPENMODE_FORUPDATE ==
-                            ContainerHandle.MODE_FORUPDATE);
-            SanityManager.ASSERT(
-                    TransactionController.OPENMODE_FOR_LOCK_ONLY ==
-                            ContainerHandle.MODE_OPEN_FOR_LOCK_ONLY);
         }
     }
 

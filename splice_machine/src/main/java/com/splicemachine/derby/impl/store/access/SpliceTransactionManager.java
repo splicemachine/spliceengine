@@ -11,9 +11,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
-import com.splicemachine.db.iapi.store.raw.ContainerHandle;
-import com.splicemachine.db.iapi.store.raw.LockingPolicy;
-import com.splicemachine.db.iapi.store.raw.Loggable;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
@@ -192,35 +189,6 @@ public class SpliceTransactionManager implements XATransactionController,
         }
     }
 
-    /**
-     * Determine correct locking policy for a conglomerate open.
-     * <p>
-     * Determine from the following table whether to table or record lock the
-     * conglomerate we are opening.
-     * <p>
-     *
-     *
-     * System level override ------------------------------- user requests table
-     * locking record locking ------------- ------------- --------------
-     * TransactionController.MODE_TABLE TABLE TABLE
-     * TransactionController.MODE_RECORD TABLE RECORD
-     **/
-    private LockingPolicy determine_locking_policy(int requested_lock_level,
-                                                   int isolation_level) {
-        if (LOG.isTraceEnabled())
-            LOG.trace("determine_locking_policy");
-        LockingPolicy ret_locking_policy;
-
-        if ((accessmanager.getSystemLockLevel() == TransactionController.MODE_TABLE)
-                || (requested_lock_level == TransactionController.MODE_TABLE)) {
-            ret_locking_policy = accessmanager.table_level_policy[isolation_level];
-        } else {
-            ret_locking_policy = accessmanager.record_level_policy[isolation_level];
-
-        }
-        return (ret_locking_policy);
-    }
-
     private int determine_lock_level(int requested_lock_level) {
         if (LOG.isTraceEnabled())
             LOG.trace("determine_lock_level");
@@ -285,38 +253,16 @@ public class SpliceTransactionManager implements XATransactionController,
             throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("openConglomerate " + conglom);
-
-        if (SanityManager.DEBUG) {
-            if ((open_mode & ~(ContainerHandle.MODE_UNLOGGED
-                    | ContainerHandle.MODE_CREATE_UNLOGGED
-                    | ContainerHandle.MODE_FORUPDATE
-                    | ContainerHandle.MODE_READONLY
-                    | ContainerHandle.MODE_TRUNCATE_ON_COMMIT
-                    | ContainerHandle.MODE_DROP_ON_COMMIT
-                    | ContainerHandle.MODE_OPEN_FOR_LOCK_ONLY
-                    | ContainerHandle.MODE_LOCK_NOWAIT
-                    | ContainerHandle.MODE_TRUNCATE_ON_ROLLBACK
-                    | ContainerHandle.MODE_FLUSH_ON_COMMIT
-                    | ContainerHandle.MODE_NO_ACTIONS_ON_COMMIT
-                    | ContainerHandle.MODE_TEMP_IS_KEPT
-                    | ContainerHandle.MODE_USE_UPDATE_LOCKS
-                    | ContainerHandle.MODE_SECONDARY_LOCKED | ContainerHandle.MODE_BASEROW_INSERT_LOCKED)) != 0) {
-                SanityManager.THROWASSERT("Bad open mode to openConglomerate:"
-                        + Integer.toHexString(open_mode));
-            }
-
             SanityManager.ASSERT(conglom != null);
 
-            if (lock_level != MODE_RECORD && lock_level != MODE_TABLE) {
-                SanityManager.THROWASSERT("Bad lock level to openConglomerate:"
-                        + lock_level);
-            }
+        if (lock_level != MODE_RECORD && lock_level != MODE_TABLE) {
+            SanityManager.THROWASSERT("Bad lock level to openConglomerate:"
+                    + lock_level);
         }
 
         // Get a conglomerate controller.
         @SuppressWarnings("ConstantConditions") ConglomerateController cc = conglom.open(this, rawtran, hold,
                 open_mode, determine_lock_level(lock_level),
-                determine_locking_policy(lock_level, isolation_level),
                 static_info, dynamic_info);
 
         // Keep track of it so we can release on close.
@@ -354,7 +300,6 @@ public class SpliceTransactionManager implements XATransactionController,
         // Get a scan controller.
         ScanManager sm = conglom.openScan(this, rawtran, hold, open_mode,
                 determine_lock_level(lock_level),
-                determine_locking_policy(lock_level, isolation_level),
                 isolation_level, scanColumnList, startKeyValue,
                 startSearchOperator, qualifier, stopKeyValue,
                 stopSearchOperator, static_info, dynamic_info);
@@ -437,7 +382,6 @@ public class SpliceTransactionManager implements XATransactionController,
                         false,
                         OPENMODE_FORUPDATE,
                         MODE_TABLE,
-                        accessmanager.table_level_policy[TransactionController.ISOLATION_SERIALIZABLE],
                         null,
                         null);
 
@@ -621,7 +565,7 @@ public class SpliceTransactionManager implements XATransactionController,
         int segment;
         long conglomid;
         if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
-            segment = ContainerHandle.TEMPORARY_SEGMENT;
+            segment = 0; // RESOLVE - only using segment 0
             conglomid = accessmanager.getNextConglomId(cfactory
                     .getConglomerateFactoryId());
         } else {
@@ -781,65 +725,6 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     /**
-     * Retrieve the maximum value row in an ordered conglomerate.
-     * <p>
-     * Returns true and fetches the rightmost row of an ordered conglomerate
-     * into "fetchRow" if there is at least one row in the conglomerate. If
-     * there are no rows in the conglomerate it returns false.
-     * <p>
-     * Non-ordered conglomerates will not implement this interface, calls will
-     * generate a StandardException.
-     * <p>
-     * RESOLVE - this interface is temporary, long term equivalent (and more)
-     * functionality will be provided by the openBackwardScan() interface.
-     *
-     * @param conglomId
-     *            The identifier of the conglomerate to open the scan for.
-     *
-     * @param open_mode
-     *            Specifiy flags to control opening of table. OPENMODE_FORUPDATE
-     *            - if set open the table for update otherwise open table
-     *            shared.
-     * @param lock_level
-     *            One of (MODE_TABLE, MODE_RECORD, or MODE_NONE).
-     *
-     * @param isolation_level
-     *            The isolation level to lock the conglomerate at. One of
-     *            (ISOLATION_READ_COMMITTED or ISOLATION_SERIALIZABLE).
-     *
-     * @param scanColumnList
-     *            A description of which columns to return from every fetch in
-     *            the scan. template, and scanColumnList work together to
-     *            describe the row to be returned by the scan - see RowUtil for
-     *            description of how these three parameters work together to
-     *            describe a "row".
-     *
-     * @param fetchRow
-     *            The row to retrieve the maximum value into.
-     *
-     * @return boolean indicating if a row was found and retrieved or not.
-     *
-     * @exception StandardException
-     *                Standard exception policy.
-     **/
-    public boolean fetchMaxOnBtree(long conglomId, int open_mode,
-                                   int lock_level, int isolation_level,
-                                   FormatableBitSet scanColumnList, DataValueDescriptor[] fetchRow)
-            throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("fetchMaxOnBtree " + conglomId);
-
-        // Find the conglomerate.
-        Conglomerate conglom = findExistingConglomerate(conglomId);
-
-        // Get a scan controller.
-        return (conglom.fetchMaxOnBTree(this, rawtran, conglomId, open_mode,
-                lock_level,
-                determine_locking_policy(lock_level, isolation_level),
-                isolation_level, scanColumnList, fetchRow));
-    }
-
-    /**
      * A superset of properties that "users" can specify.
      * <p>
      * A superset of properties that "users" (ie. from sql) can specify. Store
@@ -985,24 +870,6 @@ public class SpliceTransactionManager implements XATransactionController,
         return (conglom.load(this, createConglom, rowSource));
     }
 
-    /**
-     * Log an operation and then action it in the context of this transaction.
-     * <p>
-     * This simply passes the operation to the RawStore which logs and does it.
-     * <p>
-     *
-     * @param operation
-     *            the operation that is to be applied
-     *
-     * @exception StandardException
-     *                Standard exception policy.
-     **/
-    public void logAndDo(Loggable operation) throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("logAndDo operation " + operation);
-        rawtran.logAndDo(operation);
-    }
-
     public ConglomerateController openCompiledConglomerate(boolean hold,
                                                            int open_mode, int lock_level, int isolation_level,
                                                            StaticCompiledOpenConglomInfo static_info,
@@ -1072,7 +939,6 @@ public class SpliceTransactionManager implements XATransactionController,
         // Get a scan controller.
         ScanManager sm = conglom.openScan(this, rawtran, hold, open_mode,
                 determine_lock_level(lock_level),
-                determine_locking_policy(lock_level, isolation_level),
                 isolation_level, scanColumnList, startKeyValue,
                 startSearchOperator, qualifier, stopKeyValue,
                 stopSearchOperator, null,
@@ -1121,80 +987,6 @@ public class SpliceTransactionManager implements XATransactionController,
         if (LOG.isTraceEnabled())
             LOG.trace("compressConglomerate conglomId " + conglomId);
         findExistingConglomerate(conglomId).compressConglomerate(this, rawtran);
-    }
-
-    /**
-     * Compress table in place.
-     * <p>
-     * Returns a GroupFetchScanController which can be used to move rows around
-     * in a table, creating a block of free pages at the end of the table. The
-     * process will move rows from the end of the table toward the beginning.
-     * The GroupFetchScanController will return the old row location, the new
-     * row location, and the actual data of any row moved. Note that this scan
-     * only returns moved rows, not an entire set of rows, the scan is designed
-     * specifically to be used by either explicit user call of the
-     * SYSCS_ONLINE_COMPRESS_TABLE() procedure, or internal background calls to
-     * compress the table.
-     *
-     * The old and new row locations are returned so that the caller can update
-     * any indexes necessary.
-     *
-     * This scan always returns all collumns of the row.
-     *
-     * All inputs work exactly as in openScan(). The return is a
-     * GroupFetchScanController, which only allows fetches of groups of rows
-     * from the conglomerate.
-     * <p>
-     *
-     * @return The GroupFetchScanController to be used to fetch the rows.
-     *
-     * @param conglomId
-     *            see openScan()
-     * @param hold
-     *            see openScan()
-     * @param open_mode
-     *            see openScan()
-     * @param lock_level
-     *            see openScan()
-     * @param isolation_level
-     *            see openScan()
-     *
-     * @exception StandardException
-     *                Standard exception policy.
-     *
-     * @see ScanController
-     * @see GroupFetchScanController
-     **/
-    public GroupFetchScanController defragmentConglomerate(long conglomId,
-                                                           boolean online, boolean hold, int open_mode, int lock_level,
-                                                           int isolation_level) throws StandardException {
-
-        if (LOG.isTraceEnabled())
-            LOG.trace("defragmentConglomerate conglomId " + conglomId);
-        if (SanityManager.DEBUG) {
-            if ((open_mode & ~(TransactionController.OPENMODE_FORUPDATE
-                    | TransactionController.OPENMODE_FOR_LOCK_ONLY | TransactionController.OPENMODE_SECONDARY_LOCKED)) != 0)
-                SanityManager.THROWASSERT("Bad open mode to openScan:"
-                        + Integer.toHexString(open_mode));
-
-            if (!(lock_level == MODE_RECORD | lock_level == MODE_TABLE))
-                SanityManager.THROWASSERT("Bad lock level to openScan:"
-                        + lock_level);
-        }
-
-        // Find the conglomerate.
-        Conglomerate conglom = findExistingConglomerate(conglomId);
-
-        // Get a scan controller.
-        ScanManager sm = conglom.defragmentConglomerate(this, rawtran, hold,
-                open_mode, determine_lock_level(lock_level),
-                determine_locking_policy(lock_level, isolation_level),
-                isolation_level);
-
-        // Keep track of it so we can release on close.
-        scanControllers.add(sm);
-
-        return (sm);
     }
 
     public ScanController openScan(long conglomId, boolean hold, int open_mode,
@@ -2232,7 +2024,6 @@ public class SpliceTransactionManager implements XATransactionController,
                         false,
                         OPENMODE_FORUPDATE,
                         MODE_TABLE,
-                        accessmanager.table_level_policy[TransactionController.ISOLATION_SERIALIZABLE],
                         null,
                         null);
         conglom.dropColumn(this,column_id);

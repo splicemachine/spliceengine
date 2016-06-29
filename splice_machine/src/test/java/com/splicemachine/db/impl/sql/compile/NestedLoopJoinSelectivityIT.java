@@ -7,6 +7,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 /**
  *
@@ -30,48 +31,64 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
     }
     @Test
     public void innerJoin() throws Exception {
-        rowContainsQuery(
-                new int[]{1, 3},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1", methodWatcher,
-                "rows=10", "NestedLoopJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3},
+                    "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1",
+                    "rows=10","NestedLoopJoin");
+        }
     }
 
     @Test
     public void antiJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {1,5},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk where not exists (select * from  ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1)",methodWatcher,
-                "rows=8","MergeSortLeftOuterJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,5},
+                    "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk where not exists (select * from  ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1)",
+                    "rows=8","MergeSortLeftOuterJoin");
+        }
     }
 
     @Test
     public void leftOuterJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {1,3},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk left outer join ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n on ts_10_spk.c1 = ts_5_spk.c1",methodWatcher,
-                "rows=10","NestedLoopLeftOuterJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3},
+                    "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk left outer join ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n on ts_10_spk.c1 = ts_5_spk.c1",
+                    "rows=10","NestedLoopLeftOuterJoin");
+        }
     }
 
     @Test
     public void rightOuterJoin() throws Exception {
-        rowContainsQuery(
-                new int[]{1, 3},
-                "explain select * from ts_10_spk --splice-properties joinStrategy=NESTEDLOOP\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1", methodWatcher,
-                "rows=5", "NestedLoopRightOuterJoin");
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3},
+                    "explain select * from ts_10_spk --splice-properties joinStrategy=NESTEDLOOP\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",
+                    "rows=5","NestedLoopRightOuterJoin");
+        }
     }
+
     @Test
     //DB-4102: bump up row count to 1 to avoid divided by zero error when computing cost
     public void testEmptyInputTable() throws Exception {
-        String query = "explain \n" +
-                "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                "t2 b --SPLICE-PROPERTIES index=t2j\n" +
-                ",t1 a--SPLICE-PROPERTIES index=t1i, joinStrategy=MERGE\n" +
-                ", t2 c--SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n" +
-                "where a.i=b.j and b.j = c.j";
-        ResultSet rs = methodWatcher.executeQuery(query);
-        rs.next();
-        rs.next();
-        String s = rs.getString(1);
-        Assert.assertFalse(s.contains("totalCost=�"));
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            String query="explain \n"+
+                    "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n"+
+                    "t2 b --SPLICE-PROPERTIES index=t2j\n"+
+                    ",t1 a--SPLICE-PROPERTIES index=t1i, joinStrategy=MERGE\n"+
+                    ", t2 c--SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n"+
+                    "where a.i=b.j and b.j = c.j";
+            try(ResultSet rs=s.executeQuery(query)){
+                Assert.assertTrue(rs.next());
+                Assert.assertTrue(rs.next());
+                String str=rs.getString(1);
+                Assert.assertFalse(str.contains("totalCost=�"));
+            }
+        }
     }
 }

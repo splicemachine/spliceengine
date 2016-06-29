@@ -59,8 +59,6 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.io.StorageFile;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.store.replication.slave.SlaveFactory;
-
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -115,19 +113,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 	 */
 
 	public boolean canSupport(Properties startParams) {
-        boolean supported =
-            Monitor.isDesiredCreateType(startParams, getEngineType());
-
-        if (supported) {
-            String repliMode =
-                startParams.getProperty(SlaveFactory.REPLICATION_MODE);
-            if (repliMode != null &&
-                !repliMode.equals(SlaveFactory.SLAVE_PRE_MODE)) {
-                supported = false;
-            }
-        }
-
-        return supported;
+        return Monitor.isDesiredCreateType(startParams, getEngineType());
 	}
 
 	public void boot(boolean create, Properties startParams)

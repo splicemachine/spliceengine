@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.backup.OlapMessage;
 import com.splicemachine.derby.test.framework.*;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -180,7 +181,25 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 		Assert.assertTrue("wrong count", rs.getInt(1)==1);
 	}
 
-    // DB-4857
+	@Test
+	//DB-5349
+	public void testMultiProbeTableScanWithProbeVariables() throws Exception {
+		PreparedStatement ps = methodWatcher.prepareStatement("select user_id from "+t1Watcher+" where segment_id in (?,?,?,?) and unixtime = ?");
+		ps.setInt(1,1);
+		ps.setInt(2,5);
+		ps.setInt(3,8);
+		ps.setInt(4,12);
+		ps.setLong(5,1);
+		ResultSet rs = ps.executeQuery();
+		int i = 0;
+		while (rs.next()) {
+			i++;
+		}
+		Assert.assertEquals("Incorrect count returned!",3,i);
+	}
+
+
+	// DB-4857
     @Test
     public void testMultiProbeWithComputations() throws Exception {
         this.thirdRowContainsQuery("explain select * from a --splice-properties index=i\n" +

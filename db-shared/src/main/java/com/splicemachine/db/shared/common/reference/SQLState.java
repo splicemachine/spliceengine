@@ -694,6 +694,7 @@ public interface SQLState {
 	String LANG_STRING_TRUNCATION                                      = "22001";
 	String LANG_CONCAT_STRING_OVERFLOW                                      = "54006";
 	String LANG_OUTSIDE_RANGE_FOR_DATATYPE                             = "22003";
+	String LANG_MODIFIED_ROW_COUNT_TOO_LARGE                           = "22003.S.0";
     String YEAR_EXCEEDS_MAXIMUM                                        = "22003.S.1";
     String DECIMAL_TOO_MANY_DIGITS                                     = "22003.S.2";
     String NUMERIC_OVERFLOW                                            = "22003.S.3";
@@ -1911,5 +1912,16 @@ public interface SQLState {
     String SLAVE_OPERATION_DENIED_WHILE_CONNECTED                  = "XRE41.C";
     String REPLICATION_SLAVE_SHUTDOWN_OK                           = "XRE42.C";
     String REPLICATION_STOPSLAVE_NOT_INITIATED                     = "XRE43";
+
+	/*
+     * Backup and restore
+     */
+	String INVALID_BACKUP_TYPE                           		   = "BR001";
+	String INVALID_BACKUP_DIRECTORY                      		   = "BR002";
+    String NO_RESTORE_DURING_BACKUP                                = "BR003";
+    String INVALID_BACKUP_WINDOW                                   = "BR004";
+    String INVALID_BACKUP_HOUR                                     = "BR005";
+    String INVALID_BACKUP_JOB_ID                                   = "BR006";
+    String INVALID_BACKUP_ID                                       = "BR007";
 }
 

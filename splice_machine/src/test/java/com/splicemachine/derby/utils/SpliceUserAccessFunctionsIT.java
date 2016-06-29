@@ -68,66 +68,6 @@ public class SpliceUserAccessFunctionsIT {
         classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_DROP_USER('" + EXISTING_USER_NAME_2 + "')").execute();
     }
 
-
-    /**
-     * Set newly created user access to READONLY and check it
-     * @throws Exception
-     */
-    @Test
-    public void testSetAndGetUserAccess1() throws Exception {
-        String setQuery = String.format("CALL SYSCS_UTIL.SYSCS_SET_USER_ACCESS('%s', '%s')",
-                EXISTING_USER_NAME, READ_ONLY_ACCESS);
-        methodWatcher.execute(setQuery);
-
-        String getQuery = String.format("values SYSCS_UTIL.SYSCS_GET_USER_ACCESS('%s')", EXISTING_USER_NAME);
-        ResultSet resultSet = methodWatcher.executeQuery(getQuery);
-        resultSet.next();
-        assertThat("User access must be readonly! ", resultSet.getString(1), is(READ_ONLY_ACCESS));
-    }
-
-    /**
-     * Reset user access to FULLACCESS and recheck it
-     * @throws Exception
-     */
-    @Test
-    public void testSetAndGetUserAccess2() throws Exception {
-        String setQuery = String.format("CALL SYSCS_UTIL.SYSCS_SET_USER_ACCESS('%s', '%s')",
-                EXISTING_USER_NAME, FULL_ACCESS);
-        methodWatcher.execute(setQuery);
-
-        String getQuery = String.format("values SYSCS_UTIL.SYSCS_GET_USER_ACCESS('%s')", EXISTING_USER_NAME);
-        ResultSet resultSet = methodWatcher.executeQuery(getQuery);
-        resultSet.next();
-        assertThat("User access must be fullaccess ", resultSet.getString(1), is(FULL_ACCESS));
-    }
-
-    /**
-     * Set non-existent user access. Error expected as we cannot set access for non-existent ones.
-     * @throws Exception
-     */
-    @Test
-    public void testSetUserAccessNonExistentUser() throws Exception {
-        String setQuery = String.format("CALL SYSCS_UTIL.SYSCS_SET_USER_ACCESS('NO-SUCH-USER1', '%s')", FULL_ACCESS);
-        try (ResultSet resultSet = methodWatcher.executeQuery(setQuery)) {
-            fail("Can't set access for non-existent users");
-        } catch (Exception ex) {
-            assertThat("Proper error code expected", ex.getLocalizedMessage(), is("The user name 'NO-SUCH-USER1' is not valid. "));
-        }
-    }
-
-    /**
-     * Get non-existent user access. NOACCESS is expected for non-existent user
-     * @throws Exception
-     */
-    @Test
-    public void testGetUserAccessNonExistentUser() throws Exception {
-        String getQuery = "values SYSCS_UTIL.SYSCS_GET_USER_ACCESS('NO-SUCH-USER1')";
-        try (ResultSet resultSet = methodWatcher.executeQuery(getQuery)) {
-            resultSet.next();
-            assertThat("For non-existent users 'NOACCESS' must be returned", resultSet.getString(1), is(NO_ACCESS));
-        }
-    }
-
     /**
      * Set user access not by dedicated function but in common way (via setting db property)
      * @throws Exception

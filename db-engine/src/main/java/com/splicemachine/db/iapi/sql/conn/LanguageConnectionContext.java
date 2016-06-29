@@ -1272,18 +1272,23 @@ public interface LanguageConnectionContext extends Context {
      */
     boolean hasTriggers();
 
-
-    void setFailedRecords(long failedRecords);
-
     void setBadFile(String badFile);
-
-    long getFailedRecords();
 
     String getBadFile();
 
     void resetBadFile();
 
+    void setFailedRecords(long failedRecords);
+
+    long getFailedRecords();
+
     void resetFailedRecords();
+
+    void setRecordsImported(long recordsImported);
+
+    long getRecordsImported();
+
+    void resetRecordsImported();
 
     CompilerContext.DataSetProcessorType getDataSetProcessorType();
 
