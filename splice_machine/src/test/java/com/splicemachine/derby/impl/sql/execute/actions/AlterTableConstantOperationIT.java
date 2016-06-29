@@ -577,8 +577,10 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public void testAlterAutoGenerateColumnRestart() throws Exception {
         methodWatcher.execute(String.format("ALTER TABLE %s.%s alter column id restart with 1002", SCHEMA, TABLE_NAME_14));
         ResultSet rs = methodWatcher.executeQuery("select * from sys.syscolumns where columnname = 'ID' and autoincrementstart = 1002");
+        // This used to corrupt the system table during alter, this explicitly checks for corruption
+        ResultSet rs2 = methodWatcher.getOrCreateConnection().getMetaData().getColumns(null,SCHEMA,TABLE_NAME_14.toUpperCase(),"ID");
         int count = 0;
-        while (rs.next()) {
+        while (rs2.next()) {
             count++;
         }
         Assert.assertEquals("incorrect count found",count,1);
@@ -603,6 +605,14 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             ++i;
         }
         rs.close();
+        // This used to corrupt the system table during alter, this explicitly checks for corruption
+        ResultSet rs2 = methodWatcher.getOrCreateConnection().getMetaData().getColumns(null,SCHEMA,TABLE_NAME_13.toUpperCase(),"VAL4");
+        int count = 0;
+        while (rs2.next()) {
+            count++;
+        }
+        Assert.assertEquals("incorrect count found",count,1);
+
     }
 
     private void assertSqlFails(String sql, String expectedException, String tableName) {

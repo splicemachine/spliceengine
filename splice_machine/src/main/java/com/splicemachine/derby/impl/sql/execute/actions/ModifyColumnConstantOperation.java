@@ -422,12 +422,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         dd.addDescriptor(columnDescriptor, td,
                 DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
-        if (colInfo.action == ColumnInfo.MODIFY_COLUMN_DEFAULT_INCREMENT) {
-            // adding an autoincrement default-- calculate the maximum value
-            // of the autoincrement column.
-            long maxValue = getColumnMax(lcc, td, colInfo.name, colInfo.autoincInc);
-            dd.setAutoincrementValue(tc, td.getUUID(), colInfo.name, maxValue, true);
-        }
     }
 
     private void modifyColumnType(DataDictionary dd, TransactionController tc,TableDescriptor td,int ix) throws StandardException {
