@@ -2,9 +2,9 @@ package com.splicemachine.olap;
 
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
 
 import java.io.IOException;
-import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
@@ -12,7 +12,7 @@ import java.util.concurrent.Future;
  */
 public interface JobExecutor{
 
-    Future<OlapResult> submit(DistributedJob job) throws IOException;
+    ListenableFuture<OlapResult> submit(DistributedJob job) throws IOException;
 
     void shutdown();
 }

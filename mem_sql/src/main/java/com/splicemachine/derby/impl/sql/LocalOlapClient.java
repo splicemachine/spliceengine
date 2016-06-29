@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.sparkproject.guava.util.concurrent.Futures;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
 import org.sparkproject.guava.util.concurrent.SettableFuture;
 
 import javax.annotation.Nonnull;
@@ -44,7 +45,7 @@ public class LocalOlapClient implements OlapClient{
     }
 
     @Override
-    public <R extends OlapResult> Future<R> submit(@Nonnull final DistributedJob jobRequest) throws IOException {
+    public <R extends OlapResult> ListenableFuture<R> submit(@Nonnull final DistributedJob jobRequest) throws IOException {
         jobRequest.markSubmitted();
         try {
             SettableFuture result = SettableFuture.create();

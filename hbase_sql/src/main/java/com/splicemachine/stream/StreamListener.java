@@ -6,10 +6,12 @@ import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import com.google.common.net.HostAndPort;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
 import org.apache.spark.serializer.KryoRegistrator;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
 import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import org.sparkproject.io.netty.bootstrap.ServerBootstrap;
 import org.sparkproject.io.netty.channel.*;
@@ -33,6 +35,7 @@ import java.util.concurrent.*;
 public class StreamListener<T> extends ChannelInboundHandlerAdapter implements Iterator<T> {
     private static final Logger LOG = Logger.getLogger(StreamListener.class);
     private static final Object SENTINEL = new Object();
+    private static final Object FAILURE = new Object();
     private final int queueSize;
     private final int batchSize;
     private final UUID uuid;
@@ -48,6 +51,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     // There's at least one partition, this will be updated when we get a connection
     private volatile long numPartitions = 1;
     private List<AutoCloseable> closeables = new ArrayList<>();
+    private volatile boolean closed;
+    private volatile Exception failure;
 
     StreamListener() {
         this(-1, 0);
@@ -72,7 +77,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
     public Iterator<T> getIterator() {
         // Initialize first partition
-        partitionStateMap.putIfAbsent(0, new PartitionState(queueSize));
+        PartitionState ps = partitionStateMap.putIfAbsent(0, new PartitionState(queueSize));
+        if (failure != null) {
+            ps.messages.add(FAILURE);
+        }
         // This will block until some data is available
         advance();
         return this;
@@ -121,6 +129,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
     @Override
     public boolean hasNext() {
+        if (failure != null) {
+            // The remote job failed, raise exception to caller
+            Exceptions.throwAsRuntime(Exceptions.parseException(failure));
+        }
+
         return currentResult != null;
     }
 
@@ -128,6 +141,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     public T next() {
         T result = currentResult;
         advance();
+        if (failure != null) {
+            // The remote job failed, raise exception to caller
+            Exceptions.throwAsRuntime(Exceptions.parseException(failure));
+        }
         return result;
     }
 
@@ -145,7 +162,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Skip(serverLimit, offset));
                 }
                 state.initialized = true;
-                if (msg == SENTINEL) {
+                if (msg == FAILURE) {
+                    // The olap job failed, return
+                    currentResult = null;
+                    return;
+                } else if (msg == SENTINEL) {
                     // This queue is finished, start reading from the next queue
                     LOG.trace("Moving queues");
 
@@ -161,7 +182,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     }
 
                     // Set the partitionState so we can block on the queue in case the connection hasn't opened yet
-                    partitionStateMap.putIfAbsent(currentQueue, new PartitionState(queueSize));
+                    PartitionState ps = partitionStateMap.putIfAbsent(currentQueue, new PartitionState(queueSize));
+                    if (failure != null) {
+                        ps.messages.add(FAILURE);
+                    }
                 } else {
                     if (msg instanceof StreamProtocol.Skipped) {
                         StreamProtocol.Skipped skipped = (StreamProtocol.Skipped) msg;
@@ -203,8 +227,12 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             partitionMap.remove(removedChannel);
     }
 
-    private void stopAllStreams() throws InterruptedException {
+    private void stopAllStreams() {
         LOG.trace("Stopping all streams");
+        if (closed) {
+            // do nothing
+            return;
+        }
         for (Channel channel : channelMap.values()) {
             channel.writeAndFlush(new StreamProtocol.Skip(0, 0));
             channel.writeAndFlush(new StreamProtocol.RequestClose());
@@ -217,6 +245,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     }
 
     private void close() throws InterruptedException {
+        if (closed) {
+            // do nothing
+            return;
+        }
+        closed = true;
         for (Channel channel : channelMap.values()) {
             channel.closeFuture().sync();
         }
@@ -241,7 +274,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         this.numPartitions = numPartitions;
 
         partitionMap.put(channel, partition);
-        partitionStateMap.putIfAbsent(partition, new PartitionState(queueSize));
+        PartitionState ps = partitionStateMap.putIfAbsent(partition, new PartitionState(queueSize));
+        if (failure != null) {
+            ps.messages.add(FAILURE);
+        }
         channelMap.put(partition, channel);
 
         ctx.pipeline().addLast(this);
@@ -254,6 +290,27 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     public void addCloseable(AutoCloseable autoCloseable) {
         this.closeables.add(autoCloseable);
     }
+
+    public void completed(OlapResult result) {
+        if (!closed) {
+            failed(new IllegalStateException("StreamListener should be closed when receiving the olap result"));
+            return;
+        }
+
+        // currently we don't need the result
+    }
+
+    public void failed(Exception e) {
+        LOG.error("StreamListener failed", e);
+        failure = e;
+
+        // Unblock iterator
+        for (PartitionState state : partitionStateMap.values()) {
+            if (state != null) {
+                state.messages.add(FAILURE);
+            }
+        }
+    }
 }
 
 class PartitionState {
@@ -262,6 +319,6 @@ class PartitionState {
     boolean initialized;
 
     PartitionState(int queueSize) {
-        messages = new ArrayBlockingQueue(queueSize + 2);  // Two more to account for the SENTINEL & Skipped
+        messages = new ArrayBlockingQueue(queueSize + 3);  // Extra to account for out of band messages
     }
 }

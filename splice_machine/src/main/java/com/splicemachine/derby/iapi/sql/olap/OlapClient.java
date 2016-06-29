@@ -1,5 +1,7 @@
 package com.splicemachine.derby.iapi.sql.olap;
 
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
+
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.concurrent.Future;
@@ -35,7 +37,7 @@ public interface OlapClient {
      * @return a cancellable Future that, when completed, contains the result of this job.
      * @throws IOException if something goes wrong communicating with the OlapServer
      */
-    <R extends OlapResult> Future<R> submit(@Nonnull DistributedJob jobRequest) throws IOException;
+    <R extends OlapResult> ListenableFuture<R> submit(@Nonnull DistributedJob jobRequest) throws IOException;
 
     void shutdown();
 }

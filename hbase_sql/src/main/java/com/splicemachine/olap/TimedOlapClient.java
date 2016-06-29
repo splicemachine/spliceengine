@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -48,9 +49,9 @@ public class TimedOlapClient implements OlapClient{
     }
 
     @Override
-    public <R extends OlapResult> Future<R> submit(@Nonnull DistributedJob jobRequest) throws IOException {
+    public <R extends OlapResult> ListenableFuture<R> submit(@Nonnull DistributedJob jobRequest) throws IOException {
         jobRequest.markSubmitted();
-        return (Future<R>) networkLayer.submit(jobRequest);
+        return (ListenableFuture<R>) networkLayer.submit(jobRequest);
     }
 
     @Override

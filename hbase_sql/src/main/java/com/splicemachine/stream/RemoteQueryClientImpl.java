@@ -27,6 +27,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
 import org.apache.spark.serializer.KryoRegistrator;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
+import org.sparkproject.guava.util.concurrent.MoreExecutors;
 import org.sparkproject.io.netty.bootstrap.ServerBootstrap;
 import org.sparkproject.io.netty.channel.*;
 import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
@@ -53,6 +55,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     private static StreamListenerServer server;
 
     private final SpliceBaseOperation root;
+    private ListenableFuture<OlapResult> olapFuture;
     private StreamListener streamListener;
     private long offset = 0;
     private long limit = -1;
@@ -93,34 +96,24 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, userId, sql);
-            final Future<OlapResult> future = EngineDriver.driver().getOlapClient().submit(jobRequest);
-            new Thread() {
+            olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest);
+            olapFuture.addListener(new Runnable() {
                 @Override
                 public void run() {
-                    SConfiguration conf = HConfiguration.getConfiguration();
-                    while(true) {
-                        try {
-                            LOG.warn("Checking job status");
-                            OlapResult result = future.get(conf.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
-
-                            LOG.warn("Finished!");
-                            return;
-                        } catch (InterruptedException e) {
-
-                            LOG.warn("Error!" ,e);
-                            e.printStackTrace();
-                            return;
-                        } catch (ExecutionException e) {
-                            LOG.warn("Error!" ,e);
-                            e.printStackTrace();
-                            return;
-                        } catch (TimeoutException e) {
-                            LOG.warn("Timed out, ignore");
-                            //ignore
-                        }
+                    try {
+                        OlapResult olapResult = olapFuture.get();
+                        streamListener.completed(olapResult);
+                    } catch (ExecutionException e) {
+                        LOG.warn("Execution failed", e);
+                        streamListener.failed((Exception) e.getCause());
+                    } catch (InterruptedException e) {
+                        // this shouldn't happen, the olapFuture already completed
+                        Thread.currentThread().interrupt();
+                        LOG.error("Unexpected exception, shouldn't happen", e);
+                        streamListener.failed(e);
                     }
                 }
-            }.start();
+            }, MoreExecutors.sameThreadExecutor());
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

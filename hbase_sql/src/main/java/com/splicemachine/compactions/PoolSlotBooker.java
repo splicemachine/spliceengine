@@ -46,7 +46,7 @@ public class PoolSlotBooker implements Runnable {
             JavaFutureAction<?> action = SpliceSpark.getContext().parallelize(Arrays.asList(array), slots).map(new PlaceholderTask(path, 10)).map(new PlaceholderTask(path, 10)).collectAsync();
             if (previous != null) {
                 // cancel previous job
-                previousAction.cancel(true);
+                previousAction.cancel(false);
                 ZkUtils.delete(previous);
             }
             this.previous = path;

@@ -2,10 +2,11 @@ package com.splicemachine.olap;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
-import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
+import org.sparkproject.guava.util.concurrent.ExecutionList;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
 import org.sparkproject.io.netty.bootstrap.Bootstrap;
 import org.sparkproject.io.netty.channel.*;
 import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
@@ -75,7 +76,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     }
 
     @Override
-    public java.util.concurrent.Future<OlapResult> submit(DistributedJob job) throws IOException{
+    public ListenableFuture<OlapResult> submit(DistributedJob job) throws IOException{
         assert job.isSubmitted();
         OlapFuture future=new OlapFuture(job);
         future.doSubmit();
@@ -112,12 +113,13 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
     }
 
-    private class OlapFuture implements java.util.concurrent.Future<OlapResult>, Runnable {
+    private class OlapFuture implements ListenableFuture<OlapResult>, Runnable {
         private final DistributedJob job;
         private final Lock checkLock=new ReentrantLock();
         private final Condition signal=checkLock.newCondition();
         private final ChannelHandler resultHandler = new ResultHandler(this);
         private final ChannelHandler submitHandler = new SubmitHandler(this);
+        private final ExecutionList executionList = new ExecutionList();
 
         private final GenericFutureListener<Future<Void>> failListener=new GenericFutureListener<Future<Void>>(){
             @Override
@@ -217,8 +219,15 @@ public class AsyncOlapNIOLayer implements JobExecutor{
 
         void fail(Throwable cause){
             this.cause=cause;
-            failed=true;
-            keepAlive.cancel(false);
+            this.failed=true;
+            this.keepAlive.cancel(false);
+            this.executionList.execute();
+        }
+
+        void success(OlapResult result) {
+            this.finalResult = result;
+            this.keepAlive.cancel(false);
+            this.executionList.execute();
         }
 
         void doSubmit() throws IOException{
@@ -253,6 +262,11 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 Future<Channel> cFut = channelPool.acquire();
                 cFut.addListener(new StatusListener(this));
             }
+        }
+
+        @Override
+        public void addListener(Runnable runnable, Executor executor) {
+            executionList.add(runnable, executor);
         }
     }
 
@@ -392,8 +406,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 // The job is no longer submitted, assume aborted
                 future.fail(new IOException("Status not available, assuming aborted due to client timeout"));
             }else if(or.isSuccess()){
-                future.finalResult=or;
-                future.keepAlive.cancel(false);
+                future.success(or);
             }else{
                 // It should have a throwable
                 Throwable t=or.getThrowable();
