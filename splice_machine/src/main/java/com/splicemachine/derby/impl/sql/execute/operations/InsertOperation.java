@@ -111,7 +111,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     SConfiguration config=context.getSystemConfiguration();
                     SequenceKey key=new SequenceKey(
                             rlBytes,
-                            !((BaseActivation) activation).willRunInSpark()?1l:config.getSequenceBlockSize(),
+                            isSingleRowResultSet()?1l:config.getSequenceBlockSize(),
                             defaultAutoIncrementValues[i].getFirst(),
                             defaultAutoIncrementValues[i].getSecond(),
                             SIDriver.driver().getTableFactory(),
