@@ -428,7 +428,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             long maxValue = getColumnMax(lcc,td, colInfo.name, colInfo.autoincInc);
             dd.setAutoincrementValue(tc, td.getUUID(), colInfo.name, maxValue, true);
         } else if (colInfo.action == ColumnInfo.MODIFY_COLUMN_DEFAULT_RESTART) {
-            dd.setAutoincrementValue(tc, td.getUUID(), colInfo.name, colInfo.autoincStart, false);
+       //     dd.setAutoincrementValue(tc, td.getUUID(), colInfo.name, colInfo.autoincStart, false);
         }
     }
 
