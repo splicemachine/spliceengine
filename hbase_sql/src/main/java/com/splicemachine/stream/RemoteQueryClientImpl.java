@@ -141,4 +141,9 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     public Iterator<LocatedRow> getIterator() {
         return streamListener.getIterator();
     }
+
+    @Override
+    public void close() throws Exception {
+        streamListener.stopAllStreams();
+    }
 }

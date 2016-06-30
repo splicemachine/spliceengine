@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -86,16 +87,17 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
             if(opContext.getOperation()!=null){
                 opContext.getOperation().fireAfterStatementTriggers();
             }
-            ValueRow valueRow=new ValueRow(1);
+            ValueRow valueRow=new ValueRow(3);
             valueRow.setColumn(1,new SQLLongint(opContext.getRecordsWritten()));
-            opContext.getActivation().getLanguageConnectionContext().setRecordsImported(opContext.getRecordsWritten());
+            valueRow.setColumn(2,new SQLLongint());
+            valueRow.setColumn(3,new SQLVarchar());
             InsertOperation insertOperation=((InsertOperation)opContext.getOperation());
             if(insertOperation!=null && opContext.isPermissive()) {
                 long numBadRecords = opContext.getBadRecords();
-                opContext.getActivation().getLanguageConnectionContext().setFailedRecords(numBadRecords);
+                valueRow.setColumn(2,new SQLLongint(numBadRecords));
                 if (numBadRecords > 0) {
                     String fileName = opContext.getBadRecordFileName();
-                    opContext.getActivation().getLanguageConnectionContext().setBadFile(fileName);
+                    valueRow.setColumn(3,new SQLVarchar(fileName));
                     if (insertOperation.isAboveFailThreshold(numBadRecords)) {
                         throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
                     }

@@ -53,6 +53,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private List<AutoCloseable> closeables = new ArrayList<>();
     private volatile boolean closed;
     private volatile Exception failure;
+    private volatile boolean canBlock = true;
 
     StreamListener() {
         this(-1, 0);
@@ -154,7 +155,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             while (next == null) {
                 PartitionState state = partitionStateMap.get(currentQueue);
                 // We take a message first to make sure we have a connection
-                Object msg = state.messages.take();
+                Object msg = canBlock ? state.messages.take() : state.messages.remove();
                 if (!state.initialized && (offset > 0 || limit > 0)) {
                     LOG.trace("Sending skip " + limit + ", " + offset);
                     // Limit on the server counts from its first element, we have to add offset to it
@@ -227,7 +228,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             partitionMap.remove(removedChannel);
     }
 
-    private void stopAllStreams() {
+    public void stopAllStreams() {
         LOG.trace("Stopping all streams");
         if (closed) {
             // do nothing
@@ -292,12 +293,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     }
 
     public void completed(OlapResult result) {
-        if (!closed) {
-            failed(new IllegalStateException("StreamListener should be closed when receiving the olap result"));
-            return;
-        }
-
-        // currently we don't need the result
+        // the olap job completed, we shouldn't block anymore
+        canBlock = false;
     }
 
     public void failed(Exception e) {

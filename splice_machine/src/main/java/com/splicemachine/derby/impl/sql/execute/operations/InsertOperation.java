@@ -266,7 +266,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
         if (statusDirectory != null || dsp.getType() == DataSetProcessor.Type.SPARK) {
-            RemoteQueryClient remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
+            remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
             remoteQueryClient.submit();
             locatedRowIterator = remoteQueryClient.getIterator();
         } else {

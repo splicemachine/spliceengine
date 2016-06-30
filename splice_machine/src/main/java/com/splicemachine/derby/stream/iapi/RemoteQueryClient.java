@@ -8,7 +8,7 @@ import java.util.Iterator;
 /**
  * Created by dgomezferro on 5/20/16.
  */
-public interface RemoteQueryClient {
+public interface RemoteQueryClient extends AutoCloseable {
     void submit() throws StandardException;
 
     Iterator<LocatedRow> getIterator();

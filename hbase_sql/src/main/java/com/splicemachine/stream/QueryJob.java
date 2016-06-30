@@ -12,6 +12,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -85,16 +86,26 @@ public class QueryJob implements Callable<Void>{
         SpliceOperation root = ah.getOperationsMap().get(queryRequest.rootResultSetNumber);
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         Activation activation = ah.getActivation();
-        root.setActivation(ah.getActivation());
-        if (!(activation.isMaterialized()))
-            activation.materialize();
-        long txnId=root.getCurrentTransaction().getTxnId();
-        String sql = queryRequest.sql;
-        String userId = queryRequest.userId;
-        this.jobName = userId + " <" + txnId + ">";
-        dsp.setJobGroup(jobName, sql);
-        dsp.clearBroadcastedOperation();
-        DataSet<LocatedRow> dataset = root.getDataSet(dsp);
+        SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+        boolean prepared = false;
+        DataSet<LocatedRow> dataset;
+        try {
+            prepared = transactionResource.marshallTransaction(root.getCurrentTransaction());
+            root.setActivation(ah.getActivation());
+            if (!(activation.isMaterialized()))
+                activation.materialize();
+            long txnId = root.getCurrentTransaction().getTxnId();
+
+            String sql = queryRequest.sql;
+            String userId = queryRequest.userId;
+            this.jobName = userId + " <" + txnId + ">";
+            dsp.setJobGroup(jobName, sql);
+            dsp.clearBroadcastedOperation();
+            dataset = root.getDataSet(dsp);
+        } finally {
+            if (prepared)
+                transactionResource.close();
+        }
         SparkDataSet<LocatedRow> sparkDataSet = (SparkDataSet<LocatedRow>) dataset;
         String clientHost = queryRequest.host;
         int clientPort = queryRequest.port;
