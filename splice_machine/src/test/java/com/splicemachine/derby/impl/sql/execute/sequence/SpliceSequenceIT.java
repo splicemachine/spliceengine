@@ -10,13 +10,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
-import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.util.Properties;
-
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -24,7 +17,6 @@ import static org.junit.Assert.assertTrue;
 public class SpliceSequenceIT {
 
     private static final String SCHEMA = SpliceSequenceIT.class.getSimpleName().toUpperCase();
-
     private static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
 
     @ClassRule
@@ -67,7 +59,7 @@ public class SpliceSequenceIT {
 
         methodWatcher.executeUpdate("drop sequence SMALLSEQ restrict");
     }
-
+/*
     @Test
     public void testSparkSequenceGenerationWithCreateAndDrops() throws Exception {
         for (int i=0;i<10;i++){
@@ -147,6 +139,6 @@ public class SpliceSequenceIT {
             methodWatcher.executeUpdate("drop sequence FOOSEQ3 restrict");
         }
     }
-
+*/
 
 }
