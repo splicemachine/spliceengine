@@ -54,6 +54,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private volatile boolean closed;
     private volatile Exception failure;
     private volatile boolean canBlock = true;
+    private volatile boolean stopped = false;
 
     StreamListener() {
         this(-1, 0);
@@ -228,12 +229,15 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             partitionMap.remove(removedChannel);
     }
 
-    public void stopAllStreams() {
+    public synchronized void stopAllStreams() {
         LOG.trace("Stopping all streams");
         if (closed) {
             // do nothing
             return;
         }
+        stopped = true;
+        // If a new channel has been added concurrently, it's either visible on the channelMap, so we are going to close it,
+        // or it has already seen the stopped flag, so it's been closed in accept()
         for (Channel channel : channelMap.values()) {
             channel.writeAndFlush(new StreamProtocol.Skip(0, 0));
             channel.writeAndFlush(new StreamProtocol.RequestClose());
@@ -245,6 +249,26 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         partitionStateMap.putIfAbsent(currentQueue, ps);
     }
 
+    public synchronized void accept(ChannelHandlerContext ctx, int numPartitions, int partition) {
+        LOG.info(String.format("Accepting connection from partition %d out of %d", partition, numPartitions));
+        Channel channel = ctx.channel();
+        this.numPartitions = numPartitions;
+
+        partitionMap.put(channel, partition);
+        PartitionState ps = partitionStateMap.putIfAbsent(partition, new PartitionState(queueSize));
+        if (failure != null) {
+            ps.messages.add(FAILURE);
+        }
+        channelMap.put(partition, channel);
+        if (stopped) {
+            // we are already stopped, ask this stream to close
+            channel.writeAndFlush(new StreamProtocol.Skip(0, 0));
+            channel.writeAndFlush(new StreamProtocol.RequestClose());
+        }
+
+        ctx.pipeline().addLast(this);
+    }
+
     private void close() throws InterruptedException {
         if (closed) {
             // do nothing
@@ -252,7 +276,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
         closed = true;
         for (Channel channel : channelMap.values()) {
-            channel.closeFuture().sync();
+            channel.closeFuture(); // don't wait synchronously, no need
         }
         for (AutoCloseable c : closeables) {
             try {
@@ -267,21 +291,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
-    }
-
-    public void accept(ChannelHandlerContext ctx, int numPartitions, int partition) {
-        LOG.info(String.format("Accepting connection from partition %d out of %d", partition, numPartitions));
-        Channel channel = ctx.channel();
-        this.numPartitions = numPartitions;
-
-        partitionMap.put(channel, partition);
-        PartitionState ps = partitionStateMap.putIfAbsent(partition, new PartitionState(queueSize));
-        if (failure != null) {
-            ps.messages.add(FAILURE);
-        }
-        channelMap.put(partition, channel);
-
-        ctx.pipeline().addLast(this);
     }
 
     public UUID getUuid() {
