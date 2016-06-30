@@ -10,10 +10,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.math.BigDecimal;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.BitSet;
 
 /**
@@ -126,6 +123,47 @@ public class IndexNullityIT{
         }
     }
 
+    @Test
+    public void testUpdateMiddleColToNullDoesNotCauseFollowingColsNull() throws Exception{
+        String tableName = "THREE_COL_TIMESTAMP";
+        String querySql = String.format("select * from %s --SPLICE-PROPERTIES index=M_COL_IDX\n" +
+                "where IDX_COL=12123",tableName);
+        try(Statement s = conn.createStatement()){
+            s.execute("drop table if exists "+tableName);
+            s.execute("create table "+tableName+"(IDX_COL INTEGER, U_COL INTEGER, CRT_DTTM TIMESTAMP");
+
+            s.execute("create index M_COL_IDX on "+tableName+"(IDX_COL)");
+
+            int iCount = s.executeUpdate("insert into "+tableName+"values (12123,12149645, CURRENT_TIMESTAMP)");
+            Assert.assertEquals("Incorrect number of rows updated!",1,iCount);
+
+            Timestamp corrTimestamp;
+            try(ResultSet rs = s.executeQuery(querySql)){
+                int idxVal = rs.getInt(1);
+                Assert.assertFalse("IDX_COL is null!",rs.wasNull());
+                int uVal = rs.getInt(2);
+                Assert.assertFalse("U_COL is null!",rs.wasNull());
+                corrTimestamp = rs.getTimestamp(3);
+                Assert.assertFalse("CRT_DTTM is null!",rs.wasNull());
+            }
+
+            int uCount = s.executeUpdate("update "+tableName+" set U_COL=NULL where IDX_COL=12123");
+            Assert.assertEquals("Incorrect number of rows updated!",1,uCount);
+
+            try(ResultSet rs = s.executeQuery(querySql)){
+                int idxVal = rs.getInt(1);
+                Assert.assertFalse("IDX_COL is null!",rs.wasNull());
+                int uVal = rs.getInt(2);
+                Assert.assertTrue("U_COL is not null!",rs.wasNull());
+                Timestamp ts = rs.getTimestamp(3);
+                Assert.assertFalse("CRT_DTTM is null!",rs.wasNull());
+                Assert.assertEquals("CRT_DTTM is changed by update!",corrTimestamp,ts);
+            }
+        }
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
     private void validateQuery(String indexName, String indexSchema,ResultSet resultSet,BitSet nullColumns)throws Exception{
         String errorFormat = String.format("[%s,%s]",indexName,indexSchema)+"%s";
         int colCount = resultSet.getMetaData().getColumnCount();
