@@ -130,27 +130,30 @@ public class IndexNullityIT{
                 "where IDX_COL=12123",tableName);
         try(Statement s = conn.createStatement()){
             s.execute("drop table if exists "+tableName);
-            s.execute("create table "+tableName+"(IDX_COL INTEGER, U_COL INTEGER, CRT_DTTM TIMESTAMP");
+            s.execute("create table "+tableName+"(IDX_COL INTEGER, U_COL INTEGER, CRT_DTTM TIMESTAMP)");
 
             s.execute("create index M_COL_IDX on "+tableName+"(IDX_COL)");
 
-            int iCount = s.executeUpdate("insert into "+tableName+"values (12123,12149645, CURRENT_TIMESTAMP)");
+            int iCount = s.executeUpdate("insert into "+tableName+" values (12123,12149645, CURRENT_TIMESTAMP)");
             Assert.assertEquals("Incorrect number of rows updated!",1,iCount);
 
             Timestamp corrTimestamp;
             try(ResultSet rs = s.executeQuery(querySql)){
+                Assert.assertTrue("no rows returned!",rs.next());
                 int idxVal = rs.getInt(1);
                 Assert.assertFalse("IDX_COL is null!",rs.wasNull());
                 int uVal = rs.getInt(2);
                 Assert.assertFalse("U_COL is null!",rs.wasNull());
                 corrTimestamp = rs.getTimestamp(3);
                 Assert.assertFalse("CRT_DTTM is null!",rs.wasNull());
+                Assert.assertFalse("too many rows returned!",rs.next());
             }
 
             int uCount = s.executeUpdate("update "+tableName+" set U_COL=NULL where IDX_COL=12123");
             Assert.assertEquals("Incorrect number of rows updated!",1,uCount);
 
             try(ResultSet rs = s.executeQuery(querySql)){
+                Assert.assertTrue("no rows returned!",rs.next());
                 int idxVal = rs.getInt(1);
                 Assert.assertFalse("IDX_COL is null!",rs.wasNull());
                 int uVal = rs.getInt(2);
@@ -158,6 +161,7 @@ public class IndexNullityIT{
                 Timestamp ts = rs.getTimestamp(3);
                 Assert.assertFalse("CRT_DTTM is null!",rs.wasNull());
                 Assert.assertEquals("CRT_DTTM is changed by update!",corrTimestamp,ts);
+                Assert.assertFalse("too many rows returned!",rs.next());
             }
         }
     }
