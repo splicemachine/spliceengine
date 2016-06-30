@@ -57,7 +57,7 @@ public class OlapServer {
 
         SpliceLogUtils.info(LOG, "Olap Server started.");
 
-        executor.scheduleWithFixedDelay(new PoolSlotBooker("Valet", "compaction", 4), 0, 10, TimeUnit.SECONDS);
+        executor.scheduleWithFixedDelay(new PoolSlotBooker("BookingService", "compaction", 4), 0, 10, TimeUnit.SECONDS);
     }
 
     private int getPortNumber() {

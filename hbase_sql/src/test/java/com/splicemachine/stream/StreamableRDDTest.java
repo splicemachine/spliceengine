@@ -1,6 +1,5 @@
 package com.splicemachine.stream;
 
-import com.clearspring.analytics.util.Lists;
 import com.google.common.net.HostAndPort;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -33,18 +32,18 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
 
     @BeforeClass
     public static void setup() throws StandardException {
-        server = new StreamListenerServer(59599);
+        server = new StreamListenerServer(0);
         server.start();
     }
 
     @Test
-    public void testBasicStream() throws StandardException {
+    public void testBasicStream() throws Exception {
         StreamListener<ExecRow> sl = new StreamListener<>();
         HostAndPort hostAndPort = server.getHostAndPort();
         server.register(sl);
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(tenRows, 10);
         StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
-        Object result = srdd.result();
+        srdd.submit();
         Iterator<ExecRow> it = sl.getIterator();
         int count = 0;
         while (it.hasNext()) {
@@ -58,7 +57,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
     }
 
     @Test
-    public void testOrder() throws StandardException {
+    public void testOrder() throws Exception {
         StreamListener<ExecRow> sl = new StreamListener<>();
         HostAndPort hostAndPort = server.getHostAndPort();
         server.register(sl);
@@ -74,7 +73,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             }
         }, true, 4);
         StreamableRDD srdd = new StreamableRDD(sorted, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
-        Object result = srdd.result();
+        srdd.submit();
         Iterator<ExecRow> it = sl.getIterator();
         int count = 0;
         int last = -1;
@@ -107,8 +106,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             @Override
             public void run() {
                 try {
-                    Object result = srdd.result();
-                } catch (StandardException e) {
+                    srdd.submit();
+                } catch (Exception e) {
                     LOG.error(e);
                     throw new RuntimeException(e);
                 }
@@ -142,8 +141,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             @Override
             public void run() {
                 try {
-                    Object result = srdd.result();
-                } catch (StandardException e) {
+                    srdd.submit();
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
 
@@ -177,8 +176,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             @Override
             public void run() {
                 try {
-                    Object result = srdd.result();
-                } catch (StandardException e) {
+                    srdd.submit();
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
 
@@ -215,8 +214,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             @Override
             public void run() {
                 try {
-                    Object result = srdd.result();
-                } catch (StandardException e) {
+                    srdd.submit();
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
 
@@ -256,8 +255,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             @Override
             public void run() {
                 try {
-                    Object result = srdd.result();
-                } catch (StandardException e) {
+                    srdd.submit();
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
 
@@ -293,8 +292,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             @Override
             public void run() {
                 try {
-                    Object result = srdd.result();
-                } catch (StandardException e) {
+                    srdd.submit();
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
 
@@ -330,8 +329,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             @Override
             public void run() {
                 try {
-                    Object result = srdd.result();
-                } catch (StandardException e) {
+                    srdd.submit();
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
 
@@ -366,8 +365,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             @Override
             public void run() {
                 try {
-                    Object result = srdd.result();
-                } catch (StandardException e) {
+                    srdd.submit();
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
 
@@ -416,8 +415,8 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
                 @Override
                 public void run() {
                     try {
-                        Object result = srdd.result();
-                    } catch (StandardException e) {
+                        srdd.submit();
+                    } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
 

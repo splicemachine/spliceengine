@@ -2,51 +2,18 @@ package com.splicemachine.stream;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.compactions.CompactionInputFormat;
-import com.splicemachine.compactions.CompactionResult;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
-import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
-import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.olap.DistributedCompaction;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaFutureAction;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function2;
-import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
-import org.sparkproject.jboss.netty.bootstrap.ClientBootstrap;
-import org.sparkproject.jboss.netty.channel.Channel;
-import org.sparkproject.jboss.netty.channel.ChannelFuture;
-import org.sparkproject.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.sparkproject.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
-import org.sparkproject.jboss.netty.handler.codec.serialization.ObjectEncoder;
-import scala.Function1;
-import scala.collection.JavaConversions;
-import scala.collection.Seq;
-import scala.reflect.ClassTag;
-import scala.runtime.AbstractFunction1;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -115,8 +82,7 @@ public class QueryJob implements Callable<Void>{
         int streamingBatches = HConfiguration.getConfiguration().getSparkResultStreamingBatches();
         int streamingBatchSize = HConfiguration.getConfiguration().getSparkResultStreamingBatchSize();
         StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, uuid, clientHost, clientPort, streamingBatches, streamingBatchSize);
-
-        Object result = streamableRDD.result();
+        streamableRDD.submit();
 
         status.markCompleted(new QueryResult(numPartitions));
 

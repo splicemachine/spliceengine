@@ -67,7 +67,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     private StreamListenerServer getServer() throws StandardException {
         synchronized (RemoteQueryClientImpl.class) {
             if (server == null) {
-                server = new StreamListenerServer(59599);
+                server = new StreamListenerServer(0);
                 server.start();
             }
         }

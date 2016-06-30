@@ -52,7 +52,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private volatile long numPartitions = 1;
     private List<AutoCloseable> closeables = new ArrayList<>();
     private volatile boolean closed;
-    private volatile Exception failure;
+    private volatile Throwable failure;
     private volatile boolean canBlock = true;
     private volatile boolean stopped = false;
 
@@ -91,12 +91,12 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) { // (4)
         LOG.error("Exception caught", cause);
-        cause.printStackTrace();
+        failed(cause);
         ctx.close();
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         Channel channel = ctx.channel();
 
         if (msg instanceof StreamProtocol.RequestClose) {
@@ -104,22 +104,12 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             PartitionState state = partitionStateMap.get(partition);
             // We can't block here, we negotiate throughput with the server to guarantee it
             state.messages.add(SENTINEL);
-            try {
-                // Let server know it can close the connection
-                ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
-                ctx.close().sync();
-            } catch (InterruptedException e) {
-                LOG.error("While closing channel", e);
-                throw new RuntimeException(e);
-            }
+            // Let server know it can close the connection
+            ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
+            ctx.close().sync();
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
-            try {
-                ctx.close().sync();
-                channelMap.remove(partitionMap.get(channel));
-            } catch (InterruptedException e) {
-                LOG.error("While closing channel", e);
-                throw new RuntimeException(e);
-            }
+            ctx.close().sync();
+            channelMap.remove(partitionMap.get(channel));
         } else {
             // Data or StreamProtocol.Skipped
             Integer partition = partitionMap.get(channel);
@@ -158,7 +148,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                 // We take a message first to make sure we have a connection
                 Object msg = canBlock ? state.messages.take() : state.messages.remove();
                 if (!state.initialized && (offset > 0 || limit > 0)) {
-                    LOG.trace("Sending skip " + limit + ", " + offset);
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Sending skip " + limit + ", " + offset);
                     // Limit on the server counts from its first element, we have to add offset to it
                     long serverLimit = limit > 0 ? limit + offset : -1;
                     channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Skip(serverLimit, offset));
@@ -177,7 +168,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     currentQueue++;
                     if (currentQueue >= numPartitions) {
                         // finished
-                        LOG.trace("End of stream");
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("End of stream");
                         currentResult = null;
                         close();
                         return;
@@ -210,7 +202,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     }
 
                     if (state.consumed > batchSize) {
-                        LOG.trace("Writing CONT");
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("Writing CONT");
                         channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Continue());
                         state.consumed -= batchSize;
                     }
@@ -229,8 +222,15 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             partitionMap.remove(removedChannel);
     }
 
+    /**
+     * This method stops all streams when the iterator is finished.
+     *
+     * It is synchronized as is the accept() method because we want to notify channels only once that we are no longer
+     * interested in more data.
+     */
     public synchronized void stopAllStreams() {
-        LOG.trace("Stopping all streams");
+        if (LOG.isTraceEnabled())
+            LOG.trace("Stopping all streams");
         if (closed) {
             // do nothing
             return;
@@ -249,6 +249,13 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         partitionStateMap.putIfAbsent(currentQueue, ps);
     }
 
+
+    /**
+     * This method accepts new connections from the StreamListenerServer
+     *
+     * It is synchronized as is the stopAllStreams() method because we want to notify channels only once that we are no longer
+     * interested in more data.
+     */
     public synchronized void accept(ChannelHandlerContext ctx, int numPartitions, int partition) {
         LOG.info(String.format("Accepting connection from partition %d out of %d", partition, numPartitions));
         Channel channel = ctx.channel();
@@ -269,7 +276,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         ctx.pipeline().addLast(this);
     }
 
-    private void close() throws InterruptedException {
+    private void close() {
         if (closed) {
             // do nothing
             return;
@@ -278,13 +285,17 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         for (Channel channel : channelMap.values()) {
             channel.closeFuture(); // don't wait synchronously, no need
         }
+        Exception lastException = null;
         for (AutoCloseable c : closeables) {
             try {
                 c.close();
             } catch (Exception e) {
                 LOG.error(e);
-                throw new RuntimeException(e);
+                lastException = e;
             }
+        }
+        if (lastException != null) {
+            throw new RuntimeException(lastException);
         }
     }
 
@@ -306,7 +317,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         canBlock = false;
     }
 
-    public void failed(Exception e) {
+    public void failed(Throwable e) {
         LOG.error("StreamListener failed", e);
         failure = e;
 

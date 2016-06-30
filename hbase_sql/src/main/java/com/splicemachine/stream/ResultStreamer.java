@@ -71,7 +71,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             private int currentBatch;
 
             @Override
-            public Long call() {
+            public Long call() throws InterruptedException {
                 while (locatedRowIterator.hasNext()) {
                     T lr = locatedRowIterator.next();
                     consumed++;
@@ -99,16 +99,11 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
              * If the current batch exceeds the batch size, flush the connection and take a new permit, blocking if the client
              * hasn't had time yet to process previous messages
              */
-            private void flushAndGetPermit() {
+            private void flushAndGetPermit() throws InterruptedException {
                 if (currentBatch >= batchSize) {
                     ctx.flush();
                     currentBatch = 0;
-                    try {
-                        permits.acquire();
-                    } catch (InterruptedException e) {
-                        LOG.error(e);
-                        throw new RuntimeException(e);
-                    }
+                    permits.acquire();
                 }
             }
 

@@ -47,51 +47,52 @@ public class StreamableRDD<T> {
         this.clientBatches = batches;
     }
 
-    public Object result() throws StandardException {
-        final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
-        int numPartitions = streamed.getNumPartitions();
-        int partitionsBatchSize = PARALLEL_PARTITIONS / 2;
-        int partitionBatches = numPartitions / partitionsBatchSize;
-        if (numPartitions % partitionsBatchSize > 0)
-            partitionBatches++;
-
-        LOG.trace("Num partitions " + numPartitions + " clientBatches " + partitionBatches);
-
-        submitBatch(0, partitionsBatchSize, numPartitions, streamed);
-        if (partitionBatches > 1)
-            submitBatch(1, partitionsBatchSize, numPartitions, streamed);
-
-        int received = 0;
-        int submitted = 2;
+    public void submit() throws Exception {
         Exception error = null;
-        while(received < partitionBatches && error == null) {
-            Future<Object> resultFuture = null;
-            try {
-                resultFuture = completionService.take();
-                Object result = resultFuture.get();
-                received++;
-                if ("STOP".equals(result)) {
-                    LOG.trace("Stopping after receiving " + received + " clientBatches of " + partitionBatches);
-                    break;
+        try {
+            final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
+            int numPartitions = streamed.getNumPartitions();
+            int partitionsBatchSize = PARALLEL_PARTITIONS / 2;
+            int partitionBatches = numPartitions / partitionsBatchSize;
+            if (numPartitions % partitionsBatchSize > 0)
+                partitionBatches++;
+
+            if (LOG.isTraceEnabled())
+                LOG.trace("Num partitions " + numPartitions + " clientBatches " + partitionBatches);
+
+            submitBatch(0, partitionsBatchSize, numPartitions, streamed);
+            if (partitionBatches > 1)
+                submitBatch(1, partitionsBatchSize, numPartitions, streamed);
+
+            int received = 0;
+            int submitted = 2;
+            while (received < partitionBatches && error == null) {
+                Future<Object> resultFuture = null;
+                try {
+                    resultFuture = completionService.take();
+                    Object result = resultFuture.get();
+                    received++;
+                    if ("STOP".equals(result)) {
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("Stopping after receiving " + received + " clientBatches of " + partitionBatches);
+                        break;
+                    }
+                    if (submitted < partitionBatches) {
+                        submitBatch(submitted, partitionsBatchSize, numPartitions, streamed);
+                        submitted++;
+                    }
+                } catch (Exception e) {
+                    error = e;
                 }
-                if (submitted < partitionBatches) {
-                    submitBatch(submitted, partitionsBatchSize, numPartitions, streamed);
-                    submitted++;
-                }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch(Exception e) {
-                error = e;
             }
+        } finally {
+            executor.shutdown();
         }
-        executor.shutdown();
 
         if (error != null) {
             LOG.error(error);
-            throw Exceptions.parseException(error);
+            throw error;
         }
-
-        return null;
     }
 
     private void submitBatch(int batch, int batchSize, int numPartitions, final JavaRDD<String> streamed) {
@@ -99,7 +100,8 @@ public class StreamableRDD<T> {
         for (int j = batch*batchSize; j < numPartitions && j < (batch+1)*batchSize; j++) {
             list.add(j);
         }
-        LOG.trace("Submitting batch " + batch + " with partitions " + list);
+        if (LOG.isTraceEnabled())
+            LOG.trace("Submitting batch " + batch + " with partitions " + list);
         final Seq objects = JavaConversions.asScalaBuffer(list).toList();
         completionService.submit(new Callable<Object>() {
             @Override
