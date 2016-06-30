@@ -135,7 +135,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             private boolean checkLimit() {
                 if (consumed > limit) {
                     ctx.flush();
-                    LOG.trace("Reached limit, stopping consumed " + consumed + " sent " + sent + " limit " + limit);
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Reached limit, stopping. consumed " + consumed + " sent " + sent + " limit " + limit);
                     return true;
                 }
                 return false;
@@ -146,30 +147,16 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        LOG.trace("Received message " + msg);
-
         if (msg instanceof StreamProtocol.Continue) {
-            StreamProtocol.Continue cont = (StreamProtocol.Continue) msg;
             permits.release();
-            LOG.trace("Released permit " + permits);
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
-            try {
-                ctx.close().sync();
-            } catch (InterruptedException e) {
-                LOG.error(e);
-            }
-            LOG.trace("Closed");
+            ctx.close().sync();
         } else if (msg instanceof StreamProtocol.RequestClose) {
             permits.release();
-            try {
-                // wait for the writing thread to finish
-                future.get();
-                ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
-                ctx.close().sync();
-            } catch (InterruptedException e) {
-                LOG.error(e);
-            }
-            LOG.trace("Closed");
+            // wait for the writing thread to finish
+            future.get();
+            ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
+            ctx.close().sync();
         } else if (msg instanceof StreamProtocol.Skip) {
             StreamProtocol.Skip skip = (StreamProtocol.Skip) msg;
             offset = skip.offset;
