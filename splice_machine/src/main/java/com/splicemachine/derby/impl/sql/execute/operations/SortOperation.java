@@ -80,6 +80,7 @@ public class SortOperation extends SpliceBaseOperation{
         distinct=in.readBoolean();
         orderingItem=in.readInt();
         numColumns=in.readInt();
+        nullsOrderedLow=in.readBoolean();
     }
 
     @Override
@@ -89,6 +90,7 @@ public class SortOperation extends SpliceBaseOperation{
         out.writeBoolean(distinct);
         out.writeInt(orderingItem);
         out.writeInt(numColumns);
+        out.writeBoolean(nullsOrderedLow);
     }
 
     @Override
