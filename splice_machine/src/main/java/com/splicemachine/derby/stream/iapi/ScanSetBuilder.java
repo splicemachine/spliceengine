@@ -76,4 +76,6 @@ public interface ScanSetBuilder<V>{
     DataScan getScan();
 
     TxnView getTxn();
+
+    OperationContext getOperationContext();
 }

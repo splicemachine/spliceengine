@@ -48,6 +48,11 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
     @SuppressWarnings("unchecked")
     @Override
     public DataSet<V> buildDataSet(Object caller) throws StandardException {
+        if (op != null)
+            operationContext = dsp.createOperationContext(op);
+        else if (activation != null)
+            operationContext = dsp.createOperationContext(activation);
+
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
@@ -68,13 +73,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
 
-        OperationContext<SpliceOperation> operationContext;
-        if (op != null)
-            operationContext = dsp.createOperationContext(op);
-        else
-            operationContext = dsp.createOperationContext(activation);
-
-        SparkSpliceFunctionWrapper f = new SparkSpliceFunctionWrapper<>(new TableScanTupleFunction<>(operationContext));
+        SparkSpliceFunctionWrapper f = new SparkSpliceFunctionWrapper<>(new TableScanTupleFunction<SpliceOperation>(operationContext));
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
             return new SparkDataSet<>(rawRDD.map(f), op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
@@ -88,6 +87,12 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         super.writeExternal(out);
         out.writeUTF(tableName);
         out.writeObject(dsp);
+        if (op != null)
+            operationContext = dsp.createOperationContext(op);
+        else if (activation!=null)
+            operationContext = dsp.createOperationContext(activation);
+
+        out.writeObject(operationContext);
     }
 
     @Override
@@ -95,5 +100,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         super.readExternal(in);
         this.tableName = in.readUTF();
         this.dsp = (SparkDataSetProcessor)in.readObject();
+        this.operationContext = (OperationContext) in.readObject();
     }
 }

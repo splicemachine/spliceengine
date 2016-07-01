@@ -11,10 +11,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Properties;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -31,7 +29,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
 
     private static final String CALL_INSTALL_JAR_FORMAT_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
     private static final String CALL_REMOVE_JAR_FORMAT_STRING = "CALL SQLJ.REMOVE_JAR('%s', 0)";
-    private static final String STORED_PROCS_JAR_FILE = getResourceDirectory() + "/UDT.jar";
+    private static final String STORED_PROCS_JAR_FILE = getResourceDirectory() + "UDT.jar";
     private static final String JAR_FILE_SQL_NAME = CLASS_NAME + ".UDT_JAR";
 
     private static final String CALL_SET_CLASSPATH_FORMAT_STRING = "CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')";
@@ -55,6 +53,9 @@ public class SpliceUDTIT extends SpliceUnitTest {
         methodWatcher.execute("DROP table orders");
         methodWatcher.execute("DROP FUNCTION makePrice");
         methodWatcher.execute("DROP TYPE price restrict");
+        methodWatcher.execute("drop function testConnection");
+        methodWatcher.execute("drop table test");
+
     }
 
     private static void createData(Connection conn) throws Exception {
@@ -90,7 +91,16 @@ public class SpliceUDTIT extends SpliceUnitTest {
 
             s.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
             s.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
+
+            s.execute("CREATE FUNCTION testConnection()\n" +
+                    "RETURNS VARCHAR(100)\n" +
+                    "LANGUAGE JAVA\n" +
+                    "PARAMETER STYLE JAVA \n" +
+                    "EXTERNAL NAME 'com.splicemachine.customer.NielsenTesting.testInternalConnection'");
+            s.execute("create table test(id integer, name varchar(30))");
+            s.execute("insert into test values(1,'erin')");
         }
+
     }
 
     @Test
@@ -119,5 +129,17 @@ public class SpliceUDTIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syscolumnstatistics");
         Assert.assertTrue(rs.next());
         Assert.assertTrue(rs.getInt(1)>0);
+    }
+
+    @Test
+    public void testConnection() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+        Connection connection = DriverManager.getConnection(url, new Properties());
+        connection.setSchema(CLASS_NAME.toUpperCase());
+        Statement s = connection.createStatement();
+        ResultSet rs = s.executeQuery("select testConnection() from test");
+        String result = rs.next() ? rs.getString(1) : null;
+        Assert.assertNotNull(result);
+        Assert.assertTrue(result, result.compareTo("Got an internal connection")==0);
     }
 }

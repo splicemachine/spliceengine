@@ -136,7 +136,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
         setupBroadcastedActivation(activation);
-        return new SparkOperationContext<>(activation);
+        return new SparkOperationContext<>(activation, broadcastedActivation.get());
     }
 
     @Override

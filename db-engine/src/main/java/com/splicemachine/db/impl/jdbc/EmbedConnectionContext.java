@@ -35,7 +35,7 @@ import java.sql.SQLException;
 
 /**
  */
-class EmbedConnectionContext extends ContextImpl 
+public class EmbedConnectionContext extends ContextImpl
 		implements ConnectionContext
 {
 
@@ -50,7 +50,7 @@ class EmbedConnectionContext extends ContextImpl
 	private java.lang.ref.SoftReference	connRef;
 
 
-	EmbedConnectionContext(ContextManager cm, EmbedConnection conn) {
+	public EmbedConnectionContext(ContextManager cm, EmbedConnection conn) {
 		super(cm, ConnectionContext.CONTEXT_ID);
 
 		connRef = new java.lang.ref.SoftReference(conn);

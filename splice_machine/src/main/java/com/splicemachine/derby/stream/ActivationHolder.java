@@ -162,11 +162,13 @@ public class ActivationHolder implements Externalizable {
         return txn;
     }
 
-    public void reinitialize(TxnView txn) {
+    public void reinitialize(TxnView otherTxn) {
+
+        TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
         initialized = true;
         try {
             impl = new SpliceTransactionResourceImpl();
-            prepared =  impl.marshallTransaction(txn);
+            prepared =  impl.marshallTransaction(txnView);
             activation = soi.getActivation(this, impl.getLcc());
 
             SpliceOperationContext context = SpliceOperationContext.newContext(activation);

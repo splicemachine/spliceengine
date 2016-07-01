@@ -66,9 +66,10 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @SuppressWarnings("unchecked")
-    protected SparkOperationContext(Activation activation){
+    protected SparkOperationContext(Activation activation, BroadcastedActivation broadcastedActivation){
         this.op=null;
         this.activation=activation;
+        this.broadcastedActivation = broadcastedActivation;
         AccumulatorParam param=AccumulatorParam.LongAccumulatorParam$.MODULE$;
 
         this.rowsRead=SpliceSpark.getContext().accumulator(0L,"rows read",param);
@@ -290,6 +291,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     public ActivationHolder getActivationHolder() {
-        return broadcastedActivation.getActivationHolder();
+        return broadcastedActivation!= null ? broadcastedActivation.getActivationHolder() : null;
     }
 }
