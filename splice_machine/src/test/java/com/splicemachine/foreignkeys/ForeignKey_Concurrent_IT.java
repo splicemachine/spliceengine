@@ -110,8 +110,12 @@ public class ForeignKey_Concurrent_IT {
 
         connection2.prepareStatement("delete from P where a =1").executeUpdate();
         connection2.commit();
-        connection2.prepareStatement("insert into P values (1,1)").executeUpdate();
-        assertQueryFail(connection1, "insert into C values(1,1)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+        try {
+            connection2.prepareStatement("insert into P values (1,1)").executeUpdate();
+            assertQueryFail(connection1, "insert into C values(1,1)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+        } finally {
+            connection2.commit();
+        }
     }
 
 
