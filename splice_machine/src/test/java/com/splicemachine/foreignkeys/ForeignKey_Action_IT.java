@@ -122,6 +122,7 @@ public class ForeignKey_Action_IT {
         }
     }
 
+    @Ignore
     @Test
     public void onDeleteNoAction_primaryKey_successAfterDeleteReference() throws Exception {
         try(Statement s = conn.createStatement()){

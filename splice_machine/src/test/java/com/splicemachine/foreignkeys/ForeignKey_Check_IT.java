@@ -3,8 +3,10 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Statement;
 import java.util.regex.Pattern;
@@ -16,6 +18,7 @@ import static org.junit.Assert.*;
 /**
  * Foreign key tests for *checking* that the FK constraint is enforced in various scenarios.
  */
+@Category(value = {SerialTest.class})
 public class ForeignKey_Check_IT {
 
     private static final String SCHEMA = ForeignKey_Check_IT.class.getSimpleName();
@@ -86,6 +89,7 @@ public class ForeignKey_Check_IT {
     }
 
     /* DB-694 */
+    @Ignore
     @Test
     public void childRowsCannotReferenceDeletedRowsInParent() throws Exception {
         // given -- C -> P

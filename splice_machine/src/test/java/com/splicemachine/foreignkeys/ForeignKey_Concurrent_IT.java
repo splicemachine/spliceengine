@@ -38,6 +38,7 @@ public class ForeignKey_Concurrent_IT {
         classWatcher.executeUpdate("create table C (a bigint, b bigint, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
     }
 
+    @Ignore
     @Test(timeout = 10000)
     public void concurrentTransactions_insertFirst() throws Exception {
         Connection connection1 = newNoAutoCommitConnection();
