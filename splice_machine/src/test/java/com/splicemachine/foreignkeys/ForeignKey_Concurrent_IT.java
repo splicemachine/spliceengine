@@ -8,10 +8,7 @@ import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -87,6 +84,37 @@ public class ForeignKey_Concurrent_IT {
         assertEquals(1L, methodWatcher.query("select count(*) from P where a=300"));
         assertEquals(0L, methodWatcher.query("select count(*) from C where a=2"));
     }
+
+        /**
+         *
+         * Case we are attempting to prevent...
+         *
+         * txn 0 creates parent
+         * txn 1 starts
+         * txn 2 starts, deletes parent, commits
+         * txn 3 creates parent
+         * txn 1 creates child, sees parent3 from readUncommitted and parent0 from SI, commits
+         * txn 3 can rollback and leave a dangling child
+     */
+
+
+    @Test(timeout = 10000)
+    public void concurrentTransactionsOutOfOrderParentDeletesAndChilds() throws Exception {
+        Connection connection1 = newNoAutoCommitConnection();
+        Connection connection2 = newNoAutoCommitConnection();
+
+        // Get a parent timestamp for the connection
+        ResultSet rs = connection1.prepareStatement("select * from P").executeQuery();
+        while (rs.next()) {}
+        rs.close();
+
+        connection2.prepareStatement("delete from P where a =1").executeUpdate();
+        connection2.commit();
+        connection2.prepareStatement("insert into P values (1,1)").executeUpdate();
+        assertQueryFail(connection1, "insert into C values(1,1)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+    }
+
+
 
     @Ignore("for manual testing")
     @Test
