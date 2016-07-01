@@ -147,6 +147,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
         } else if (msg instanceof StreamProtocol.RequestClose) {
+            limit = 0; // If they want to close they don't need more data
             permits.release();
             // wait for the writing thread to finish
             future.get();

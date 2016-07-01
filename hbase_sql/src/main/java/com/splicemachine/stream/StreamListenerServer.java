@@ -44,6 +44,7 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workerGroup;
     private HostAndPort hostAndPort;
+    private CloseHandler closeHandler = new CloseHandler();
 
     public StreamListenerServer(int port) {
         this.port = port;
@@ -121,14 +122,20 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
             int partition = init.partition;
 
             final StreamListener<T> listener = listenersMap.get(uuid);
-            // ... and hand off the channel to the listener
-            listener.accept(ctx, numPartitions, partition);
-            listener.addCloseable(new AutoCloseable() {
-                @Override
-                public void close() throws Exception {
-                    unregister(listener);
-                }
-            });
+            if (listener != null) {
+                // ... and hand off the channel to the listener
+                listener.accept(ctx, numPartitions, partition);
+                listener.addCloseable(new AutoCloseable() {
+                    @Override
+                    public void close() throws Exception {
+                        unregister(listener);
+                    }
+                });
+            } else {
+                // Listener deregistered, request close of channel
+                ctx.writeAndFlush(new StreamProtocol.RequestClose());
+                ctx.pipeline().addLast(closeHandler);
+            }
             // Remove this listener ...
             ctx.pipeline().remove(this);
         } else {
@@ -142,3 +149,14 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
     }
 }
 
+@ChannelHandler.Sharable
+class CloseHandler extends ChannelInboundHandlerAdapter {
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        if (msg instanceof StreamProtocol.ConfirmClose) {
+            ctx.close();
+        } else {
+            // ignore all other messages
+        }
+    }
+}

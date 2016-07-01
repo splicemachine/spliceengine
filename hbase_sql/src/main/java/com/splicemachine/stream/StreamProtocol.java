@@ -89,6 +89,8 @@ public class StreamProtocol implements Serializable {
     }
 
     public static class RequestClose implements Serializable {
+        public RequestClose() {
+        }
     }
     public static class ConfirmClose implements Serializable {
     }
