@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.foreignkey;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.client.WriteResult;
@@ -17,8 +18,6 @@ import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.si.impl.driver.SIDriver;
-import sun.reflect.annotation.ExceptionProxy;
-
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.HashMap;
@@ -36,6 +35,8 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     private TxnOperationFactory txnOperationFactory;
     private HashMap<Long,Partition> childPartitions = new HashMap<>();
     private String parentTableName;
+    private ObjectArrayList<KVPair> mutations = new ObjectArrayList<>();
+
 
     public ForeignKeyParentInterceptWriteHandler(String parentTableName,
                                                  List<Long> referencingIndexConglomerateIds,
@@ -53,25 +54,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         if (isForeignKeyInterceptNecessary(mutation.getType())) {
-            try {
-                // TODO Buffer with skip scan
-                for (int i =0; i< referencingIndexConglomerateIds.size(); i++) {
-                    long indexConglomerateId = referencingIndexConglomerateIds.get(i);
-                    Partition table = null;
-                    if (childPartitions.containsKey(indexConglomerateId))
-                        table = childPartitions.get(indexConglomerateId);
-                    else {
-                        table = SIDriver.driver().getTableFactory().getTable(Long.toString((indexConglomerateId)));
-                        childPartitions.put(indexConglomerateId,table);
-                    }
-                    if (hasReferences(indexConglomerateId,table,mutation, ctx))
-                        failRow(mutation,ctx,constraintInfos.get(i));
-                    else
-                        ctx.success(mutation);
-                }
-            } catch (Exception e) {
-                violationProcessor.failWrite(e, ctx);
-            }
+            mutations.add(mutation);
         }
         ctx.sendUpstream(mutation);
     }
@@ -87,11 +70,34 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
 
     @Override
     public void flush(WriteContext ctx) throws IOException {
+        try {
+            // TODO Buffer with skip scan
+            for (int k = 0; k<mutations.size();k++) {
+                KVPair mutation = mutations.get(k);
+                for (int i = 0; i < referencingIndexConglomerateIds.size(); i++) {
+                    long indexConglomerateId = referencingIndexConglomerateIds.get(i);
+                    Partition table = null;
+                    if (childPartitions.containsKey(indexConglomerateId))
+                        table = childPartitions.get(indexConglomerateId);
+                    else {
+                        table = SIDriver.driver().getTableFactory().getTable(Long.toString((indexConglomerateId)));
+                        childPartitions.put(indexConglomerateId, table);
+                    }
+                    if (hasReferences(indexConglomerateId, table, mutation, ctx))
+                        failRow(mutation, ctx, constraintInfos.get(i));
+                    else
+                        ctx.success(mutation);
+                }
+            }
+        } catch (Exception e) {
+            violationProcessor.failWrite(e, ctx);
+        }
 
     }
 
     @Override
     public void close(WriteContext ctx) throws IOException {
+        mutations.clear();
         for (Partition table:childPartitions.values()) {
             if (table != null)
                 table.close();
