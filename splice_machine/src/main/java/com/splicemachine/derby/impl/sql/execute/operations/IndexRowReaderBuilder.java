@@ -178,7 +178,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         EntryPredicateFilter epf=new EntryPredicateFilter(rowFieldsToReturn,ObjectArrayList.<Predicate>newInstanceWithCapacity(0));
         byte[] epfBytes=epf.toBytes();
 
-        DescriptorSerializer[] templateSerializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(outputTemplate);
+        DescriptorSerializer[] templateSerializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(outputTemplate);
         KeyHashDecoder keyDecoder;
         if(mainTableKeyColumnEncodingOrder==null || mainTableAccessedKeyColumns==null || mainTableAccessedKeyColumns.getNumBitsSet()<=0)
             keyDecoder=NoOpKeyHashDecoder.INSTANCE;
