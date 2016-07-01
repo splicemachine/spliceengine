@@ -50,8 +50,8 @@ public class ForeignKey_Concurrent_IT {
         connection1.createStatement().executeUpdate("insert into C values(1,1)");
 
         // Transaction 2: verify cannot delete/update parent
-        assertQueryFail(connection2, "DELETE FROM P where a=1", "Write Conflict detected between transactions");
-        assertQueryFail(connection2, "UPDATE P set a=9 where a=1", "Write Conflict detected between transactions");
+        assertQueryFail(connection2, "DELETE FROM P where a=1", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+        assertQueryFail(connection2, "UPDATE P set a=9 where a=1", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
         connection2.commit();
         connection2.close();
 

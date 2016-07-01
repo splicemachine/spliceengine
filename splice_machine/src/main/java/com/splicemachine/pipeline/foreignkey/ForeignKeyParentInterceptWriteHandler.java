@@ -1,23 +1,28 @@
 package com.splicemachine.pipeline.foreignkey;
 
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.pipeline.api.Code;
+import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.impl.SimpleTxnFilter;
+import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.WritableTxn;
+import com.splicemachine.storage.*;
 import org.sparkproject.guava.collect.Maps;
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
-import com.splicemachine.pipeline.callbuffer.CallBuffer;
-import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
-import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.Partition;
+import sun.reflect.annotation.ExceptionProxy;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Intercepts deletes from a parent table (primary key or unique index) and sends the rowKey over to the referencing
@@ -25,38 +30,54 @@ import java.util.Map;
  */
 @NotThreadSafe
 public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
-
-    private final WriteCoordinator writeCoordinator;
     private final List<Long> referencingIndexConglomerateIds;
-    private final Map<Long, RecordingCallBuffer<KVPair>> callBufferMap = Maps.newHashMap();
+    private final List<DDLMessage.FKConstraintInfo> constraintInfos;
     private final ForeignKeyViolationProcessor violationProcessor;
-    private Partition destPartition;
+    private TxnOperationFactory txnOperationFactory;
+    private HashMap<Long,Partition> childPartitions = new HashMap<>();
+    private String parentTableName;
 
     public ForeignKeyParentInterceptWriteHandler(String parentTableName,
                                                  List<Long> referencingIndexConglomerateIds,
-                                                 PipelineExceptionFactory exceptionFactory) {
+                                                 PipelineExceptionFactory exceptionFactory,
+                                                 List<DDLMessage.FKConstraintInfo> constraintInfos
+                                                 ) {
         this.referencingIndexConglomerateIds = referencingIndexConglomerateIds;
-        this.writeCoordinator = PipelineDriver.driver().writeCoordinator();
         this.violationProcessor = new ForeignKeyViolationProcessor(
                 new ForeignKeyViolationProcessor.ParentFkConstraintContextProvider(parentTableName),exceptionFactory);
+        this.constraintInfos = constraintInfos;
+        this.txnOperationFactory = SIDriver.driver().getOperationFactory();
+        this.parentTableName = parentTableName;
     }
 
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         if (isForeignKeyInterceptNecessary(mutation.getType())) {
-            KVPair kvPair = new KVPair(mutation.getRowKey(), SIConstants.EMPTY_BYTE_ARRAY, KVPair.Type.FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK);
             try {
-                for (long indexConglomerateId : this.referencingIndexConglomerateIds) {
-                    getTargetCallBuffer(ctx, indexConglomerateId).add(kvPair);
+                // TODO Buffer with skip scan
+                for (int i =0; i< referencingIndexConglomerateIds.size(); i++) {
+                    long indexConglomerateId = referencingIndexConglomerateIds.get(i);
+                    Partition table = null;
+                    if (childPartitions.containsKey(indexConglomerateId))
+                        table = childPartitions.get(indexConglomerateId);
+                    else {
+                        table = SIDriver.driver().getTableFactory().getTable(Long.toString((indexConglomerateId)));
+                        childPartitions.put(indexConglomerateId,table);
+                    }
+                    if (hasReferences(indexConglomerateId,table,mutation, ctx))
+                        failRow(mutation,ctx,constraintInfos.get(i));
+                    else
+                        ctx.success(mutation);
                 }
-                ctx.success(mutation);
             } catch (Exception e) {
                 violationProcessor.failWrite(e, ctx);
             }
         }
         ctx.sendUpstream(mutation);
     }
-
+    /** We exist to prevent updates/deletes of rows from the parent table which are referenced by a child.
+     * Since we are a WriteHandler on a primary-key or unique-index we can just handle deletes.
+     */
     private boolean isForeignKeyInterceptNecessary(KVPair.Type type) {
         /* We exist to prevent updates/deletes of rows from the parent table which are referenced by a child.
          * Since we are a WriteHandler on a primary-key or unique-index we can just handle deletes. */
@@ -66,40 +87,15 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
 
     @Override
     public void flush(WriteContext ctx) throws IOException {
-        try {
-            for (CallBuffer<KVPair> callBuffer : callBufferMap.values()) {
-                callBuffer.flushBuffer();
-            }
-        } catch (Exception e) {
-            violationProcessor.failWrite(e, ctx);
-        }
+
     }
 
     @Override
     public void close(WriteContext ctx) throws IOException {
-        try {
-            for (CallBuffer<KVPair> callBuffer : callBufferMap.values()) {
-                callBuffer.close();
-            }
-        } catch (Exception e) {
-            violationProcessor.failWrite(e, ctx);
-        }finally{
-            if(destPartition!=null)
-                destPartition.close();
+        for (Partition table:childPartitions.values()) {
+            if (table != null)
+                table.close();
         }
-    }
-
-    /* Only need to create the CallBuffer once, but not until we have a WriteContext */
-    private RecordingCallBuffer<KVPair> getTargetCallBuffer(WriteContext ctx, long conglomerateId) throws IOException{
-        if (!callBufferMap.containsKey(conglomerateId)) {
-            if(destPartition==null){
-                PartitionFactory pf=SIDriver.driver().getTableFactory();
-                destPartition=pf.getTable(String.valueOf(conglomerateId));
-            }
-            RecordingCallBuffer<KVPair> callBuffer = writeCoordinator.writeBuffer(destPartition, ctx.getTxn());
-            callBufferMap.put(conglomerateId, callBuffer);
-        }
-        return callBufferMap.get(conglomerateId);
     }
 
     @Override
@@ -107,4 +103,87 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         return getClass().getSimpleName();
     }
 
+            /*
+         * The way prefix keys work is that longer keys sort after shorter keys. We
+         * are already starting exactly where we want to be, and we want to end as soon
+         * as we hit a record which is not this key.
+         *
+         * Historically, we did this by using an HBase PrefixFilter. We can do that again,
+         * but it's a bit of a pain to make that work in an architecture-independent
+         * way (we would need to implement a version of that for other architectures,
+         * for example. It's much easier for us to just make use of row key sorting
+         * to do the job for us.
+         *
+         * We start where we want, and we need to end as soon as we run off that. The
+         * first key which is higher than the start key is the start key as a prefix followed
+         * by 0x00 (in unsigned sort order). Therefore, we make the end key
+         * [startKey | 0x00].
+         */
+
+
+        private boolean hasReferences(Long indexConglomerateId, Partition table, KVPair kvPair, WriteContext ctx) throws IOException {
+        byte[] startKey = kvPair.getRowKey();
+        //make sure this is a transactional scan
+        DataScan scan = txnOperationFactory.newDataScan(null); // Non-Transactional, will resolve on this side
+        scan =scan.startKey(startKey);
+        byte[] endKey = Bytes.unsignedCopyAndIncrement(startKey);//new byte[startKey.length+1];
+        scan = scan.stopKey(endKey);
+        SimpleTxnFilter siFilter=new SimpleTxnFilter(Long.toString(indexConglomerateId),ctx.getTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
+            SimpleTxnFilter readUncommittedFilter;
+            if (ctx.getTxn() instanceof ActiveWriteTxn)
+                readUncommittedFilter=new SimpleTxnFilter(Long.toString(indexConglomerateId),((ActiveWriteTxn)ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
+            else if (ctx.getTxn() instanceof WritableTxn)
+                readUncommittedFilter=new SimpleTxnFilter(Long.toString(indexConglomerateId),((WritableTxn)ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
+            else
+                throw new IOException("invalidTxn");
+        try(DataScanner scanner = table.openScanner(scan)) {
+            List<DataCell> next;
+            while ((next = scanner.next(1)) != null && !next.isEmpty()) {
+                siFilter.reset();
+                readUncommittedFilter.reset();
+                if (hasData(next, siFilter) || hasData(next, readUncommittedFilter))
+                    return true;
+            }
+            return false;
+        }catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
+
+    private boolean hasData(List<DataCell> next, SimpleTxnFilter txnFilter) throws IOException {
+        int cellCount = next.size();
+        for(DataCell dc:next){
+            DataFilter.ReturnCode rC = txnFilter.filterCell(dc);
+            switch(rC){
+                case NEXT_ROW:
+                    return false; //the entire row is filtered
+                case SKIP:
+                case NEXT_COL:
+                case SEEK:
+                    cellCount--; //the cell is filtered
+                    break;
+                case INCLUDE:
+                case INCLUDE_AND_NEXT_COL: //the cell is included
+                default:
+                    break;
+            }
+        }
+        return cellCount>0;
+    }
+
+    /**
+     *
+     * TODO JL
+     * Try to understand why we have replacement algorithms for simple messages.
+     *
+     * @param mutation
+     * @param ctx
+     * @param fkConstraintInfo
+     */
+    private void failRow(KVPair mutation, WriteContext ctx, DDLMessage.FKConstraintInfo fkConstraintInfo ) {
+        String failedKvAsHex = Bytes.toHex(mutation.getRowKey());
+        ConstraintContext context = ConstraintContext.foreignKey(fkConstraintInfo);
+        WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context.withMessage(1, parentTableName));
+        ctx.failed(mutation, foreignKeyConstraint);
+    }
 }

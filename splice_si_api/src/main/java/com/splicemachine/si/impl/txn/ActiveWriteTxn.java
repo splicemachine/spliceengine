@@ -84,4 +84,8 @@ public class ActiveWriteTxn extends AbstractTxnView{
         output.writeObject(parentTxn);
     }
 
+    public ActiveWriteTxn getReadUncommittedActiveTxn() {
+        return new ActiveWriteTxn(txnId,getBeginTimestamp(),parentTxn,additive, Txn.IsolationLevel.READ_UNCOMMITTED);
+    }
+
 }

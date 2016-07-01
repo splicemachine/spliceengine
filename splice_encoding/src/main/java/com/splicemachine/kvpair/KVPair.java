@@ -16,10 +16,6 @@ public class KVPair implements Comparable<KVPair> {
         DELETE((byte)0x03),
         EMPTY_COLUMN((byte)0x04),
         UPSERT((byte)0x05),
-        /* For checking the existence of the rowKey in a parent (referenced) table's primary-key or unique-index  */
-        FOREIGN_KEY_PARENT_EXISTENCE_CHECK((byte)0x06),
-        /* For checking the existence of the rowKey in the FK backing-index(s) of referencing child table(s) */
-        FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK((byte)0x07),
         /* For import process to cancel out an inserted row that violates a unique constraint */
         CANCEL((byte)0x08);
 
@@ -36,10 +32,6 @@ public class KVPair implements Comparable<KVPair> {
 
         public byte asByte() {
             return typeCode;
-        }
-
-        public boolean isForeignKeyExistenceCheck() {
-            return FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK.equals(this) || FOREIGN_KEY_PARENT_EXISTENCE_CHECK.equals(this);
         }
 
         public boolean isUpdateOrUpsert() {

@@ -3,13 +3,10 @@ package com.splicemachine.pipeline;
 import java.io.IOException;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.access.api.NotServingPartitionException;
-import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
-import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
@@ -97,8 +94,6 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                     return true;
                 throw new RuntimeException("Not Valid Execution Path");
             case EMPTY_COLUMN:
-            case FOREIGN_KEY_PARENT_EXISTENCE_CHECK:
-            case FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK:
             default:
                 throw new RuntimeException("Not Valid Execution Path");
         }

@@ -321,6 +321,10 @@ public abstract class AbstractTxnView implements TxnView {
     	output.writeByte(isolationLevel.encode());    			
 	}
 
+    public void setIsolationLevel(IsolationLevel isolationLevel) {
+        this.isolationLevel = isolationLevel;
+    }
+
     @Override
     public String toString(){
     	return String.format("%s(%s,%s)%s",

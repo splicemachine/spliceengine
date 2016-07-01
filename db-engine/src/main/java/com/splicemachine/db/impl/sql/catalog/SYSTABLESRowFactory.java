@@ -46,7 +46,7 @@ import java.sql.Types;
  * @version 0.1
  */
 
-class SYSTABLESRowFactory extends CatalogRowFactory
+public class SYSTABLESRowFactory extends CatalogRowFactory
 {
 	private static final String		TABLENAME_STRING = "SYSTABLES";
 
@@ -72,9 +72,9 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 	 * The first version of any tables. Use this for System tables and
 	 * any time that you don't know what the version is.
 	 */
-	protected static final String ORIGINAL_TABLE_VERSION = "1.0"; 
+	public static final String ORIGINAL_TABLE_VERSION = "1.0";
 	//the current version for creating new tables with
-	protected static final String CURRENT_TABLE_VERSION = "2.0"; 
+	public static final String CURRENT_TABLE_VERSION = "2.0";
 	
 	// all indexes are unique.
 
