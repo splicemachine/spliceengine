@@ -84,15 +84,15 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
+        if (operationContext == null) {
+            if (op != null)
+                operationContext = dsp.createOperationContext(op);
+            else if (activation != null)
+                operationContext = dsp.createOperationContext(activation);
+        }
         super.writeExternal(out);
         out.writeUTF(tableName);
         out.writeObject(dsp);
-        if (op != null)
-            operationContext = dsp.createOperationContext(op);
-        else if (activation!=null)
-            operationContext = dsp.createOperationContext(activation);
-
-        out.writeObject(operationContext);
     }
 
     @Override
@@ -100,6 +100,5 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         super.readExternal(in);
         this.tableName = in.readUTF();
         this.dsp = (SparkDataSetProcessor)in.readObject();
-        this.operationContext = (OperationContext) in.readObject();
     }
 }
