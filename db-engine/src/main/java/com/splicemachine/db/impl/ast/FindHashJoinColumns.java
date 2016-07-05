@@ -18,10 +18,7 @@ import org.sparkproject.guava.primitives.Ints;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Find columns used in equijoin predicates and set the {left,right}HashKeys field on the JoinNode.
@@ -241,15 +238,14 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             }
 
             // copy result columns that reference to left result set
-            size = temp.size();
-            for (int i = 0; i < size; ++i) {
-                ResultColumn resultColumn = temp.elementAt(0);
+            Iterator<ResultColumn> iter=temp.iterator();
+            while(iter.hasNext()){
+               ResultColumn resultColumn = iter.next();
                 int tableNumber = resultColumn.getTableNumber();
-                if (leftReferencedTableMap.get(tableNumber)) {
+                if (tableNumber>=0 && leftReferencedTableMap.get(tableNumber)) {
                     rcl.addResultColumn(resultColumn);
-                    temp.removeElementAt(0);
-                }
-                else break;
+                    iter.remove();
+                }else break;
             }
 
             // Add a new column to join result column list

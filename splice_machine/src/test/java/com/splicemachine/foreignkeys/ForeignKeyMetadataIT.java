@@ -66,5 +66,46 @@ public class ForeignKeyMetadataIT{
             }
         }
     }
+
+    @Test
+    public void testSimplifiedForeignKeysDoesNotExplode() throws Exception{
+        /*
+         * Regression test for DB-5424. The constructed query for reproduction
+         * is unlikely to return anything (certainly not anything meaningful), so we
+         * are really just checking to make sure that the query itself doesn't blow
+         * up according to the bug; we won't be checking any other form of correctness
+         */
+
+        String sql = "explain SELECT\n"+
+                "  1\n"+
+                "FROM\n"+
+                "  (SELECT\n"+
+                "        1 as KEY_SEQ\n"+
+                "    FROM\n"+
+                "      (SELECT T.TABLEID AS PKTB_ID FROM SYS.SYSTABLES t) AS PKTB (PKTB_ID)\n"+
+                "    , SYS.SYSCONSTRAINTS C\n"+
+                "  ) AS PKINFO(KEY_SEQ)\n"+
+                "  , SYS.SYSCONGLOMERATES CONGLOMS2\n"+
+                "  , SYS.SYSCOLUMNS COLS2\n"+
+                "WHERE\n"+
+                "  PKINFO.KEY_SEQ = CONGLOMS2.DESCRIPTOR.getKeyColumnPosition(COLS2.COLUMNNUMBER)";
+
+        try(Statement s = conn.createStatement()){
+           try(ResultSet rs = s.executeQuery(sql)){
+               /*
+                * We check an arbitrary condition just to force the engine to actually run the query; this avoids
+                * situations where we might lazily execute the query (or return before the query is fully completed)
+                */
+               while(rs.next()){
+                   Object o = rs.getObject(1);
+                   if(rs.wasNull())
+                       Assert.assertNull("Did not return null!",o);
+                   else
+                       Assert.assertNotNull("returned null!",o);
+
+               }
+           }
+        }
+    }
 }
 
