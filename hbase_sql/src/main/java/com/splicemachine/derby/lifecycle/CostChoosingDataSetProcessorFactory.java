@@ -2,6 +2,8 @@ package com.splicemachine.derby.lifecycle;
 
 import javax.annotation.Nullable;
 
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.stream.RemoteQueryClientImpl;
 import org.apache.log4j.Logger;
@@ -35,7 +37,9 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
 
     @Override
     public DataSetProcessor chooseProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
-        if(! allowsDistributedExecution()){
+        if(! allowsDistributedExecution()
+                || op instanceof NoRowsOperation
+                || op instanceof ConstantAction){
             /*
              * We can't run in distributed mode because of something that the engine decided that,
              * for whatever reason, it's not available at the moment, so we have to use
