@@ -20,6 +20,7 @@ import java.util.Arrays;
  */
 public class PoolSlotBooker implements Runnable {
     private static final Logger LOG = Logger.getLogger(PoolSlotBooker.class);
+    int timeout;
     String group;
     String pool;
     int slots;
@@ -27,10 +28,11 @@ public class PoolSlotBooker implements Runnable {
     JavaFutureAction<?> previousAction;
     int counter;
 
-    public PoolSlotBooker(String group, String pool, int slots) {
+    public PoolSlotBooker(String group, String pool, int slots, int timeout) {
         this.group = group;
         this.pool = pool;
         this.slots = slots;
+        this.timeout = timeout;
     }
 
     @Override
@@ -43,7 +45,7 @@ public class PoolSlotBooker implements Runnable {
             Object[] array = new Object[slots];
             String parent = HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.BOOKINGS_PATH + "/";
             String path = ZkUtils.getRecoverableZooKeeper().create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
-            JavaFutureAction<?> action = SpliceSpark.getContext().parallelize(Arrays.asList(array), slots).map(new PlaceholderTask(path, 10)).map(new PlaceholderTask(path, 10)).collectAsync();
+            JavaFutureAction<?> action = SpliceSpark.getContext().parallelize(Arrays.asList(array), slots).map(new PlaceholderTask(path, timeout)).collectAsync();
             if (previous != null) {
                 // cancel previous job
                 previousAction.cancel(false);

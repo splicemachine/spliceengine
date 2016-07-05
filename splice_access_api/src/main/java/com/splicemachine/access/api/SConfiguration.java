@@ -228,4 +228,6 @@ public interface SConfiguration {
     Map<String,Object> getConfigMap();
 
     int getCompactionReservedSlots();
+
+    int getReservedSlotsTimeout();
 }

@@ -115,6 +115,7 @@ public class ConfigurationBuilder {
     public int sparkResultStreamingBatchSize;
     public int sparkResultStreamingBatches;
     public int compactionReservedSlots;
+    public int reservedSlotsTimeout;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

@@ -79,6 +79,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int sparkResultStreamingBatches;
     private final int sparkResultStreamingBatchSize;
     private final int compactionReservedSlots;
+    private final int reservedSlotsTimeout;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -629,6 +630,7 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;
+        reservedSlotsTimeout = builder.reservedSlotsTimeout;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
@@ -662,6 +664,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getCompactionReservedSlots() {
         return compactionReservedSlots;
+    }
+
+    @Override
+    public int getReservedSlotsTimeout() {
+        return reservedSlotsTimeout;
     }
 
 }

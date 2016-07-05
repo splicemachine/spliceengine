@@ -60,7 +60,9 @@ public class OlapServer {
 
 
         int compactionReservedSlots = HConfiguration.getConfiguration().getCompactionReservedSlots();
-        executor.scheduleWithFixedDelay(new PoolSlotBooker("BookingService", "compaction", 1), 0, 10, TimeUnit.SECONDS);
+        int reservedSlotsTimeout = HConfiguration.getConfiguration().getReservedSlotsTimeout();
+        Runnable task = new PoolSlotBooker("BookingService", "compaction", compactionReservedSlots, reservedSlotsTimeout);
+        executor.scheduleWithFixedDelay(task, 0, reservedSlotsTimeout, TimeUnit.SECONDS);
     }
 
     private int getPortNumber() {
