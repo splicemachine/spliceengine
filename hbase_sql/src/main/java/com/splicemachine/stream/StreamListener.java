@@ -37,7 +37,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private long offset;
 
     private Map<Channel, PartitionState> partitionMap = new ConcurrentHashMap<>();
-    private ConcurrentMap<Integer, Channel> channelMap = new ConcurrentHashMap<>();
     private ConcurrentMap<Integer, PartitionState> partitionStateMap = new ConcurrentHashMap<>();
 
     private T currentResult;
@@ -107,7 +106,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             ctx.close().sync();
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
-            channelMap.remove(state);
+            partitionMap.remove(channel);
         } else {
             // Data or StreamProtocol.Skipped
             // We can't block here, we negotiate throughput with the server to guarantee it
@@ -148,7 +147,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                         LOG.trace("Sending skip " + limit + ", " + offset);
                     // Limit on the server counts from its first element, we have to add offset to it
                     long serverLimit = limit > 0 ? limit + offset : -1;
-                    channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Skip(serverLimit, offset));
+                    state.channel.writeAndFlush(new StreamProtocol.Skip(serverLimit, offset));
                 }
                 state.initialized = true;
                 if (msg == RETRY) {
@@ -164,7 +163,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     offset = currentOffset;
 
                     // Update maps with the new state/channel
-                    channelMap.put(currentQueue, state.next.channel);
                     partitionStateMap.put(currentQueue, state.next);
                     if (LOG.isTraceEnabled()) {
                         LOG.trace("Retried task, currentRead " + currentRead + " offset " + offset +
@@ -222,7 +220,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     if (state.consumed > batchSize) {
                         if (LOG.isTraceEnabled())
                             LOG.trace("Writing CONT");
-                        channelMap.get(currentQueue).writeAndFlush(new StreamProtocol.Continue());
+                        state.channel.writeAndFlush(new StreamProtocol.Continue());
                         state.consumed -= batchSize;
                     }
                 }
@@ -234,10 +232,9 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     }
 
     private void clearCurrentQueue() {
-        partitionStateMap.remove(currentQueue);
-        Channel removedChannel = channelMap.remove(currentQueue);
-        if (removedChannel != null)
-            partitionMap.remove(removedChannel);
+        PartitionState ps = partitionStateMap.remove(currentQueue);
+        if (ps != null && ps.channel != null)
+            partitionMap.remove(ps.channel);
     }
 
     /**
@@ -254,9 +251,9 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             return;
         }
         stopped = true;
-        // If a new channel has been added concurrently, it's either visible on the channelMap, so we are going to close it,
+        // If a new channel has been added concurrently, it's either visible on the partitionMap, so we are going to close it,
         // or it has already seen the stopped flag, so it's been closed in accept()
-        for (Channel channel : channelMap.values()) {
+        for (Channel channel : partitionMap.keySet()) {
             channel.writeAndFlush(new StreamProtocol.RequestClose());
         }
         // create fake queue with finish message so the next call to next() returns null
@@ -285,7 +282,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         if (failure != null) {
             ps.messages.add(FAILURE);
         }
-        Channel previousChannel = channelMap.putIfAbsent(partition, channel);
+        Channel previousChannel = ps.channel;
         if (previousChannel != null) {
             LOG.info("Received connection from retried task, current state " + ps);
             PartitionState nextState = new PartitionState(partition, queueSize);
@@ -313,7 +310,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             return;
         }
         closed = true;
-        for (Channel channel : channelMap.values()) {
+        for (Channel channel : partitionMap.keySet()) {
             channel.closeFuture(); // don't wait synchronously, no need
         }
         Exception lastException = null;
