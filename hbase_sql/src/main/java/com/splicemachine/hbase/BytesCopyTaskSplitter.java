@@ -1,5 +1,6 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
@@ -38,6 +39,8 @@ public class BytesCopyTaskSplitter {
             store = region.getStore(SIConstants.DEFAULT_FAMILY_BYTES);
             HRegionUtil.lockStore(store);
             return HRegionUtil.getCutpoints(store, start, end);
+        }catch (Throwable t) {
+            throw Exceptions.getIOException(t);
         }finally{
             HRegionUtil.unlockStore(store);
         }
