@@ -533,23 +533,6 @@ public class SITransactor implements Transactor{
         }
     }
 
-    @Override
-    public void updateCounterColumn(Partition hbRegion,TxnView txnView,byte[] rowKey) throws IOException{
-        // Get the current counter value.
-//        Get get = opFactory.newGet(rowKey);
-//        opFactory.addFamilyQualifierToGet(get,DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
-        DataResult result=hbRegion.getFkCounter(rowKey,null);
-        long counterTransactionId=result==null||result.size()<=0?0L:result.fkCounter().valueAsLong();
-        // Update counter value if the calling transaction started after counter value.
-        if(txnView.getTxnId()>counterTransactionId){
-            long offset=txnView.getTxnId()-counterTransactionId;
-            hbRegion.increment(rowKey,DEFAULT_FAMILY_BYTES,SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,offset);
-        }
-        // Throw WriteConflict exception if the target row has already been deleted concurrently.
-        DataResult possibleConflicts=hbRegion.getLatest(rowKey,result);//dataStore.getCommitTimestampsAndTombstonesSingle(hbRegion, rowKey);
-        ensureNoWriteConflict(txnView,KVPair.Type.FOREIGN_KEY_PARENT_EXISTENCE_CHECK,possibleConflicts);
-    }
-
     private void setTombstonesOnColumns(Partition table, long timestamp, DataPut put) throws IOException {
         //-sf- this doesn't really happen in practice, it's just for a safety valve, which is good, cause it's expensive
         final Map<byte[], byte[]> userData = getUserData(table,put.key());

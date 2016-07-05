@@ -20,4 +20,5 @@ public interface TableWriter <T> {
     void setTxn(TxnView txn);
     TxnView getTxn();
     byte[] getDestinationTable();
+    OperationContext getOperationContext();
 }

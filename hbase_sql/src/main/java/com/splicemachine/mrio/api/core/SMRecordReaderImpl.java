@@ -8,6 +8,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.api.server.TransactionalRegion;
@@ -44,6 +46,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	private List<AutoCloseable> closeables = new ArrayList<>();
     private boolean statisticsRun = false;
 	private Txn localTxn;
+	private ActivationHolder activationHolder;
+
 
 	public SMRecordReaderImpl(Configuration config) {
 		this.config = config;
@@ -74,7 +78,14 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
             // TODO (wjk): this seems weird (added with DB-4483)
             this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
             restart(tSplit.getStartRow());
-		} catch (StandardException e) {
+            SparkOperationContext operationContext = (SparkOperationContext)builder.getOperationContext();
+            if (operationContext != null) {
+                activationHolder = operationContext.getActivationHolder();
+                if (activationHolder != null)
+                    activationHolder.reinitialize(null);
+            }
+
+        } catch (StandardException e) {
 			throw new IOException(e);
 		}
 	}
@@ -130,7 +141,11 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 				lastThrown = ioe;
 			}
 		}
-		for (AutoCloseable c : closeables) {
+        if (activationHolder!=null) {
+            //activationHolder.close();
+        }
+
+        for (AutoCloseable c : closeables) {
 			if (c != null) {
 				try {
 					c.close();

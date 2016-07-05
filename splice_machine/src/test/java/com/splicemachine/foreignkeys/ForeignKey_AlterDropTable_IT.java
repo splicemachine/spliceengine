@@ -1,11 +1,10 @@
 package com.splicemachine.foreignkeys;
 
+import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test_dao.TableDAO;
 import org.junit.*;
 
-import java.sql.Connection;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -21,7 +20,6 @@ import static org.junit.Assert.fail;
  *
  * Also contains drop table tests.
  */
-@Ignore("DB-4004: Adding/dropping keyed columns not working")
 public class ForeignKey_AlterDropTable_IT {
 
     private static final String SCHEMA = ForeignKey_AlterDropTable_IT.class.getSimpleName();
@@ -29,14 +27,14 @@ public class ForeignKey_AlterDropTable_IT {
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+    @Rule public RuledConnection conn = new RuledConnection(SCHEMA,false);
 
     @Before
     public void deleteTables() throws Exception {
-        Connection connection = methodWatcher.getOrCreateConnection();
-        connection.setAutoCommit(false);
-        new TableDAO(connection).drop(SCHEMA, "C", "P");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("drop table if exists C");
+            s.executeUpdate("drop table if exists P");
+        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -48,42 +46,46 @@ public class ForeignKey_AlterDropTable_IT {
     @Test
     public void foreignKeyAddedAfterParentAndChildWriteContextsInitializedIsEnforced() throws Exception {
         // given -- parent table with initialized write context
-        methodWatcher.executeUpdate("create table P(a int primary key)");
-        methodWatcher.executeUpdate("insert into P values(1),(2),(3)");
-        // given -- child table with initialized write context
-        methodWatcher.executeUpdate("create table C(a int primary key)");
-        methodWatcher.executeUpdate("insert into C values(1)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P(a int primary key)");
+            s.executeUpdate("insert into P values(1),(2),(3)");
+            // given -- child table with initialized write context
+            s.executeUpdate("create table C(a int primary key)");
+            s.executeUpdate("insert into C values(1)");
 
-        // when -- we add the foreign key after the write contexts are initialized
-        methodWatcher.executeUpdate("alter table C add constraint FK1 foreign key (a) references P(a)");
+            // when -- we add the foreign key after the write contexts are initialized
+            s.executeUpdate("alter table C add constraint FK1 foreign key (a) references P(a)");
 
-        // then -- the foreign key constraint is still enforced
-        assertQueryFail("delete from P where a=1", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
-        assertQueryFail("insert into C values(222)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
-        // then -- we can still insert values into the child that do exist in parent
-        methodWatcher.executeUpdate("insert into C values(2)");
-        // then -- we can still delete unreferenced values from the parent
-        methodWatcher.executeUpdate("delete from P where a=3");
+            // then -- the foreign key constraint is still enforced
+            assertQueryFail("delete from P where a=1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+            assertQueryFail("insert into C values(222)","Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+            // then -- we can still insert values into the child that do exist in parent
+            s.executeUpdate("insert into C values(2)");
+            // then -- we can still delete unreferenced values from the parent
+            s.executeUpdate("delete from P where a=3");
+        }
     }
 
     @Test
     public void alterTable_removesFkConstraint() throws Exception {
-        // given -- C -> P with values in both
-        methodWatcher.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
-        methodWatcher.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
-        methodWatcher.executeUpdate("insert into P values(1,1)");
-        methodWatcher.executeUpdate("insert into C values(1)");
+        try(Statement s = conn.createStatement()){
+            // given -- C -> P with values in both
+            s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
+            s.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
+            s.executeUpdate("insert into P values(1,1)");
+            s.executeUpdate("insert into C values(1)");
 
-        // given -- we can't delete from P because of the FK constraint
-        assertQueryFail("delete from P where a =1", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+            // given -- we can't delete from P because of the FK constraint
+            assertQueryFail("delete from P where a =1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
 
-        // when -- we drop the FK constraint
-        methodWatcher.executeUpdate("alter table C drop constraint FK1");
+            // when -- we drop the FK constraint
+            s.executeUpdate("alter table C drop constraint FK1");
 
-        // then -- we should be able to delete from P
-        assertEquals(1, methodWatcher.executeUpdate("delete from P where a =1"));
-        // then -- we should be able to insert non matching values into C
-        assertEquals(1, methodWatcher.executeUpdate("insert into C values(999)"));
+            // then -- we should be able to delete from P
+            assertEquals(1,s.executeUpdate("delete from P where a =1"));
+            // then -- we should be able to insert non matching values into C
+            assertEquals(1,s.executeUpdate("insert into C values(999)"));
+        }
     }
 
 
@@ -94,35 +96,59 @@ public class ForeignKey_AlterDropTable_IT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
+    @Ignore("DB-4324")
     public void dropTable_failsIfTableWithDependentFKExists() throws Exception {
-        methodWatcher.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
-        methodWatcher.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
+            s.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
 
-        assertQueryFail("drop table P", "Operation 'DROP CONSTRAINT' cannot be performed on object 'PK1' because CONSTRAINT 'FK1' is dependent on that object.");
+            assertQueryFail("drop table P","Operation 'DROP CONSTRAINT' cannot be performed on object 'PK1' because CONSTRAINT 'FK1' is dependent on that object.");
 
-        // This order should succeed.
-        methodWatcher.executeUpdate("drop table C");
-        methodWatcher.executeUpdate("drop table P");
+            // This order should succeed.
+            s.executeUpdate("drop table C");
+            s.executeUpdate("drop table P");
+        }
     }
 
     @Test
     public void dropTable_removesFkConstraint() throws Exception {
-        // given -- C -> P with values in both
-        methodWatcher.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
-        methodWatcher.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
-        methodWatcher.executeUpdate("insert into P values(1,1)");
-        methodWatcher.executeUpdate("insert into C values(1)");
+        try(Statement s = conn.createStatement()){
+            // given -- C -> P with values in both
+            s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
+            s.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
+            s.executeUpdate("insert into P values(1,1)");
+            s.executeUpdate("insert into C values(1)");
 
-        // given -- we can't delete from P because of the FK constraint
-        assertQueryFail("delete from P where a =1", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+            // given -- we can't delete from P because of the FK constraint
+            assertQueryFail("delete from P where a =1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
 
-        // when -- we drop C
-        methodWatcher.executeUpdate("drop table C");
+            // when -- we drop C
+            s.executeUpdate("drop table C");
 
-        // then -- we should be able to delete from P
-        assertEquals(1, methodWatcher.executeUpdate("delete from P where a =1"));
+            // then -- we should be able to delete from P
+            assertEquals(1,s.executeUpdate("delete from P where a =1"));
+        }
     }
 
+    @Test
+    public void onDeleteCascadeThrowsError() throws Exception{
+        //Regression test for DB-3985. Make sure that ON DELETE CASCADE create table statements explode. Remove this when DB-2224 is implemented
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P (a int primary key, b int)");
+
+            assertQueryFail("create table C (a int references P(a) ON DELETE CASCADE)","Feature not implemented: ON DELETE CASCADE.");
+        }
+    }
+
+    @Test
+    public void onDeleteSetNullThrowsError() throws Exception{
+        //Regression test for DB-3985. Make sure that ON DELETE CASCADE create table statements explode. Remove this when DB-2224 is implemented
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P (a int primary key, b int)");
+
+            assertQueryFail("create table C (a int references P(a) ON DELETE SET NULL)","Feature not implemented: ON DELETE SET NULL.");
+        }
+    }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -131,8 +157,8 @@ public class ForeignKey_AlterDropTable_IT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void assertQueryFail(String sql, String expectedExceptionMessage) {
-        try {
-            methodWatcher.executeUpdate(sql);
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate(sql);
             fail(String.format("Expected query '%s' to fail with error message '%s'", sql, expectedExceptionMessage));
         } catch (Exception e) {
             assertEquals(expectedExceptionMessage, e.getMessage());

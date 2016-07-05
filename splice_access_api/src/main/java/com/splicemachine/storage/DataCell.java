@@ -31,14 +31,14 @@ public interface DataCell extends Comparable<DataCell>{
     long valueAsLong();
 
     /**
-     * Get a copy of this cell with the value specified. The resulting cell will have the same type
-     * unless the type is affected by the new value.
+     * Get a copy of this cell with the value and cell type specified.
      *
      * @param newValue the new value to hold
+     * @param newCellType the new cell type to use
      * @return a copy of this cell with the new value (but with the same version and key)
      * @throws NullPointerException if {@code newValue ==null}
      */
-    DataCell copyValue(byte[] newValue);
+    DataCell copyValue(byte[] newValue,CellType newCellType);
 
     /**
      * @return the size of this DataCell on disk.

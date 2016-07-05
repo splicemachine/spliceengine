@@ -238,6 +238,8 @@ message FKConstraintInfo {
     optional string constraintName = 1;
     optional string tableName = 2;
     optional string columnNames = 3;
+    optional string parentTableVersion = 4;
+    repeated int32 formatIds = 5;
 }
 
 enum DDLChangeType {

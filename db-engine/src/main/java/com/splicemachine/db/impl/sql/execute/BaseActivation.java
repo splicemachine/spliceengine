@@ -724,7 +724,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
             NumberDataValue ndv = (NumberDataValue) getDataValueFactory().getNull(typeFormatID, StringDataValue.COLLATION_TYPE_UCS_BASIC);
             lcc.getDataDictionary().getCurrentValueAndAdvance(sequenceUUIDstring, ndv,
-					willRunInSpark());
+					true); // Hard Coded Batch since single lookups are too slow...
             return ndv;
         }
         finally {

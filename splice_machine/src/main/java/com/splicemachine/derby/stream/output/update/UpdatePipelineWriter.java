@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
+import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
 import com.splicemachine.derby.utils.marshall.*;
@@ -49,13 +50,13 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected PairEncoder encoder;
     protected ExecRow currentRow;
     public int rowsUpdated=0;
-    protected OperationContext operationContext;
+    protected UpdateOperation updateOperation;
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public UpdatePipelineWriter(long heapConglom,int[] formatIds,int[] columnOrdering,
                                 int[] pkCols,FormatableBitSet pkColumns,String tableVersion,TxnView txn,
                                 ExecRow execRowDefinition,FormatableBitSet heapList,OperationContext operationContext) throws StandardException{
-        super(txn,heapConglom);
+        super(txn,heapConglom,operationContext);
         assert pkCols!=null && columnOrdering!=null:"Primary Key Information is null";
         this.formatIds=formatIds;
         this.columnOrdering=columnOrdering;
@@ -65,10 +66,13 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         this.execRowDefinition=execRowDefinition;
         this.heapList=heapList;
         this.operationContext=operationContext;
+        if (operationContext != null) {
+            updateOperation = (UpdateOperation)operationContext.getOperation();
+        }
     }
 
     public void open() throws StandardException{
-        open(null,null);
+        open(updateOperation != null ? updateOperation.getTriggerHandler() : null, updateOperation);
     }
 
     public void open(TriggerHandler triggerHandler,SpliceOperation operation) throws StandardException{

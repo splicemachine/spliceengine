@@ -3,8 +3,10 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Statement;
 import java.util.regex.Pattern;
@@ -16,7 +18,7 @@ import static org.junit.Assert.*;
 /**
  * Foreign key tests for *checking* that the FK constraint is enforced in various scenarios.
  */
-@Ignore("DB-5323")
+@Category(value = {SerialTest.class})
 public class ForeignKey_Check_IT {
 
     private static final String SCHEMA = ForeignKey_Check_IT.class.getSimpleName();
@@ -106,6 +108,21 @@ public class ForeignKey_Check_IT {
         // then -- we should not be able to insert rows (that were NOT previously there) into C
         assertQueryFailMatch("insert into C values(5)", "Operation on table 'C' caused a violation of foreign key constraint 'SQL\\d+' for key \\(A\\).  The statement has been rolled back.");
     }
+
+    @Test
+    // DB-5437
+    public void childRowsCannotReferenceDeletedRowsInParentWithFirstRowDeleted() throws Exception {
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table P(a int primary key)");
+            s.executeUpdate("create table C(a int, b int references P(a))");
+            s.executeUpdate("insert into P values(1),(2)");
+            s.executeUpdate("insert into C values(1,1),(2,1),(3,1),(4,2),(5,2),(6,2)");
+            s.executeUpdate("delete from C where a = 1");
+            assertQueryFailMatch("delete from P where a = 1","Operation on table 'P' caused a violation of foreign key constraint 'SQL\\d+' for key \\(B\\).  The statement has been rolled back.");
+        }
+
+    }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //

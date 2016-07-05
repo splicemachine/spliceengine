@@ -1,6 +1,7 @@
 package com.splicemachine.protobuf;
 
 import com.google.common.base.Function;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.ddl.DDLMessage;
 import org.sparkproject.guava.base.Joiner;
 import org.sparkproject.guava.collect.Lists;
@@ -168,10 +169,17 @@ public class ProtoUtil {
 
 
     public static FKConstraintInfo createFKConstraintInfo(ForeignKeyConstraintDescriptor fKConstraintDescriptor) {
-        ColumnDescriptorList columnDescriptors = fKConstraintDescriptor.getColumnDescriptors();
-        return FKConstraintInfo.newBuilder().setTableName(fKConstraintDescriptor.getTableDescriptor().getName())
+        try {
+            String version = fKConstraintDescriptor.getTableDescriptor().getVersion();
+            ColumnDescriptorList columnDescriptors = fKConstraintDescriptor.getColumnDescriptors();
+            return FKConstraintInfo.newBuilder().setTableName(fKConstraintDescriptor.getTableDescriptor().getName())
+                .addAllFormatIds(Ints.asList(columnDescriptors.getFormatIds()))
+                .setParentTableVersion(version!=null?version: SYSTABLESRowFactory.CURRENT_TABLE_VERSION)
                 .setConstraintName(fKConstraintDescriptor.getConstraintName())
                 .setColumnNames(Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction()))).build();
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
+        }
     }
 
     private static class ColumnDescriptorNameFunction implements Function<ColumnDescriptor, String> {

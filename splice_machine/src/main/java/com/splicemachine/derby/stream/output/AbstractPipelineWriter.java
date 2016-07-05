@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
@@ -28,19 +29,23 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected Callable<Void> flushCallback;
     protected RecordingCallBuffer<KVPair> writeBuffer;
     protected WriteCoordinator writeCoordinator;
+    protected OperationContext operationContext;
     protected DMLWriteOperation operation;
 
-    public AbstractPipelineWriter(TxnView txn,long heapConglom) {
+    public AbstractPipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) {
         this.txn = txn;
         this.heapConglom = heapConglom;
         destinationTable = Bytes.toBytes(Long.toString(heapConglom));
+        this.operationContext = operationContext;
+        if (operationContext != null) {
+            this.operation = (DMLWriteOperation) operationContext.getOperation();
+        }
     }
 
     @Override
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         writeCoordinator = PipelineDriver.driver().writeCoordinator();
         this.triggerHandler = triggerHandler;
-        this.operation = (DMLWriteOperation) operation;
     }
 
     @Override
@@ -61,11 +66,12 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
 
     protected void beforeRow(ExecRow row) throws StandardException {
         TriggerHandler.fireBeforeRowTriggers(triggerHandler, row);
-        if (operation!=null)
+        if (operation != null)
             operation.evaluateGenerationClauses(row);
     }
 
     public void close() throws StandardException {
+
         try {
             TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
             if (writeBuffer != null) {
@@ -73,7 +79,14 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
                 writeBuffer.close();
             }
         } catch (Exception e) {
+            e.printStackTrace();
             throw Exceptions.parseException(e);
         }
+
     };
+
+    @Override
+    public OperationContext getOperationContext() {
+        return operationContext;
+    }
 }

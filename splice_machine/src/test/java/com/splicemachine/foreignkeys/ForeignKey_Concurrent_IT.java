@@ -8,10 +8,7 @@ import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -21,7 +18,6 @@ import static org.junit.Assert.*;
 /**
  * Foreign key tests for concurrent transactions deleting parent rows and inserting child rows.
  */
-//@Category(SerialTest.class)
 public class ForeignKey_Concurrent_IT {
 
     private static final String SCHEMA = ForeignKey_Concurrent_IT.class.getSimpleName();
@@ -38,7 +34,7 @@ public class ForeignKey_Concurrent_IT {
     @BeforeClass
     public static void createSharedTables() throws Exception {
         classWatcher.executeUpdate("create table P (a bigint primary key, b bigint)");
-        classWatcher.executeUpdate("insert into P values(1,1),(2,2),(3,3)");
+        classWatcher.executeUpdate("insert into P values(1,1),(2,2),(3,3),(4,4)");
         classWatcher.executeUpdate("create table C (a bigint, b bigint, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
     }
 
@@ -48,22 +44,22 @@ public class ForeignKey_Concurrent_IT {
         Connection connection2 = newNoAutoCommitConnection();
 
         // Transaction 1: insert child row referencing parent we will delete
-        connection1.createStatement().executeUpdate("insert into C values(1,1)");
+        connection1.createStatement().executeUpdate("insert into C values(4,4)");
 
         // Transaction 2: verify cannot delete/update parent
-        assertQueryFail(connection2, "DELETE FROM P where a=1", "Write Conflict detected between transactions");
-        assertQueryFail(connection2, "UPDATE P set a=9 where a=1", "Write Conflict detected between transactions");
+        assertQueryFail(connection2, "DELETE FROM P where a=4", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+        assertQueryFail(connection2, "UPDATE P set a=9 where a=4", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
         connection2.commit();
         connection2.close();
 
         // Transaction 2: verify CAN update parent
-        connection1.createStatement().executeUpdate("update P set b=-1 where a=1");
+        connection1.createStatement().executeUpdate("update P set b=-1 where a=4");
 
         connection1.commit();
 
         // After concurrent transaction commit verify row count seen by third transaction.
-        assertEquals(1L, methodWatcher.query("select count(*) from P where a=1"));
-        assertEquals(1L, methodWatcher.query("select count(*) from C where a=1"));
+        assertEquals(1L, methodWatcher.query("select count(*) from P where a=4"));
+        assertEquals(1L, methodWatcher.query("select count(*) from C where a=4"));
     }
 
     @Test(timeout = 10000)
@@ -89,6 +85,41 @@ public class ForeignKey_Concurrent_IT {
         assertEquals(0L, methodWatcher.query("select count(*) from C where a=2"));
     }
 
+        /**
+         *
+         * Case we are attempting to prevent...
+         *
+         * txn 0 creates parent
+         * txn 1 starts
+         * txn 2 starts, deletes parent, commits
+         * txn 3 creates parent
+         * txn 1 creates child, sees parent3 from readUncommitted and parent0 from SI, commits
+         * txn 3 can rollback and leave a dangling child
+     */
+
+
+    @Test(timeout = 10000)
+    public void concurrentTransactionsOutOfOrderParentDeletesAndChilds() throws Exception {
+        Connection connection1 = newNoAutoCommitConnection();
+        Connection connection2 = newNoAutoCommitConnection();
+
+        // Get a parent timestamp for the connection
+        ResultSet rs = connection1.prepareStatement("select * from P").executeQuery();
+        while (rs.next()) {}
+        rs.close();
+
+        connection2.prepareStatement("delete from P where a =1").executeUpdate();
+        connection2.commit();
+        try {
+            connection2.prepareStatement("insert into P values (1,1)").executeUpdate();
+            assertQueryFail(connection1, "insert into C values(1,1)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
+        } finally {
+            connection2.commit();
+        }
+    }
+
+
+
     @Ignore("for manual testing")
     @Test
     public void multipleLargeThreadCount() throws Exception {
@@ -103,6 +134,7 @@ public class ForeignKey_Concurrent_IT {
      * Verifies that either (1) parent is deleted and all children fail; or (2) parent cannot be deleted and all children
      * succeed, but never anything in between.
      */
+    @Ignore
     @Test(timeout = 10000)
     public void largerNumberOfConcurrentThreads() throws Exception {
         final int THREADS = 4;

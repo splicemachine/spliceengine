@@ -1,9 +1,5 @@
 package com.splicemachine.derby.impl.store.access;
 
-import java.util.Properties;
-
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
@@ -13,9 +9,12 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.TransactionInfo;
 import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.utils.SpliceLogUtils;
+import java.util.Properties;
 
 public class HBaseStore implements ModuleControl, ModuleSupportable {
 	protected SpliceTransactionFactory transactionFactory;
@@ -129,13 +128,13 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 				return true;
 		}
 
-		public Transaction startNestedTransaction(CompatibilitySpace lockSpace,
-																							ContextManager contextManager,
-																							String nestedReadonlyUserTrans, Txn parentTxn) throws StandardException {
-				if (LOG.isTraceEnabled())
-						LOG.trace("startNestedReadOnlyUserTransaction with context manager " + contextManager + ", lock space " + lockSpace + ", nestedReadonlyUserTrans " + nestedReadonlyUserTrans);
-				return transactionFactory.startNestedTransaction(this, contextManager, parentTxn);
-		}
+	public Transaction startNestedTransaction(CompatibilitySpace lockSpace,
+											  ContextManager contextManager,
+											  String nestedReadonlyUserTrans,TxnView parentTxn) throws StandardException{
+		if(LOG.isTraceEnabled())
+			LOG.trace("startNestedReadOnlyUserTransaction with context manager "+contextManager+", lock space "+lockSpace+", nestedReadonlyUserTrans "+nestedReadonlyUserTrans);
+		return transactionFactory.startNestedTransaction(this,contextManager,parentTxn);
+	}
 
 		@Override
 		public boolean canSupport(Properties properties) {

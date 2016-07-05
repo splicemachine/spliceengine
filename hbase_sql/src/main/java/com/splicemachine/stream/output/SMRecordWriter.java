@@ -4,8 +4,12 @@ import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.TableWriter;
+import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -20,15 +24,30 @@ import java.io.IOException;
  */
 public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, ExecRow>> {
     private static Logger LOG = Logger.getLogger(SMRecordWriter.class);
-    boolean initialized = false;
-    TableWriter tableWriter;
-    OutputCommitter outputCommitter;
+    private boolean initialized = false;
+    private TableWriter tableWriter;
+    private OutputCommitter outputCommitter;
     private boolean failure = false;
+    private ActivationHolder activationHolder;
+    private Txn txn;
 
-    public SMRecordWriter(TableWriter tableWriter, OutputCommitter outputCommitter) {
-        SpliceLogUtils.trace(LOG,"init");
-        this.tableWriter = tableWriter;
-        this.outputCommitter = outputCommitter;
+    public SMRecordWriter(TableWriter tableWriter, OutputCommitter outputCommitter) throws StandardException{
+        try {
+            SpliceLogUtils.trace(LOG, "init");
+            this.tableWriter = tableWriter;
+            this.outputCommitter = outputCommitter;
+            SparkOperationContext context = (SparkOperationContext)tableWriter.getOperationContext();
+            if (context != null) {
+                activationHolder = context.getActivationHolder();
+                activationHolder.reinitialize(tableWriter.getTxn());
+            }
+            //txn = SIDriver.driver().lifecycleManager().beginChildTransaction(tableWriter.getTxn(), tableWriter.getDestinationTable());
+            //this.tableWriter.setTxn(txn);
+
+        }
+        catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override
@@ -59,6 +78,10 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
     public void close(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         SpliceLogUtils.trace(LOG,"closing %s",taskAttemptContext);
         try {
+            if (txn != null) {
+            //    txn.commit();
+            }
+
             if (initialized) {
                 tableWriter.close();
             }
@@ -66,6 +89,9 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
             failure = true;
             throw new IOException(e);
         } finally {
+            if (activationHolder != null) {
+                activationHolder.close();
+            }
             if (failure)
                 outputCommitter.abortTask(taskAttemptContext);
         }

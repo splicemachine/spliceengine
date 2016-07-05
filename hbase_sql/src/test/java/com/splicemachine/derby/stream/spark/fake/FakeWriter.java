@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.spark.fake;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.si.api.txn.TxnView;
 
@@ -56,5 +57,10 @@ public class FakeWriter implements TableWriter {
     @Override
     public byte[] getDestinationTable() {
         return new byte[0];
+    }
+
+    @Override
+    public OperationContext getOperationContext() {
+        return null;
     }
 }

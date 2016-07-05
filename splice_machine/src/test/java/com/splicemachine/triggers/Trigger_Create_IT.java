@@ -2,12 +2,23 @@ package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.sparkproject.guava.collect.Lists;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -15,6 +26,8 @@ import static org.junit.Assert.fail;
 /**
  * Tests creating/defining triggers.
  */
+@Category(value = {SerialTest.class})
+@RunWith(Parameterized.class)
 public class Trigger_Create_IT {
 
     private static final String SCHEMA = Trigger_Create_IT.class.getSimpleName();
@@ -36,6 +49,28 @@ public class Trigger_Create_IT {
 
     private TriggerBuilder tb = new TriggerBuilder();
     private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        return params;
+    }
+
+    private String connectionString;
+
+    public Trigger_Create_IT(String connecitonString) {
+        this.connectionString = connecitonString;
+    }
+
+    @Before
+    public void createTables() throws Exception {
+        triggerDAO.dropAllTriggers(SCHEMA, "T");
+        Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        conn.setSchema(SCHEMA.toUpperCase());
+        methodWatcher.setConnection(conn);
+    }
 
     @Test
     public void create_statementTriggers() throws Exception {

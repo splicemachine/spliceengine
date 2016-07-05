@@ -160,6 +160,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
                     pkColumnNames = Arrays.asList(((CreateConstraintConstantOperation) constantAction).columnNames);
                     columnOrdering = new IndexColumnOrder[pkColumnNames.size()];
+                }else if(constantAction.getConstraintType()==DataDictionary.FOREIGNKEY_CONSTRAINT){
+                    constantAction.validateSupported();
                 }
             }
         }

@@ -556,4 +556,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public DataSet<V> buildDataSet(Object caller) throws StandardException {
         return buildDataSet();
     }
+
+    @Override
+    public OperationContext getOperationContext() {
+        return operationContext;
+    }
 }

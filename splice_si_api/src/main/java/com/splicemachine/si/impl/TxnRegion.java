@@ -12,14 +12,12 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import org.sparkproject.guava.collect.Iterators;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.concurrent.locks.Lock;
 
 /**
  * Base implementation of a TransactionalRegion
@@ -110,54 +108,6 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
         return new Iterable<MutationStatus>(){
             @Override public Iterator<MutationStatus> iterator(){ return Iterators.forArray(status); }
         };
-    }
-
-    @Override
-    public boolean verifyForeignKeyReferenceExists(TxnView txnView,byte[] rowKey) throws IOException{
-        Lock rowLock=region.getRowLock(rowKey,0,rowKey.length);
-        rowLock.lock();
-        try{
-            //TODO -sf- dg,result, and simpleTxnFilter can all be cached to reduce churn during large FK check batches
-            /*
-             * We do a non-transactional lookup here, and perform the transaction resolution ourselves. This
-             * ensures that we properly perform lookups for the foreign key. In particular, we want to ensure
-             * that we get the latest and greatest foreign key counter.
-             *
-             */
-            DataGet dg = opFactory.newDataGet(null,rowKey,null);
-            DataResult result=region.get(dg,null);
-            //needs to be transactional
-            if(result!=null && result.size()>0){
-                SimpleTxnFilter simpleTxnFilter=new SimpleTxnFilter(getTableName(),txnView,NoOpReadResolver.INSTANCE,txnSupplier);
-                int cellCount = result.size();
-                if(result.fkCounter()!=null){
-                    //make sure that rows which only have an FK counter are treated as visible.
-                    cellCount++;
-                }
-                for(DataCell dc:result){
-                    DataFilter.ReturnCode returnCode=simpleTxnFilter.filterCell(dc);
-                    switch(returnCode){
-                        case NEXT_ROW:
-                            return false; //the entire row is filtered
-                        case SKIP:
-                        case NEXT_COL:
-                        case SEEK:
-                            cellCount--; //the cell is filtered
-                            break;
-                        case INCLUDE:
-                        case INCLUDE_AND_NEXT_COL: //the cell is included, so we have some data
-                        default: //do nothing
-                            break;
-                    }
-                }
-                if(cellCount<=0) return false;
-                transactor.updateCounterColumn(region,txnView,rowKey);
-                return true;
-            }
-        }finally{
-            rowLock.unlock();
-        }
-        return false;
     }
 
     @Override

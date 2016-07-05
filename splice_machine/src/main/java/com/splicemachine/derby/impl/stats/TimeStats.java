@@ -28,7 +28,7 @@ public class TimeStats extends TimeStatistics{
         super(baseStats);
     }
 
-    @Override public ColumnStatistics<DataValueDescriptor> getClone(){ return new TimeStats(baseStats); }
+    @Override public ColumnStatistics<DataValueDescriptor> getClone(){ return new TimeStats((LongColumnStatistics)baseStats.getClone()); }
     @Override protected DataValueDescriptor wrap(long value){ return wrapLong(value); }
 
     @Override

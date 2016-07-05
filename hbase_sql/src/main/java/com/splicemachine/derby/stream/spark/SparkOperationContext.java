@@ -6,8 +6,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
@@ -66,9 +66,10 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @SuppressWarnings("unchecked")
-    protected SparkOperationContext(Activation activation){
+    protected SparkOperationContext(Activation activation, BroadcastedActivation broadcastedActivation){
         this.op=null;
         this.activation=activation;
+        this.broadcastedActivation = broadcastedActivation;
         AccumulatorParam param=AccumulatorParam.LongAccumulatorParam$.MODULE$;
 
         this.rowsRead=SpliceSpark.getContext().accumulator(0L,"rows read",param);
@@ -287,5 +288,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.badRecordThreshold = badRecordThreshold;
         BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory, importFileName, badRecordThreshold);
         this.badRecordsAccumulator=SpliceSpark.getContext().accumulable(badRecordsRecorder,badRecordsRecorder.getUniqueName(), new BadRecordsAccumulator());
+    }
+
+    public ActivationHolder getActivationHolder() {
+        return broadcastedActivation!= null ? broadcastedActivation.getActivationHolder() : null;
     }
 }

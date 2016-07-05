@@ -3,6 +3,7 @@ package com.splicemachine.si.impl.filter;
 import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.SIFilter;
 import com.splicemachine.si.api.filter.TxnFilter;
+import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataFilter;
 
@@ -75,7 +76,7 @@ public class PackedTxnFilter implements TxnFilter, SIFilter{
             return null;
         final byte[] resultData=accumulator.result();
         if(resultData!=null){
-            return lastValidCell.copyValue(resultData);
+            return lastValidCell.copyValue(resultData,CellType.USER_DATA);
         }else{
             return null;
         }

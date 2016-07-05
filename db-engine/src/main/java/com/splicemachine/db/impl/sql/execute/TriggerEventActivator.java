@@ -193,6 +193,10 @@ public class TriggerEventActivator {
         }
     }
 
+    public LanguageConnectionContext getLcc() {
+        return lcc;
+    }
+
     private static void addToMap(Map<TriggerEvent, List<GenericTriggerExecutor>> map, TriggerEvent event, GenericTriggerExecutor executor) {
         List<GenericTriggerExecutor> genericTriggerExecutors = map.get(event);
         if (genericTriggerExecutors == null) {

@@ -2,12 +2,22 @@ package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.sparkproject.guava.collect.Lists;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -15,6 +25,8 @@ import static org.junit.Assert.fail;
 /**
  * Tests that triggers are dropped when the table or column(s) they depend on are dropped.
  */
+@Category(value = {SerialTest.class})
+@RunWith(Parameterized.class)
 public class Trigger_Dependency_IT {
 
     private static final String SCHEMA = Trigger_Dependency_IT.class.getSimpleName();
@@ -28,11 +40,28 @@ public class Trigger_Dependency_IT {
     private TriggerBuilder tb = new TriggerBuilder();
     private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        return params;
+    }
+
+    private String connectionString;
+
+    public Trigger_Dependency_IT(String connecitonString) {
+        this.connectionString = connecitonString;
+    }
+
     @Before
     public void createTables() throws Exception {
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, "R", "T");
         methodWatcher.executeUpdate("create table T (a int, b int, c int)");
         methodWatcher.executeUpdate("create table R (z int)");
+        Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        conn.setSchema(SCHEMA.toUpperCase());
+        methodWatcher.setConnection(conn);
     }
 
     @Test

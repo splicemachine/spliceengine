@@ -15,7 +15,7 @@ import com.splicemachine.db.jdbc.EmbeddedDriver;
  */
 public final class EmbedConnectionMaker {
 
-    private static final String JDBC_URL = String.format("jdbc:splice:%s;user=splice", SQLConfiguration.SPLICE_DB);
+    private static final String JDBC_URL = String.format("jdbc:splice:%s;user=splice;password=admin", SQLConfiguration.SPLICE_DB);
 
     private final EmbeddedDriver driver = new EmbeddedDriver();
 

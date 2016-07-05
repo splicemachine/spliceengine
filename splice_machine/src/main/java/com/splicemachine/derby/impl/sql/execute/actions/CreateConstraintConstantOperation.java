@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -91,6 +92,24 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 		this.enabled = enabled;
 		this.otherConstraintInfo = otherConstraint;
 		this.providerInfo = providerInfo;
+	}
+
+	@Override
+	public void validateSupported() throws StandardException{
+		if(constraintType!=DataDictionary.FOREIGNKEY_CONSTRAINT) return; //nothing to validate
+
+		/*
+		 * DB-2224/2225/3985. SpliceMachine does not support ON DELETE ... rules when creating foreign
+		 * keys, until DB-2224 (ON DELETE CASCADE) and DB-2225 (ON DELETE SET NULL) are implemented. This
+		 * little block throws the proper error message rather than attempt to create a potentially
+		 * invalid table.
+		 */
+		switch(otherConstraintInfo.getReferentialActionDeleteRule()){
+			case StatementType.RA_CASCADE:
+				throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "ON DELETE CASCADE");
+			case StatementType.RA_SETNULL:
+				throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "ON DELETE SET NULL");
+		}
 	}
 
 	/**

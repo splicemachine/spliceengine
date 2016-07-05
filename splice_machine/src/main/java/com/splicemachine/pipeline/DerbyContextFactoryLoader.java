@@ -52,7 +52,6 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     private final OperationStatusFactory osf;
     private final PipelineExceptionFactory pef;
     private final TransactionReadController trc;
-
     private final Set<ConstraintFactory> constraintFactories=new CopyOnWriteArraySet<>();
     private final FKWriteFactoryHolder fkGroup;
     private final ListWriteFactoryGroup indexFactories=new ListWriteFactoryGroup();

@@ -109,10 +109,41 @@ public class HCell implements DataCell{
     }
 
     @Override
-    public DataCell copyValue(byte[] newValue){
+    public DataCell copyValue(byte[] newValue,CellType newCellType){
+        byte[] qualArray;
+        int qualOff;
+        int qualLen;
+        if(newCellType==cellType){
+            qualArray = delegate.getQualifierArray();
+            qualOff = delegate.getQualifierOffset();
+            qualLen = delegate.getQualifierLength();
+        }else{
+            switch(newCellType){
+                case COMMIT_TIMESTAMP:
+                    qualArray = SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES;
+                    break;
+                case ANTI_TOMBSTONE:
+                    assert Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,newValue):
+                            "Programmer error: cannot create an ANTI-TOMBSTONE cell without an anti-tombstone value";
+                case TOMBSTONE:
+                    qualArray = SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES;
+                    break;
+                case USER_DATA:
+                    qualArray = SIConstants.PACKED_COLUMN_BYTES;
+                    break;
+                case FOREIGN_KEY_COUNTER:
+                    qualArray = SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES;
+                    break;
+                case OTHER:
+                default:
+                    throw new IllegalArgumentException("Programmer error: unexpected cell type "+ newCellType);
+            }
+            qualOff=0;
+            qualLen=qualArray.length;
+        }
         Cell c = new KeyValue(delegate.getRowArray(),delegate.getRowOffset(),delegate.getRowLength(),
                 delegate.getFamilyArray(),delegate.getFamilyOffset(),delegate.getFamilyLength(),
-                delegate.getQualifierArray(),delegate.getQualifierOffset(),delegate.getQualifierLength(),
+                qualArray,qualOff,qualLen,
                 delegate.getTimestamp(),KeyValue.Type.codeToType(delegate.getTypeByte()),
                 newValue,0,newValue.length);
         return new HCell(c);
