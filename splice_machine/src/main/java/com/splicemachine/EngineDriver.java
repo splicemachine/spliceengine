@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.lifecycle.BackupManagerLoader;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
@@ -30,7 +31,6 @@ public class EngineDriver{
     private final ResourcePool<SpliceSequence, SequenceKey> sequencePool;
     private final DatabaseVersion version;
     private final SConfiguration config;
-    private final BackupManager backupManager;
     private final PartitionLoadWatcher loadWatcher;
     private final DataSetProcessorFactory processorFactory;
     private final PropertyManager propertyManager;
@@ -51,7 +51,6 @@ public class EngineDriver{
         this.internalConnection=environment.getInternalConnection();
         this.version=environment.getVersion();
         this.config=environment.getConfiguration();
-        this.backupManager = environment.getBackupManager();
         this.loadWatcher = environment.getLoadWatcher();
         this.processorFactory = environment.getProcessorFactory();
         this.olapClient = environment.getOlapClient();
@@ -111,7 +110,7 @@ public class EngineDriver{
     }
 
     public BackupManager backupManager(){
-        return backupManager;
+        return BackupManagerLoader.load();
     }
 
     public SqlExceptionFactory getExceptionFactory(){

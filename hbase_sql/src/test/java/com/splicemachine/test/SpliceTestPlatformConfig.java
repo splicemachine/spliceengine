@@ -22,7 +22,6 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
-import com.splicemachine.backup.BackupHFileCleaner;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
@@ -54,7 +53,6 @@ class SpliceTestPlatformConfig {
             SpliceMasterObserver.class);
 
     private static final List<Class<?>> HFILE_CLEANERS = ImmutableList.<Class<?>>of(
-            BackupHFileCleaner.class,
             TimeToLiveHFileCleaner.class);
 
     /*

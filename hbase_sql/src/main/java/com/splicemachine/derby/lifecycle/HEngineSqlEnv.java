@@ -32,7 +32,6 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
 
     private PropertyManager propertyManager;
     private PartitionLoadWatcher loadWatcher;
-    private BackupManager backupManager;
     private DataSetProcessorFactory processorFactory;
     private SqlExceptionFactory exceptionFactory;
     private DatabaseAdministrator dbAdmin;
@@ -51,7 +50,6 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();
         this.olapClient = initializeOlapClient(config,driver.getClock());
-        backupManager = new HBaseBackupManager();
     }
 
     @Override
@@ -66,7 +64,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
 
     @Override
     public BackupManager getBackupManager(){
-        return backupManager;
+        return BackupManagerLoader.load();
     }
 
     @Override
