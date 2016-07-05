@@ -150,7 +150,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
                 throw new IOException("invalidTxn");
         try(DataScanner scanner = table.openScanner(scan)) {
             List<DataCell> next;
-            while ((next = scanner.next(1)) != null && !next.isEmpty()) {
+            while ((next = scanner.next(-1)) != null && !next.isEmpty()) {
                 readCommittedFilter.reset();
                 readUncommittedFilter.reset();
                 if (hasData(next, readCommittedFilter) || hasData(next, readUncommittedFilter))
