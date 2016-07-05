@@ -98,13 +98,15 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
             for (byte[] item: culledLookups) {
                 rowKeysToFetch.add(item);
             }
-            SimpleTxnFilter siFilter=new SimpleTxnFilter(Long.toString(referencedConglomerateNumber),ctx.getTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
             SimpleTxnFilter readUncommittedFilter;
-            if (ctx.getTxn() instanceof ActiveWriteTxn)
-                readUncommittedFilter=new SimpleTxnFilter(Long.toString(referencedConglomerateNumber),((ActiveWriteTxn)ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
-            else if (ctx.getTxn() instanceof WritableTxn)
-                readUncommittedFilter=new SimpleTxnFilter(Long.toString(referencedConglomerateNumber),((WritableTxn)ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
-            else
+            SimpleTxnFilter readCommittedFilter;
+            if (ctx.getTxn() instanceof ActiveWriteTxn) {
+                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+            }else if (ctx.getTxn() instanceof WritableTxn) {
+                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+            }else
                 throw new IOException("invalidTxn");
 
             Iterator<DataResult> iterator = table.batchGet(new MapAttributes(),rowKeysToFetch);
@@ -113,9 +115,9 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
             int i = 0;
             while (iterator.hasNext()) {
                 DataResult result = iterator.next();
-                siFilter.reset();
+                readCommittedFilter.reset();
                 readUncommittedFilter.reset();
-                if (!hasData(result,siFilter) || !hasData(result,readUncommittedFilter))
+                if (!hasData(result,readCommittedFilter) || !hasData(result,readUncommittedFilter))
                     misses.set(i);
                 i++;
             }

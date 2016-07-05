@@ -88,4 +88,8 @@ public class ActiveWriteTxn extends AbstractTxnView{
         return new ActiveWriteTxn(txnId,getBeginTimestamp(),parentTxn,additive, Txn.IsolationLevel.READ_UNCOMMITTED);
     }
 
+    public ActiveWriteTxn getReadCommittedActiveTxn() {
+        return new ActiveWriteTxn(txnId,getBeginTimestamp(),parentTxn,additive, Txn.IsolationLevel.READ_COMMITTED);
+    }
+
 }

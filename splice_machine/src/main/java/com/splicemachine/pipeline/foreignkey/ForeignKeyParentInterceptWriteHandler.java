@@ -134,20 +134,26 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         scan =scan.startKey(startKey);
         byte[] endKey = Bytes.unsignedCopyAndIncrement(startKey);//new byte[startKey.length+1];
         scan = scan.stopKey(endKey);
-        SimpleTxnFilter siFilter=new SimpleTxnFilter(Long.toString(indexConglomerateId),ctx.getTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
+
             SimpleTxnFilter readUncommittedFilter;
-            if (ctx.getTxn() instanceof ActiveWriteTxn)
-                readUncommittedFilter=new SimpleTxnFilter(Long.toString(indexConglomerateId),((ActiveWriteTxn)ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
-            else if (ctx.getTxn() instanceof WritableTxn)
-                readUncommittedFilter=new SimpleTxnFilter(Long.toString(indexConglomerateId),((WritableTxn)ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE,SIDriver.driver().getTxnStore());
+            SimpleTxnFilter readCommittedFilter;
+            if (ctx.getTxn() instanceof ActiveWriteTxn) {
+                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+
+            }
+            else if (ctx.getTxn() instanceof WritableTxn) {
+                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+            }
             else
                 throw new IOException("invalidTxn");
         try(DataScanner scanner = table.openScanner(scan)) {
             List<DataCell> next;
             while ((next = scanner.next(1)) != null && !next.isEmpty()) {
-                siFilter.reset();
+                readCommittedFilter.reset();
                 readUncommittedFilter.reset();
-                if (hasData(next, siFilter) || hasData(next, readUncommittedFilter))
+                if (hasData(next, readCommittedFilter) || hasData(next, readUncommittedFilter))
                     return true;
             }
             return false;

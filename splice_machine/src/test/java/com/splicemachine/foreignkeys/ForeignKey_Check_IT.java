@@ -89,7 +89,6 @@ public class ForeignKey_Check_IT {
     }
 
     /* DB-694 */
-    @Ignore
     @Test
     public void childRowsCannotReferenceDeletedRowsInParent() throws Exception {
         // given -- C -> P

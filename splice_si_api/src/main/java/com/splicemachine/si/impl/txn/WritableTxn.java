@@ -188,4 +188,10 @@ public class WritableTxn extends AbstractTxn{
                 parentTxn,tc,isAdditive,null,exceptionFactory);
     }
 
+    public WritableTxn getReadCommittedActiveTxn() {
+        return new WritableTxn(txnId,getBeginTimestamp(),Txn.IsolationLevel.READ_COMMITTED,
+                parentTxn,tc,isAdditive,null,exceptionFactory);
+    }
+
+
 }
