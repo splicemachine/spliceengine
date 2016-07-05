@@ -95,7 +95,8 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             sql = sql == null ? root.toString() : sql;
             String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 
-            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, userId, sql);
+            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, userId, sql,
+                    streamingBatches, streamingBatchSize);
             olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest);
             olapFuture.addListener(new Runnable() {
                 @Override

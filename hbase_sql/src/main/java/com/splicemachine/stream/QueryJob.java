@@ -28,17 +28,9 @@ public class QueryJob implements Callable<Void>{
     private final OlapStatus status;
     private final RemoteQueryJob queryRequest;
 
-    private final Clock clock;
-    private final long tickTime;
-    private String jobName;
-
     public QueryJob(RemoteQueryJob queryRequest,
-                    OlapStatus jobStatus,
-                    Clock clock,
-                    long tickTime) {
+                    OlapStatus jobStatus) {
         this.status = jobStatus;
-        this.clock = clock;
-        this.tickTime = tickTime;
         this.queryRequest = queryRequest;
     }
 
@@ -65,7 +57,7 @@ public class QueryJob implements Callable<Void>{
 
             String sql = queryRequest.sql;
             String userId = queryRequest.userId;
-            this.jobName = userId + " <" + txnId + ">";
+            String jobName = userId + " <" + txnId + ">";
             dsp.setJobGroup(jobName, sql);
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
@@ -79,9 +71,8 @@ public class QueryJob implements Callable<Void>{
         UUID uuid = queryRequest.uuid;
         int numPartitions = sparkDataSet.rdd.getNumPartitions();
 
-        int streamingBatches = HConfiguration.getConfiguration().getSparkResultStreamingBatches();
-        int streamingBatchSize = HConfiguration.getConfiguration().getSparkResultStreamingBatchSize();
-        StreamableRDD streamableRDD = new StreamableRDD(sparkDataSet.rdd, uuid, clientHost, clientPort, streamingBatches, streamingBatchSize);
+        StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, uuid, clientHost, clientPort,
+                queryRequest.streamingBatches, queryRequest.streamingBatchSize);
         streamableRDD.submit();
 
         status.markCompleted(new QueryResult(numPartitions));

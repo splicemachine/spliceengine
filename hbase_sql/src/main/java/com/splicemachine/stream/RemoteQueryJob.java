@@ -20,8 +20,13 @@ public class RemoteQueryJob extends DistributedJob {
     int port;
     String userId;
     String sql;
+    int streamingBatches;
+    int streamingBatchSize;
 
-    public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port, String userId, String sql) {
+
+    public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port,
+                          String userId, String sql,
+                          int streamingBatches, int streamingBatchSize) {
         this.ah = ah;
         this.rootResultSetNumber = rootResultSetNumber;
         this.uuid = uuid;
@@ -29,15 +34,17 @@ public class RemoteQueryJob extends DistributedJob {
         this.port = port;
         this.userId = userId;
         this.sql = sql;
+        this.streamingBatches = streamingBatches;
+        this.streamingBatchSize = streamingBatchSize;
     }
 
     @Override
     public Callable<Void> toCallable(OlapStatus jobStatus, Clock clock, long clientTimeoutCheckIntervalMs) {
-        return new QueryJob(this, jobStatus, clock, clientTimeoutCheckIntervalMs);
+        return new QueryJob(this, jobStatus);
     }
 
     @Override
     public String getName() {
-        return "query";
+        return "query-"+uuid;
     }
 }
