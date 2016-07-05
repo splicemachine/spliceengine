@@ -78,6 +78,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String sparkIoCompressionCodec;
     private final int sparkResultStreamingBatches;
     private final int sparkResultStreamingBatchSize;
+    private final int compactionReservedSlots;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -627,6 +628,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerThreads = builder.olapServerThreads;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
+        compactionReservedSlots = builder.compactionReservedSlots;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
@@ -655,6 +657,11 @@ public final class SConfigurationImpl implements SConfiguration {
             config.put(hadoopEntry.getKey(), (value == null ? "null" : value));
         }
         return config;
+    }
+
+    @Override
+    public int getCompactionReservedSlots() {
+        return compactionReservedSlots;
     }
 
 }

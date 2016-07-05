@@ -20,8 +20,12 @@ public class PipelineConfiguration implements ConfigurationDefault {
 
     public static final String SPARK_RESULT_STREAMING_BATCHES = "spark.result.streaming.batches";
     public static final int DEFAULT_SPARK_RESULT_STREAMING_BATCHES = 10;
+
     public static final String SPARK_RESULT_STREAMING_BATCH_SIZE = "spark.result.streaming.batch.size";
     public static final int DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE = 1024;
+
+    public static final String SPARK_COMPACTION_RESERVED_SLOTS = "spark.compaction.reserved.slots";
+    public static final int DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS = 1;
 
     /**
      * The number of times to retry a network operation before failing.  Turning this up will reduce the number of spurious
@@ -150,5 +154,6 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
+        builder.compactionReservedSlots = configurationSource.getInt(SPARK_COMPACTION_RESERVED_SLOTS, DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS);
     }
 }

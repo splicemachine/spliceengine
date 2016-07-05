@@ -114,6 +114,7 @@ public class ConfigurationBuilder {
     public String sparkIoCompressionCodec;
     public int sparkResultStreamingBatchSize;
     public int sparkResultStreamingBatches;
+    public int compactionReservedSlots;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

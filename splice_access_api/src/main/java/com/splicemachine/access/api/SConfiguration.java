@@ -226,4 +226,6 @@ public interface SConfiguration {
      * @return mapping of key -> value configuration props
      */
     Map<String,Object> getConfigMap();
+
+    int getCompactionReservedSlots();
 }
