@@ -154,6 +154,12 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+<!-- TODO: REMOVE - only for testing -->
+                <groupId>com.splicemachine</groupId>
+                <artifactId>splice_backup</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.splicetest.sqlj</groupId>
                 <artifactId>sqlj-it-procs</artifactId>
               <version>${project.version}</version>
