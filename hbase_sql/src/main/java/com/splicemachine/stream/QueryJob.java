@@ -47,8 +47,8 @@ public class QueryJob implements Callable<Void>{
         Activation activation = ah.getActivation();
         DataSet<LocatedRow> dataset;
         try {
-            ah.reinitialize(null, false);
-            root.setActivation(ah.getActivation());
+            ah.reinitialize(root.getCurrentTransaction(), false);
+            root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
             long txnId = root.getCurrentTransaction().getTxnId();
