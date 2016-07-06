@@ -116,13 +116,13 @@ public class LockTableNode extends MiscellaneousStatementNode
 			// Check if the reference is for a synonym.
 			TableName synonymTab = resolveTableToSynonym(tableName);
 			if (synonymTab == null)
-				throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName);
+				throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName.toString());
 			tableName = synonymTab;
 			sd = getSchemaDescriptor(tableName.getSchemaName());
 
 			lockTableDescriptor = getTableDescriptor(synonymTab.getTableName(), sd);
 			if (lockTableDescriptor == null)
-				throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName);
+				throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName.toString());
 		}
 
 		//throw an exception if user is attempting to lock a temporary table

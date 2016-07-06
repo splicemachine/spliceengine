@@ -1290,14 +1290,14 @@ public class FromBaseTable extends FromTable {
             // Check if the reference is for a synonym.
             TableName synonymTab=resolveTableToSynonym(tableName);
             if(synonymTab==null)
-                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND,tableName);
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND,tableName.toString());
 
             tableName=synonymTab;
             sd=getSchemaDescriptor(tableName.getSchemaName());
 
             tableDescriptor=getTableDescriptor(synonymTab.getTableName(),sd);
             if(tableDescriptor==null)
-                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND,tableName);
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND,tableName.toString());
         }
 
         return tableDescriptor;

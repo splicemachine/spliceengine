@@ -165,7 +165,7 @@ public class PrivilegeNode extends QueryTreeNode
             TableDescriptor td = getTableDescriptor( objectName.getTableName(), sd);
             if( td == null)
             {
-                throw StandardException.newException( SQLState.LANG_TABLE_NOT_FOUND, objectName);
+                throw StandardException.newException( SQLState.LANG_TABLE_NOT_FOUND, objectName.toString());
             }
 
             // Don't allow authorization on SESSION schema tables. Causes confusion if

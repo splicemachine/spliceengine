@@ -45,11 +45,9 @@ public class QueryJob implements Callable<Void>{
         SpliceOperation root = ah.getOperationsMap().get(queryRequest.rootResultSetNumber);
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         Activation activation = ah.getActivation();
-        SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-        boolean prepared = false;
         DataSet<LocatedRow> dataset;
         try {
-            prepared = transactionResource.marshallTransaction(root.getCurrentTransaction());
+            ah.reinitialize(null);
             root.setActivation(ah.getActivation());
             if (!(activation.isMaterialized()))
                 activation.materialize();
@@ -62,8 +60,7 @@ public class QueryJob implements Callable<Void>{
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
         } finally {
-            if (prepared)
-                transactionResource.close();
+            ah.close();
         }
         SparkDataSet<LocatedRow> sparkDataSet = (SparkDataSet<LocatedRow>) dataset;
         String clientHost = queryRequest.host;

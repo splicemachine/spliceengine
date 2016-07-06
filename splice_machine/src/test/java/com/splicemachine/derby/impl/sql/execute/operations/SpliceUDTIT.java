@@ -132,6 +132,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4261")
     public void testConnection() throws Exception {
         String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
         Connection connection = DriverManager.getConnection(url, new Properties());

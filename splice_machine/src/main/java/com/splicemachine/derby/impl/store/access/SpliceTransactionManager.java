@@ -1829,7 +1829,7 @@ public class SpliceTransactionManager implements XATransactionController,
             if(!txn.allowsWrites())
                 throw StandardException.newException(SQLState.XACT_INTERNAL_TRANSACTION_EXCEPTION,"Unable to create a writable child of a read only view");
             txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
-            txn = ((SpliceTransaction)rawtran).getTxn();
+            txn = ((BaseSpliceTransaction)rawtran).getTxnInformation();
         }else
             txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
 

@@ -199,14 +199,14 @@ abstract class DMLModStatementNode extends DMLStatementNode
 				// Check if the reference is for a synonym.
 				TableName synonymTab = resolveTableToSynonym(targetTableName);
 				if (synonymTab == null)
-					throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, targetTableName);
+					throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, targetTableName.toString());
 				synonymTableName = targetTableName;
 				targetTableName = synonymTab;
 				sdtc = getSchemaDescriptor(targetTableName.getSchemaName());
 
 				targetTableDescriptor = getTableDescriptor(synonymTab.getTableName(), sdtc);
 				if (targetTableDescriptor == null)
-					throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, targetTableName);
+					throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, targetTableName.toString());
 			}
 			
 			switch (targetTableDescriptor.getTableType())
