@@ -172,7 +172,9 @@ public class ActivationHolder implements Externalizable {
     }
 
     public void reinitialize(TxnView otherTxn) {
-
+        reinitialize(otherTxn, true);
+    }
+    public void reinitialize(TxnView otherTxn, boolean reinit) {
         TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
         initialized = true;
         try {
@@ -180,9 +182,11 @@ public class ActivationHolder implements Externalizable {
             prepared =  impl.marshallTransaction(txnView);
             activation = soi.getActivation(this, impl.getLcc());
 
-            SpliceOperationContext context = SpliceOperationContext.newContext(activation);
-            for(SpliceOperation so: operationsList){
-                so.init(context);
+            if (reinit) {
+                SpliceOperationContext context = SpliceOperationContext.newContext(activation);
+                for (SpliceOperation so : operationsList) {
+                    so.init(context);
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -149,7 +149,7 @@ public class Subquery_Table_IT {
     }
 
     // JIRA 1121
-    @Test
+    @Test(timeout = 30000)
     public void inSubqueryTooBigToMaterialize() throws Exception {
         String sql = "select count(*) from parentT where i < 10 and i not in (select i from childT)";
         ResultSet rs = methodWatcher.executeQuery(sql);
