@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import scala.util.hashing.MurmurHash3;
 
 /**
 	Basic implementation of ExecRow.
@@ -312,11 +313,7 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 	}
 
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + Arrays.hashCode(column);
-        result = prime * result + ncols;
-        return result;
+		return MurmurHash3.arrayHashing().hash(column);
     }
 
     public boolean equals(Object obj) {
