@@ -1,4 +1,4 @@
-package com.splicemachine.olap;
+package com.splicemachine.derby.iapi.sql.olap;
 
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 
@@ -6,7 +6,6 @@ import com.splicemachine.derby.iapi.sql.olap.OlapResult;
  * Created by dgomezferro on 3/16/16.
  */
 public abstract class AbstractOlapResult implements OlapResult {
-    private short callerId;
     protected Throwable throwable;
 
     @Override

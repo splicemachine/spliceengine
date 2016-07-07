@@ -14,7 +14,8 @@
     </pool>
     <pool name="compaction">
         <schedulingMode>FAIR</schedulingMode>
-        <weight>5</weight>
+        <weight>15</weight>
+	<minShare>2</minShare>
     </pool>
     <pool name="urgent">
         <schedulingMode>FAIR</schedulingMode>

@@ -1,4 +1,4 @@
-option java_package = "com.splicemachine.backup";
+option java_package = "com.splicemachine.olap";
 option java_outer_classname = "OlapMessage";
 option java_generic_services = true;
 option java_generate_equals_and_hash = true;

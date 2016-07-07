@@ -112,6 +112,10 @@ public class ConfigurationBuilder {
     public long startupLockWaitPeriod;
     public long threadKeepaliveTime;
     public String sparkIoCompressionCodec;
+    public int sparkResultStreamingBatchSize;
+    public int sparkResultStreamingBatches;
+    public int compactionReservedSlots;
+    public int reservedSlotsTimeout;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

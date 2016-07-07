@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
@@ -26,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
 	private static final Logger LOG = Logger.getLogger(IndexConstantOperation.class);
@@ -97,31 +100,27 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		 */
         Txn childTxn;
         try {
+            childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
             dsp.setup(activation,this.toString(),"admin"); // this replaces StreamUtils.setupSparkJob
-            childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
             IndexScanSetBuilder<KVPair> indexBuilder = dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
-            DataSet<KVPair> dataSet = indexBuilder
+            ScanSetBuilder<KVPair> scanSetBuilder = indexBuilder
 				.indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
                 .tableDisplayName(tableName)
 				.transaction(indexTransaction)
 				.demarcationPoint(demarcationPoint)
-				.scan(DDLUtils.createFullScan())
-				.buildDataSet(this);
+				.scan(DDLUtils.createFullScan());
+
 			String scope = this.getScopeName();
-            PairDataSet dsToWrite = dataSet
-				.map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
-				.index(new KVPairFunction(), false, true, scope + ": Populate Index");
-			DataSetWriter writer = dsToWrite.directWriteData()
-				.destConglomerate(tentativeIndex.getIndex().getConglomerate())
-				.txn(childTxn)
-				.build();
-            @SuppressWarnings("unused") DataSet<LocatedRow> result = writer.write();
+			String prefix = StreamUtils.getScopeString(this);
+			EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, scanSetBuilder, scope, prefix, tentativeIndex));
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
-        }
-    }
+        } catch (TimeoutException e) {
+			throw Exceptions.parseException(new IOException("PopulateIndex job failed", e));
+		}
+	}
 
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
         TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();

@@ -98,7 +98,7 @@ public class RowCountOperation extends SpliceBaseOperation {
     }
 
 
-    private long getTotalOffset() throws StandardException {
+    public long getTotalOffset() throws StandardException {
         if (offsetMethod != null) {
             DataValueDescriptor offVal = offsetMethod.invoke();
             if (offVal.isNotNull().getBoolean()) {
@@ -108,7 +108,7 @@ public class RowCountOperation extends SpliceBaseOperation {
         return offset;
     }
 
-    private long getFetchLimit() throws StandardException {
+    public long getFetchLimit() throws StandardException {
         if (fetchFirstMethod != null) {
             DataValueDescriptor fetchFirstVal = fetchFirstMethod.invoke();
             if (fetchFirstVal.isNotNull().getBoolean()) {
@@ -173,6 +173,9 @@ public class RowCountOperation extends SpliceBaseOperation {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (dsp.getType() == DataSetProcessor.Type.SPARK) {
+            return source.getDataSet(dsp);
+        }
         final long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
@@ -180,30 +183,6 @@ public class RowCountOperation extends SpliceBaseOperation {
         return sourceSet.zipWithIndex().mapPartitions(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, offset, fetchLimit));
     }
 
-    @Override
-    public DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
-        final long fetchLimit = getFetchLimit();
-        long offset = getTotalOffset();
-        if (offset > 0) {
-            // no optimization, return getDataSet()
-            return getDataSet(dsp);
-        }
-        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
-        if (fetchLimit > 0) {
-            OperationContext operationContext = dsp.createOperationContext(this);
-            // Apply limit on control side
-            sourceSet = sourceSet.mapPartitions(new TakeFunction<SpliceOperation, LocatedRow>(operationContext, (int) fetchLimit));
-            final DataSet<LocatedRow> finalSourceSet = sourceSet;
-            sourceSet = new ControlDataSet<>(new Iterable<LocatedRow>() {
-                @Override
-                public Iterator<LocatedRow> iterator() {
-                    return  Iterators.limit(finalSourceSet.toLocalIterator(), (int) fetchLimit);
-                }
-            });
-        }
-        return sourceSet;
-    }
-    
     @Override
     public String getScopeName() {
         return "Row Limit";

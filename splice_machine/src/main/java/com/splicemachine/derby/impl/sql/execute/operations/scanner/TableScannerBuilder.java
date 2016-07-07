@@ -396,6 +396,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 ArrayUtil.writeIntArray(out,keyDecodingMap);
             }
             out.writeObject(accessedKeys);
+            out.writeBoolean(reuseRowLocation);
+            out.writeBoolean(oneSplitPerRegion);
             out.writeBoolean(indexName!=null);
             if(indexName!=null)
                 out.writeUTF(indexName);
@@ -472,6 +474,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 keyDecodingMap=ArrayUtil.readIntArray(in);
             }
             accessedKeys=(FormatableBitSet)in.readObject();
+            reuseRowLocation = in.readBoolean();
+            oneSplitPerRegion = in.readBoolean();
             if(in.readBoolean())
                 indexName=in.readUTF();
             if(in.readBoolean())

@@ -193,7 +193,7 @@ public class TPCHIT {
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
-    @Test
+    @Test(timeout = 30000)
     public void sql18() throws Exception {
         String sql = getContent("18.sql");
         executeQuery(sql, "", true);

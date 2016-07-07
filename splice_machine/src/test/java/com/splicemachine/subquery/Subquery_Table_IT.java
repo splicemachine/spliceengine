@@ -149,9 +149,28 @@ public class Subquery_Table_IT {
     }
 
     // JIRA 1121
-    @Test
+    @Test(timeout = 30000)
     public void inSubqueryTooBigToMaterialize() throws Exception {
         String sql = "select count(*) from parentT where i < 10 and i not in (select i from childT)";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertUnorderedResult(rs, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+
+        // DB-4494: re-run the query using a different connection
+        Connection connection = methodWatcher.createConnection();
+        Statement s = connection.createStatement();
+        rs = s.executeQuery(sql);
+        assertUnorderedResult(rs, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+    }
+
+    @Test(timeout = 30000)
+    public void inSubqueryTooBigToMaterializeSpark() throws Exception {
+        String sql = "select count(*) from parentT --splice-properties useSpark=true \n where i < 10 and i not in (select i from childT)";
         ResultSet rs = methodWatcher.executeQuery(sql);
         assertUnorderedResult(rs, "" +
                 "1 |\n" +

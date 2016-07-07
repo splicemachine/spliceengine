@@ -19,6 +19,7 @@ import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.RegionServerLifecycle;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.log4j.Logger;
 
 /**
  * This class implements both CoprocessorService and RegionServerObserver.  One instance will be created for each
@@ -26,6 +27,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
  * two classes.
  */
 public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
+    private static final Logger LOG = Logger.getLogger(RegionServerLifecycleObserver.class);
     public static volatile String regionServerZNode;
     public static volatile String rsZnode;
 
@@ -77,6 +79,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
             manager.start();
             return manager;
         }catch(Exception e1){
+            LOG.error("Unexpected exception registering boot service", e1);
             throw new DoNotRetryIOException(e1);
         }
     }

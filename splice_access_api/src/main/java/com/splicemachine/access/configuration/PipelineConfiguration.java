@@ -18,6 +18,19 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String SPARK_IO_COMPRESSION_CODEC = "spark.io.compression.codec";
     public static final String DEFAULT_SPARK_IO_COMPRESSION_CODEC = "lz4";
 
+    public static final String SPARK_RESULT_STREAMING_BATCHES = "spark.result.streaming.batches";
+    public static final int DEFAULT_SPARK_RESULT_STREAMING_BATCHES = 10;
+
+    public static final String SPARK_RESULT_STREAMING_BATCH_SIZE = "spark.result.streaming.batch.size";
+    public static final int DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE = 1024;
+
+    public static final String SPARK_COMPACTION_RESERVED_SLOTS = "spark.compaction.reserved.slots";
+    public static final int DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS = 1;
+
+    // Timeout in seconds
+    public static final String SPARK_RESERVED_SLOTS_TIMEOUT = "spark.reserved.slots.timeout";
+    public static final int DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT = 60;
+
     /**
      * The number of times to retry a network operation before failing.  Turning this up will reduce the number of spurious
      * failures caused by network events (NotServingRegionException, IndexNotSetUpException, etc.), but will also lengthen
@@ -143,5 +156,9 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.startupLockWaitPeriod = configurationSource.getLong(STARTUP_LOCK_WAIT_PERIOD, DEFAULT_STARTUP_LOCK_PERIOD);
 
         builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
+        builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
+        builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
+        builder.compactionReservedSlots = configurationSource.getInt(SPARK_COMPACTION_RESERVED_SLOTS, DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS);
+        builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);
     }
 }

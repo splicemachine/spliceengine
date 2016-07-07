@@ -63,5 +63,13 @@ public class Exceptions {
         return getIOException(t,PipelineDriver.driver().exceptionFactory());
     }
 
+    public static void throwAsRuntime(Throwable t) {
+        Exceptions.<RuntimeException> doThrow(t);
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T extends Throwable> void doThrow(Throwable t) throws T {
+        throw (T) t;
+    }
 
 }

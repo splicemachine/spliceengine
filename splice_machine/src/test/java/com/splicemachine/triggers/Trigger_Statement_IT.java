@@ -268,6 +268,7 @@ public class Trigger_Statement_IT {
     }
 
     @Test
+    @Ignore("DB-5474")
     public void afterRecursiveInsertOverSelect() throws Exception {
         // given
         methodWatcher.executeUpdate(tb.after().insert().on("T").statement().then("insert into T select * from T").build());

@@ -109,6 +109,9 @@ public interface SConfiguration {
 
     String getSparkIoCompressionCodec();
 
+    int getSparkResultStreamingBatches();
+    int getSparkResultStreamingBatchSize();
+
     // SIConfigurations
     int getActiveTransactionCacheSize();
 
@@ -223,4 +226,8 @@ public interface SConfiguration {
      * @return mapping of key -> value configuration props
      */
     Map<String,Object> getConfigMap();
+
+    int getCompactionReservedSlots();
+
+    int getReservedSlotsTimeout();
 }

@@ -76,6 +76,10 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long startupLockWaitPeriod;
     private final  long threadKeepaliveTime;
     private final  String sparkIoCompressionCodec;
+    private final int sparkResultStreamingBatches;
+    private final int sparkResultStreamingBatchSize;
+    private final int compactionReservedSlots;
+    private final int reservedSlotsTimeout;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -302,6 +306,16 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public String getSparkIoCompressionCodec() {
         return sparkIoCompressionCodec;
+    }
+
+    @Override
+    public int getSparkResultStreamingBatches() {
+        return sparkResultStreamingBatches;
+    }
+
+    @Override
+    public int getSparkResultStreamingBatchSize() {
+        return sparkResultStreamingBatchSize;
     }
 
     // SIConfigurations
@@ -613,6 +627,10 @@ public final class SConfigurationImpl implements SConfiguration {
         olapClientTickTime = builder.olapClientTickTime;
         olapServerBindPort = builder.olapServerBindPort;
         olapServerThreads = builder.olapServerThreads;
+        sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
+        sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
+        compactionReservedSlots = builder.compactionReservedSlots;
+        reservedSlotsTimeout = builder.reservedSlotsTimeout;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
@@ -641,6 +659,16 @@ public final class SConfigurationImpl implements SConfiguration {
             config.put(hadoopEntry.getKey(), (value == null ? "null" : value));
         }
         return config;
+    }
+
+    @Override
+    public int getCompactionReservedSlots() {
+        return compactionReservedSlots;
+    }
+
+    @Override
+    public int getReservedSlotsTimeout() {
+        return reservedSlotsTimeout;
     }
 
 }

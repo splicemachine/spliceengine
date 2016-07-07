@@ -1,6 +1,6 @@
 package com.splicemachine.compactions;
 
-import com.splicemachine.olap.AbstractOlapResult;
+import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
 
 import java.util.List;
 

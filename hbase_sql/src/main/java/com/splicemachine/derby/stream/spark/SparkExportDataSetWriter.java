@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Iterator;
 
 import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -90,7 +91,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         ValueRow valueRow=new ValueRow(2);
         valueRow.setColumn(1,new SQLLongint(writtenRows));
         valueRow.setColumn(2,new SQLInteger(0));
-        return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
     }
 
     @Override

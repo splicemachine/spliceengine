@@ -108,7 +108,7 @@ public class SpliceSpark {
 
     private static JavaSparkContext initializeSparkContext() {
 
-        String master = System.getProperty("splice.spark.master", "local[8]");
+        String master = System.getProperty("splice.spark.master", "local[8,4]"); // 8 parallelism, 4 maxFailures
         String sparkHome = System.getProperty("splice.spark.home", null);
 
         LOG.warn("##############################################################################");

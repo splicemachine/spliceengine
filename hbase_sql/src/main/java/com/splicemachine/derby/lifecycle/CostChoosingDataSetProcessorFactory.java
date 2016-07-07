@@ -2,6 +2,10 @@ package com.splicemachine.derby.lifecycle;
 
 import javax.annotation.Nullable;
 
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.stream.RemoteQueryClientImpl;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.db.iapi.sql.Activation;
@@ -15,6 +19,7 @@ import com.splicemachine.derby.stream.spark.HregionDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -32,7 +37,9 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
 
     @Override
     public DataSetProcessor chooseProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
-        if(! allowsDistributedExecution()){
+        if(! allowsDistributedExecution()
+                || op instanceof NoRowsOperation
+                || op instanceof ConstantAction){
             /*
              * We can't run in distributed mode because of something that the engine decided that,
              * for whatever reason, it's not available at the moment, so we have to use
@@ -90,8 +97,13 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
 
     private boolean allowsDistributedExecution(){ // corresponds to master_dataset isRunningOnSpark
         if(Thread.currentThread().getName().contains("DRDAConn")) return true; //we are on the derby execution thread
+        else if(Thread.currentThread().getName().startsWith("olap-worker")) return true; //we are on the OlapServer thread
         else if(Thread.currentThread().getName().contains("Executor task launch worker")) return false; //we are definitely in spark
         else return RegionServerLifecycleObserver.isHbaseJVM; //we can run in spark as long as are in the HBase JVM
     }
 
+    @Override
+    public RemoteQueryClient getRemoteQueryClient(SpliceBaseOperation operation) {
+        return new RemoteQueryClientImpl(operation);
+    }
 }

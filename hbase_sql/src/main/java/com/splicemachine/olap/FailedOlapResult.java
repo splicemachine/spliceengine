@@ -1,5 +1,7 @@
 package com.splicemachine.olap;
 
+import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
+
 /**
  * Created by dgomezferro on 3/17/16.
  */

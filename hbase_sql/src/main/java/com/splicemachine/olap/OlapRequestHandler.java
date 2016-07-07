@@ -2,7 +2,7 @@ package com.splicemachine.olap;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.backup.OlapMessage;
+import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import org.apache.log4j.Logger;
@@ -48,7 +48,7 @@ class OlapRequestHandler extends AbstractOlapHandler{
         if(LOG.isTraceEnabled())
             LOG.trace("Submitting job request "+ jobRequest.getUniqueName());
 
-        OlapJobStatus jobStatus=jobRegistry.register(jobRequest.getUniqueName());
+        final OlapJobStatus jobStatus=jobRegistry.register(jobRequest.getUniqueName());
 
         OlapJobStatus.State state=jobStatus.currentState();
         switch(state){
@@ -76,9 +76,22 @@ class OlapRequestHandler extends AbstractOlapHandler{
             default:
                 throw new IllegalStateException("Unexpected job state: "+state);
         }
-        Callable<Void> job=jr.toCallable(jobStatus,clock,clientCheckTimeMs);
+        final Callable<Void> job=jr.toCallable(jobStatus,clock,clientCheckTimeMs);
 
-        executionPool.submit(job);
+        executionPool.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                try {
+                    return job.call();
+                } catch (Throwable t) {
+                    LOG.error("Uncaught exception", t);
+                    if (jobStatus.isRunning()) {
+                        jobStatus.markCompleted(new FailedOlapResult(t));
+                    }
+                }
+                return null;
+            }
+        });
         if(LOG.isTraceEnabled())
             LOG.trace("Job "+ jobRequest.getUniqueName()+" successfully submitted");
         writeResponse(e,jr.getUniqueName(),jobStatus);
@@ -92,7 +105,7 @@ class OlapRequestHandler extends AbstractOlapHandler{
 
     private ExecutorService configureThreadPool(SConfiguration config){
         //TODO -sf- bound this by the number of possible Spark tasks which can run in YARN
-        ThreadFactory tf =new ThreadFactoryBuilder().setDaemon(true).setNameFormat("compaction-watcher-%d").build();
+        ThreadFactory tf =new ThreadFactoryBuilder().setDaemon(true).setNameFormat("olap-worker-%d").build();
         return Executors.newCachedThreadPool(tf);
     }
 }

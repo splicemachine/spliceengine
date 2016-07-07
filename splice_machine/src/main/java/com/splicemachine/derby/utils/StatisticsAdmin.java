@@ -1,6 +1,10 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Function;
+import com.splicemachine.derby.iapi.sql.olap.OlapResult;
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import com.splicemachine.derby.utils.stats.DistributedStatsCollection;
+import com.splicemachine.derby.utils.stats.StatsResult;
 import org.sparkproject.guava.collect.FluentIterable;
 import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
@@ -169,10 +173,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             DataSet<ExecRow> dataSet = null;
 
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
-            List<Future<List<LocatedRow>>> futures = new ArrayList(tds.size());
+            List<Future<StatsResult>> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
-                futures.add(collectTableStatistics(td, txn, conn).collectAsync(true, null, true, getScopeName(td)));
+                futures.add(collectTableStatistics(td, txn, conn));
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
             displayTableStatistics(futures,dd,transactionExecute,display));
@@ -243,7 +247,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                 conn,
                 displayTableStatistics(Lists.newArrayList(
-                    collectTableStatistics(tableDesc, txn, conn).collectAsync(true, null, true, getScopeName(tableDesc))
+                    collectTableStatistics(tableDesc, txn, conn)
                 ),
                 dd, tc, display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
@@ -304,22 +308,29 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private static DataSet<LocatedRow> collectTableStatistics(TableDescriptor table,
-                                                           TxnView txn,
-                                                           EmbedConnection conn) throws StandardException, ExecutionException {
+    private static Future<StatsResult> collectTableStatistics(TableDescriptor table,
+                                                             TxnView txn,
+                                                             EmbedConnection conn) throws StandardException, ExecutionException {
 
        return collectBaseTableStatistics(table, txn, conn);
     }
 
-    private static DataSet<LocatedRow> collectBaseTableStatistics(TableDescriptor table,
-                                                      TxnView txn,
-                                                      EmbedConnection conn) throws StandardException, ExecutionException {
+    private static Future<StatsResult> collectBaseTableStatistics(TableDescriptor table,
+                                                                 TxnView txn,
+                                                                 EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setup(activation, getScopeName(table), "admin");
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId)).activation(activation);
-        return createTableScanner(ssb,conn,table,txn);
+        ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
+        String scope = getScopeName(table);
+
+        try {
+            return EngineDriver.driver().getOlapClient().submit(new DistributedStatsCollection(scanSetBuilder, scope));
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     private static final String getScopeName(TableDescriptor td) {
@@ -338,10 +349,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return conglomerate.getFormat_ids();
     }
 
-    private static DataSet<LocatedRow> createTableScanner(ScanSetBuilder builder,
-                                              EmbedConnection conn,
-                                              TableDescriptor table,
-                                              TxnView txn) throws StandardException{
+    private static ScanSetBuilder createTableScanner(ScanSetBuilder builder,
+                                                     EmbedConnection conn,
+                                                     TableDescriptor table,
+                                                     TxnView txn) throws StandardException{
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
         ExecRow row = new ValueRow(colsToCollect.size());
@@ -415,8 +426,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)
                 .columnPositionMap(columnPositionMap)
-                .oneSplitPerRegion(true)
-                .buildDataSet(getScopeName(table));
+                .oneSplitPerRegion(true);
     }
 
     private static IteratorNoPutResultSet wrapResults(EmbedConnection conn, Iterable<ExecRow> rows) throws
@@ -588,13 +598,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
 
-    public static Iterable displayTableStatistics(List<Future<List<LocatedRow>>> futures, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
-        return FluentIterable.from(futures).transformAndConcat(new Function<Future<List<LocatedRow>>, Iterable<ExecRow>>() {
+    public static Iterable displayTableStatistics(List<Future<StatsResult>> futures, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
+        return FluentIterable.from(futures).transformAndConcat(new Function<Future<StatsResult>, Iterable<ExecRow>>() {
             @Nullable
             @Override
-            public Iterable<ExecRow> apply(@Nullable Future<List<LocatedRow>> input) {
+            public Iterable<ExecRow> apply(@Nullable Future<StatsResult> input) {
                 try {
-                    List<LocatedRow> rows = input.get();
+                    List<LocatedRow> rows = input.get().getRowList();
                     List<ExecRow> outputList = new ArrayList();
                     for (LocatedRow locatedRow: rows) {
                         ExecRow row = locatedRow.getRow();

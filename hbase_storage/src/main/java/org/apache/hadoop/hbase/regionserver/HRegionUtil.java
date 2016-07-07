@@ -208,7 +208,7 @@ public class HRegionUtil extends BaseHRegionUtil{
             // Leaf index
             int incrementalSize = storeFileInBytes > numEntries ? (int) (storeFileInBytes / numEntries) : 1;
             int step = splitBlockSize > incrementalSize ? splitBlockSize / incrementalSize : 1;
-            int firstStep = (splitBlockSize - carriedSize) / incrementalSize;
+            int firstStep = carriedSize > splitBlockSize ? 0 : (splitBlockSize - carriedSize) / incrementalSize;
 
             int previous = 0;
             for (int i = firstStep; i < numEntries; previous = i, i += step) {

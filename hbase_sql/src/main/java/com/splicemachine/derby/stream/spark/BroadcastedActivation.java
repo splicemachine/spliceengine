@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;import com.splicemachine.derby.stream.ActivationHolder;
 import org.apache.spark.broadcast.Broadcast;
 
@@ -23,8 +24,8 @@ public class BroadcastedActivation implements Externalizable {
 
     }
 
-    public BroadcastedActivation (Activation activation) {
-        this.activationHolder = new ActivationHolder(activation);
+    public BroadcastedActivation (Activation activation, SpliceOperation root) {
+        this.activationHolder = new ActivationHolder(activation, root);
         this.serializedValue = writeActivationHolder();
         this.bcast = SpliceSpark.getContext().broadcast(serializedValue);
     }

@@ -13,11 +13,13 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.splicemachine.derby.stream.iapi.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -45,10 +47,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
@@ -77,7 +75,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected NoPutResultSet[] subqueryTrackingArray;
     protected List<SpliceOperation> leftOperationStack;
     protected String jobName;
-    protected DataSetProcessor dsp;
+    protected RemoteQueryClient remoteQueryClient;
 
     public SpliceBaseOperation(){
         super();
@@ -138,22 +136,30 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public int modifiedRowCount() {
         long modifiedRowCount = 0;
-        while (locatedRowIterator.hasNext()) {
-            LocatedRow next = locatedRowIterator.next();
-            try {
-                modifiedRowCount += next.getRow().getColumn(1).getLong();
-            } catch (StandardException se) {
-                // not a long
-                throw new RuntimeException(se);
+        long badRecords = 0;
+        try {
+            while (locatedRowIterator.hasNext()) {
+                LocatedRow next = locatedRowIterator.next();
+                ExecRow row = next.getRow();
+                modifiedRowCount += row.getColumn(1).getLong();
+                if (row.nColumns() > 1) {
+                    badRecords += row.getColumn(2).getLong();
+                    getActivation().getLanguageConnectionContext().setBadFile(row.getColumn(3).getString());
+                }
             }
+            if (modifiedRowCount > Integer.MAX_VALUE || modifiedRowCount < Integer.MIN_VALUE) {
+                // DB-5369: int overflow when modified rowcount is larger than max int
+                // Add modified row count as a long value in warning
+                activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
+                return -1;
+            }
+            getActivation().getLanguageConnectionContext().setRecordsImported(modifiedRowCount);
+            getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
+            return (int) modifiedRowCount;
+        } catch (StandardException se) {
+            Exceptions.throwAsRuntime(PublicAPI.wrapStandardException(se));
+            return 0; //never reached
         }
-        if (modifiedRowCount > Integer.MAX_VALUE || modifiedRowCount < Integer.MIN_VALUE) {
-            // DB-5369: int overflow when modified rowcount is larger than max int
-            // Add modified row count as a long value in warning
-            activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
-            return -1;
-        }
-        return (int) modifiedRowCount;
     }
 
     @Override
@@ -191,8 +197,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         try{
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
-            if (dsp != null) {
-                dsp.stopJobGroup(jobName);
+            if (remoteQueryClient != null) {
+                remoteQueryClient.close();
             }
             if(closeables!=null){
                 for(AutoCloseable closeable : closeables){
@@ -374,7 +380,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if(LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s",this));
             isOpen=true;
-            this.dsp = dsp;
             String sql=activation.getPreparedStatement().getSource();
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
@@ -392,10 +397,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }
     }
 
+    protected boolean isOlapServer() {
+        return Thread.currentThread().currentThread().getName().startsWith("olap-worker");
+    }
+
     @Override
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
-        openCore(dsp);
+        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer()) {
+            remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
+            remoteQueryClient.submit();
+            locatedRowIterator = remoteQueryClient.getIterator();
+        } else {
+            openCore(dsp);
+        }
     }
 
     @Override
