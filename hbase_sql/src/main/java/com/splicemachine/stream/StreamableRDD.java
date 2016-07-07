@@ -2,6 +2,7 @@ package com.splicemachine.stream;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
@@ -30,14 +31,16 @@ public class StreamableRDD<T> {
     private final ExecutorService executor;
     private final int clientBatches;
     private final UUID uuid;
+    private final OperationContext<?> context;
 
 
     StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
-        this(rdd, uuid, clientHost, clientPort, 2, 512);
+        this(rdd, null, uuid, clientHost, clientPort, 2, 512);
     }
 
-    public StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort, int batches, int batchSize) {
+    public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort, int batches, int batchSize) {
         this.rdd = rdd;
+        this.context = context;
         this.uuid = uuid;
         this.host = clientHost;
         this.port = clientPort;
@@ -50,7 +53,7 @@ public class StreamableRDD<T> {
     public void submit() throws Exception {
         Exception error = null;
         try {
-            final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
+            final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(context, uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
             int numPartitions = streamed.getNumPartitions();
             int partitionsBatchSize = PARALLEL_PARTITIONS / 2;
             int partitionBatches = numPartitions / partitionsBatchSize;

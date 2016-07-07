@@ -5,6 +5,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -240,6 +241,7 @@ public class SpliceObserverInstructions implements Externalizable{
                  */
                 StatementContext statementContext = activation.getLanguageConnectionContext().pushStatementContext(statementAtomic,
                         statementReadOnly,stmtText,pvs,stmtRollBackParentContext,stmtTimeout);
+                statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
 
                 //EmbedConnection internalConnection=(EmbedConnection) new EmbedConnectionMaker().createNew(new Properties());
                 EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();

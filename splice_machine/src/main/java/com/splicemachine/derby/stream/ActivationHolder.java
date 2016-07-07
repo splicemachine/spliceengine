@@ -147,7 +147,6 @@ public class ActivationHolder implements Externalizable {
         } finally {
             if (prepared) {
                 impl.close();
-                initialized = false;
             }
         }
     }

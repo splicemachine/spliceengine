@@ -102,7 +102,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 2).sortByKey().mapToPair(new FailsFunction(5000));
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
         new Thread() {
             @Override
             public void run() {
@@ -139,7 +139,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 12).sortByKey().mapToPair(new FailsFunction(10000));
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
         new Thread() {
             @Override
             public void run() {
@@ -323,7 +323,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 2).sortByKey().mapToPair(new FailsTwiceFunction(10000, 100));
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
         new Thread() {
             @Override
             public void run() {
@@ -360,7 +360,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 2).sortByKey().mapToPair(new FailsTwiceFunction(10000, 2000));
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
         new Thread() {
             @Override
             public void run() {

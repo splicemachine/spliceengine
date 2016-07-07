@@ -106,7 +106,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                         streamListener.completed(olapResult);
                     } catch (ExecutionException e) {
                         LOG.warn("Execution failed", e);
-                        streamListener.failed((Exception) e.getCause());
+                        streamListener.failed(e.getCause());
                     } catch (InterruptedException e) {
                         // this shouldn't happen, the olapFuture already completed
                         Thread.currentThread().interrupt();

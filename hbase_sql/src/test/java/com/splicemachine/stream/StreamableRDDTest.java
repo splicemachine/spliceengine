@@ -250,7 +250,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 1);
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
         new Thread() {
             @Override
             public void run() {

@@ -4,6 +4,9 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.serializer.KryoRegistrator;
@@ -28,6 +31,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
     private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
+    private OperationContext<?> context;
     private UUID uuid;
     private int batchSize;
     private int numPartitions;
@@ -47,7 +51,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     public ResultStreamer() {
     }
 
-    public ResultStreamer(UUID uuid, String host, int port, int numPartitions, int batches, int batchSize) {
+    public ResultStreamer(OperationContext<?> context, UUID uuid, String host, int port, int numPartitions, int batches, int batchSize) {
+        this.context = context;
         this.uuid = uuid;
         this.host = host;
         this.port = port;
@@ -72,27 +77,39 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
 
             @Override
             public Long call() throws InterruptedException {
-                while (locatedRowIterator.hasNext()) {
-                    T lr = locatedRowIterator.next();
-                    consumed++;
-
-
-                    ctx.write(lr, ctx.voidPromise());
-                    currentBatch++;
-                    sent++;
-
-                    flushAndGetPermit();
-
-                    if (checkLimit()) {
-                        return consumed;
-                    }
-
-                    consumeOffset();
+                boolean prepared = false;
+                ActivationHolder ah = null;
+                if (context != null) {
+                    ah = ((SparkOperationContext) context).getActivationHolder();
+                    ah.reinitialize(null, false);
+                    prepared = true;
                 }
-                // Data has been written, request close
-                ctx.writeAndFlush(new StreamProtocol.RequestClose());
+                try {
+                    while (locatedRowIterator.hasNext()) {
+                        T lr = locatedRowIterator.next();
+                        consumed++;
 
-                return consumed;
+
+                        ctx.write(lr, ctx.voidPromise());
+                        currentBatch++;
+                        sent++;
+
+                        flushAndGetPermit();
+
+                        if (checkLimit()) {
+                            return consumed;
+                        }
+
+                        consumeOffset();
+                    }
+                    // Data has been written, request close
+                    ctx.writeAndFlush(new StreamProtocol.RequestClose());
+
+                    return consumed;
+                } finally {
+                    if (prepared)
+                        ah.close();
+                }
             }
 
             /**

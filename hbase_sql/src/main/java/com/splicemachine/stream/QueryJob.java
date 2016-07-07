@@ -11,6 +11,7 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
 import org.apache.log4j.Logger;
 
@@ -46,6 +47,7 @@ public class QueryJob implements Callable<Void>{
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         Activation activation = ah.getActivation();
         DataSet<LocatedRow> dataset;
+        OperationContext<SpliceOperation> context;
         try {
             ah.reinitialize(root.getCurrentTransaction(), false);
             root.setActivation(activation);
@@ -59,6 +61,7 @@ public class QueryJob implements Callable<Void>{
             dsp.setJobGroup(jobName, sql);
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
+            context = dsp.createOperationContext(root);
         } finally {
             ah.close();
         }
@@ -68,7 +71,7 @@ public class QueryJob implements Callable<Void>{
         UUID uuid = queryRequest.uuid;
         int numPartitions = sparkDataSet.rdd.getNumPartitions();
 
-        StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, uuid, clientHost, clientPort,
+        StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, context, uuid, clientHost, clientPort,
                 queryRequest.streamingBatches, queryRequest.streamingBatchSize);
         streamableRDD.submit();
 
