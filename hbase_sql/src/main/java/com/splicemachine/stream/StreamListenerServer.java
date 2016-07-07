@@ -133,6 +133,7 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
                 });
             } else {
                 // Listener deregistered, request close of channel
+                LOG.warn("Listener not found, must have unregistered");
                 ctx.writeAndFlush(new StreamProtocol.RequestClose());
                 ctx.pipeline().addLast(closeHandler);
             }
