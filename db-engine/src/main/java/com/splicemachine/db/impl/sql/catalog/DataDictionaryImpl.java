@@ -4866,12 +4866,18 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         int indexNum;
         int baseNum;
 
-        if(type==DataDictionary.FOREIGNKEY_CONSTRAINT){
-            baseNum=SYSFOREIGNKEYS_CATALOG_NUM;
-            indexNum=SYSFOREIGNKEYSRowFactory.SYSFOREIGNKEYS_INDEX1_ID;
-        }else{
-            baseNum=SYSKEYS_CATALOG_NUM;
-            indexNum=SYSKEYSRowFactory.SYSKEYS_INDEX1_ID;
+        switch(type){
+            case DataDictionary.FOREIGNKEY_CONSTRAINT:
+                baseNum=SYSFOREIGNKEYS_CATALOG_NUM;
+                indexNum=SYSFOREIGNKEYSRowFactory.SYSFOREIGNKEYS_INDEX1_ID;
+                break;
+            case DataDictionary.PRIMARYKEY_CONSTRAINT:
+                baseNum=SYSPRIMARYKEYS_CATALOG_NUM;
+                indexNum=SYSPRIMARYKEYSRowFactory.SYSPRIMARYKEYS_INDEX1_ID;
+                break;
+            default:
+                baseNum=SYSKEYS_CATALOG_NUM;
+                indexNum=SYSKEYSRowFactory.SYSKEYS_INDEX1_ID;
         }
         ti=getNonCoreTI(baseNum);
 
@@ -4940,12 +4946,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
                 updateConstraintDescriptor(refDescriptor,refDescriptor.getUUID(),colsToSet,tc);
             }
-        }else{
+            ti = getNonCoreTI(baseNum);
+        }else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
+            ti=getPkTable();
+            indexNum=0;
+        } else{
             baseNum=SYSKEYS_CATALOG_NUM;
             indexNum=SYSKEYSRowFactory.SYSKEYS_INDEX1_ID;
+            ti=getNonCoreTI(baseNum);
         }
 
-        ti=getNonCoreTI(baseNum);
 
 		/* Use constraintIdOrderable in both start 
 		 * and stop position for index 1 scan. 
@@ -4958,6 +4968,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ti.deleteRow(tc,keyRow1,indexNum);
     }
+
+    protected abstract TabInfoImpl getPkTable() throws StandardException;
 
     /**
      * Get a SubCheckConstraintDescriptor from syschecks for
@@ -7217,6 +7229,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     break;
                 case SYSKEYS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSKEYSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SYSPRIMARYKEYS_CATALOG_NUM:
+                    retval = new TabInfoImpl(new SYSPRIMARYKEYSRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSDEPENDS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSDEPENDSRowFactory(luuidFactory,exFactory,dvf));

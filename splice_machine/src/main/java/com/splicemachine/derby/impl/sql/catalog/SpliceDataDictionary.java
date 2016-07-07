@@ -170,8 +170,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             }
 
         }else if(descriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
-            ti=getPkTable();
-            faultInTabInfo(ti);
+            ti=getNonCoreTI(SYSPRIMARYKEYS_CATALOG_NUM);
             SYSPRIMARYKEYSRowFactory pkRF=(SYSPRIMARYKEYSRowFactory)ti.getCatalogRowFactory();
 
             row=pkRF.makeRow(descriptor,null);
@@ -321,9 +320,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                                           DataDescriptorGenerator ddg) throws StandardException{
         //create the base dictionary tables
         super.createDictionaryTables(params,tc,ddg);
-
-        //create SYSPRIMARYKEYS
-        makeCatalog(getPkTable(),getSystemSchemaDescriptor(),tc);
 
         createLassenTables(tc);
 
@@ -489,7 +485,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         initSystemIndexVariables(tableStatsTable);
         return tableStatsTable;
     }
-    private TabInfoImpl getPkTable() throws StandardException{
+
+    protected TabInfoImpl getPkTable() throws StandardException{
         if(pkTable==null){
             pkTable=new TabInfoImpl(new SYSPRIMARYKEYSRowFactory(uuidFactory,exFactory,dvf));
         }

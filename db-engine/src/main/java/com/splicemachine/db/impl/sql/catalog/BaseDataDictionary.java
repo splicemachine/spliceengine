@@ -103,6 +103,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final String[] nonCoreNames = {
 									"SYSCONSTRAINTS",
 									"SYSKEYS",
+									"SYSPRIMARYKEYS",
 									"SYSDEPENDS",
 									"SYSALIASES",
 									"SYSVIEWS",

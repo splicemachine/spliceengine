@@ -22,20 +22,25 @@ public class SYSPRIMARYKEYSRowFactory extends CatalogRowFactory {
 
     protected static final int SYSPRIMARYKEYS_COLUMN_COUNT=2;
 
+    public static final int SYSPRIMARYKEYS_INDEX1_ID = 0;
+
     /*Column position numbers */
     public static final int SYSPRIMARYKEYS_CONSTRAINTID=1;
     public static final int SYSPRIMARYKEYS_CONGLOMERATEID=2;
 
     private static final boolean[] uniqueness = null;
 
+    private static final int[][] indexColumnPositions = {{SYSPRIMARYKEYS_CONSTRAINTID}};
+
     private static final String[] uuids = new String[]{
-            "f48ad515-013d-35d6-f400-6915f6177d2f",
-            "f48ad516-013d-35d6-f400-6915f6177d2f"
+            "f48ad515-013d-35d6-f400-6915f6177d2f", //catalog
+            "f48ad516-013d-35d6-f400-6915f6177d2f", //heap
+            "f48ad516-013d-35d6-f400-6915f6177d2f", //INDEX_1
     };
 
     public SYSPRIMARYKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
         super(uuidf, ef, dvf);
-        initInfo(SYSPRIMARYKEYS_COLUMN_COUNT,TABLENAME_STRING,null,uniqueness,uuids);
+        initInfo(SYSPRIMARYKEYS_COLUMN_COUNT,TABLENAME_STRING,indexColumnPositions,uniqueness,uuids);
     }
 
     @Override
