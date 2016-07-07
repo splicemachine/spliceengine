@@ -173,6 +173,7 @@ public class ActivationHolder implements Externalizable {
     public void reinitialize(TxnView otherTxn) {
         reinitialize(otherTxn, true);
     }
+
     public void reinitialize(TxnView otherTxn, boolean reinit) {
         TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
         initialized = true;

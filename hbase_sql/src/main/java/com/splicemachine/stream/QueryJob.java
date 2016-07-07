@@ -45,11 +45,11 @@ public class QueryJob implements Callable<Void>{
         ActivationHolder ah = queryRequest.ah;
         SpliceOperation root = ah.getOperationsMap().get(queryRequest.rootResultSetNumber);
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        Activation activation = ah.getActivation();
         DataSet<LocatedRow> dataset;
         OperationContext<SpliceOperation> context;
         try {
-            ah.reinitialize(root.getCurrentTransaction(), false);
+            ah.reinitialize(null);
+            Activation activation = ah.getActivation();
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
