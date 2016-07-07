@@ -30,11 +30,15 @@ public class SchemaRule implements TestRule{
             public void evaluate() throws Throwable{
                 try{
                     createSchema();
-                    connection.setSchema(schemaName);
                 }catch(SQLException se){
                     //X0Y68 is the "SCHEMA already exists" error, so just ignore those
                     if(!"X0Y68".equals(se.getSQLState()))
                         throw new SetupFailureException(se);
+                }
+                try{
+                    connection.setSchema(schemaName);
+                }catch(SQLException se){
+                    throw new SetupFailureException(se);
                 }
 
                 List<Throwable> errors = new LinkedList<>();

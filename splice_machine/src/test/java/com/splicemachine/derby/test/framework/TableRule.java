@@ -19,6 +19,7 @@ public class TableRule implements TestRule{
     private final String tableName;
     private final String tableSchema;
     private final Connection connection;
+    private final List<TableRule> dependentTables = new LinkedList<>();
 
     public TableRule(Connection connection,
                      String tableName,
@@ -26,6 +27,11 @@ public class TableRule implements TestRule{
         this.connection = connection;
         this.tableName=tableName;
         this.tableSchema = tableSchema;
+    }
+
+    public TableRule childTable(TableRule childTable){
+        dependentTables.add(childTable);
+        return this;
     }
 
     @Override
@@ -52,16 +58,37 @@ public class TableRule implements TestRule{
         };
     }
 
-    private void setup() throws SQLException{
-        try(Statement s = connection.createStatement()){
-            s.execute("drop table if exists "+tableName);
 
-            s.execute("create table "+tableName+tableSchema);
-        }
-    }
 
     @Override
     public String toString(){
         return tableName;
+    }
+
+    /* ***************************************************************************************************************/
+    /*private helper methods*/
+    private void setup() throws SQLException{
+        try(Statement s = connection.createStatement()){
+            for(TableRule dependentTable: dependentTables){
+                dependentTable.drop(s);
+            }
+
+            drop(s);
+
+
+            create(s);
+
+            for(TableRule dependentTable:dependentTables){
+                dependentTable.create(s);
+            }
+        }
+    }
+
+    private void create(Statement s) throws SQLException{
+        s.execute("create table "+tableName+tableSchema);
+    }
+
+    private void drop(Statement s) throws SQLException{
+        s.execute("drop table if exists "+tableName);
     }
 }

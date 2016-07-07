@@ -2,6 +2,7 @@ package com.splicemachine.foreignkeys;
 
 import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SchemaRule;
+import com.splicemachine.derby.test.framework.TableRule;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -13,59 +14,86 @@ import java.sql.*;
  *         Date: 6/27/16
  */
 public class ForeignKeyMetadataIT{
-    private static final String SCHEMA = ForeignKeyMetadataIT.class.getSimpleName();
+    private static final String SCHEMA = ForeignKeyMetadataIT.class.getSimpleName().toUpperCase();
 
-    private RuledConnection conn = new RuledConnection(null,false);
+    private RuledConnection conn = new RuledConnection(null,true);
+
+    private TableRule p = new TableRule(conn,"P","(a int, b int, CONSTRAINT P_PK PRIMARY KEY(A), CONSTRAINT P_UNIQ UNIQUE(B))");
+    private TableRule c1  =new TableRule(conn,"C1","(c int, f int, CONSTRAINT C1_FK FOREIGN KEY (f) REFERENCES P(a))");
+    private TableRule c2 = new TableRule(conn,"C2","(g int, h int, CONSTRAINT C2_FK FOREIGN KEY (h) REFERENCES P(b))");
 
     @Rule public TestRule ruleChain =RuleChain.outerRule(conn)
-            .around(new SchemaRule(conn,SCHEMA));
+            .around(new SchemaRule(conn,SCHEMA))
+            .around(p.childTable(c1).childTable(c2));
 
-    @Before
-    public void setUp() throws Exception{
-        try(Statement s = conn.createStatement()){
-            s.execute("drop table if exists C1");
-            s.execute("drop table if exists C2");
-            s.execute("drop table if exists P");
+
+    @Test
+    public void testSQLFOREIGNKEYSReturnsCorrectForExportedKeys() throws Exception{
+        /*
+        CALL SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)
+         parameter #1: NULL
+         parameter #2: SPLICE
+         parameter #3: P
+         parameter #4:
+          parameter #5: NULL
+           parameter #6:
+            parameter #7: DATATYPE='JDBC';EXPORTEDKEY=1; CURSORHOLD=1
+         */
+        try(CallableStatement cs = conn.prepareCall("call SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)")){
+            cs.setNull(1,Types.VARCHAR);
+            cs.setString(2,SCHEMA);
+            cs.setString(3,"P");
+            cs.setString(4,"");
+            cs.setNull(5,Types.VARCHAR);
+            cs.setString(6,"");
+            cs.setString(7,"DATATYPE='JDBC';EXPORTEDKEY=1; CURSORHOLD=1");
+
+            try(ResultSet rs = cs.executeQuery()){
+                boolean[] visitedTables = new boolean[]{false,false};
+                while(rs.next()){
+                    String fkTable = rs.getString("FKTABLE_NAME");
+                    Assert.assertFalse("FK Table is null!",rs.wasNull());
+                    switch(fkTable){
+                        case "C1":
+                            Assert.assertFalse("Already visited C1!",visitedTables[0]);
+                            validateRow(rs,"P","A","P_PK","C1","F","C1_FK");
+                            visitedTables[0] = true;
+                            break;
+                        case "C2":
+                            Assert.assertFalse("Already visited C2!",visitedTables[1]);
+                            validateRow(rs, "P","B","P_UNIQ","C2","H","C2_FK");
+                            visitedTables[1] = true;
+                            break;
+                        default:
+                            Assert.fail("Unknown child table: "+fkTable);
+                    }
+                }
+                Assert.assertTrue("did not visit C1!",visitedTables[0]);
+                Assert.assertTrue("did not visit C2!",visitedTables[0]);
+            }
         }
-
     }
 
     @Test
-    @Ignore("DB-3536")
-    public void testSQLFOREIGNKEYSReturnsCorrect1Table() throws Exception{
-        try(Statement s=conn.createStatement()){
-            s.executeUpdate("create table P (a int primary key)");
-            s.executeUpdate("create table C1 (a int references P(a))");
-        }
+    public void testSQLFOREIGNKEYSReturnsCorrectForImportedKeys() throws Exception{
         try(CallableStatement ps=conn.prepareCall("call SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)")){
             ps.setString(1,"");
-            ps.setString(2,SCHEMA);
-            ps.setString(3,"P");
-            ps.setString(4,"");
+            ps.setNull(2,Types.VARCHAR);
+            ps.setString(3,"");
+            ps.setNull(4,Types.VARCHAR);
             ps.setString(5,SCHEMA);
             ps.setString(6,"C1");
             ps.setString(7,"DATATYPE='JDBC';IMPORTEDKEY=1; CURSORHOLD=1");
 
             try(ResultSet rs=ps.executeQuery()){
                 Assert.assertTrue("No rows returned!",rs.next());
-                String pSchema=rs.getString(2);
-                Assert.assertFalse("parent schema was null!",rs.wasNull());
-                Assert.assertEquals("Incorrect parent schema!",SCHEMA,pSchema);
+                validateRow(rs,"P","A","P_PK","C1","F","C1_FK");
 
-                String pTable=rs.getString(3);
-                Assert.assertFalse("parent table was null!",rs.wasNull());
-                Assert.assertEquals("Incorrect parent table!","P",pTable);
-
-                String fSchema=rs.getString(5);
-                Assert.assertFalse("child schema was null!",rs.wasNull());
-                Assert.assertEquals("Incorrect child schema!",SCHEMA,fSchema);
-
-                String fTable=rs.getString(6);
-                Assert.assertFalse("child table was null!",rs.wasNull());
-                Assert.assertEquals("Incorrect child table!","C1",fTable);
+                Assert.assertFalse("Too many rows returned!",rs.next());
             }
         }
     }
+
 
     @Test
     public void testSimplifiedForeignKeysDoesNotExplode() throws Exception{
@@ -106,6 +134,45 @@ public class ForeignKeyMetadataIT{
                }
            }
         }
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private void validateRow(ResultSet rs,
+                             String parentTable,String parentColumn, String pConstraint,
+                             String childTable, String childColumn, String fkConstraint) throws SQLException{
+        String pSchema=rs.getString(2);
+        Assert.assertFalse("parent schema was null!",rs.wasNull());
+        Assert.assertEquals("Incorrect parent schema!",SCHEMA,pSchema);
+
+        String pTable=rs.getString(3);
+        Assert.assertFalse("parent table was null!",rs.wasNull());
+        Assert.assertEquals("Incorrect parent table!",parentTable,pTable);
+
+        String pColumn=rs.getString(4);
+        Assert.assertFalse("parent column was null!",rs.wasNull());
+        Assert.assertEquals("Incorrect parent column!",parentColumn,pColumn);
+
+        String fSchema=rs.getString(6);
+        Assert.assertFalse("child schema was null!",rs.wasNull());
+        Assert.assertEquals("Incorrect child schema!",SCHEMA,fSchema);
+
+        String fTable=rs.getString(7);
+        Assert.assertFalse("child table was null!",rs.wasNull());
+        Assert.assertEquals("Incorrect child table!",childTable,fTable);
+
+        String fCol = rs.getString(8);
+        Assert.assertFalse("Child column was null!",rs.wasNull());
+        Assert.assertEquals("Incorrect child column!",childColumn,fCol);
+
+        String pkName = rs.getString(12);
+        Assert.assertFalse("PK name was null!",rs.wasNull());
+        Assert.assertEquals("Incorrect parent key name!",pConstraint,pkName);
+
+        String fkName = rs.getString(13);
+        Assert.assertFalse("FK name was null!",rs.wasNull());
+        Assert.assertEquals("Incorrect foreign key name!",fkConstraint,fkName);
+
     }
 }
 

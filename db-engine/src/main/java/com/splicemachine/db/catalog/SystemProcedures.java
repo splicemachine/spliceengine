@@ -315,8 +315,8 @@ public class SystemProcedures  {
 	 *  @param rs            output parameter, the resultset object 
 	 *                     	 containing the result of the DatabaseMetaData calls
 	 *  			 JCC overloads this method:
-	 *  			 If options contains the string 'EXPORTEDKEY=1', call getImportedKeys
-	 *  			 If options contains the string 'IMPORTEDKEY=1', call getExportedKeys
+	 *  			 If options contains the string 'IMPORTEDKEY=1', call getImportedKeys
+	 *  			 If options contains the string 'EXPORTEDKEY=1', call getExportedKeys
 	 *  			 otherwise, call getCrossReference
 	 */
 	public static void SQLFOREIGNKEYS (String pkCatalogName, String pkSchemaName, String pkTableName,

@@ -907,7 +907,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	protected static void nullToPrimitiveTest(DataValueDescriptor dvd, String primitiveType)
 		throws StandardException
 	{
-		if (dvd.isNull())
+		if (dvd==null || dvd.isNull())
 		{
 			throw StandardException.newException(SQLState.LANG_NULL_TO_PRIMITIVE_PARAMETER, primitiveType);
 		}

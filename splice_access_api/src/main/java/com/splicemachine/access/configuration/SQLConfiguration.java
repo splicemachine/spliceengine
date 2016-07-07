@@ -196,9 +196,9 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.broadcastRegionRowThreshold = configurationSource.getLong(BROADCAST_REGION_ROW_THRESHOLD, DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
 
         //always disable debug statements by default
-        builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, false);
-        builder.debugDumpBindTree = configurationSource.getBoolean(DEBUG_DUMP_BIND_TREE, false);
-        builder.debugDumpOptimizedTree = configurationSource.getBoolean(DEBUG_DUMP_OPTIMIZED_TREE, false);
+        builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);
+        builder.debugDumpBindTree = configurationSource.getBoolean(DEBUG_DUMP_BIND_TREE, DEFAULT_DUMP_BIND_TREE);
+        builder.debugDumpOptimizedTree = configurationSource.getBoolean(DEBUG_DUMP_OPTIMIZED_TREE, DEFAULT_DUMP_OPTIMIZED_TREE);
         builder.debugDumpClassFile = configurationSource.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
         builder.ignoreSavePoints = configurationSource.getBoolean(IGNORE_SAVE_POINTS, DEFAULT_IGNORE_SAVEPTS);
         builder.upgradeForced = configurationSource.getBoolean(UPGRADE_FORCED, DEFAULT_UPGRADE_FORCED);

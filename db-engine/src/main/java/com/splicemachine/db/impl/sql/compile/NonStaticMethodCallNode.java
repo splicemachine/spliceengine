@@ -460,4 +460,12 @@ public class NonStaticMethodCallNode extends MethodCallNode
 			receiver = (JavaValueNode)receiver.accept(v, this);
 		}
 	}
+
+	@Override
+	public void setHashableJoinColumnReference(ColumnReference cr){
+		if(receiver!=null)
+			receiver.setHashableJoinColumnReference(cr);
+		else
+			super.setHashableJoinColumnReference(cr);
+	}
 }

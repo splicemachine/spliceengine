@@ -2918,12 +2918,12 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         }
 
 		PreparedStatement s = getPreparedQuery("getCrossReference");
-		s.setString(1, swapNull(catalog));
-		s.setString(2, swapNull(schema));
-		s.setString(3, table); //DERBY-1484: Must match table name as stored
-		s.setString(4, swapNull(null));
-		s.setString(5, swapNull(null));
-		s.setString(6, swapNull(null));
+		s.setString(1, swapNull(null));
+		s.setString(2, swapNull(null));
+		s.setString(3, swapNull(null));
+		s.setString(4, swapNull(catalog));
+		s.setString(5, swapNull(schema));
+		s.setString(6, table); //DERBY-1484: Must match table name as stored
 		return s.executeQuery();
 	}
 
@@ -3014,12 +3014,12 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		}
 
 		PreparedStatement s = getPreparedQuery("getCrossReference");
-		s.setString(1, swapNull(primaryCatalog));
-		s.setString(2, swapNull(primarySchema));
-		s.setString(3, primaryTable); //JDBC spec: must match table name as stored
-		s.setString(4, swapNull(foreignCatalog));
-		s.setString(5, swapNull(foreignSchema));
-		s.setString(6, foreignTable); //JDBC spec: must match table name as stored
+		s.setString(1, swapNull(foreignCatalog));
+		s.setString(2, swapNull(foreignSchema));
+		s.setString(3, foreignTable); //JDBC spec: must match table name as stored
+		s.setString(4, swapNull(primaryCatalog));
+		s.setString(5, swapNull(primarySchema));
+		s.setString(6, primaryTable); //JDBC spec: must match table name as stored
 		return s.executeQuery();
 	}
 
