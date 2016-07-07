@@ -143,10 +143,9 @@ public class OlapClientTest {
                     int sleep = rand.nextInt(200);
                     try {
                         results[j] = olapClient.execute(new SameNameJob(sleep,j));
-                    } catch (IOException e) {
+                    } catch (Exception e) {
+                        LOG.error("Unexpected exception", e);
                         results[j] = null;
-                    }catch(TimeoutException te){
-                        Assert.fail("Timed out");
                     }
                 }
             };

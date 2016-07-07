@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -15,6 +16,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+import java.util.Iterator;
 
 /**
  * A DataSetProcessor Factory which only generates Control-Side DataSet processors. This is because memory
@@ -65,8 +67,23 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
     }
 
     @Override
-    public RemoteQueryClient getRemoteQueryClient(SpliceBaseOperation operation) {
-        throw new UnsupportedOperationException("Not supported");
+    public RemoteQueryClient getRemoteQueryClient(final SpliceBaseOperation operation) {
+        return new RemoteQueryClient() {
+            @Override
+            public void submit() throws StandardException {
+                operation.openCore(createControlDataSetProcessor());
+            }
+
+            @Override
+            public Iterator<LocatedRow> getIterator() {
+                return operation.getLocatedRowIterator();
+            }
+
+            @Override
+            public void close() throws Exception {
+                // no-op
+            }
+        };
     }
 
     private static class DistributedWrapper extends ForwardingDataSetProcessor implements DistributedDataSetProcessor{

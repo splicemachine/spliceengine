@@ -46,7 +46,6 @@ public class LocalOlapClient implements OlapClient{
 
     @Override
     public <R extends OlapResult> ListenableFuture<R> submit(@Nonnull final DistributedJob jobRequest) throws IOException {
-        jobRequest.markSubmitted();
         try {
             SettableFuture result = SettableFuture.create();
             result.set(execute(jobRequest));
