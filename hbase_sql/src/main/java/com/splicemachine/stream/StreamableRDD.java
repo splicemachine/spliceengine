@@ -1,9 +1,7 @@
 package com.splicemachine.stream;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
 import scala.collection.JavaConversions;
@@ -12,6 +10,7 @@ import scala.reflect.ClassTag;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -63,9 +62,11 @@ public class StreamableRDD<T> {
             if (LOG.isTraceEnabled())
                 LOG.trace("Num partitions " + numPartitions + " clientBatches " + partitionBatches);
 
-            submitBatch(0, partitionsBatchSize, numPartitions, streamed);
+            Properties properties = SpliceSpark.getContext().sc().getLocalProperties();
+
+            submitBatch(0, partitionsBatchSize, numPartitions, streamed, properties);
             if (partitionBatches > 1)
-                submitBatch(1, partitionsBatchSize, numPartitions, streamed);
+                submitBatch(1, partitionsBatchSize, numPartitions, streamed, properties);
 
             int received = 0;
             int submitted = 2;
@@ -81,7 +82,7 @@ public class StreamableRDD<T> {
                         break;
                     }
                     if (submitted < partitionBatches) {
-                        submitBatch(submitted, partitionsBatchSize, numPartitions, streamed);
+                        submitBatch(submitted, partitionsBatchSize, numPartitions, streamed, properties);
                         submitted++;
                     }
                 } catch (Exception e) {
@@ -98,7 +99,7 @@ public class StreamableRDD<T> {
         }
     }
 
-    private void submitBatch(int batch, int batchSize, int numPartitions, final JavaRDD<String> streamed) {
+    private void submitBatch(int batch, int batchSize, int numPartitions, final JavaRDD<String> streamed, final Properties properties) {
         final List<Integer> list = new ArrayList<>();
         for (int j = batch*batchSize; j < numPartitions && j < (batch+1)*batchSize; j++) {
             list.add(j);
@@ -109,6 +110,7 @@ public class StreamableRDD<T> {
         completionService.submit(new Callable<Object>() {
             @Override
             public Object call() {
+                SpliceSpark.getContext().sc().setLocalProperties(properties);
                 String[] results = (String[]) SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
                 for (String o2: results) {
                     if ("STOP".equals(o2)) {

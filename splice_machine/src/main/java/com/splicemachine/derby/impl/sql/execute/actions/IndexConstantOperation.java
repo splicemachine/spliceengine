@@ -113,7 +113,9 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);
-			EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, scanSetBuilder, scope, prefix, tentativeIndex));
+			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+			String jobGroup = userId + " <" +indexTransaction.getTxnId() +">";
+			EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, scanSetBuilder, scope, jobGroup, prefix, tentativeIndex));
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
