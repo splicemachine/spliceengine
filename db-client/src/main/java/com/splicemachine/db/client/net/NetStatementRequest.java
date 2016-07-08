@@ -780,7 +780,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                         }
                         break;
                     case DRDAConstants.DRDA_TYPE_NUDT:
-                        writeLDBytes(((RowId)inputs[i]).getBytes());
+                        writeUDT( inputs[i] );
                         break;
                     case DRDAConstants.DRDA_TYPE_NROWID:
                         byte[] rowid = ((RowId) inputs[i]).getBytes();
