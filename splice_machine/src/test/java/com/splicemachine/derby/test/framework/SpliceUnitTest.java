@@ -196,7 +196,6 @@ public class SpliceUnitTest {
             int i=0;
             int k=0;
             while(resultSet.next()){
-                System.out.println(resultSet.getString(1));
                 i++;
                 for(int level : levels){
                     if(level==i){

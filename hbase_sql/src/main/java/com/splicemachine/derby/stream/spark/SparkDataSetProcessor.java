@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
-
 import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
@@ -15,7 +14,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import scala.Tuple2;
-
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -33,7 +31,6 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
-import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
@@ -45,7 +42,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 /**
  * Spark-based DataSetProcessor.
  *
- * @author jleach
  */
 public class SparkDataSetProcessor implements DistributedDataSetProcessor, Serializable {
     private long failBadRecordCount = -1;
@@ -85,11 +81,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation,V> ScanSetBuilder<V> newScanSet(Op spliceOperation,String tableName) throws StandardException{
         return new SparkScanSetBuilder<>(this,tableName,spliceOperation); // tableName = conglomerate number
-    }
-
-    @Override
-    public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(Op spliceOperation,String tableName) throws StandardException{
-        return new SparkIndexScanBuilder<>(tableName); // tableName = conglomerate number of base table
     }
 
     @Override
@@ -135,7 +126,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
-        return new SparkOperationContext<>(activation, broadcastedActivation.get());
+        if (activation !=null) {
+            return new SparkOperationContext<>(activation, broadcastedActivation.get());
+        } else {
+            return new SparkOperationContext<>(activation, null);
+        }
     }
 
     @Override

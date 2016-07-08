@@ -1,19 +1,14 @@
 package com.splicemachine.derby.stream.spark;
 
-import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.IndexTableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.metrics.Metrics;
@@ -25,19 +20,14 @@ import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 
 /**
- * Created by jleach on 4/13/15.
+ *
+ *
  */
 public class HregionDataSetProcessor extends ControlDataSetProcessor {
     private static final Logger LOG = Logger.getLogger(HregionDataSetProcessor.class);
@@ -90,11 +80,6 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
                 }
             }
         };
-    }
-
-    @Override
-    public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(final Op spliceOperation, final String tableName) throws StandardException{
-        throw new UnsupportedOperationException("Can't create an index scanner using a HRegionDataSetProcessor");
     }
 
 }

@@ -1,10 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -12,10 +9,6 @@ import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.txn.Txn;
-import org.sparkproject.guava.primitives.Ints;
-
 import java.util.concurrent.Callable;
 
 /**
@@ -38,9 +31,9 @@ public class PopulateIndexJob implements Callable<Void> {
         }
         DDLMessage.TentativeIndex tentativeIndex = request.tentativeIndex;
         String scope = request.scope;
-        DataSet<KVPair> dataSet = request.scanSetBuilder.buildDataSet(request.prefix);
+        DataSet<LocatedRow> dataSet = request.scanSetBuilder.buildDataSet(request.prefix);
         PairDataSet dsToWrite = dataSet
-                .map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
+                .map(new IndexTransformFunction(tentativeIndex,request.indexFormatIds), null, false, true, scope + ": Prepare Index")
                 .index(new KVPairFunction(), false, true, scope + ": Populate Index");
         DataSetWriter writer = dsToWrite.directWriteData()
                 .destConglomerate(tentativeIndex.getIndex().getConglomerate())

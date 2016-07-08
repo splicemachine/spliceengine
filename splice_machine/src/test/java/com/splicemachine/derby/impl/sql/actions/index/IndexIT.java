@@ -32,7 +32,6 @@ import static org.junit.Assert.assertEquals;
  * @author Jeff Cunningham
  *         Date: 7/31/13
  */
-@Category(SlowTest.class)
 public class IndexIT extends SpliceUnitTest{
     private static final Logger LOG=Logger.getLogger(IndexIT.class);
 
@@ -308,6 +307,7 @@ public class IndexIT extends SpliceUnitTest{
     public void testQueryCustomerByNameWithTpccIndex() throws Exception {
         // DB-4894: this tpcc index on customer table caused an NPE in AbstractTimeDescriptorSerializer
         // because of open/close in indexToBaseRow.  The close nulled out the ThreadLocal<Calendar>
+
         SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME,CustomerTable.INDEX_NAME_DEF,false);
         PreparedStatement ps=methodWatcher.prepareStatement(CUSTOMER_BY_NAME);
         ps.setInt(1,1); // c_w_id
@@ -715,4 +715,27 @@ public class IndexIT extends SpliceUnitTest{
         double cost2=SpliceUnitTest.parseTotalCost(arr2.get(1));
         assertTrue("Cost #1 must be bigger than cost #2", Double.compare(cost1, cost2) > 0);
     }
+
+    @Test
+    // DB-5160
+    public void testCreateIndexWithUpdatedData() throws Exception {
+        methodWatcher.executeUpdate("create table w (a int, b int, primary key (a))");
+        methodWatcher.executeUpdate("insert into w (a,b) values (1,1),(2,1),(3,2)");
+        methodWatcher.executeUpdate("update w set a = a-1 where b = 1");
+        methodWatcher.executeUpdate("create index widx on w (b)");
+        rowContainsQuery(new int[]{1,2,3},"select b from w --splice-properties index=widx",methodWatcher,
+                new String[]{"1","1","2"});
+    }
+
+    @Test
+    // DB-5029
+    public void testCreateIndexAndUpdateDataViaIndexScan() throws Exception {
+        methodWatcher.executeUpdate("create table double_INDEXES1(column1 DOUBLE)");
+        methodWatcher.executeUpdate("CREATE INDEX doubleIndex2 ON double_INDEXES1(column1 ASC)");
+        methodWatcher.executeUpdate("update double_INDEXES1 set column1 = -1.79769E+308 where column1 = -1.79769E+308");
+        rowContainsQuery(new int[]{1,2,3},"select column1 from double_INDEXES1 --splice-properties index=doubleIndex2\n order by column1",methodWatcher,
+                new String[]{"-1.79769E308","0","1.79769E308"});
+
+    }
+
 }

@@ -561,4 +561,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public OperationContext getOperationContext() {
         return operationContext;
     }
+
+    public long getDemarcationPoint() {
+        return this.demarcationPoint;
+    }
 }
