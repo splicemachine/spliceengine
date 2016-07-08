@@ -1,5 +1,9 @@
 package com.splicemachine;
 
+import java.sql.Connection;
+import java.util.concurrent.TimeUnit;
+
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
@@ -8,16 +12,11 @@ import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.lifecycle.BackupManagerLoader;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
-import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
-
-import java.sql.Connection;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Scott Fines
@@ -37,6 +36,7 @@ public class EngineDriver{
     private final SqlExceptionFactory exceptionFactory;
     private final DatabaseAdministrator dbAdmin;
     private final OlapClient olapClient;
+    private final SqlEnvironment environment;
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
@@ -47,6 +47,7 @@ public class EngineDriver{
     }
 
     public EngineDriver(SqlEnvironment environment){
+        this.environment = environment;
         this.uuidGen=environment.getUUIDGenerator();
         this.internalConnection=environment.getInternalConnection();
         this.version=environment.getVersion();
@@ -110,7 +111,7 @@ public class EngineDriver{
     }
 
     public BackupManager backupManager(){
-        return BackupManagerLoader.load();
+        return environment.getBackupManager();
     }
 
     public SqlExceptionFactory getExceptionFactory(){

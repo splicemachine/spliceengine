@@ -570,7 +570,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     		.catalog("KEY")
                     		.varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
                     		.build());
-                    
+
+                    /*
+                     * Procedure to enable splice enterprise version
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_ENABLE_ENTERPRISE")
+                    		.numOutputParams(0)
+                    		.numResultSets(0)
+                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
+                    		.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    		.varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
+                    		.build());
+
                     /*
                      * Procedure to empty the statement caches on all region servers in the cluster.
                      * Essentially a wrapper around the Derby version of SYSCS_EMPTY_STATEMENT_CACHE

@@ -91,6 +91,11 @@
             <classifier>test</classifier>
             <scope>test</scope>
         </dependency>
+      <dependency>
+        <groupId>com.splicemachine</groupId>
+        <artifactId>splice_backup</artifactId>
+        <type>jar</type>
+      </dependency>
         <!--Test dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -259,13 +264,6 @@
       <dependency>
         <groupId>org.splicetest.sqlj</groupId>
         <artifactId>sqlj-it-procs</artifactId>
-        <type>jar</type>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <!-- TODO: REMOVE - only for testing -->
-        <groupId>com.splicemachine</groupId>
-        <artifactId>splice_backup</artifactId>
         <type>jar</type>
         <scope>test</scope>
       </dependency>

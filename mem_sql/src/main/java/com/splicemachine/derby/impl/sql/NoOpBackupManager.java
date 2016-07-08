@@ -1,11 +1,8 @@
 package com.splicemachine.derby.impl.sql;
 
 import com.splicemachine.backup.BackupManager;
-import com.splicemachine.backup.RestoreItem;
 import com.splicemachine.db.iapi.error.StandardException;
-
-import java.util.Collections;
-import java.util.Iterator;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
  * @author Scott Fines
@@ -22,41 +19,41 @@ public class NoOpBackupManager implements BackupManager{
 
     @Override
     public void fullBackup(String backupDirectory) throws StandardException {
-
+//        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
     public void incrementalBackup(String directory) throws StandardException{
-
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
     public long getRunningBackup() throws StandardException{
-        return 0;
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
     public void restoreDatabase(String directory,long backupId) throws StandardException{
-
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
     public void removeBackup(long backupId) throws StandardException{
-
+//        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
     public void scheduleDailyBackup(String directory, String type, int hour) throws StandardException {
-
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
     public void cancelDailyBackup(long jobId) throws StandardException {
-
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
     public void cancelBackup() throws StandardException {
-
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 }

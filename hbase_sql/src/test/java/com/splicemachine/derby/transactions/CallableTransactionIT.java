@@ -141,7 +141,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 		spliceClassWatcher.executeUpdate(DROP_PROC_DROP_EMPLOYEE_TABLE);
 
 		// Remove the jar file from the DB class path.
-		spliceClassWatcher.executeUpdate(CALL_SET_CLASSPATH_TO_DEFAULT);
+//		spliceClassWatcher.executeUpdate(CALL_SET_CLASSPATH_TO_DEFAULT);
 
 		// Remove the jar file from the DB.
 		spliceClassWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
