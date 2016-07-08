@@ -549,6 +549,50 @@ public class MergeJoinIT extends SpliceUnitTest {
         Assert.assertEquals("incorrect row count", 1, rs.getInt(1));
     }
 
+    @Test
+    // DB-5428
+     public void testMergeFeasibilityNonColumnReferences() throws Exception {
+        methodWatcher.executeUpdate(
+         format("CREATE TABLE %s.states(name VARCHAR(30)NOT NULL, " +
+                 "abbrev CHAR(2)NOT NULL, "+
+         "statehood DATE, "+
+         "pop BIGINT, "+
+         "PRIMARY KEY (abbrev))",CLASS_NAME));
+        methodWatcher.executeUpdate(format("insert into %s.states(name, abbrev, statehood, pop)" +
+                " values('Alabama', 'AL', '1819-12-14', 4040587), ('Alaska', 'AK', '1959-01-03', 550043)",CLASS_NAME));
+        methodWatcher.executeQuery(
+                format("SELECT YEAR (s2.statehood) AS yr, s1.name, s2.name FROM %s.states AS s1, %s.states AS s2 WHERE YEAR " +
+         "(s1.statehood) = YEAR(s2.statehood) AND s1.name != s2.name ORDER BY yr, s1.name, s2.name",CLASS_NAME,CLASS_NAME));
+     }
+
+    //@Test
+    // DB-5227
+
+    /*
+
+    create table BASIC_FLATTEN1.outer1 (c1 int, c2 int, c3 int) ;
+    create table BASIC_FLATTEN1.outer2 (c1 int, c2 int, c3 int);
+    create table BASIC_FLATTEN1.noidx (c1 int) ;
+    create table BASIC_FLATTEN1.idx1 (c1 int) ;
+    create table BASIC_FLATTEN1.idx2 (c1 int, c2 int) ;
+    create table BASIC_FLATTEN1.nonunique_idx1 (c1 int) ;
+create unique index BASIC_FLATTEN1.idx1_1 on idx1(c1) ;
+create unique index BASIC_FLATTEN1.idx2_1 on idx2(c1, c2) ;
+create index BASIC_FLATTEN1.nonunique_idx1_1 on nonunique_idx1(c1) ;
+insert into BASIC_FLATTEN1.outer1 values (1, 2, 3) ;
+insert into BASIC_FLATTEN1.outer1 values (4, 5, 6) ;
+insert into BASIC_FLATTEN1.outer2 values (1, 2, 3) ;
+insert into BASIC_FLATTEN1.outer2 values (4, 5, 6) ;
+insert into BASIC_FLATTEN1.noidx values 1, 1 ;
+insert into idx1 values 1, 2 ;
+insert into idx2 values (1, 1), (1, 2) ;
+insert into nonunique_idx1 values 1, 1 ;
+
+select * from BASIC_FLATTEN1.outer1 where exists
+(select * from BASIC_FLATTEN1.idx2 , BASIC_FLATTEN1.idx1 where BASIC_FLATTEN1.outer1.c1 + 0 = BASIC_FLATTEN1.idx2.c1 and BASIC_FLATTEN1.idx2.c2 + 0 = BASIC_FLATTEN1.idx1.c1 and BASIC_FLATTEN1.idx2.c2 = 1 + 0);
+
+     */
+
 
     private static String getResource(String name) {
         return getResourceDirectory() + "tcph/data/" + name;

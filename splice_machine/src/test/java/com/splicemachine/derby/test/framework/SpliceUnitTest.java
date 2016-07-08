@@ -199,7 +199,8 @@ public class SpliceUnitTest {
                 i++;
                 for(int level : levels){
                     if(level==i){
-                        Assert.assertTrue("failed query: "+query+" -> "+resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
+                        Assert.assertTrue("failed query at level ("+level+"): \n"+query+"\nExpected: "+contains[k]+"\nWas: "
+                                              +resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
                         k++;
                     }
                 }
@@ -223,14 +224,6 @@ public class SpliceUnitTest {
         ResultSet resultSet = methodWatcher.executeQuery(query);
         while (resultSet.next())
             Assert.assertFalse("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(notContains));
-    }
-
-    protected void rowManyContainsQuery(int level, String query, SpliceWatcher methodWatcher,String... contains) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        for (int i = 0; i< level;i++)
-            resultSet.next();
-        for (String contain: contains)
-            Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contain));
     }
 
     public static void rowsContainsQuery(String query, Contains mustContain, SpliceWatcher methodWatcher) throws Exception {

@@ -316,7 +316,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             if(opNode.optimizableEqualityNode(optTable,columnNumber,isNullOkay)){
                 if (predicateList == null) {
-                    predicateList = new ArrayList<Predicate>();
+                    predicateList = new ArrayList<>();
                 }
                 predicateList.add(predicate);
             }
@@ -436,7 +436,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return true;
     }
 
-    public static boolean isQualifierForHashableJoin(Predicate pred,Optimizable optTable,boolean pushPreds) throws StandardException{
+    private static boolean isQualifierForHashableJoin(Predicate pred,Optimizable optTable,boolean pushPreds) throws StandardException{
 		/*
 		** Skip over it if it's not a relational operator (this includes
 		** BinaryComparisonOperators and IsNullNodes.
@@ -576,7 +576,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if (predicates == null || predicates.length == 0)
             return predicates;
 
-        List<Predicate> predicateList = new ArrayList<Predicate>();
+        List<Predicate> predicateList = new ArrayList<>();
         for (Predicate p : predicates) {
             RelationalOperator relop = p.getRelop();
             if (relop instanceof BinaryRelationalOperatorNode) {
@@ -606,7 +606,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         Predicate[] usefulPredicates=new Predicate[size];
         int usefulCount=0;
         Predicate predicate;
-        boolean rowIdScan = false;
+        boolean rowIdScan;
 
         if(cd!=null && !cd.isIndex() && !cd.isConstraint()){
             List<ConglomerateDescriptor> cdl=optTable.getTableDescriptor().getConglomerateDescriptorList();
@@ -634,6 +634,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             predicate.clearScanFlags();
         }
 
+        JoinStrategy joinStrategy = optTable.getTrulyTheBestAccessPath().getJoinStrategy();
+        if (joinStrategy == null) {
+            joinStrategy = optTable.getCurrentAccessPath().getJoinStrategy();
+        }
+        boolean isHashableJoin = joinStrategy instanceof HashableJoinStrategy;
+
 		/*
 		** RESOLVE: For now, not pushing any predicates for heaps.  When this
 		** changes, we also need to make the scan in
@@ -644,6 +650,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
 		/* Is a heap scan or a non-matching index scan on a covering index? */
         if(!rowIdScan && ((cd==null) || (!cd.isIndex() && !primaryKey) || (nonMatchingIndexScan && coveringIndexScan))){
+
 			/*
 			** For the heap, the useful predicates are the relational
 			** operators that have a column from the table on one side,
@@ -660,13 +667,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			** in reverse order after completing the loop.
 			*/
             Predicate[] preds=new Predicate[size];
-            JoinStrategy joinStrategy = optTable.getTrulyTheBestAccessPath().getJoinStrategy();
-            if (joinStrategy == null) {
-                joinStrategy = optTable.getCurrentAccessPath().getJoinStrategy();
-            }
-            AccessPath ap = optTable.getCurrentAccessPath();
-            boolean isHashableJoin = joinStrategy instanceof HashableJoinStrategy;
-
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
                 if(!isHashableJoin && isQualifier(pred,optTable,pushPreds) ||
@@ -741,7 +741,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 /* Remember the useful predicate */
                 usefulPredicates[usefulCount++]=pred;
             }else{
-                if(primaryKey && isQualifier(pred,optTable,pushPreds)){
+                if(primaryKey && isQualifier(pred,optTable,pushPreds) ||
+                isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){
                         if(optTable.pushOptPredicate(pred)){
@@ -2533,7 +2534,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                              Optimizable optTable,
                                              boolean absolute,
                                              ExpressionClassBuilder acb,
-                                             Predicate pred,
                                              RelationalOperator or_node,
                                              LocalField qualField,
                                              int array_idx_1,
@@ -2791,7 +2791,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                             optTable,
                             absolute,
                             acb,
-                            pred,
                             pred.getRelop(),
                             qualField,
                             0,
@@ -2865,7 +2864,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                             optTable,
                             absolute,
                             acb,
-                            pred,
                             (RelationalOperator)a_list.get(i),
                             qualField,
                             and_idx,
@@ -3123,8 +3121,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             mb=exprFun;
         }
 
-        int[] baseColumns = null;
-        boolean[] isAscending = null;
+        int[] baseColumns;
+        boolean[] isAscending;
         if (pred.isRowId()) {
             baseColumns = new int[1];
             baseColumns[0] = 1;

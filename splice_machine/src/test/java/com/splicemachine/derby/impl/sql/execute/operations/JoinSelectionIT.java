@@ -416,13 +416,13 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         String explainUnhinted = format(query, "explain", "NLJ3812C2", "");
 
         rowContainsQuery(
-                new int[] {3, 4, 5},
+                new int[] {3, 5, 6},
                 explainHinted,
                 methodWatcher,
                 "BroadcastJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
 
         rowContainsQuery(
-                new int[] {3, 4, 5},
+                new int[] {3, 5, 6},
                 explainUnhinted,
                 methodWatcher,
                 "BroadcastJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");

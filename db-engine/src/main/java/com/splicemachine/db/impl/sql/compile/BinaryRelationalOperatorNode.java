@@ -865,26 +865,29 @@ public class BinaryRelationalOperatorNode
 
         ft=(FromTable)optTable;
 
-        ColumnReference cr = leftOperand.getHashableJoinColumnReference();
-        if(cr != null){
+        ColumnReference lcr = leftOperand.getHashableJoinColumnReference();
+        ColumnReference rcr = rightOperand.getHashableJoinColumnReference();
+        if (lcr == null || rcr == null) {
+            // In order to have a hashable qualifier, we need to have have a column ref on both sides
+            return false;
+        }
+
 			/*
 			** The left operand is a column reference.
 			** Is it the correct column?
 			*/
-            if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
+            if(valNodeReferencesOptTable(lcr,ft,forPush,walkSubtree)){
                 otherSide=rightOperand;
                 found=true;
+                walkSubtree=false;
             }
-            walkSubtree=false;
-        }
 
-        cr = rightOperand.getHashableJoinColumnReference();
-        if((!found) && cr != null){
+        if(!found){
 			/*
 			** The right operand is a column reference.
 			** Is it the correct column?
 			*/
-            if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
+            if(valNodeReferencesOptTable(rcr,ft,forPush,walkSubtree)){
                 otherSide=leftOperand;
                 found=true;
             }
