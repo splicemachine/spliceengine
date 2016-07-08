@@ -96,7 +96,6 @@ public class ForeignKey_AlterDropTable_IT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-    @Ignore("DB-4324")
     public void dropTable_failsIfTableWithDependentFKExists() throws Exception {
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");

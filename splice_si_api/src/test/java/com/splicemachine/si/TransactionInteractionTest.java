@@ -590,7 +590,33 @@ public class TransactionInteractionTest {
     	callTxn.rollback();
     }
 
-    /************************************************************************************************************/
+    @Test
+    public void rollbackDeleteThenUpdateIsCorrect() throws Exception{
+        /*
+         * Regression test for DB-4324. Turns out, if you delete a row, then roll it back, then
+         * perform an update you screw up the row. That's bad news.
+         *
+         * The problem was that the transactor was using "conflicts()" to determine if it should place
+         * an anti-tombstone or not, rather than "canSee()". Switching the two resolves the issue, and
+         * this test proves the fix.
+         */
+        Txn insert = control.beginTransaction(DESTINATION_TABLE);
+
+        testUtility.insertAge(insert,"scott",29);
+        Assert.assertEquals("Incorrect results","scott age=29 job=null",testUtility.read(insert,"scott"));
+        insert.commit();
+
+        Txn delete = control.beginTransaction(DESTINATION_TABLE);
+        testUtility.deleteRow(delete,"scott");
+        delete.rollback();
+
+        Txn update = control.beginTransaction(DESTINATION_TABLE);
+        testUtility.insertJob(update,"scott","baker");
+
+        Assert.assertEquals("Incorrect results","scott age=29 job=baker",testUtility.read(update,"scott"));
+    }
+
+    /* ****************************************************************************************************************/
     /*private helper methods*/
     private void transactionalDelete(String name, Txn userTxn) throws IOException {
         Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);

@@ -436,7 +436,7 @@ public class SITransactor implements Transactor{
         if(tombstoneCell==null) return false; //no tombstone at all
         if(tombstoneCell.dataType()==CellType.ANTI_TOMBSTONE) return false;
         TxnView tombstoneTxn=txnSupplier.getTransaction(tombstoneCell.version());
-        return updateTxn.conflicts(tombstoneTxn)==ConflictType.NONE;
+        return updateTxn.canSee(tombstoneTxn);
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
