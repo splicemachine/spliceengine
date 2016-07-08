@@ -21,8 +21,6 @@ public interface DataSetProcessor {
 
     <Op extends SpliceOperation, V> ScanSetBuilder<V> newScanSet(Op spliceOperation,String tableName) throws StandardException;
 
-    <Op extends SpliceOperation, V> IndexScanSetBuilder<V> newIndexScanSet(Op spliceOperation,String tableName) throws StandardException;
-
     <V> DataSet<V> getEmpty();
 
     <V> DataSet<V> getEmpty(String name);

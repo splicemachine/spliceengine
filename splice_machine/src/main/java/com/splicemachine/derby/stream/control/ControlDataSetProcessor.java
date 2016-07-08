@@ -13,31 +13,24 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Charsets;
 import scala.Tuple2;
-
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.IndexTableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
-import com.splicemachine.derby.stream.iterator.DirectScanner;
-import com.splicemachine.derby.stream.iterator.DirectScannerIterator;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
@@ -122,35 +115,6 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
-            "of this is a mistake for control-side operations")
-    public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(final Op spliceOperation,final String tableName) throws StandardException{
-       return new IndexTableScannerBuilder<V>(){
-           @Override
-           public DataSet<V> buildDataSet() throws StandardException{
-               rowDecodingMap(indexColToMainColPosMap);
-               Partition p;
-               try{
-                   p =SIDriver.driver().getTableFactory().getTable(tableName);
-                   TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
-                           txnSupplier,transactory,txnOperationFactory);
-
-                   this.region(localRegion).scanner(p.openScanner(getScan())); //set the scanner
-                   DirectScanner ds = new DirectScanner(scanner,region,txn,demarcationPoint,Metrics.noOpMetricFactory());
-                   DirectScannerIterator iter = new DirectScannerIterator(ds);
-                   if(spliceOperation!=null){
-                       spliceOperation.registerCloseable(iter);
-                       spliceOperation.registerCloseable(p);
-                   }
-                   return new ControlDataSet(iter);
-               }catch(IOException e){
-                   throw Exceptions.parseException(e);
-               }
-           }
-       };
-    }
-
-    @Override
     public <V> DataSet<V> getEmpty(){
         return new ControlDataSet<>(Collections.<V>emptyList());
     }
@@ -187,7 +151,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation){
-        throw new RuntimeException("not implemented");
+        return new ControlOperationContext<>(null);
     }
 
     @Override

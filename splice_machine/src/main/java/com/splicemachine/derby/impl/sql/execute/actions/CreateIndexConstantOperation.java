@@ -39,6 +39,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -127,7 +128,7 @@ import java.util.Properties;
  * the transactions are "contiguous in time".
  *
  */
-public class CreateIndexConstantOperation extends IndexConstantOperation {
+public class CreateIndexConstantOperation extends IndexConstantOperation implements Serializable {
     private static final Logger LOG = Logger.getLogger(CreateIndexConstantOperation.class);
     /**
      * Is this for a CREATE TABLE, i.e. it is

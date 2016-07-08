@@ -31,11 +31,6 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(Op spliceOperation,String tableName) throws StandardException{
-        return delegate.newIndexScanSet(spliceOperation,tableName);
-    }
-
-    @Override
     public <V> DataSet<V> getEmpty(){
         return delegate.getEmpty();
     }

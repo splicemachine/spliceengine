@@ -2,6 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
@@ -23,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.sparkproject.guava.base.Preconditions.checkArgument;
 
@@ -60,6 +65,9 @@ public class IndexTransformer {
     private int [] mainColToIndexPosMap;
     private BitSet indexedCols;
     private byte[] indexConglomBytes;
+    private int[] indexFormatIds;
+    private DescriptorSerializer[] serializers;
+
 
     private transient DataGet baseGet = null;
     private transient DataResult baseResult = null;
@@ -69,9 +77,15 @@ public class IndexTransformer {
         table = tentativeIndex.getTable();
         checkArgument(!index.getUniqueWithDuplicateNulls() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
-        indexedCols = DDLUtils.getIndexedCols(Ints.toArray(index.getIndexColsToMainColMapList()));
+        List<Integer> indexColsList = index.getIndexColsToMainColMapList();
+        indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
+        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
         mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(index.getIndexColsToMainColMapList()), indexedCols);
         indexConglomBytes = DDLUtils.getIndexConglomBytes(index.getConglomerate());
+        indexFormatIds = new int[indexColsList.size()];
+        for (int i = 0; i < indexColsList.size(); i++) {
+            indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
+        }
     }
 
     /**
@@ -125,6 +139,45 @@ public class IndexTransformer {
                 resultValue.keyArray(),resultValue.keyOffset(),resultValue.keyLength(),
                 resultValue.valueArray(),resultValue.valueOffset(),resultValue.valueLength(),KVPair.Type.DELETE);
         return translate(toTransform);
+    }
+
+
+    public KVPair writeDirectIndex(LocatedRow locatedRow) throws IOException, StandardException {
+        assert locatedRow != null: "locatedRow passed in is null";
+        ExecRow execRow = locatedRow.getRow();
+        getSerializers(execRow);
+        EntryAccumulator keyAccumulator = getKeyAccumulator();
+        keyAccumulator.reset();
+        boolean hasNullKeyFields = false;
+        for (int i = 0; i< execRow.nColumns();i++) {
+            if (execRow.getColumn(i+1) == null || execRow.getColumn(i+1).isNull()) {
+                hasNullKeyFields = true;
+                accumulateNull(keyAccumulator,
+                    i,
+                    indexFormatIds[i]);
+            } else {
+                byte[] data = serializers[i].encodeDirect(execRow.getColumn(i+1),false);
+                accumulate(keyAccumulator,
+                    i, indexFormatIds[i],
+                    index.getDescColumns(i),
+                    data, 0, data.length);
+            }
+        }
+        //add the row key to the end of the index key
+        byte[] srcRowKey = Encoding.encodeBytesUnsorted(locatedRow.getRowLocation().getBytes());
+
+        EntryEncoder rowEncoder = getRowEncoder();
+        MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
+        entryEncoder.reset();
+        entryEncoder.setRawBytes(srcRowKey);
+        byte[] indexValue = rowEncoder.encode();
+        byte[] indexRowKey;
+        if (index.getUnique()) {
+            boolean nonUnique = index.getUniqueWithDuplicateNulls() && (hasNullKeyFields || !keyAccumulator.isFinished());
+            indexRowKey = getIndexRowKey(srcRowKey, nonUnique);
+        } else
+            indexRowKey = getIndexRowKey(srcRowKey, true);
+        return new KVPair(indexRowKey, indexValue, KVPair.Type.INSERT);
     }
 
 
@@ -324,7 +377,20 @@ public class IndexTransformer {
         }
         return indexValueEncoder;
     }
-
+    /**
+     * because the field is NULL and it's source is the incoming mutation, we
+     * still need to accumulate it. We must be careful, however, to accumulate the
+     * proper null value.
+     *
+     * In theory, we could use a sparse encoding here--just accumulate a length 0 entry,
+     * which will allow us to use a very short row key to determine nullity. However, that
+     * doesn't work correctly, because doubles and floats at the end of the index might decode
+     * the row key as a double, resulting in goofball answers.
+     *
+     * Instead, we must use the dense encoding approach here. That means that we must
+     * select the proper dense type based on columnTypes[i]. For most data types, this is still
+     * a length-0 array, but for floats and doubles it will put the proper type into place.
+     */
     private void accumulateNull(EntryAccumulator keyAccumulator, int pos, int type){
         if (typeProvider.isScalar(type))
             keyAccumulator.addScalar(pos,SIConstants.EMPTY_BYTE_ARRAY,0,0);
@@ -405,6 +471,13 @@ public class IndexTransformer {
             srcValueDecoder = new EntryDecoder();
         return srcValueDecoder;
     }
+
+    private DescriptorSerializer[] getSerializers (ExecRow execRow) {
+        if (serializers==null)
+            serializers = VersionedSerializers.forVersion(table.getTableVersion(),true).getSerializers(execRow);
+        return serializers;
+    }
+
 
     private DataResult fetchBaseRow(KVPair mutation,WriteContext ctx,BitSet indexedColumns) throws IOException{
         baseGet =SIDriver.driver().getOperationFactory().newDataGet(ctx.getTxn(),mutation.getRowKey(),baseGet);

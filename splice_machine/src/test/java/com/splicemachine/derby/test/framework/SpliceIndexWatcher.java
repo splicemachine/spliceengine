@@ -100,6 +100,8 @@ public class SpliceIndexWatcher extends TestWatcher {
                 SpliceIndexWatcher.executeDrop(connection,schemaName,indexName);
             }
 			try(Statement s = connection.createStatement()){
+				System.out.println(String.format("create "+(unique?"unique":"")+" index %s.%s on %s.%s %s",
+						schemaName,indexName,schemaName,tableName,definition));
 				s.execute(String.format("create "+(unique?"unique":"")+" index %s.%s on %s.%s %s",
 						schemaName,indexName,schemaName,tableName,definition));
 			}

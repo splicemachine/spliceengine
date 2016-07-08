@@ -165,14 +165,16 @@ public abstract class ScanOperation extends SpliceBaseOperation{
      * @throws StandardException
      */
     protected int[] getKeyFormatIds() throws StandardException{
-        int[] keyColumnEncodingOrder=scanInformation.getColumnOrdering();
+        return getKeyFormatIds(scanInformation.getColumnOrdering(),scanInformation.getConglomerate().getFormat_ids());
+    }
+
+    public static int[] getKeyFormatIds(int[] keyColumnEncodingOrder, int[] formatIds) throws StandardException {
         if(keyColumnEncodingOrder==null) return null; //no keys to worry about
-        int[] allFormatIds=scanInformation.getConglomerate().getFormat_ids();
         int[] keyFormatIds=new int[keyColumnEncodingOrder.length];
         for(int i=0, pos=0;i<keyColumnEncodingOrder.length;i++){
             int keyColumnPosition=keyColumnEncodingOrder[i];
             if(keyColumnPosition>=0){
-                keyFormatIds[pos]=allFormatIds[keyColumnPosition];
+                keyFormatIds[pos]=formatIds[keyColumnPosition];
                 pos++;
             }
         }
@@ -183,26 +185,30 @@ public abstract class ScanOperation extends SpliceBaseOperation{
      * @return a map from the accessed (desired) key columns to their position in the decoded row.
      * @throws StandardException
      */
+
+    public static int[] getKeyDecodingMap(FormatableBitSet accessedPKColumns,
+                                             int[] keyColumnEncodingOrder,
+                                             int[] baseColumnMap) throws StandardException {
+
+        int[] kDecoderMap=new int[keyColumnEncodingOrder.length];
+        Arrays.fill(kDecoderMap,-1);
+        for(int i=0;i<keyColumnEncodingOrder.length;i++){
+            int baseKeyColumnPosition=keyColumnEncodingOrder[i]; //the position of the column in the base row
+            if(accessedPKColumns.get(i)){
+                kDecoderMap[i]=baseColumnMap[baseKeyColumnPosition];
+                baseColumnMap[baseKeyColumnPosition]=-1;
+            }else
+                kDecoderMap[i]=-1;
+        }
+        return kDecoderMap;
+    }
+
     protected int[] getKeyDecodingMap() throws StandardException{
-        if(keyDecodingMap==null){
-            FormatableBitSet pkCols=scanInformation.getAccessedPkColumns();
-
-            int[] keyColumnEncodingOrder=scanInformation.getColumnOrdering();
-            int[] baseColumnMap=operationInformation.getBaseColumnMap();
-
-            int[] kDecoderMap=new int[keyColumnEncodingOrder.length];
-            Arrays.fill(kDecoderMap,-1);
-            for(int i=0;i<keyColumnEncodingOrder.length;i++){
-                int baseKeyColumnPosition=keyColumnEncodingOrder[i]; //the position of the column in the base row
-                if(pkCols.get(i)){
-                    kDecoderMap[i]=baseColumnMap[baseKeyColumnPosition];
-                    baseColumnMap[baseKeyColumnPosition]=-1;
-                }else
-                    kDecoderMap[i]=-1;
-            }
-
-
-            keyDecodingMap=kDecoderMap;
+        if(keyDecodingMap==null) {
+            keyDecodingMap = getKeyDecodingMap(
+                    scanInformation.getAccessedPkColumns(),
+                    scanInformation.getColumnOrdering(),
+                    operationInformation.getBaseColumnMap());
         }
         return keyDecodingMap;
     }

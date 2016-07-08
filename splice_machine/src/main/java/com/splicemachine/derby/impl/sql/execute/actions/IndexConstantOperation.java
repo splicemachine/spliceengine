@@ -2,16 +2,15 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.function.KVPairFunction;
-import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.iapi.*;
-import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.Txn;
@@ -25,10 +24,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
+import java.util.List;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
 	private static final Logger LOG = Logger.getLogger(IndexConstantOperation.class);
@@ -100,20 +99,63 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		 */
         Txn childTxn;
         try {
-            childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
+			// This preps the scan to emulate TableScanOperation and use that code path
+			List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
+			List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
+			List<Integer> columnOrdering = tentativeIndex.getTable().getColumnOrderingList();
+			int[] rowDecodingMap = new int[allFormatIds.size()];
+			int[] baseColumnMap = new int[allFormatIds.size()];
+			int counter = 0;
+			int[] indexFormatIds = new int[indexCols.size()];
+			for (int i = 0; i < rowDecodingMap.length;i++) {
+				rowDecodingMap[i] = -1;
+				if (indexCols.contains(i+1)) {
+					baseColumnMap[i] = counter;
+					indexFormatIds[counter] = allFormatIds.get(indexCols.get(indexCols.indexOf(i+1))-1);
+					counter++;
+				} else {
+					baseColumnMap[i] = -1;
+				}
+			}
+			// Determine which keys it scans...
+			FormatableBitSet accessedKeyCols = new FormatableBitSet(columnOrdering.size());
+			for (int i = 0; i < columnOrdering.size(); i++) {
+				if (indexCols.contains(columnOrdering.get(i)+1))
+					accessedKeyCols.set(i);
+			}
+			for (int i = 0; i < baseColumnMap.length;i++) {
+				if (columnOrdering.contains(i))
+					rowDecodingMap[i] = -1;
+				else
+					rowDecodingMap[i] = baseColumnMap[i];
+			}
+
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
             dsp.setup(activation,this.toString(),"admin"); // this replaces StreamUtils.setupSparkJob
-            IndexScanSetBuilder<KVPair> indexBuilder = dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
-            ScanSetBuilder<KVPair> scanSetBuilder = indexBuilder
-				.indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
-                .tableDisplayName(tableName)
-				.transaction(indexTransaction)
-				.demarcationPoint(demarcationPoint)
-				.scan(DDLUtils.createFullScan());
-
+            childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
+			ScanSetBuilder<LocatedRow> builder = dsp.newScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
+			builder.tableDisplayName(tableName)
+			.demarcationPoint(demarcationPoint)
+			.transaction(indexTransaction)
+			.scan(DDLUtils.createFullScan())
+			.keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
+			.execRowTypeFormatIds(indexFormatIds)
+			.reuseRowLocation(false)
+			.operationContext(dsp.createOperationContext((Activation) null))
+			.rowDecodingMap(rowDecodingMap)
+			.keyColumnTypes(ScanOperation.getKeyFormatIds(
+					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+					Ints.toArray(tentativeIndex.getTable().getFormatIdsList())
+					))
+			.keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
+					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+					baseColumnMap
+					))
+			.accessedKeyColumns(accessedKeyCols)
+			.template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds));
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);
-			EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, scanSetBuilder, scope, prefix, tentativeIndex));
+			EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, builder, scope, prefix, tentativeIndex, indexFormatIds));
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

@@ -1,20 +1,28 @@
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.kvpair.KVPair;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by jyuan on 10/16/15.
  */
-public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,KVPair,KVPair> {
+public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow,KVPair> {
     private boolean initialized;
     private DDLMessage.TentativeIndex tentativeIndex;
+    private int[] indexFormatIds;
+    private int[] projectedMapping;
 
     private transient IndexTransformer transformer;
 
@@ -22,15 +30,30 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         super();
     }
 
-    public IndexTransformFunction(DDLMessage.TentativeIndex tentativeIndex) {
+    public IndexTransformFunction(DDLMessage.TentativeIndex tentativeIndex, int[] indexFormatIds) {
         this.tentativeIndex = tentativeIndex;
+        this.indexFormatIds = indexFormatIds;
+        List<Integer> actualList = tentativeIndex.getIndex().getIndexColsToMainColMapList();
+        List<Integer> sortedList = new ArrayList<>(actualList);
+        Collections.sort(sortedList);
+        projectedMapping = new int[sortedList.size()];
+        for (int i =0; i<projectedMapping.length;i++) {
+            projectedMapping[i] = sortedList.indexOf(actualList.get(i));
+        }
+
     }
 
     @Override
-    public KVPair call(KVPair mainKVPair) throws Exception {
+    public KVPair call(LocatedRow locatedRow) throws Exception {
         if (!initialized)
             init();
-        return transformer.translate(mainKVPair);
+        ExecRow misMatchedRow = locatedRow.getRow();
+        ExecRow row = new ValueRow(misMatchedRow.nColumns());
+        for (int i = 0; i<projectedMapping.length;i++) {
+              row.setColumn(i+1,misMatchedRow.getColumn(projectedMapping[i]+1));
+        }
+        locatedRow.setRow(row);
+        return transformer.writeDirectIndex(locatedRow);
     }
 
     private void init() {
@@ -43,6 +66,8 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         byte[] message = tentativeIndex.toByteArray();
         out.writeInt(message.length);
         out.write(message);
+        ArrayUtil.writeIntArray(out,indexFormatIds);
+        ArrayUtil.writeIntArray(out,projectedMapping);
     }
 
     @Override
@@ -50,6 +75,8 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         byte[] message = new byte[in.readInt()];
         in.readFully(message);
         tentativeIndex = DDLMessage.TentativeIndex.parseFrom(message);
+        indexFormatIds= ArrayUtil.readIntArray(in);
+        projectedMapping= ArrayUtil.readIntArray(in);
         initialized = false;
     }
 }
