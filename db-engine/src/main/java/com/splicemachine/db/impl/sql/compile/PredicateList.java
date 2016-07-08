@@ -642,14 +642,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		** for this.
 		*/
 
-        JoinStrategy joinStrategy = optTable.getTrulyTheBestAccessPath().getJoinStrategy();
-        if (joinStrategy == null) {
-            joinStrategy = optTable.getCurrentAccessPath().getJoinStrategy();
-        }
-        AccessPath ap = optTable.getCurrentAccessPath();
-        boolean isHashableJoin = joinStrategy instanceof HashableJoinStrategy;
-
-
 		/* Is a heap scan or a non-matching index scan on a covering index? */
         if(!rowIdScan && ((cd==null) || (!cd.isIndex() && !primaryKey) || (nonMatchingIndexScan && coveringIndexScan))){
 			/*
@@ -668,6 +660,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			** in reverse order after completing the loop.
 			*/
             Predicate[] preds=new Predicate[size];
+            JoinStrategy joinStrategy = optTable.getTrulyTheBestAccessPath().getJoinStrategy();
+            if (joinStrategy == null) {
+                joinStrategy = optTable.getCurrentAccessPath().getJoinStrategy();
+            }
+            AccessPath ap = optTable.getCurrentAccessPath();
+            boolean isHashableJoin = joinStrategy instanceof HashableJoinStrategy;
+
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
                 if(!isHashableJoin && isQualifier(pred,optTable,pushPreds) ||
@@ -742,8 +741,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 /* Remember the useful predicate */
                 usefulPredicates[usefulCount++]=pred;
             }else{
-                if(primaryKey && isQualifier(pred,optTable,pushPreds) ||
-                isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
+                if(primaryKey && isQualifier(pred,optTable,pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){
                         if(optTable.pushOptPredicate(pred)){

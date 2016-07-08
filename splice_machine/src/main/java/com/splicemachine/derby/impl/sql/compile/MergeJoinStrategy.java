@@ -308,16 +308,9 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
     }
 
     private ColumnReference getOuterColumn(BinaryRelationalOperatorNode bron,ColumnReference innerColumn){
-        if (! (bron.getRightOperand() instanceof ColumnReference)) { // Not A Column, return null
-            return null;
-        }
         ColumnReference outerColumn = (ColumnReference)bron.getRightOperand();
-        if(outerColumn==innerColumn) {
-            if (! (bron.getLeftOperand() instanceof ColumnReference)) { // Not A Column, return null
-                return null;
-            }
-            outerColumn = (ColumnReference) bron.getLeftOperand();
-        }
+        if(outerColumn==innerColumn)
+            outerColumn = (ColumnReference)bron.getLeftOperand();
         return outerColumn;
     }
 
