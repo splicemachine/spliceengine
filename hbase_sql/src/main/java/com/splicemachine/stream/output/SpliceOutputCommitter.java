@@ -12,15 +12,16 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by jleach on 5/18/15.
+ *
  */
 public class SpliceOutputCommitter extends OutputCommitter {
     private static Logger LOG = Logger.getLogger(SpliceOutputCommitter.class);
     protected TxnView parentTxn;
     protected byte[] destinationTable;
-    protected Map<TaskAttemptID,TxnView> taskAttemptMap =new HashMap<>();
+    protected volatile Map<TaskAttemptID,TxnView> taskAttemptMap =new ConcurrentHashMap<>();
 
     private SpliceOutputCommitter() {
         super();

@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 
@@ -75,6 +76,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     public boolean next(List<Cell> results) throws IOException{
         if(currentResult!=null){
             results.addAll(currentResult.listCells());
+            Collections.sort(results,SpliceKVComparator.INSTANCE);
             nextResult();
             return true;
         }

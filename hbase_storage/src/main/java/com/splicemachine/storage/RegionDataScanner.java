@@ -27,11 +27,12 @@ public class RegionDataScanner implements DataScanner{
 
     private List<Cell> internalList;
 
-    private final HCell cell = new HCell();
+    //private final HCell cell = new HCell();
 
     private final Function<Cell,DataCell> transform = new Function<Cell, DataCell>(){
         @Override
         public DataCell apply(Cell input){
+            HCell cell = new HCell();
             cell.set(input);
             return cell;
         }
