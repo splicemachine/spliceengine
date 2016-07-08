@@ -78,9 +78,6 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
         else
             return WriteResponse.RETRY;
     }
-    @Override public MetricFactory getMetricFactory() {
-        return Metrics.noOpMetricFactory();
-    }
 
     @Override
     public String toString() {
