@@ -18,6 +18,7 @@ import com.splicemachine.derby.impl.sql.HSqlExceptionFactory;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
+import com.splicemachine.management.Manager;
 import com.splicemachine.olap.AsyncOlapNIOLayer;
 import com.splicemachine.olap.JobExecutor;
 import com.splicemachine.olap.TimedOlapClient;
@@ -65,6 +66,11 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     @Override
     public BackupManager getBackupManager(){
         return BackupManagerLoader.load();
+    }
+
+    @Override
+    public Manager getManager(){
+        return ManagerLoader.load();
     }
 
     @Override

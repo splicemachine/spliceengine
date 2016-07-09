@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.management.DatabaseAdministrator;
+import com.splicemachine.management.Manager;
 import com.splicemachine.uuid.Snowflake;
 
 import java.sql.Connection;
@@ -26,6 +27,8 @@ public interface SqlEnvironment{
     SConfiguration getConfiguration();
 
     BackupManager getBackupManager();
+
+    Manager getManager();
 
     PartitionLoadWatcher getLoadWatcher();
 

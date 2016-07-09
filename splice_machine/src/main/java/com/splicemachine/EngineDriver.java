@@ -13,6 +13,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.management.DatabaseAdministrator;
+import com.splicemachine.management.Manager;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.uuid.Snowflake;
@@ -112,6 +113,10 @@ public class EngineDriver{
 
     public BackupManager backupManager(){
         return environment.getBackupManager();
+    }
+
+    public Manager manager(){
+        return environment.getManager();
     }
 
     public SqlExceptionFactory getExceptionFactory(){

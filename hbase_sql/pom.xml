@@ -91,11 +91,6 @@
             <classifier>test</classifier>
             <scope>test</scope>
         </dependency>
-      <dependency>
-        <groupId>com.splicemachine</groupId>
-        <artifactId>splice_backup</artifactId>
-        <type>jar</type>
-      </dependency>
         <!--Test dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
