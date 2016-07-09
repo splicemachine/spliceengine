@@ -6408,6 +6408,11 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <arg>directoryLocation</arg>
             </msg>
 
+          <msg>
+            <name>XSRSD.S</name>
+            <text>Database backup is disabled. See your Splice Machine representative to enable.</text>
+          </msg>
+
         </family>
 
 

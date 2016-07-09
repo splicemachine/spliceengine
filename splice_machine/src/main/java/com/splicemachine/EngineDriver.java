@@ -1,5 +1,9 @@
 package com.splicemachine;
 
+import java.sql.Connection;
+import java.util.concurrent.TimeUnit;
+
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
@@ -11,12 +15,8 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
-import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
-
-import java.sql.Connection;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Scott Fines
@@ -30,13 +30,13 @@ public class EngineDriver{
     private final ResourcePool<SpliceSequence, SequenceKey> sequencePool;
     private final DatabaseVersion version;
     private final SConfiguration config;
-    private final BackupManager backupManager;
     private final PartitionLoadWatcher loadWatcher;
     private final DataSetProcessorFactory processorFactory;
     private final PropertyManager propertyManager;
     private final SqlExceptionFactory exceptionFactory;
     private final DatabaseAdministrator dbAdmin;
     private final OlapClient olapClient;
+    private final SqlEnvironment environment;
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
@@ -47,11 +47,11 @@ public class EngineDriver{
     }
 
     public EngineDriver(SqlEnvironment environment){
+        this.environment = environment;
         this.uuidGen=environment.getUUIDGenerator();
         this.internalConnection=environment.getInternalConnection();
         this.version=environment.getVersion();
         this.config=environment.getConfiguration();
-        this.backupManager = environment.getBackupManager();
         this.loadWatcher = environment.getLoadWatcher();
         this.processorFactory = environment.getProcessorFactory();
         this.olapClient = environment.getOlapClient();
@@ -111,7 +111,7 @@ public class EngineDriver{
     }
 
     public BackupManager backupManager(){
-        return backupManager;
+        return environment.getBackupManager();
     }
 
     public SqlExceptionFactory getExceptionFactory(){
