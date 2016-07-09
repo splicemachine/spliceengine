@@ -40,16 +40,6 @@ public class HServerLoad implements PartitionServerLoad{
     }
 
     @Override
-    public int compactionQueueLength(){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public int flushQueueLength(){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
     public Set<PartitionLoad> getPartitionLoads(){
         Map<byte[], RegionLoad> regionsLoad=load.getRegionsLoad();
         Set<PartitionLoad> loads = new HashSet<>(regionsLoad.size(),0.9f);

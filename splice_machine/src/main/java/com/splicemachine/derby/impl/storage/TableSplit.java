@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Splitter;
 
@@ -243,7 +244,7 @@ public class TableSplit{
                 if(rs.next()){
                     return rs.getLong(1);
                 }else
-                    throw new SQLException(String.format("No Conglomerate id found for table [%s] in schema [%s] ",tableName,schemaName.toUpperCase()));
+                    throw PublicAPI.wrapStandardException(ErrorState.TABLE_NOT_FOUND.newException(schemaName + "." + tableName));
             }
         }
     }

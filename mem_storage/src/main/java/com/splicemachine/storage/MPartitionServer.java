@@ -36,9 +36,6 @@ public class MPartitionServer implements PartitionServer{
             @Override public long totalWriteRequests(){ return 0; }
             @Override public long totalReadRequests(){ return 0; }
             @Override public long totalRequests(){ return 0; }
-            @Override public int compactionQueueLength(){ return -1; }
-            @Override public int flushQueueLength(){ return -1; }
-
             @Override
             public Set<PartitionLoad> getPartitionLoads(){
                 return Collections.emptySet();

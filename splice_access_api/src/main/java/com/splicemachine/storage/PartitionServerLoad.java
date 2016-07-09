@@ -16,23 +16,5 @@ public interface PartitionServerLoad{
 
     long totalRequests();
 
-    /**
-     * Optional method.
-     *
-     * @return the size of the compaction queue,
-     * or {@code -1} if compactions are not performed in
-     * this architecture
-     */
-    int compactionQueueLength();
-
-    /**
-     * Optional method.
-     *
-     * @return the size of the flush queue,
-     * or {@code -1} if flushes are not performed in
-     * this architecture
-     */
-    int flushQueueLength();
-
     Set<PartitionLoad> getPartitionLoads();
 }

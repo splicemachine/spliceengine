@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +25,7 @@ import com.splicemachine.test.SlowTest;
  * @author Jeff Cunningham
  *         Date: 12/11/13
  */
-//@Category(SerialTest.class)
-@Ignore("-sf- Needs to be reimplemented in an architecture-independent way, but shouldn't interfere with other work")
-public class SpliceAdminIT {
+public class SpliceAdminIT extends SpliceUnitTest{
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
@@ -214,16 +213,7 @@ public class SpliceAdminIT {
     }
 
     @Test
-    public void testGetWritePipelineInfo() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()", rs);
-        System.out.println(fr.toString());
-        Assert.assertTrue(fr.size() >= 1);
-        DbUtils.closeQuietly(rs);
-    }
-
-    @Test
+    @Ignore("DB-5499")
     public void testGetWriteIntakeInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()");
         ResultSet rs = cs.executeQuery();
@@ -250,49 +240,6 @@ public class SpliceAdminIT {
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
         System.out.println(fr.toString());
         Assert.assertTrue(fr.size()>=1);
-        DbUtils.closeQuietly(rs);
-    }
-
-    @Test
-    public void testGetWritePool() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()", rs);
-        System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
-        DbUtils.closeQuietly(rs);
-    }
-
-    @Test
-    public void testSetWritePool() throws Exception {
-        int origMax = -1;
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()");
-        ResultSet rs = cs.executeQuery();
-        while (rs.next()) {
-            origMax = rs.getInt(2);
-        }
-        Assert.assertNotEquals(-1, origMax);
-
-        try {
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_WRITE_POOL(?)");
-            cs.setInt(1, origMax+1);
-            cs.execute();
-
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()");
-            rs = cs.executeQuery();
-            int currentMax = -1;
-            while (rs.next()) {
-                currentMax = rs.getInt(2);
-            }
-            Assert.assertNotEquals(-1,currentMax);
-            Assert.assertEquals(origMax+1,currentMax);
-        } finally {
-            // reset to orig value
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_WRITE_POOL(?)");
-            cs.setInt(1, origMax);
-            cs.execute();
-        }
-
         DbUtils.closeQuietly(rs);
     }
 
@@ -392,6 +339,17 @@ public class SpliceAdminIT {
             methodWatcher.executeUpdate(String.format("DROP SCHEMA %s RESTRICT", schemaName));
         } catch (Exception e) {
             // Allow error
+        }
+    }
+
+
+    @Test
+    public void testSplitTableTableDoesNotExist() throws Exception {
+        try {
+            CallableStatement cs = methodWatcher.prepareCall(format("call syscs_util.SYSCS_SPLIT_TABLE('%s','%s')", CLASS_NAME, "IAMNOTHERE"));
+            cs.executeUpdate();
+        } catch (SQLException e) {
+            Assert.assertEquals("Message Mismatch","Table 'SPLICEADMINIT.IAMNOTHERE' does not exist.  ",e.getMessage());
         }
     }
 
