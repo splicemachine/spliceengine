@@ -46,11 +46,10 @@ while getopts "h:p:u:s:f:" opt; do
 done
 
 # set hbase lib dir here to keep it in one place.
-HBASE_VERSION="$(cat /opt/mapr/hbase/hbaseversion)"
-HBASE_LIB_DIR="/opt/mapr/hbase/hbase-${HBASE_VERSION}/lib"
+SPLICE_LIB_DIR="/opt/splice/default/lib"
 
 # set up classpath to point to system HBase jars
-export CLASSPATH="${HBASE_LIB_DIR}/*"
+export CLASSPATH="${SPLICE_LIB_DIR}/*"
 
 GEN_SYS_ARGS="-Djava.awt.headless=true"
 
