@@ -176,11 +176,11 @@ create_hbase_root_dir()
 }
 
 set_spark_dfs_perms() {
-	sudo -su hdfs hadoop fs -mkdir -p /user/spark/applicationHistory
-	sudo -su hdfs hadoop fs -chmod 1777 /user /user/spark/applicationHistory
-	sudo -su hdfs hadoop fs -chmod 777 /user/spark
+	sudo -su hdfs hadoop fs -mkdir -p /user/splice/history
+	sudo -su hdfs hadoop fs -chmod 1777 /user /user/splice/history
+	sudo -su hdfs hadoop fs -chmod 777 /user/splice
 	id spark >/dev/null && {
-		sudo -su hdfs hadoop fs -chown spark /user/spark /user/spark/applicationHistory
+		sudo -su hdfs hadoop fs -chown spark /user/splice /user/splice/history
 	}
 }
 

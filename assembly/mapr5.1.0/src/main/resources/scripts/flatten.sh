@@ -234,6 +234,15 @@ create_hbase_root_dir()
     echo
 }
 
+set_spark_dfs_perms() {
+	sudo -su hdfs hadoop fs -mkdir -p /user/splice/history
+	sudo -su hdfs hadoop fs -chmod 1777 /user /user/splice/history
+	sudo -su hdfs hadoop fs -chmod 777 /user/splice
+	id spark >/dev/null && {
+		sudo -su hdfs hadoop fs -chown spark /user/splice /user/splice/history
+	}
+}
+
 check_hbase_ready()
 {
 	for host in ${hbregionserver_hosts[@]} ; do
