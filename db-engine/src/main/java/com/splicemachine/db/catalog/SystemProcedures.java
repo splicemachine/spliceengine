@@ -1201,27 +1201,19 @@ public class SystemProcedures  {
 		throws SQLException {
 
 		try {
-            
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-
 			String[] st = IdUtil.parseMultiPartSQLIdentifier(jar.trim());
-
 			String schemaName;
 			String sqlName;
-            
-            if (st.length == 1)
-            {
+            if (st.length == 1) {
 				schemaName = lcc.getCurrentSchemaName();
 				sqlName = st[0];
             }
-            else
-            {
+            else {
                 schemaName = st[0];
 				sqlName = st[1];
 			}
-
 			checkJarSQLName(sqlName);
-            
             JarUtil.install(lcc, schemaName, sqlName, url);
 		} 
 		catch (StandardException se) {
