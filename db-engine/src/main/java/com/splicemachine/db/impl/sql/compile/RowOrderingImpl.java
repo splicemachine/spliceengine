@@ -196,6 +196,8 @@ public class RowOrderingImpl implements RowOrdering{
             if(co==currentColumnOrdering)
                 dest.rememberCurrentColumnOrdering(i);
         }
+        dest.unorderedOptimizables.clear();
+        dest.unorderedOptimizables.addAll(unorderedOptimizables);
     }
 
     @Override

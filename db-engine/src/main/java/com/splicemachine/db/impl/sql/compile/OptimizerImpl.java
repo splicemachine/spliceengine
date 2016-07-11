@@ -64,59 +64,59 @@ public class OptimizerImpl implements Optimizer{
      * we jump, we walk the high part, then fall when we reach the peak, finally we
      * walk the low part til where we jumped to.
      */
-    protected static final int NO_JUMP=0;
-    protected static final int READY_TO_JUMP=1;
-    protected static final int JUMPING=2;
-    protected static final int WALK_HIGH=3;
-    protected static final int WALK_LOW=4;
+    private static final int NO_JUMP=0;
+    private static final int READY_TO_JUMP=1;
+    private static final int JUMPING=2;
+    private static final int WALK_HIGH=3;
+    private static final int WALK_LOW=4;
     protected DataDictionary dDictionary;
     /* The number of tables in the query as a whole.  (Size of bit maps.) */
     protected int numTablesInQuery;
     /* The number of optimizables in the list to optimize */
-    protected int numOptimizables;
+    private int numOptimizables;
     /* Bit map of tables that have already been assigned to slots.
      * Useful for pushing join clauses as slots are assigned.
      */
-    protected JBitSet assignedTableMap;
+    JBitSet assignedTableMap;
     protected OptimizableList optimizableList;
     protected OptimizablePredicateList predicateList;
-    protected JBitSet nonCorrelatedTableMap;
-    protected int[] proposedJoinOrder;
-    protected int[] bestJoinOrder;
-    protected int joinPosition;
-    protected boolean desiredJoinOrderFound;
-    protected int permuteState;
-    protected int[] firstLookOrder;
+    private JBitSet nonCorrelatedTableMap;
+    int[] proposedJoinOrder;
+    int[] bestJoinOrder;
+    int joinPosition;
+    private boolean desiredJoinOrderFound;
+    private int permuteState;
+    private int[] firstLookOrder;
 
     protected boolean ruleBasedOptimization;
 
-    protected CostEstimate outermostCostEstimate;
-    protected CostEstimate currentCost;
-    protected CostEstimate currentSortAvoidanceCost;
-    protected CostEstimate bestCost;
+    private CostEstimate outermostCostEstimate;
+    CostEstimate currentCost;
+    CostEstimate currentSortAvoidanceCost;
+    CostEstimate bestCost;
 
-    protected long timeOptimizationStarted;
-    protected boolean timeExceeded;
+    long timeOptimizationStarted;
+    boolean timeExceeded;
     protected boolean noTimeout;
     protected boolean useStatistics;
-    protected int tableLockThreshold;
+    private int tableLockThreshold;
 
-    protected JoinStrategy[] joinStrategies;
+    private JoinStrategy[] joinStrategies;
 
-    protected RequiredRowOrdering requiredRowOrdering;
+    RequiredRowOrdering requiredRowOrdering;
 
-    protected boolean foundABestPlan;
+    private boolean foundABestPlan;
 
-    protected CostEstimate sortCost;
+    CostEstimate sortCost;
 
-    protected RowOrdering currentRowOrdering;
-    protected RowOrdering bestRowOrdering;
+    private RowOrdering currentRowOrdering;
+    private RowOrdering bestRowOrdering;
 
 //    protected boolean conglomerate_OneRowResultSet;
 
     // optimizer trace
     protected boolean optimizerTrace;
-    protected boolean optimizerTraceHtml;
+    boolean optimizerTraceHtml;
 
     // max memory use per table
     protected int maxMemoryPerTable;
@@ -127,7 +127,7 @@ public class OptimizerImpl implements Optimizer{
     // best plan loaded so we don't need to do the extra work.  But if
     // the most recent join order was _not_ the best, then this flag tells
     // us that we need to reload the best plan when pulling.
-    protected boolean reloadBestPlan;
+    private boolean reloadBestPlan;
 
     // Set of optimizer->bestJoinOrder mappings used to keep track of which
     // of this OptimizerImpl's "bestJoinOrder"s was the best with respect to a
@@ -135,15 +135,15 @@ public class OptimizerImpl implements Optimizer{
     // of Optimizer.  Each outer query could potentially have a different
     // idea of what this OptimizerImpl's "best join order" is, so we have
     // to keep track of them all.
-    protected Map<Object,int[]> savedJoinOrders;
+    private Map<Object,int[]> savedJoinOrders;
 
     // Value used to figure out when/if we've timed out for this
     // Optimizable.
-    protected double timeLimit;
+    double timeLimit;
 
     // Cost estimate for the final "best join order" that we chose--i.e.
     // the one that's actually going to be generated.
-    protected CostEstimate finalCostEstimate;
+    private CostEstimate finalCostEstimate;
 
     /* Status variables used for "jumping" to previous best join
      * order when possible.  In particular, this helps when this
@@ -160,8 +160,8 @@ public class OptimizerImpl implements Optimizer{
      * for which the best join order is likely to be same for
      * consecutive rounds.
      */
-    protected boolean usingPredsPushedFromAbove;
-    protected boolean bestJoinOrderUsedPredsFromAbove;
+    private boolean usingPredsPushedFromAbove;
+    private boolean bestJoinOrderUsedPredsFromAbove;
 
     private static final int NANOS_TO_MILLIS = 1000000;
 
@@ -243,7 +243,7 @@ public class OptimizerImpl implements Optimizer{
 
     @Override
     public void prepForNextRound(){
-        tracer().trace(OptimizerFlag.NEXT_ROUND,0,0,0.0,null);
+        tracer().trace(OptimizerFlag.NEXT_ROUND,0,0,0.0,(Object)null);
 
         // We initialize reloadBestPlan to false so that if we end up
         // pulling an Optimizable before we find a best join order
@@ -277,7 +277,7 @@ public class OptimizerImpl implements Optimizer{
 		 * should be reset together
 		 */
         bestCost=getNewCostEstimate(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
-        timeLimit = Double.MAX_VALUE;;
+        timeLimit = Double.MAX_VALUE;
 
 		/* If we have predicates that were pushed down to this OptimizerImpl
 		 * from an outer query, then we reset the timeout state to prepare for
@@ -333,7 +333,7 @@ public class OptimizerImpl implements Optimizer{
 		/* Don't get any permutations if there is nothing to optimize */
         OptimizerTrace tracer = tracer();
         if(numOptimizables<1){
-            tracer.trace(OptimizerFlag.NO_TABLES,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.NO_TABLES,0,0,0.0,(Object)null);
 
             endOfRoundCleanup();
             return false;
@@ -485,7 +485,7 @@ public class OptimizerImpl implements Optimizer{
 			 * order are taken.
 			 */
             if(joinPosition<(numOptimizables-1)){
-                tracer.trace(OptimizerFlag.SHORT_CIRCUITING,0,0,0.0,null);
+                tracer.trace(OptimizerFlag.SHORT_CIRCUITING,0,0,0.0,(Object)null);
             }
 
             // If we short-circuited the current join order then we need
@@ -692,7 +692,7 @@ public class OptimizerImpl implements Optimizer{
 					 */
                     if((nextOptimizable<numOptimizables) && !joinOrderMeetsDependencies(nextOptimizable)){
                         if(optimizerTrace){
-                            tracer.trace(OptimizerFlag.SKIPPING_JOIN_ORDER,nextOptimizable,0,0.0,null);
+                            tracer.trace(OptimizerFlag.SKIPPING_JOIN_ORDER,nextOptimizable,0,0.0,(Object)null);
                         }
 
 						/*
@@ -700,7 +700,7 @@ public class OptimizerImpl implements Optimizer{
 						*/
                         if(!optimizableList.optimizeJoinOrder()){
                             if(optimizerTrace){
-                                tracer.trace(OptimizerFlag.ILLEGAL_USER_JOIN_ORDER,0,0,0.0,null);
+                                tracer.trace(OptimizerFlag.ILLEGAL_USER_JOIN_ORDER,0,0,0.0,(Object)null);
                             }
                             throw StandardException.newException(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER);
                         }
@@ -720,14 +720,14 @@ public class OptimizerImpl implements Optimizer{
                     // Verify that the user specified a legal join order
                     if(!optimizableList.legalJoinOrder(numTablesInQuery)){
                         if(optimizerTrace){
-                            tracer.trace(OptimizerFlag.ILLEGAL_USER_JOIN_ORDER,0,0,0.0,null);
+                            tracer.trace(OptimizerFlag.ILLEGAL_USER_JOIN_ORDER,0,0,0.0,(Object)null);
                         }
 
                         throw StandardException.newException(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER);
                     }
 
                     if(optimizerTrace){
-                        tracer.trace(OptimizerFlag.USER_JOIN_ORDER_OPTIMIZED,0,0,0.0,null);
+                        tracer.trace(OptimizerFlag.USER_JOIN_ORDER_OPTIMIZED,0,0,0.0,(Object)null);
                     }
 
                     desiredJoinOrderFound=true;
@@ -831,7 +831,7 @@ public class OptimizerImpl implements Optimizer{
 			 */
             optimizableList.getOptimizable(nextOptimizable).getBestAccessPath().setCostEstimate(null);
 
-            tracer.trace(OptimizerFlag.CONSIDERING_JOIN_ORDER,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.CONSIDERING_JOIN_ORDER,0,0,0.0);
 
             Optimizable nextOpt= optimizableList.getOptimizable(nextOptimizable);
 
@@ -891,15 +891,15 @@ public class OptimizerImpl implements Optimizer{
             }
 
             if(optimizerTrace){
-                tracer.trace(OptimizerFlag.TOTAL_COST_NON_SA_PLAN,0,0,0.0,null);
+                tracer.trace(OptimizerFlag.TOTAL_COST_NON_SA_PLAN,0,0,0.0);
                 if(curOpt.considerSortAvoidancePath()){
-                    tracer.trace(OptimizerFlag.TOTAL_COST_SA_PLAN,0,0,0.0,null);
+                    tracer.trace(OptimizerFlag.TOTAL_COST_SA_PLAN,0,0,0.0);
                 }
             }
 
 			/* Do we have a complete join order? */
             if(joinPosition==(numOptimizables-1)){
-                tracer.trace(OptimizerFlag.COMPLETE_JOIN_ORDER,0,0,0.0,null);
+                tracer.trace(OptimizerFlag.COMPLETE_JOIN_ORDER,0,0,0.0);
 
 				/* Add cost of sorting to non-sort-avoidance cost */
                 if(requiredRowOrdering!=null){
@@ -929,8 +929,8 @@ public class OptimizerImpl implements Optimizer{
                         requiredRowOrdering.estimateCost(this,bestRowOrdering,currentCost);
                     }
 
-                    tracer.trace(OptimizerFlag.COST_OF_SORTING,0,0,0.0,null);
-                    tracer.trace(OptimizerFlag.TOTAL_COST_WITH_SORTING,0,0,0.0,null);
+                    tracer.trace(OptimizerFlag.COST_OF_SORTING,0,0,0.0);
+                    tracer.trace(OptimizerFlag.TOTAL_COST_WITH_SORTING,0,0,0.0);
                 }
 
 				/*
@@ -972,7 +972,7 @@ public class OptimizerImpl implements Optimizer{
 				*/
                 if(requiredRowOrdering!=null && curOpt.considerSortAvoidancePath()){
                     if(requiredRowOrdering.sortRequired(bestRowOrdering,optimizableList)==RequiredRowOrdering.NOTHING_REQUIRED){
-                        tracer.trace(OptimizerFlag.CURRENT_PLAN_IS_SA_PLAN,0,0,0.0,null);
+                        tracer.trace(OptimizerFlag.CURRENT_PLAN_IS_SA_PLAN,0,0,0.0);
 
                         if((currentSortAvoidanceCost.compare(bestCost)<=0) || bestCost.isUninitialized()){
                             rememberBestCost(currentSortAvoidanceCost, Optimizer.SORT_AVOIDANCE_PLAN);
@@ -982,7 +982,7 @@ public class OptimizerImpl implements Optimizer{
             }
         }
 
-        tracer.trace(OptimizerFlag.HAS_REMAINING_PERMUTATIONS,(hasNextPermutation?1:0),0,0.0,null);
+        tracer.trace(OptimizerFlag.HAS_REMAINING_PERMUTATIONS,(hasNextPermutation?1:0),0,0.0);
         return hasNextPermutation;
     }
 
@@ -1086,7 +1086,7 @@ public class OptimizerImpl implements Optimizer{
         // this class.
         optimizable.getCurrentAccessPath().setCostEstimate(estimatedCost);
 
-        double rowCount=estimatedCost.rowCount()/outerCost.rowCount();
+//        double rowCount=estimatedCost.rowCount()/outerCost.rowCount();
 
 		/* Pick the cheapest cost for this particular optimizable.
 		 * NOTE: Originally, the code only chose the new access path if
@@ -1149,7 +1149,7 @@ public class OptimizerImpl implements Optimizer{
     public void verifyBestPlanFound() throws StandardException{
         if(!foundABestPlan){
             if(optimizerTrace){
-                tracer().trace(OptimizerFlag.NO_BEST_PLAN,0,0,0.0,null);
+                tracer().trace(OptimizerFlag.NO_BEST_PLAN,0,0,0.0);
             }
 
             throw StandardException.newException(SQLState.LANG_NO_BEST_PLAN_FOUND);
@@ -1160,7 +1160,7 @@ public class OptimizerImpl implements Optimizer{
     public void modifyAccessPaths() throws StandardException{
         OptimizerTrace tracer = tracer();
         if(optimizerTrace){
-            tracer.trace(OptimizerFlag.MODIFYING_ACCESS_PATHS,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.MODIFYING_ACCESS_PATHS,0,0,0.0);
         }
 
         verifyBestPlanFound();
@@ -1245,7 +1245,7 @@ public class OptimizerImpl implements Optimizer{
     /**
      * Set whether it is participating in an outer join.
      *
-     * @param isOuterJoin
+     * @param isOuterJoin if true, this is an outer join
      */
     @Override public void setIsOuterJoin(boolean isOuterJoin){ outermostCostEstimate.setOuterJoin(isOuterJoin); }
 
@@ -1466,7 +1466,7 @@ public class OptimizerImpl implements Optimizer{
         return optimizableList;
     }
 
-    protected void addCost(CostEstimate addend,CostEstimate destCost){
+    private void addCost(CostEstimate addend,CostEstimate destCost){
         destCost.setRemoteCost(addend.remoteCost());
         destCost.setLocalCost(destCost.localCost()+addend.localCost());
         destCost.setRowCount(addend.rowCount());
@@ -1477,11 +1477,11 @@ public class OptimizerImpl implements Optimizer{
         destCost.setCloseCost(addend.getCloseCost());
     }
 
-    protected RowOrdering newRowOrdering(){
+    private RowOrdering newRowOrdering(){
         return new RowOrderingImpl();
     }
 
-    protected void rewindJoinOrder() throws StandardException{
+    private void rewindJoinOrder() throws StandardException{
         for(;;joinPosition--){
             Optimizable pullMe= optimizableList.getOptimizable(proposedJoinOrder[joinPosition]);
             pullMe.pullOptPredicates(predicateList);
@@ -1511,7 +1511,7 @@ public class OptimizerImpl implements Optimizer{
     **
     ** @exception StandardException		Thrown on error
     */
-    void pushPredicates(Optimizable curTable,JBitSet outerTables) throws StandardException{
+    private void pushPredicates(Optimizable curTable,JBitSet outerTables) throws StandardException{
 		/*
 		** Push optimizable clauses to current position in join order.
 		**
@@ -1671,7 +1671,7 @@ public class OptimizerImpl implements Optimizer{
         }
     }
 
-    protected boolean updatePlanMaps(Optimizable curOpt,AccessPath bestAccessPath,AccessPath currentAccessPath) throws StandardException{
+    private boolean updatePlanMaps(Optimizable curOpt,AccessPath bestAccessPath,AccessPath currentAccessPath) throws StandardException{
         boolean retval;// RESOLVE: Should we step through the different join strategies here?
 
 		/* Returns true until all access paths are exhausted */
@@ -1727,7 +1727,7 @@ public class OptimizerImpl implements Optimizer{
      * can end up consuming a huge amount of memory for deeply-
      * nested queries, which can lead to OOM errors.  DERBY-1315.
      */
-    protected void endOfRoundCleanup() throws StandardException{
+    private void endOfRoundCleanup() throws StandardException{
         for(int i=0;i<numOptimizables;i++){
             optimizableList.getOptimizable(i).updateBestPlanMap(FromTable.REMOVE_PLAN,this);
         }
@@ -1747,7 +1747,7 @@ public class OptimizerImpl implements Optimizer{
      * to recover the "1500" that we lost in the process of adding and
      * subtracting 3.14E40.
      */
-    protected double recoverCostFromProposedJoinOrder(boolean sortAvoidance) throws StandardException{
+    private double recoverCostFromProposedJoinOrder(boolean sortAvoidance) throws StandardException{
         double recoveredCost=0.0d;
         for(int i=0;i<joinPosition;i++){
             if(sortAvoidance){
@@ -1771,7 +1771,7 @@ public class OptimizerImpl implements Optimizer{
      * check to see if those dependencies are satisified by the table
      * map representing the current join order.
      */
-    protected boolean joinOrderMeetsDependencies(int optNumber) throws StandardException{
+    private boolean joinOrderMeetsDependencies(int optNumber) throws StandardException{
         Optimizable nextOpt=optimizableList.getOptimizable(optNumber);
         return nextOpt.legalJoinOrder(assignedTableMap);
     }
@@ -1781,7 +1781,7 @@ public class OptimizerImpl implements Optimizer{
      * join order from the join order, and update all corresponding
      * state accordingly.
      */
-    protected void pullOptimizableFromJoinOrder() throws StandardException{
+    private void pullOptimizableFromJoinOrder() throws StandardException{
         Optimizable pullMe= optimizableList.getOptimizable(proposedJoinOrder[joinPosition]);
 
 		/*
@@ -2034,14 +2034,14 @@ public class OptimizerImpl implements Optimizer{
      *
      * @throws StandardException Thrown on error
      */
-    protected void rememberBestCost(CostEstimate currentCost,int planType) throws StandardException{
+    private void rememberBestCost(CostEstimate currentCost,int planType) throws StandardException{
         foundABestPlan=true;
 
         OptimizerTrace tracer = tracer();
         if(optimizerTrace){
-            tracer.trace(OptimizerFlag.CHEAPEST_PLAN_SO_FAR,0,0,0.0,null);
-            tracer.trace(OptimizerFlag.PLAN_TYPE,planType,0,0.0,null);
-            tracer.trace(OptimizerFlag.COST_OF_CHEAPEST_PLAN_SO_FAR,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.CHEAPEST_PLAN_SO_FAR,0,0,0.0);
+            tracer.trace(OptimizerFlag.PLAN_TYPE,planType,0,0.0);
+            tracer.trace(OptimizerFlag.COST_OF_CHEAPEST_PLAN_SO_FAR,0,0,0.0);
         }
 
 		/* Remember the current cost as best */
@@ -2094,9 +2094,9 @@ public class OptimizerImpl implements Optimizer{
 
         if(optimizerTrace){
             if(requiredRowOrdering!=null){
-                tracer.trace(OptimizerFlag.SORT_NEEDED_FOR_ORDERING,planType,0,0.0,null);
+                tracer.trace(OptimizerFlag.SORT_NEEDED_FOR_ORDERING,planType,0,0.0);
             }
-            tracer.trace(OptimizerFlag.REMEMBERING_BEST_JOIN_ORDER,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.REMEMBERING_BEST_JOIN_ORDER,0,0,0.0);
         }
     }
 
@@ -2232,7 +2232,7 @@ public class OptimizerImpl implements Optimizer{
      * the cost of using the given ConglomerateDescriptor with the cost
      * of using the best ConglomerateDescriptor so far.
      */
-    protected void costBasedCostOptimizable(Optimizable optimizable,
+    private void costBasedCostOptimizable(Optimizable optimizable,
                                           ConglomerateDescriptor cd,
                                           OptimizablePredicateList predList,
                                           CostEstimate outerCost) throws StandardException{
@@ -2359,11 +2359,11 @@ public class OptimizerImpl implements Optimizer{
         if (searchDuration > timeLimit && searchDuration > getMinTimeout()) {
             // We've exceeded the best time seen so far to process a permutation
             timeExceeded = true;
-            tracer().trace(OptimizerFlag.BEST_TIME_EXCEEDED, 0, 0, searchDuration, null);
+            tracer().trace(OptimizerFlag.BEST_TIME_EXCEEDED, 0, 0, searchDuration);
         } else if (searchDuration > getMaxTimeout()) {
             // We've exceeded max time allowed to process a permutation
             timeExceeded = true;
-            tracer().trace(OptimizerFlag.MAX_TIME_EXCEEDED, 0, 0, searchDuration, null);
+            tracer().trace(OptimizerFlag.MAX_TIME_EXCEEDED, 0, 0, searchDuration);
         }
         return timeExceeded;
     }

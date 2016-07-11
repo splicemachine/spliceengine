@@ -1,15 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.sparkproject.guava.collect.Lists;
+
 import java.sql.ResultSet;
 import java.util.Collection;
+
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
@@ -46,36 +49,36 @@ public class JoinOperationIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        TestConnection connection=spliceClassWatcher.getOrCreateConnection();
+        new TableCreator(connection)
                 .withCreate("create table FOO (col1 int primary key, col2 int)")
                 .withInsert("insert into FOO values(?,?)")
                 .withRows(rows(row(1, 1), row(2, 1), row(3, 1), row(4, 1), row(5, 1))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table FOO2 (col1 int primary key, col2 int)")
                 .withInsert("insert into FOO2 values(?,?)")
                 .withRows(rows(row(1, 5), row(3, 7), row(5, 9))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table a (v varchar(12))")
                 .withInsert("insert into a values(?)")
                 .withRows(rows(row("1"), row("2"), row("3 "), row("4 "))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table b (v varchar(12))")
                 .withInsert("insert into b values(?)")
                 .withRows(rows(row("1"), row("2 "), row("3"), row("4 "))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table a1 (i int, primary key(i))")
                 .withInsert("insert into a1 values(?)")
                 .withRows(rows(row(1), row(2), row(3), row(4))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table b1 (i int)")
                 .withInsert("insert into b1 values(?)")
                 .withRows(rows(row(3), row(4), row(1), row(2))).create();
-
     }
 
     @Test
@@ -167,12 +170,13 @@ public class JoinOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-5058")
     public void testJoinSortAvoidance() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(String.format(
-                "select * from --Splice-properties joinOrder=FIXED\n" +
-                        " b1, a1 --Splice-properties joinStrategy=%s\n" +
-                        "where a1.i=b1.i order by a1.i", this.joinStrategy
+                "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                        " b1" +
+                        ", a1 --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                        "where a1.i=b1.i " +
+                        "order by a1.i", this.joinStrategy
         ));
         int i = 0;
         while (rs.next()) {
