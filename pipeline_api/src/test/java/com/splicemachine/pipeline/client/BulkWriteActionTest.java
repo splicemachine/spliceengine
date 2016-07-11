@@ -234,7 +234,7 @@ public class BulkWriteActionTest{
 				pf,
 				clock);
 
-		bwa.call();
+        WriteStats ws = bwa.call();
         //DB-5032
         //Assert.assertTrue("Waited for the incorrect amount of time!",clock.currentTimeMillis()<10*10);
 		Assert.assertEquals("Incorrect number of calls!",2,writer.callCount);
@@ -248,7 +248,7 @@ public class BulkWriteActionTest{
 				Assert.assertTrue("Missing write!",allData.contains(mutation));
 			}
 		}
-        Assert.assertEquals("Unexpected number of retires.", 1, ((TestRecordingContext)config.getRecordingContext()).retries);
+        Assert.assertEquals("Unexpected number of retries.", 1, ws.getRetryCounter());
     }
 
     @Test
@@ -308,7 +308,7 @@ public class BulkWriteActionTest{
                 pf,
                 clock);
 
-        bwa.call();
+        WriteStats ws = bwa.call();
         //DB-5032
 //        Assert.assertTrue("Waited for the incorrect amount of time!",clock.currentTimeMillis()<10*10);
         Assert.assertEquals("Incorrect number of calls!",2,writer.callCount);
@@ -322,7 +322,7 @@ public class BulkWriteActionTest{
                 Assert.assertTrue("Missing write!",allData.contains(mutation));
             }
         }
-        Assert.assertEquals("Unexpected number of retires.", 2, ((TestRecordingContext)config.getRecordingContext()).retries);
+        Assert.assertEquals("Unexpected number of retries.", 1, ws.getRetryCounter());
     }
 
     @Test
@@ -382,7 +382,7 @@ public class BulkWriteActionTest{
                 pf,
                 clock);
 
-        bwa.call();
+        WriteStats ws = bwa.call();
 
         //DB-5032
         //Assert.assertTrue("Waited for the incorrect amount of time!",clock.currentTimeMillis()<10*10);
@@ -397,7 +397,7 @@ public class BulkWriteActionTest{
                 Assert.assertTrue("Missing write!",allData.contains(mutation));
             }
         }
-        Assert.assertEquals("Unexpected number of retires.", 1, ((TestRecordingContext)config.getRecordingContext()).retries);
+        Assert.assertEquals("Unexpected number of retries.", 1, ws.getRetryCounter());
     }
 
     /* ****************************************************************************************************************/
@@ -604,6 +604,7 @@ public class BulkWriteActionTest{
 
         @Override
         public void recordRetry(long w) {
+            retries+=w;
 
         }
 
