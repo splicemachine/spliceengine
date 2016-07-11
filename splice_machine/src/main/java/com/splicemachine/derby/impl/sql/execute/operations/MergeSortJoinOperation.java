@@ -209,20 +209,20 @@ public class MergeSortJoinOperation extends JoinOperation {
         if (isOuterJoin) { // Outer Join
             return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right")
                         .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
-                        .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
+                        .map(new SetCurrentLocatedRowFunction<>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet, "Cogroup Left and Right").values()
+                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right").values()
                         .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
-                    return leftDataSet.<LocatedRow>subtractByKey(rightDataSet)
+                    return leftDataSet.subtractByKey(rightDataSet)
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
                 if (isOneRowRightSide()) {
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet, "Cogroup Left and Right").values()
+                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right").values()
                         .flatMap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 }
                 if (restriction !=null) { // with restriction

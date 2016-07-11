@@ -836,7 +836,7 @@ public abstract class LazyDataValueDescriptor extends NullValueData implements D
 
         DataValueDescriptor oDvd = (DataValueDescriptor)o;
 
-        if(oDvd.getTypeFormatId()!=getTypeFormatId()) return false;
+//        if(oDvd.getTypeFormatId()!=getTypeFormatId()) return false;
 
         if(isNull()){
             return oDvd.isNull();

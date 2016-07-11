@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
+import com.splicemachine.utils.Pair;
 import org.sparkproject.guava.collect.ImmutableMap;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
@@ -11,11 +12,9 @@ import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.splicemachine.homeless.TestUtils.o;
 
@@ -26,53 +25,57 @@ public class OuterJoinIT extends SpliceUnitTest {
     public static final String CLASS_NAME = OuterJoinIT.class.getSimpleName().toUpperCase()+ "_2"; 
     public static final String TABLE_NAME_1 = "A";
     public static final String TABLE_NAME_2 = "CC";
-    public static final String TABLE_NAME_3 = "DD";
-    public static final String TABLE_NAME_4 = "D";
-    public static final String TABLE_NAME_5 = "E";
-    public static final String TABLE_NAME_6 = "F";
-    public static final String TABLE_NAME_7 = "G";
-    public static final String TABLE_NAME_8 = "t1";
-    public static final String TABLE_NAME_9 = "t2";
-    public static final String TABLE_NAME_10 = "dupes";
-    public static final String TABLE_NAME_11 = "t3";
-    public static final String TABLE_NAME_12 = "t4";
+    private static final String TABLE_NAME_3 = "DD";
+    private static final String TABLE_NAME_4 = "D";
+    private static final String TABLE_NAME_5 = "E";
+    private static final String TABLE_NAME_6 = "F";
+    private static final String TABLE_NAME_7 = "G";
+    private static final String TABLE_NAME_8 = "t1";
+    private static final String TABLE_NAME_9 = "t2";
+    private static final String TABLE_NAME_10 = "dupes";
+    private static final String TABLE_NAME_11 = "t3";
+    private static final String TABLE_NAME_12 = "t4";
 
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1, CLASS_NAME, "(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
-    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2, CLASS_NAME, "(si varchar(40), sa varchar(40))");
-    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3, CLASS_NAME, "(si varchar(40), sa varchar(40))");
-    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4, CLASS_NAME, "(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
-    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5, CLASS_NAME, "(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
-    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6, CLASS_NAME, "(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
-    protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7, CLASS_NAME, "(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
-    protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
-    protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
-    protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
-    protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_NAME_11, CLASS_NAME, "(id int, parentId int)");
-    protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher(TABLE_NAME_12, CLASS_NAME, "(id int, parentId int)");
+    protected static SpliceTableWatcher a = new SpliceTableWatcher(TABLE_NAME_1, CLASS_NAME, "(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
+    private static SpliceTableWatcher cc = new SpliceTableWatcher(TABLE_NAME_2, CLASS_NAME, "(si varchar(40), sa varchar(40))");
+    protected static SpliceTableWatcher dd = new SpliceTableWatcher(TABLE_NAME_3, CLASS_NAME, "(si varchar(40), sa varchar(40))");
+    protected static SpliceTableWatcher d = new SpliceTableWatcher(TABLE_NAME_4, CLASS_NAME, "(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
+    protected static SpliceTableWatcher e = new SpliceTableWatcher(TABLE_NAME_5, CLASS_NAME, "(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
+    private static SpliceTableWatcher f = new SpliceTableWatcher(TABLE_NAME_6, CLASS_NAME, "(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
+    private static SpliceTableWatcher g = new SpliceTableWatcher(TABLE_NAME_7, CLASS_NAME, "(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
+    private static SpliceTableWatcher t1 = new SpliceTableWatcher(TABLE_NAME_8, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
+    private static SpliceTableWatcher t2 = new SpliceTableWatcher(TABLE_NAME_9, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
+    private static SpliceTableWatcher dupes = new SpliceTableWatcher(TABLE_NAME_10, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
+    private static SpliceTableWatcher t3 = new SpliceTableWatcher(TABLE_NAME_11, CLASS_NAME, "(id int, parentId int)");
+    private static SpliceTableWatcher t4 = new SpliceTableWatcher(TABLE_NAME_12, CLASS_NAME, "(id int, parentId int)");
+    private static SpliceTableWatcher bvarchar = new SpliceTableWatcher("bvc", CLASS_NAME, "(a varchar(3))");
+    private static SpliceTableWatcher bchar = new SpliceTableWatcher("bc", CLASS_NAME, "(b char(3))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher1)
-            .around(spliceTableWatcher2)
-            .around(spliceTableWatcher3)
-            .around(spliceTableWatcher4)
-            .around(spliceTableWatcher5)
-            .around(spliceTableWatcher6)
-            .around(spliceTableWatcher7)
-            .around(spliceTableWatcher8)
-            .around(spliceTableWatcher9)
-            .around(spliceTableWatcher10)
-            .around(spliceTableWatcher11)
-            .around(spliceTableWatcher12)
+            .around(a)
+            .around(cc)
+            .around(dd)
+            .around(d)
+            .around(e)
+            .around(f)
+            .around(g)
+            .around(t1)
+            .around(t2)
+            .around(dupes)
+            .around(t3)
+            .around(t4)
+            .around(bchar)
+            .around(bvarchar)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s (si, sa, sc,sd,se) values (?,?,?,?,?)", TABLE_NAME_1));
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s (si, sa, sc,sd,se) values (?,?,?,?,?)", a));
                         for (int i = 0; i < 10; i++) {
                             ps.setString(1, "" + i);
                             ps.setString(2, "i");
@@ -89,9 +92,9 @@ public class OuterJoinIT extends SpliceUnitTest {
                         		"(4, 4, 4e1, 4e1, '44444', '44444 44','44444', '44444 44')";                        
                         String insertDupes = "insert into %s select * from t1 union all select * from t2";
                         Statement statement = spliceClassWatcher.getStatement();
-                        statement.executeUpdate(format(insertT1,TABLE_NAME_8));
-                        statement.executeUpdate(format(insertT2,TABLE_NAME_9));
-                        statement.executeUpdate(format(insertDupes,TABLE_NAME_10));
+                        statement.executeUpdate(format(insertT1,t1));
+                        statement.executeUpdate(format(insertT2,t2));
+                        statement.executeUpdate(format(insertDupes,dupes));
                     
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -105,9 +108,9 @@ public class OuterJoinIT extends SpliceUnitTest {
                 protected void starting(Description description) {
                     try {
                         Statement statement = spliceClassWatcher.getStatement();
-                        statement.execute(String.format("insert into %s values  ('p1','mxss','design',10000,'deale')", TABLE_NAME_4));
-                        statement.execute(String.format("insert into %s values  ('e2','alice',12,'deale')", TABLE_NAME_5));
-                        statement.execute(String.format("insert into %s values  ('e3','alice',12,'deale')", TABLE_NAME_5));
+                        statement.execute(String.format("insert into %s values  ('p1','mxss','design',10000,'deale')", d));
+                        statement.execute(String.format("insert into %s values  ('e2','alice',12,'deale')", e));
+                        statement.execute(String.format("insert into %s values  ('e3','alice',12,'deale')", e));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -120,35 +123,36 @@ public class OuterJoinIT extends SpliceUnitTest {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        insertData(TABLE_NAME_2, TABLE_NAME_3, spliceClassWatcher);
+                        insertData(cc.toString(), dd.toString(), spliceClassWatcher);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
                         spliceClassWatcher.closeAll();
                     }
                 }
-            }).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
+            })
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description){
+                    try(Statement s = spliceClassWatcher.getOrCreateConnection().createStatement()){
+                       s.executeUpdate("insert into "+ bchar+" values 'KCI','STL','COU'");
+                    }catch(SQLException se){
+                        throw new RuntimeException(se);
+                    }
+                    try(Statement s = spliceClassWatcher.getOrCreateConnection().createStatement()){
+                        s.executeUpdate("insert into "+ bvarchar+" values 'MCI','STL','STL'");
+                    }catch(SQLException se){
+                        throw new RuntimeException(se);
+                    }
+                }
+            })
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
-    public static void insertData(String t1, String t2, SpliceWatcher spliceWatcher) throws Exception {
-        PreparedStatement psC = spliceWatcher.prepareStatement("insert into " + t1 + " values (?,?)");
-        PreparedStatement psD = spliceWatcher.prepareStatement("insert into " + t2 + " values (?,?)");
-        for (int i = 0; i < 10; i++) {
-            psC.setString(1, "" + i);
-            psC.setString(2, "i");
-            psC.executeUpdate();
-            if (i != 9) {
-                psD.setString(1, "" + i);
-                psD.setString(2, "i");
-                psD.executeUpdate();
-            }
-        }
-        spliceWatcher.commit();
-    }
 
     // TESTS
 
@@ -402,6 +406,53 @@ public class OuterJoinIT extends SpliceUnitTest {
     		methodWatcher.executeUpdate("drop table "+CLASS_NAME+".foo");
     	}
     }
-    
+
+    @Test
+    public void testLeftOuterMergeSortJoinCorrectForVarcharToChar() throws Exception{
+        List<Pair<String,String>> correctResults = Arrays.asList(
+                Pair.newPair("STL","STL"),
+                Pair.newPair("STL","STL"),
+                Pair.<String,String>newPair("KCI",null),
+                Pair.<String,String>newPair("COU",null)
+        );
+        List<Pair<String,String>> results = new ArrayList<>(correctResults.size());
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            try(ResultSet rs = s.executeQuery("select * from "+bchar+" left outer join "+bvarchar+" --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
+                    "on "+bchar+".b = "+bvarchar+".a")){
+                while(rs.next()){
+                    String b = rs.getString(1);
+                    Assert.assertFalse("left side returned a null value!",rs.wasNull());
+                    String a = rs.getString(2);
+                    results.add(Pair.newPair(b,a));
+                }
+            }
+        }
+        Assert.assertEquals("Did not return the correct number of rows!",correctResults.size(),results.size());
+        for(Pair<String,String> result:results){
+            Assert.assertTrue("Extraneous row for "+result,correctResults.contains(result));
+        }
+        for(Pair<String,String> result:correctResults){
+            Assert.assertTrue("Missing row for "+result,results.contains(result));
+        }
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+
+    private static void insertData(String t1,String t2,SpliceWatcher spliceWatcher) throws Exception {
+        PreparedStatement psC = spliceWatcher.prepareStatement("insert into " + t1 + " values (?,?)");
+        PreparedStatement psD = spliceWatcher.prepareStatement("insert into " + t2 + " values (?,?)");
+        for (int i = 0; i < 10; i++) {
+            psC.setString(1, "" + i);
+            psC.setString(2, "i");
+            psC.executeUpdate();
+            if (i != 9) {
+                psD.setString(1, "" + i);
+                psD.setString(2, "i");
+                psD.executeUpdate();
+            }
+        }
+        spliceWatcher.commit();
+    }
 }
 

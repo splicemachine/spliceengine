@@ -736,6 +736,17 @@ public class LazyVarcharTest{
         Assert.assertEquals("Incorrect serialization/deserialization!",dvd.getString(),deserialized.getString());
     }
 
+    @Test
+    public void testReturnsEqualToNonLazySQLChar() throws Exception{
+        String val = "STL";
+        LazyVarchar lv = new LazyVarchar();
+        lv.setValue(val);
+        SQLChar sC = new SQLChar(val);
+
+        Assert.assertTrue(lv.equals(sC));
+        Assert.assertTrue(sC.equals(lv));
+    }
+
     /* ***************************************************************************************************************/
     /*private helper methods*/
     private void matchesMetadata(DataValueDescriptor correct,DataValueDescriptor actual,boolean checkLength,boolean checkNullity) throws StandardException{
