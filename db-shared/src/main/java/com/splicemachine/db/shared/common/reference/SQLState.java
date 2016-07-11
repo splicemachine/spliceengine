@@ -386,6 +386,7 @@ public interface SQLState {
     String BACKUP_OPERATIONS_NOT_ALLOWED                        = "XSRSB.S";
     String RAWSTORE_CANNOT_BACKUP_INTO_DATABASE_DIRECTORY       = "XSRSC.S";
     String BACKUP_OPERATIONS_DISABLED                           = "XSRSD.S";
+    String MANAGER_DISABLED                                     = "XSRSE.S";
 
 	/*
 	** RawStore - Log.Generic statement exceptions

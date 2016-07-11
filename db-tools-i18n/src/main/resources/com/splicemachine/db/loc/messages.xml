@@ -6413,6 +6413,11 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             <text>Database backup is disabled. See your Splice Machine representative to enable.</text>
           </msg>
 
+          <msg>
+            <name>XSRSE.S</name>
+            <text>Unable to enable the enterprise Manager. Enterprise services are disabled. See your Splice Machine representative to enable.</text>
+          </msg>
+
         </family>
 
 
