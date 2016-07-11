@@ -65,7 +65,6 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         this.tableVersion=tableVersion;
         this.execRowDefinition=execRowDefinition;
         this.heapList=heapList;
-        this.operationContext=operationContext;
         if (operationContext != null) {
             updateOperation = (UpdateOperation)operationContext.getOperation();
         }

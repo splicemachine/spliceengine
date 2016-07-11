@@ -21,6 +21,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.Lists;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -36,6 +37,17 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private static final Logger LOG=Logger.getLogger(BulkWriteAction.class);
     private static final Logger RETRY_LOG=Logger.getLogger(BulkWriteAction.class.getName()+".retries");
     private static final AtomicLong idGen=new AtomicLong(0L);
+    private final Counter writtenCounter;
+    private final Counter thrownErrorsRows;
+    private final Counter retriedRows;
+    private final Counter partialRows;
+    private final Counter partialThrownErrorRows;
+    private final Counter partialRetriedRows;
+    private final Counter partialIgnoredRows;
+    private final Counter partialWrite;
+    private final Counter ignoredRows;
+    private final Counter catchThrownRows;
+    private final Counter catchRetriedRows;
     private BulkWrites bulkWrites;
     private final List<Throwable> errors= Lists.newArrayListWithExpectedSize(0);
     private final WriteConfiguration writeConfiguration;
@@ -51,6 +63,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private final Counter globalErrorCounter;
     private final Counter rejectedCounter;
     private final Counter partialFailureCounter;
+    private final Counter regionTooBusy;
     private final PartitionFactory partitionFactory;
     private PipingCallBuffer retryPipingCallBuffer=null; // retryCallBuffer
 
@@ -76,10 +89,22 @@ public class BulkWriteAction implements Callable<WriteStats>{
         this.rejectedCounter=metricFactory.newCounter();
         this.globalErrorCounter=metricFactory.newCounter();
         this.partialFailureCounter=metricFactory.newCounter();
+        this.writtenCounter=metricFactory.newCounter();
         this.retryCounter=metricFactory.newCounter();
         this.writeTimer=metricFactory.newTimer();
         this.pipelineExceptionFactory = pipelineExceptionFactory;
         this.partitionFactory = partitionFactory;
+        thrownErrorsRows=metricFactory.newCounter();
+        retriedRows=metricFactory.newCounter();
+        partialRows=metricFactory.newCounter();
+        partialThrownErrorRows=metricFactory.newCounter();
+        partialRetriedRows=metricFactory.newCounter();
+        partialIgnoredRows=metricFactory.newCounter();
+        partialWrite=metricFactory.newCounter();
+        ignoredRows=metricFactory.newCounter();
+        catchThrownRows=metricFactory.newCounter();
+        catchRetriedRows=metricFactory.newCounter();
+        regionTooBusy=metricFactory.newCounter();
     }
 
     @Override
@@ -95,14 +120,20 @@ public class BulkWriteAction implements Callable<WriteStats>{
             execute(bulkWrites);
             totalTimer.stopTiming();
             if(metricFactory.isActive())
-                return new SimpleWriteStats(bulkWrites.numEntries(),bulkWrites.numEntries(),
+                return new SimpleWriteStats(writtenCounter.getTotal(),
                         retryCounter.getTotal(),
-                        globalErrorCounter.getTotal(),
-                        partialFailureCounter.getTotal(),
-                        rejectedCounter.getTotal(),
-                        Metrics.noOpTimeView(),
-                        writeTimer.getTime(),
-                        totalTimer.getTime());
+                        thrownErrorsRows.getTotal(),
+            retriedRows.getTotal(),
+            partialRows.getTotal(),
+            partialThrownErrorRows.getTotal(),
+            partialRetriedRows.getTotal(),
+            partialIgnoredRows.getTotal(),
+            partialWrite.getTotal(),
+            ignoredRows.getTotal(),
+            catchThrownRows.getTotal(),
+            catchRetriedRows.getTotal(),
+            regionTooBusy.getTotal()
+                        );
             else
                 return WriteStats.NOOP_WRITE_STATS;
         }finally{
@@ -159,11 +190,15 @@ public class BulkWriteAction implements Callable<WriteStats>{
         assert bulkWrites!=null:"bulk writes passed in are null";
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"Executing BulkWriteAction: id=%d, bulkWrites=%s",id,bulkWrites);
-        retryCounter.increment();
+        boolean first = true;
         LinkedList<BulkWrites> writesToPerform=Lists.newLinkedList();
         writesToPerform.add(bulkWrites);
         WriteAttemptContext ctx = new WriteAttemptContext();
         do{
+            if (!first) {
+                retryCounter.increment();
+            }
+            first = false;
             BulkWrites nextWrite=writesToPerform.removeFirst();
             assert nextWrite!=null:"next write is null";
             ctx.reset();
@@ -216,11 +251,14 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 BulkWrite currentBulkWrite=bws.next();
                 switch(globalResponse){
                     case SUCCESS:
+                        writtenCounter.add(currentBulkWrite.getSize());
                         break; //success can be ignored
                     case THROW_ERROR:
                         thrown=true;
+                        thrownErrorsRows.add(currentBulkWrite.getSize());
                         throw parseIntoException(bulkWriteResult);
                     case RETRY:
+                        retriedRows.add(currentBulkWrite.getSize());
                         /*
                          * The entire BulkWrite needs to be retried--either because it was rejected outright,
 		    			 * or because the region moved/split/something else.
@@ -242,10 +280,12 @@ public class BulkWriteAction implements Callable<WriteStats>{
                         ctx.sleep=true; //always sleep due to rejection, even if we don't need to refresh the cache
                         break;
                     case PARTIAL:
+                        partialRows.add(currentBulkWrite.getSize());
                         partialFailureCounter.increment();
                         WriteResponse writeResponse=writeConfiguration.partialFailure(bulkWriteResult,currentBulkWrite);
                         switch(writeResponse){
                             case THROW_ERROR:
+                                partialThrownErrorRows.add(currentBulkWrite.getSize());
                                 thrown=true;
                                 throw parseIntoException(bulkWriteResult);
                             case RETRY:
@@ -271,9 +311,12 @@ public class BulkWriteAction implements Callable<WriteStats>{
                                     ctx.refreshCache=ctx.refreshCache || isFailure;
                                     ctx.sleep=true; //always sleep
                                 }
+                                writtenCounter.add(currentBulkWrite.getSize() - writes.size());
+                                partialRetriedRows.add(writes.size());
                                 break;
                             case IGNORE:
-                                SpliceLogUtils.debug(RETRY_LOG,
+                                partialIgnoredRows.add(currentBulkWrite.getSize());
+                                SpliceLogUtils.warn(RETRY_LOG,
                                         "Ignoring write after receiving unknown partial %s response: id=%d, bulkWriteResult=%s",
                                         writeResponse,id,bulkWriteResult);
                                 break;
@@ -282,8 +325,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
                         }
                         break;
                     case IGNORE:
-                        if(LOG.isTraceEnabled())
-                            SpliceLogUtils.trace(LOG,"Global response indicates ignoring, so we ignore");
+                        ignoredRows.add(currentBulkWrite.getSize());
+                        SpliceLogUtils.warn(LOG,"Global response indicates ignoring, so we ignore");
                         break;
                     default:
                         SpliceLogUtils.error(LOG,"Global response went down default path, assert");
@@ -308,6 +351,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 if(RETRY_LOG.isDebugEnabled())
                     SpliceLogUtils.debug(RETRY_LOG,"Retrying write after receiving RegionTooBusyException: id=%d",id);
 
+                regionTooBusy.increment();
                 ctx.sleep = true;
                 ctx.directRetry();
                 return;
@@ -318,6 +362,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 case THROW_ERROR:
                     if(LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG,"Throwing error after receiving global error: id=%d, class=%s, message=%s",id,e.getClass(),e.getMessage());
+                    catchThrownRows.add(nextWrite.numEntries());
                     throw new ExecutionException(e);
                 case RETRY:
                     errors.add(e);
@@ -333,11 +378,12 @@ public class BulkWriteAction implements Callable<WriteStats>{
                     ctx.sleep=true;
                     for(BulkWrite bw : nextWrite.getBulkWrites()){
                         ctx.addBulkWrites(bw.getMutations());
+                        catchRetriedRows.add(bw.getSize());
                     }
                     break;
                 default:
-                    if(LOG.isInfoEnabled())
-                        LOG.info(String.format("Ignoring error after receiving unknown global error %s response: id=%d ",writeResponse,id),e);
+                    LOG.warn(String.format("Ignoring error after receiving unknown global error %s response: id=%d ",writeResponse,id),e);
+                    throw new IllegalStateException("Programmer error: Unknown global response: "+writeResponse);
             }
         }
     }

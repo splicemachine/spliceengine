@@ -27,21 +27,25 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     private static Logger LOG = Logger.getLogger(ControlOperationContext.class);
 
     long rowsRead;
-    long rowsFiltered;
-    long rowsWritten;
-    long rowsJoinedLeft;
-    long rowsJoinedRight;
-    long rowsProduced;
-    List<String> badRecords;
-    public ActivationHolder activationHolder;
-    public SpliceTransactionResourceImpl impl;
-    public Activation activation;
-    public SpliceOperationContext context;
-    public Op op;
-    public TxnView txn;
-    private boolean permissive;
-    private BadRecordsRecorder badRecordsRecorder;
-    private boolean failed;
+        long rowsFiltered;
+        long rowsWritten;
+        long rowsRetried;
+        long tooBusy;
+        long rowsJoinedLeft;
+        long rowsJoinedRight;
+        long rowsProduced;
+        List<String> badRecords;
+        public ActivationHolder activationHolder;
+        public SpliceTransactionResourceImpl impl;
+        public Activation activation;
+        public SpliceOperationContext context;
+        public Op op;
+        public TxnView txn;
+        private int failBadRecordCount = -1;
+        private boolean permissive;
+        private BadRecordsRecorder badRecordsRecorder;
+        private boolean failed;
+        private int numberBadRecords = 0;
 
     public ControlOperationContext() {
         }
@@ -126,6 +130,16 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
+    public void recordRetry(long w) {
+        rowsRetried+=w;
+    }
+
+    @Override
+    public void recordRegionTooBusy(long w) {
+        tooBusy+=w;
+    }
+
+    @Override
     public void recordFilter() {
         rowsFiltered++;
     }
@@ -133,6 +147,61 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
     public void recordWrite() {
         rowsWritten++;
+    }
+
+    @Override
+    public void recordPipelineWrites(long w) {
+        rowsWritten+=w;
+    }
+
+    @Override
+    public void recordThrownErrorRows(long w) {
+
+    }
+
+    @Override
+    public void recordRetriedRows(long w) {
+
+    }
+
+    @Override
+    public void recordPartialRows(long w) {
+
+    }
+
+    @Override
+    public void recordPartialThrownErrorRows(long w) {
+
+    }
+
+    @Override
+    public void recordPartialRetriedRows(long w) {
+
+    }
+
+    @Override
+    public void recordPartialIgnoredRows(long w) {
+
+    }
+
+    @Override
+    public void recordPartialWrite(long w) {
+
+    }
+
+    @Override
+    public void recordIgnoredRows(long w) {
+
+    }
+
+    @Override
+    public void recordCatchThrownRows(long w) {
+
+    }
+
+    @Override
+    public void recordCatchRetriedRows(long w) {
+
     }
 
     @Override
@@ -166,6 +235,16 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
+    public long getRetryAttempts() {
+        return rowsRetried;
+    }
+
+    @Override
+    public long getRegionTooBusyExceptions() {
+        return tooBusy;
+    }
+
+    @Override
     public void pushScope(String displayName) {
         // no op
     }
@@ -196,7 +275,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
-    public void recordBadRecord(String badRecord, Exception e) throws StandardException {
+    public void recordBadRecord(String badRecord, Exception e) {
         if (! failed) {
             String errorState = "";
             if (e != null) {

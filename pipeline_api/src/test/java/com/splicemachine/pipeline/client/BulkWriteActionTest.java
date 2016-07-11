@@ -223,6 +223,7 @@ public class BulkWriteActionTest{
 
 
 		WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,10,10L,0),pef);
+		config.setRecordingContext(new TestRecordingContext());
 		IncrementingClock clock = new IncrementingClock();
 		BulkWriteAction bwa = new BulkWriteAction(table,
 				bw,
@@ -247,6 +248,7 @@ public class BulkWriteActionTest{
 				Assert.assertTrue("Missing write!",allData.contains(mutation));
 			}
 		}
+        Assert.assertEquals("Unexpected number of retires.", 1, ((TestRecordingContext)config.getRecordingContext()).retries);
     }
 
     @Test
@@ -295,6 +297,7 @@ public class BulkWriteActionTest{
 
 
         WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,10,10L,0),pef);
+        config.setRecordingContext(new TestRecordingContext());
         IncrementingClock clock = new IncrementingClock();
         BulkWriteAction bwa = new BulkWriteAction(table,
                 bw,
@@ -319,6 +322,7 @@ public class BulkWriteActionTest{
                 Assert.assertTrue("Missing write!",allData.contains(mutation));
             }
         }
+        Assert.assertEquals("Unexpected number of retires.", 2, ((TestRecordingContext)config.getRecordingContext()).retries);
     }
 
     @Test
@@ -367,6 +371,7 @@ public class BulkWriteActionTest{
 
 
         WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,10,10L,0),pef);
+        config.setRecordingContext(new TestRecordingContext());
         IncrementingClock clock = new IncrementingClock();
         BulkWriteAction bwa = new BulkWriteAction(table,
                 bw,
@@ -392,6 +397,7 @@ public class BulkWriteActionTest{
                 Assert.assertTrue("Missing write!",allData.contains(mutation));
             }
         }
+        Assert.assertEquals("Unexpected number of retires.", 1, ((TestRecordingContext)config.getRecordingContext()).retries);
     }
 
     /* ****************************************************************************************************************/
@@ -516,6 +522,104 @@ public class BulkWriteActionTest{
                 Assert.fail("Retried too many times!");
             }
             return new BulkWritesResult(results);
+        }
+    }
+
+    private static class TestRecordingContext implements RecordingContext {
+        public int reads;
+        public int filter;
+        public int writes;
+        public int retries;
+        public int tooBusy;
+
+        @Override
+        public void recordRead() {
+            ++reads;
+        }
+
+        @Override
+        public void recordFilter() {
+            ++filter;
+        }
+
+        @Override
+        public void recordWrite() {
+            ++writes;
+        }
+
+        @Override
+        public void recordPipelineWrites(long w) {
+            writes+=w;
+        }
+
+        @Override
+        public void recordThrownErrorRows(long w) {
+
+        }
+
+        @Override
+        public void recordRetriedRows(long w) {
+
+        }
+
+        @Override
+        public void recordPartialRows(long w) {
+
+        }
+
+        @Override
+        public void recordPartialThrownErrorRows(long w) {
+
+        }
+
+        @Override
+        public void recordPartialRetriedRows(long w) {
+
+        }
+
+        @Override
+        public void recordPartialIgnoredRows(long w) {
+
+        }
+
+        @Override
+        public void recordPartialWrite(long w) {
+
+        }
+
+        @Override
+        public void recordIgnoredRows(long w) {
+
+        }
+
+        @Override
+        public void recordCatchThrownRows(long w) {
+
+        }
+
+        @Override
+        public void recordCatchRetriedRows(long w) {
+
+        }
+
+        @Override
+        public void recordRetry(long w) {
+
+        }
+
+        @Override
+        public void recordProduced() {
+
+        }
+
+        @Override
+        public void recordBadRecord(String badRecord, Exception exception) {
+
+        }
+
+        @Override
+        public void recordRegionTooBusy(long w) {
+
         }
     }
 

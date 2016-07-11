@@ -60,7 +60,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         this.execRowDefinition = execRowDefinition;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.spliceSequences = spliceSequences;
-        this.operationContext = operationContext;
         this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
         this.isUpsert = isUpsert;
         this.dataType = isUpsert?KVPair.Type.UPSERT:KVPair.Type.INSERT;
@@ -83,6 +82,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                             operationContext,
                             encoder.getDecoder(execRowDefinition));
 
+            writeConfiguration.setRecordingContext(operationContext);
             this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
             writeBuffer = writeCoordinator.writeBuffer(table,txn,writeConfiguration);
             if (insertOperation != null)

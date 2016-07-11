@@ -39,7 +39,7 @@ public class DefaultWriteConfiguration extends BaseWriteConfiguration {
 
     @Override
     public MetricFactory getMetricFactory() {
-        return Metrics.noOpMetricFactory();
+        return Metrics.basicMetricFactory();
     }
 
     @Override

@@ -40,6 +40,21 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public Accumulator<Long> rowsProduced;
     public Accumulator<Long> rowsFiltered;
     public Accumulator<Long> rowsWritten;
+    public Accumulator<Long> retryAttempts;
+    public Accumulator<Long> regionTooBusyExceptions;
+
+    public Accumulator<Long> pipelineRowsWritten;
+    public Accumulator<Long> thrownErrorsRows;
+    public Accumulator<Long> retriedRows;
+    public Accumulator<Long> partialRows;
+    public Accumulator<Long> partialThrownErrorRows;
+    public Accumulator<Long> partialRetriedRows;
+    public Accumulator<Long> partialIgnoredRows;
+    public Accumulator<Long> partialWrite;
+    public Accumulator<Long> ignoredRows;
+    public Accumulator<Long> catchThrownRows;
+    public Accumulator<Long> catchRetriedRows;
+
     public boolean permissive;
     public long badRecordsSeen;
     public long badRecordThreshold;
@@ -63,6 +78,20 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined left",param);
         this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined right",param);
         this.rowsProduced=SpliceSpark.getContext().accumulator(0l,baseName+" rows produced",param);
+
+        this.retryAttempts =SpliceSpark.getContext().accumulator(0L, "(WritePipeline) retry attempts", param);
+        this.regionTooBusyExceptions =SpliceSpark.getContext().accumulator(0L, "(WritePipeline) region too busy exceptions", param);
+        this.pipelineRowsWritten=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows written",param);
+        this.thrownErrorsRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows thrown errors",param);
+        this.retriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows retried",param);
+        this.partialRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) total rows partial error",param);
+        this.partialThrownErrorRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial thrown error",param);
+        this.partialRetriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial retried",param);
+        this.partialIgnoredRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial ignored",param);
+        this.partialWrite=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) partial write",param);
+        this.ignoredRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows ignored error",param);
+        this.catchThrownRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows catch error rethrown",param);
+        this.catchRetriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows catch error retried",param);
     }
 
     @SuppressWarnings("unchecked")
@@ -77,7 +106,21 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.rowsWritten=SpliceSpark.getContext().accumulator(0l,"rows written",param);
         this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0l,"rows joined left",param);
         this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,"rows joined right",param);
-        this.rowsProduced=SpliceSpark.getContext().accumulator(0l, "rows produced", param);
+        this.rowsProduced=SpliceSpark.getContext().accumulator(0l,"rows produced",param);
+
+        this.retryAttempts =SpliceSpark.getContext().accumulator(0L, "(WritePipeline) retry attempts", param);
+        this.regionTooBusyExceptions =SpliceSpark.getContext().accumulator(0L, "(WritePipeline) region too busy exceptions", param);
+        this.pipelineRowsWritten=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows written",param);;
+        this.thrownErrorsRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows thrown errors",param);
+        this.retriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows retried",param);
+        this.partialRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) total rows partial error",param);
+        this.partialThrownErrorRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial thrown error",param);
+        this.partialRetriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial retried",param);
+        this.partialIgnoredRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial ignored",param);
+        this.partialWrite=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) partial write",param);
+        this.ignoredRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows ignored error",param);
+        this.catchThrownRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows catch error rethrown",param);
+        this.catchRetriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows catch error retried",param);
     }
 
     public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException{
@@ -96,10 +139,23 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         out.writeObject(rowsRead);
         out.writeObject(rowsFiltered);
         out.writeObject(rowsWritten);
+        out.writeObject(retryAttempts);
+        out.writeObject(regionTooBusyExceptions);
         out.writeObject(rowsJoinedLeft);
         out.writeObject(rowsJoinedRight);
         out.writeObject(rowsProduced);
         out.writeObject(badRecordsAccumulator);
+        out.writeObject(thrownErrorsRows);
+        out.writeObject(retriedRows);
+        out.writeObject(partialRows);
+        out.writeObject(partialThrownErrorRows);
+        out.writeObject(partialRetriedRows);
+        out.writeObject(partialIgnoredRows);
+        out.writeObject(partialWrite);
+        out.writeObject(ignoredRows);
+        out.writeObject(catchThrownRows);
+        out.writeObject(catchRetriedRows);
+        out.writeObject(pipelineRowsWritten);
     }
 
     @Override
@@ -118,10 +174,24 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         rowsRead=(Accumulator)in.readObject();
         rowsFiltered=(Accumulator)in.readObject();
         rowsWritten=(Accumulator)in.readObject();
+        retryAttempts =(Accumulator)in.readObject();
+        regionTooBusyExceptions =(Accumulator)in.readObject();
         rowsJoinedLeft=(Accumulator<Long>)in.readObject();
         rowsJoinedRight=(Accumulator<Long>)in.readObject();
         rowsProduced=(Accumulator<Long>)in.readObject();
         badRecordsAccumulator = (Accumulable<BadRecordsRecorder,String>) in.readObject();
+
+        thrownErrorsRows=(Accumulator<Long>)in.readObject();
+        retriedRows=(Accumulator<Long>)in.readObject();
+        partialRows=(Accumulator<Long>)in.readObject();
+        partialThrownErrorRows=(Accumulator<Long>)in.readObject();
+        partialRetriedRows=(Accumulator<Long>)in.readObject();
+        partialIgnoredRows=(Accumulator<Long>)in.readObject();
+        partialWrite=(Accumulator<Long>)in.readObject();
+        ignoredRows=(Accumulator<Long>)in.readObject();
+        catchThrownRows=(Accumulator<Long>)in.readObject();
+        catchRetriedRows=(Accumulator<Long>)in.readObject();
+        pipelineRowsWritten=(Accumulator<Long>)in.readObject();
     }
 
     @Override
@@ -161,6 +231,80 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
+    public void recordPipelineWrites(long w) {
+        pipelineRowsWritten.add(w);
+    }
+
+    @Override
+    public void recordThrownErrorRows(long w) {
+        thrownErrorsRows.add(w);
+    }
+
+    @Override
+    public void recordRetriedRows(long w) {
+
+        retriedRows.add(w);
+    }
+
+    @Override
+    public void recordPartialRows(long w) {
+
+        partialRows.add(w);
+    }
+
+    @Override
+    public void recordPartialThrownErrorRows(long w) {
+
+        partialThrownErrorRows.add(w);
+    }
+
+    @Override
+    public void recordPartialRetriedRows(long w) {
+
+        partialRetriedRows.add(w);
+    }
+
+    @Override
+    public void recordPartialIgnoredRows(long w) {
+
+        partialIgnoredRows.add(w);
+    }
+
+    @Override
+    public void recordPartialWrite(long w) {
+
+        partialWrite.add(w);
+    }
+
+    @Override
+    public void recordIgnoredRows(long w) {
+
+        ignoredRows.add(w);
+    }
+
+    @Override
+    public void recordCatchThrownRows(long w) {
+
+        catchThrownRows.add(w);
+    }
+
+    @Override
+    public void recordCatchRetriedRows(long w) {
+
+        catchRetriedRows.add(w);
+    }
+
+    @Override
+    public void recordRetry(long w){
+        retryAttempts.add(w);
+    }
+
+    @Override
+    public void recordRegionTooBusy(long w){
+        regionTooBusyExceptions.add(w);
+    }
+
+    @Override
     public void recordJoinedLeft(){
         rowsJoinedLeft.add(1l);
     }
@@ -188,6 +332,15 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public long getRecordsWritten(){
         return rowsWritten.value();
+    }
+
+    @Override
+    public long getRetryAttempts(){
+        return retryAttempts.value();
+    }
+
+    public long getRegionTooBusyExceptions(){
+        return regionTooBusyExceptions.value();
     }
 
 
@@ -222,7 +375,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
-    public void recordBadRecord(String badRecord, Exception e) throws StandardException {
+    public void recordBadRecord(String badRecord, Exception e) {
         if (! failed) {
             ++badRecordsSeen;
             String errorState = "";
