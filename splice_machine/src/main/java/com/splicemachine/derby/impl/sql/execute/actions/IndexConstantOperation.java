@@ -155,7 +155,9 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			.template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds));
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);
-			EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, builder, scope, prefix, tentativeIndex, indexFormatIds));
+			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+			String jobGroup = userId + " <" +indexTransaction.getTxnId() +">";
+			EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix, tentativeIndex, indexFormatIds));
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

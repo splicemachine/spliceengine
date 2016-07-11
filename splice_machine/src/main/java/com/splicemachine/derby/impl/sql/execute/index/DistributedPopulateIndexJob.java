@@ -19,6 +19,7 @@ import java.util.concurrent.Callable;
  * Created by dgomezferro on 6/15/16.
  */
 public class DistributedPopulateIndexJob extends DistributedJob implements Externalizable {
+    String jobGroup;
     TxnView childTxn;
     ScanSetBuilder<LocatedRow> scanSetBuilder;
     String scope;
@@ -27,11 +28,12 @@ public class DistributedPopulateIndexJob extends DistributedJob implements Exter
     int[] indexFormatIds;
 
     public DistributedPopulateIndexJob() {}
-
-    public DistributedPopulateIndexJob(TxnView childTxn, ScanSetBuilder<LocatedRow> scanSetBuilder, String scope, String prefix, DDLMessage.TentativeIndex tentativeIndex, int[] indexFormatIds) {
+    public DistributedPopulateIndexJob(TxnView childTxn, ScanSetBuilder<LocatedRow> scanSetBuilder, String scope,
+                                       String jobGroup, String prefix, DDLMessage.TentativeIndex tentativeIndex, int[] indexFormatIds) {
         this.childTxn = childTxn;
         this.scanSetBuilder = scanSetBuilder;
         this.scope = scope;
+        this.jobGroup = jobGroup;
         this.prefix = prefix;
         this.tentativeIndex = tentativeIndex;
         this.indexFormatIds = indexFormatIds;
@@ -39,7 +41,7 @@ public class DistributedPopulateIndexJob extends DistributedJob implements Exter
 
     @Override
     public Callable<Void> toCallable(OlapStatus jobStatus, Clock clock, long clientTimeoutCheckIntervalMs) {
-        return new PopulateIndexJob(this, jobStatus, clock, clientTimeoutCheckIntervalMs);
+        return new PopulateIndexJob(this, jobStatus);
     }
 
     @Override
@@ -51,6 +53,7 @@ public class DistributedPopulateIndexJob extends DistributedJob implements Exter
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(scanSetBuilder);
         out.writeUTF(scope);
+        out.writeUTF(jobGroup);
         out.writeUTF(prefix);
         out.writeObject(tentativeIndex.toByteArray());
         ArrayUtil.writeIntArray(out,indexFormatIds);
@@ -61,6 +64,7 @@ public class DistributedPopulateIndexJob extends DistributedJob implements Exter
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         scanSetBuilder = (ScanSetBuilder<LocatedRow>) in.readObject();
         scope = in.readUTF();
+        jobGroup = in.readUTF();
         prefix = in.readUTF();
         byte[] bytes = (byte[]) in.readObject();
         tentativeIndex = DDLMessage.TentativeIndex.parseFrom(bytes);

@@ -11,19 +11,21 @@ import java.util.concurrent.Callable;
  * Created by dgomezferro on 6/15/16.
  */
 public class DistributedStatsCollection extends DistributedJob {
+    String jobGroup;
     ScanSetBuilder scanSetBuilder;
     String scope;
 
     public DistributedStatsCollection() {}
 
-    public DistributedStatsCollection(ScanSetBuilder scanSetBuilder, String scope) {
+    public DistributedStatsCollection(ScanSetBuilder scanSetBuilder, String scope, String jobGroup) {
         this.scanSetBuilder = scanSetBuilder;
         this.scope = scope;
+        this.jobGroup = jobGroup;
     }
 
     @Override
     public Callable<Void> toCallable(OlapStatus jobStatus, Clock clock, long clientTimeoutCheckIntervalMs) {
-        return new StatsCollectionJob(this, jobStatus, clock, clientTimeoutCheckIntervalMs);
+        return new StatsCollectionJob(this, jobStatus);
     }
 
     @Override

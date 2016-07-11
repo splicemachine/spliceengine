@@ -1,8 +1,10 @@
 package com.splicemachine.derby.utils.stats;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import org.apache.log4j.Logger;
 
 import java.util.List;
@@ -16,7 +18,7 @@ public class StatsCollectionJob implements Callable<Void> {
     private final DistributedStatsCollection request;
     private final OlapStatus jobStatus;
 
-    public StatsCollectionJob(DistributedStatsCollection request, OlapStatus jobStatus, Clock clock, long clientTimeoutCheckIntervalMs) {
+    public StatsCollectionJob(DistributedStatsCollection request, OlapStatus jobStatus) {
         this.request = request;
         this.jobStatus = jobStatus;
     }
@@ -28,6 +30,9 @@ public class StatsCollectionJob implements Callable<Void> {
             LOG.error("Client bailed out");
             return null;
         }
+        DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
+        dsp.setSchedulerPool("admin");
+        dsp.setJobGroup(request.jobGroup, "");
         try {
             List<LocatedRow> result = request.scanSetBuilder.buildDataSet(request.scope).collect();
             jobStatus.markCompleted(new StatsResult(result));

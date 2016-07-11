@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
@@ -18,7 +19,7 @@ public class PopulateIndexJob implements Callable<Void> {
     private final DistributedPopulateIndexJob request;
     private final OlapStatus jobStatus;
 
-    public PopulateIndexJob(DistributedPopulateIndexJob request, OlapStatus jobStatus, Clock clock, long clientTimeoutCheckIntervalMs) {
+    public PopulateIndexJob(DistributedPopulateIndexJob request, OlapStatus jobStatus) {
         this.request = request;
         this.jobStatus = jobStatus;
     }
@@ -29,6 +30,11 @@ public class PopulateIndexJob implements Callable<Void> {
             //the client has already cancelled us or has died before we could get started, so stop now
             return null;
         }
+
+        DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
+        dsp.setSchedulerPool("admin");
+        dsp.setJobGroup(request.jobGroup, "");
+
         DDLMessage.TentativeIndex tentativeIndex = request.tentativeIndex;
         String scope = request.scope;
         DataSet<LocatedRow> dataSet = request.scanSetBuilder.buildDataSet(request.prefix);
