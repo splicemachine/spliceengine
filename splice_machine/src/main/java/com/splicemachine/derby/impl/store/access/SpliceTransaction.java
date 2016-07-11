@@ -202,12 +202,9 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"commit, state="+state+" for transaction "+(txnStack.peekLast()==null?"null":txnStack.getLast().getSecond()));
 
-        Pair<String, Txn> userPair=txnStack.peekLast();
-        Txn txn=userPair.getSecond();
-        try{
-            txn.commit();
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
+        while(txnStack.size()>0){
+            Pair<String, Txn> userPair=txnStack.pop();
+            doCommit(userPair);
         }
 
         //throw away all savepoints
