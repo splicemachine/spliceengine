@@ -182,6 +182,11 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                         }
                         delegate.add(element);
                     }
+
+                    @Override
+                    public KVPair lastElement(){
+                        return delegate.lastElement();
+                    }
                 };
             }catch(IOException e){
                 throw Exceptions.parseException(e);

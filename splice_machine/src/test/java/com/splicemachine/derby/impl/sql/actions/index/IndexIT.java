@@ -1,15 +1,13 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
-import org.sparkproject.guava.base.Joiner;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.SlowTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+import org.sparkproject.guava.base.Joiner;
 
 import java.sql.*;
 import java.util.List;
@@ -36,8 +34,8 @@ public class IndexIT extends SpliceUnitTest{
     private static final Logger LOG=Logger.getLogger(IndexIT.class);
 
     private static final String SCHEMA_NAME=IndexIT.class.getSimpleName().toUpperCase();
-    public static final String CUSTOMER_ORDER_JOIN="select %1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d from %1$s.%2$s c, %1$s.%3$s o where c.c_id = o.o_c_id";
-    public static final String SELECT_UNIQUE_CUSTOMER="select * from %s.%s c where c.c_last = 'ESEPRIANTI' and c.c_id = 2365";
+    private static final String CUSTOMER_ORDER_JOIN="select %1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d from %1$s.%2$s c, %1$s.%3$s o where c.c_id = o.o_c_id";
+    private static final String SELECT_UNIQUE_CUSTOMER="select * from %s.%s c where c.c_last = 'ESEPRIANTI' and c.c_id = 2365";
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
 
     // taken from tpc-c
@@ -47,7 +45,7 @@ public class IndexIT extends SpliceUnitTest{
             +" WHERE c_w_id = ? AND c_d_id = ? AND c_last = ? ORDER BY c_first",SCHEMA_NAME,CustomerTable.TABLE_NAME);
 
     protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA_NAME);
-    protected static CustomerTable customerTableWatcher=new CustomerTable(CustomerTable.TABLE_NAME,SCHEMA_NAME){
+    private static CustomerTable customerTableWatcher=new CustomerTable(CustomerTable.TABLE_NAME,SCHEMA_NAME){
         @Override
         protected void starting(Description description){
             super.starting(description);
@@ -55,7 +53,7 @@ public class IndexIT extends SpliceUnitTest{
         }
     };
 
-    protected static OrderTable orderTableWatcher=new OrderTable(OrderTable.TABLE_NAME,SCHEMA_NAME){
+    private static OrderTable orderTableWatcher=new OrderTable(OrderTable.TABLE_NAME,SCHEMA_NAME){
         @Override
         protected void starting(Description description){
             super.starting(description);
@@ -63,7 +61,7 @@ public class IndexIT extends SpliceUnitTest{
         }
     };
 
-    protected static NewOrderTable newOrderTableWatcher=new NewOrderTable(NewOrderTable.TABLE_NAME,SCHEMA_NAME){
+    private static NewOrderTable newOrderTableWatcher=new NewOrderTable(NewOrderTable.TABLE_NAME,SCHEMA_NAME){
         @Override
         protected void starting(Description description){
             super.starting(description);
@@ -71,7 +69,7 @@ public class IndexIT extends SpliceUnitTest{
         }
     };
 
-    protected static OrderLineTable orderLineTableWatcher=new OrderLineTable(OrderLineTable.TABLE_NAME,SCHEMA_NAME){
+    private static OrderLineTable orderLineTableWatcher=new OrderLineTable(OrderLineTable.TABLE_NAME,SCHEMA_NAME){
         @Override
         protected void starting(Description description){
             super.starting(description);
@@ -79,7 +77,7 @@ public class IndexIT extends SpliceUnitTest{
         }
     };
 
-    protected static HeaderTable headerTableWatcher=new HeaderTable(HeaderTable.TABLE_NAME,SCHEMA_NAME){
+    private static HeaderTable headerTableWatcher=new HeaderTable(HeaderTable.TABLE_NAME,SCHEMA_NAME){
         @Override
         protected void starting(Description description){
             super.starting(description);
@@ -92,7 +90,7 @@ public class IndexIT extends SpliceUnitTest{
         }
     };
 
-    protected static EmailableTable emailableTableWatcher=new EmailableTable(EmailableTable.TABLE_NAME,SCHEMA_NAME){
+    private static EmailableTable emailableTableWatcher=new EmailableTable(EmailableTable.TABLE_NAME,SCHEMA_NAME){
         @Override
         protected void starting(Description description){
             super.starting(description);
@@ -106,8 +104,8 @@ public class IndexIT extends SpliceUnitTest{
         }
     };
 
-    protected static final String A_TABLE_NAME="A";
-    protected static final SpliceTableWatcher A_TABLE=new SpliceTableWatcher("A",SCHEMA_NAME,"(i int)");
+    private static final String A_TABLE_NAME="A";
+    private static final SpliceTableWatcher A_TABLE=new SpliceTableWatcher("A",SCHEMA_NAME,"(i int)");
     private static final SpliceTableWatcher descIndex=new SpliceTableWatcher("descTable",SCHEMA_NAME,"(a int, b varchar(20),PRIMARY KEY(b))"){
         @Override
         protected void starting(Description description){
@@ -115,6 +113,20 @@ public class IndexIT extends SpliceUnitTest{
             try{
                 spliceClassWatcher.executeUpdate(String.format("INSERT INTO %s VALUES (80,'EFGH')",descIndex));
             }catch(Exception e){
+                throw new RuntimeException(e);
+            }
+        }
+    };
+
+    private static final SpliceTableWatcher cchar = new SpliceTableWatcher("CCHAR",SCHEMA_NAME,"(cint int, cchar char(10), ctime int)"){
+        @Override
+        protected void starting(Description description){
+            super.starting(description);
+            try(Statement s = spliceClassWatcher.getOrCreateConnection().createStatement()){
+                s.executeUpdate("insert into "+cchar+" values (11,'11',1)");
+
+                s.executeUpdate("create index b1 on "+cchar+" (cchar, cint)");
+            }catch(SQLException e){
                 throw new RuntimeException(e);
             }
         }
@@ -130,6 +142,7 @@ public class IndexIT extends SpliceUnitTest{
             .around(headerTableWatcher)
             .around(A_TABLE)
             .around(emailableTableWatcher)
+            .around(cchar)
             .around(descIndex);
 
     @Rule
@@ -212,6 +225,22 @@ public class IndexIT extends SpliceUnitTest{
     // Query Tests
     // ===============================================================================
 
+
+    @Test
+    public void testCanUpdateIndexTwiceCorrectlyWhenUpdatingToItself() throws Exception{
+        try(Statement s = conn.createStatement()){
+            int updateCount = s.executeUpdate("update "+cchar+" set cint = cint");
+            Assert.assertEquals("Incorrect update count!",1,updateCount);
+            updateCount = s.executeUpdate("update "+ cchar+" set cchar = 's'");
+            Assert.assertEquals("Incorrect update count!",1,updateCount);
+            try(ResultSet rs = s.executeQuery("select cchar, cint from "+cchar+" --SPLICE-PROPERTIES index=B1\n")){
+                Assert.assertTrue("No rows returned!",rs.next());
+                Assert.assertEquals("Incorrect value for cchar!","s",rs.getString(1).trim());
+                Assert.assertEquals("Incorrect value for cint!",11,rs.getInt(2));
+                Assert.assertFalse("Too many rows returned!",rs.next());
+            }
+        }
+    }
 
     @Test
     public void testDescendingIndexOverPrimaryKeyedColumn() throws Exception{
@@ -724,7 +753,7 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate("update w set a = a-1 where b = 1");
         methodWatcher.executeUpdate("create index widx on w (b)");
         rowContainsQuery(new int[]{1,2,3},"select b from w --splice-properties index=widx",methodWatcher,
-                new String[]{"1","1","2"});
+                "1","1","2");
     }
 
     @Test
@@ -734,7 +763,7 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate("CREATE INDEX doubleIndex2 ON double_INDEXES1(column1 ASC)");
         methodWatcher.executeUpdate("update double_INDEXES1 set column1 = -1.79769E+308 where column1 = -1.79769E+308");
         rowContainsQuery(new int[]{1,2,3},"select column1 from double_INDEXES1 --splice-properties index=doubleIndex2\n order by column1",methodWatcher,
-                new String[]{"-1.79769E308","0","1.79769E308"});
+                "-1.79769E308","0","1.79769E308");
 
     }
 

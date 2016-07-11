@@ -47,6 +47,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
     private final WriteConfiguration writeConfiguration;
     private final byte[] tableName;
     private final TxnView txn;
+    private Pair<byte[], PartitionBuffer> lastElement;
 
     public ServerCallBuffer(byte[] tableName,
                             TxnView txn,
@@ -72,6 +73,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
     public void add(Pair<byte[], PartitionBuffer> element) throws Exception {
         SpliceLogUtils.trace(LOG, "add %s", element);
         buffers.put(element.getFirst(), element.getSecond());
+        lastElement = element;
     }
 
     @Override
@@ -164,6 +166,11 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
 
     public Writer getWriter() { return writer; }
     public PartitionServer getServer() { return server; }
+
+    @Override
+    public Pair<byte[], PartitionBuffer> lastElement(){
+        return lastElement;
+    }
 
     /* ****************************************************************************************************************/
     /*private helper methods*/

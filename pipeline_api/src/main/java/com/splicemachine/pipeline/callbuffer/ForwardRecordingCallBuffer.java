@@ -100,4 +100,9 @@ public class ForwardRecordingCallBuffer<E> implements RecordingCallBuffer<E>{
     public Partition destinationPartition(){
         return delegate.destinationPartition();
     }
+
+    @Override
+    public E lastElement(){
+        return delegate.lastElement();
+    }
 }

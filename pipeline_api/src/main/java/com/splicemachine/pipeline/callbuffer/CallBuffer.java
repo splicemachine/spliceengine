@@ -74,4 +74,9 @@ public interface CallBuffer<E> extends AutoCloseable {
     TxnView getTxn();
 
     Partition destinationPartition();
+
+    /**
+     * @return the last KVPair added to this buffer. This is an optional method, and may throw UnsupportedOperationException.
+     */
+    E lastElement();
 }

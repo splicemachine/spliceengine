@@ -28,4 +28,9 @@ public class ForwardingCallBuffer<E> implements CallBuffer<E> {
     public Partition destinationPartition(){
         return delegate.destinationPartition();
     }
+
+    @Override
+    public E lastElement(){
+        return delegate.lastElement();
+    }
 }
