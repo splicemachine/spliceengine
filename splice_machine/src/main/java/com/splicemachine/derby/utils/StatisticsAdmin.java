@@ -321,7 +321,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        dsp.setup(activation, getScopeName(table), "admin");
+
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId)).activation(activation);
         ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
         String scope = getScopeName(table);

@@ -5,7 +5,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 
+import com.splicemachine.derby.impl.sql.execute.altertable.DistributedAlterTableTransformJob;
+import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
@@ -967,28 +971,30 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         Txn childTxn = beginChildTransaction(parentTxn, ddlChange.getTxnId());
 
-        DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
-        dsp.setup(activation,this.toString(),"admin");
+        DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
 
         // Create a scanner to scan old conglomerate
-
-        DataSet<KVPair> dataSet = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomNumber))
+        ScanSetBuilder<KVPair> builder = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomNumber))
                 .tableDisplayName(this.tableName)
                 .activation(activation)
                 .scan(DDLUtils.createFullScan())
                 .transaction(childTxn)
-                .demarcationPoint(demarcationPoint)
-                .buildDataSet(this);
+                .demarcationPoint(demarcationPoint);
 
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        String jobName = userId + " <" + parentTxn.getTxnId() + ">";
 
-        // Write new conglomerate
-
-        PairDataSet<LocatedRow,KVPair> ds = dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction());
-        //side effects are what matters here
-        @SuppressWarnings("unused") DataSet<LocatedRow> result = ds.directWriteData()
-                .txn(childTxn)
-                .destConglomerate(destConglom)
-                .skipIndex(true).build().write();
+        try {
+            EngineDriver.driver().getOlapClient().execute(new DistributedAlterTableTransformJob(childTxn, builder, destConglom, this.toString(), jobName, "admin", ddlChange));
+        } catch (TimeoutException e) {
+            try {
+                childTxn.rollback();
+            } catch (Throwable t) {
+                // ignore
+                LOG.error("Ignored error while cleaning up after time out", t);
+            }
+            throw new IOException("Olap job timed out", e);
+        }
 
         childTxn.commit();
     }

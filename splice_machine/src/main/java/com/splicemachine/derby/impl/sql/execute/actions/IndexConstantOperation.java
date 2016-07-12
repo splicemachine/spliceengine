@@ -131,7 +131,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			}
 
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
-            dsp.setup(activation,this.toString(),"admin"); // this replaces StreamUtils.setupSparkJob
+
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
 			ScanSetBuilder<LocatedRow> builder = dsp.newScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
 			builder.tableDisplayName(tableName)
