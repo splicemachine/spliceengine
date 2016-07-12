@@ -67,6 +67,32 @@ public class ForeignKey_AlterDropTable_IT {
     }
 
     @Test
+    public void foreignKeyCannotBeAddedIfChildHasMissingPK() throws Exception {
+        //regression test for DB-4415. Set the connection schema to SPLICE, then manually reference the schema
+        conn.setSchema("SPLICE");
+        // given -- parent table with initialized write context
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table "+SCHEMA+".P(a int, CONSTRAINT PK primary key(a) )");
+            s.executeUpdate("insert into "+SCHEMA+".P values(2),(3)");
+            // given -- child table with initialized write context
+            s.executeUpdate("create table "+SCHEMA+".C(a int primary key)");
+            s.executeUpdate("insert into "+SCHEMA+".C values(1)");
+
+            // when -- we add the foreign key after the write contexts are initialized
+            String alterSql = "alter table "+SCHEMA+".C add constraint FK_1 foreign key (a) references "+SCHEMA+".P(a)";
+            String expectedError = "Foreign key constraint 'FK_1' cannot be added to or enabled on table " +
+                    "\"FOREIGNKEY_ALTERDROPTABLE_IT\".\"C\" because one or more foreign keys do not have matching referenced keys.";
+            assertQueryFail(alterSql,expectedError);
+
+            // then -- the foreign key constraint is NOT enforced
+            s.executeUpdate("delete from "+SCHEMA+".P where a=1");
+        }finally{
+            //reset the schema
+            conn.setSchema(SCHEMA.toUpperCase());
+        }
+    }
+
+    @Test
     public void alterTable_removesFkConstraint() throws Exception {
         try(Statement s = conn.createStatement()){
             // given -- C -> P with values in both
