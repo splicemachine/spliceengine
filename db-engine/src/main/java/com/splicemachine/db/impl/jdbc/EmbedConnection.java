@@ -2075,20 +2075,19 @@ public abstract class EmbedConnection implements EngineConnection
 
 		//REMIND: someone is leaving an incorrect manager on when they
 		// are exiting the system in the nested case.
-		if (SanityManager.DEBUG)
-		{
-			if (tr.getCsf() != null) {
-				ContextManager cm1 = tr.getCsf().getCurrentContextManager();
-				ContextManager cm2 = tr.getContextManager();
-				// If the system has been shut down, cm1 can be null.
-				// Otherwise, cm1 and cm2 should be identical.
-				if (cm1 != cm2 && cm1 != null) {
-					Util.ASSERT(this, (cm1 == cm2 || cm1 == null),
-						"Current Context Manager not the one was expected: " +
-						 cm1 + " " + cm2);
-				}
-			}
-		}
+//		if (SanityManager.DEBUG) {
+//			if (tr.getCsf() != null) {
+//				ContextManager cm1 = tr.getCsf().getCurrentContextManager();
+//				ContextManager cm2 = tr.getContextManager();
+//				// If the system has been shut down, cm1 can be null.
+//				// Otherwise, cm1 and cm2 should be identical.
+//				if (cm1 != cm2 && cm1 != null) {
+//					Util.ASSERT(this, (cm1 == cm2 || cm1 == null),
+//						"Current Context Manager not the one was expected: " +
+//						 cm1 + " " + cm2);
+//				}
+//			}
+//		}
 
 		tr.restoreContextStack();
 	}
