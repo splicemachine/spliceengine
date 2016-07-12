@@ -30,7 +30,6 @@ public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
     static JavaSparkContext ctx;
     static boolean initialized = false;
-    public static boolean active = true;
     static volatile JavaSparkContext localContext = null;
     static boolean spliceStaticComponentsSetup = false;
     private static final String SCOPE_KEY = "spark.rdd.scope";
@@ -38,24 +37,13 @@ public class SpliceSpark {
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
 
-    private static void getJarFiles(List<String> files, File file) {
-        if (file.isDirectory()) {
-            for (File jar : file.listFiles()) {
-                getJarFiles(files, jar);
-            }
-        } else {
-            files.add(file.getAbsolutePath());
-        }
-    }
-
     public static synchronized JavaSparkContext getContext() {
         if (!initialized) {
-            if (active) {
-                ctx = initializeSparkContext();
-            } else {
-                LOG.warn("Spark not active");
-            }
+            ctx = initializeSparkContext();
             initialized = true;
+        } else if (ctx.sc().isStopped()) {
+            LOG.warn("SparkContext is stopped, reinitializing...");
+            ctx = initializeSparkContext();
         }
         return ctx;
     }
