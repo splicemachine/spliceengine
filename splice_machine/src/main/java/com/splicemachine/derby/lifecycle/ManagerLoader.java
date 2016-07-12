@@ -28,6 +28,9 @@ public class ManagerLoader {
     private static synchronized Manager loadManager(ClassLoader loader) {
         Manager mgr = manager;
         if (mgr == null) {
+            // TODO: remove
+            printClasspath();
+
             ServiceLoader<Manager> load;
             if (loader == null) {
                 load = ServiceLoader.load(Manager.class);
@@ -47,6 +50,17 @@ public class ManagerLoader {
                 throw new IllegalStateException("Only one Manager is allowed!");
         }
         return mgr;
+    }
+    private static void printClasspath() {
+        String cp = System.getProperty("java.class.path");
+        if (cp == null || cp.isEmpty()) {
+            LOG.debug("*** Empty classpath");
+        } else {
+            System.out.println("*** classpath:");
+            for (String item : cp.split(":")) {
+                LOG.debug("  "+item);
+            }
+        }
     }
 
     public static class DisabledManager implements Manager {

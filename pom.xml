@@ -877,6 +877,23 @@
             </modules>
         </profile>
         <profile>
+            <id>ee</id>
+            <activation>
+                <property>
+                    <name>enterpise</name>
+                    <value>ee</value>
+                </property>
+            </activation>
+            <properties>
+                <enterpise>ee</enterpise>
+            </properties>
+            <modules>
+                <module>../spliceengine-ee/splice_ee</module>
+                <module>../spliceengine-ee/splice_backup</module>
+                <module>../spliceengine-ee/enterprise_it</module>
+            </modules>
+       </profile>
+        <profile>
             <id>staticanalysis</id>
             <build>
                 <plugins>

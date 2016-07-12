@@ -16,6 +16,7 @@
         <shell.command>/bin/bash</shell.command>
         <start.script>${project.basedir}/src/test/bin/start-splice-its</start.script>
         <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
+        <ee_out></ee_out>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
     </properties>
@@ -280,7 +281,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <executions>
+                <configuration>
+                    <excludes>
+                        <exclude>**/com/splicemachine/backup/*</exclude>
+                    </excludes>
+                </configuration>
+              <executions>
                     <execution>
                         <goals>
                             <goal>test-jar</goal>
@@ -351,6 +357,7 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
+                                <dependency>com.splicemachine:splice_backup</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -382,14 +389,14 @@
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
                                             <arg value="-c"/>
-                                            <arg value="-p ${envClassifier},${envHbase}"/>
+                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
                                         </exec>
                                     </then>
                                     <else>
                                         <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier},${envHbase}"/>
+                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
                                         </exec>
                                     </else>
                                 </if>
@@ -856,6 +863,78 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>ee</id>
+            <activation>
+                <property>
+                    <name>ee</name>
+                    <value>enterprise</value>
+                </property>
+            </activation>
+            <properties>
+                <ee_out>,ee</ee_out>
+            </properties>
+
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_ee</artifactId>
+                    <version>2.0.1.18-SNAPSHOT</version>
+                </dependency>
+            </dependencies>
+            <build>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>1.9.1</version>
+                    <executions>
+                        <execution>
+                            <id>add-ee-source</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>add-source</goal>
+                            </goals>
+                            <configuration>
+                                <sources>
+                                    <source>../../spliceengine-ee/splice_backup/src/main/java</source>
+                                </sources>
+
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>add-ee-resource</id>
+                            <phase>generate-resources</phase>
+                            <goals>
+                                <goal>add-resource</goal>
+                            </goals>
+                            <configuration>
+                                <resources>
+                                    <resource>
+                                        <directory>../../spliceengine-ee/splice_backup/src/main/resources</directory>
+                                    </resource>
+                                </resources>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>add-ee-test-source</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>add-test-source</goal>
+                            </goals>
+                            <configuration>
+                                <sources>
+                                    <source>../../spliceengine-ee/splice_backup/src/test/java</source>
+                                    <source>../../spliceengine-ee/enterprise_it/src/test/java</source>
+                                </sources>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+            </build>
+
         </profile>
         <profile>
             <id>jmeter</id>

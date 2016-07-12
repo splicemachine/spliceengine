@@ -18,6 +18,7 @@
             <version>${project.version}</version>
         </dependency>
     </dependencies>
+
     <properties>
         <jenkins.build.number>1</jenkins.build.number>
         <parcel.patch>p0.${jenkins.build.number}</parcel.patch>
@@ -96,7 +97,9 @@
                                 <!-- spliceengine platform libs -->
                                 hbase_pipeline-${envClassifier},
                                 hbase_sql-${envClassifier},
-                                hbase_storage-${envClassifier}
+                                hbase_storage-${envClassifier},
+                                splice_ee,
+                                splice_backup-${envClassifier}
                             </includeArtifactIds>
                         </configuration>
                     </execution>
@@ -105,6 +108,27 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>ee</id>
+            <activation>
+                <property>
+                    <name>ee</name>
+                    <value>enterprise</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_ee</artifactId>
+                    <version>2.0.1.18-SNAPSHOT</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_backup-${envClassifier}</artifactId>
+                    <version>2.0.1.18-SNAPSHOT</version>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>parcel</id>
             <activation>
