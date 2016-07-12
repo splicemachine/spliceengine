@@ -38,4 +38,6 @@ public interface FileInfo{
     boolean isWritable();
 
     String toSummary();
+
+    boolean exists();
 }

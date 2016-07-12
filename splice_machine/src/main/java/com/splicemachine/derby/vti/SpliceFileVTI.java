@@ -142,8 +142,8 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         } catch (IOException e) {
             throw new SQLException(e);
         }
-        if (fileInfo != null) {
-            return fileInfo.size() / getBytesPerRow();
+        if (fileInfo != null &&fileInfo.exists()) {
+            return fileInfo.size()/ getBytesPerRow();
         }
         return VTICosting.defaultEstimatedRowCount;
     }
@@ -177,11 +177,11 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         } catch (IOException e) {
             throw new SQLException(e);
         }
-        if (fileInfo != null) {
+        if (fileInfo != null && fileInfo.exists()) {
             // IMPORTANT: this method needs to return MICROSECONDS, the internal unit
             // for costs in splice machine (displayed as milliseconds in explain plan output).
             // Note that size() is in bytes.
-            return defaultTotalLatencyMicrosPerMB * fileInfo.size() /* bytes */ / 1000000d;
+            return defaultTotalLatencyMicrosPerMB *fileInfo.size() /* bytes */ / 1000000d;
         }
         return VTICosting.defaultEstimatedCost;
     }

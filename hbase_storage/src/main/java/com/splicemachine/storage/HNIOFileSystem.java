@@ -399,5 +399,14 @@ public class HNIOFileSystem extends DistributedFileSystem{
             //     sb.append("\nSpace Consumed = ").append(FileUtils.byteCountToDisplaySize(this.spaceConsumed()));
             return sb.toString();
         }
+
+        @Override
+        public boolean exists(){
+            try{
+                return fs.exists(path);
+            }catch(IOException e){
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

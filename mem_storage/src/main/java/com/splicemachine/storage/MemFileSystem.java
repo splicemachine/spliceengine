@@ -355,5 +355,10 @@ public class MemFileSystem extends DistributedFileSystem{
             sb.append("\nSize = ").append(size());
             return sb.toString();
         }
+
+        @Override
+        public boolean exists(){
+            return Files.exists(p);
+        }
     }
 }

@@ -68,7 +68,7 @@ public class ImportUtils{
         }
 
         if(checkDirectory &&!info.isDirectory()){
-            throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(path);
+            throw ErrorState.DATA_FILE_NOT_FOUND.newException(path);
         }
         if(!info.isWritable()){
             throw ErrorState.LANG_NO_WRITE_PERMISSION.newException(info.getUser(),info.getGroup(),path);

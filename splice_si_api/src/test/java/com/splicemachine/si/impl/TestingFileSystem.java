@@ -354,6 +354,11 @@ public class TestingFileSystem extends DistributedFileSystem{
             return sb.toString();
         }
 
+        @Override
+        public boolean exists(){
+            return Files.exists(p);
+        }
+
     }
 }
 

@@ -73,7 +73,7 @@ public class ImportErrorIT extends SpliceUnitTest {
 
     @Test
     public void testNoSuchTable() throws Exception {
-        runImportTest("NO_SUCH_TABLE","file_doesnt_exist.csv",new ErrorCheck() {
+        runImportTest("NO_SUCH_TABLE","null_col.csv",BADDIR.getCanonicalPath(),new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) throws Exception {
                 //make sure the error code is correct
@@ -83,7 +83,6 @@ public class ImportErrorIT extends SpliceUnitTest {
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage().trim());
             }
         });
-
     }
 
     @Test
@@ -99,7 +98,22 @@ public class ImportErrorIT extends SpliceUnitTest {
                                       fileName+">, Error: <"+retval+">",retval.contains(fileName));
             }
         });
+    }
 
+    @Test
+    public void testCannotFindBadRecordsDir() throws Exception {
+        final String fileName = "null_col.csv";
+        final String badRecordsDir="/totallyMissingBadDir";
+        runImportTest(fileName,badRecordsDir,new ErrorCheck() {
+            @Override
+            public void check(String table, String location, SQLException se) throws Exception {
+                //make sure the error code is correct
+                Assert.assertEquals("Incorrect sql state!","XIE04",se.getSQLState());
+                String retval = se.getMessage();
+                Assert.assertTrue("Incorrect error message! correct: Expected error to contain <"+
+                        badRecordsDir+">, Error: <"+retval+">",retval.contains(badRecordsDir));
+            }
+        });
     }
 
     @Test
@@ -252,14 +266,15 @@ public class ImportErrorIT extends SpliceUnitTest {
     }
 
     private void runImportTest(String file, ErrorCheck check) throws Exception {
-        runImportTest(TABLE,file,check);
+        runImportTest(file,BADDIR.getCanonicalPath(),check);
     }
 
-    /**
-     * Verifies that an import of the specified file into the specified table throws SQLException, then performs
-     * further assertions in ErrorCheck
-     */
-    private void runImportTest(String table,String file,ErrorCheck check) throws Exception {
+
+    private void runImportTest(String file,String badRecordsDir, ErrorCheck check) throws Exception {
+        runImportTest(TABLE,file,badRecordsDir,check);
+    }
+
+    private void runImportTest(String table,String file,String badRecordsDir,ErrorCheck check) throws Exception {
         String inputFilePath = getResourceDirectory()+"test_data/bad_import/"+file;
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
@@ -276,7 +291,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                         "null," +  // has one line records
                         "null)",   // char set
                 schema.schemaName, table, inputFilePath,
-                0, BADDIR.getCanonicalPath()));
+                0, badRecordsDir));
 
         try{
             ps.execute();
