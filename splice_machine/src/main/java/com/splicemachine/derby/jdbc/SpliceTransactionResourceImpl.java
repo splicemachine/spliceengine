@@ -68,22 +68,8 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             SpliceLogUtils.debug(LOG,"marshallTransaction with transactionID %s",txn);
 
         oldCm=csf.getCurrentContextManager();
-//        if(ctxM!=null){
-//            cm=ctxM;
-////            cm.setActiveThread();
-//            generateLcc=false;
-//            lcc=(LanguageConnectionContext)ctxM.getContext(LanguageConnectionContext.CONTEXT_ID);
-//            return false;
-//        }
-        //cm=csf.newContextManager(); // Needed
-        //lcc=database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
-//        cm.setActiveThread();
-//        csf.setCurrentContextManager(cm);
-        //EmbedConnection internalConnection=(EmbedConnection) new EmbedConnectionMaker().createNew(new Properties());
         cm=csf.newContextManager();
         lcc=database.generateLanguageConnectionContext(txn, cm, username, drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
-        // implicitly pushes the new connection context instance to context manager
-        //Context connectionContext = new EmbedConnectionContext(cm, (EmbedConnection)internalConnection);
 
         return true;
     }

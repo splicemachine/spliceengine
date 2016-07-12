@@ -246,7 +246,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
                 this.generationClauses=new SpliceMethod<>(generationClausesFunMethodName,activation);
         }
         if(checkGMFunMethodName!=null){
-            if(checkGM==null)
+            if(checkGM==null || source.getActivation() != checkGM.getActivation())
                 this.checkGM=new SpliceMethod<>(checkGMFunMethodName,activation);
         }
         ExecRow oldRow=(ExecRow)activation.getCurrentRow(source.resultSetNumber());

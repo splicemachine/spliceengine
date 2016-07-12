@@ -4,10 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.Savepoint;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Collection;
+import java.util.Properties;
 
 import com.splicemachine.derby.test.framework.TestConnection;
 import org.junit.*;
@@ -20,6 +19,9 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.sparkproject.guava.collect.Lists;
 
 /**
  * Integration tests specific to CHECK constraints.
@@ -28,6 +30,7 @@ import com.splicemachine.test_dao.TableDAO;
  * 
  * @author Walt Koetke
  */
+@RunWith(Parameterized.class)
 public class CheckConstraintIT extends SpliceUnitTest {
     public static final String CLASS_NAME = CheckConstraintIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
@@ -40,11 +43,25 @@ public class CheckConstraintIT extends SpliceUnitTest {
     private SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     private TestConnection conn;
+    private String connectionString;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        return params;
+    }
+
+    public CheckConstraintIT(String connecitonString) {
+        this.connectionString = connecitonString;
+    }
 
     @Before
     public void setUp() throws Exception{
-        conn = methodWatcher.getOrCreateConnection();
+        conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
         conn.setAutoCommit(false);
+        conn.setSchema(CLASS_NAME.toUpperCase());
     }
 
     @After

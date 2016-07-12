@@ -29,7 +29,6 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
     private OutputCommitter outputCommitter;
     private boolean failure = false;
     private ActivationHolder activationHolder;
-    private Txn txn;
 
     public SMRecordWriter(TableWriter tableWriter, OutputCommitter outputCommitter) throws StandardException{
         try {
@@ -41,9 +40,6 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
                 activationHolder = context.getActivationHolder();
                 activationHolder.reinitialize(tableWriter.getTxn());
             }
-            //txn = SIDriver.driver().lifecycleManager().beginChildTransaction(tableWriter.getTxn(), tableWriter.getDestinationTable());
-            //this.tableWriter.setTxn(txn);
-
         }
         catch (Exception e) {
             throw Exceptions.parseException(e);
@@ -78,10 +74,6 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
     public void close(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         SpliceLogUtils.trace(LOG,"closing %s",taskAttemptContext);
         try {
-            if (txn != null) {
-            //    txn.commit();
-            }
-
             if (initialized) {
                 tableWriter.close();
             }

@@ -97,6 +97,8 @@ public class SpliceMethod<T> {
 		}
 	}
 	
-	
+	public Activation getActivation() {
+		return activation;
+	}
 	
 }
