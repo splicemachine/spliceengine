@@ -94,7 +94,14 @@ public class HNIOFileSystem extends DistributedFileSystem{
     @Override
     public FileInfo getInfo(String filePath) throws IOException{
         org.apache.hadoop.fs.Path f=new org.apache.hadoop.fs.Path(filePath);
-        ContentSummary contentSummary=fs.getContentSummary(f);
+        ContentSummary contentSummary;
+        try{
+            contentSummary=fs.getContentSummary(f);
+        }catch(IOException ioe){
+            LOG.error("Unexpected error getting content summary. We ignore it for now, but you should probably check it out:",ioe);
+            contentSummary = new ContentSummary(0L,0L,0L);
+
+        }
         return new HFileInfo(f,contentSummary);
     }
 

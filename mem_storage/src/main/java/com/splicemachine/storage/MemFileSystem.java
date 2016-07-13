@@ -13,9 +13,7 @@ import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.FileAttributeView;
+import java.nio.file.attribute.*;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Map;
 import java.util.Set;
@@ -339,7 +337,12 @@ public class MemFileSystem extends DistributedFileSystem{
 
         @Override
         public String getGroup(){
-            throw new UnsupportedOperationException("IMPLEMENT");
+            try{
+                PosixFileAttributes attrs = Files.getFileAttributeView(p,PosixFileAttributeView.class).readAttributes();
+                return attrs.owner().getName();
+            }catch(IOException e){
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
