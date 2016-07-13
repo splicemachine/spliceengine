@@ -7,31 +7,29 @@
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
-
-  <repositories>
-    <repository>
-      <id>cloudera</id>
-      <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-    </repository>
-    <repository>
-      <id>mapr</id>
-      <url>http://repository.mapr.com/maven/</url>
-    </repository>
-    <repository>
-      <id>hortonworks-releases</id>
-      <url>http://repo.hortonworks.com/content/repositories/releases/</url>
-    </repository>
-    <repository>
-      <id>hortonworks-hadoop</id>
-      <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
-    </repository>
-    <repository>
-      <id>splicemachine</id>
-      <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
-    </repository>
-  </repositories>
-
-  <properties>
+    <repositories>
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+        </repository>
+        <repository>
+            <id>mapr</id>
+            <url>http://repository.mapr.com/maven/</url>
+        </repository>
+        <repository>
+            <id>hortonworks-releases</id>
+            <url>http://repo.hortonworks.com/content/repositories/releases/</url>
+        </repository>
+        <repository>
+            <id>hortonworks-hadoop</id>
+            <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
+        </repository>
+        <repository>
+            <id>splicemachine</id>
+            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+        </repository>
+    </repositories>
+    <properties>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
@@ -48,80 +46,73 @@
         <!-- Dependency added so Splice Machine will use the shaded libraries for Guava and Netty -->
         <!-- TODO: Remove CDH version dependency in favor of generic apache hbase spark assembly -->
         <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
-  </properties>
-
-  <!-- TODO: Will need to point this to splice open repo -->
-  <scm>
+    </properties>
+    <!-- TODO: Will need to point this to splice open repo -->
+    <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
         <developerConnection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</developerConnection>
         <url>https://github.com/splicemachine/${project.artifactId}</url>
-  </scm>
-
-  <ciManagement>
-    <system>jenkins</system>
-    <url>http://10.1.1.20:8080</url>
-    <!-- url>http://206.225.8.98:8080</url -->
-  </ciManagement>
-
-  <issueManagement>
-    <system>jira</system>
-    <url>https://splicemachine.atlassian.net</url>
-  </issueManagement>
-
-  <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    </scm>
+    <ciManagement>
+        <system>jenkins</system>
+        <url>http://10.1.1.20:8080</url>
+        <!-- url>http://206.225.8.98:8080</url -->
+    </ciManagement>
+    <issueManagement>
+        <system>jira</system>
+        <url>https://splicemachine.atlassian.net</url>
+    </issueManagement>
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Fail the build if not using maven >= 3.3.0  Just a sanity check.  3.3.0 because this
    is currently the min supported version by our plugins.
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-  <prerequisites>
-    <maven>3.3.0</maven>
-  </prerequisites>
-
-  <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    <prerequisites>
+        <maven>3.3.0</maven>
+    </prerequisites>
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    distributionManagement -
 
   Where 'mvn deploy' uploads files to.
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-  <distributionManagement>
-<!--TODO: public nexus required for open src -->
-    <repository>
-      <id>splicemachine</id>
-      <name>Splice Machine Releases</name>
-      <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
-      <uniqueVersion>false</uniqueVersion>
-    </repository>
-    <snapshotRepository>
-      <id>splicemachine</id>
-      <name>Splice Machine Snapshots</name>
-      <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
-      <uniqueVersion>false</uniqueVersion>
-    </snapshotRepository>
+    <distributionManagement>
+        <!--TODO: public nexus required for open src -->
+        <repository>
+            <id>splicemachine</id>
+            <name>Splice Machine Releases</name>
+            <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+            <uniqueVersion>false</uniqueVersion>
+        </repository>
+        <snapshotRepository>
+            <id>splicemachine</id>
+            <name>Splice Machine Snapshots</name>
+            <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+            <uniqueVersion>false</uniqueVersion>
+        </snapshotRepository>
         <site>
             <id>SpliceMachine</id>
             <url>file://${basedir}/target/site</url>
         </site>
-  </distributionManagement>
-
-  <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    </distributionManagement>
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  dependencies - should be a very minimal set of dependencies here as it is difficult to
  predict what all inhering projects will want/need and they can't exclude things
  inherited from the parent pom.
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.12</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
-      <version>1.9.5</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
-  <dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.9.5</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>com.splicemachine</groupId>
@@ -156,14 +147,14 @@
             <dependency>
                 <groupId>org.splicetest.sqlj</groupId>
                 <artifactId>sqlj-it-procs</artifactId>
-              <version>${project.version}</version>
-              <type>jar</type>
+                <version>${project.version}</version>
+                <type>jar</type>
             </dependency>
             <dependency>
                 <groupId>org.splicetest.txn</groupId>
                 <artifactId>txn-it-procs</artifactId>
-              <version>${project.version}</version>
-              <type>jar</type>
+                <version>${project.version}</version>
+                <type>jar</type>
             </dependency>
             <!-- third party dependencies -->
             <dependency>
@@ -408,140 +399,140 @@
     <build>
         <pluginManagement>
             <plugins>
-              <plugin>
-                <groupId>com.github.wvengen</groupId>
-                <artifactId>proguard-maven-plugin</artifactId>
-                <version>2.0.11</version>
-              </plugin>
-              <plugin>
-                <!-- TODO: use dongliu? -->
-                <groupId>net.dongliu</groupId>
-                <artifactId>maven-protoc-plugin</artifactId>
-                <version>0.3.5</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <version>2.5.2</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.4</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>3.0.0</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.3</version>
-                <configuration>
-                  <source>1.7</source>
-                  <target>1.7</target>
-                  <encoding>UTF-8</encoding>
-                  <compilerArgs>
-                    <arg>-XDignore.symbol.file</arg>
-                  </compilerArgs>
-                  <fork>true</fork>
-                  <showWarnings>true</showWarnings>
-                  <showDeprecation>true</showDeprecation>
-                </configuration>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.10</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <version>2.8.2</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.19</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.3</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.2</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19</version>
-              </plugin>
-              <plugin>
-                <!-- TODO: will need to use splice open source github repo -->
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.4</version>
-                <executions>
-                  <execution>
-                    <phase>validate</phase>
-                    <goals>
-                      <goal>create</goal>
-                    </goals>
-                  </execution>
-                </executions>
-                <configuration>
-                  <shortRevisionLength>10</shortRevisionLength>
-                  <doCheck>false</doCheck>
-                  <doUpdate>false</doUpdate>
-                </configuration>
-              </plugin>
-              <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.4.0</version>
-                <configuration>
-                  <killAfter>-1</killAfter>
-                </configuration>
-              </plugin>
-              <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>3.0.3</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.17</version>
-              </plugin>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.5</version>
-              </plugin>
-              <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.7</version>
-              </plugin>
+                <plugin>
+                    <groupId>com.github.wvengen</groupId>
+                    <artifactId>proguard-maven-plugin</artifactId>
+                    <version>2.0.11</version>
+                </plugin>
+                <plugin>
+                    <!-- TODO: use dongliu? -->
+                    <groupId>net.dongliu</groupId>
+                    <artifactId>maven-protoc-plugin</artifactId>
+                    <version>0.3.5</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.8</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>2.6</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>2.5.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>3.4</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.0.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.3</version>
+                    <configuration>
+                        <source>1.7</source>
+                        <target>1.7</target>
+                        <encoding>UTF-8</encoding>
+                        <compilerArgs>
+                            <arg>-XDignore.symbol.file</arg>
+                        </compilerArgs>
+                        <fork>true</fork>
+                        <showWarnings>true</showWarnings>
+                        <showDeprecation>true</showDeprecation>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>2.10</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>2.8.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>2.19</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>2.10.3</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>2.4.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.19</version>
+                </plugin>
+                <plugin>
+                    <!-- TODO: will need to use splice open source github repo -->
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>buildnumber-maven-plugin</artifactId>
+                    <version>1.4</version>
+                    <executions>
+                        <execution>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>create</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <shortRevisionLength>10</shortRevisionLength>
+                        <doCheck>false</doCheck>
+                        <doUpdate>false</doUpdate>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>1.4.0</version>
+                    <configuration>
+                        <killAfter>-1</killAfter>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>findbugs-maven-plugin</artifactId>
+                    <version>3.0.3</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>2.17</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <version>3.5</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>cobertura-maven-plugin</artifactId>
+                    <version>2.7</version>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                  <version>2.4</version>
-                  <executions>
+                    <version>2.4</version>
+                    <executions>
                         <execution>
                             <goals>
                                 <goal>jar</goal>
@@ -581,18 +572,18 @@
             </plugins>
         </pluginManagement>
         <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-source-plugin</artifactId>
-          </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
             </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-jar-plugin</artifactId>
-          </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -647,33 +638,33 @@
                 <module>mem_sql</module>
             </modules>
         </profile>
-      <profile>
-        <id>apache-hbase</id>
-        <activation>
-          <property>
-            <name>env</name>
-            <value>apache-hbase</value>
-          </property>
-        </activation>
-        <properties>
-          <envClassifier>apache-hbase</envClassifier>
-          <envHbase>hbase1.2.0</envHbase>
-          <hbase.version>1.2.0</hbase.version>
-          <hadoop.version>2.6.0</hadoop.version>
-          <hive.version>1.1.0</hive.version>
-          <zookeeper.version>3.4.6</zookeeper.version>
-<!-- Just to try to get things to compile. Will need a generic spark assembly. -->
-          <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
-          <spark.version>1.6.2</spark.version>
-          <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
-          <hadoop.tools.version>1.2.1</hadoop.tools.version>
-        </properties>
-        <modules>
-          <module>hbase_storage</module>
-          <module>hbase_pipeline</module>
-          <module>hbase_sql</module>
-        </modules>
-      </profile>
+        <profile>
+            <id>apache-hbase</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>apache-hbase</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>apache-hbase</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hbase.version>1.2.0</hbase.version>
+                <hadoop.version>2.6.0</hadoop.version>
+                <hive.version>1.1.0</hive.version>
+                <zookeeper.version>3.4.6</zookeeper.version>
+                <!-- Just to try to get things to compile. Will need a generic spark assembly. -->
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
+                <spark.version>1.6.2</spark.version>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+                <hadoop.tools.version>1.2.1</hadoop.tools.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
         <profile>
             <id>hdp2.3.4</id>
             <activation>
@@ -892,7 +883,7 @@
                 <module>../spliceengine-ee/splice_backup</module>
                 <module>../spliceengine-ee/enterprise_it</module>
             </modules>
-       </profile>
+        </profile>
         <profile>
             <id>staticanalysis</id>
             <build>
@@ -1165,11 +1156,11 @@
     </profiles>
     <reporting>
         <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-surefire-report-plugin</artifactId>
-          </plugin>
-          <plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
             </plugin>

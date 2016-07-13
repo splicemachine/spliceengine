@@ -18,7 +18,6 @@
             <version>${project.version}</version>
         </dependency>
     </dependencies>
-
     <properties>
         <jenkins.build.number>1</jenkins.build.number>
         <parcel.patch>p0.${jenkins.build.number}</parcel.patch>
@@ -60,8 +59,7 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <includeArtifactIds>
-                                <!-- third party libs -->
+                            <includeArtifactIds><!-- third party libs -->
                                 concurrentlinkedhashmap-lru,
                                 disruptor,
                                 ehcache-core,

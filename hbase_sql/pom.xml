@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>hbase_sql-${envClassifier}</artifactId>
     <description>SQL engine based on HBase</description>
@@ -16,7 +15,7 @@
         <shell.command>/bin/bash</shell.command>
         <start.script>${project.basedir}/src/test/bin/start-splice-its</start.script>
         <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
-        <ee_out></ee_out>
+        <ee_out/>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
     </properties>
@@ -69,10 +68,10 @@
                     <groupId>org.jboss.netty</groupId>
                     <artifactId>netty</artifactId>
                 </exclusion>
-              <exclusion>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-common</artifactId>
-              </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -134,11 +133,11 @@
             <version>${hadoop.version}</version>
         </dependency>
 -->
-      <dependency>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>hadoop-common</artifactId>
-        <version>${hadoop.version}</version>
-      </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-beeline</artifactId>
@@ -257,18 +256,18 @@
                 </exclusion>
             </exclusions>
         </dependency>
-      <dependency>
-        <groupId>org.splicetest.sqlj</groupId>
-        <artifactId>sqlj-it-procs</artifactId>
-        <type>jar</type>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.splicetest.txn</groupId>
-        <artifactId>txn-it-procs</artifactId>
-        <type>jar</type>
-        <scope>test</scope>
-      </dependency>
+        <dependency>
+            <groupId>org.splicetest.sqlj</groupId>
+            <artifactId>sqlj-it-procs</artifactId>
+            <type>jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.splicetest.txn</groupId>
+            <artifactId>txn-it-procs</artifactId>
+            <type>jar</type>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
@@ -286,7 +285,7 @@
                         <exclude>**/com/splicemachine/backup/*</exclude>
                     </excludes>
                 </configuration>
-              <executions>
+                <executions>
                     <execution>
                         <goals>
                             <goal>test-jar</goal>
@@ -351,7 +350,8 @@
                         <configuration>
                             <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
                             <parallel>classes</parallel>
-														<threadCount>1</threadCount> <!-- -sf- single-threaded for now -->
+                            <threadCount>1</threadCount>
+                            <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
                             <argLine>-Xmx4g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -380,8 +380,7 @@
                         <configuration>
                             <skip>${skipTests}</skip>
                             <target name="StartSpliceServer" unless="${server.skip.start}">
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"
-                                         classpathref="maven.plugin.classpath"/>
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath"/>
                                 <if>
                                     <istrue value="${failTasksRandomly}"/>
                                     <!-- run with chaos monkey (default) -->
@@ -402,8 +401,7 @@
                                 </if>
                                 <property name="classpath.test" refid="maven.test.classpath"/>
                                 <!--suppress MavenModelInspection -->
-                                <java classname="com.splicemachine.test.SpliceTestPlatformWait"
-                                      classpath="${classpath.test}" spawn="false">
+                                <java classname="com.splicemachine.test.SpliceTestPlatformWait" classpath="${classpath.test}" spawn="false">
                                     <arg value="localhost"/>
                                     <arg value="1527"/>
                                 </java>
@@ -875,7 +873,6 @@
             <properties>
                 <ee_out>,ee</ee_out>
             </properties>
-
             <dependencies>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -884,57 +881,55 @@
                 </dependency>
             </dependencies>
             <build>
-            <plugins>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>build-helper-maven-plugin</artifactId>
-                    <version>1.9.1</version>
-                    <executions>
-                        <execution>
-                            <id>add-ee-source</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>add-source</goal>
-                            </goals>
-                            <configuration>
-                                <sources>
-                                    <source>../../spliceengine-ee/splice_backup/src/main/java</source>
-                                </sources>
-
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>add-ee-resource</id>
-                            <phase>generate-resources</phase>
-                            <goals>
-                                <goal>add-resource</goal>
-                            </goals>
-                            <configuration>
-                                <resources>
-                                    <resource>
-                                        <directory>../../spliceengine-ee/splice_backup/src/main/resources</directory>
-                                    </resource>
-                                </resources>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>add-ee-test-source</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>add-test-source</goal>
-                            </goals>
-                            <configuration>
-                                <sources>
-                                    <source>../../spliceengine-ee/splice_backup/src/test/java</source>
-                                    <source>../../spliceengine-ee/enterprise_it/src/test/java</source>
-                                </sources>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-            </plugins>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-ee-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>../../spliceengine-ee/splice_backup/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-ee-resource</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>add-resource</goal>
+                                </goals>
+                                <configuration>
+                                    <resources>
+                                        <resource>
+                                            <directory>../../spliceengine-ee/splice_backup/src/main/resources</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-ee-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>../../spliceengine-ee/splice_backup/src/test/java</source>
+                                        <source>../../spliceengine-ee/enterprise_it/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
             </build>
-
         </profile>
         <profile>
             <id>jmeter</id>
