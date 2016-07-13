@@ -6418,6 +6418,11 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             <text>Unable to enable the enterprise Manager. Enterprise services are disabled. See your Splice Machine representative to enable.</text>
           </msg>
 
+          <msg>
+            <name>XSRSF.S</name>
+            <text>LDAP authentication is disabled. See your Splice Machine representative to enable.</text>
+          </msg>
+
         </family>
 
 
