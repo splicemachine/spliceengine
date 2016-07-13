@@ -14,14 +14,24 @@ import java.util.Comparator;
 public class RowComparator implements Comparator<ExecRow>, Serializable, Externalizable {
     private static final long serialVersionUID = -7005014411999208729L;
     private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
-    private boolean nullsOrderedLow;
+    private boolean[] nullsOrderedLow;
 
     public RowComparator() {
-        nullsOrderedLow = true;
     }
 
+    public RowComparator(boolean[] descColumns) {
+        assert descColumns != null:"Incorrect Ordering Values Passed In";
+        this.descColumns = descColumns;
+        this.nullsOrderedLow = new boolean[descColumns.length];
+        for (int i = 0; i< descColumns.length; i++) {
+            this.nullsOrderedLow[i] = true;
+        }
+    }
+
+
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public RowComparator(boolean[] descColumns, boolean nullsOrderedLow) {
+    public RowComparator(boolean[] descColumns, boolean nullsOrderedLow[]) {
+        assert descColumns != null && nullsOrderedLow !=null:"Incorrect Ordering Values Passed In";
         this.descColumns = descColumns;
         this.nullsOrderedLow = nullsOrderedLow;
     }
@@ -34,7 +44,13 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
             for (int i = 0; i < descColumns.length; i++)
                 out.writeBoolean(descColumns[i]);
         }
-        out.writeBoolean(nullsOrderedLow);
+
+        out.writeBoolean(nullsOrderedLow!=null);
+        if (nullsOrderedLow !=null) {
+            out.writeInt(nullsOrderedLow.length);
+            for (int i = 0; i < nullsOrderedLow.length; i++)
+                out.writeBoolean(nullsOrderedLow[i]);
+        }
     }
 
     @Override
@@ -44,7 +60,11 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
             for (int i = 0; i < descColumns.length; i++)
                 descColumns[i] = in.readBoolean();
         }
-         nullsOrderedLow = in.readBoolean();
+        if (in.readBoolean()) {
+            nullsOrderedLow = new boolean[in.readInt()];
+            for (int i = 0; i < nullsOrderedLow.length; i++)
+                nullsOrderedLow[i] = in.readBoolean();
+        }
     }
 
     @Override
@@ -57,12 +77,12 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
             DataValueDescriptor c2 = a2[i];
             int result;
             try {
-                result = c1.compare(c2,nullsOrderedLow);
+                result = c1.compare(c2,nullsOrderedLow==null?true:nullsOrderedLow[i]);
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }
             if (result != 0) {
-                return (descColumns==null ||!descColumns[i]) ? result : -result;
+                return descColumns==null || !descColumns[i] ? result : -result;
             }
         }
         return 0;

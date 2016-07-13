@@ -36,7 +36,7 @@ public class SortOperation extends SpliceBaseOperation{
     protected int orderingItem;
     protected int[] keyColumns;
     protected boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
-    protected boolean nullsOrderedLow;
+    protected boolean[] nullsOrderedLow;
     private int numColumns;
     private ExecRow execRowDefinition=null;
     private Properties sortProperties=new Properties();
@@ -112,11 +112,11 @@ public class SortOperation extends SpliceBaseOperation{
 
         keyColumns=new int[order.length];
         descColumns=new boolean[order.length];
-
+        nullsOrderedLow = new boolean[order.length];
         for(int i=0;i<order.length;i++){
             keyColumns[i]=order[i].getColumnId();
             descColumns[i]=!order[i].getIsAscending();
-            nullsOrderedLow=order[i].getIsNullsOrderedLow();
+            nullsOrderedLow[i]=order[i].getIsNullsOrderedLow();
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"keyColumns %s, distinct %s",Arrays.toString(keyColumns),distinct);

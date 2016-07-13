@@ -44,6 +44,6 @@ public interface ColumnOrdering
          *
          * @return whether nulls should sort low
          */
-	public boolean getIsNullsOrderedLow();
+	boolean getIsNullsOrderedLow();
 }
 

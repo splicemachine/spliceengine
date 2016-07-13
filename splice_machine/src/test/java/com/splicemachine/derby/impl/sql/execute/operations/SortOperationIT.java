@@ -15,6 +15,7 @@ import org.junit.runner.Description;
 import org.sparkproject.guava.collect.Lists;
 
 import static com.splicemachine.homeless.TestUtils.*;
+import static org.junit.Assert.assertEquals;
 
 public class SortOperationIT extends SpliceUnitTest { 
 	public static final String CLASS_NAME = SortOperationIT.class.getSimpleName().toUpperCase();
@@ -22,11 +23,13 @@ public class SortOperationIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_1 = "FOOD";
 	public static final String TABLE_NAME_2 = "PERSON";
     public static final String TABLE_NAME_3 = "BOOL_TABLE";
+	public static final String TABLE_NAME_4 = "A";
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(255),value1 varchar(255),value2 varchar(255))");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(255), age float,created_time timestamp)");
 	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(col boolean)");
+	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME,"(id int, text char(20))");
 
 	private static long startTime;
 
@@ -36,11 +39,22 @@ public class SortOperationIT extends SpliceUnitTest {
 		.around(spliceTableWatcher1)
 		.around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
+			.around(spliceTableWatcher4)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
 				try {
 				spliceClassWatcher.setAutoCommit(true);
+
+				spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,'dw')",CLASS_NAME,TABLE_NAME_4));
+				spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,'d2w')",CLASS_NAME,TABLE_NAME_4));
+				spliceClassWatcher.executeUpdate(format("insert into %s.%s values (2,'d2w')",CLASS_NAME,TABLE_NAME_4));
+				spliceClassWatcher.executeUpdate(format("insert into %s.%s(id) values (3)",CLASS_NAME,TABLE_NAME_4));
+					spliceClassWatcher.executeUpdate(format("insert into %s.%s(id) values (4)",CLASS_NAME,TABLE_NAME_4));
+				spliceClassWatcher.executeUpdate(format("insert into %s.%s(text) values ('4')",CLASS_NAME,TABLE_NAME_4));
+				spliceClassWatcher.executeUpdate(format("insert into %s.%s(text) values ('45')",CLASS_NAME,TABLE_NAME_4));
+
+
 				Triplet triple = new Triplet("jzhang","pickles","greens");
 				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (name,value1,value2) values (?,?,?)",CLASS_NAME,TABLE_NAME_1));
 				ps.setString(1, triple.k1);
@@ -426,6 +440,21 @@ public class SortOperationIT extends SpliceUnitTest {
         Assert.assertTrue(rs.next());
         Assert.assertNull("unexpected sort order", rs.getObject(1));
     }
+
+	@Test
+	public void testNullsFirstPartial() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery(format("select text, id from %s.%s order by id nulls first,text",CLASS_NAME,TABLE_NAME_4));
+		String test = "TEXT | ID  |\n" +
+				"------------\n" +
+				"  4  |NULL |\n" +
+				" 45  |NULL |\n" +
+				"NULL |  3  |\n" +
+				"NULL |  4  |\n" +
+				" d2w |  1  |\n" +
+				" d2w |  2  |\n" +
+				" dw  |  1  |";
+		assertEquals(test, TestUtils.FormattedResult.ResultFactory.toString(rs));
+	}
 
     @Test
     public void testSortDescNullLast() throws Exception {
