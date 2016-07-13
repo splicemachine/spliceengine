@@ -6,6 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.Transactions;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -23,7 +24,7 @@ import static org.junit.Assert.assertEquals;
  * @author Scott Fines
  *         Date: 9/3/14
  */
-@Category({Transactions.class})
+@Category({Transactions.class,SerialTest.class})
 public class AddColumnTransactionIT {
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(AddColumnTransactionIT.class.getSimpleName().toUpperCase());
 
@@ -282,14 +283,14 @@ public class AddColumnTransactionIT {
         a.commit();
         assertEquals("Incorrect returned row count", 1, a.count("select * from "+ addedTable));
 
-        a.createStatement().execute("alter table "+ addedTable+" add column f int not null with default 2");
+        a.createStatement().execute("alter table "+ addedTable+" add column FF int not null with default 2");
         a.commit();
 
         ResultSet rs = a.query("select * from "+ addedTable+" where a = "+ aInt);
         int count=0;
         while(rs.next()){
-            int f = rs.getInt("F");
-            Assert.assertFalse("Got a null value for f!",rs.wasNull());
+            int f = rs.getInt("FF");
+            Assert.assertFalse("Got a null value for FF!",rs.wasNull());
             assertEquals("Incorrect default value!",2,f);
             count++;
         }
