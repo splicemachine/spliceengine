@@ -85,6 +85,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
             int counter = 0;
             for (int i =0; i<mutations.size();i++) {
                 byte[] checkRowKey = getCheckRowKey(mutations.get(i).getRowKey());
+                if (checkRowKey==null)
+                    failWrite(mutations.get(i),ctx);
                 if (culledLookups.contains(checkRowKey)) {
                     locations[i] = counter-1;
                 } else {

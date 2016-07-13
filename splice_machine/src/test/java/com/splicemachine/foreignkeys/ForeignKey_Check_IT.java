@@ -69,6 +69,22 @@ public class ForeignKey_Check_IT {
     }
 
     @Test
+    // DB-5523
+    public void testCannotInsertChildNulls() throws Exception {
+
+        new TableCreator(conn)
+                .withCreate("create table P (a int not null primary key)")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table C (a int CONSTRAINT c_fk_1 references P(a))")
+                .create();
+
+        assertQueryFail("insert into C values null", "Operation on table 'C' caused a violation of foreign key constraint 'C_FK_1' for key (A).  The statement has been rolled back.");
+    }
+
+
+    @Test
     public void referencing_singleColumn_uniqueIndex() throws Exception {
 
         new TableCreator(conn)
