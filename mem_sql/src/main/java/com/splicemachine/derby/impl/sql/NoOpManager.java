@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import com.splicemachine.backup.BackupManager;
+import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 import com.splicemachine.management.Manager;
@@ -32,6 +33,11 @@ public class NoOpManager implements Manager {
 
     @Override
     public UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws SQLException {
+        return null;
+    }
+
+    @Override
+    public ColPermsManager getColPermsManager() throws SQLException {
         return null;
     }
 }
