@@ -21,6 +21,7 @@ import java.util.Properties;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.management.Manager;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
@@ -637,9 +638,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    public ColPermsDescriptor getColumnPermissions(UUID colPermsUUID) throws StandardException{
-        ColPermsDescriptor key=new ColPermsDescriptor(this,colPermsUUID);
-        return getUncachedColPermsDescriptor(key);
+    public ColPermsDescriptor getColumnPermissions(UUID colPermsUUID) throws StandardException {
+        Manager manager = EngineDriver.driver().manager();
+            return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,colPermsUUID):null;
     }
 
     /**
@@ -661,10 +662,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                                                    int privType,
                                                    boolean forGrant,
                                                    String authorizationId) throws StandardException{
-        String privTypeStr=forGrant?colPrivTypeMapForGrant[privType]:colPrivTypeMap[privType];
-        assert privTypeStr!=null:"Invalid column privilege type: "+privType;
-        ColPermsDescriptor key=new ColPermsDescriptor(this,authorizationId,null,tableUUID,privTypeStr);
-        return (ColPermsDescriptor)getPermissions(key);
+        Manager manager = EngineDriver.driver().manager();
+        return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,tableUUID,privType,forGrant,authorizationId):null;
     } // end of getColumnPermissions
 
 

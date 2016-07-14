@@ -403,7 +403,6 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:splice_backup</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -938,6 +937,7 @@
                                         <source>../../spliceengine-ee/splice_backup/src/main/java</source>
                                         <source>../../spliceengine-ee/splice_auth/src/main/java</source>
                                         <source>../../spliceengine-ee/splice_colperms/src/main/java</source>
+                                        <source>../../spliceengine-ee/splice_encryption/src/main/java</source>
                                     </sources>
                                 </configuration>
                             </execution>

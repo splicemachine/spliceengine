@@ -17,11 +17,15 @@ package com.splicemachine.derby.impl.sql;
 
 import java.sql.SQLException;
 import java.util.Properties;
-
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.encryption.EncryptionManager;
 import com.splicemachine.management.Manager;
 
 /**
@@ -52,7 +56,37 @@ public class NoOpManager implements Manager {
     }
 
     @Override
-    public ColPermsManager getColPermsManager() throws SQLException {
-        return null;
+    public ColPermsManager getColPermsManager() throws StandardException {
+        return new ColPermsManager() {
+            @Override
+            public ColPermsDescriptor getColumnPermissions(DataDictionaryImpl dd, UUID colPermsUUID) throws StandardException {
+                return null;
+            }
+
+            @Override
+            public ColPermsDescriptor getColumnPermissions(DataDictionaryImpl dd, UUID tableUUID, int privType, boolean forGrant, String authorizationId) throws StandardException {
+                return null;
+            }
+        };
+    }
+
+    @Override
+    public EncryptionManager getEncryptionManager() throws StandardException {
+        return new EncryptionManager() {
+            @Override
+            public boolean encryptedMessaging() {
+                return false;
+            }
+
+            @Override
+            public boolean encryptedFileSystem() {
+                return false;
+            }
+        };
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return false;
     }
 }

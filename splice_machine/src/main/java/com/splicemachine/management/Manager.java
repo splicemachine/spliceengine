@@ -17,11 +17,12 @@ package com.splicemachine.management;
 
 import java.sql.SQLException;
 import java.util.Properties;
-
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
+import com.splicemachine.encryption.EncryptionManager;
 
 /**
  * Manager
@@ -34,6 +35,10 @@ public interface Manager {
 
     UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws SQLException;
 
-    ColPermsManager getColPermsManager() throws SQLException;
+    ColPermsManager getColPermsManager() throws StandardException;
+
+    EncryptionManager getEncryptionManager() throws StandardException;
+
+    boolean isEnabled();
 
 }

@@ -20,8 +20,8 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.ServiceLoader;
 
+import com.splicemachine.encryption.EncryptionManager;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
@@ -107,8 +107,18 @@ public class ManagerLoader {
         }
 
         @Override
-        public ColPermsManager getColPermsManager() throws SQLException {
-            throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
+        public ColPermsManager getColPermsManager() throws StandardException {
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
+        }
+
+        @Override
+        public EncryptionManager getEncryptionManager() throws StandardException {
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return false;
         }
     }
 }
