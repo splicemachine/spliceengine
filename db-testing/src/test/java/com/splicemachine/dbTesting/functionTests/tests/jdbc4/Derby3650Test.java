@@ -1,3 +1,28 @@
+/*
+ * Apache Derby is a subproject of the Apache DB project, and is licensed under
+ * the Apache License, Version 2.0 (the "License"); you may not use these files
+ * except in compliance with the License. You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ * Splice Machine, Inc. has modified this file.
+ *
+ * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
+ * and are licensed to you under the License; you may not use this file except in
+ * compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ */
+
 package com.splicemachine.dbTesting.functionTests.tests.jdbc4;
 
 import java.io.IOException;
@@ -22,27 +47,7 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
 
 import com.splicemachine.dbTesting.functionTests.util.streams.LoopingAlphabetReader;
 
-/*
-Class com.splicemachine.dbTesting.functionTests.tests.jdbc4.Derby3650Test
-
-Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to you under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-*/
-
-/** 
+/**
  * These are tests to test the cases for DERBY-3650.
  * The tests won't pass until that bug is fixed. 
  */
