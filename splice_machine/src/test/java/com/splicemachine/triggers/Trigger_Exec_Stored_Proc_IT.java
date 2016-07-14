@@ -89,7 +89,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @BeforeClass
     public static void setUpClass() throws Exception {
 
-        String storedProcsJarFilePath = getHBaseDirectory()+"/target/sql-it/sql-it.jar";
+        String storedProcsJarFilePath = System.getProperty("user.dir")+"/target/sql-it/sql-it.jar";
         // Install the jar file of stored procedures.
         File jar = new File(storedProcsJarFilePath);
         Assert.assertTrue("Can't run test without " + storedProcsJarFilePath, jar.exists());

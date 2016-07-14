@@ -110,7 +110,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        String STORED_PROCS_JAR_FILE = getHBaseDirectory()+"/target/txn-it/txn-it.jar";//getJarFileForClass(TxnTestProcs.class);
+        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/txn-it/txn-it.jar";//getJarFileForClass(TxnTestProcs.class);
         assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
             STORED_PROCS_JAR_FILE.endsWith("jar"));
 
