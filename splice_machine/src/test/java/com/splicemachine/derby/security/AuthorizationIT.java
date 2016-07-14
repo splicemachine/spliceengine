@@ -34,17 +34,17 @@ public class AuthorizationIT {
 
     private static final String SCHEMA = AuthorizationIT.class.getSimpleName().toUpperCase();
 
-    private static final String USER1 = "john";
-    private static final String PASSWORD1 = "jleach";
-    private static final String ROLE1 = "super_user";
+    protected static final String USER1 = "john";
+    protected static final String PASSWORD1 = "jleach";
+    protected static final String ROLE1 = "super_user";
 
-    private static final String USER2 = "jim";
-    private static final String PASSWORD2 = "bo";
-    private static final String ROLE2 = "read_only";
+    protected static final String USER2 = "jim";
+    protected static final String PASSWORD2 = "bo";
+    protected static final String ROLE2 = "read_only";
 
-    private static final String USER3 = "suzy";
-    private static final String PASSWORD3 = "X)X)X";
-    private static final String ROLE3 = "app_user";
+    protected static final String USER3 = "suzy";
+    protected static final String PASSWORD3 = "X)X)X";
+    protected static final String ROLE3 = "app_user";
 
 
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
@@ -67,9 +67,9 @@ public class AuthorizationIT {
             .around(spliceRoleWatcher2)
             .around(spliceRoleWatcher3);
 
-    private static TestConnection user1Conn;
-    private static TestConnection user2Conn;
-    private static TestConnection user3Conn;
+    protected static TestConnection user1Conn;
+    protected static TestConnection user2Conn;
+    protected static TestConnection user3Conn;
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
@@ -95,12 +95,6 @@ public class AuthorizationIT {
     @Test
     public void testSuperUserCannotSeePasswordsInSysUsers() throws Exception {
         assertFailed(methodWatcher.getOrCreateConnection(), "select * from sys.sysusers", SQLState.HIDDEN_COLUMN);
-    }
-
-    @Test
-    @Ignore("JEFF TODO")
-    public void testUserCannotSelectFromAnotherUsersTable() throws Exception {
-        assertFailed(user2Conn, "select * from STAFF", SQLState.AUTH_NO_COLUMN_PERMISSION);
     }
 
     @Test
@@ -146,22 +140,9 @@ public class AuthorizationIT {
         assertFailed(methodWatcher.getOrCreateConnection(), format("create role %s", USER2), null); // "X0Y68"?
     }
 
-    @Test
-    @Ignore("JEFF - TODO")
-    public void testGrantSelectAndRevoke() throws Exception {
-        TestConnection conn = methodWatcher.getOrCreateConnection();
-        conn.execute(format("grant select on table STAFF to %s", USER2));
-        conn.execute(format("grant select (empname,city) on table STAFF to %s", USER3));
-        user2Conn.count("select * from STAFF");
-        user3Conn.count("select empname,city from STAFF");
-        assertFailed(user3Conn, "select * from STAFF", SQLState.AUTH_NO_COLUMN_PERMISSION);
-        conn.execute(format("revoke select on table STAFF from %s", USER2));
-        conn.execute(format("revoke select (empname,city) on table STAFF from %s", USER3));
-    }
-
     /*****************************************************************************************************************/
 
-    private static void assertFailed(Connection connection, String sql, String errorState) {
+    protected static void assertFailed(Connection connection, String sql, String errorState) {
         try {
             connection.createStatement().execute(sql);
             fail("Did not fail");
