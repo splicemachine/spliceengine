@@ -43,6 +43,10 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(false);
     public static final byte[] BACKUP_DONE = Bytes.toBytes(true);
 
+    public static final String HBASE_SECURITY_AUTHENTICATION = "hbase_security_authentication";
+    public static final String HBASE_SECURITY_AUTHORIZATION = "hbase_security_authorization";
+    public static final String DEFAULT_HBASE_SECURITY_AUTHORIZATION = "simple";
+
 
     /**
      * Path in Zookeeper for storing ongoing backup
@@ -166,6 +170,11 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.spliceRootPath = configurationSource.getString(SPLICE_ROOT_PATH, DEFAULT_ROOT_PATH);
         builder.namespace = configurationSource.getString(NAMESPACE, DEFAULT_NAMESPACE);
         builder.backupPath = configurationSource.getString(BACKUP_PATH, DEFAULT_BACKUP_PATH);
+
+
+        builder.hbaseSecurityAuthentication = configurationSource.getBoolean(HBASE_SECURITY_AUTHENTICATION, false);
+        builder.hbaseSecurityAuthorization = configurationSource.getString(HBASE_SECURITY_AUTHORIZATION,
+                                                                           DEFAULT_HBASE_SECURITY_AUTHORIZATION);
 
     }
 }

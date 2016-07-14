@@ -72,6 +72,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String compressionAlgorithm;
     private final  String namespace;
     private final  String spliceRootPath;
+    private final  String hbaseSecurityAuthorization;
+    private final  boolean hbaseSecurityAuthentication;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -258,6 +260,14 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public String getSpliceRootPath() {
         return spliceRootPath;
+    }
+    @Override
+    public String getHbaseSecurityAuthorization() {
+        return hbaseSecurityAuthorization;
+    }
+    @Override
+    public boolean getHbaseSecurityAuthentication() {
+        return hbaseSecurityAuthentication;
     }
 
     // OperationConfiguration
@@ -606,6 +616,8 @@ public final class SConfigurationImpl implements SConfiguration {
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;
+        hbaseSecurityAuthorization = builder.hbaseSecurityAuthorization;
+        hbaseSecurityAuthentication = builder.hbaseSecurityAuthentication;
         debugDumpBindTree = builder.debugDumpBindTree;
         debugDumpClassFile = builder.debugDumpClassFile;
         debugDumpOptimizedTree = builder.debugDumpOptimizedTree;

@@ -92,6 +92,10 @@ public interface SConfiguration {
 
     String getSpliceRootPath();
 
+    String getHbaseSecurityAuthorization();
+
+    boolean getHbaseSecurityAuthentication();
+
     // OperationConfiguration
     int getSequenceBlockSize();
 

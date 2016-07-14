@@ -85,6 +85,8 @@ public class ConfigurationBuilder {
     public String compressionAlgorithm;
     public String namespace;
     public String spliceRootPath;
+    public String hbaseSecurityAuthorization;
+    public boolean hbaseSecurityAuthentication;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;

@@ -933,11 +933,11 @@
                                 </goals>
                                 <configuration>
                                     <sources>
-                                        <source>../../spliceengine-ee/splice_ee/src/main/java</source>
                                         <source>../../spliceengine-ee/splice_backup/src/main/java</source>
                                         <source>../../spliceengine-ee/splice_auth/src/main/java</source>
                                         <source>../../spliceengine-ee/splice_colperms/src/main/java</source>
                                         <source>../../spliceengine-ee/splice_encryption/src/main/java</source>
+                                      <source>../../spliceengine-ee/splice_ee/src/main/java</source>
                                     </sources>
                                 </configuration>
                             </execution>

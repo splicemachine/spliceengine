@@ -90,20 +90,20 @@ public class ManagerLoader {
     public static class DisabledManager implements Manager {
 
         @Override
-        public void enableEnterprise(char[] value) throws SQLException {
+        public void enableEnterprise(char[] value) throws StandardException {
             // this will only be seen in open source version
-            throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
         }
 
         @Override
-        public BackupManager getBackupManager() throws SQLException {
-            throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
+        public BackupManager getBackupManager() throws StandardException {
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
         }
 
         @Override
         public UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws
-            SQLException {
-            throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
+            StandardException {
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
         }
 
         @Override

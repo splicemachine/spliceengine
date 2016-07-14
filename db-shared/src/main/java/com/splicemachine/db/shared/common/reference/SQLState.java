@@ -392,6 +392,7 @@ public interface SQLState {
     String BACKUP_OPERATIONS_DISABLED                           = "XSRSD.S";
     String MANAGER_DISABLED                                     = "XSRSE.S";
     String AUTHENTICATION_MANAGER_DISABLED                      = "XSRSF.S";
+    String ENTERPRISE_FEATURES_DISABLED                         = "XSRSG.S";
 
 	/*
 	** RawStore - Log.Generic statement exceptions

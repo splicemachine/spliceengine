@@ -15,8 +15,8 @@
 
 package com.splicemachine.management;
 
-import java.sql.SQLException;
 import java.util.Properties;
+
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
@@ -29,11 +29,11 @@ import com.splicemachine.encryption.EncryptionManager;
  */
 public interface Manager {
 
-    void enableEnterprise(final char[] value) throws SQLException;
+    void enableEnterprise(final char[] value) throws StandardException;
 
-    BackupManager getBackupManager() throws SQLException;
+    BackupManager getBackupManager() throws StandardException;
 
-    UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws SQLException;
+    UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws StandardException;
 
     ColPermsManager getColPermsManager() throws StandardException;
 

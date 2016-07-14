@@ -6430,6 +6430,11 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             <text>LDAP authentication is disabled. See your Splice Machine representative to enable.</text>
           </msg>
 
+          <msg>
+            <name>XSRSG.S</name>
+            <text>SpliceMachine Enterprise services are disabled and so will not run on an encrypted host. See your Splice Machine representative to enable.</text>
+          </msg>
+
         </family>
 
 
