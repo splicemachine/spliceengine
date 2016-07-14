@@ -96,6 +96,7 @@ public class ConfigurationBuilder {
     public long optimizerPlanMinimumTimeout;
     public String networkBindAddress;
     public String upgradeForcedFrom;
+    public String storageFactoryHome;
 
     // PipelineConfiguration
     public int coreWriterThreads;

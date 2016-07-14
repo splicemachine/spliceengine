@@ -1479,9 +1479,9 @@ public class SpliceTransactionManager implements XATransactionController,
     @Override
     public boolean isElevated(){
         BaseSpliceTransaction rawTransaction=getRawTransaction();
-        assert rawTransaction instanceof SpliceTransaction:
-                "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
-        SpliceTransaction txn=(SpliceTransaction)rawTransaction;
+        assert rawTransaction instanceof BaseSpliceTransaction:
+                "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction -> " + rawTransaction;
+        BaseSpliceTransaction txn=(BaseSpliceTransaction)rawTransaction;
         return txn.allowsWrites();
     }
 

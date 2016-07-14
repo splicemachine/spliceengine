@@ -4,7 +4,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -13,8 +12,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.splicetest.sqlj.SqlJTestProcs;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -60,7 +57,8 @@ public class SqlJJarIT extends SpliceUnitTest {
 	private static final String CALL_GET_GLOBAL_CLASSPATH = "CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath')";
 
 	// SQL queries.
-	private static final String SELECT_FROM_SYSFILES = "SELECT * FROM SYS.SYSFILES";
+	private static final String SELECT_FROM_SYSFILES = "SELECT * FROM SYS.SYSFILES, sys.sysschemas " +
+			"where sys.sysschemas.schemaid = sys.sysfiles.schemaid and schemaname = 'SQLJARIT' and FILENAME = 'SQLJ_IT_PROCS_JAR'";
 
 	@ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -71,7 +69,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        STORED_PROCS_JAR_FILE = getJarFileForClass(SqlJTestProcs.class);
+        STORED_PROCS_JAR_FILE = getHBaseDirectory()+"/target/sql-it/sql-it.jar";;
         assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
             STORED_PROCS_JAR_FILE.endsWith("jar"));
     }

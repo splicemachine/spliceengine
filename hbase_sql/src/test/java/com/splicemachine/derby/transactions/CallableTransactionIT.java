@@ -1,11 +1,9 @@
 package com.splicemachine.derby.transactions;
 
 import static org.junit.Assert.assertTrue;
-
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
-
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -16,8 +14,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.splicetest.txn.TxnTestProcs;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -114,7 +110,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        String STORED_PROCS_JAR_FILE = getJarFileForClass(TxnTestProcs.class);
+        String STORED_PROCS_JAR_FILE = getHBaseDirectory()+"/target/txn-it/txn-it.jar";//getJarFileForClass(TxnTestProcs.class);
         assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
             STORED_PROCS_JAR_FILE.endsWith("jar"));
 

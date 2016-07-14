@@ -54,6 +54,30 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange createRefreshEnterpriseFeatures(long txnId) {
+        return DDLChange.newBuilder().setTxnId(txnId).setRefreshEnterpriseFeatures(RefreshEnterpriseFeatures.newBuilder().build())
+                .setDdlChangeType(DDLChangeType.REFRESH_ENTRPRISE_FEATURES)
+                .build();
+    }
+
+
+    public static DDLChange createNotifyModifyClasspath(long txnId, String classpath) {
+        return DDLChange.newBuilder().setTxnId(txnId).setNotifyModifyClasspath(NotifyModifyClasspath.newBuilder()
+                .setClasspath(classpath).build())
+                .setDdlChangeType(DDLChangeType.NOTIFY_MODIFY_CLASSPATH)
+                .build();
+    }
+
+    public static DDLChange createNotifyJarLoader(long txnId, boolean reload, boolean drop, String schemaName, String sqlName) {
+        return DDLChange.newBuilder().setTxnId(txnId).setNotifyJarLoader(NotifyJarLoader.newBuilder()
+                .setReload(reload)
+                .setDrop(drop)
+                .setSchemaName(schemaName==null?"":schemaName)
+                .setSqlName(sqlName==null?"":sqlName)
+                .build())
+                .setDdlChangeType(DDLChangeType.NOTIFY_JAR_LOADER)
+                .build();
+    }
 
     public static DDLChange createTrigger(long txnId, BasicUUID basicUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setCreateTrigger(CreateTrigger.newBuilder()

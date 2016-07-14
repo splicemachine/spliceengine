@@ -58,7 +58,7 @@ public interface DataDictionary{
     /** The conglomerate id of the first user table */
     // NOTE: JC - this constant is also defined in (splice) EnvUtils. When adding a new sys table, this
     // number will need to be increased in BOTH places.
-    long FIRST_USER_TABLE_NUMBER = 1440;
+    long FIRST_USER_TABLE_NUMBER = 1458;
 
     /**
      * Special version indicating the database must be upgraded to or created at the current engine level

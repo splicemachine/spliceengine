@@ -37,6 +37,14 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String IGNORE_SAVE_POINTS = "splice.ignore.savepts";
     public static final boolean DEFAULT_IGNORE_SAVEPTS = false;
 
+    /**
+     *
+     * This is where install_jar places the jar files...  Needs to be configured for stand alone versions to know
+     * where to look for jar files.
+     *
+     */
+    public static final String STORAGE_FACTORY_HOME = "splice.storage.factory.home";
+
     public static final String IMPORT_MAX_QUOTED_COLUMN_LINES="splice.import.maxQuotedColumnLines";
     private static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 50000;
 
@@ -189,7 +197,13 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.batchOnceBatchSize = configurationSource.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
         builder.partitionserverJmxPort = configurationSource.getInt(PARTITIONSERVER_JMX_PORT, DEFAULT_PARTITIONSERVER_JMX_PORT);
         builder.partitionserverPort = configurationSource.getInt(PARTITIONSERVER_PORT, DEFAULT_PARTITIONSERVER_PORT);
-
+        // Where to place jar files...
+        String defaultStorageFactoryHome;
+        if (System.getProperty("hbase.rootdir") != null)
+            defaultStorageFactoryHome = System.getProperty("hbase.rootdir");
+        else
+            defaultStorageFactoryHome = configurationSource.getString("hbase.rootdir",System.getProperty("hbase.rootdir"));
+        builder.storageFactoryHome = configurationSource.getString(STORAGE_FACTORY_HOME,defaultStorageFactoryHome);
         builder.optimizerPlanMaximumTimeout = configurationSource.getLong(OPTIMIZER_PLAN_MAXIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
         builder.optimizerPlanMinimumTimeout = configurationSource.getLong(OPTIMIZER_PLAN_MINIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
         builder.broadcastRegionMbThreshold = configurationSource.getLong(BROADCAST_REGION_MB_THRESHOLD, DEFAULT_BROADCAST_REGION_MB_THRESHOLD);

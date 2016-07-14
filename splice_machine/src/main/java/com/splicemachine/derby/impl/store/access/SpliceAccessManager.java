@@ -719,7 +719,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return true;
     }
 
-    public Serviceable apply(String key, Serializable value, Dictionary p) throws StandardException {
+    public Serviceable apply(String key, Serializable value, Dictionary p, TransactionController tc) throws StandardException {
         return null;
     }
 

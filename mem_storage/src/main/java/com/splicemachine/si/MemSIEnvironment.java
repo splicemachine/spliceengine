@@ -1,9 +1,6 @@
 package com.splicemachine.si;
 
-import java.io.IOException;
 import java.nio.file.FileSystems;
-import java.util.concurrent.TimeUnit;
-
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
@@ -12,7 +9,6 @@ import com.splicemachine.access.configuration.ConfigurationBuilder;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.ConcurrentTicker;
-import com.splicemachine.concurrent.TickingClock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -67,39 +63,7 @@ public class MemSIEnvironment implements SIEnvironment{
         this.opFactory = new MOperationFactory(clock);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
         this.kaScheduler = new ManualKeepAliveScheduler(txnStore);
-//        if(clock instanceof TickingClock){
-//            final TickingClock delegate = (TickingClock)clock;
-//            this.kaScheduler = new ManualKeepAliveScheduler(txnStore);
-//            final ManualKeepAliveScheduler manualKAScheduler = (ManualKeepAliveScheduler)this.kaScheduler;
-//            this.clock=new TickingClock(){
-//                @Override public long currentTimeMillis(){ return delegate.currentTimeMillis(); }
-//                @Override public long nanoTime(){ return delegate.nanoTime(); }
-//                @Override public void sleep(long l,TimeUnit timeUnit) throws InterruptedException{ delegate.sleep(l,timeUnit); }
-//
-//                @Override
-//                public long tickMillis(long l){
-//                    try{
-//                        manualKAScheduler.keepAliveAll();
-//                    }catch(IOException e){
-//                        throw new RuntimeException(e);
-//                    }
-//                    return delegate.tickMillis(l);
-//                }
-//
-//                @Override
-//                public long tickNanos(long l){
-//                    try{
-//                        manualKAScheduler.keepAliveAll();
-//                    }catch(IOException e){
-//                        throw new RuntimeException(e);
-//                    }
-//                    return delegate.tickNanos(l);
-//                }
-//            };
-//        }else{
-//            this.kaScheduler = new QueuedKeepAliveScheduler()
             this.clock = clock;
-//        }
     }
 
     @Override

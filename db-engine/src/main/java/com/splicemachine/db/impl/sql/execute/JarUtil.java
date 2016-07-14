@@ -34,7 +34,6 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FileUtil;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
@@ -68,11 +67,9 @@ public class JarUtil
 	//State derived from the caller's context
 	private JarUtil(LanguageConnectionContext lcc,
             String schemaName, String sqlName)
-		 throws StandardException
-	{
+		 throws StandardException {
 		this.schemaName = schemaName;
 		this.sqlName = sqlName;
-
         this.lcc = lcc;
 		fr = lcc.getTransactionExecute().getFileHandler();
 		dd = lcc.getDataDictionary();
@@ -92,11 +89,9 @@ public class JarUtil
 	public static long
 	install(LanguageConnectionContext lcc,
             String schemaName, String sqlName, String externalPath)
-		 throws StandardException
-	{
+		 throws StandardException {
 		JarUtil jutil = new JarUtil(lcc, schemaName, sqlName);
 		InputStream is = null;
-		
 		try {
 			is = openJarURL(externalPath);
 			return jutil.add(is);
@@ -118,34 +113,8 @@ public class JarUtil
 	  @param is A stream for reading the content of the file to add.
 	  @exception StandardException Opps
 	  */
-	private long add(final InputStream is) throws StandardException
-	{
-		//
-		//Like create table we say we are writing before we read the dd
-		dd.startWriting(lcc);
-		FileInfoDescriptor fid = getInfo();
-		if (fid != null)
-			throw
-				StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT, 
-											   fid.getDescriptorType(), sqlName, fid.getSchemaDescriptor().getDescriptorType(), schemaName);
-
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
-        try {
-            notifyLoader(false);
-            dd.invalidateAllSPSPlans();
-            UUID id = Monitor.getMonitor().getUUIDFactory().createUUID();
-            final String jarExternalName = JarUtil.mkExternalName(
-                id, schemaName, sqlName, fr.getSeparatorChar());
-
-            long generationId = setJar(jarExternalName, is, true, 0L);
-
-            fid = ddg.newFileInfoDescriptor(id, sd, sqlName, generationId);
-            dd.addDescriptor(fid, sd, DataDictionary.SYSFILES_CATALOG_NUM,
-                    false, lcc.getTransactionExecute());
-            return generationId;
-        } finally {
-            notifyLoader(true);
-        }
+	private long add(final InputStream is) throws StandardException {
+		return lcc.getDatabase().addJar(is,this);
 	}
 
 	/**
@@ -176,51 +145,8 @@ public class JarUtil
 
 	  @exception StandardException Opps
 	  */
-	private void drop() throws StandardException
-	{
-		//
-		//Like create table we say we are writing before we read the dd
-		dd.startWriting(lcc);
-		FileInfoDescriptor fid = getInfo();
-		if (fid == null)
-			throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, sqlName,schemaName);
-
-		String dbcp_s = PropertyUtil.getServiceProperty(lcc.getTransactionExecute(),Property.DATABASE_CLASSPATH);
-		if (dbcp_s != null)
-		{
-			String[][]dbcp= IdUtil.parseDbClassPath(dbcp_s);
-			boolean found = false;
-			//
-			//Look for the jar we are dropping on our database classpath.
-			//We don't concern ourselves with 3 part names since they may
-			//refer to a jar file in another database and may not occur in
-			//a database classpath that is stored in the propert congomerate.
-			for (int ix=0;ix<dbcp.length;ix++)
-				if (dbcp.length == 2 &&
-					dbcp[ix][0].equals(schemaName) && dbcp[ix][1].equals(sqlName))
-					found = true;
-			if (found)
-				throw StandardException.newException(SQLState.LANG_CANT_DROP_JAR_ON_DB_CLASS_PATH_DURING_EXECUTION, 
-									IdUtil.mkQualifiedName(schemaName,sqlName),
-									dbcp_s);
-		}
-
-		try {
-		
-			notifyLoader(false);
-			dd.invalidateAllSPSPlans();
-			DependencyManager dm = dd.getDependencyManager();
-			dm.invalidateFor(fid, DependencyManager.DROP_JAR, lcc);
-
-            UUID id = fid.getUUID();
-			dd.dropFileInfoDescriptor(fid);
-            fr.remove(
-                JarUtil.mkExternalName(
-                    id, schemaName, sqlName, fr.getSeparatorChar()),
-				fid.getGenerationId());
-		} finally {
-			notifyLoader(true);
-		}
+	private void drop() throws StandardException {
+		lcc.getDatabase().dropJar(this);
 	}
 
 	/**
@@ -267,60 +193,22 @@ public class JarUtil
 	  @param is An input stream for reading the new content of the jar file.
 	  @exception StandardException Opps
 	  */
-	private long replace(InputStream is) throws StandardException
-	{
-		//
-		//Like create table we say we are writing before we read the dd
-		dd.startWriting(lcc);
-
-		//
-		//Temporarily drop the FileInfoDescriptor from the data dictionary.
-		FileInfoDescriptor fid = getInfo();
-		if (fid == null)
-			throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, sqlName,schemaName);
-
-		try {
-			// disable loads from this jar
-			notifyLoader(false);
-			dd.invalidateAllSPSPlans();
-			dd.dropFileInfoDescriptor(fid);
-            final String jarExternalName =
-                JarUtil.mkExternalName(
-                    fid.getUUID(), schemaName, sqlName, fr.getSeparatorChar());
-
-			//
-			//Replace the file.
-			long generationId = setJar(jarExternalName, is, false,
-					fid.getGenerationId());
-            
-			//
-			//Re-add the descriptor to the data dictionary.
-			FileInfoDescriptor fid2 = 
-				ddg.newFileInfoDescriptor(fid.getUUID(),fid.getSchemaDescriptor(),
-								sqlName,generationId);
-			dd.addDescriptor(fid2, fid.getSchemaDescriptor(),
-							 DataDictionary.SYSFILES_CATALOG_NUM, false, lcc.getTransactionExecute());
-			return generationId;
-
-		} finally {
-
-			// reenable class loading from this jar
-			notifyLoader(true);
-		}
+	private long replace(InputStream is) throws StandardException {
+		return lcc.getDatabase().replaceJar(is,this);
 	}
 
 	/**
 	  Get the FileInfoDescriptor for the Jar file or null if it does not exist.
 	  @exception StandardException Ooops
 	  */
-	private FileInfoDescriptor getInfo()
+	public FileInfoDescriptor getInfo()
 		 throws StandardException
 	{
 		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
 		return dd.getFileInfoDescriptor(sd,sqlName);
 	}
 
-	private void notifyLoader(boolean reload) throws StandardException {
+	public void notifyLoader(boolean reload) throws StandardException {
 		ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
 		cf.notifyModifyJar(reload);
 	}
@@ -367,7 +255,7 @@ public class JarUtil
      * @param add true to add, false to replace
      * @param currentGenerationId generation id of existing version, ignored when adding.
      */
-    private long setJar(final String jarExternalName,
+    public long setJar(final String jarExternalName,
             final InputStream contents,
             final boolean add,
             final long currentGenerationId)
@@ -465,4 +353,24 @@ public class JarUtil
                 new File(oldFile.getPath()),
                 new File(newFile.getPath()), null);
     }
+
+	public LanguageConnectionContext getLanguageConnectionContext() {
+		return lcc;
+	}
+
+	public String getSqlName() {
+		return sqlName;
+	}
+	public String getSchemaName() {
+		return schemaName;
+	}
+
+	public DataDescriptorGenerator getDataDescriptorGenerator() {
+		return ddg;
+	}
+
+	public FileResource getFileResource() {
+		return fr;
+	}
+
 }

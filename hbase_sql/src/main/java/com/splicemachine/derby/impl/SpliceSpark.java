@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -83,7 +81,6 @@ public class SpliceSpark {
                 HBaseRegionLoads.INSTANCE.startWatching();
 
                 spliceStaticComponentsSetup = true;
-//                SpliceMachineSource.register();
             }
         } catch (RuntimeException e) {
             LOG.error("Unexpected error setting up Splice components", e);

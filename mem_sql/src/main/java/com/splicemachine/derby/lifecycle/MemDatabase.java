@@ -85,6 +85,7 @@ public class MemDatabase{
             builder.regionMaxFileSize = Long.MAX_VALUE;
             builder.ipcThreads = 100;
             builder.partitionserverPort = 16020;
+            builder.storageFactoryHome = System.getProperty("user.dir");
         }
     }
 }

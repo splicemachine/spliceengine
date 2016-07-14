@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 
 import java.io.Serializable;
 import java.util.Dictionary;
@@ -87,7 +88,8 @@ public class LanguageDbPropertySetter implements PropertySetCallback
 	(
 		String			key,
 		Serializable	value,
-		Dictionary		p
+		Dictionary		p,
+		TransactionController tc
 	) 
 	{
 		return null;

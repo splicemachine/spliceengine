@@ -28,7 +28,9 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
+import com.splicemachine.db.impl.sql.execute.JarUtil;
 
+import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Locale;
 
@@ -175,4 +177,11 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
      * @exception SQLException Thrown on error
      */
     public void stopReplicationMaster() throws SQLException;
+
+	long addJar(final InputStream is, JarUtil util) throws StandardException;
+
+	void dropJar(JarUtil util) throws StandardException;
+
+	long replaceJar(final InputStream is, JarUtil util) throws StandardException;
+
 }

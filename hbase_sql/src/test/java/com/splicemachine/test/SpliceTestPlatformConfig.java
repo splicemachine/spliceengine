@@ -68,6 +68,8 @@ class SpliceTestPlatformConfig {
 
         Configuration config = HConfiguration.unwrapDelegate();
 
+        config.set(SQLConfiguration.STORAGE_FACTORY_HOME,hbaseRootDirUri);
+
         //
         // Coprocessors
         //

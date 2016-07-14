@@ -369,10 +369,10 @@ public class GenericLanguageConnectionFactory
 		return false;
 	}
 	/** @see PropertySetCallback#apply */
+	@Override
 	public Serviceable apply(String key,
 							 Serializable value,
-							 Dictionary p)
-	{
+							 Dictionary p, TransactionController tc) {
 			 return null;
 	}
 	/** @see PropertySetCallback#map */

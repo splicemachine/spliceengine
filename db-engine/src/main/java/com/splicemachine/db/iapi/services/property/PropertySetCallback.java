@@ -23,6 +23,8 @@ package com.splicemachine.db.iapi.services.property;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+
 import java.io.Serializable;
 import java.util.Dictionary;
 
@@ -71,7 +73,7 @@ public interface PropertySetCallback {
 	  @return post commit work for the property change.
 	  @exception StandardException Oh well.
 	*/
-    Serviceable apply(String key, Serializable value, Dictionary p)
+    Serviceable apply(String key, Serializable value, Dictionary p,TransactionController tc)
 		 throws StandardException;
 	
 	/**

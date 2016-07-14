@@ -1,15 +1,26 @@
 package com.splicemachine.derby.impl.db;
 
 import javax.security.auth.login.Configuration;
+import java.io.InputStream;
+import java.io.Serializable;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.splicemachine.db.catalog.*;
+import com.splicemachine.db.iapi.jdbc.AuthenticationService;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.daemon.Serviceable;
+import com.splicemachine.db.iapi.services.property.PropertySetCallback;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
+import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.execute.JarUtil;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.protobuf.ProtoUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -373,6 +384,12 @@ public class SpliceDatabase extends BasicDatabase{
                             context.enterRestoreMode();
                         }
                         break;
+                    case NOTIFY_JAR_LOADER:
+                        DDLUtils.preNotifyJarLoader(change,dataDictionary,dependencyManager);
+                        break;
+                    case NOTIFY_MODIFY_CLASSPATH:
+                        DDLUtils.preNotifyModifyClasspath(change,dataDictionary,dependencyManager);
+                        break;
                 }
                 final List<DDLAction> ddlActions = new ArrayList<>();
                 ddlActions.add(new AddIndexToPipeline());
@@ -388,8 +405,12 @@ public class SpliceDatabase extends BasicDatabase{
             @Override
             @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
             public void changeSuccessful(String changeId,DDLChange change) throws StandardException{
+                DataDictionary dataDictionary=getDataDictionary();
+                DependencyManager dependencyManager=dataDictionary.getDependencyManager();
                 switch(change.getDdlChangeType()){
-                    // nuttin.  Cache invalidation is done in DependencyManager thru DDLUtils calls
+                    case NOTIFY_JAR_LOADER:
+                        DDLUtils.postNotifyJarLoader(change,dataDictionary,dependencyManager);
+                        break;
                 }
             }
 
@@ -413,6 +434,162 @@ public class SpliceDatabase extends BasicDatabase{
             ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate(Bytes.toBytes("boot"));
         }
 
+    }
+
+    /**
+     @see PropertySetCallback#apply
+     @exception StandardException Thrown on error.
+     */
+    @Override
+    public Serviceable apply(String key, Serializable value, Dictionary p,TransactionController tc)
+            throws StandardException {
+        // only interested in the classpath
+        if (!key.equals(Property.DATABASE_CLASSPATH)) return null;
+        // only do the change dynamically if we are already
+        // a per-database classapath.
+        if (cfDB != null) {
+            String newClasspath = (String) value;
+            if (newClasspath == null)
+                newClasspath = "";
+            dd.invalidateAllSPSPlans();
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyModifyClasspath( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), newClasspath);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        }
+        return null;
+    }
+
+    @Override
+    public long addJar(InputStream is, JarUtil util) throws StandardException {
+        //
+        //Like create table we say we are writing before we read the dd
+        dd.startWriting(util.getLanguageConnectionContext());
+        FileInfoDescriptor fid = util.getInfo();
+        if (fid != null)
+            throw
+                    StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+                            fid.getDescriptorType(), util.getSqlName(), fid.getSchemaDescriptor().getDescriptorType(), util.getSchemaName());
+
+        SchemaDescriptor sd = dd.getSchemaDescriptor(util.getSchemaName(), null, true);
+        try {
+            TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            com.splicemachine.db.catalog.UUID id = Monitor.getMonitor().getUUIDFactory().createUUID();
+            final String jarExternalName = JarUtil.mkExternalName(
+                    id, util.getSchemaName(), util.getSqlName(), util.getFileResource().getSeparatorChar());
+
+            long generationId = util.setJar(jarExternalName, is, true, 0L);
+            fid = util.getDataDescriptorGenerator().newFileInfoDescriptor(id, sd, util.getSqlName(), generationId);
+            dd.addDescriptor(fid, sd, DataDictionary.SYSFILES_CATALOG_NUM,
+                    false, util.getLanguageConnectionContext().getTransactionExecute());
+            return generationId;
+        } finally {
+        }
+    }
+
+    @Override
+    public void dropJar(JarUtil util) throws StandardException {
+        //
+        //Like create table we say we are writing before we read the dd
+        dd.startWriting(util.getLanguageConnectionContext());
+        FileInfoDescriptor fid = util.getInfo();
+        if (fid == null)
+            throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, util.getSqlName(),util.getSchemaName());
+
+        String dbcp_s = PropertyUtil.getServiceProperty(util.getLanguageConnectionContext().getTransactionExecute(),Property.DATABASE_CLASSPATH);
+        if (dbcp_s != null)
+        {
+            String[][]dbcp= IdUtil.parseDbClassPath(dbcp_s);
+            boolean found = false;
+            //
+            //Look for the jar we are dropping on our database classpath.
+            //We don't concern ourselves with 3 part names since they may
+            //refer to a jar file in another database and may not occur in
+            //a database classpath that is stored in the propert congomerate.
+            for (int ix=0;ix<dbcp.length;ix++)
+                if (dbcp.length == 2 &&
+                        dbcp[ix][0].equals(util.getSchemaName()) && dbcp[ix][1].equals(util.getSqlName()))
+                    found = true;
+            if (found)
+                throw StandardException.newException(SQLState.LANG_CANT_DROP_JAR_ON_DB_CLASS_PATH_DURING_EXECUTION,
+                        IdUtil.mkQualifiedName(util.getSchemaName(),util.getSqlName()),
+                        dbcp_s);
+        }
+
+        try {
+            TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,true,util.getSchemaName(),util.getSqlName());
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            com.splicemachine.db.catalog.UUID id = fid.getUUID();
+            dd.dropFileInfoDescriptor(fid);
+            util.getFileResource().remove(
+                    JarUtil.mkExternalName(
+                            id, util.getSchemaName(), util.getSqlName(), util.getFileResource().getSeparatorChar()),
+                    fid.getGenerationId());
+        } finally {
+            util.notifyLoader(true);
+        }
+
+
+    }
+
+    @Override
+    public long replaceJar(InputStream is, JarUtil util) throws StandardException {
+//
+        //Like create table we say we are writing before we read the dd
+        dd.startWriting(util.getLanguageConnectionContext());
+
+        //
+        //Temporarily drop the FileInfoDescriptor from the data dictionary.
+        FileInfoDescriptor fid = util.getInfo();
+        if (fid == null)
+            throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, util.getSqlName(),util.getSchemaName());
+
+        try {
+            // disable loads from this jar
+            TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            dd.dropFileInfoDescriptor(fid);
+            final String jarExternalName =
+                    JarUtil.mkExternalName(
+                            fid.getUUID(), util.getSchemaName(), util.getSqlName(), util.getFileResource().getSeparatorChar());
+
+            //
+            //Replace the file.
+            long generationId = util.setJar(jarExternalName, is, false,
+                    fid.getGenerationId());
+
+            //
+            //Re-add the descriptor to the data dictionary.
+            FileInfoDescriptor fid2 =
+                    util.getDataDescriptorGenerator().newFileInfoDescriptor(fid.getUUID(),fid.getSchemaDescriptor(),
+                            util.getSqlName(),generationId);
+            dd.addDescriptor(fid2, fid.getSchemaDescriptor(),
+                    DataDictionary.SYSFILES_CATALOG_NUM, false, util.getLanguageConnectionContext().getTransactionExecute());
+            return generationId;
+
+        } finally {
+
+            // reenable class loading from this jar
+            util.notifyLoader(true);
+        }
+
+
+    }
+
+    /**
+     * Override boot authentication service
+     *
+     * @param create
+     * @param props
+     * @return
+     * @throws StandardException
+     */
+    @Override
+    protected AuthenticationService bootAuthenticationService(boolean create, Properties props) throws StandardException {
+        return (AuthenticationService)
+                Monitor.bootServiceModule(create, this, AuthenticationService.MODULE, props);
     }
 
 }

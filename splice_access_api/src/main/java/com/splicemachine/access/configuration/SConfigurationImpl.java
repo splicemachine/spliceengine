@@ -119,6 +119,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long optimizerPlanMinimumTimeout;
     private final  String networkBindAddress;
     private final  String upgradeForcedFrom;
+    private final String storageFactoryHome;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -511,6 +512,8 @@ public final class SConfigurationImpl implements SConfiguration {
     public long getPartitionCacheExpiration() {
         return partitionCacheExpiration;
     }
+    @Override
+    public String getStorageFactoryHome() { return storageFactoryHome;}
 
     // StorageConfiguration
     @Override
@@ -631,6 +634,7 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
+        storageFactoryHome = builder.storageFactoryHome;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

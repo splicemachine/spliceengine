@@ -232,9 +232,7 @@ public final class UpdateLoader implements LockOwner {
 					initLoaders();
 
 				for (int i = 0; i < jarList.length; i++) {
-
 					jl = jarList[i];
-
 					Class c = jl.loadClassData(className, jvmClassName, resolve);
 					if (c != null) {
 						if (vs != null)
@@ -243,6 +241,21 @@ public final class UpdateLoader implements LockOwner {
 						return c;
 					}
 				}
+				// Ok we are missing the class, we will try to reload once and Find it...
+				reload();
+				initDone = false;
+				initLoaders();
+				for (int i = 0; i < jarList.length; i++) {
+					jl = jarList[i];
+					Class c = jl.loadClassData(className, jvmClassName, resolve);
+					if (c != null) {
+						if (vs != null)
+							vs.println(MessageService.getTextMessage(MessageId.CM_CLASS_LOAD, className, jl.getJarName()));
+
+						return c;
+					}
+				}
+
 			}
 
 			return null;
@@ -317,7 +330,7 @@ public final class UpdateLoader implements LockOwner {
 	}
 
 
-	synchronized void modifyJar(boolean reload) throws StandardException {
+	public synchronized void modifyJar(boolean reload) throws StandardException {
 
 		// lock transaction classloader exclusively
 		lockClassLoader(ShExQual.EX);

@@ -56,6 +56,13 @@
             <scope>test</scope>
             <version>2.0.1.18-SNAPSHOT</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>pipeline_api</artifactId>
+            <version>2.0.1.18-SNAPSHOT</version>
+        </dependency>
+
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
@@ -66,13 +73,6 @@
         <dependency>
             <groupId>commons-dbutils</groupId>
             <artifactId>commons-dbutils</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.splicetest.sqlj</groupId>
-            <artifactId>sqlj-it-procs</artifactId>
-            <version>2.0.1.18-SNAPSHOT</version>
-            <type>jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -92,6 +92,67 @@
                     <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
                     <argLine>-Xmx512m -XX:MaxPermSize=256m</argLine>
                 </configuration>
+            </plugin>
+            <plugin>
+                <!--This used to be confinded to the spark-prepare profile, but is now done always by default
+                 To disable, use skipSparkPrepare on the command line
+                 -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.10</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.splicetest.txn</groupId>
+                        <artifactId>txn-it-procs</artifactId>
+                        <version>2.0.1.18-SNAPSHOT</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.splicetest.sqlj</groupId>
+                        <artifactId>sqlj-it-procs</artifactId>
+                        <version>2.0.1.18-SNAPSHOT</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.dep.copy}</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-procs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.splicetest.txn</groupId>
+                                    <artifactId>txn-it-procs</artifactId>
+                                    <version>2.0.1.18-SNAPSHOT</version>
+                                    <type>jar</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/txn-it</outputDirectory>
+                                    <destFileName>txn-it.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.splicetest.sqlj</groupId>
+                                    <artifactId>sqlj-it-procs</artifactId>
+                                    <version>2.0.1.18-SNAPSHOT</version>
+                                    <type>jar</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/sql-it</outputDirectory>
+                                    <destFileName>sql-it.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>

@@ -50,42 +50,37 @@ import java.sql.Types;
  * @version 0.1
  */
 
-public class SYSFILESRowFactory extends CatalogRowFactory
-{
+public class SYSFILESRowFactory extends CatalogRowFactory {
 	private static final String	TABLENAME_STRING = "SYSFILES";
-
     private static final int		SYSFILES_COLUMN_COUNT = 4;
-
 	/* Column #s (1 based) */
     private static final int		ID_COL_NUM = 1;
     private static final String   ID_COL_NAME = "FILEID";
-
     private static final int		SCHEMA_ID_COL_NUM = 2;
     private static final String   SCHEMA_ID_COL_NAME = "SCHEMAID";
-
     private static final int		NAME_COL_NUM = 3;
     private static final String   NAME_COL_NAME = "FILENAME";
-
     private static final int		GENERATION_ID_COL_NUM = 4;
     private static final String   GENERATION_ID_COL_NAME = "GENERATIONID";
 
     static final int		SYSFILES_INDEX1_ID = 0;
     static final int		SYSFILES_INDEX2_ID = 1;
+	static final int		SYSFILES_INDEX3_ID = 2;
 
-	private static final int[][] indexColumnPositions =
-	{
+	private static final int[][] indexColumnPositions = {
 		{NAME_COL_NUM, SCHEMA_ID_COL_NUM},
-		{ID_COL_NUM}
+		{ID_COL_NUM},
+			{SCHEMA_ID_COL_NUM}
 	};
 
     private	static	final	boolean[]	uniqueness = null;
 
-	private	static	final	String[]	uuids =
-	{
+	private	static	final	String[]	uuids = {
 		"80000000-00d3-e222-873f-000a0a0b1900",	// catalog UUID
 		"80000000-00d3-e222-9920-000a0a0b1900",	// heap UUID
 		"80000000-00d3-e222-a373-000a0a0b1900",	// SYSSQLFILES_INDEX1
-		"80000000-00d3-e222-be7b-000a0a0b1900"	// SYSSQLFILES_INDEX2
+		"80000000-00d3-e222-be7b-000a0a0b1900",	// SYSSQLFILES_INDEX2
+		"80000000-00d3-e222-be7c-000a0a0b1900",	// SYSSQLFILES_INDEX3
 	};
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -94,8 +89,7 @@ public class SYSFILESRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSFILESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
-	{
+    public SYSFILESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
 		super(uuidf,ef,dvf);
 		initInfo(SYSFILES_COLUMN_COUNT, TABLENAME_STRING, 
 				 indexColumnPositions, uniqueness, uuids );
@@ -116,8 +110,7 @@ public class SYSFILESRowFactory extends CatalogRowFactory
 	 */
 
 	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
-					throws StandardException
-	{
+					throws StandardException {
 		String					id_S = null;
 		String					schemaId_S = null;
 		String                  SQLname = null;
@@ -125,8 +118,7 @@ public class SYSFILESRowFactory extends CatalogRowFactory
 		
 		ExecRow        			row;
 
-		if (td != null)	
-		{
+		if (td != null) {
 			FileInfoDescriptor descriptor = (FileInfoDescriptor)td;
 			id_S = descriptor.getUUID().toString();
 			schemaId_S = descriptor.getSchemaDescriptor().getUUID().toString();
@@ -173,12 +165,9 @@ public class SYSFILESRowFactory extends CatalogRowFactory
 		ExecRow					row,
 		TupleDescriptor			parentTupleDescriptor,
 		DataDictionary 			dd )
-					throws StandardException
-	{
-		if (SanityManager.DEBUG)
-		{
-			if (row.nColumns() != SYSFILES_COLUMN_COUNT)
-			{
+					throws StandardException {
+		if (SanityManager.DEBUG) {
+			if (row.nColumns() != SYSFILES_COLUMN_COUNT) {
 				SanityManager.THROWASSERT("Wrong number of columns for a SYSFILES row: "+
 							 row.nColumns());
 			}
@@ -208,10 +197,8 @@ public class SYSFILESRowFactory extends CatalogRowFactory
 		schemaId = getUUIDFactory().recreateUUID(schemaId_S);
 		
 		schemaDescriptor = dd.getSchemaDescriptor(schemaId, null);
-		if (SanityManager.DEBUG)
-		{
-			if (schemaDescriptor == null)
-			{
+		if (SanityManager.DEBUG) {
+			if (schemaDescriptor == null) {
 				SanityManager.THROWASSERT("Missing schema for FileInfo: "+id_S);
 			}
 		}
@@ -236,14 +223,12 @@ public class SYSFILESRowFactory extends CatalogRowFactory
 	 * @return array of SystemColumn suitable for making this catalog.
 	 */
     public SystemColumn[]   buildColumnList()
-        throws StandardException
-    {
+        throws StandardException {
         return new SystemColumn[] {
            SystemColumnImpl.getUUIDColumn(ID_COL_NAME, false),
            SystemColumnImpl.getUUIDColumn(SCHEMA_ID_COL_NAME, false),
            SystemColumnImpl.getIdentifierColumn(NAME_COL_NAME, false),
            SystemColumnImpl.getColumn(GENERATION_ID_COL_NAME, Types.BIGINT, false)
-                
         };
     }
 }

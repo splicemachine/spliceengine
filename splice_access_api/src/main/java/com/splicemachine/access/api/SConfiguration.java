@@ -184,6 +184,8 @@ public interface SConfiguration {
 
     String getUpgradeForcedFrom();
 
+    String getStorageFactoryHome();
+
     // StatsConfiguration
     double getFallbackNullFraction();
 

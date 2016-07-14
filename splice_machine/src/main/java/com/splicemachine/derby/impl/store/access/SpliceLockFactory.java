@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.services.locks.LockOwner;
 import com.splicemachine.db.iapi.services.locks.Lockable;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.Matchable;
 import org.apache.log4j.Logger;
 
@@ -39,7 +40,7 @@ public class SpliceLockFactory implements LockFactory, ModuleControl, ModuleSupp
 	}
 
 	
-	public Serviceable apply(String key, Serializable value, Dictionary p)
+	public Serviceable apply(String key, Serializable value, Dictionary p, TransactionController tc)
 			throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("apply");

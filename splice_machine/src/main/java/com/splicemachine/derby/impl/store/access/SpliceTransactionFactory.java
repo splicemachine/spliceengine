@@ -223,7 +223,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
         lockFactory.boot(create,properties);
         storageFactory = StorageFactoryService.newStorageFactory();
         try{
-            storageFactory.init(null, SQLConfiguration.SPLICE_DB, null, null);
+            storageFactory.init(SIDriver.driver().getConfiguration().getStorageFactoryHome(), SQLConfiguration.SPLICE_DB, null, null);
         }catch(IOException ioe){
             throw StandardException.newException(SQLState.FILE_UNEXPECTED_EXCEPTION,ioe);
         }

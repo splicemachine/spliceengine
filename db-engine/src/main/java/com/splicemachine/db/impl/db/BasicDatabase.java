@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.reference.EngineType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.util.DoubleProperties;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -59,6 +60,8 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.io.StorageFile;
 import com.splicemachine.db.catalog.UUID;
+
+import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -93,7 +96,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     /**
      * DataDictionary for this database.
      */
-    private DataDictionary dd;
+    protected DataDictionary dd;
     
 	protected LanguageConnectionFactory lcf;
 	protected LanguageFactory lf;
@@ -652,7 +655,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 	  @see PropertySetCallback#apply
 	  @exception StandardException Thrown on error.
 	*/
-	public Serviceable apply(String key, Serializable value, Dictionary p)
+	@Override
+	public Serviceable apply(String key, Serializable value, Dictionary p,TransactionController tc)
 		throws StandardException
 	{
 		// only interested in the classpath
@@ -807,4 +811,127 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		return fr.getAsFile(externalName, generationId);
 	}
 
+	@Override
+	public long addJar(InputStream is, JarUtil util) throws StandardException {
+		//
+		//Like create table we say we are writing before we read the dd
+		dd.startWriting(util.getLanguageConnectionContext());
+		FileInfoDescriptor fid = util.getInfo();
+		if (fid != null)
+			throw
+					StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+							fid.getDescriptorType(), util.getSqlName(), fid.getSchemaDescriptor().getDescriptorType(), util.getSchemaName());
+
+		SchemaDescriptor sd = dd.getSchemaDescriptor(util.getSchemaName(), null, true);
+		try {
+			util.notifyLoader(false);
+			dd.invalidateAllSPSPlans(); // This will break other nodes, must do ddl
+
+			UUID id = Monitor.getMonitor().getUUIDFactory().createUUID();
+			final String jarExternalName = JarUtil.mkExternalName(
+					id, util.getSchemaName(), util.getSqlName(), util.getFileResource().getSeparatorChar());
+
+			long generationId = util.setJar(jarExternalName, is, true, 0L);
+
+			fid = util.getDataDescriptorGenerator().newFileInfoDescriptor(id, sd, util.getSqlName(), generationId);
+			dd.addDescriptor(fid, sd, DataDictionary.SYSFILES_CATALOG_NUM,
+					false, util.getLanguageConnectionContext().getTransactionExecute());
+			return generationId;
+		} finally {
+			util.notifyLoader(true);
+		}
+	}
+
+	@Override
+	public void dropJar(JarUtil util) throws StandardException {
+		//
+		//Like create table we say we are writing before we read the dd
+		dd.startWriting(util.getLanguageConnectionContext());
+		FileInfoDescriptor fid = util.getInfo();
+		if (fid == null)
+			throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, util.getSqlName(),util.getSchemaName());
+
+		String dbcp_s = PropertyUtil.getServiceProperty(util.getLanguageConnectionContext().getTransactionExecute(),Property.DATABASE_CLASSPATH);
+		if (dbcp_s != null)
+		{
+			String[][]dbcp= IdUtil.parseDbClassPath(dbcp_s);
+			boolean found = false;
+			//
+			//Look for the jar we are dropping on our database classpath.
+			//We don't concern ourselves with 3 part names since they may
+			//refer to a jar file in another database and may not occur in
+			//a database classpath that is stored in the propert congomerate.
+			for (int ix=0;ix<dbcp.length;ix++)
+				if (dbcp.length == 2 &&
+						dbcp[ix][0].equals(util.getSchemaName()) && dbcp[ix][1].equals(util.getSqlName()))
+					found = true;
+			if (found)
+				throw StandardException.newException(SQLState.LANG_CANT_DROP_JAR_ON_DB_CLASS_PATH_DURING_EXECUTION,
+						IdUtil.mkQualifiedName(util.getSchemaName(),util.getSqlName()),
+						dbcp_s);
+		}
+
+		try {
+
+			util.notifyLoader(false);
+			dd.invalidateAllSPSPlans();
+			DependencyManager dm = dd.getDependencyManager();
+			dm.invalidateFor(fid, DependencyManager.DROP_JAR, util.getLanguageConnectionContext());
+
+			UUID id = fid.getUUID();
+			dd.dropFileInfoDescriptor(fid);
+			util.getFileResource().remove(
+					JarUtil.mkExternalName(
+							id, util.getSchemaName(), util.getSqlName(), util.getFileResource().getSeparatorChar()),
+					fid.getGenerationId());
+		} finally {
+			util.notifyLoader(true);
+		}
+
+
+	}
+
+	@Override
+	public long replaceJar(InputStream is, JarUtil util) throws StandardException {
+//
+		//Like create table we say we are writing before we read the dd
+		dd.startWriting(util.getLanguageConnectionContext());
+
+		//
+		//Temporarily drop the FileInfoDescriptor from the data dictionary.
+		FileInfoDescriptor fid = util.getInfo();
+		if (fid == null)
+			throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, util.getSqlName(),util.getSchemaName());
+
+		try {
+			// disable loads from this jar
+			util.notifyLoader(false);
+			dd.invalidateAllSPSPlans();
+			dd.dropFileInfoDescriptor(fid);
+			final String jarExternalName =
+					JarUtil.mkExternalName(
+							fid.getUUID(), util.getSchemaName(), util.getSqlName(), util.getFileResource().getSeparatorChar());
+
+			//
+			//Replace the file.
+			long generationId = util.setJar(jarExternalName, is, false,
+					fid.getGenerationId());
+
+			//
+			//Re-add the descriptor to the data dictionary.
+			FileInfoDescriptor fid2 =
+					util.getDataDescriptorGenerator().newFileInfoDescriptor(fid.getUUID(),fid.getSchemaDescriptor(),
+							util.getSqlName(),generationId);
+			dd.addDescriptor(fid2, fid.getSchemaDescriptor(),
+					DataDictionary.SYSFILES_CATALOG_NUM, false, util.getLanguageConnectionContext().getTransactionExecute());
+			return generationId;
+
+		} finally {
+
+			// reenable class loading from this jar
+			util.notifyLoader(true);
+		}
+
+
+	}
 }

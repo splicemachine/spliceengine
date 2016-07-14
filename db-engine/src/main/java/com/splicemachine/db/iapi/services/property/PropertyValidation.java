@@ -75,7 +75,7 @@ public class PropertyValidation implements PropertyFactory
 					}
 
 					Serviceable s;
-					if ((s = psc.apply(key,value,d)) != null)
+					if ((s = psc.apply(key,value,d,tc)) != null)
 						((TransactionManager) tc).addPostCommitWork(s);
 				}
 			}

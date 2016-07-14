@@ -3,6 +3,7 @@ package com.splicemachine.test_dao;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.util.List;
 
 /**
  * Manipulate schemas.
@@ -46,12 +47,37 @@ public class SchemaDAO {
             //
             // Delete procedures
             //
-            //TODO -sf- this breaks something
-//            try(ResultSet resultSet = metaData.getProcedures(null,uSchema,null)){
-//                while(resultSet.next()){
-//                    jdbcTemplate.executeUpdate(String.format("drop procedure %s.%s",uSchema,resultSet.getString("PROCEDURE_NAME")));
-//                }
-//            }
+            try(ResultSet resultSet = metaData.getProcedures(null,uSchema,null)){
+                while(resultSet.next()){
+                    jdbcTemplate.executeUpdate(String.format("drop procedure %s.%s",uSchema,resultSet.getString("PROCEDURE_NAME")));
+                }
+            }
+
+            // Delete Triggers
+
+            try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select triggername from sys.systriggers, sys.sysschemas where " +
+                    "sys.systriggers.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema)).executeQuery()) {
+                while(resultSet.next()){
+                    jdbcTemplate.executeUpdate(String.format("drop trigger %s.%s",uSchema,resultSet.getString(1)));
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            // Delete Alias
+            // TODO JL
+
+            // Delete Files
+
+            try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select FILENAME from sys.SYSFILES, sys.sysschemas where " +
+                    "sys.SYSFILES.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema)).executeQuery()) {
+                while(resultSet.next()){
+                    jdbcTemplate.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)",uSchema+"."+resultSet.getString(1)));
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
 
             //
             // Drop schema

@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.Matchable;
 import com.splicemachine.db.iapi.reference.Property;
 
@@ -399,7 +400,7 @@ abstract class AbstractPool implements LockFactory
 			Serializable value = (Serializable) PropertyUtil.getPropertyFromSet(dbOnly, p, key);
 			if (value != null) {
 				validate(key, value, p);
-				apply(key, value, p);
+				apply(key, value, p,null);
 			}
 		} catch (StandardException se) {
 			// just ignore value at bootup.
@@ -428,7 +429,8 @@ abstract class AbstractPool implements LockFactory
 		return true;
 	}
 
-    public Serviceable apply(String key, Serializable value, Dictionary p)
+	@Override
+    public Serviceable apply(String key, Serializable value, Dictionary p, TransactionController tc)
 		throws StandardException {
 
 		if (value == null) {

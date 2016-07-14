@@ -473,7 +473,8 @@ public abstract class AuthenticationServiceBase
 	/**
 	  @see PropertySetCallback#validate
 	*/
-	public Serviceable apply(String key,Serializable value,Dictionary p)
+	@Override
+	public Serviceable apply(String key,Serializable value,Dictionary p, TransactionController tc)
 	{
 		return null;
 	}

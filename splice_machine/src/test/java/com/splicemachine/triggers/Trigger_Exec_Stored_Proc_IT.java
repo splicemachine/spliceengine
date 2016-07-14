@@ -5,12 +5,15 @@ import java.sql.*;
 import java.util.Collection;
 import java.util.Properties;
 
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.sparkproject.guava.collect.Lists;
@@ -21,9 +24,10 @@ import org.sparkproject.guava.collect.Lists;
  * Note the dependency on user-defined stored procedures in this test class.<br/>
  * See {@link TriggerProcs} for instructions on adding/modifying store procedures.
  */
-@Ignore
+//@Ignore
+@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
-public class Trigger_Exec_Stored_Proc_IT {
+public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
 
     private static final String SCHEMA = Trigger_Exec_Stored_Proc_IT.class.getSimpleName();
 
@@ -78,14 +82,14 @@ public class Trigger_Exec_Stored_Proc_IT {
 
     private String connectionString;
 
-    public Trigger_Exec_Stored_Proc_IT(String connecitonString) {
-        this.connectionString = connecitonString;
+    public Trigger_Exec_Stored_Proc_IT(String connectionString) {
+        this.connectionString = connectionString;
     }
 
     @BeforeClass
     public static void setUpClass() throws Exception {
 
-        String storedProcsJarFilePath = TriggerProcs.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+        String storedProcsJarFilePath = getHBaseDirectory()+"/target/sql-it/sql-it.jar";
         // Install the jar file of stored procedures.
         File jar = new File(storedProcsJarFilePath);
         Assert.assertTrue("Can't run test without " + storedProcsJarFilePath, jar.exists());

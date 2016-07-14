@@ -58,6 +58,10 @@ message AlterStats {
         repeated UUID tableId = 1;
 }
 
+message RefreshEnterpriseFeatures {
+}
+
+
 message DropIndex {
         required int64 baseConglomerate = 1;
         required int64 conglomerate = 2;
@@ -242,6 +246,18 @@ message FKConstraintInfo {
     repeated int32 formatIds = 5;
 }
 
+message NotifyJarLoader {
+    optional bool reload = 1;
+    optional bool drop = 2;
+    optional string schemaName = 3;
+    optional string sqlName = 4;
+}
+
+message NotifyModifyClasspath {
+    optional string classpath = 1;
+}
+
+
 enum DDLChangeType {
     CHANGE_PK = 0;
     ADD_CHECK = 1;
@@ -277,6 +293,10 @@ enum DDLChangeType {
     CREATE_VIEW = 31;
     DROP_VIEW = 32;
     DROP_SEQUENCE = 33;
+    NOTIFY_JAR_LOADER = 34;
+    NOTIFY_MODIFY_CLASSPATH = 35;
+    REFRESH_ENTRPRISE_FEATURES = 36;
+
 }
 
 message DDLChange {
@@ -310,4 +330,7 @@ message DDLChange {
     optional CreateView createView = 28;
     optional DropView dropView = 29;
     optional DropSequence dropSequence = 30;
+    optional NotifyJarLoader notifyJarLoader = 31;
+    optional NotifyModifyClasspath notifyModifyClasspath = 32;
+    optional RefreshEnterpriseFeatures refreshEnterpriseFeatures = 33;
 }

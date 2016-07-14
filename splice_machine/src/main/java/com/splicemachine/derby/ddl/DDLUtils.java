@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.derby.impl.db.SpliceDatabase;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.api.SConfiguration;
@@ -539,6 +541,79 @@ public class DDLUtils {
             throw StandardException.plainWrapException(e);
         }
     }
+
+    public static void preNotifyJarLoader(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preNotifyJarLoader with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            boolean prepared = false;
+            try{
+                prepared = transactionResource.marshallTransaction(txn);
+                dd.invalidateAllSPSPlans(); // This will break other nodes, must do ddl
+                ClassFactory cf = transactionResource.getLcc().getLanguageConnectionFactory().getClassFactory();
+                cf.notifyModifyJar(change.getNotifyJarLoader().getReload());
+                if (change.getNotifyJarLoader().getDrop()) {
+                    SchemaDescriptor sd = dd.getSchemaDescriptor(change.getNotifyJarLoader().getSchemaName(), null, true);
+                    if (sd ==null)
+                        return;
+                    FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd,change.getNotifyJarLoader().getSqlName());
+                    if (fid==null)
+                        return;
+                    dm.invalidateFor(fid, DependencyManager.DROP_JAR, transactionResource.getLcc());
+
+                }
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void postNotifyJarLoader(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preNotifyJarLoader with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            boolean prepared = false;
+            try{
+                prepared = transactionResource.marshallTransaction(txn);
+                ClassFactory cf = transactionResource.getLcc().getLanguageConnectionFactory().getClassFactory();
+                cf.notifyModifyJar(true);
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+
+    }
+
+    public static void preNotifyModifyClasspath(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropView with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            boolean prepared = false;
+            try{
+                prepared = transactionResource.marshallTransaction(txn);
+                transactionResource.getLcc().getLanguageConnectionFactory().getClassFactory().notifyModifyClasspath(change.getNotifyModifyClasspath().getClasspath());
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+
 
     public static void preDropView(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())

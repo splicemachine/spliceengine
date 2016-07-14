@@ -1540,6 +1540,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return false;
         }
 
+        // don't orphan Files
+        if(isSchemaReferenced(tc,getNonCoreTI(SYSFILES_CATALOG_NUM),
+                SYSFILESRowFactory.SYSFILES_INDEX3_ID,
+                1,
+                schemaIdOrderable)){
+            return false;
+        }
+
+
         // These catalogs were added in 10.6. Don't look for these catalogs if we
         // have soft-upgraded from an older release.
         if(dictionaryVersion.majorVersionNumber>=DataDictionary.DD_VERSION_DERBY_10_6){
@@ -9081,7 +9090,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getUncachedTablePermsDescriptor(key);
     }
 
-    private Object getPermissions(PermissionsDescriptor key) throws StandardException{
+    public Object getPermissions(PermissionsDescriptor key) throws StandardException{
 
         PermissionsDescriptor permissions = dataDictionaryCache.permissionCacheFind(key);
         if (permissions != null)
@@ -9238,8 +9247,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return (ColPermsDescriptor)getPermissions(key);
     } // end of getColumnPermissions
 
-    private static final String[] colPrivTypeMap;
-    private static final String[] colPrivTypeMapForGrant;
+    public static final String[] colPrivTypeMap;
+    public static final String[] colPrivTypeMapForGrant;
 
     static{
         colPrivTypeMap=new String[Authorizer.PRIV_TYPE_COUNT];
@@ -9421,7 +9430,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no column permissions have been granted to him on the table.
      * @throws StandardException
      */
-    ColPermsDescriptor getUncachedColPermsDescriptor(ColPermsDescriptor key) throws StandardException{
+    public ColPermsDescriptor getUncachedColPermsDescriptor(ColPermsDescriptor key) throws StandardException{
         if(key.getObjectID()==null){
             //the COLPERMSID for SYSCOLPERMS is not known, so use tableid,
             //privilege type, grantor and granteee to find ColPermsDescriptor
