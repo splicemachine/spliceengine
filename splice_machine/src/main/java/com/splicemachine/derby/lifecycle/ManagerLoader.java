@@ -8,6 +8,7 @@ import java.util.ServiceLoader;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.backup.BackupManager;
+import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
@@ -87,6 +88,11 @@ public class ManagerLoader {
         @Override
         public UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws
             SQLException {
+            throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
+        }
+
+        @Override
+        public ColPermsManager getColPermsManager() throws SQLException {
             throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
         }
     }

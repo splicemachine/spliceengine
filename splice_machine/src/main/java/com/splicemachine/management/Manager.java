@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import com.splicemachine.backup.BackupManager;
+import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 
@@ -17,5 +18,7 @@ public interface Manager {
     BackupManager getBackupManager() throws SQLException;
 
     UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws SQLException;
+
+    ColPermsManager getColPermsManager() throws SQLException;
 
 }
