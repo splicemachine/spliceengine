@@ -9222,8 +9222,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     @Override
     public ColPermsDescriptor getColumnPermissions(UUID colPermsUUID) throws StandardException{
-        ColPermsDescriptor key=new ColPermsDescriptor(this,colPermsUUID);
-        return getUncachedColPermsDescriptor(key);
+        return null; // Col Permissions not implemented
     }
 
     /**
@@ -9245,10 +9244,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                    int privType,
                                                    boolean forGrant,
                                                    String authorizationId) throws StandardException{
-        String privTypeStr=forGrant?colPrivTypeMapForGrant[privType]:colPrivTypeMap[privType];
-        assert privTypeStr!=null:"Invalid column privilege type: "+privType;
-        ColPermsDescriptor key=new ColPermsDescriptor(this,authorizationId,null,tableUUID,privTypeStr);
-        return (ColPermsDescriptor)getPermissions(key);
+        return null; // Col Permissions not implemented
     } // end of getColumnPermissions
 
     public static final String[] colPrivTypeMap;
