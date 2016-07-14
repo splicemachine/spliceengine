@@ -59,11 +59,6 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     }
 
     @Override
-    public BackupManager getBackupManager(){
-        return NoOpBackupManager.getInstance();
-    }
-
-    @Override
     public Manager getManager(){
         return NoOpManager.getInstance();
     }

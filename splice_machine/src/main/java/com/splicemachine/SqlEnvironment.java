@@ -26,8 +26,6 @@ public interface SqlEnvironment{
 
     SConfiguration getConfiguration();
 
-    BackupManager getBackupManager();
-
     Manager getManager();
 
     PartitionLoadWatcher getLoadWatcher();

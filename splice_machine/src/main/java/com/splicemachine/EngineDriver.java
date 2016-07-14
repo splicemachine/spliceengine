@@ -111,10 +111,6 @@ public class EngineDriver{
         return loadWatcher;
     }
 
-    public BackupManager backupManager(){
-        return environment.getBackupManager();
-    }
-
     public Manager manager(){
         return environment.getManager();
     }

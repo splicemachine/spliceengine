@@ -64,11 +64,6 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     }
 
     @Override
-    public BackupManager getBackupManager(){
-        return BackupManagerLoader.load();
-    }
-
-    @Override
     public Manager getManager(){
         return ManagerLoader.load();
     }

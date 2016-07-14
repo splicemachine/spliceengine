@@ -899,6 +899,7 @@
             <modules>
                 <module>../spliceengine-ee/splice_ee</module>
                 <module>../spliceengine-ee/splice_backup</module>
+                <module>../spliceengine-ee/splice_auth</module>
                 <module>../spliceengine-ee/enterprise_it</module>
             </modules>
         </profile>

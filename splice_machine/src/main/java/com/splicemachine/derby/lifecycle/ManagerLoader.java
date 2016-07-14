@@ -2,11 +2,15 @@ package com.splicemachine.derby.lifecycle;
 
 import java.sql.SQLException;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.ServiceLoader;
 
 import org.apache.log4j.Logger;
 
+import com.splicemachine.backup.BackupManager;
+import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.management.Manager;
 
@@ -23,6 +27,10 @@ public class ManagerLoader {
             manager = loadManager(null);
         }
         return manager;
+    }
+
+    public static void clear() {
+        manager = null;
     }
 
     private static synchronized Manager loadManager(ClassLoader loader) {
@@ -68,6 +76,17 @@ public class ManagerLoader {
         @Override
         public void enableEnterprise(char[] value) throws SQLException {
             // this will only be seen in open source version
+            throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
+        }
+
+        @Override
+        public BackupManager getBackupManager() throws SQLException {
+            throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
+        }
+
+        @Override
+        public UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws
+            SQLException {
             throw new SQLException(StandardException.newException(SQLState.MANAGER_DISABLED));
         }
     }
