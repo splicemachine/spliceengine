@@ -92,4 +92,9 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     public PropertyManager getPropertyManager(){
         return propertyManager;
     }
+
+    @Override
+    public void refreshEnterpriseFeatures() {
+        // No Op
+    }
 }

@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
@@ -33,19 +34,6 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.KeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SubKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
@@ -647,5 +635,37 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DDLWatcher ddlWatcher=driver.ddlWatcher();
         return ddlWatcher.canUseSPSCache((TransactionManager)getTransactionCompile());
     }
+
+    @Override
+    public ColPermsDescriptor getColumnPermissions(UUID colPermsUUID) throws StandardException{
+        ColPermsDescriptor key=new ColPermsDescriptor(this,colPermsUUID);
+        return getUncachedColPermsDescriptor(key);
+    }
+
+    /**
+     * Get one user's column privileges for a table.
+     *
+     * @param tableUUID       the uuid of the table of interest
+     * @param privType        (as int) Authorizer.SELECT_PRIV, Authorizer.UPDATE_PRIV, or Authorizer.REFERENCES_PRIV
+     * @param forGrant        whether or not we are looking for grant priviledges
+     * @param authorizationId The user name
+     * @return a ColPermsDescriptor or null if the user has no separate column
+     * permissions of the specified type on the table. Note that the user may have been granted
+     * permission on all the columns of the table (no column list), in which case this routine
+     * will return null. You must also call getTablePermissions to see if the user has permission
+     * on a set of columns.
+     * @throws StandardException
+     */
+    @Override
+    public ColPermsDescriptor getColumnPermissions(UUID tableUUID,
+                                                   int privType,
+                                                   boolean forGrant,
+                                                   String authorizationId) throws StandardException{
+        String privTypeStr=forGrant?colPrivTypeMapForGrant[privType]:colPrivTypeMap[privType];
+        assert privTypeStr!=null:"Invalid column privilege type: "+privType;
+        ColPermsDescriptor key=new ColPermsDescriptor(this,authorizationId,null,tableUUID,privTypeStr);
+        return (ColPermsDescriptor)getPermissions(key);
+    } // end of getColumnPermissions
+
 
 }

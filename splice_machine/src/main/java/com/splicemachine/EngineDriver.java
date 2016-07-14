@@ -130,6 +130,10 @@ public class EngineDriver{
         return environment.getManager();
     }
 
+    public void refreshEnterpriseFeatures(){
+        environment.refreshEnterpriseFeatures();
+    }
+
     public SqlExceptionFactory getExceptionFactory(){
         return exceptionFactory;
     }

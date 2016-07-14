@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.catalog.*;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -404,6 +405,9 @@ public class SpliceDatabase extends BasicDatabase{
                         break;
                     case NOTIFY_MODIFY_CLASSPATH:
                         DDLUtils.preNotifyModifyClasspath(change,dataDictionary,dependencyManager);
+                        break;
+                    case REFRESH_ENTRPRISE_FEATURES:
+                        EngineDriver.driver().refreshEnterpriseFeatures();
                         break;
                 }
                 final List<DDLAction> ddlActions = new ArrayList<>();

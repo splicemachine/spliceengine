@@ -56,4 +56,6 @@ public interface SqlEnvironment{
     DatabaseAdministrator databaseAdministrator();
 
     OlapClient getOlapClient();
+
+    void refreshEnterpriseFeatures();
 }

@@ -118,4 +118,9 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         JobExecutor onl = new AsyncOlapNIOLayer(host,port);
         return new TimedOlapClient(onl,timeoutMillis);
     }
+
+    @Override
+    public void refreshEnterpriseFeatures() {
+        ManagerLoader.clear();
+    }
 }
