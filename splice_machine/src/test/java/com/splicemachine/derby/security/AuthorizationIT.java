@@ -142,7 +142,7 @@ public class AuthorizationIT {
 
     /*****************************************************************************************************************/
 
-    protected static void assertFailed(Connection connection, String sql, String errorState) {
+    public static void assertFailed(Connection connection, String sql, String errorState) {
         try {
             connection.createStatement().execute(sql);
             fail("Did not fail");
