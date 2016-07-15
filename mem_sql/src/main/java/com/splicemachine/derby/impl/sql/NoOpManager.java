@@ -72,17 +72,7 @@ public class NoOpManager implements Manager {
 
     @Override
     public EncryptionManager getEncryptionManager() throws StandardException {
-        return new EncryptionManager() {
-            @Override
-            public boolean encryptedMessaging() {
-                return false;
-            }
-
-            @Override
-            public boolean encryptedFileSystem() {
-                return false;
-            }
-        };
+        return new EncryptionManager() {};
     }
 
     @Override
