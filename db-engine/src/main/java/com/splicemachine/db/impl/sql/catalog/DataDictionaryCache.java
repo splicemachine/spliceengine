@@ -179,7 +179,9 @@ public class DataDictionaryCache {
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheAdd " + key);
-        permissionsCache.put(key, permissions);
+        if (key != null && permissions != null) {
+            permissionsCache.put(key, permissions);
+        }
     }
 
     public void permissionCacheRemove(PermissionsDescriptor desc) throws StandardException {

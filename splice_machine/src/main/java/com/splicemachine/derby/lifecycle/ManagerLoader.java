@@ -15,23 +15,23 @@
 
 package com.splicemachine.derby.lifecycle;
 
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.ServiceLoader;
 
-import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.encryption.EncryptionManager;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.encryption.EncryptionManager;
 import com.splicemachine.management.Manager;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Uses ServiceLoader to load the appropriate {@link Manager} implementation.
@@ -55,8 +55,6 @@ public class ManagerLoader {
     private static synchronized Manager loadManager(ClassLoader loader) {
         Manager mgr = manager;
         if (mgr == null) {
-            // TODO: remove
-            printClasspath();
 
             ServiceLoader<Manager> load;
             if (loader == null) {
@@ -77,17 +75,6 @@ public class ManagerLoader {
                 throw new IllegalStateException("Only one Manager is allowed!");
         }
         return mgr;
-    }
-    private static void printClasspath() {
-        String cp = System.getProperty("java.class.path");
-        if (cp == null || cp.isEmpty()) {
-            LOG.debug("*** Empty classpath");
-        } else {
-            System.out.println("*** classpath:");
-            for (String item : cp.split(":")) {
-                LOG.debug("  "+item);
-            }
-        }
     }
 
     public static class DisabledManager implements Manager {
