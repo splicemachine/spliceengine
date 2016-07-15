@@ -41,17 +41,17 @@ public class NoOpManager implements Manager {
     private NoOpManager(){ }
 
     @Override
-    public void enableEnterprise(char[] value) throws SQLException {
+    public void enableEnterprise(char[] value) throws StandardException {
         // no-op
     }
 
     @Override
-    public BackupManager getBackupManager() throws SQLException {
+    public BackupManager getBackupManager() throws StandardException {
         return NoOpBackupManager.getInstance();
     }
 
     @Override
-    public UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws SQLException {
+    public UserAuthenticator getAuthenticationManager(AuthenticationServiceBase svc, Properties properties) throws StandardException {
         return null;
     }
 
