@@ -15,6 +15,8 @@
 
 package com.splicemachine.access.configuration;
 
+import javax.annotation.Resource;
+
 /**
  * @author Scott Fines
  *         Date: 1/11/16
@@ -61,10 +63,19 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.authentication = configurationSource.getString(AUTHENTICATION, DEFAULT_AUTHENTICATION);
-        builder.authenticationNativeAlgorithm = configurationSource.getString(AUTHENTICATION_NATIVE_ALGORITHM,
-                                                                              DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM);
-        builder.authenticationNativeCreateCredentialsDatabase =
-            configurationSource.getBoolean(AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,
-                                           DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE);
+
+        if (builder.authentication.equals("LDAP")) {
+            builder.authenticationLdapServer = configurationSource.getString(AUTHENTICATION_LDAP_SERVER, DEFAULT_AUTHENTICATION_LDAP_SERVER);
+            builder.authenticationLdapSearchauthdn = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTHDN, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHDN);
+            builder.authenticationLdapSearchauthpw = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTHPW, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW);
+            builder.authenticationLdapSearchbase = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHBASE, DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE);
+            builder.authenticationLdapSearchfilter = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHFILTER, DEFAULT_AUTHENTICATION_LDAP_SEARCHFILTER);
+        } else {
+            builder.authenticationNativeAlgorithm = configurationSource.getString(AUTHENTICATION_NATIVE_ALGORITHM,
+                                                                                  DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM);
+            builder.authenticationNativeCreateCredentialsDatabase =
+                configurationSource.getBoolean(AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,
+                                               DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE);
+        }
     }
 }
