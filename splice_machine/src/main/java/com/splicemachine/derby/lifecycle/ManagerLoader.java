@@ -20,7 +20,10 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.ServiceLoader;
 
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.encryption.EncryptionManager;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.colperms.ColPermsManager;
@@ -113,12 +116,32 @@ public class ManagerLoader {
 
         @Override
         public EncryptionManager getEncryptionManager() throws StandardException {
-            throw StandardException.newException(SQLState.MANAGER_DISABLED);
+            checkEncryptionLevels();
+            return null;
         }
 
         @Override
         public boolean isEnabled() {
             return false;
         }
+
     }
+
+    public static void checkEncryptionLevels() {
+        if (encryptedMessaging() || encryptedFileSystem()) {
+            SpliceLogUtils.error(LOG,"Splice Machine Enterprise Required for encrypted Hadoop Clusters (Kerberos, etc.)");
+            System.exit(1);
+        }
+    }
+
+    public static boolean encryptedMessaging() {
+        return SIDriver.driver().getConfiguration().getHbaseSecurityAuthentication();
+    }
+
+    public static boolean encryptedFileSystem() {
+        return SIDriver.driver().getConfiguration().getHbaseSecurityAuthorization() != null &&
+                ! SIDriver.driver().getConfiguration().getHbaseSecurityAuthorization().equals(HBaseConfiguration.DEFAULT_HBASE_SECURITY_AUTHORIZATION);
+    }
+
+
 }
