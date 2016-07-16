@@ -13,7 +13,6 @@
   ~ CONDITIONS OF ANY KIND, either express or implied. See the License for the
   ~ specific language governing permissions and limitations under the License.
   -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
@@ -915,9 +914,9 @@
                 <module>../spliceengine-ee/splice_backup</module>
                 <module>../spliceengine-ee/splice_auth</module>
                 <module>../spliceengine-ee/enterprise_it</module>
-              <module>../spliceengine-ee/splice_encryption</module>
-              <module>../spliceengine-ee/splice_colperms</module>
-              <module>../spliceengine-ee/splice_ee</module>
+                <module>../spliceengine-ee/splice_encryption</module>
+                <module>../spliceengine-ee/splice_colperms</module>
+                <module>../spliceengine-ee/splice_ee</module>
             </modules>
         </profile>
         <profile>

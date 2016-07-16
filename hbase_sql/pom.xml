@@ -13,7 +13,6 @@
   ~ CONDITIONS OF ANY KIND, either express or implied. See the License for the
   ~ specific language governing permissions and limitations under the License.
   -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>hbase_sql-${envClassifier}</artifactId>
@@ -314,7 +313,6 @@
                         <artifactId>sqlj-it-procs</artifactId>
                         <version>2.0.1.18-SNAPSHOT</version>
                     </dependency>
-
                 </dependencies>
                 <executions>
                     <execution>
@@ -358,7 +356,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <executions>
@@ -937,7 +934,7 @@
                                         <source>../../spliceengine-ee/splice_auth/src/main/java</source>
                                         <source>../../spliceengine-ee/splice_colperms/src/main/java</source>
                                         <source>../../spliceengine-ee/splice_encryption/src/main/java</source>
-                                      <source>../../spliceengine-ee/splice_ee/src/main/java</source>
+                                        <source>../../spliceengine-ee/splice_ee/src/main/java</source>
                                     </sources>
                                 </configuration>
                             </execution>
