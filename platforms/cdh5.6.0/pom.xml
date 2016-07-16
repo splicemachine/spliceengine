@@ -22,13 +22,29 @@
         <groupId>com.splicemachine</groupId>
         <version>2.0.1.18-SNAPSHOT</version>
     </parent>
+    <profiles>
+        <profile>
+            <id>ee</id>
+            <activation>
+                <property>
+                    <name>enterpise</name>
+                    <value>ee</value>
+                </property>
+            </activation>
+            <properties>
+                <enterpise>ee</enterpise>
+            </properties>
+            <modules>
+                <module>../../../spliceengine-ee/splice_backup</module>
+                <module>../../../spliceengine-ee/splice_auth</module>
+                <module>../../../spliceengine-ee/enterprise_it</module>
+                <module>../../../spliceengine-ee/splice_encryption</module>
+                <module>../../../spliceengine-ee/splice_colperms</module>
+                <module>../../../spliceengine-ee/splice_ee</module>
+            </modules>
+        </profile>
+    </profiles>
     <modules>
-        <module>../../../spliceengine-ee/splice_backup</module>
-        <module>../../../spliceengine-ee/splice_auth</module>
-        <module>../../../spliceengine-ee/enterprise_it</module>
-        <module>../../../spliceengine-ee/splice_encryption</module>
-        <module>../../../spliceengine-ee/splice_colperms</module>
-        <module>../../../spliceengine-ee/splice_ee</module>
         <module>../../hbase_storage</module>
         <module>../../hbase_pipeline</module>
         <module>../../hbase_sql</module>
