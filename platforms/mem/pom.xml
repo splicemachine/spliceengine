@@ -23,6 +23,13 @@
         <version>2.0.1.18-SNAPSHOT</version>
     </parent>
     <modules>
+        <!-- dont ee mem
+        <module>../../../spliceengine-ee/splice_backup</module>
+        <module>../../../spliceengine-ee/splice_auth</module>
+        <module>../../../spliceengine-ee/enterprise_it</module>
+        <module>../../../spliceengine-ee/splice_encryption</module>
+        <module>../../../spliceengine-ee/splice_colperms</module>
+        <module>../../../spliceengine-ee/splice_ee</module> -->
         <module>../../mem_storage</module>
         <module>../../mem_pipeline</module>
         <module>../../mem_sql</module>
