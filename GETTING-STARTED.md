@@ -60,7 +60,6 @@ export MAVEN_OPTS="-Xmx4g -Djava.awt.headless=true -XX:MaxPermSize=512M -XX:Rese
 export M2=${M2_HOME}/bin
 export PATH="${M2}:${PATH}"
 ```
-
 ----
 
 ### IDE Setup
@@ -70,3 +69,14 @@ export PATH="${M2}:${PATH}"
 
 #### Eclipse
 * coming soon
+
+## Quick start
+For those of you who want a quick start using the defaults, from the top-level:
+
+```./start-splice-cluster```
+
+This will compile everything and start the database. 
+
+Then to connect to the database:
+
+```./sqlshell.sh```
