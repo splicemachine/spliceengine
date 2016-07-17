@@ -40,13 +40,13 @@
         </repository>
         <repository>
             <id>splicemachine</id>
-            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+            <url>http://repository.splicemachine.com/nexus/content/groups/public</url>
         </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
             <id>splicemachine</id>
-            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+            <url>http://repository.splicemachine.com/nexus/content/groups/public</url>
         </pluginRepository>
     </pluginRepositories>
     <properties>

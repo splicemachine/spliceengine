@@ -2,13 +2,8 @@
 
 ### Links (internal sites, online tools, etc):
 * [Splice Machine Online Documentation (Released/Current Version)](http://doc.splicemachine.com/index.html)
-* [Splice Machine Online Documentation (Unreleased/Next Version)](http://docstest.splicemachine.com/index.html)
 * [GitHub](https://github.com/splicemachine)
-* [JIRA](https://splicemachine.atlassian.net/secure/Dashboard.jspa)
-* [Crucible (code reviews)](https://codereview.splicedev.com:8443)
-* [Jenkins (external)](http://206.225.8.98:8080)
-* [Jenkins (on the VPN)](http://stl-colo-vm-jm.splicemachine.local:8080)
-* [Nexus](http://nexus.splicemachine.com/nexus/)
+* [JIRA](https://splice.atlassian.net/secure/Dashboard.jspa)
 
 ### Primary GitHub project
 * [spliceengine](https://github.com/splicemachine/spliceengine) - Primary Splice Machine code<br />
@@ -24,7 +19,7 @@
     branch = auto
 [user]
     name = <FIRST_NAME LAST_NAME> (ex. Aaron Molitor)
-    email = <EMAIL USERNAME>@splicemachine.com (ex. amolitor@splicemachine.com)
+    email = <EMAIL ADDRESS> (ex. amolitor@splicemachine.com)
 [credential "https://github.com"]
     username = <GITHUB USERNAME> (ex. ammolitor)
 [push]
@@ -34,7 +29,7 @@
 ### Development Environment setup
 #### Development/Build tools (Java, maven, etc.):
 * [Java 1.7.0_x](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
-* [Apache Maven 3.3.x (Jenkins uses 3.3.9)](http://apache.arvixe.com/maven/maven-3/3.2.5/binaries/apache-maven-3.2.5-bin.tar.gz)
+* [Apache Maven 3.3.x (Jenkins uses 3.3.9)](https://maven.apache.org/download.cgi)
 * [Google Protocol Buffers (source download)](https://protobuf.googlecode.com/files/protobuf-2.5.0.tar.bz2)
 
 > **Instructions to compile protobufs**<br />
@@ -66,30 +61,6 @@ export M2=${M2_HOME}/bin
 export PATH="${M2}:${PATH}"
 ```
 
-#### Maven configuration (assumes the existence of a ~/.m2/settings.xml)
-* add the following to your settings.xml
-```xml
-<servers>
-    <server>
-        <id>splicemachine</id>
-        <username>USERNAME</username>
-        <password>PASSWORD</password>
-    </server>
-</servers>
-<profiles>
-    <profile>
-    <activation>
-        <activeByDefault>true</activeByDefault>
-    </activation>
-    <repositories>
-        <repository>
-            <id>splicemachine</id>
-            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
-        </repository>
-    </repositories>
-</profile>
-```
-
 ----
 
 ### IDE Setup
@@ -98,4 +69,4 @@ export PATH="${M2}:${PATH}"
 * import the maven project from the top level pom.xml
 
 #### Eclipse
-* need specifics here, can Eclipse import maven projects?
+* coming soon
