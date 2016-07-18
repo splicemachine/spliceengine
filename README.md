@@ -120,7 +120,11 @@ HBase is further separated into subprofiles, indicating the specific hbase distr
 
 ##### Notes for running agains For MapR hbase:
 * add the following empty file on your filesystem, executable and owned by root:
-```/opt/mapr/server/createJTVolume.sh```
+```
+/opt/mapr/server/createJTVolume.sh
+```
 * create the following directory on your filesystem, owned by root with 700 permissions:
-```/private/var/mapr/cluster/yarn/rm/system```
+```
+/private/var/mapr/cluster/yarn/rm/system
+```
 
