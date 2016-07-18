@@ -1,7 +1,11 @@
 # Splice Machine SQL Engine
 
+Before proceeding with these instructions, please follow the instructions found in the GETTING-STARTED.md file.
+
 ## Quick start
-For those of you who want a quick start using the defaults, from the top-level:
+(First make sure you have followed the instructions in the GETTING-STARTED.md file)
+
+For a quick start using the defaults, from the top-level:
 
 `./start-splice-cluster`
 
