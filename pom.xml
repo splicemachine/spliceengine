@@ -39,14 +39,22 @@
             <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
         </repository>
         <repository>
-            <id>splicemachine</id>
+            <id>splicemachine-public</id>
             <url>http://repository.splicemachine.com/nexus/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>splicemachine</id>
+            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
-            <id>splicemachine</id>
+            <id>splicemachine-public</id>
             <url>http://repository.splicemachine.com/nexus/content/groups/public</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>splicemachine</id>
+            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </pluginRepository>
     </pluginRepositories>
     <properties>
