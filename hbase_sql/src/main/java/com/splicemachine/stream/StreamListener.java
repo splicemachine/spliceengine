@@ -276,6 +276,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         PartitionState ps = new PartitionState(currentQueue, 0);
         ps.messages.add(SENTINEL);
         partitionStateMap.putIfAbsent(currentQueue, ps);
+        close();
     }
 
 
