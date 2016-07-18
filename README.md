@@ -3,13 +3,14 @@
 ## Quick start
 For those of you who want a quick start using the defaults, from the top-level:
 
-```./start-splice-cluster```
+`./start-splice-cluster`
 
 This will compile everything and start the database. 
 
 Then to connect to the database:
 
-```./sqlshell.sh```
+`./sqlshell.sh`
+
 
 ## Code Structure
 Code is separated into 2 conceptual tiers: Core, and Storage Architectures
