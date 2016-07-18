@@ -132,3 +132,7 @@ HBase is further separated into subprofiles, indicating the specific hbase distr
 /private/var/mapr/cluster/yarn/rm/system
 ```
 
+* add the following directory on your filesystem, owned by root with 777 permissions:
+```
+/private/var/mapr/cluster/yarn/rm/staging
+```
