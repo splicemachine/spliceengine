@@ -247,9 +247,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                     subqueryTrackingArray[index].close();
                 }
             }
-
             isOpen=false;
-
+            operationContext = null;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
