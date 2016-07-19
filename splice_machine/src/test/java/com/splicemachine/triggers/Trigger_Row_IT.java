@@ -61,7 +61,7 @@ public class Trigger_Row_IT {
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
         params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
-        //params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
         return params;
     }
 
@@ -435,6 +435,34 @@ public class Trigger_Row_IT {
 
             // then - trigger still fires
             assertRecordCount(s,"u1",6);
+        }
+    }
+
+    @Test
+    public void testCascadeConstraintViolation() throws Exception {
+
+        conn.execute("create table a(i varchar(40) unique)");
+        conn.execute("insert into a values 'One', 'Two', 'Three'");
+        conn.execute("create table cas1 (str_f varchar(40), int_f int)");
+        conn.execute("insert into cas1(str_f, int_f) values ('One', 1)");
+
+        conn.execute("create table cas2(str_f varchar(40), int_f int)");
+        conn.execute("insert into cas2(str_f, int_f) values ('Two', 2)");
+
+        conn.execute("create table cas3 (str_f varchar(40) constraint test_rollback references a(i), int_f int)");
+        conn.execute("insert into cas3(str_f, int_f) values ('Three', 3)");
+
+        conn.execute("create trigger cascade1_update after update on cas1 referencing NEW as NEW for each row update cas2 set str_f=NEW.str_f, int_f=NEW.int_f where str_f='Two'");
+
+        conn.execute("create trigger cascade2_update after update on cas2 referencing NEW as NEW for each row update cas3 set str_f=NEW.str_f, int_f=NEW.int_f where str_f='Three'");
+
+        try {
+            conn.execute("update cas1 set str_f='Incorrect', int_f=-1 where str_f = 'One'");
+            fail("Expected to fail with a SQLIntegrityConstraintViolationException");
+        }
+        catch (Exception e) {
+            String message = e.getLocalizedMessage();
+            Assert.assertTrue(message.compareTo("Operation on table 'CAS3' caused a violation of foreign key constraint 'TEST_ROLLBACK' for key (STR_F).  The statement has been rolled back.") == 0);
         }
     }
 
