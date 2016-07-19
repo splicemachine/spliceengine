@@ -20,11 +20,9 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.catalog.*;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
@@ -513,7 +511,7 @@ public class SpliceDatabase extends BasicDatabase{
         dd.startWriting(util.getLanguageConnectionContext());
         FileInfoDescriptor fid = util.getInfo();
         if (fid == null)
-            throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, util.getSqlName(),util.getSchemaName());
+            throw StandardException.newException(SQLState.LANG_JAR_FILE_DOES_NOT_EXIST, util.getSqlName(), util.getSchemaName());
 
         String dbcp_s = PropertyUtil.getServiceProperty(util.getLanguageConnectionContext().getTransactionExecute(),Property.DATABASE_CLASSPATH);
         if (dbcp_s != null)
@@ -562,7 +560,7 @@ public class SpliceDatabase extends BasicDatabase{
         //Temporarily drop the FileInfoDescriptor from the data dictionary.
         FileInfoDescriptor fid = util.getInfo();
         if (fid == null)
-            throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, util.getSqlName(),util.getSchemaName());
+            throw StandardException.newException(SQLState.LANG_JAR_FILE_DOES_NOT_EXIST, util.getSqlName(), util.getSchemaName());
 
         try {
             // disable loads from this jar
