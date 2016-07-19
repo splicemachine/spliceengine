@@ -79,7 +79,7 @@ for node in ${nodes[@]}; do
     
     echo "COPYING ${hbase_site_xml}.patch to ${ssh_user}@${node}"
     ssh ${ssh_opts} ${ssh_user}@${node} "mkdir -p splice-installer-temp"
-    scp ${scp_opts} ${installer_dir}/resources/scripts/${hbase_site_xml}.patch ${ssh_user}@${node}:splice-installer-temp
+    scp ${scp_opts} ${installer_dir}/conf/${hbase_site_xml}.patch ${ssh_user}@${node}:splice-installer-temp
  
     echo "PATCHING ${hbase_conf_dir}/${hbase_site_xml} on ${node}"
     # SSH commands to patch/modify hbase-site.xml on target node

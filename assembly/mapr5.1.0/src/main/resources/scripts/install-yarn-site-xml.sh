@@ -76,7 +76,7 @@ for node in ${nodes[@]}; do
     
     echo "COPYING ${yarn_site_xml}.patch to ${ssh_user}@${node}"
     ssh ${ssh_opts} ${ssh_user}@${node} "mkdir -p splice-installer-temp"
-    scp ${scp_opts} ${installer_dir}/resources/scripts/${yarn_site_xml}.patch ${ssh_user}@${node}:splice-installer-temp
+    scp ${scp_opts} ${installer_dir}/conf/${yarn_site_xml}.patch ${ssh_user}@${node}:splice-installer-temp
  
     echo "PATCHING ${hadoop_conf_dir}/${yarn_site_xml} on ${node}"
     # SSH commands to patch/modify yarn-site.xml on target node
