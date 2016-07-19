@@ -2286,7 +2286,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
                 parentStatementContext=statementContexts[0];
             }else{
-                parentStatementContext=getStatementContext();
+                parentStatementContext=(StatementContext)getContextManager().getContext(ContextId.LANG_STATEMENT);
                 statementContext=new GenericStatementContext(this);
             }
 

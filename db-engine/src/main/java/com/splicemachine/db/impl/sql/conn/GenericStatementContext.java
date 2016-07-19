@@ -624,7 +624,7 @@ final class GenericStatementContext
         // let outer contexts take corrective action for jvm errors, so 
         // return false as this will not be the last handler for such 
         // errors.
-		return inUse && !rollbackParentContext && 
+		return inUse && !rollbackParentContext && !parentInTrigger &&
             ( severity == ExceptionSeverity.STATEMENT_SEVERITY );
 	}
 
