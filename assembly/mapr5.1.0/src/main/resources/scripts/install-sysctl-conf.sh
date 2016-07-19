@@ -68,7 +68,7 @@ if (( ${#nodes} == 0 )); then
     nodes="$( awk -F' ' '{print $1}' /opt/mapr/server/data/nodelist.txt )"
 fi
 # Installer location
-installer_dir=$( dirname "${BASH_SOURCE[0]}" )
+installer_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 
 # Timestamp
 TS="$(date '+%Y%m%d%H%M%S')"

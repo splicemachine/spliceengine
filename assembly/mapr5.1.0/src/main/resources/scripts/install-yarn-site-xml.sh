@@ -56,7 +56,7 @@ if (( ${#nodes} == 0 )); then
     nodes="$( awk -F' ' '{print $1}' /opt/mapr/server/data/nodelist.txt )"
 fi
 # Installer location
-installer_dir=$( dirname "${BASH_SOURCE[0]}" )
+installer_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 # HBase properties
 yarn_site_xml="yarn-site.xml"
 hbase_version="$(cat /opt/mapr/hbase/hbaseversion)"
