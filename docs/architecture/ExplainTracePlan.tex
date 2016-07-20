@@ -72,37 +72,6 @@ A splice machine developer can utilize explain trace to better understand perfor
 \end{itemize}
 
 \section{Design}
-\subsection{Explain Tables}
-If explain traced is turned on, runtime statistics are collected into the following three explain tables under SYS schema.
-\begin{itemize}
-  \item SYSSTATEMENTHISTORY: stores information for executed state
-  \item SYSOPERATIONHISTORY: stores information for executed splice operations
-  \item SYSTASKHISTORY: store information for tasks that execute splice operations
-\end{itemize}
-Once an EXPLAINTRACE for a SQL statement completes successfully, runtime statistics is stored in explain tables until the tables are purged. To purge explain tables, run the following command.
-\begin{lstlisting}
-CALL SYSCS_UTIL.PURGE_XPLAIN_TRACE();
-\end{lstlisting}
-\subsection{Enabling and Disabling Explain Trace}
-Explain trace can be turned manually for a connection by running the following command from ij console:
-\begin{lstlisting}
-EXPLAINTRACE ON;
-\end{lstlisting}
-Explain trace will be turned on to trace all subsequent SQL statements until a user turns off explain trace by running 
-\begin{lstlisting}
-EXPLAINTRACE OFF;
-\end{lstlisting}
-Explain trace can be turned on for a SQL statement by running the following command
-\begin{lstlisting}
-EXPLAINTRACE [IN JSON] FOR ?SQL Statement?; 
-\end{lstlisting}
-Explaintrace turns on runtime statistics, executes the SQL, collects runtime statistics, and stores statistics in explain tables under SYS schema. 
-
-\noindent
-A user can specify the output format for an execution plan. By default, splice outputs an execution plan in an annotated tree format. If \lq IN JASON\rq\,is specified, splice outputs the execution plan as a JSON string.
-
-\noindent
-When explaintrace command completes, runtime statistics is turned off automatically. The SQL statement and its unique ID can be found in SYS.SYSSTATEMENTHISTORY table.  
 \subsection{Auto Trace}
 To better trouble-shooting a long-running analytic SQL, explain trace will be automatically turned on if a query runs on a table with more than 3 regions. Auto trace is turned on by default. To disable it, run the following command:
 
