@@ -46,6 +46,11 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 /**
  * SQLLongint satisfies the DataValueDescriptor
@@ -902,4 +907,42 @@ public final class SQLLongint
 	public BigDecimal getBigDecimal() {
 		return isNull ? null : BigDecimal.valueOf(value);
 	}
+
+	@Override
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
+		if (isNull())
+				unsafeRowWriter.setNullAt(ordinal);
+		else
+			unsafeRowWriter.write(ordinal,value);
+	}
+
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (unsafeRow.isNullAt(ordinal))
+				setToNull();
+		else
+			value = unsafeRow.getLong(ordinal);
+	}
+
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		return isNull()?1:9;
+	}
+
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+			OrderedBytes.encodeNull(src,order);
+		else
+			OrderedBytes.encodeInt64(src, value, order);
+	}
+
+			@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+				setToNull();
+		else
+			value = OrderedBytes.decodeInt64(src);
+	}
+
 }

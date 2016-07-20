@@ -20,6 +20,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -300,5 +304,34 @@ public class LazyDate extends LazyDataValueDescriptor implements DateTimeDataVal
         return dvd.getObject();
     }
 
+    @Override
+    public void decodeFromKey(PositionedByteRange builder) throws StandardException {
+        forceDeserialization();
+        dvd.decodeFromKey(builder);
+    }
+
+    @Override
+    public void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException {
+        forceDeserialization();
+        dvd.encodeIntoKey(builder,order);
+    }
+
+    @Override
+    public int encodedKeyLength() throws StandardException {
+        forceDeserialization();
+        return dvd.encodedKeyLength();
+    }
+
+    @Override
+    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+        forceDeserialization();
+        dvd.read(unsafeRow, ordinal);
+    }
+
+    @Override
+    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
+        forceDeserialization();
+        dvd.write(unsafeRowWriter, ordinal);
+    }
 
 }
