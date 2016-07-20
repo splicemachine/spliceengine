@@ -802,7 +802,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
 		FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd,sqlName);
 		if (fid == null)
-			throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, sqlName,schemaName);
+			throw StandardException.newException(SQLState.LANG_JAR_FILE_DOES_NOT_EXIST, sqlName, schemaName);
 
 		long generationId = fid.getGenerationId();
 
@@ -853,7 +853,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		dd.startWriting(util.getLanguageConnectionContext());
 		FileInfoDescriptor fid = util.getInfo();
 		if (fid == null)
-			throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, util.getSqlName(),util.getSchemaName());
+			throw StandardException.newException(SQLState.LANG_JAR_FILE_DOES_NOT_EXIST, util.getSqlName(), util.getSchemaName());
 
 		String dbcp_s = PropertyUtil.getServiceProperty(util.getLanguageConnectionContext().getTransactionExecute(),Property.DATABASE_CLASSPATH);
 		if (dbcp_s != null)
@@ -905,7 +905,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		//Temporarily drop the FileInfoDescriptor from the data dictionary.
 		FileInfoDescriptor fid = util.getInfo();
 		if (fid == null)
-			throw StandardException.newException(SQLState.LANG_FILE_DOES_NOT_EXIST, util.getSqlName(),util.getSchemaName());
+			throw StandardException.newException(SQLState.LANG_JAR_FILE_DOES_NOT_EXIST, util.getSqlName(), util.getSchemaName());
 
 		try {
 			// disable loads from this jar

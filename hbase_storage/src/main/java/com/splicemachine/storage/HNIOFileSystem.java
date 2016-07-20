@@ -345,14 +345,14 @@ public class HNIOFileSystem extends DistributedFileSystem{
             try{
                 fs.access(path,FsAction.READ);
                 readable= true;
-            }catch(AccessDeniedException ade){
+            }catch(IOException ioe){
                readable = false;
             }
             boolean writable;
             try{
                 fs.access(path,FsAction.WRITE);
                 writable = true;
-            }catch(AccessDeniedException ade){
+            }catch(IOException ioe){
                 writable = false;
             }
             this.isReadable = readable;

@@ -107,7 +107,7 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) throws Exception {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!","XIE04",se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!","X0X14",se.getSQLState());
                 String retval = se.getMessage();
                 Assert.assertTrue("Incorrect error message! correct: Expected error to contain <"+
                                       fileName+">, Error: <"+retval+">",retval.contains(fileName));

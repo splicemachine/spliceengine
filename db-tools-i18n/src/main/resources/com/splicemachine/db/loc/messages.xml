@@ -3341,6 +3341,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>X0X14.S</name>
+                <text>The file '{0}' does not exist.</text>
+                <arg>fileName</arg>
+            </msg>
+
+            <msg>
                 <name>X0X57.S</name>
                 <text>An attempt was made to put a Java value of type '{0}' into a SQL value, but there is no corresponding SQL type.  The Java value is probably the result of a method call or field access.</text>
                 <arg>type</arg>

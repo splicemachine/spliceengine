@@ -1366,7 +1366,8 @@ public interface SQLState {
 	String LANG_CANT_DROP_JAR_ON_DB_CLASS_PATH_DURING_EXECUTION        = "X0X07.S";
 	String LANG_USING_CARDINALITY_VIOLATION_DURING_EXECUTION           = "X0X10.S";
 	String LANG_NO_ROWS_FROM_USING_DURING_EXECUTION                    = "X0X11.S";
-	String LANG_FILE_DOES_NOT_EXIST                                    = "X0X13.S";
+	String LANG_JAR_FILE_DOES_NOT_EXIST                                = "X0X13.S";
+	String LANG_FILE_DOES_NOT_EXIST                                    = "X0X14.S";
 	String LANG_NO_CORRESPONDING_S_Q_L_TYPE                            = "X0X57.S";
 	String LANG_CURSOR_ALREADY_EXISTS                                  = "X0X60.S";
 	String LANG_INDEX_COLUMN_NOT_EQUAL                                 = "X0X61.S";
