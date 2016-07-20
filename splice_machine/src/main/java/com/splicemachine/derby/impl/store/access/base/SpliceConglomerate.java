@@ -32,7 +32,11 @@ import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -214,5 +218,30 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     @Override
     public int hashCode(){
         return (int)(containerId^(containerId>>>32));
+    }
+
+    @Override
+    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public int encodedKeyLength() throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public void decodeFromKey(PositionedByteRange builder) throws StandardException {
+        throw new RuntimeException("Not Implemented");
     }
 }

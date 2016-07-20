@@ -47,6 +47,11 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 /**
  * SQLDouble satisfies the DataValueDescriptor
@@ -903,5 +908,86 @@ public final class SQLDouble extends NumberDataType
 	public BigDecimal getBigDecimal() {
 		return isNull() ? null : BigDecimal.valueOf(value);
 	}
-    
+
+	/**
+	 *
+	 * Write into Project Tungsten Format (UnsafeRow)
+	 *
+	 * @see UnsafeRowWriter#write(int, double)
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+     */
+	@Override
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
+		if (isNull())
+				unsafeRowWriter.setNullAt(ordinal);
+		else
+			unsafeRowWriter.write(ordinal,value);
+	}
+
+	/**
+	 *
+	 * Read from a Project Tungsten Format.
+	 *
+	 * @see UnsafeRow#getDouble(int)
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (unsafeRow.isNullAt(ordinal))
+				setToNull();
+		else
+			value = unsafeRow.getDouble(ordinal);
+	}
+
+	/**
+	 *
+	 * Get Encoded Key Length.
+	 *
+	 * @return
+	 * @throws StandardException
+     */
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		return isNull()?1:9;
+	}
+
+	/**
+	 *
+	 * Encode into Key.
+	 *
+	 * @see OrderedBytes#encodeFloat64(PositionedByteRange, double, Order)
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+				OrderedBytes.encodeNull(src, order);
+		else
+			OrderedBytes.encodeFloat64(src, value, order);
+	}
+
+	/**
+	 *
+	 * Decode from Key.
+	 *
+	 * @see OrderedBytes#decodeFloat64(PositionedByteRange)
+	 *
+ 	 * @param src
+	 * @throws StandardException
+     */
+	@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+				setToNull();
+		else
+			value = OrderedBytes.decodeFloat64(src);
+	}
 }

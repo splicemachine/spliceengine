@@ -67,10 +67,16 @@ import java.text.CollationKey;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Calendar;
+
+import org.apache.hadoop.hbase.types.OrderedString;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.unsafe.types.UTF8String;
 import org.joda.time.DateTime;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-
-
 
 
 /**
@@ -3297,4 +3303,82 @@ public class SQLChar
     	return Format.CHAR;
     }
 
+    /**
+     *
+     * Write into the Project Tungsten Format (UnsafeRow).
+     *
+     * @see UnsafeRowWriter#write(int, UTF8String)
+     *
+     * @param unsafeRowWriter
+     * @param ordinal
+     */
+    @Override
+    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
+        if (isNull())
+            unsafeRowWriter.setNullAt(ordinal);
+        else
+            unsafeRowWriter.write(ordinal, UTF8String.fromString(value));
+    }
+
+    /**
+     *
+     * Read into the Project Tungsten Format (UnsafeRow).
+     *
+     * @see UnsafeRow#getUTF8String(int)
+     *
+     * @param unsafeRow
+     * @param ordinal
+     * @throws StandardException
+     */
+    @Override
+    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+        if (unsafeRow.isNullAt(ordinal))
+            setToNull();
+        else
+            value = unsafeRow.getUTF8String(ordinal).toString();
+    }
+
+    /**
+    *
+    * Get the encodedLength of the string.
+    *
+    * @return
+    * @throws StandardException
+    */
+    @Override
+    public int encodedKeyLength() throws StandardException {
+        return OrderedString.ASCENDING.encodedLength(value); // Order Does Not Matter for Length
+    }
+
+    /**
+     *
+     * Performs null check and then encodes.
+     *
+     * @see OrderedBytes#encodeString(PositionedByteRange, String, Order)
+     *
+     * @param src
+     * @param order
+     * @throws StandardException
+     */
+    @Override
+    public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+        if (isNull())
+            OrderedBytes.encodeNull(src, order);
+        else
+            OrderedBytes.encodeString(src, value, order);
+    }
+
+    /**
+     *
+     * Performs null check and then decodes.
+     *
+     * @see OrderedBytes#decodeString(PositionedByteRange)
+     *
+     * @param src
+     * @throws StandardException
+     */
+    @Override
+    public void decodeFromKey(PositionedByteRange src) throws StandardException {
+        value = OrderedBytes.decodeString(src);
+    }
 }

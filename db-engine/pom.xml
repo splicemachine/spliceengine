@@ -33,6 +33,16 @@
     <artifactId>db-engine</artifactId>
     <dependencies>
         <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>2.6.0-cdh5.4.10</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-common</artifactId>
+            <version>1.0.0-cdh5.4.10</version>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>db-shared</artifactId>
             <version>${project.version}</version>
@@ -47,13 +57,6 @@
             <artifactId>${spark-assembly-id}</artifactId>
             <version>${spark.version}</version>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>11.0.2</version>
-        </dependency>
--->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>

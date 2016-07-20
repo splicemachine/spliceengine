@@ -26,34 +26,33 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Storable;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.lang.Math;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.Decimal;
 
 /**
  * SQLDecimal satisfies the DataValueDescriptor
- * interfaces (i.e., OrderableDataType). It implements a numeric/decimal column, 
+ * interfaces (i.e., OrderableDataType). It implements a numeric/decimal column,
  * e.g. for * storing a column value; it can be specified
  * when constructed to not allow nulls. Nullability cannot be changed
  * after construction, as it affects the storage size and mechanism.
@@ -70,7 +69,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 public final class SQLDecimal extends NumberDataType implements VariableSizeDataValue
 {
 	/**
-	 * object state.  Note that scale and precision are 
+	 * object state.  Note that scale and precision are
 	 * always determined dynamically from value when
 	 * it is not null.
 
@@ -88,6 +87,10 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 	 */
 	private BigDecimal	value;
+
+	public int precision;
+
+	public int scale;
 
 	/**
 		See comments for value
@@ -119,7 +122,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	//
 	////////////////////////////////////////////////////////////////////
 	/** no-arg constructor, required by Formattable */
-	public SQLDecimal() 
+	public SQLDecimal()
 	{
 	}
 
@@ -131,7 +134,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public SQLDecimal(BigDecimal val, int nprecision, int scale)
 			throws StandardException
 	{
-		
+
 		setValue(val);
 		if ((value != null) && (scale >= 0))
 		{
@@ -139,7 +142,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		}
 	}
 
-	public SQLDecimal(String val) 
+	public SQLDecimal(String val)
 	{
 		setValue(new BigDecimal(val));
 	}
@@ -256,7 +259,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	}
 
 	/**
-	 * 
+	 *
 	 * If we have a value that is greater than the maximum double,
 	 * exception is thrown.  Otherwise, ok.  If the value is less
 	 * than can be represented by a double, ti will get set to
@@ -278,14 +281,14 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 	public BigDecimal getBigDecimal()
 	{
-		if ((value == null) && (rawData != null)) 
+		if ((value == null) && (rawData != null))
 		{
 			setValue(new BigDecimal(new BigInteger(rawData), rawScale));
 		}
 
 		return value;
 	}
-	
+
 	/**
 	 * DECIMAL implementation. Convert to a BigDecimal using getObject
 	 * which will return a BigDecimal
@@ -319,12 +322,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 	/**
 	 * Set the value from a correctly typed BigDecimal object.
-	 * @throws StandardException 
+	 * @throws StandardException
 	 */
 	void setObject(Object theValue) throws StandardException {
 		setValue((BigDecimal) theValue);
 	}
-	
+
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
 		setCoreValue(SQLDecimal.getBigDecimal(theValue));
 	}
@@ -348,7 +351,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
 	*/
-	public int getTypeFormatId() 
+	public int getTypeFormatId()
 	{
 		return StoredFormatIds.SQL_DECIMAL_ID;
 	}
@@ -356,14 +359,14 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	/*
 	 * see if the decimal value is null.
 	 */
-	/* @see Storable#isNull 
+	/* @see Storable#isNull
 	 */
 	private final boolean evaluateNull()
 	{
 		return (value == null) && (rawData == null);
 	}
 
-	/** 
+	/**
 	 * Distill the BigDecimal to a byte array and
 	 * write out: <UL>
 	 *	<LI> scale (zero or positive) as a byte </LI>
@@ -381,7 +384,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 		if (value != null) {
 			scale = value.scale();
-			
+
 			// J2SE 5.0 introduced negative scale value for BigDecimals.
 			// In previouse Java releases a negative scale was not allowed
 			// (threw an exception on setScale and the constructor that took
@@ -399,8 +402,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			// e.g. 1000 can be represented by:
 			//    a BigDecimal with scale -3 (unscaled value of 1)
 			// or a BigDecimal with scale 0 (unscaled value of 1000)
-			
-			if (scale < 0) {			
+
+			if (scale < 0) {
 				scale = 0;
 				setValue(value.setScale(0));
 			}
@@ -411,7 +414,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			scale = rawScale;
 			byteArray = rawData;
 		}
-		
+
 		if (SanityManager.DEBUG)
 		{
 			if (scale < 0)
@@ -424,12 +427,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		out.write(byteArray);
 	}
 
-	/** 
+	/**
 	 * Note the use of rawData: we reuse the array if the
 	 * incoming array is the same length or smaller than
-	 * the array length.  
-	 * 
-	 * @see java.io.Externalizable#readExternal 
+	 * the array length.
+	 *
+	 * @see java.io.Externalizable#readExternal
 	 */
 	public void readExternal(ObjectInput in) throws IOException {
 
@@ -461,7 +464,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		isNull = evaluateNull();
 
 	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException 
+	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
 		// clear the previous value to ensure that the
 		// rawData value will be used
@@ -525,8 +528,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		return new SQLDecimal();
 	}
 
-	/** 
-	 * @see DataValueDescriptor#setValueFromResultSet 
+	/**
+	 * @see DataValueDescriptor#setValueFromResultSet
 	 *
 	 * @exception SQLException		Thrown on error
 	 */
@@ -551,7 +554,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 		ps.setBigDecimal(position, getBigDecimal());
 	}
-	
+
 	/**
 	 *
 	 * <B> WARNING </B> there is no checking to make sure
@@ -573,12 +576,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		}
 		else
 		{
-		    try 
+		    try
 			{
 				theValue = theValue.trim();
 				rawData = null;
 		        setValue(new BigDecimal(theValue));
-			} catch (NumberFormatException nfe) 
+			} catch (NumberFormatException nfe)
 			{
 			    throw invalidFormat();
 			}
@@ -687,12 +690,20 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	private void setCoreValue(BigDecimal theValue)
 	{
 		value = theValue;
+		if (value !=null) {
+			precision = value.precision();
+			scale = value.scale();
+		}
 		rawData = null;
 		isNull = evaluateNull();
 	}
 
 	private void setCoreValue(double theValue) {
 		value = new BigDecimal(Double.toString(theValue));
+		if (value !=null) {
+			precision = value.precision();
+			scale = value.scale();
+		}
 		rawData = null;
 		isNull = evaluateNull();
 	}
@@ -703,7 +714,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * column.  See NormalizeResultSet in execution.
 	 * <p>
 	 * Note that truncation is allowed on the decimal portion
-	 * of a numeric only.	
+	 * of a numeric only.
 	 *
 	 * @param desiredType	The type to normalize the source column to
 	 * @param source		The value to normalize
@@ -889,7 +900,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			throw  StandardException.newException(SQLState.LANG_DIVIDE_BY_ZERO);
 		}
 		BigDecimal dividendBigDecimal = SQLDecimal.getBigDecimal(dividend);
-		
+
 		/*
 		** Set the result scale to be either the passed in scale, whcih was
 		** calculated at bind time to be max(ls+rp-rs+1, 4), where ls,rp,rs
@@ -900,12 +911,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		result.setBigDecimal(dividendBigDecimal.divide(
 									divisorBigDecimal,
 									scale > -1 ? scale :
-									Math.max((dividendBigDecimal.scale() + 
+									Math.max((dividendBigDecimal.scale() +
 											SQLDecimal.getWholeDigits(divisorBigDecimal) +
-											1), 
+											1),
 										NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE),
 									BigDecimal.ROUND_DOWN));
-		
+
 		return result;
 	}
 
@@ -940,7 +951,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
     /**
      * This method implements the isNegative method.
-     * 
+     *
      * @return  A boolean.  If this.value is negative, return true.
      *          For positive values or null, return false.
      */
@@ -949,7 +960,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
     {
         return !isNull() && (getBigDecimal().compareTo(ZERO) == -1);
     }
-    
+
 	/*
 	 * String display of value
 	 */
@@ -1000,32 +1011,32 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Set the precision/scale of the to the desired values. 
+	 * Set the precision/scale of the to the desired values.
 	 * Used when CASTing.  Ideally we'd recycle normalize(), but
-	 * the use is different.  
+	 * the use is different.
 	 *
 	 * @param desiredPrecision	the desired precision -- IGNORE_PREICISION
 	 *					if it is to be ignored.
-	 * @param desiredScale	the desired scale 
-	 * @param errorOnTrunc	throw error on truncation (ignored -- 
+	 * @param desiredScale	the desired scale
+	 * @param errorOnTrunc	throw error on truncation (ignored --
 	 *		always thrown if we truncate the non-decimal part of
 	 *		the value)
 	 *
 	 * @exception StandardException		Thrown on non-zero truncation
-	 *		if errorOnTrunc is true	
+	 *		if errorOnTrunc is true
 	 */
-	public void setWidth(int desiredPrecision, 
+	public void setWidth(int desiredPrecision,
 			int desiredScale,
 			boolean errorOnTrunc)
 			throws StandardException
 	{
 		if (isNull())
 			return;
-			
+
 		if (desiredPrecision != IGNORE_PRECISION &&
 			((desiredPrecision - desiredScale) <  SQLDecimal.getWholeDigits(getBigDecimal())))
 		{
-			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, 
+			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE,
 									("DECIMAL/NUMERIC("+desiredPrecision+","+desiredScale+")"));
 		}
 		rawData = null;
@@ -1042,7 +1053,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if (isNull())
 			return 0;
-			
+
 		BigDecimal localValue = getBigDecimal();
 
 		return SQLDecimal.getWholeDigits(localValue) + getDecimalValueScale();
@@ -1058,19 +1069,19 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if (isNull())
 			return 0;
-		
+
 		if (value == null)
 			return rawScale;
-	
+
 		int scale = value.scale();
 		if (scale >= 0)
 			return scale;
-		
+
 		// BigDecimal scale is negative, so number must have no fractional
 		// part as its value is the unscaled value * 10^-scale
 		return 0;
 	}
-	
+
 	/**
 	 * Get a BigDecimal representing the value of a DataValueDescriptor
 	 * @param value Non-null value to be converted
@@ -1084,7 +1095,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			if (value.isNull())
 				SanityManager.THROWASSERT("NULL value passed to SQLDecimal.getBigDecimal");
 		}
-		
+
 		switch (value.typeToBigDecimal())
 		{
 		case Types.DECIMAL:
@@ -1118,10 +1129,131 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
         if (ONE.compareTo(decimalValue) == 1)
             return 0;
         return decimalValue.precision() - decimalValue.scale();
-	}   
-	
+	}
+
 	public Format getFormat() {
 		return Format.DECIMAL;
 	}
 
+	/**
+	 *
+	 * Write to a Project Tungsten Format (UnsafeRow).
+	 *
+	 * @see UnsafeRowWriter#write(int, Decimal, int, int)
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+     */
+	@Override
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
+		if (isNull())
+				unsafeRowWriter.setNullAt(ordinal);
+		else
+			unsafeRowWriter.write(ordinal, Decimal.apply(value),value.precision(),value.scale());
+	}
+
+	/**
+	 *
+	 * Read from a Project Tungsten Format (UnsafeRow).
+	 *
+	 * @see UnsafeRow#getDecimal(int, int, int)
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (unsafeRow.isNullAt(ordinal))
+				setToNull();
+		else
+			value = unsafeRow.getDecimal(ordinal,precision,scale).toJavaBigDecimal();
+	}
+
+	/**
+	 *
+	 * TODO JL: This is not accurate...
+	 *
+	 * @return
+	 * @throws StandardException
+     */
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		throw new RuntimeException("not implemented correctly");
+//		return isNull()?1:9;
+	}
+
+	/**
+	 *
+	 * Encode into Key
+	 *
+	 * @see OrderedBytes#encodeNumeric(PositionedByteRange, BigDecimal, Order)
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+				OrderedBytes.encodeNull(src, order);
+		else
+			OrderedBytes.encodeNumeric(src, value, order);
+	}
+
+	/**
+	 *
+	 * Decode from Key
+	 *
+	 * @see OrderedBytes#decodeNumericAsBigDecimal(PositionedByteRange)
+	 *
+	 * @param src
+	 * @throws StandardException
+     */
+	@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+				setToNull();
+		else
+			value = OrderedBytes.decodeNumericAsBigDecimal(src);
+	}
+
+	/**
+	 * Get Precision of SQLDecimal
+	 *
+	 * @return
+     */
+	public int getPrecision() {
+		return precision;
+	}
+
+	/**
+	 *
+	 * Set Precision of SQLDecimal
+	 *
+	 * @param precision
+     */
+	public void setPrecision(int precision) {
+		this.precision = precision;
+	}
+
+	/**
+	 *
+	 * Get scale of SQLDecimal
+	 *
+	 * @return
+     */
+	public int getScale() {
+		return scale;
+	}
+
+	/**
+	 *
+	 * Set Scale of SQLDecimal
+	 *
+	 * @param scale
+     */
+	public void setScale(int scale) {
+		this.scale = scale;
+	}
 }
