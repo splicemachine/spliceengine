@@ -28,6 +28,10 @@ package com.splicemachine.db.iapi.types;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.joda.time.DateTime;
 import com.splicemachine.db.iapi.services.io.Storable;
 
@@ -570,7 +574,6 @@ public interface DataValueDescriptor extends Storable, Orderable
      * Set the value of this DataValueDescriptor.
      *
      * @param theValue	The Timestamp value to set this DataValueDescriptor to
-     * @param cal The time zone from the calendar is used to construct the database timestamp value
      *
      */
     public void setValue(DateTime theValue) throws StandardException;
@@ -994,5 +997,44 @@ public interface DataValueDescriptor extends Storable, Orderable
      * @return true if lazy
      */    
     Format getFormat();
-    
+
+	 /**
+	 *
+	 * This allows one to write a DataValueDescriptor to a
+	 * Project Tungsten format (UnsafeRow).
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+	 */
+	void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException;
+
+	 /**
+	  * This allows one to read a DataValueDescriptor from a
+	  * Project Tungsten format (UnsafeRow).
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 */
+	void read(UnsafeRow unsafeRow, int ordinal) throws StandardException;
+
+	/**
+	*
+	* Length for generating buffer
+	*
+	*/
+	int encodedKeyLength() throws StandardException;
+
+	/**
+	*
+    * Encode Value into Key (PK,etc.).  This follows the current hbase ordering mechanism.
+	*
+	*/
+	void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException;
+
+	/**
+	*
+	* Decode value from key.  This follows the current hbase ordering mechanism.
+	*
+	*/
+	void decodeFromKey(PositionedByteRange builder) throws StandardException;
 }

@@ -46,6 +46,11 @@ import java.sql.PreparedStatement;
 import java.sql.RowId;
 
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 public class SQLRef extends DataType implements RefDataValue
 {
@@ -276,4 +281,84 @@ public class SQLRef extends DataType implements RefDataValue
 	public Format getFormat() {
 		return Format.REF;
 	}
+
+	/**
+	 *
+	 * Write into a Project Tungsten format (UnsafeRow).  This calls the
+	 * reference's write method.
+	 *
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
+		if (isNull())
+				unsafeRowWriter.setNullAt(ordinal);
+		else {
+				value.write(unsafeRowWriter,ordinal);
+			}
+	}
+
+	/**
+	 *
+	 * Read into a Project Tungsten format.  This calls the Reference's
+	 * read method.
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (value==null)
+				value = new SQLRowId();
+		value.read(unsafeRow,ordinal);
+	}
+
+	/**
+	 *
+	 * This calls the references encodedKeyLength method.
+	 *
+	 * @return
+	 * @throws StandardException
+     */
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		return isNull()?1:value.encodedKeyLength(); // Order Does Not Matter for Length
+	}
+
+	/**
+	 *
+	 * This calls the references underlying encodeIntoKey
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+				OrderedBytes.encodeNull(src, order);
+		else
+			value.encodeIntoKey(src,order);
+	}
+
+	/**
+	 *
+	 * This calls the references underlying decodeFromKey method.
+	 *
+	 * @param src
+	 * @throws StandardException
+     */
+	@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+				setToNull();
+		else
+		if (value==null)
+				value = new SQLRowId();
+		value.decodeFromKey(src);
+	}
+
 }

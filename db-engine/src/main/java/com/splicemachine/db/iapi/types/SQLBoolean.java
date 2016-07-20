@@ -48,6 +48,11 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 /**
  * SQLBoolean satisfies the DataValueDescriptor
@@ -69,8 +74,9 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
  * more than it probably wants to.
  */
 public final class SQLBoolean
-	extends DataType implements BooleanDataValue
-{
+	extends DataType implements BooleanDataValue {
+	public static final byte F = 0x01;
+	public static final byte T = 0x02;
 	/*
 	 * DataValueDescriptor interface
 	 * (mostly implemented in DataType)
@@ -1059,4 +1065,87 @@ public final class SQLBoolean
 	public Format getFormat() {
 		return Format.BOOLEAN;
 	}
+	/**
+	 *
+	 * Write to a Project Tungsten UnsafeRow Format.
+	 *
+	 * @see UnsafeRowWriter#write(int, boolean)
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+     */
+	@Override
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
+		if (isNull())
+			unsafeRowWriter.setNullAt(ordinal);
+		else
+		unsafeRowWriter.write(ordinal,value);
+	}
+
+	/**
+	 *
+	 * Read from a Project Tungsten UnsafeRow Format.
+	 *
+	 * @see UnsafeRow#getBoolean(int)
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (unsafeRow.isNullAt(ordinal))
+			setToNull();
+		else
+			value = unsafeRow.getBoolean(ordinal);
+	}
+
+	/**
+	 *
+	 * Gets the encoded key length.  1 if null else 2.
+	 *
+	 * @return
+	 * @throws StandardException
+     */
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		return isNull()?1:2;
+	}
+
+	/**
+	 *
+	 * Performs null check and then encodes.
+	 *
+	 * @see OrderedBytes#encodeInt8(PositionedByteRange, byte, Order)
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+			OrderedBytes.encodeNull(src,order);
+		else
+			OrderedBytes.encodeInt8(src, value ? T : F, order);
+	}
+
+	/**
+	 *
+	 * Performs null check and then decodes.
+	 *
+	 * @see OrderedBytes#decodeInt8(PositionedByteRange)
+	 *
+	 * @param src
+	 * @throws StandardException
+     */
+	@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+			setToNull();
+		else
+			value = OrderedBytes.decodeInt8(src)==T?true:false;
+	}
+
+
 }
