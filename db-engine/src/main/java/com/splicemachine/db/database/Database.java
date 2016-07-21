@@ -107,21 +107,6 @@ public interface Database
         throws SQLException;
 
 	/**
-	 * Disables the log archival process, i.e No old log files
-	 * will be kept around for a roll-forward recovery. Only restore that can 
-	 * be performed after disabling log archive mode is version recovery.
-     *
-	 * @param deleteOnlineArchivedLogFiles  If true deletes all online archived
-     *                                      log files that exist before this 
-     *                                      call immediately; otherwise they 
-     *                                      will not be deleted.
-     *
-	 * @exception SQLException Thrown on error
-	 */
-	public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles) 
-		throws SQLException;
-
-	/**
 	  * Freeze the database temporarily so a backup can be taken.
 	  * <P>Please see the Derby documentation on backup and restore.
 	  *
@@ -156,7 +141,4 @@ public interface Database
 
 	*/
 	public UUID getId();
-}	
-
-
-
+}
