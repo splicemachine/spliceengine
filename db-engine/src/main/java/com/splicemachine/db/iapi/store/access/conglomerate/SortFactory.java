@@ -25,15 +25,8 @@
 
 package com.splicemachine.db.iapi.store.access.conglomerate;
 
-import java.util.Properties;
-
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.access.SortObserver;
 import com.splicemachine.db.iapi.store.access.SortCostController;
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
 
@@ -48,26 +41,6 @@ public interface SortFactory extends MethodFactory
 	**/
 	public static final String MODULE = 
 	  "com.splicemachine.db.iapi.store.access.conglomerate.SortFactory";
-
-	/**
-	Create the sort and return a sort object for it.
-
- 	@exception StandardException if the sort could not be
-	opened for some reason, or if an error occurred in one of
-	the lower level modules.
-
-	**/
-	Sort createSort(
-    TransactionController   tran,
-    int                     segment,
-    Properties              implParameters,
-    DataValueDescriptor[]   template,
-    ColumnOrdering          columnOrdering[],
-    SortObserver          	sortObserver,
-    boolean                 alreadyInOrder,
-    long                    estimatedRows,
-    int                     estimatedRowSize)
-        throws StandardException;
 
     /**
      * Return an open SortCostController.
