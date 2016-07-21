@@ -15,7 +15,9 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.pipeline.ErrorState;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
 import org.joda.time.Months;
@@ -141,7 +143,7 @@ public class SpliceDateFunctions {
         if (source == null || weekday == null) return source;
         String lowerWeekday = weekday.toLowerCase();
         if (!WEEK_DAY_MAP.containsKey(lowerWeekday)) {
-            throw new SQLException(String.format("invalid weekday '%s'", weekday));
+            throw PublicAPI.wrapStandardException(ErrorState.LANG_INVALID_DAY.newException(weekday));
         }
         DateTime dt = new DateTime(source);
         int increment = WEEK_DAY_MAP.get(lowerWeekday) - dt.getDayOfWeek() - 1;
