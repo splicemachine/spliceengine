@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -335,7 +337,7 @@ public class RowIdIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testSuquery() throws Exception {
+    public void testSubquery() throws Exception {
         String sqlText = String.format("update %s set j=j+3 where rowid in (select rowid from %s)",
                 spliceTableWatcher4, spliceTableWatcher5);
         int n = methodWatcher.executeUpdate(sqlText);
@@ -345,5 +347,17 @@ public class RowIdIT extends SpliceUnitTest {
                 spliceTableWatcher4, spliceTableWatcher5);
         n = methodWatcher.executeUpdate(sqlText);
         Assert.assertEquals("Wrong number of rows updated", n, nRows);
+    }
+
+    @Test
+    public void testAggregateNotAllowed() throws Exception {
+        String sqlText = String.format("select min(rowid) from %s", spliceTableWatcher4);
+        try {
+            methodWatcher.executeQuery(sqlText);
+            Assert.assertTrue("An exception is expected to be thrown", false);
+        }
+        catch (Exception e) {
+            Assert.assertTrue(e.getLocalizedMessage().contains("A REF column cannot be aggregated"));
+        }
     }
 }

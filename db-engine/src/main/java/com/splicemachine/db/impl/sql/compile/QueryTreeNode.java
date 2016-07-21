@@ -677,10 +677,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
                 if(type.getTypeId().userType()){
                     constantNodeType=C_NodeTypes.USERTYPE_CONSTANT_NODE;
                 }else{
-                    if(SanityManager.DEBUG)
-                        SanityManager.THROWASSERT("Unknown type "+
-                                type.getTypeId().getSQLTypeName()+" in getNullNode");
-                    return null;
+                    throw StandardException.newException(SQLState.LANG_NONULL_DATATYPE, type.getTypeId().getSQLTypeName());
                 }
         }
 

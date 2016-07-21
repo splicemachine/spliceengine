@@ -742,7 +742,8 @@ public interface SQLState {
     String LANG_MISSING_FIRST_LAST_VALUE_ARG                           = "2202A";
     String LANG_MISSING_LEAD_LAG_ARG                                   = "2202B";
     String LANG_MISSING_LEAD_LAG_DEFAULT                               = "2202C";
-
+	String LANG_NONULL_DATATYPE                                        = "2202D";
+	String LANG_INVALID_AGGREGATION_DATATYPE                           = "2202E";
 	/*
 	** Integrity violations.
 	*/
