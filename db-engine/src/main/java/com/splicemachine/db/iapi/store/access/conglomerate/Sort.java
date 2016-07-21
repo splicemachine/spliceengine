@@ -52,33 +52,6 @@ public interface Sort
 		throws StandardException;
 
 	/**
-	Open a scan controller.
-	<p>
-	The sort may have been dropped already, in which case
-	this method should thrown an exception.
-
-    @exception StandardException Standard exception policy.
-	**/
-
-	ScanController openSortScan(
-    TransactionManager  tran,
-    boolean             hold)
-			throws StandardException;
-
-	/**
-	Open a row Source to get rows out of the sorter.
-	<p>
-	The sort may have been dropped already, in which case
-	this method should thrown an exception.
-
-    @exception StandardException Standard exception policy.
-	**/
-
-	ScanControllerRowSource openSortRowSource(TransactionManager tran)
-			throws StandardException;
-
-
-	/**
 	Drop the sort - this means release all its resources.
 	<p>
 	Note: drop is like close, it has to be tolerant of
