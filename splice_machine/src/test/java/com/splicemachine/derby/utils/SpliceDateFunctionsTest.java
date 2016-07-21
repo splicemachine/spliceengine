@@ -15,8 +15,10 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -85,8 +87,12 @@ public class SpliceDateFunctionsTest {
 
     @Test
     public void nextDayThrowsWhenPassedInvalidDay() throws SQLException {
-        expectedException.expect(SQLException.class);
-        SpliceDateFunctions.NEXT_DAY(new Date(1L), "not-a-week-day");
+        try{
+            SpliceDateFunctions.NEXT_DAY(new Date(1L),"not-a-week-day");
+        }catch(SQLException se){
+            Assert.assertEquals("Invalid sql state!",ErrorState.LANG_INVALID_DAY.getSqlState(),se.getSQLState());
+            Assert.assertTrue("Did not contain the proper week day message!",se.getMessage().contains("not-a-week-day"));
+        }
     }
 
     @Test
