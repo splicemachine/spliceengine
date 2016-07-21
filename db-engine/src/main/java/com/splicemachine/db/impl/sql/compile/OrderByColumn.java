@@ -479,8 +479,9 @@ public class OrderByColumn extends OrderedColumn {
 		if(!expression.isConstantExpression()){
 			return false;
 		}
-		
-		return expression.getConstantValueAsObject() instanceof Integer;
+		return expression instanceof NumericConstantNode &&
+				expression.getConstantValueAsObject() instanceof Integer;
+
 	}
 
 	
