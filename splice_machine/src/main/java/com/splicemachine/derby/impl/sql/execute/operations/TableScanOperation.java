@@ -108,6 +108,7 @@ public class TableScanOperation extends ScanOperation{
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
         tableName=in.readUTF();
+        tableDisplayName=in.readUTF();
         tableNameBytes=Bytes.toBytes(tableName);
         indexColItem=in.readInt();
         if(in.readBoolean())
@@ -118,6 +119,7 @@ public class TableScanOperation extends ScanOperation{
     public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
         out.writeUTF(tableName);
+        out.writeUTF(tableDisplayName);
         out.writeInt(indexColItem);
         out.writeBoolean(indexName!=null);
         if(indexName!=null)
