@@ -114,15 +114,15 @@ public class ConstraintConstantOperationIT {
         // insert good data
         statement.execute(
                 String.format("insert into %s (EmpId, dob, ssn, salary) values (101, '04/08', '999-22-1234', 10001)",
-                              empPrivTable));
+                        empPrivTable));
 
         // insert good data
         statement.execute(
                 String.format("insert into %s (EmpId, fname, lname) values (101, 'Jeff', 'Cunningham')",
-                              empNameTable));
+                        empNameTable));
 
         ResultSet resultSet = connection.createStatement().executeQuery(query);
-        Assert.assertTrue("Connection should see its own writes",resultSet.next());
+        Assert.assertTrue("Connection should see its own writes", resultSet.next());
     }
 
     /**
@@ -295,5 +295,21 @@ public class ConstraintConstantOperationIT {
                               TASK_TABLE_CONSTRAINT_NAME, schemaWatcher.schemaName, TASK_TABLE_NAME);
             Assert.assertEquals(exMsg+" Expected:\n"+ expectedMsg, expectedMsg, exMsg);
         }
+    }
+
+    @Test
+    public void testDropTableReferecedByFK() throws Exception {
+        methodWatcher.execute("create table P (a int, b int, constraint pk1 primary key(a))");
+        methodWatcher.execute("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
+
+        try {
+            methodWatcher.execute("drop table P");
+        }
+        catch (Exception e) {
+            Assert.assertTrue(e.getLocalizedMessage().contains("Operation 'DROP CONSTRAINT' cannot be performed on object 'PK1' because CONSTRAINT 'FK1' is dependent on that object"));
+        }
+
+        methodWatcher.execute("drop table C");
+        methodWatcher.execute("drop table P");
     }
 }

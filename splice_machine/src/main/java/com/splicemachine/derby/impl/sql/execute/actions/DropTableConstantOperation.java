@@ -16,6 +16,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
+import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -94,86 +96,96 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
         long heapId = td.getHeapConglomerateId();
 
-        /* Drop the triggers */
-        for (Object aTdl : dd.getTriggerDescriptors(td)) {
-            TriggerDescriptor trd = (TriggerDescriptor) aTdl;
-            trd.drop(lcc);
-        }
-
-        /* Drop all column defaults */
-        for (ColumnDescriptor cd : td.getColumnDescriptorList()) {
-            // If column has a default we drop the default and any dependencies
-            if (cd.getDefaultInfo() != null) {
-                DefaultDescriptor defaultDesc = cd.getDefaultDescriptor(dd);
-                dm.clearDependencies(lcc, defaultDesc);
+        try {
+            /* Drop the triggers */
+            for (Object aTdl : dd.getTriggerDescriptors(td)) {
+                TriggerDescriptor trd = (TriggerDescriptor) aTdl;
+                trd.drop(lcc);
             }
-        }
 
-        /* Drop the columns */
-        dd.dropAllColumnDescriptors(tableId, tc);
+            /* Drop all column defaults */
+            for (ColumnDescriptor cd : td.getColumnDescriptorList()) {
+                // If column has a default we drop the default and any dependencies
+                if (cd.getDefaultInfo() != null) {
+                    DefaultDescriptor defaultDesc = cd.getDefaultDescriptor(dd);
+                    dm.clearDependencies(lcc, defaultDesc);
+                }
+            }
 
-        /* Drop all table and column permission descriptors */
-        dd.dropAllTableAndColPermDescriptors(tableId, tc);
+            /* Drop the columns */
+            dd.dropAllColumnDescriptors(tableId, tc);
 
-        /* Drop the constraints */
-        dropAllConstraintDescriptors(td, activation);
+            /* Drop all table and column permission descriptors */
+            dd.dropAllTableAndColPermDescriptors(tableId, tc);
 
+            /* Drop the constraints */
+            dropAllConstraintDescriptors(td, activation);
 
-        /*
-         * Drop all the conglomerates.  Drop the heap last, because the
-         * store needs it for locking the indexes when they are dropped.
-         */
-        ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
-        long[] dropped = new long[cds.length - 1];
-        int numDropped = 0;
-        for (ConglomerateDescriptor cd : cds) {
-
-            /* Remove Statistics*/
-            dd.deletePartitionStatistics(cd.getConglomerateNumber(),tc);
 
             /*
-             * if it's for an index, since similar indexes share one conglomerate, we only drop the conglomerate once
+             * Drop all the conglomerates.  Drop the heap last, because the
+             * store needs it for locking the indexes when they are dropped.
              */
-            if (cd.getConglomerateNumber() != heapId) {
-                long thisConglom = cd.getConglomerateNumber();
+            ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
+            long[] dropped = new long[cds.length - 1];
+            int numDropped = 0;
+            for (ConglomerateDescriptor cd : cds) {
 
-                int i;
-                for (i = 0; i < numDropped; i++) {
-                    if (dropped[i] == thisConglom) {
-                        break;
+                /* Remove Statistics*/
+                    dd.deletePartitionStatistics(cd.getConglomerateNumber(), tc);
+
+                /*
+                 * if it's for an index, since similar indexes share one conglomerate, we only drop the conglomerate once
+                 */
+                if (cd.getConglomerateNumber() != heapId) {
+                    long thisConglom = cd.getConglomerateNumber();
+
+                    int i;
+                    for (i = 0; i < numDropped; i++) {
+                        if (dropped[i] == thisConglom) {
+                            break;
+                        }
+                    }
+                    if (i == numDropped) {
+                        // not dropped
+                        dropped[numDropped++] = thisConglom;
+                        tc.dropConglomerate(thisConglom);
                     }
                 }
-                if (i == numDropped) {
-                    // not dropped
-                    dropped[numDropped++] = thisConglom;
-                    tc.dropConglomerate(thisConglom);
-                }
+
             }
 
+            /* Invalidate dependencies remotely. */
+
+            DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
+            // Run locally first to capture any errors.
+            dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
+            // Run Remotely
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+            // The table itself can depend on the user defined types of its columns. Drop all of those dependencies now.
+            adjustUDTDependencies(activation, null, true);
+
+            // remove from LCC
+            lcc.dropDeclaredGlobalTempTable(td);
+
+            /* Drop the table */
+            dd.dropTableDescriptor(td, sd, tc);
+
+            /* Drop the conglomerate descriptors */
+            dd.dropAllConglomerateDescriptors(td, tc);
+
+            /* Drop the store element at last, to prevent dangling reference for open cursor, beetle 4393. */
+            tc.dropConglomerate(heapId);
+        } catch (Exception e) {
+            // If dropping table fails, it could happen that the table object in cache has been modified.
+            // Invalidate the table in cache.
+            DataDictionaryCache cache = dd.getDataDictionaryCache();
+            TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(), td.getName());
+            cache.nameTdCacheRemove(tableKey);
+            cache.oidTdCacheRemove(td.getUUID());
+            throw e;
         }
-
-        /* Invalidate dependencies remotely. */
-
-        DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId);
-        // Run locally first to capture any errors.
-        dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-
-        // The table itself can depend on the user defined types of its columns. Drop all of those dependencies now.
-        adjustUDTDependencies(activation, null, true);
-
-        // remove from LCC
-        lcc.dropDeclaredGlobalTempTable(td);
-
-        /* Drop the table */
-        dd.dropTableDescriptor(td, sd, tc);
-
-        /* Drop the conglomerate descriptors */
-        dd.dropAllConglomerateDescriptors(td, tc);
-
-        /* Drop the store element at last, to prevent dangling reference for open cursor, beetle 4393. */
-        tc.dropConglomerate(heapId);
     }
 
     private void dropAllConstraintDescriptors(TableDescriptor td, Activation activation) throws StandardException {
