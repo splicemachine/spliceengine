@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLSyntaxErrorException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -261,6 +262,27 @@ public class SortOperationIT extends SpliceUnitTest {
 			reversedByValue.add(correctByValue1.get(i));
 		}
 		Assert.assertEquals("Incorrect name ordering!",reversedByValue,returnedByValue);
+	}
+
+	@Test(expected = SQLSyntaxErrorException.class)
+	public void testDerby6027() throws Exception {
+		methodWatcher.executeQuery("values 1,2 order by int(1)");
+	}
+
+	@Test(expected = SQLSyntaxErrorException.class)
+	public void orderByWithComputation() throws Exception {
+		methodWatcher.executeQuery("values 1 order by 1+0");
+	}
+
+	@Test()
+	public void orderByValuesClause() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery("values (1,-1),(3,-3),(2,-2) order by 1");
+		String test = "1 | 2 |\n" +
+				"--------\n" +
+				" 1 |-1 |\n" +
+				" 2 |-2 |\n" +
+				" 3 |-3 |";
+		assertEquals(test, TestUtils.FormattedResult.ResultFactory.toString(rs));
 	}
 
 	@Test
