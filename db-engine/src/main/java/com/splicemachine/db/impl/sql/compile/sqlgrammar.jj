@@ -3934,7 +3934,7 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 }
 {
 	queryExpression = queryExpression(null, NO_SET_OP, topNOut)
-		[ orderCols = orderByClause() ]
+		[ orderCols = orderByClause(queryExpression) ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 		[ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
 		[ isolationLevel = atIsolationLevel() ]
@@ -8926,12 +8926,12 @@ columnReference() throws StandardException :
 */
 
 OrderByList
-orderByClause() throws StandardException :
+orderByClause(ResultSetNode rs) throws StandardException :
 {
 	OrderByList orderCols;
 }
 {
-	<ORDER> <BY> orderCols = sortSpecificationList()
+	<ORDER> <BY> orderCols = sortSpecificationList(rs)
 	{
         forbidNextValueFor();
         
@@ -8953,10 +8953,11 @@ atIsolationLevel() throws StandardException :
 }
 
 OrderByList
-sortSpecificationList() throws StandardException :
+sortSpecificationList(ResultSetNode rs) throws StandardException :
 { 
 	OrderByList orderCols = (OrderByList) nodeFactory.getNode(
 											C_NodeTypes.ORDER_BY_LIST,
+											rs,
 											getContextManager()); 
 }
 {
@@ -9389,7 +9390,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
 	]
 	[ targetProperties = propertyList(false) <CHECK_PROPERTIES>]
 	queryExpression = queryExpression(null, NO_SET_OP, topNOut)
-	[ orderCols = orderByClause() ]
+	[ orderCols = orderByClause(queryExpression) ]
     hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
 		if (orderCols != null && isTableValueConstructor(queryExpression)) {
@@ -9673,7 +9674,7 @@ subquery(int subqueryType, ValueNode leftOperand) throws StandardException :
 }
 {
 	queryExpression = queryExpression(null, NO_SET_OP, topNOut)
-	[ orderCols = orderByClause() ]
+	[ orderCols = orderByClause(queryExpression) ]
     hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
 	    if (topNOut[0] != null) {
@@ -10801,7 +10802,7 @@ overClause() throws StandardException :
 			  getToken(2).kind == IDENTIFIER })
 	<OVER>
   ( // Define window - can be none, any or all of "partition by", "order by", "frame"
-    <LEFT_PAREN> [ partitionCols = partitionByClause() ] [ orderCols = orderByClause() ] [ frameDefn = frameDefinitionClause() ] <RIGHT_PAREN>
+    <LEFT_PAREN> [ partitionCols = partitionByClause() ] [ orderCols = orderByClause(null) ] [ frameDefn = frameDefinitionClause() ] <RIGHT_PAREN>
 	{
 	    if(orderCols == null && frameDefn.getFrameMode() == WindowFrameDefinition.FrameMode.RANGE) {
             frameDefn = new WindowFrameDefinition(false);
@@ -11246,7 +11247,7 @@ windowDefinition(WindowList wl) throws StandardException :
 {
 	windowName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
 	<AS>
-	<LEFT_PAREN> [ orderCols = orderByClause() ] <RIGHT_PAREN>
+	<LEFT_PAREN> [ orderCols = orderByClause(null) ] <RIGHT_PAREN>
 	{
 		wl.addWindow(
 			(WindowDefinitionNode)nodeFactory.getNode(
@@ -11570,7 +11571,7 @@ tableDefinition() throws StandardException :
 			[ <LEFT_PAREN> resultColumns = tableColumnList() <RIGHT_PAREN> ]
 			<AS>
 			queryExpression = queryExpression(null, NO_SET_OP, topNOut)
-            [ orderCols = orderByClause() ]
+            [ orderCols = orderByClause(null) ]
                hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 
 			<WITH> [ <NO> { withData = false; } ] <DATA>
@@ -12256,7 +12257,7 @@ viewDefinition(Token beginToken) throws StandardException :
 	<VIEW> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
 		[ <LEFT_PAREN> resultColumns = viewColumnList() <RIGHT_PAREN> ]
 		<AS> queryExpression = queryExpression(null, NO_SET_OP, topNOut)
-		[ orderCols = orderByClause() ]
+		[ orderCols = orderByClause(queryExpression) ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 	{
 		checkOptionType = ViewDescriptor.NO_CHECK_OPTION;
