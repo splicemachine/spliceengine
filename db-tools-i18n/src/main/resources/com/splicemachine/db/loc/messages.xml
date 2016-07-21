@@ -866,6 +866,18 @@ Guide.
             </msg>
 
             <msg>
+                <name>2202D</name>
+                <text>NULL value for data type {0} not supported.</text>
+                <arg>string</arg>
+            </msg>
+
+            <msg>
+                <name>2202E</name>
+                <text>A {0} column cannot be aggregated.</text>
+                <arg>string</arg>
+            </msg>
+
+            <msg>
                 <name>2201W</name>
                 <text>Row count for FIRST/NEXT/TOP must be >= 1 and row count for LIMIT must be >= 0.</text>
             </msg>

@@ -651,7 +651,17 @@ public class AggregateNode extends UnaryOperatorNode
 		** Create a result column with the aggrergate operand
 		** it.
 		*/
-		return getNullNode(getTypeServices());
+        DataTypeDescriptor type = null;
+		try {
+            type = getTypeServices();
+			return getNullNode(type);
+		}
+		catch (StandardException e) {
+			if (e.getSqlState().compareTo(SQLState.LANG_NONULL_DATATYPE) == 0) {
+                throw StandardException.newException(SQLState.LANG_INVALID_AGGREGATION_DATATYPE, type.getTypeId().getSQLTypeName());
+            }
+            else throw e;
+		}
 	}
 
 	/**
