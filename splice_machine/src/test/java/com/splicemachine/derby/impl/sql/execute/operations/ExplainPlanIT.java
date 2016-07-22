@@ -25,9 +25,8 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.math.BigDecimal;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.RowId;
+import java.sql.*;
+import java.util.Properties;
 
 import static java.lang.String.format;
 
@@ -141,6 +140,18 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         rs  = methodWatcher.executeQuery(sql);
         Assert.assertTrue(rs.next());
         Assert.assertTrue("expect explain plan contains useSpark=true", rs.getString(1).contains("engine=Spark"));
+
+    }
+
+    @Test
+    public void testSparkConnection() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+        Connection connection = DriverManager.getConnection(url, new Properties());
+        connection.setSchema(CLASS_NAME.toUpperCase());
+        Statement s = connection.createStatement();
+        ResultSet rs = s.executeQuery("explain select * from A");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=Spark"));
 
     }
 }
