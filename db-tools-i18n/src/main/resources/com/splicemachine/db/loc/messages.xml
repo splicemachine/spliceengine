@@ -54,7 +54,7 @@ so the product will default to showing a correct English message. -->
 
 <messages>
 
-<!-- 
+<!--
 This section contains all of the messages which have SQLStates. These
 are the message which turn up in SQLExceptions returned by the Derby
 JDBC drivers. These messages are documented in the Derby Reference
@@ -283,12 +283,12 @@ Guide.
                 <name>08001.C.12</name>
                 <text>A connection could not be established because the password has a length of zero or is larger than the maximum allowed by the network protocol.</text>
             </msg>
-			
+
 			<msg>
                 <name>08001.C.13</name>
                 <text>A connection could not be established because the external name (EXTNAM) has a length of zero or is larger than the maximum allowed by the network protocol.</text>
             </msg>
-			
+
 			<msg>
                 <name>08001.C.14</name>
                 <text>A connection could not be established because the server name (SRVNAM) has a length of zero or is larger than the maximum allowed by the network protocol.</text>
@@ -694,7 +694,7 @@ Guide.
                 <text>Unrecognized Java SQL type {0}.</text>
                 <arg>datatypeName</arg>
             </msg>
-            
+
             <msg>
                 <name>22005.S.7</name>
                 <text>Unicode string cannot convert to UTF-8 string</text>
@@ -765,7 +765,7 @@ Guide.
                 <arg>len</arg>
                 <arg>str</arg>
             </msg>
-            
+
             <msg>
                 <name>22012</name>
                 <text>Attempt to divide by zero.</text>
@@ -1741,7 +1741,7 @@ Guide.
 				<text>Column {0} is referenced in the HAVING clause but is not in the GROUP BY list.</text>
 				<arg>columnName</arg>
 			</msg>
-			
+
             <msg>
                 <name>42X25</name>
                 <text>The '{0}' function is not allowed on the '{1}' type.</text>
@@ -2324,13 +2324,13 @@ Guide.
                 <text>'{0}' is not recognized as a function or procedure.</text>
                 <arg>statement</arg>
             </msg>
-            
+
             <msg>
                 <name>42Y03.S.1</name>
                 <text>'{0}' is not recognized as a procedure.</text>
                 <arg>statement</arg>
             </msg>
-            
+
             <msg>
                 <name>42Y03.S.2</name>
                 <text>'{0}' is not recognized as a function.</text>
@@ -3091,7 +3091,7 @@ Guide.
                 <arg>schemaName</arg>
                 <arg>aggregateName</arg>
                 <arg>detailedMessage</arg>
-            </msg>    
+            </msg>
 
             <msg>
                 <name>43001</name>
@@ -4687,7 +4687,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
 
 	    <msg>
                 <name>XIE0T.S</name>
-		<text>The export operation was not performed, because the specified large object auxiliary file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the large object auxiliary file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.</text> 
+		<text>The export operation was not performed, because the specified large object auxiliary file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the large object auxiliary file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.</text>
                 <arg>fileName</arg>
             </msg>
 
@@ -5285,7 +5285,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <name>XJ215.S</name>
                 <text>You cannot invoke other java.sql.Clob/java.sql.Blob methods after calling the free() method or after the Blob/Clob's transaction has been committed or rolled back.</text>
             </msg>
-	    
+
 	    <msg>
                 <name>XJ216.S</name>
                 <text>The length of this BLOB/CLOB is not available yet. When a BLOB or CLOB is accessed as a stream, the length is not available until the entire stream has been processed.</text>
@@ -5314,7 +5314,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
         </family>
 
 
- 
+
         <family>
             <title>Class XN: Network Client Exceptions</title>
 
@@ -5456,13 +5456,13 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <arg>slavefile</arg>
                 <arg>slaveoffset</arg>
             </msg>
-            
+
             <msg>
                 <name>XRE06</name>
                 <text>The connection attempts to the replication slave for the database {0} exceeded the specified timeout period.</text>
                 <arg>dbname</arg>
             </msg>
-            
+
             <msg>
                 <name>XRE07</name>
                 <text>Could not perform operation because the database is not in replication master mode.</text>
@@ -5485,7 +5485,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <text>Conflicting attributes specified. See reference manual for attributes allowed in combination with replication attribute '{0}'.</text>
                 <arg>attribute</arg>
             </msg>
-            
+
             <msg>
                 <name>XRE11.C</name>
                 <text>Could not perform operation '{0}' because the database '{1}' has not been booted.</text>
@@ -5500,13 +5500,13 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <arg>expectedtype</arg>
                 <arg>receivedtype</arg>
             </msg>
-            
+
             <msg>
                 <name>XRE20.D</name>
                 <text>Failover performed successfully for database '{0}', the database has been shutdown.</text>
                 <arg>dbname</arg>
             </msg>
-            
+
             <msg>
                 <name>XRE21.C</name>
                 <text>Error occurred while performing failover for database '{0}', Failover attempt was aborted.</text>
@@ -5518,7 +5518,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <text>Replication master has already been booted for database '{0}'</text>
                 <arg>dbname</arg>
             </msg>
-            
+
             <msg>
                 <name>XRE23</name>
                 <text>Replication master cannot be started since unlogged operations are in progress, unfreeze to allow unlogged operations to complete and restart replication</text>
@@ -6511,7 +6511,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
     </section>
 
 
-<!-- 
+<!--
 This section contains all of the internationalized messages which are
 undocumented. This includes messages with handles which are
 pseudo-SQLStates, documented in SQLState.java. This also includes
@@ -7926,8 +7926,8 @@ MessageId.java.
             <msg>
                 <name>D001</name>
                 <text>:
-Booting Splice version {0}: instance {1} 
-on database directory {2} with class loader {3} 
+Booting Splice version {0}: instance {1}
+on database directory {2} with class loader {3}
 Loaded from {4}</text>
                 <arg>spliceVersion</arg>
                 <arg>id</arg>
@@ -7996,14 +7996,14 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
             <msg>
                 <name>D012</name>
-                <text>Backup completed, log instant at {0} 
+                <text>Backup completed, log instant at {0}
 </text>
                 <arg>backupInstant</arg>
             </msg>
 
             <msg>
                 <name>D013</name>
-                <text>WARNING: The database is booted with {0}={1}. In this mode, it is possible that database may not be able to recover, committed transactions may be lost, database may be in an inconsistent state. Please use this mode only when these consequences are acceptable  
+                <text>WARNING: The database is booted with {0}={1}. In this mode, it is possible that database may not be able to recover, committed transactions may be lost, database may be in an inconsistent state. Please use this mode only when these consequences are acceptable
 </text>
                 <arg>durabilityProperty</arg>
                 <arg>noSync</arg>
@@ -8492,7 +8492,7 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
             </msg>
             <msg>
                <name>L022</name>
-               <text>WARNING: Due to a permissions issue accessing the log files, the status of the database has been changed to read only. 
+               <text>WARNING: Due to a permissions issue accessing the log files, the status of the database has been changed to read only.
                </text>
            </msg>
         </family>
@@ -8534,30 +8534,30 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                 <text>Lost connection with the replication master of database '{0}'.</text>
                 <arg>dbname</arg>
             </msg>
-            
+
             <msg>
                 <name>R007</name>
                 <text>Replication master role started for database '{0}'.</text>
                 <arg>dbname</arg>
             </msg>
-            
+
             <msg>
                 <name>R008</name>
                 <text>Replication master role stopped for database '{0}'.</text>
                 <arg>dbname</arg>
             </msg>
-            
+
             <msg>
                 <name>R009</name>
                 <text>Exception occurred during log shipping.</text>
             </msg>
-            
+
             <msg>
                 <name>R010</name>
                 <text>Replication master trying to reconnect to slave for database '{0}'.</text>
                 <arg>dbname</arg>
             </msg>
-            
+
             <msg>
                 <name>R011</name>
                 <text>Replication slave database '{0}' listens for connections from master on '{1}:{2}'.</text>
@@ -8565,7 +8565,7 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                 <arg>hostname</arg>
                 <arg>port</arg>
             </msg>
-            
+
             <msg>
                 <name>R012</name>
                 <text>Replication connection handle invalid.</text>
@@ -8577,7 +8577,7 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                 <arg>timestamp</arg>
                 <arg>message</arg>
             </msg>
-            
+
             <msg>
                 <name>R020</name>
                 <text>Failover perfomed successfully for database '{0}'.</text>
@@ -8652,9 +8652,9 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
 						<msg>
 							<name>SE005</name>
-							<text>A region is too busy to receive requests at this time. Please contact your system administrator for more assistance</text>	
+							<text>A region is too busy to receive requests at this time. Please contact your system administrator for more assistance</text>
 						</msg>
-		
+
 						<msg>
 							<name>SE006.C.3</name>
 							<text>The ZooKeeper connection could not be adequately maintained. Please contact your system administrator for more assistance</text>
@@ -8758,6 +8758,13 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<text>Cannot disable statistics for column {0}: It is a primary key or indexed column</text>
 							<arg>column</arg>
 						</msg>
+           <msg>
+               <name>SE022</name>
+               <text>Invalid Day '{0}'</text>
+               <arg>day</arg>
+           </msg>
+
+
 
                         <msg>
                             <name>BR001</name>

@@ -1769,7 +1769,7 @@ public interface SQLState {
     String NET_PASSWORD_TOO_LONG                                = "08001.C.12";
     String NET_EXTNAM_TOO_LONG                                  = "08001.C.13";
     String NET_SRVNAM_TOO_LONG                                  = "08001.C.14";    
-    
+
     // database severity
     String SHUTDOWN_DATABASE = "08006.D";  
     String DROP_DATABASE = "08006.D.1";
@@ -1923,6 +1923,8 @@ public interface SQLState {
     String REPLICATION_SLAVE_SHUTDOWN_OK                           = "XRE42.C";
     String REPLICATION_STOPSLAVE_NOT_INITIATED                     = "XRE43";
 
+	//general SPlice errors
+	String LANG_INVALID_DAY										   = "SE022";
 	/*
      * Backup and restore
      */
