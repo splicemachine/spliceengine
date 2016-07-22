@@ -172,12 +172,9 @@ public class CoalesceFunctionNode extends ValueNode
 		setType(argumentsList.getDominantTypeServices());
 
 		//set all the parameter types to the type of the result type
-		for (int index = 0; index < argumentsListSize; index++)
-		{
-			if (((ValueNode) argumentsList.elementAt(index)).requiresTypeFromContext())
-			{
+		for (int index = 0; index < argumentsListSize; index++) {
+			if (((ValueNode) argumentsList.elementAt(index)).requiresTypeFromContext()) {
 				((ValueNode)argumentsList.elementAt(index)).setType(getTypeServices());
-				break;
 			}
 		}
 		return this;
