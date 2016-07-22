@@ -24,11 +24,10 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.io.Closeables;
+
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.load.ImportUtils;
@@ -46,18 +45,14 @@ import com.splicemachine.utils.SpliceLogUtils;
  *     Some error msg with an error code [this,1,record that caused the error]
  * </pre>
  * Note that, when running import as a series of spark tasks, each task will have an instance of this class.
- * It's therefore necessary to record task processing errors in temp files and merge the temp files at the
- * end of the import. The temp files will be deleted after merging.
  */
 public class BadRecordsRecorder implements Externalizable, Closeable {
     private static final Logger LOG = Logger.getLogger(BadRecordsRecorder.class);
     private static final String BAD_EXTENSION = ".bad";
-    private static final String TMP_DIRECTORY_NAME = "/.tmp";
 
     private long badRecordTolerance;
     private long numberOfBadRecords = 0L;
     private Path badRecordMasterPath;
-    private Path badRecordTempPath;
     private transient OutputStream fileOut;
 
     public BadRecordsRecorder() {/*Externalizable*/}
@@ -103,7 +98,6 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
 
     /**
      * Get the name of the master bad record file.<br/>
-     * All intermediate temp files will be merged into this file.
      * @return the path of the final bad record file for this import.
      */
     public String getBadRecordFileName() {
@@ -131,34 +125,16 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
 
     /**
      * Called from accumulator when merging them together.<br/>
-     * <code>numberOfBadRecords</code> is accumulated and bad records written to temp files are
-     * copied into one bad records file.
-     * @see #getUniqueName()
-     * @see #getBadRecordFileName()
-     * @param r2 merge from <code>r2</code> into <code>this</code>
+     * <code>numberOfBadRecords</code> is accumulated.
+     * @param r2 merge from <code>r2</code> into <code>this</code>.
      * @return <code>this</code>
      */
     public BadRecordsRecorder merge(BadRecordsRecorder r2) {
         // called by spark as result of accumulator.addInPlace()
-        this.numberOfBadRecords += r2.numberOfBadRecords;
-        List<Path> paths = new ArrayList<>(2);
-        if (this.badRecordTempPath != null) {
-            this.close();
-            paths.add(badRecordTempPath);
+        if (r2 != null) {
+            this.numberOfBadRecords += r2.numberOfBadRecords;
         }
-        if (r2.badRecordTempPath != null) {
-            r2.close();
-            paths.add(r2.badRecordTempPath);
-        }
-        if (paths.size() > 0) {
-            try {
-                SIDriver.driver().fileSystem().concat(badRecordMasterPath, paths.toArray(new Path[0]));
-                // sources are deleted after concat. null the ref so we don't try to concat again.
-                this.badRecordTempPath = null;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+
         return this;
     }
 
@@ -192,12 +168,8 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         // lazily init when we don't have a stream to which write
         if (fileOut == null) {
             try {
-                // bad records go to a temp file initially. will be merged by spark.
                 DistributedFileSystem dfs = SIDriver.driver().fileSystem();
-                String tmpDir = badRecordMasterPath.getParent()+ TMP_DIRECTORY_NAME;
-                dfs.createDirectory(tmpDir, false);
-                this.badRecordTempPath = generateWritableFilePath(tmpDir, badRecordMasterPath.getFileName().toString(), "");
-                fileOut = dfs.newOutputStream(badRecordTempPath.toString(), StandardOpenOption.CREATE);
+                fileOut = dfs.newOutputStream(badRecordMasterPath.toString(), StandardOpenOption.CREATE);
             } catch (Exception e) {
                 close();
                 throw new RuntimeException(e);
@@ -258,11 +230,6 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         out.writeLong(badRecordTolerance);
         out.writeLong(numberOfBadRecords);
         out.writeUTF(badRecordMasterPath.toString());
-        if (badRecordTempPath!=null) {
-            out.writeBoolean(true);
-            out.writeUTF(badRecordTempPath.toString());
-        } else
-            out.writeBoolean(false);
     }
 
     @Override
@@ -271,7 +238,5 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         badRecordTolerance = in.readLong();
         numberOfBadRecords = in.readLong();
         badRecordMasterPath = fileSystem.getPath(in.readUTF());
-        if (in.readBoolean())
-            badRecordTempPath = fileSystem.getPath(in.readUTF());
     }
 }
