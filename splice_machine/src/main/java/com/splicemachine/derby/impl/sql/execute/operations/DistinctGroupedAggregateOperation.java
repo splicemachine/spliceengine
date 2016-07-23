@@ -23,11 +23,19 @@ import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- * Pass through class to GroupedAggregateOperation
+ * Pass through class to GroupedAggregateOperation...
+ *
+ * @see GroupedAggregateOperation
+ *
  */
 public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation {
 	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperation.class);
 
+	/**
+	 *
+	 * No arg constructor, required for Serde.
+	 *
+	 */
     public DistinctGroupedAggregateOperation() {
 		super();
 	}
@@ -65,5 +73,4 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 		super(s, isInSortedOrder, aggregateItem, orderingItem,a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup);
 		SpliceLogUtils.trace(LOG, "instance");
     }
-
 }

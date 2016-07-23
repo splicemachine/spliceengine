@@ -25,26 +25,115 @@ import java.util.List;
 import java.util.concurrent.Future;
 
 /**
- * Stream of data acting on a single type of values.
+ * Stream of data acting on an iterable set of values.
  */
 public interface DataSet<V> extends Iterable<V>, Serializable {
-
+    /**
+     *
+     * Collect the stream of data, materializes to a list (memory beware).
+     *
+     * @return
+     */
     List<V> collect();
 
+    /**
+     *
+     * Collect the stream of data to a list asynchronously (memare beware).
+     *
+     * @param isLast
+     * @param context
+     * @param pushScope
+     * @param scopeDetail
+     * @return
+     */
     Future<List<V>> collectAsync(boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
+    /**
+     *
+     * Perform a function on the entire partition and provide an iterator out of the function.
+     *
+     * @param f
+     * @param <Op>
+     * @param <U>
+     * @return
+     */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
 
+    /**
+     *
+     * Perform a function on the entire partition and provide an iterator out of the function.
+     *
+     * @param f
+     * @param isLast
+     * @param <Op>
+     * @param <U>
+     * @return
+     */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast);
-    
+
+    /**
+     *
+     * Perform a function on the entire partition and provide an iterator out of the function.
+     *
+     * @param f
+     * @param isLast
+     * @param pushScope
+     * @param scopeDetail
+     * @param <Op>
+     * @param <U>
+     * @return
+     */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail);
-    
+
+    /**
+     *
+     * Perform a distinct on all elements of the dataset.
+     *
+     * @return
+     */
     DataSet<V> distinct();
 
+    /**
+     *
+     * Perform a distinct on all elements of the dataset.  Adding information
+     * here to hack the Spark UI to see custom labels.
+     *
+     * @param name
+     * @param isLast
+     * @param context
+     * @param pushScope
+     * @param scopeDetail
+     * @return
+     */
     DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
+    /**
+     *
+     * Change the number of partitions of the data if applicable.  Be careful to
+     * consider Performance (Shuffle) and memory (number of Partitions) when
+     * performing this operation.
+     *
+     * @param numPartitions
+     * @param shuffle
+     * @return
+     */
     DataSet<V> coalesce(int numPartitions, boolean shuffle);
 
+    /**
+     *
+     * Change the number of partitions of the data if applicable.  Be careful to
+     * consider Performance (Shuffle) and memory (number of Partitions) when
+     * performing this operation.  Additonal methods are added here to hack
+     * the Spark UI.
+     *
+     * @param numPartitions
+     * @param shuffle
+     * @param isLast
+     * @param context
+     * @param pushScope
+     * @param scopeDetail
+     * @return
+     */
     DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function);
@@ -107,16 +196,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * Releases any resources of the dataset
      */
     void close();
-
-//    /**
-//     * Performs a fetch with offset
-//     */
-//    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction);
-//
-//    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction, boolean isLast);
-//
-//    <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
-
+    
     <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op, V> takeFunction);
 
     ExportDataSetWriterBuilder writeToDisk();

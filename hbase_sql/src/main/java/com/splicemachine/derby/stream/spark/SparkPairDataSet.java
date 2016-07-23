@@ -38,6 +38,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ *
+ * The Key Value Dataset operations for Spark.  These mimic the
+ * existing Spark Key Value Operations in JavaPairRDD.
+ *
  * @see org.apache.spark.api.java.JavaPairRDD
  */
 public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
@@ -61,11 +65,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     @Override
     public DataSet<V> values(String name){
         return new SparkDataSet<>(rdd.values(),name);
-    }
-
-    @Override
-    public DataSet<V> values(boolean isLast){
-        return new SparkDataSet<>(rdd.values());
     }
 
     @Override

@@ -80,11 +80,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> values(boolean isLast) {
-        return values();
-    }
-
-    @Override
     public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetails) {
         return values();
     }

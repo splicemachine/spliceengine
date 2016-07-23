@@ -20,7 +20,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -37,6 +36,17 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ *
+ * A Table Scan that asks for a distinct scan of arguments
+ *
+ * select distinct (col1) from foo;
+ *
+ * or a statement where there is a single scan of the only group by column.
+ *
+ * select col1 from foo group by col1.
+ *
+ * The optimizer will change the latter to a distinct scan.
+ *
  * @author Scott Fines
  * Created on: 5/23/13
  */
@@ -57,6 +67,29 @@ public class DistinctScanOperation extends ScanOperation {
     private String indexName;
     private int[] keyColumns;
 
+    /**
+     *
+     * Constructor for distinct scan.
+     *
+     * @param conglomId
+     * @param scoci
+     * @param activation
+     * @param resultRowAllocator
+     * @param resultSetNumber
+     * @param hashKeyItem
+     * @param tableName
+     * @param userSuppliedOptimizerOverrides
+     * @param indexName
+     * @param isConstraint
+     * @param colRefItem
+     * @param lockMode
+     * @param tableLocked
+     * @param isolationLevel
+     * @param optimizerEstimatedRowCount
+     * @param optimizerEstimatedCost
+     * @param tableVersion
+     * @throws StandardException
+     */
     @SuppressWarnings("UnusedParameters")
     public DistinctScanOperation(long conglomId,
                                  StaticCompiledOpenConglomInfo scoci, Activation activation,
@@ -101,6 +134,14 @@ public class DistinctScanOperation extends ScanOperation {
         init();
     }
 
+    /**
+     *
+     * Serde
+     *
+     * @param in
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
@@ -110,6 +151,13 @@ public class DistinctScanOperation extends ScanOperation {
         hashKeyItem = in.readInt();
     }
 
+    /**
+     *
+     * Serde
+     *
+     * @param out
+     * @throws IOException
+     */
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
@@ -120,6 +168,14 @@ public class DistinctScanOperation extends ScanOperation {
         out.writeInt(hashKeyItem);
     }
 
+    /**
+     *
+     * Initialization after creation or serialization.
+     *
+     * @param context
+     * @throws StandardException
+     * @throws IOException
+     */
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
@@ -133,26 +189,50 @@ public class DistinctScanOperation extends ScanOperation {
         }
     }
 
+    /**
+     *
+     * Sub Operations underneath the current operation.  Empty
+     * for a distinct scan.
+     *
+     * @return
+     */
     @Override
     public List<SpliceOperation> getSubOperations() {
         return Collections.emptyList();
     }
 
+    /**
+     *
+     * The current rows definition (Type, number of columns, and position)
+     *
+     * @return
+     * @throws StandardException
+     */
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         return currentRow;
     }
 
-    @Override
-    public SpliceOperation getLeftOperation() {
-        return null;
-    }
-
+    /**
+     *
+     * Print the operation in a pretty format.
+     *
+     * @param indentLevel
+     * @return
+     */
     @Override
     public String prettyPrint(int indentLevel) {
         return "Distinct"+super.prettyPrint(indentLevel);
     }
 
+    /**
+     *
+     * Retrieve the dataset abstraction for the distinct scan.
+     *
+     * @param dsp
+     * @return
+     * @throws StandardException
+     */
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         assert currentTemplate != null: "Current Template Cannot Be Null";
         int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
@@ -170,7 +250,6 @@ public class DistinctScanOperation extends ScanOperation {
         } else {
             colMap = keyColumns;
         }
-
         return dsp.<DistinctScanOperation,LocatedRow>newScanSet(this,tableName)
                 .tableDisplayName(this.tableDisplayName)
                 .activation(activation)

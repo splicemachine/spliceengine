@@ -16,11 +16,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -36,7 +38,13 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
+import com.splicemachine.db.impl.sql.compile.FromTable;
 
+/**
+ *
+ * Base Operation for scanning either and index or a base table.
+ *
+ */
 public class TableScanOperation extends ScanOperation{
     private static final long serialVersionUID=3l;
     private static Logger LOG=Logger.getLogger(TableScanOperation.class);
@@ -48,16 +56,62 @@ public class TableScanOperation extends ScanOperation{
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
 
+    /**
+     *
+     * Return the nice formatted name for the Table Scan operation.
+     *
+     * @return
+     */
     @Override
     public String getName(){
         return NAME;
     }
 
-
+    /**
+     * Empty Constructor
+     *
+     */
     public TableScanOperation(){
         super();
     }
 
+    /**
+     *
+     * Massive Constructor that is generated from the SQL Parser.
+     *
+     * Here is where these elements are created.
+     *
+     * @see FromTable#generate(ActivationClassBuilder, MethodBuilder)
+     *
+     * @param conglomId
+     * @param scoci
+     * @param activation
+     * @param resultRowAllocator
+     * @param resultSetNumber
+     * @param startKeyGetter
+     * @param startSearchOperator
+     * @param stopKeyGetter
+     * @param stopSearchOperator
+     * @param sameStartStopPosition
+     * @param rowIdKey
+     * @param qualifiersField
+     * @param tableName
+     * @param userSuppliedOptimizerOverrides
+     * @param indexName
+     * @param isConstraint
+     * @param forUpdate
+     * @param colRefItem
+     * @param indexColItem
+     * @param lockMode
+     * @param tableLocked
+     * @param isolationLevel
+     * @param rowsPerRead
+     * @param oneRowScan
+     * @param optimizerEstimatedRowCount
+     * @param optimizerEstimatedCost
+     * @param tableVersion
+     * @throws StandardException
+     */
     @SuppressWarnings("UnusedParameters")
     public TableScanOperation(long conglomId,
                               StaticCompiledOpenConglomInfo scoci,
@@ -104,6 +158,16 @@ public class TableScanOperation extends ScanOperation{
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
     }
 
+    /**
+     *
+     * Serialization/Deserialization
+     *
+     * TODO SPLICE-716
+     *
+     * @param in
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
@@ -114,7 +178,15 @@ public class TableScanOperation extends ScanOperation{
         if(in.readBoolean())
             indexName=in.readUTF();
     }
-
+    /**
+     *
+     * Serialization/Deserialization
+     *
+     * TODO SPLICE-716
+     *
+     * @param out
+     * @throws IOException
+     */
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
@@ -126,6 +198,14 @@ public class TableScanOperation extends ScanOperation{
             out.writeUTF(indexName);
     }
 
+    /**
+     *
+     * Initialize variables after creation or serialization.
+     *
+     * @param context
+     * @throws StandardException
+     * @throws IOException
+     */
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
         super.init(context);
@@ -133,22 +213,47 @@ public class TableScanOperation extends ScanOperation{
         this.slice=ByteSlice.empty();
     }
 
+    /**
+     *
+     * Recursive fetch of operations below this operation.  Empty in the
+     * case of a table scan operation.
+     *
+     * @return
+     */
     @Override
     public List<SpliceOperation> getSubOperations(){
         return Collections.emptyList();
     }
 
-
+    /**
+     *
+     * Definiton of the current row as an ExecRow
+     *
+     * @return
+     */
     @Override
     public ExecRow getExecRowDefinition(){
         return currentTemplate;
     }
 
+    /**
+     *
+     * Prints the name for explain plan.
+     *
+     * @param indentLevel
+     * @return
+     */
     @Override
     public String prettyPrint(int indentLevel){
         return "Table"+super.prettyPrint(indentLevel);
     }
 
+    /**
+     *
+     * Close the current operation.  Usually called via the activation process.
+     *
+     * @throws StandardException
+     */
     @Override
     public void close() throws StandardException{
         SpliceLogUtils.trace(LOG,"close in TableScan");
@@ -173,13 +278,26 @@ public class TableScanOperation extends ScanOperation{
         return cols;
     }
 
+    /**
+     *
+     * Retrieve the DataSet abstraction for this table scan.
+     *
+     * @param dsp
+     * @return
+     * @throws StandardException
+     */
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         assert currentTemplate!=null:"Current Template Cannot Be Null";
-        // dsp.createOperationContext(this);
         return getTableScannerBuilder(dsp);
     }
 
+    /**
+     *
+     * Return the string representation for TableScan.
+     *
+     * @return
+     */
     @Override
     public String toString(){
         try{
@@ -189,6 +307,14 @@ public class TableScanOperation extends ScanOperation{
         }
     }
 
+    /**
+     *
+     * Retrieve the Table Scan Builder for creating the actual data set from a scan.
+     *
+     * @param dsp
+     * @return
+     * @throws StandardException
+     */
     public DataSet<LocatedRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
         return dsp.<TableScanOperation,LocatedRow>newScanSet(this,tableName)
@@ -209,5 +335,4 @@ public class TableScanOperation extends ScanOperation{
                 .rowDecodingMap(baseColumnMap)
                 .buildDataSet(this);
     }
-
 }
