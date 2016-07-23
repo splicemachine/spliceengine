@@ -19,6 +19,7 @@ import com.google.common.base.Function;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import org.sparkproject.guava.collect.Iterables;
 import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -39,6 +40,8 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.*;
 
 /**
@@ -49,14 +52,16 @@ public class ExplainOperation extends SpliceBaseOperation {
     protected static final String NAME = ExplainOperation.class.getSimpleName().replaceAll("Operation", "");
     protected SpliceOperation source;
     protected ExecRow currentTemplate;
-    private Iterator<String> explainStringIter;
+
+    List<String> explainString = new ArrayList<>();
 
     @Override
     public String getName() {
         return NAME;
     }
 
-    public ExplainOperation(){ }
+    public ExplainOperation() {
+    }
 
     public ExplainOperation(SpliceOperation source, Activation activation, int resultSetNumber) throws StandardException {
         super(activation, resultSetNumber, 0, 0);
@@ -84,8 +89,8 @@ public class ExplainOperation extends SpliceBaseOperation {
         super.close();
     }
 
-    protected void clearState(){
-        Map<String, Collection<QueryTreeNode>> m=PlanPrinter.planMap.get();
+    protected void clearState() {
+        Map<String, Collection<QueryTreeNode>> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         m.remove(sql);
     }
@@ -116,15 +121,25 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     @SuppressWarnings("unchecked")
-    private void getPlanInformation() throws StandardException{
-        Map<String,Collection<QueryTreeNode>> m = PlanPrinter.planMap.get();
+    private void getPlanInformation() throws StandardException {
+        Map<String, Collection<QueryTreeNode>> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
+        Iterator<String> explainStringIter;
         Collection<QueryTreeNode> opPlanMap = m.get(sql);
-        if(opPlanMap!=null){
-            boolean useSpark = PlanPrinter.shouldUseSpark(opPlanMap);
+        if (opPlanMap != null) {
+            CompilerContext.DataSetProcessorType type = activation.getLanguageConnectionContext().getDataSetProcessorType();
+            boolean useSpark = (type == CompilerContext.DataSetProcessorType.FORCED_SPARK ||
+                    type == CompilerContext.DataSetProcessorType.SPARK);
+
+            if (!useSpark)
+                useSpark = PlanPrinter.shouldUseSpark(opPlanMap);
+
             explainStringIter = PlanPrinter.planToIterator(opPlanMap, useSpark);
-        }else
-            explainStringIter =Iterators.emptyIterator();
+        } else
+            explainStringIter = Iterators.emptyIterator();
+        while (explainStringIter.hasNext()) {
+            explainString.add(explainStringIter.next());
+        }
     }
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
@@ -134,7 +149,7 @@ public class ExplainOperation extends SpliceBaseOperation {
             return dsp.createDataSet(Iterables.transform(new Iterable<String>() {
                                                              @Override
                                                              public Iterator<String> iterator() {
-                                                                 return explainStringIter;
+                                                                 return explainString.iterator();
                                                              }
                                                          }, new Function<String, LocatedRow>() {
                                                              @Nullable
@@ -155,6 +170,25 @@ public class ExplainOperation extends SpliceBaseOperation {
             );
         } finally {
             operationContext.popScope();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(explainString.size());
+        for (int i = 0; i < explainString.size(); ++i) {
+            out.writeUTF(explainString.get(i));
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+        super.readExternal(in);
+        int size = in.readInt();
+        explainString = new ArrayList<>();
+        for (int i = 0; i < size; ++i) {
+            explainString.add(in.readUTF());
         }
     }
 }
