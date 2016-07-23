@@ -124,10 +124,6 @@ public final class ContainerKey implements Matchable, Lockable
 		// instance of ContainerKey?
 		if (equals(key))
 			return true;
-
-		if (key instanceof RecordHandle) {
-			return equals(((RecordHandle) key).getContainerId());
-		}
 		return false;
 	}
 	/*

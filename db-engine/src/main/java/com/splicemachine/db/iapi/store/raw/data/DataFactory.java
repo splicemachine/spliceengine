@@ -26,7 +26,6 @@
 package com.splicemachine.db.iapi.store.raw.data;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.raw.RecordHandle;
 import com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.db.catalog.UUID;
 
@@ -64,23 +63,6 @@ public interface DataFactory {
 		locked in the raw store by value (e.g. Containers).
 	*/
 	public UUID getIdentifier();
-
-	/**
-		Return a record handle that is initialized to the given page number and
-        record id.
-
-		@exception StandardException Standard Derby exception policy.
-
-		@param segmentId    segment where the RecordHandle belongs.
-		@param containerId  container where the RecordHandle belongs.
-		@param pageNumber   the page number of the RecordHandle.
-		@param recordId     the record id of the RecordHandle.
-
-		@see RecordHandle
-	*/
-//	public RecordHandle makeRecordHandle(long segmentId, long containerId, long pageNumber, int recordId)
-//		 throws	StandardException;
-
 
 	/**
 		Encrypt cleartext into ciphertext.
