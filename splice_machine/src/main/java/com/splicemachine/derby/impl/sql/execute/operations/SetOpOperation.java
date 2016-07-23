@@ -35,9 +35,11 @@ import java.util.List;
 
 /**
  *
- * XXX-TODO IMPLEMENT THE FULL SPEC WITH DUPLICATES
+ * Initial work on intersect and except set operations.  This
+ * needs more work.
  *
- * Created by jleach on 4/23/15.
+ * XXX-TODO SPLICE-718
+ *
  */
 public class SetOpOperation extends SpliceBaseOperation {
     private static Logger LOG = Logger.getLogger(AnyOperation.class);

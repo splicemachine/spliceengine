@@ -37,13 +37,40 @@ import com.splicemachine.si.api.txn.TxnView;
  * Interface for Parallel Operations in the Splice Machine.
  */
 public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet {
-
+    /**
+     *
+     * Retrieve the current Row Location (Cursor Concept) on the operation.
+     *
+     * @return
+     */
     RowLocation getCurrentRowLocation();
 
+    /**
+     *
+     * Set the current Row Location (Cursor Concept) on the operation.
+     *
+     * @param rowLocation
+     */
     void setCurrentRowLocation(RowLocation rowLocation);
 
+    /**
+     *
+     * Set the current Located Row.
+     *
+     * @param locatedRow
+     */
     void setCurrentLocatedRow(LocatedRow locatedRow);
 
+    /**
+     *
+     * Get the dataset abstraction for the operation.
+     *
+     * @see DataSet
+     *
+     * @param dsp
+     * @return
+     * @throws StandardException
+     */
     DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
 
     /**
@@ -56,14 +83,47 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      */
     DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException;
 
+    /**
+     *
+     * Retrieve the operation context.  This context provides startup context for the different execution
+     * engines.
+     *
+     * @see OperationContext
+     *
+     * @return
+     */
     OperationContext getOperationContext();
 
+    /**
+     *
+     * Sets the operationContext on this operation.
+     *
+     * @param operationContext
+     */
     void setOperationContext(OperationContext operationContext);
 
+    /**
+     *
+     * Hack to allow Splice Machine to modify the spark API
+     * Should this be moved or handled better?
+     *
+     * @return
+     */
     String getScopeName();
-    
+
+    /**
+     * Retrieve a well formatted explain plan.
+     *
+     * @return
+     */
     String getPrettyExplainPlan();
-    
+
+    /**
+     *
+     * Sets the explain plan value when the statement starts with "explain <statement>"
+     *
+     * @param plan
+     */
     void setExplainPlan(String plan);
     
     /**
@@ -71,20 +131,68 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      */
     String getName();
 
+    /**
+     *
+     * Aggregating all the operation information into a class.
+     *
+     * @return
+     */
     OperationInformation getOperationInformation();
 
+    /**
+     *
+     * Number of rows modified.  This can be used via the resultset on returning inserts, updates,
+     * deletes.
+     *
+     * @return
+     */
     int modifiedRowCount();
 
+    /**
+     *
+     * Return the activation for the operation.
+     *
+     * @return
+     */
     Activation getActivation();
 
+    /**
+     *
+     * Clear the current row in the operation.
+     * Usually also clears the row in the activation.
+     *
+     */
     void clearCurrentRow();
 
+    /**
+     *
+     * This is the result set that is returning to the sql user.
+     *
+     */
     void markAsTopResultSet();
 
+    /**
+     *
+     * Open the operation.
+     *
+     * @throws StandardException
+     */
     void open() throws StandardException;
 
+    /**
+     *
+     * The generated resultSetNumber (0-n for an activation).
+     *
+     * @return
+     */
     int resultSetNumber();
-
+    /**
+     *
+     * Set the current row of data.  Important if projections, etc. act directly by
+     * reference on other rows.
+     *
+     * @param row the new current row
+     */
     void setCurrentRow(ExecRow row);
 
 	/**
@@ -163,31 +271,121 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      */
     String prettyPrint(int indentLevel);
 
+    /**
+     *
+     * Grabbing the accessedNonPKColumns
+     *
+     * @return
+     * @throws StandardException
+     */
     int[] getAccessedNonPkColumns() throws StandardException;
-		
+
+    /**
+     *
+     * Set the activation on the operation.
+     *
+      * @param activation
+     * @throws StandardException
+     */
 	void setActivation(Activation activation) throws StandardException;
 
+    /**
+     *
+     * Returns the optimizers estimated cost for the operation.  Not currently
+     * used inside the operation stack.
+     *
+     * @return
+     */
     double getEstimatedCost();
 
+    /**
+     *
+     * Retrieve the estimatedRowCount.  There are optimizations where this
+     * can be used for cache buffers, etc.
+     *
+     * @return
+     */
     double getEstimatedRowCount();
 
+    /**
+     *
+     * Retrieve the current transaction for the operation.
+     *
+     * @return
+     * @throws StandardException
+     */
     TxnView getCurrentTransaction() throws StandardException;
 
+    /**
+     * Retrieve the sub operations for this operation.  This is mostly used
+     * in explain plans and VTI.
+     *
+     * @return
+     */
     List<SpliceOperation> getSubOperations();
 
+    /**
+     *
+     * Retrieve an iterator on the locatedRow.
+     *
+     * @return
+     */
     Iterator<LocatedRow> getLocatedRowIterator();
 
+    /**
+     *
+     * Open Core on the operation.
+     *
+     * @param dsp
+     * @throws StandardException
+     */
     void openCore(DataSetProcessor dsp) throws StandardException;
 
+    /**
+     *
+     * Register a resource to be closed when the activation is closed.
+     *
+     * @param closeable
+     * @throws StandardException
+     */
     void registerCloseable(AutoCloseable closeable) throws StandardException;
 
+    /**
+     *
+     * Fire Before Statement Triggers on this operation.
+     *
+     * @throws StandardException
+     */
     void fireBeforeStatementTriggers() throws StandardException;
-
+    /**
+     *
+     * Fire After Statement Triggers on this operation.
+     *
+     * @throws StandardException
+     */
     void fireAfterStatementTriggers() throws StandardException;
-
+    /**
+     *
+     * Retrieve the trigger handler for this operation.
+     *
+     * @throws StandardException
+     */
     TriggerHandler getTriggerHandler() throws StandardException;
 
+    /**
+     *
+     * Retrieve the start position for this operation.
+     *
+     * @return
+     * @throws StandardException
+     */
     ExecIndexRow getStartPosition() throws StandardException;
 
+    /**
+     *
+     * Return the VTI file name for this operation.
+     *
+     * @return
+     */
     String getVTIFileName();
 }

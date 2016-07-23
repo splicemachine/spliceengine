@@ -31,31 +31,41 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.function.RowOperationFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
-
-
+    /**
+    * Takes a constant row value and returns it as
+    * a result set.
+    * <p>
+    * This class actually probably never underlies a select statement,
+    * but in case it might and because it has the same behavior as the
+    * ones that do, we have it implement CursorResultSet and give
+    * reasonable answers.
+    *
+    */
 public class RowOperation extends SpliceBaseOperation{
     private static final long serialVersionUID=2l;
     private static Logger LOG=Logger.getLogger(RowOperation.class);
-    protected int rowsReturned;
     protected boolean canCacheRow;
     protected boolean next=false;
     protected SpliceMethod<ExecRow> rowMethod;
     protected ExecRow cachedRow;
     private ExecRow rowDefinition;
     private String rowMethodName; //name of the row method for
-
     protected static final String NAME=RowOperation.class.getSimpleName().replaceAll("Operation","");
 
+    /**
+     *
+     * Retrieve the static name for the operation.
+     *
+     * @return
+     */
     @Override
     public String getName(){
         return NAME;
@@ -69,6 +79,18 @@ public class RowOperation extends SpliceBaseOperation{
 
     }
 
+    /**
+     *
+     * Instance method for projected value.
+     *
+     * @param activation
+     * @param row
+     * @param canCacheRow
+     * @param resultSetNumber
+     * @param optimizerEstimatedRowCount
+     * @param optimizerEstimatedCost
+     * @throws StandardException
+     */
     public RowOperation(
             Activation activation,
             GeneratedMethod row,
@@ -82,6 +104,18 @@ public class RowOperation extends SpliceBaseOperation{
         init();
     }
 
+    /**
+     *
+     * Instance method for straight forward non-projected value.
+     *
+     * @param activation
+     * @param constantRow
+     * @param canCacheRow
+     * @param resultSetNumber
+     * @param optimizerEstimatedRowCount
+     * @param optimizerEstimatedCost
+     * @throws StandardException
+     */
     public RowOperation(
             Activation activation,
             ExecRow constantRow,
@@ -95,7 +129,14 @@ public class RowOperation extends SpliceBaseOperation{
         init();
     }
 
-
+    /**
+     *
+     * Called during creation and after serialization.
+     *
+     * @param context
+     * @throws StandardException
+     * @throws IOException
+     */
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
         super.init(context);
@@ -104,6 +145,14 @@ public class RowOperation extends SpliceBaseOperation{
         }
     }
 
+    /**
+     *
+     * Serde.
+     *
+     * @param in
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         SpliceLogUtils.trace(LOG,"readExternal");
@@ -114,6 +163,13 @@ public class RowOperation extends SpliceBaseOperation{
             rowMethodName=in.readUTF();
     }
 
+    /**
+     *
+     * Serde.
+     *
+     * @param out
+     * @throws IOException
+     */
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         SpliceLogUtils.trace(LOG,"writeExternal");
@@ -126,7 +182,13 @@ public class RowOperation extends SpliceBaseOperation{
         }
     }
 
-
+    /**
+     *
+     * Retrive the row for the operation.
+     *
+     * @return
+     * @throws StandardException
+     */
     public ExecRow getRow() throws StandardException{
         if(cachedRow!=null){
             SpliceLogUtils.trace(LOG,"getRow,cachedRow=%s",cachedRow);
@@ -166,22 +228,35 @@ public class RowOperation extends SpliceBaseOperation{
         return null;
     }
 
+    /**
+     *
+     * No Sub operations under a simple row.
+     *
+     * @return
+     */
     @Override
     public List<SpliceOperation> getSubOperations(){
         return Collections.emptyList();
     }
 
-
-    @Override
-    public SpliceOperation getLeftOperation(){
-        return null;
-    }
-
+    /**
+     *
+     * String Representation of a cached row.
+     *
+      * @return
+     */
     @Override
     public String toString(){
         return "RowOp {cachedRow="+cachedRow+"}";
     }
 
+    /**
+     *
+     * ExecRow Definition of the cached row (types, etc.)
+     *
+     * @return
+     * @throws StandardException
+     */
     @Override
     public ExecRow getExecRowDefinition() throws StandardException{
         if(rowDefinition==null){
@@ -194,32 +269,48 @@ public class RowOperation extends SpliceBaseOperation{
         return rowDefinition;
     }
 
-    public int getRowsReturned(){
-        return this.rowsReturned;
-    }
-
     @Override
     public String prettyPrint(int indentLevel){
         String indent="\n"+Strings.repeat("\t",indentLevel);
 
         return new StringBuilder("RowOp:")
                 .append(indent).append("resultSetNumber:").append(resultSetNumber)
-                .append(indent).append("rowsReturned:").append(rowsReturned)
                 .append(indent).append("canCacheRow:").append(canCacheRow)
                 .append(indent).append("rowMethodName:").append(rowMethodName)
                 .toString();
     }
 
+        /**
+         *
+         * Get the Root AccessedCols.  Always null for RowOperation.
+         *
+          * @param tableNumber
+         * @return
+         */
     @Override
     public int[] getRootAccessedCols(long tableNumber){
         return null;
     }
 
+    /**
+     *
+     * Does it reference the table.  Fale for RowOperation.
+     *
+     * @param tableNumber
+     * @return
+     */
     @Override
     public boolean isReferencingTable(long tableNumber){
         return false;
     }
-
+    /**
+     *
+     * Return the dataset abstraction for the operation.
+     *
+     * @param dsp
+     * @return
+     * @throws StandardException
+     */
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         ExecRow execRow=new ValueRow(1);

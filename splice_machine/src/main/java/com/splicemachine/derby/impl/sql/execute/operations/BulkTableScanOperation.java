@@ -23,11 +23,9 @@ import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- * Wraps TableScanOperation.  We do not really have a different between bulk and a table scan.  We attempt to 
- * parallalize (bulk) anything we can already.  
+ * Wraps TableScanOperation.  We do not really have a different implementation
+ * between bulk and a table scan.
  * 
- * @author johnleach
- *
  */
 
 public class BulkTableScanOperation extends TableScanOperation {

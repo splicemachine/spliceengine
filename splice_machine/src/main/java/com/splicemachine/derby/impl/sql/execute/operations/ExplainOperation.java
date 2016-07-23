@@ -16,9 +16,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Function;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.impl.sql.compile.FromBaseTable;
-import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import org.sparkproject.guava.collect.Iterables;
 import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -33,15 +30,17 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.*;
 
 /**
+ *
+ * Operation for explain plans.  Top operation on the stack for
+ *
+ * "explain <statement>"
+ *
  * @author Jun Yuan
  * Date: 6/9/14
  */
@@ -51,13 +50,33 @@ public class ExplainOperation extends SpliceBaseOperation {
     protected ExecRow currentTemplate;
     private Iterator<String> explainStringIter;
 
+    /**
+     *
+     * Static name for the explain operation.
+     *
+     * @return
+     */
     @Override
     public String getName() {
         return NAME;
     }
 
+    /**
+     *
+     * No Op Constructor for the operation.  Required for serde.
+     *
+     */
     public ExplainOperation(){ }
 
+    /**
+     *
+     * Simple constructor.
+     *
+     * @param source
+     * @param activation
+     * @param resultSetNumber
+     * @throws StandardException
+     */
     public ExplainOperation(SpliceOperation source, Activation activation, int resultSetNumber) throws StandardException {
         super(activation, resultSetNumber, 0, 0);
         this.activation = activation;
@@ -65,6 +84,14 @@ public class ExplainOperation extends SpliceBaseOperation {
         init();
     }
 
+    /**
+     *
+     * Called after construction or serialization.
+     *
+     * @param context
+     * @throws StandardException
+     * @throws IOException
+     */
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
