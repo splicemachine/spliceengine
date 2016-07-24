@@ -19,6 +19,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -84,25 +85,52 @@ public class FunctionIT extends SpliceUnitTest {
         }
         Assert.assertTrue("Incorrect rows returned!",rows>0);
     }
-    /**
-     * See Bug 266
-     * 
-     * @throws SQLException
-     */
 
-/*    @Test(expected=SQLException.class)
-    public void testAcosFunction() throws Exception{
-        ResultSet funcRs = methodWatcher.executeQuery("select acos(data) from" + this.getPaddedTableReference("A"));
-        int rows = 0;
-        while(funcRs.next()){
-            double acos = funcRs.getDouble(1);
-            double correctAcos = Math.acos(1.23d);
-            Assert.assertEquals("incorrect acos!",correctAcos,acos,1/100000d);
-            LOG.info(funcRs.getDouble(1));
-            rows++;
-        }
-        Assert.assertTrue("Incorrect rows returned!",rows>0);
-    }
- */
+	    /**
+	      * If more than one of the arguments passed to COALESCE are untyped
+	      * parameter markers, compilation used to fail with a NullPointerException.
+	      * Fixed in DERBY-6273.
+	      */
+		@Test
+	public void testMultipleUntypedParameters() throws Exception {
+		// All parameters cannot be untyped. This should still fail.
+		try {
+			methodWatcher.prepareStatement("values coalesce(?,?,?)");
+		} catch (SQLException se) {
+			Assert.assertEquals("Invalid sql state!", ErrorState.LANG_DB2_COALESCE_FUNCTION_ALL_PARAMS.getSqlState(),se.getSQLState());
+		}
+		// But as long as we know the type of one parameter, it should be
+		// possible to have multiple parameters whose types are determined
+		// from the context. These queries used to raise NullPointerException
+		// before DERBY-6273.
+		vetThreeArgCoalesce("values coalesce(cast(? as char(1)), ?, ?)");
+		vetThreeArgCoalesce("values coalesce(?, cast(? as char(1)), ?)");
+		vetThreeArgCoalesce("values coalesce(?, ?, cast(? as char(1)))");
+	}
+
+		private void vetThreeArgCoalesce(String sql) throws Exception {
+		// First three values in each row are arguments to COALESCE. The
+				// last value is the expected return value.
+						String[][] data = {
+					{"a",  "b",  "c",  "a"},
+					{null, "b",  "c",  "b"},
+					{"a",  null, "c",  "a"},
+					{"a",  "b",  null, "a"},
+					{null, null, "c",  "c"},
+					{"a",  null, null, "a"},
+					{null, "b",  null, "b"},
+					{null, null, null, null},
+				};
+			PreparedStatement ps = methodWatcher.prepareStatement(sql);
+			for (int i = 0; i < data.length; i++) {
+				ps.setString(1, data[i][0]);
+				ps.setString(2, data[i][1]);
+				ps.setString(3, data[i][2]);
+				ResultSet rs = ps.executeQuery();
+				Assert.assertTrue(rs.next());
+				Assert.assertEquals("Values do not match",rs.getString(1),data[i][3]);
+				Assert.assertFalse(rs.next());
+			}
+	}
 }
 
