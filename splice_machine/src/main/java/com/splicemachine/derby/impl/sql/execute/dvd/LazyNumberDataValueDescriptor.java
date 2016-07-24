@@ -19,6 +19,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.db.iapi.types.VariableSizeDataValue;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.math.BigDecimal;
 
@@ -135,4 +139,35 @@ public abstract class LazyNumberDataValueDescriptor extends LazyDataValueDescrip
             throw new UnsupportedOperationException("Attempted to setWidth on wrapped "+ndv.getClass().getSimpleName()+" which does not implement VariableSizeDataValue");
         }
     }
+
+    @Override
+    public void decodeFromKey(PositionedByteRange builder) throws StandardException {
+        forceDeserialization();
+        ndv.decodeFromKey(builder);
+    }
+
+    @Override
+    public void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException {
+        forceDeserialization();
+        ndv.encodeIntoKey(builder,order);
+    }
+
+    @Override
+    public int encodedKeyLength() throws StandardException {
+        forceDeserialization();
+        return ndv.encodedKeyLength();
+    }
+
+    @Override
+    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+        forceDeserialization();
+        ndv.read(unsafeRow, ordinal);
+    }
+
+    @Override
+    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
+        forceDeserialization();
+        ndv.write(unsafeRowWriter, ordinal);
+    }
+
 }

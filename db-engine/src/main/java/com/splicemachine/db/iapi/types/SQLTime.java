@@ -48,6 +48,14 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.unsafe.Platform;
+import org.apache.spark.unsafe.types.CalendarInterval;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 /**
@@ -1120,5 +1128,98 @@ public final class SQLTime extends DataType
     public Format getFormat() {
     	return Format.TIME;
     }
+
+	/**
+	 *
+	 * Write to a Project Tungsten Format (UnsafeRow).  We encode Time as
+	 * 2 ints.
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+     */
+	@Override
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
+		if (isNull())
+			unsafeRowWriter.setNullAt(ordinal);
+		else {
+			BufferHolder holder = unsafeRowWriter.holder();
+			holder.grow(8);
+			Platform.putInt(holder.buffer, holder.cursor, encodedTime);
+			Platform.putInt(holder.buffer, holder.cursor + 4, encodedTimeFraction);
+			unsafeRowWriter.setOffsetAndSize(ordinal, 8);
+			holder.cursor = 8;
+		}
+	}
+
+	/**
+	 *
+	 * Read data into a Project Tungsten Format (UnsafeRow).  We read
+	 * data as two ints.
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (unsafeRow.isNullAt(ordinal))
+			setToNull();
+		else {
+			long offsetAndSize = unsafeRow.getLong(ordinal);
+			int offset = (int)(offsetAndSize >> 32);
+			encodedTime = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset);
+			encodedTimeFraction = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 4L);
+			setIsNull(false);
+		}
+	}
+
+	/**
+	 *
+	 * Get Encoded Key Length.  if null then 1 else 10.
+	 *
+	 * @return
+	 * @throws StandardException
+     */
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		return isNull()?1:10;
+	}
+
+	/**
+	 *
+	 * Encode into key two int32s.
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+			OrderedBytes.encodeNull(src, order);
+		else {
+			OrderedBytes.encodeInt32(src, encodedTime, order);
+			OrderedBytes.encodeInt32(src, encodedTimeFraction, order);
+		}
+	}
+
+	/**
+	 *
+	 * Decode from key two int32s.
+	 *
+	 * @param src
+	 * @throws StandardException
+     */
+	@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+			setToNull();
+		else {
+			encodedTime = OrderedBytes.decodeInt32(src);
+			encodedTimeFraction = OrderedBytes.decodeInt32(src);
+			setIsNull(false);
+		}
+	}
+
 }
 

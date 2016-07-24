@@ -35,6 +35,11 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.util.StringUtil;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.joda.time.DateTime;
 
 import java.sql.Date;
@@ -1073,7 +1078,7 @@ public final class SQLDate extends DataType
      * Compute the encoded date given a date
 	 *
 	 */
-	private static int computeEncodedDate(java.util.Date value) throws StandardException
+	public static int computeEncodedDate(java.util.Date value) throws StandardException
 	{
         return computeEncodedDate( value, null);
     }
@@ -1288,4 +1293,89 @@ public final class SQLDate extends DataType
 	public Format getFormat() {
     	return Format.DATE;
     }
+
+	/**
+	 *
+	 * Writes to a project Tungsten format (UnsafeRow).  Writes the
+	 * data as an encoded int.
+	 *
+	 * @see UnsafeRowWriter#write(int, int)
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+     */
+	@Override
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
+		if (isNull())
+			unsafeRowWriter.setNullAt(ordinal);
+		else
+			unsafeRowWriter.write(ordinal,encodedDate);
+	}
+
+	/**
+	 *
+	 * Reads from a Project Tungsten UnsafeRow format.  The data is read as an int.
+	 *
+	 * @see UnsafeRow#getInt(int)
+	 *
+ 	 * @param unsafeRow
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (unsafeRow.isNullAt(ordinal))
+				setToNull();
+		else
+			encodedDate = unsafeRow.getInt(ordinal);
+			setIsNull(false);
+	}
+
+	/**
+	 *
+	 * Get the encoded key length.  1 if null else 5.
+	 *
+	 * @return
+	 * @throws StandardException
+     */
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		return isNull()?1:5;
+	}
+
+	/**
+	 *
+	 * Encode into a key
+	 *
+	 * @see OrderedBytes#encodeInt32(PositionedByteRange, int, Order)
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+			OrderedBytes.encodeNull(src, order);
+		else
+			OrderedBytes.encodeInt32(src, encodedDate, order);
+		}
+
+	/**
+	 *
+	 * Decode from a key
+	 *
+	 * @see OrderedBytes#decodeInt32(PositionedByteRange)
+	 *
+ 	 * @param src
+	 * @throws StandardException
+     */
+	@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+			setToNull();
+		else
+			encodedDate = OrderedBytes.decodeInt32(src);
+			setIsNull(false);
+		}
 }

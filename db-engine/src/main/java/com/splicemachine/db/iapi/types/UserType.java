@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 
+import java.io.Serializable;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -51,6 +52,12 @@ import java.sql.SQLException;
 
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 
 /**
@@ -614,5 +621,87 @@ public class UserType extends DataType
 	public Format getFormat() {
 		return Format.USERTYPE;
 	}
-}
 
+	/**
+	 *
+	 * Write to a Project Tungsten Format.  Serializes the objects as byte[]
+	 *
+	 * @see UnsafeRowWriter#write(int, byte[])
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
+		if (isNull())
+			unsafeRowWriter.setNullAt(ordinal);
+		else
+			unsafeRowWriter.write(ordinal, SerializationUtils.serialize((Serializable)value));
+	}
+
+	/**
+	 *
+	 * Read from a Project Tungsten Format.  Reads the object as a byte[]
+	 *
+	 * @see UnsafeRow#getBinary(int)
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (unsafeRow.isNullAt(ordinal))
+			setToNull();
+		else
+			value = SerializationUtils.deserialize(unsafeRow.getBinary(ordinal));
+	}
+
+	/**
+	 *
+	 * Get Key length.  TODO JL.
+	 *
+	 * @return
+	 * @throws StandardException
+     */
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		return isNull()?1:SerializationUtils.serialize((Serializable)value).length;
+	}
+
+	/**
+	 *
+	 * Encode into Key
+	 *
+	 * @see OrderedBytes#encodeBlobVar(PositionedByteRange, byte[], Order)
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+			OrderedBytes.encodeNull(src, order);
+		else
+			OrderedBytes.encodeBlobVar(src, SerializationUtils.serialize((Serializable)value), order);
+	}
+
+	/**
+	 *
+	 * Decode from Key
+	 *
+	 * @see OrderedBytes#decodeBlobVar(PositionedByteRange)
+	 *
+	 * @param src
+	 * @throws StandardException
+     */
+	@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+			setToNull();
+		else
+			value = SerializationUtils.deserialize(OrderedBytes.decodeBlobVar(src));
+	}
+}

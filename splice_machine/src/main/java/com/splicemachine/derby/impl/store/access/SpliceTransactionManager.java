@@ -1072,66 +1072,6 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     /**
-     * @see TransactionController#createSort
-     * @exception StandardException
-     *                Standard error policy.
-     **/
-    @Override
-    public long createSort(Properties implParameters,
-                           DataValueDescriptor[] template, ColumnOrdering columnOrdering[],
-                           SortObserver sortObserver, boolean alreadyInOrder,
-                           long estimatedRows, int estimatedRowSize) throws StandardException {
-
-        if (LOG.isTraceEnabled())
-            LOG.trace("createSort implParameters " + implParameters);
-        // Get the implementation type from the parameters.
-        // XXX (nat) need to figure out how to select sort implementation.
-        String implementation = null;
-        if (implParameters != null)
-            implementation = implParameters
-                    .getProperty(AccessFactoryGlobals.IMPL_TYPE);
-
-        if (implementation == null)
-            implementation = AccessFactoryGlobals.SORT_EXTERNAL;
-
-        // Find the appropriate factory for the desired implementation.
-        MethodFactory mfactory;
-        mfactory = accessmanager.findMethodFactoryByImpl(implementation);
-        if (mfactory == null || !(mfactory instanceof SortFactory)) {
-            throw (StandardException.newException(
-                    SQLState.AM_NO_FACTORY_FOR_IMPLEMENTATION, implementation));
-        }
-        SortFactory sfactory = (SortFactory) mfactory;
-
-        // Decide what segment the sort should use.
-        int segment = 0; // XXX (nat) sorts always in segment 0
-
-        // Create the sort.
-        Sort sort = sfactory.createSort(this, segment, implParameters,
-                template, columnOrdering, sortObserver, alreadyInOrder,
-                estimatedRows, estimatedRowSize);
-
-        // Add the sort to the sorts vector
-        if (sorts == null) {
-            sorts = new ArrayList<Sort>();
-            freeSortIds = new ArrayList<Integer>();
-        }
-
-        int sortid;
-        if (freeSortIds.isEmpty()) {
-            // no free identifiers, add sort at the end
-            sortid = sorts.size();
-            sorts.add(sort);
-        } else {
-            // reuse a sort identifier
-            sortid = freeSortIds.remove(freeSortIds.size() - 1);
-            sorts.set(sortid, sort);
-        }
-
-        return sortid;
-    }
-
-    /**
      * Drop a sort.
      * <p>
      * Drop a sort created by a call to createSort() within the current
@@ -1289,60 +1229,6 @@ public class SpliceTransactionManager implements XATransactionController,
 
         // open sort cost controller
         return (sfactory.openSortCostController());
-    }
-
-    /**
-     * @see TransactionController#openSortScan
-     * @exception StandardException
-     *                Standard error policy.
-     **/
-    public ScanController openSortScan(long id, boolean hold)
-            throws StandardException {
-        Sort sort;
-        if (LOG.isTraceEnabled())
-            LOG.trace("openSortScan " + id);
-
-        // Find the sort in the sorts list, throw an error
-        // if it doesn't exist.
-        if (sorts == null || id >= sorts.size()
-                || (sort = (sorts.get((int) id))) == null) {
-            throw StandardException.newException(SQLState.AM_NO_SUCH_SORT, id);
-        }
-
-        // Open a scan on it.
-        ScanController sc = sort.openSortScan(this, hold);
-
-        // Keep track of it so we can release on close.
-        scanControllers.add(sc);
-
-        return sc;
-    }
-
-    /**
-     * @see TransactionController#openSortRowSource
-     * @exception StandardException
-     *                Standard error policy.
-     **/
-    public RowLocationRetRowSource openSortRowSource(long id)
-            throws StandardException {
-        Sort sort;
-        if (LOG.isTraceEnabled())
-            LOG.trace("openSortRowSource " + id);
-
-        // Find the sort in the sorts list, throw an error
-        // if it doesn't exist.
-        if (sorts == null || id >= sorts.size()
-                || (sort = (sorts.get((int) id))) == null) {
-            throw StandardException.newException(SQLState.AM_NO_SUCH_SORT, id);
-        }
-
-        // Open a scan row source on it.
-        ScanControllerRowSource sc = sort.openSortRowSource(this);
-
-        // Keep track of it so we can release on close.
-        scanControllers.add(sc);
-
-        return sc;
     }
 
     public BaseSpliceTransaction getRawTransaction() {

@@ -36,6 +36,13 @@ import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.unsafe.Platform;
 import org.joda.time.DateTime;
 
 import java.sql.Date;
@@ -1554,4 +1561,99 @@ public final class SQLTimestamp extends DataType
     public Format getFormat() {
     	return Format.TIMESTAMP;
     }
+
+	/**
+	 *
+	 * Write to Project Tungsten format (UnsafeRow).  Timestamp is
+	 * written as 3 ints.
+	 *
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+     */
+	    @Override
+	    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
+	        if (isNull())
+		            unsafeRowWriter.setNullAt(ordinal);
+	        else {
+				BufferHolder holder = unsafeRowWriter.holder();
+				holder.grow(12);
+				Platform.putInt(holder.buffer, holder.cursor, encodedDate);
+		        Platform.putInt(holder.buffer, holder.cursor + 4, encodedTime);
+		        Platform.putInt(holder.buffer, holder.cursor + 8, nanos);
+		        unsafeRowWriter.setOffsetAndSize(ordinal, 12);
+				holder.cursor = 12;
+			}
+	    }
+	/**
+	 *
+	 * Read from Project Tungsten format (UnsafeRow).  Timestamp is
+	 * read as 3 ints.
+	 *
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 */
+		@Override
+	    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+	        if (unsafeRow.isNullAt(ordinal))
+		            setToNull();
+	        else {
+				long offsetAndSize = unsafeRow.getLong(ordinal);
+				int offset = (int)(offsetAndSize >> 32);
+				encodedDate = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset);
+				encodedTime = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 4L);
+				nanos = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 8L);
+				setIsNull(false);
+			}
+	    }
+
+	/**
+	 *
+	 * Get Encoded Key Length.  if null then 1 else 15.
+	 * @return
+	 * @throws StandardException
+     */
+		@Override
+	    public int encodedKeyLength() throws StandardException {
+	        return isNull()?1:15;
+	    }
+
+	/**
+	 *
+	 * Encode into key 3 int32s.
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+		@Override
+	    public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+	        if (isNull())
+				OrderedBytes.encodeNull(src, order);
+	        else {
+				OrderedBytes.encodeInt32(src, encodedDate, order);
+				OrderedBytes.encodeInt32(src, encodedTime, order);
+				OrderedBytes.encodeInt32(src, nanos, order);
+			}
+	    }
+
+	/**
+	 *
+	 * Decode from key 3 int32's
+	 *
+	 * @param src
+	 * @throws StandardException
+     */
+	    @Override
+	    public void decodeFromKey(PositionedByteRange src) throws StandardException {
+	        if (OrderedBytes.isNull(src))
+				setToNull();
+	        else {
+				encodedDate = OrderedBytes.decodeInt32(src);
+				encodedTime = OrderedBytes.decodeInt32(src);
+				nanos = OrderedBytes.decodeInt32(src);
+				setIsNull(false);
+			}
+	    }
 }

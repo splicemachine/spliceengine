@@ -22,6 +22,10 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.encoding.Encoding;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -264,5 +268,35 @@ public abstract class LazyStringDataValueDescriptor extends LazyDataValueDescrip
                         String.valueOf(desiredWidth));
             }
         }
+    }
+
+    @Override
+    public void decodeFromKey(PositionedByteRange builder) throws StandardException {
+        forceDeserialization();
+        sdv.decodeFromKey(builder);
+    }
+
+    @Override
+    public void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException {
+        forceDeserialization();
+        sdv.encodeIntoKey(builder,order);
+    }
+
+    @Override
+    public int encodedKeyLength() throws StandardException {
+        forceDeserialization();
+        return sdv.encodedKeyLength();
+    }
+
+    @Override
+    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+        forceDeserialization();
+        sdv.read(unsafeRow, ordinal);
+    }
+
+    @Override
+    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
+        forceDeserialization();
+        sdv.write(unsafeRowWriter, ordinal);
     }
 }
