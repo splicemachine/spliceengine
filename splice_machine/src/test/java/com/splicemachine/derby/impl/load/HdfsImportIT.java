@@ -502,7 +502,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         } catch (SQLException e) {
             assertEquals("Expected too many bad records, but got: "+e.getLocalizedMessage(), "SE009", e.getSQLState());
         }
-        assertTrue(new File(badFileName).exists());
+        assertTrue("Bad file " +badFileName+" does not exist.", new File(badFileName).exists());
     }
 
     @Test
@@ -1516,7 +1516,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
         Assert.assertEquals(format("Expected %s row1 imported", insertRowsExpected), insertRowsExpected, results.size());
 
-        assertTrue("Files does not exist: " + badFile, badFile.exists());
+        assertTrue("Bad file " +badFile+" does not exist.", badFile.exists());
         List<String> badLines = Files.readAllLines(badFile.toPath(), Charset.defaultCharset());
         assertEquals("Expected 2 lines in bad file "+badFile.getCanonicalPath(), 2, badLines.size());
         assertContains(badLines, containsString("BONUS_CK"));

@@ -454,8 +454,12 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold){
         this.permissive=true;
         this.badRecordThreshold = badRecordThreshold;
-        BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory, importFileName, badRecordThreshold);
-        this.badRecordsAccumulator=SpliceSpark.getContext().accumulable(badRecordsRecorder,badRecordsRecorder.getUniqueName(), new BadRecordsAccumulator());
+        BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory,
+                                                                       importFileName,
+                                                                       badRecordThreshold);
+        this.badRecordsAccumulator=SpliceSpark.getContext().accumulable(badRecordsRecorder,
+                                                                        badRecordsRecorder.getUniqueName(),
+                                                                        new BadRecordsAccumulator());
     }
 
     public ActivationHolder getActivationHolder() {
