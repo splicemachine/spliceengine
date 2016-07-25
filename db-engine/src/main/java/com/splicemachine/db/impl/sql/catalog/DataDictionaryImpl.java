@@ -7799,12 +7799,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public abstract void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue, boolean useBatch) throws StandardException;
 
     @Override
-    public Long peekAtSequence(String schemaName,String sequenceName) throws StandardException{
-        String uuid=getSequenceID(schemaName, sequenceName);
-        if(uuid==null)
-            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION,"SEQUENCE",(schemaName+"."+sequenceName));
-        return dataDictionaryCache.sequenceGeneratorCacheFind(uuid).peekAtCurrentValue();
-    }
+    public abstract Long peekAtSequence(String schemaName,String sequenceName) throws StandardException;
 
     @Override
     public RowLocation getRowLocationTemplate(LanguageConnectionContext lcc,TableDescriptor td) throws StandardException{

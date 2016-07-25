@@ -62,7 +62,8 @@ public class SpliceSequenceIT {
         methodWatcher.executeUpdate("create sequence SMALLSEQ AS smallint");
 
         Integer first = methodWatcher.query("values (next value for SMALLSEQ)");
-
+        assertEquals(new Long(first + 1), methodWatcher.query(
+                String.format("VALUES SYSCS_UTIL.SYSCS_PEEK_AT_SEQUENCE('%s', 'SMALLSEQ')",SCHEMA)));
         assertEquals(first + 1, methodWatcher.query("values (next value for SMALLSEQ)"));
         assertEquals(first + 2, methodWatcher.query("values (next value for SMALLSEQ)"));
         assertEquals(first + 3, methodWatcher.query("values (next value for SMALLSEQ)"));
