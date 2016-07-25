@@ -109,13 +109,19 @@ public class ColumnUtils {
         return chain;
     }
 
-    public static Pair<Integer, Integer> RSCoordinate(ResultColumn rc) {
+    static Pair<Integer, Integer> RSCoordinate(ResultColumn rc) {
 
         ResultColumn resultColumn = rc;
         ValueNode vn = rc.getExpression();
         if (vn instanceof CastNode) {
-            VirtualColumnNode vcn = (VirtualColumnNode)((CastNode) vn).getCastOperand();
-            resultColumn = vcn.getSourceColumn();
+            ValueNode castOperand=((CastNode)vn).getCastOperand();
+            if(castOperand instanceof VirtualColumnNode){
+                VirtualColumnNode vcn=(VirtualColumnNode)castOperand;
+                resultColumn=vcn.getSourceColumn();
+            }else if(castOperand instanceof ColumnReference){
+                ColumnReference cr = (ColumnReference)castOperand;
+                resultColumn = cr.getSourceResultColumn();
+            }
         }
         return Pair.of(resultColumn.getResultSetNumber(), resultColumn.getVirtualColumnId());
     }
