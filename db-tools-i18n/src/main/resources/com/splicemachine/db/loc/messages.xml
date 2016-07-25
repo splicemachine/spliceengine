@@ -1521,6 +1521,10 @@ Guide.
                 <text>The ORDER BY clause may not specify an expression, since the query specifies DISTINCT.</text>
             </msg>
 
+            <msg>
+                <name>4287B</name>
+                <text>In this context, the ORDER BY clause may only specify a column number.</text>
+            </msg>
 
             <msg>
                 <name>42884</name>

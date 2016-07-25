@@ -51,6 +51,25 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
     private boolean sortNeeded=true;
     private int resultSetNumber=-1;
 
+        /**
+          * {@code true} if this instance orders a
+          * {@literal <table value constructor>}.
+          * See {@link #isTableValueCtorOrdering}.
+          */
+        private boolean isTableValueCtorOrdering;
+    
+                /**
+          * Initialize with the type of the result set this {@code OrderByList} is
+          * attached to, e.g. {@code SELECT}, {@code VALUES} or a set operation.
+          * @param rs The result set this {@code OrderByList} is ordering.
+         */
+                public void init(Object rs) {
+                this.isTableValueCtorOrdering =
+                                (rs instanceof UnionNode &&
+                                        ((UnionNode)rs).tableConstructor()) ||
+                                        rs instanceof RowResultSetNode;
+            }
+    
     /**
      * Add a column to the list
      *
@@ -356,6 +375,14 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 
     public int getResultSetNumber(){
         return resultSetNumber;
+    }
+
+    /**
+      * @return {@code true} if the {@code ORDER BY} is attached to a
+      * {@literal <table value constructor>}, i.e. a {@code VALUES} clause.
+      */
+    public boolean isTableValueCtorOrdering() {
+        return isTableValueCtorOrdering;
     }
 
     public void setAlwaysSort(){
