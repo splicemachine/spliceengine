@@ -166,11 +166,6 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         };
     }
 
-    @Override
-    public Properties getCreateHeapProperties() {
-        return super.getCreateHeapProperties();
-    }
-
     public static ColumnDescriptor[] getViewColumns(TableDescriptor view,UUID viewId) throws StandardException {
         DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);

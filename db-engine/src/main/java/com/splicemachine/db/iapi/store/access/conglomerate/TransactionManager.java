@@ -27,7 +27,6 @@ package com.splicemachine.db.iapi.store.access.conglomerate;
 
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
-import com.splicemachine.db.iapi.store.access.SortController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -124,16 +123,6 @@ public interface TransactionManager extends TransactionController
      * for cleanup purposes.
      **/
     public void closeMe(ConglomerateController conglom_control);
-
-    /**
-     * The SortController.close() method has been called on "sort_control".
-     * <p>
-     * Take whatever cleanup action is appropriate to a closed 
-     * sortController.  It is likely this routine will remove
-     * references to the SortController object that it was maintaining
-     * for cleanup purposes.
-     **/
-    public void closeMe(SortController sort_control);
 
     /**
      * Get an Internal transaction.

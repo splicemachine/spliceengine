@@ -71,15 +71,6 @@ public class SpliceTransactionManager implements XATransactionController,
     // XXX (nat) would be nice if sort controllers were like conglom controllers
     private List<ScanController> scanControllers;
     private List<ConglomerateController> conglomerateControllers;
-    private List<Sort> sorts;
-    private List<SortController> sortControllers;
-
-    /**
-     * List of sort identifiers (represented as <code>Integer</code> objects)
-     * which can be reused. Since sort identifiers are used as array indexes, we
-     * need to reuse them to avoid leaking memory (DERBY-912).
-     */
-    private List<Integer> freeSortIds;
 
     /**
      * Where to look for temporary conglomerates.
@@ -115,11 +106,6 @@ public class SpliceTransactionManager implements XATransactionController,
         accessmanager = myaccessmanager;
         scanControllers =new CopyOnWriteArrayList<>();
         conglomerateControllers =new CopyOnWriteArrayList<>();
-
-        sorts = null; // allocated on demand.
-        freeSortIds = null; // allocated on demand.
-        sortControllers = null; // allocated on demand
-
         if (parent_tran != null) {
             // allow nested transactions to see temporary conglomerates which
             // were created in the parent transaction. This is necessary for
@@ -177,31 +163,6 @@ public class SpliceTransactionManager implements XATransactionController,
             }
         }
 
-        if ((sortControllers != null) && !sortControllers.isEmpty()) {
-            if (closeHeldControllers) {
-                // Loop from the end since the call to close() will remove the
-                // element from the list.
-                for (int i = sortControllers.size() - 1; i >= 0; i--) {
-                    SortController sc = sortControllers.get(i);
-                    sc.completedInserts();
-                }
-                sortControllers.clear();
-            }
-        }
-
-        if ((sorts != null) && (!sorts.isEmpty())) {
-            if (closeHeldControllers) {
-                // Loop from the end since the call to drop() will remove the
-                // element from the list.
-                for (int i = sorts.size() - 1; i >= 0; i--) {
-                    Sort sort = sorts.get(i);
-                    if (sort != null)
-                        sort.drop(this);
-                }
-                sorts.clear();
-                freeSortIds.clear();
-            }
-        }
     }
 
     private int determine_lock_level(int requested_lock_level) {
@@ -476,20 +437,6 @@ public class SpliceTransactionManager implements XATransactionController,
                 .getDynamicCompiledConglomInfo());
     }
 
-    private int countCreatedSorts() {
-        if (LOG.isTraceEnabled())
-            LOG.trace("countCreatedSorts");
-        int ret_val = 0;
-        if (sorts != null) {
-            for (Sort sort : sorts) {
-                if (sort != null)
-                    ret_val++;
-            }
-        }
-
-        return (ret_val);
-    }
-
     /**
      * Report on the number of open conglomerates in the transaction.
      * <p>
@@ -536,16 +483,8 @@ public class SpliceTransactionManager implements XATransactionController,
             case OPEN_SCAN:
                 ret_val = scanControllers.size();
                 break;
-            case OPEN_CREATED_SORTS:
-                ret_val = countCreatedSorts();
-                break;
-            case OPEN_SORT:
-                ret_val = ((sortControllers != null) ? sortControllers.size() : 0);
-                break;
             case OPEN_TOTAL:
-                ret_val = conglomerateControllers.size() + scanControllers.size()
-                        + ((sortControllers != null) ? sortControllers.size() : 0)
-                        + countCreatedSorts();
+                ret_val = conglomerateControllers.size() + scanControllers.size();
                 break;
         }
 
@@ -688,20 +627,6 @@ public class SpliceTransactionManager implements XATransactionController,
 
             for (ConglomerateController cc : conglomerateControllers) {
                 sb = sb.append("open conglomerate controller: ").append(cc).append("\n");
-            }
-
-            if (sortControllers != null) {
-                for (SortController sc : sortControllers) {
-                    sb = sb.append("open sort controller: ").append(sc).append("\n");
-                }
-            }
-
-            if (sorts != null) {
-                for (Sort sort : sorts) {
-                    if (sort != null) {
-                        sb = sb.append("sorts created by createSort() in current xact:").append(sort).append("\n");
-                    }
-                }
             }
 
             if (tempCongloms != null) {
@@ -1070,96 +995,7 @@ public class SpliceTransactionManager implements XATransactionController,
         // Get a scan controller.
         return conglom.openStoreCost(cd,this, rawtran);
     }
-
-    /**
-     * @see TransactionController#createSort
-     * @exception StandardException
-     *                Standard error policy.
-     **/
-    @Override
-    public long createSort(Properties implParameters,
-                           DataValueDescriptor[] template, ColumnOrdering columnOrdering[],
-                           SortObserver sortObserver, boolean alreadyInOrder,
-                           long estimatedRows, int estimatedRowSize) throws StandardException {
-
-        if (LOG.isTraceEnabled())
-            LOG.trace("createSort implParameters " + implParameters);
-        // Get the implementation type from the parameters.
-        // XXX (nat) need to figure out how to select sort implementation.
-        String implementation = null;
-        if (implParameters != null)
-            implementation = implParameters
-                    .getProperty(AccessFactoryGlobals.IMPL_TYPE);
-
-        if (implementation == null)
-            implementation = AccessFactoryGlobals.SORT_EXTERNAL;
-
-        // Find the appropriate factory for the desired implementation.
-        MethodFactory mfactory;
-        mfactory = accessmanager.findMethodFactoryByImpl(implementation);
-        if (mfactory == null || !(mfactory instanceof SortFactory)) {
-            throw (StandardException.newException(
-                    SQLState.AM_NO_FACTORY_FOR_IMPLEMENTATION, implementation));
-        }
-        SortFactory sfactory = (SortFactory) mfactory;
-
-        // Decide what segment the sort should use.
-        int segment = 0; // XXX (nat) sorts always in segment 0
-
-        // Create the sort.
-        Sort sort = sfactory.createSort(this, segment, implParameters,
-                template, columnOrdering, sortObserver, alreadyInOrder,
-                estimatedRows, estimatedRowSize);
-
-        // Add the sort to the sorts vector
-        if (sorts == null) {
-            sorts = new ArrayList<Sort>();
-            freeSortIds = new ArrayList<Integer>();
-        }
-
-        int sortid;
-        if (freeSortIds.isEmpty()) {
-            // no free identifiers, add sort at the end
-            sortid = sorts.size();
-            sorts.add(sort);
-        } else {
-            // reuse a sort identifier
-            sortid = freeSortIds.remove(freeSortIds.size() - 1);
-            sorts.set(sortid, sort);
-        }
-
-        return sortid;
-    }
-
-    /**
-     * Drop a sort.
-     * <p>
-     * Drop a sort created by a call to createSort() within the current
-     * transaction (sorts are automatically "dropped" at the end of a
-     * transaction. This call should only be made after all openSortScan()'s and
-     * openSort()'s have been closed.
-     * <p>
-     *
-     * @param sortid
-     *            The identifier of the sort to drop, as returned from
-     *            createSort.
-     * @exception StandardException
-     *                From a lower-level exception.
-     **/
-    public void dropSort(long sortid) throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("dropSort sortid " + sortid);
-        // should call close on the sort.
-        Sort sort = sorts.get((int) sortid);
-
-        if (sort != null) {
-            sort.drop(this);
-            sorts.set((int) sortid, null);
-            freeSortIds.add(ReuseFactory.getInteger((int) sortid));
-        }
-    }
-
-    /**
+     /**
      * @see TransactionController#getProperty
      * @exception StandardException
      *                Standard exception policy.
@@ -1234,29 +1070,6 @@ public class SpliceTransactionManager implements XATransactionController,
         return accessmanager.getTransactionalProperties().getProperties(this);
     }
 
-    public SortController openSort(long id) throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("openSort " + id);
-        Sort sort;
-
-        // Find the sort in the sorts list, throw an error
-        // if it doesn't exist.
-        if (sorts == null || id >= sorts.size()
-                || (sort = (sorts.get((int) id))) == null) {
-            throw StandardException.newException(SQLState.AM_NO_SUCH_SORT,id);
-        }
-
-        // Open it.
-        SortController sc = sort.open(this);
-
-        // Keep track of it so we can release on close.
-        if (sortControllers == null)
-            sortControllers = new ArrayList<SortController>();
-        sortControllers.add(sc);
-
-        return sc;
-    }
-
     /**
      * Return an open SortCostController.
      * <p>
@@ -1289,60 +1102,6 @@ public class SpliceTransactionManager implements XATransactionController,
 
         // open sort cost controller
         return (sfactory.openSortCostController());
-    }
-
-    /**
-     * @see TransactionController#openSortScan
-     * @exception StandardException
-     *                Standard error policy.
-     **/
-    public ScanController openSortScan(long id, boolean hold)
-            throws StandardException {
-        Sort sort;
-        if (LOG.isTraceEnabled())
-            LOG.trace("openSortScan " + id);
-
-        // Find the sort in the sorts list, throw an error
-        // if it doesn't exist.
-        if (sorts == null || id >= sorts.size()
-                || (sort = (sorts.get((int) id))) == null) {
-            throw StandardException.newException(SQLState.AM_NO_SUCH_SORT, id);
-        }
-
-        // Open a scan on it.
-        ScanController sc = sort.openSortScan(this, hold);
-
-        // Keep track of it so we can release on close.
-        scanControllers.add(sc);
-
-        return sc;
-    }
-
-    /**
-     * @see TransactionController#openSortRowSource
-     * @exception StandardException
-     *                Standard error policy.
-     **/
-    public RowLocationRetRowSource openSortRowSource(long id)
-            throws StandardException {
-        Sort sort;
-        if (LOG.isTraceEnabled())
-            LOG.trace("openSortRowSource " + id);
-
-        // Find the sort in the sorts list, throw an error
-        // if it doesn't exist.
-        if (sorts == null || id >= sorts.size()
-                || (sort = (sorts.get((int) id))) == null) {
-            throw StandardException.newException(SQLState.AM_NO_SUCH_SORT, id);
-        }
-
-        // Open a scan row source on it.
-        ScanControllerRowSource sc = sort.openSortRowSource(this);
-
-        // Keep track of it so we can release on close.
-        scanControllers.add(sc);
-
-        return sc;
     }
 
     public BaseSpliceTransaction getRawTransaction() {
@@ -1627,20 +1386,6 @@ public class SpliceTransactionManager implements XATransactionController,
             LOG.trace("closeMe " + conglom_control);
 
         conglomerateControllers.remove(conglom_control);
-    }
-
-    /**
-     * The SortController.close() method has been called on "sort_control".
-     * <p>
-     * Take whatever cleanup action is appropriate to a closed sortController.
-     * It is likely this routine will remove references to the SortController
-     * object that it was maintaining for cleanup purposes.
-     **/
-    public void closeMe(SortController sort_control) {
-        if (LOG.isTraceEnabled())
-            LOG.trace("closeMe " + sort_control);
-
-        sortControllers.remove(sort_control);
     }
 
     /**
