@@ -52,6 +52,10 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
         return currPosition.getAndAdd(incrementSteps);
     }
 
+    public long peekAtCurrentValue() throws StandardException {
+        return currPosition.get();
+    }
+
     protected abstract long getCurrentValue() throws IOException;
 
     protected abstract boolean atomicIncrement(long nextValue) throws IOException;
