@@ -150,7 +150,6 @@ public class SpliceSpark {
         conf.set("spark.driver.maxResultSize", System.getProperty("splice.spark.driver.maxResultSize", "1g"));
         conf.set("spark.driver.memory", System.getProperty("splice.spark.driver.memory", "1g"));
         conf.set("spark.executor.memory", System.getProperty("splice.spark.executor.memory", "2g"));
-        conf.set("spark.cleaner.ttl", System.getProperty("splice.spark.cleaner.ttl", "14400"));
         conf.set("spark.extraListeners", System.getProperty("splice.spark.extraListeners", ""));
         conf.set("spark.local.dir", System.getProperty("splice.spark.local.dir", System.getProperty("java.io.tmpdir")));
         conf.set("spark.logConf", System.getProperty("splice.spark.logConf", "true"));
