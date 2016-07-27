@@ -595,7 +595,7 @@ public final class ContextService{
      * Remove a ContextManager from the list of all active
      * contexts managers.
      */
-    void removeContext(ContextManager cm){
+    public void removeContext(ContextManager cm){
         if(allContexts!=null)
             allContexts.remove(cm);
     }

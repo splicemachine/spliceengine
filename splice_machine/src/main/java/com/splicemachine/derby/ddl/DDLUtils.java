@@ -391,11 +391,13 @@ public class DDLUtils {
     public static void preDropIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropIndex with change=%s",change);
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource = new SpliceTransactionResourceImpl();
             //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
+            prepared = transactionResource.marshallTransaction(txn);
             TransactionController tc = transactionResource.getLcc().getTransactionExecute();
             DDLMessage.DropIndex dropIndex =  change.getDropIndex();
             SchemaDescriptor sd = dd.getSchemaDescriptor(dropIndex.getSchemaName(),tc,true);
@@ -409,6 +411,9 @@ public class DDLUtils {
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared)
+                transactionResource.close();
         }
     }
 
@@ -754,12 +759,12 @@ public class DDLUtils {
     public static void preAlterTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preAlterTable with change=%s",change);
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            // ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            // transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
             for (DerbyMessage.UUID uuid : change.getAlterTable().getTableIdList()) {
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
                 if (td==null) // Table Descriptor transaction never committed
@@ -768,17 +773,21 @@ public class DDLUtils {
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared)
+                transactionResource.close();
         }
     }
 
     public static void preDropRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropRole with change=%s",change);
+        SpliceTransactionResourceImpl transactionResource = null;
+        boolean prepared = false;
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
             String roleName = change.getDropRole().getRoleName();
             RoleClosureIterator rci =
                 dd.createRoleClosureIterator
@@ -797,6 +806,10 @@ public class DDLUtils {
         } catch (Exception e) {
             e.printStackTrace();
             throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared) {
+                transactionResource.close();
+            }
         }
     }
 
@@ -805,16 +818,21 @@ public class DDLUtils {
                                         DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preTruncateTable with change=%s",change);
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource = new SpliceTransactionResourceImpl();
             //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
+            prepared = transactionResource.marshallTransaction(txn);
             BasicUUID uuid = ProtoUtil.getDerbyUUID(change.getTruncateTable().getTableId());
             TableDescriptor td = dd.getTableDescriptor(uuid);
             dm.invalidateFor(td, DependencyManager.TRUNCATE_TABLE, transactionResource.getLcc());
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared)
+                transactionResource.close();
         }
     }
 
@@ -823,14 +841,16 @@ public class DDLUtils {
                                           DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRevokePrivilege with change=%s",change);
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
         try {
             DDLMessage.RevokePrivilege revokePrivilege = change.getRevokePrivilege();
             DDLMessage.RevokePrivilege.Type type = revokePrivilege.getType();
 
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource = new SpliceTransactionResourceImpl();
             //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
+            prepared = transactionResource.marshallTransaction(txn);
             LanguageConnectionContext lcc = transactionResource.getLcc();
             if (type == DDLMessage.RevokePrivilege.Type.REVOKE_TABLE_PRIVILEGE) {
                 preRevokeTablePrivilege(revokePrivilege.getRevokeTablePrivilege(), dd, dm, lcc);
@@ -846,6 +866,9 @@ public class DDLUtils {
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared)
+                transactionResource.close();
         }
     }
 

@@ -145,9 +145,10 @@ public abstract class TransactionalSysTableWriter<T> {
 
     private String fetchConglomId(TxnView txn) throws StandardException,SQLException {
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
         try {
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            transactionResource.marshallTransaction(txn);
+            prepared = transactionResource.marshallTransaction(txn);
 
             LanguageConnectionContext lcc = transactionResource.getLcc();
             DataDictionary dd = lcc.getDataDictionary();
@@ -156,6 +157,8 @@ public abstract class TransactionalSysTableWriter<T> {
             return Long.toString(td.getHeapConglomerateId());
         }
         finally {
+            if (prepared)
+                transactionResource.close();
             if (currentCm != null)
                 ContextService.getFactory().setCurrentContextManager(currentCm);
         }
