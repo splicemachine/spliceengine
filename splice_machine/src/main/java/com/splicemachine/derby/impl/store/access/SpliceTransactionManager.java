@@ -28,7 +28,6 @@ import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.primitives.Bytes;
@@ -38,7 +37,6 @@ import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -1127,7 +1125,7 @@ public class SpliceTransactionManager implements XATransactionController,
         alterTableCallMade = false;
     }
 
-    public DatabaseInstant commitNoSync(int commitflag)
+    public void commitNoSync(int commitflag)
             throws StandardException {
         LOG.debug("commitNoSync ");
         if (LOG.isTraceEnabled())
@@ -1135,10 +1133,10 @@ public class SpliceTransactionManager implements XATransactionController,
 	    if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before commitNoSync: txn=%s, commitFlag=%s, nestedTxnStack=\n%s", getRawTransaction(), commitflag, getNestedTransactionStackString());
         this.closeControllers(false /* don't close held controllers */);
-        DatabaseInstant dbi = rawtran.commitNoSync(commitflag);
+        rawtran.commitNoSync(commitflag);
 	    if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "After commitNoSync: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
-	    return dbi;
+	    return;
     }
 
     public void abort() throws StandardException {

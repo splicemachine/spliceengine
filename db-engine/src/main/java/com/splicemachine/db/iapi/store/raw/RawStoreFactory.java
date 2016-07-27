@@ -29,15 +29,9 @@ import com.splicemachine.db.iapi.services.daemon.DaemonService;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.locks.LockFactory;
-
 import com.splicemachine.db.iapi.services.property.PersistentSet;
-
 import com.splicemachine.db.iapi.store.access.TransactionInfo;
-import com.splicemachine.db.iapi.store.raw.xact.TransactionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.store.access.DatabaseInstant;
-
 import java.util.Properties;
 import java.io.Serializable;
 
@@ -92,7 +86,7 @@ import java.io.Serializable;
 
     MT - Thread Safe
 
-    @see ContainerHandle */
+ */
 
 
 public interface RawStoreFactory {
@@ -878,16 +872,6 @@ public interface RawStoreFactory {
 
     */
     public void idle() throws StandardException;
-
-    /**
-        Get a flushed scan.
-        @param start The instant for the beginning of the scan.
-        @param groupsIWant log record groups the caller wants to scan.
-        @exception StandardException StandardDerby error policy
-        */
-    ScanHandle openFlushedScan(DatabaseInstant start, int groupsIWant) 
-         throws StandardException;
-
     
     /**
         If this raw store has a daemon that services its need, return the
@@ -1009,11 +993,6 @@ public interface RawStoreFactory {
     long getMaxContainerId()
         throws StandardException;
 
-
-    /**
-        Get the Transaction Factory to use with this store.
-    */
-    public TransactionFactory getXactFactory();
 
     /**
      *  Check to see if a database has been upgraded to the required

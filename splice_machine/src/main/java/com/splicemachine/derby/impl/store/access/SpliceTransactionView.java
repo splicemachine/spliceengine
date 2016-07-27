@@ -21,10 +21,8 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
-import com.splicemachine.db.iapi.store.raw.log.LogInstant;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.apache.log4j.Logger;
 
@@ -64,7 +62,7 @@ public class SpliceTransactionView extends BaseSpliceTransaction {
     }
 
     @Override
-    public LogInstant commit() throws StandardException {
+    public void commit() throws StandardException {
         ExceptionFactory ef =SIDriver.driver().getExceptionFactory();
         throw Exceptions.parseException(ef.cannotCommit("Cannot commit from SpliceTransactionView"));
     }

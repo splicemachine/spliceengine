@@ -1478,7 +1478,7 @@ public interface TransactionController
     initiates cleanupOnError() processing, which will eventually abort the 
     transaction.
 	**/
-	public DatabaseInstant commitNoSync(int commitflag)
+	public void commitNoSync(int commitflag)
 		throws StandardException;
 
 	public final int RELEASE_LOCKS                          = 0x1;

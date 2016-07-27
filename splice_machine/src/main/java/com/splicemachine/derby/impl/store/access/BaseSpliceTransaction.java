@@ -22,7 +22,6 @@ import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.raw.*;
-import com.splicemachine.db.iapi.store.raw.log.LogInstant;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -54,9 +53,9 @@ public abstract class BaseSpliceTransaction implements Transaction{
         return this.transName;
     }
 
-    public LogInstant commitNoSync(int commitflag) throws StandardException{
+    public void commitNoSync(int commitflag) throws StandardException{
         SpliceLogUtils.debug(LOG,"commitNoSync commitflag"+commitflag);
-        return commit();
+        commit();
     }
 
     public void close() throws StandardException{
