@@ -28,7 +28,6 @@ package com.splicemachine.db.iapi.store.raw;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
-import com.splicemachine.db.iapi.store.raw.log.LogInstant;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -112,7 +111,7 @@ public interface Transaction {
 
 	*/
 
-	public LogInstant commit() throws StandardException;
+	public void commit() throws StandardException;
 
 	/**
 	    "Commit" this transaction without sync'ing the log.
@@ -136,7 +135,7 @@ public interface Transaction {
         The transaction will be aborted by the standard context mechanism.
 	*/
 
-	public LogInstant commitNoSync(int commitflag) throws StandardException;
+	public void commitNoSync(int commitflag) throws StandardException;
 	public final int RELEASE_LOCKS = TransactionController.RELEASE_LOCKS;
 	public final int KEEP_LOCKS = TransactionController.KEEP_LOCKS;
 

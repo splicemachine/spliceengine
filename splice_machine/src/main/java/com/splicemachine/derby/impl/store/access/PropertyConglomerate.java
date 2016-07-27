@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
@@ -38,7 +37,6 @@ import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.PropertyManagerService;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;

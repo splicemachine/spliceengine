@@ -16,10 +16,8 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
-import com.splicemachine.db.iapi.store.raw.log.LogInstant;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
@@ -31,7 +29,6 @@ import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Deque;
 import java.util.Iterator;
@@ -200,20 +197,17 @@ public class SpliceTransaction extends BaseSpliceTransaction{
     }
 
     @Override
-    public LogInstant commit() throws StandardException{
+    public void commit() throws StandardException{
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"Before commit: state=%s, savePointStack=\n%s",getTransactionStatusAsString(),getSavePointStackString());
         if(state==IDLE){
-
             if(LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG,"The transaction is in idle state and there is nothing to commit, transID="+(txnStack.peekLast()==null?"null":txnStack.getLast().getSecond()));
-
-            return null;
+            return;
         }
         if(state==CLOSED){
             throw StandardException.newException("Transaction has already closed and cannot commit again");
         }
-
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"commit, state="+state+" for transaction "+(txnStack.peekLast()==null?"null":txnStack.getLast().getSecond()));
 
@@ -227,7 +221,7 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         state=IDLE;
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"After commit: state=%s, savePointStack=\n%s",getTransactionStatusAsString(),getSavePointStackString());
-        return null;
+        return;
     }
 
 
