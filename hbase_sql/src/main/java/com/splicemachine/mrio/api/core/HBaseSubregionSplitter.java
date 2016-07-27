@@ -43,7 +43,7 @@ import java.util.Map;
 public class HBaseSubregionSplitter implements SubregionSplitter{
     private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
-    public List<InputSplit> getSubSplits(Table table, List<Partition> splits) throws HMissedSplitException {
+    public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow) throws HMissedSplitException {
         List<InputSplit> results = new ArrayList<>();
         final HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
         for (final Partition split : splits) {
@@ -67,11 +67,15 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                                 byte[] stopKey = split.getEndKey();
 
                                 if (LOG.isDebugEnabled()) {
-                                    LOG.debug(String.format("Original split [%s,%s]", CellUtils.toHex(startKey), CellUtils.toHex(stopKey)));
+                                    LOG.debug(String.format("Original split [%s,%s] with scan [%s,%s]",
+                                            CellUtils.toHex(startKey), CellUtils.toHex(stopKey),
+                                            CellUtils.toHex(scanStartRow), CellUtils.toHex(scanStopRow)));
                                 }
 
                                 SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
-                                        .setBeginKey(ByteString.copyFrom(startKey)).setEndKey(ByteString.copyFrom(stopKey)).build();
+                                        .setBeginKey(ByteString.copyFrom(scanStartRow))
+                                        .setEndKey(ByteString.copyFrom(scanStopRow))
+                                        .setRegionEndKey(ByteString.copyFrom(stopKey)).build();
 
                                 BlockingRpcCallback<SpliceMessage.SpliceSplitServiceResponse> rpcCallback = new BlockingRpcCallback<>();
                                 instance.computeSplits(controller, message, rpcCallback);

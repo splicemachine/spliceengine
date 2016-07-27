@@ -297,8 +297,10 @@ public class SplitRegionScanner implements RegionScanner {
                     refresh = true;
                     continue;
                 } else {
-                    // Not Good, partition missing...
-                    SpliceLogUtils.warn(LOG,"Couldn't find subpartitions in range for %s and scan %s",partition,scan);
+                    // Not Good, partition missing, bail out...
+                    String msg = String.format("Couldn't find subpartitions in range for %s and scan %s",partition,scan);
+                    SpliceLogUtils.error(LOG,msg);
+                    throw new IllegalStateException(msg);
                 }
             } else {
                 break;
