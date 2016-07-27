@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.management.Manager;
 import org.apache.log4j.Logger;
@@ -415,7 +416,22 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue, boolean useBatch)
             throws StandardException{
+        SpliceSequence sequence=getSpliceSequence(sequenceUUIDstring, useBatch);
+        returnValue.setValue(sequence.getNext());
+    }
 
+    @Override
+    public Long peekAtSequence(String schemaName,String sequenceName) throws StandardException {
+        String sequenceUUIDstring=getSequenceID(schemaName, sequenceName);
+        if(sequenceUUIDstring==null)
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION,"SEQUENCE",(schemaName+"."+sequenceName));
+
+        SpliceSequence sequence=getSpliceSequence(sequenceUUIDstring, true);
+        return sequence.peekAtCurrentValue();
+    }
+
+    private SpliceSequence getSpliceSequence(String sequenceUUIDstring, boolean useBatch)
+        throws StandardException {
         try{
             if(sequenceRowLocationBytesMap==null){
                 sequenceRowLocationBytesMap=new ConcurrentLinkedHashMap.Builder<String, byte[]>()
@@ -453,13 +469,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             PartitionFactory partFactory = siDriver.getTableFactory();
             TxnOperationFactory txnOpFactory = siDriver.getOperationFactory();
             SpliceSequence sequence=EngineDriver.driver().sequencePool().
-            get(new SequenceKey(sequenceRowLocationBytes,useBatch?SIDriver.driver().getConfiguration().getSequenceBlockSize():1l,start,increment,partFactory,txnOpFactory));
-            returnValue.setValue(sequence.getNext());
+                    get(new SequenceKey(sequenceRowLocationBytes,useBatch?SIDriver.driver().getConfiguration().getSequenceBlockSize():1l,start,increment,partFactory,txnOpFactory));
+            return sequence;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
     }
-
     public void createOrUpdateAllSystemProcedures(TransactionController tc) throws StandardException{
         tc.elevate("dictionary");
         super.createOrUpdateAllSystemProcedures(tc);

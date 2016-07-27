@@ -48,8 +48,14 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
 
     public long getNext() throws StandardException{
         if(remaining.getAndDecrement()<=0)
-            allocateBlock();
+            allocateBlock(false);
         return currPosition.getAndAdd(incrementSteps);
+    }
+
+    public long peekAtCurrentValue() throws StandardException {
+        if(remaining.get()<= 0)
+            allocateBlock(true);
+        return currPosition.get();
     }
 
     protected abstract long getCurrentValue() throws IOException;
@@ -58,7 +64,7 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
 
     public abstract void close() throws IOException;
 
-    private void allocateBlock() throws StandardException{
+    private void allocateBlock(boolean peek) throws StandardException{
         boolean success=false;
         while(!success){
             updateLock.lock();
@@ -68,7 +74,8 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
                 currPosition.set(getCurrentValue());
                 success=atomicIncrement(currPosition.get()+(incrementSteps>blockAllocationSize?incrementSteps:blockAllocationSize));
                 if(success){
-                    remaining.set(blockAllocationSize/incrementSteps-1);
+                    long v = blockAllocationSize/incrementSteps;
+                    remaining.set(peek?v:v-1);
                 }
             }catch(IOException e){
                 throw Exceptions.parseException(e);
