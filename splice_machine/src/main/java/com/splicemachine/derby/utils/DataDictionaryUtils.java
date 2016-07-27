@@ -58,27 +58,32 @@ public class DataDictionaryUtils {
     public static int[] getColumnOrdering(TxnView txn, UUID tableId) throws StandardException {
 
         int[] columnOrdering = null;
-        SpliceTransactionResourceImpl impl;
+        boolean prepared = false;
+        SpliceTransactionResourceImpl impl = null;
         try {
             impl = new SpliceTransactionResourceImpl();
-            impl.marshallTransaction(txn);
+            prepared = impl.marshallTransaction(txn);
+
+            LanguageConnectionContext lcc = impl.getLcc();
+            DataDictionary dd = lcc.getDataDictionary();
+            TableDescriptor td = dd.getTableDescriptor(tableId);
+            ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
+            ReferencedKeyConstraintDescriptor keyDescriptor = cdl.getPrimaryKey();
+
+            if (keyDescriptor != null) {
+                int[] pkCols = keyDescriptor.getReferencedColumns();
+                columnOrdering = new int[pkCols.length];
+                for (int i = 0; i < pkCols.length; ++i) {
+                    columnOrdering[i] = pkCols[i] - 1;
+                }
+            }
         } catch (SQLException e) {
             throw Exceptions.parseException(e);
+        } finally {
+            if (prepared)
+                impl.close();
         }
-        LanguageConnectionContext lcc = impl.getLcc();
 
-        DataDictionary dd = lcc.getDataDictionary();
-        TableDescriptor td = dd.getTableDescriptor(tableId);
-        ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
-        ReferencedKeyConstraintDescriptor keyDescriptor = cdl.getPrimaryKey();
-
-        if (keyDescriptor != null) {
-            int[] pkCols = keyDescriptor.getReferencedColumns();
-            columnOrdering = new int[pkCols.length];
-            for (int i = 0; i < pkCols.length; ++i) {
-                columnOrdering[i] = pkCols[i] - 1;
-            }
-        }
         return columnOrdering;
     }
 
@@ -125,15 +130,23 @@ public class DataDictionaryUtils {
     }
 
     public static int[] getFormatIds(TxnView txn, UUID tableId) throws SQLException, StandardException {
-        SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
-        impl.marshallTransaction(txn);
-        LanguageConnectionContext lcc = impl.getLcc();
-        DataDictionary dd = lcc.getDataDictionary();
-        TableDescriptor td = dd.getTableDescriptor(tableId);
-        if (td != null) {
-            return td.getFormatIds();
-        } else {
-            return new int[0];
+
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
+        try {
+            SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+            prepared = impl.marshallTransaction(txn);
+            LanguageConnectionContext lcc = impl.getLcc();
+            DataDictionary dd = lcc.getDataDictionary();
+            TableDescriptor td = dd.getTableDescriptor(tableId);
+            if (td != null) {
+                return td.getFormatIds();
+            } else {
+                return new int[0];
+            }
+        } finally {
+            if (prepared)
+                transactionResource.close();
         }
     }
 
