@@ -19,14 +19,24 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import com.google.common.net.HostAndPort;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.utils.kryo.KryoPool;
+import io.netty.channel.*;
 import org.apache.log4j.Logger;
 import org.apache.spark.serializer.KryoRegistrator;
 import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import org.sparkproject.io.netty.bootstrap.ServerBootstrap;
 import org.sparkproject.io.netty.channel.*;
+import org.sparkproject.io.netty.channel.Channel;
+import org.sparkproject.io.netty.channel.ChannelFuture;
+import org.sparkproject.io.netty.channel.ChannelHandler;
+import org.sparkproject.io.netty.channel.ChannelHandlerContext;
+import org.sparkproject.io.netty.channel.ChannelInboundHandlerAdapter;
+import org.sparkproject.io.netty.channel.ChannelInitializer;
+import org.sparkproject.io.netty.channel.ChannelOption;
 import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
 import org.sparkproject.io.netty.channel.socket.SocketChannel;
 import org.sparkproject.io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -50,7 +60,6 @@ import java.util.concurrent.ThreadFactory;
 @ChannelHandler.Sharable
 public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
     private static final Logger LOG = Logger.getLogger(StreamListenerServer.class);
-    private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
     private final int port;
 
     private Channel serverChannel;
@@ -60,6 +69,9 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
     private NioEventLoopGroup workerGroup;
     private HostAndPort hostAndPort;
     private CloseHandler closeHandler = new CloseHandler();
+    private KryoPool kp = SpliceSparkKryoRegistrator.getInstance();
+    private Kryo encoder = kp.get();
+    private Kryo decoder = kp.get();
 
     public StreamListenerServer(int port) {
         this.port = port;
@@ -86,10 +98,7 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
-                            Kryo encoder =  new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
-                            registry.registerClasses(encoder);
-                            Kryo decoder =  new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
-                            registry.registerClasses(decoder);
+
                             ch.pipeline().addLast(
                                     new KryoEncoder(encoder),
                                     new KryoDecoder(decoder),
@@ -122,6 +131,14 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
         LOG.error("Exception caught", cause);
         cause.printStackTrace();
         ctx.close();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx)  throws Exception {
+        //when the channel disconnect release the kryo to the pool
+        kp.returnInstance(encoder);
+        kp.returnInstance(decoder);
+
     }
 
     @Override

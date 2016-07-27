@@ -207,7 +207,6 @@ public class SortOperation extends SpliceBaseOperation{
             try {
                 operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
                 dataSet = dataSet.map(new SetCurrentLocatedRowFunction(operationContext), true);
-                return dataSet;
             } finally {
                 operationContext.popScope();
             }
