@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -88,11 +89,18 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
 			TableSplit tSplit = ((SMSplit)split).getSplit();
 			DataScan scan = builder.getScan();
-			scan.startKey(tSplit.getStartRow()).stopKey(tSplit.getEndRow());
+			if (Bytes.startComparator.compare(scan.getStartKey(), tSplit.getStartRow()) < 0) {
+				// the split itself is more restrictive
+				scan.startKey(tSplit.getStartRow());
+			}
+			if (Bytes.endComparator.compare(scan.getStopKey(), tSplit.getEndRow()) > 0) {
+				// the split itself is more restrictive
+				scan.stopKey(tSplit.getEndRow());
+			}
             this.scan = ((HScan)scan).unwrapDelegate();
             // TODO (wjk): this seems weird (added with DB-4483)
             this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
-            restart(tSplit.getStartRow());
+            restart(scan.getStartKey());
             SparkOperationContext operationContext = (SparkOperationContext)builder.getOperationContext();
             if (operationContext != null) {
                 activationHolder = operationContext.getActivationHolder();
