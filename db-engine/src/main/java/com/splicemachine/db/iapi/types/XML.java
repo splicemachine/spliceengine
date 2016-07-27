@@ -51,6 +51,11 @@ import java.lang.reflect.Method;
 
 import java.util.List;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 /**
  * This type implements the XMLDataValue interface and thus is
@@ -1098,4 +1103,80 @@ public class XML
     public Format getFormat() {
     	return Format.XML;
     }
+
+    /**
+     *
+     * Write XML to Projet Tungsten Format (UnsafeRow).
+     *
+     *
+     * @param unsafeRowWriter
+     * @param ordinal
+     * @throws StandardException
+     */
+    @Override
+    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
+        if (isNull())
+                unsafeRowWriter.setNullAt(ordinal);
+        else
+            xmlStringValue.write(unsafeRowWriter,ordinal);
+    }
+
+    /**
+     *
+     * Read XML from Project Tungsten Format (UnsafeRow)
+     *
+     * @param unsafeRow
+     * @param ordinal
+     * @throws StandardException
+     */
+    @Override
+    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+        xmlStringValue = new SQLChar(unsafeRow.getUTF8String(ordinal).toString());
+    }
+
+    /**
+     *
+     * Get encoded key length.
+     *
+     * @return
+     * @throws StandardException
+     */
+    @Override
+    public int encodedKeyLength() throws StandardException {
+        return isNull()?1:xmlStringValue.encodedKeyLength(); // Order Does Not Matter for Length
+    }
+
+    /**
+     *
+     * Encode into key.
+     *
+     * @param src
+     * @param order
+     * @throws StandardException
+     */
+    @Override
+    public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+        if (isNull())
+                OrderedBytes.encodeNull(src, order);
+        else
+            xmlStringValue.encodeIntoKey(src,order);
+    }
+
+    /**
+     *
+     * Decode from key
+     *
+     * @param src
+     * @throws StandardException
+     */
+    @Override
+    public void decodeFromKey(PositionedByteRange src) throws StandardException {
+        if (OrderedBytes.isNull(src))
+                setToNull();
+        else
+            if (xmlStringValue==null)
+                    xmlStringValue = new SQLChar();
+        xmlStringValue.decodeFromKey(src);
+    }
+    
 }

@@ -40,6 +40,11 @@ import com.splicemachine.db.iapi.services.io.InputStreamUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -1354,4 +1359,85 @@ abstract class SQLBinary
         System.arraycopy(getValue(), 0, shrunkData, 0, desiredWidth);
         setValue(shrunkData);
     }
+
+	/**
+	 *
+	 * Write to a Project Tungsten UnsafeRow format.
+	 *
+	 * @see UnsafeRowWriter#write(int, byte[])
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
+		if (isNull())
+			unsafeRowWriter.setNullAt(ordinal);
+		else
+			unsafeRowWriter.write(ordinal,dataValue);
+	}
+	/**
+	 *
+	 * Read from a Project Tungsten UnsafeRow format.
+	 *
+	 * @see UnsafeRow#getBinary(int)
+	 *
+	 * @throws StandardException
+	 */
+	@Override
+	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+		if (unsafeRow.isNullAt(ordinal))
+			setToNull();
+		else
+			dataValue = unsafeRow.getBinary(ordinal);
+	}
+	/**
+	 *
+	 * Gets the encoded key length
+	 *
+	 * @see OrderedBytes#blobVarEncodedLength(int)
+	 *
+	 * @throws StandardException
+	 */
+	@Override
+	public int encodedKeyLength() throws StandardException {
+		return isNull()?1:OrderedBytes.blobVarEncodedLength(dataValue.length);
+	}
+
+	/**
+	 *
+	 * Performs null check and then encodes
+	 *
+	 * @see OrderedBytes#decodeBlobVar(PositionedByteRange)
+	 *
+	 * @param src
+	 * @param order
+	 * @throws StandardException
+     */
+	@Override
+	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+		if (isNull())
+			OrderedBytes.encodeNull(src, order);
+		else
+			OrderedBytes.encodeBlobVar(src, dataValue, order);
+	}
+
+	/**
+	 *
+	 * Performs null check and then decodes
+	 *
+	 * @see OrderedBytes#decodeBlobVar(PositionedByteRange)
+	 *
+	 * @param src
+	 * @throws StandardException
+     */
+	@Override
+	public void decodeFromKey(PositionedByteRange src) throws StandardException {
+		if (OrderedBytes.isNull(src))
+			setToNull();
+		else
+			dataValue = OrderedBytes.decodeBlobVar(src);
+	}
+
 }

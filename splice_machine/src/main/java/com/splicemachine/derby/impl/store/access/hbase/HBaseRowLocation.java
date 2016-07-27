@@ -27,6 +27,11 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.hadoop.hbase.util.Order;
+import org.apache.hadoop.hbase.util.OrderedBytes;
+import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -230,5 +235,42 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
     public ByteSlice getSlice() {
         return slice;
+    }
+
+    @Override
+    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
+        if (isNull())
+            unsafeRowWriter.setNullAt(ordinal);
+        else
+            unsafeRowWriter.write(ordinal,slice.getByteCopy());
+    }
+
+    @Override
+    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+        if (unsafeRow.isNullAt(ordinal))
+            setToNull();
+        else
+            slice = ByteSlice.wrap(unsafeRow.getBinary(ordinal));
+    }
+
+    @Override
+    public int encodedKeyLength() throws StandardException {
+        return isNull()?1:9;
+    }
+
+    @Override
+    public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
+        if (isNull())
+            OrderedBytes.encodeNull(src, order);
+        else
+            OrderedBytes.encodeBlobVar(src, slice.getByteCopy(), order);
+    }
+
+    @Override
+    public void decodeFromKey(PositionedByteRange src) throws StandardException {
+        if (OrderedBytes.isNull(src))
+            setToNull();
+        else
+            slice = ByteSlice.wrap(OrderedBytes.decodeBlobVar(src));
     }
 }
