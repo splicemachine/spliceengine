@@ -8770,46 +8770,61 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
 
 
-                        <msg>
-                            <name>BR001</name>
-                            <text>Invalid backup type: {0}.</text>
-                            <arg>backupType</arg>
-                        </msg>
+           <msg>
+               <name>BR001</name>
+               <text>Invalid backup type: {0}.</text>
+               <arg>backupType</arg>
+           </msg>
 
-                        <msg>
-                            <name>BR002</name>
-                            <text>Invalid backup directory: {0}.</text>
-                            <arg>backupDirectory</arg>
-                        </msg>
+           <msg>
+               <name>BR002</name>
+               <text>Invalid backup directory: {0}.</text>
+               <arg>backupDirectory</arg>
+           </msg>
 
-                        <msg>
-                            <name>BR003</name>
-                            <text>Restore cannot run because backup {0} is running.</text>
-                            <arg>backupId</arg>
-                        </msg>
+           <msg>
+               <name>BR003</name>
+               <text>Restore cannot run because backup {0} is running.</text>
+               <arg>backupId</arg>
+           </msg>
 
-                         <msg>
-                            <name>BR004</name>
-                            <text>Invalid backup window:{0}. </text>
-                            <arg>backupWindow</arg>
-                        </msg>
+           <msg>
+               <name>BR004</name>
+               <text>Invalid backup window:{0}. </text>
+               <arg>backupWindow</arg>
+           </msg>
 
-                        <msg>
-                            <name>BR005</name>
-                            <text>Hour must be in range [0, 23].</text>
-                        </msg>
+           <msg>
+               <name>BR005</name>
+               <text>Hour must be in range [0, 23].</text>
+           </msg>
 
-                        <msg>
-                            <name>BR006</name>
-                            <text>Invalid backup job ID {0}.</text>
-                            <arg>backupJobId</arg>
-                        </msg>
+           <msg>
+               <name>BR006</name>
+               <text>Invalid backup job ID {0}.</text>
+               <arg>backupJobId</arg>
+           </msg>
 
-                        <msg>
-                            <name>BR007</name>
-                            <text>Invalid backup ID {0}.</text>
-                            <arg>backupId</arg>
-                        </msg>
+           <msg>
+               <name>BR007</name>
+               <text>Invalid backup ID {0}.</text>
+               <arg>backupId</arg>
+           </msg>
+           <msg>
+               <name>BR008</name>
+               <text>Checksum for {0} is missing. Cannot verify whether the file is corrupted.</text>
+               <arg>fileName</arg>
+           </msg>
+           <msg>
+               <name>BR009</name>
+               <text>Bad checksum for {0}. The file may be corrupted.</text>
+               <arg>fileName</arg>
+           </msg>
+           <msg>
+               <name>BR010</name>
+               <text>A data file {0} is missing. The restored table may be corrupted.</text>
+               <arg>fileName</arg>
+           </msg>
        </family>
     </section>
 

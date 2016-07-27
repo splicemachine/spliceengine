@@ -1936,5 +1936,8 @@ public interface SQLState {
     String INVALID_BACKUP_HOUR                                     = "BR005";
     String INVALID_BACKUP_JOB_ID                                   = "BR006";
     String INVALID_BACKUP_ID                                       = "BR007";
+    String CHECKSUM_FILE_MISSING                                   = "BR008";
+    String BAD_FILE_CHECKSUM                                       = "BR009";
+    String DATA_FILE_MISSING                                        = "BR010";
 }
 
