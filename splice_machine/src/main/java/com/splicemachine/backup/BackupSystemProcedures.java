@@ -15,17 +15,13 @@
 
 package com.splicemachine.backup;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
+import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.Lists;
 
@@ -117,14 +113,25 @@ public class BackupSystemProcedures {
             // Print reboot statement
             ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
                     new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 30)),
-                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 50))
+                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
             };
             ExecRow template = new ValueRow(2);
             template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
             List<ExecRow> rows = Lists.newArrayList();
+
+            Activation activation = lcc.getLastActivation();
+            SQLWarning warning = activation.getWarnings();
+            while (warning != null) {
+                String warningMessage = warning.getLocalizedMessage();
+                template.getColumn(1).setValue(warning.getSQLState());
+                template.getColumn(2).setValue(warning.getLocalizedMessage());
+                rows.add(template.getClone());
+                warning = warning.getNextWarning();
+            }
             template.getColumn(1).setValue("Restore completed");
             template.getColumn(2).setValue("Database has to be rebooted");
             rows.add(template.getClone());
+
             inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
             inprs.openCore();
             LOG.info("Restore completed. Database reboot is required.");
