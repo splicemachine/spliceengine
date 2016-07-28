@@ -21,9 +21,22 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 
 /**
+ *
+ *
+ * Register Add Index with Database.  If the type is CREATE_INDEX, it
+ * will perform the ddl change on the ContextFactoryLoader.
+ *
+ * @see ContextFactoryLoader
+ *
  * Created by dgomezferro on 11/24/15.
  */
 public class AddIndexToPipeline implements DDLAction {
+    /**
+     *
+     * Main Accept method to process CREATE_INDEX message types.
+     *
+     * @param change
+     */
     @Override
     public void accept(DDLMessage.DDLChange change) {
         if (change.getDdlChangeType() != DDLMessage.DDLChangeType.CREATE_INDEX)

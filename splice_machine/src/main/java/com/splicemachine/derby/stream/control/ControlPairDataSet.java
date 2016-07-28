@@ -49,6 +49,8 @@ import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIt
 
 /**
  *
+ * Key Value utility functions leaning heavily on Guava.  We use the shaded Guava plugin
+ * from Spark so we know which library version we are using.
  *
  * @see org.sparkproject.guava.collect.Multimap
  * @see org.sparkproject.guava.collect.Multimaps

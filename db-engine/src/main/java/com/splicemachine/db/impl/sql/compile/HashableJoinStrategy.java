@@ -556,4 +556,27 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
     /** @see JoinStrategy#halfOuterJoinResultSetMethodName */
     public abstract String halfOuterJoinResultSetMethodName();
+
+    /**
+     *
+     * Checking if an innerTable is a non Covering Index.
+     *
+     * @param innerTable
+     * @return
+     */
+    public static boolean isNonCoveringIndex(Optimizable innerTable) {
+        try {
+            AccessPath path = innerTable.getCurrentAccessPath();
+            if (path != null) {
+                ConglomerateDescriptor cd = path.getConglomerateDescriptor();
+                if (cd != null && cd.isIndex() && !innerTable.isCoveringIndex(cd)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("could not determine if index is covering", e);
+        }
+        return false;
+    }
+
 }

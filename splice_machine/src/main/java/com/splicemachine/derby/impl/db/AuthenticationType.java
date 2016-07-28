@@ -16,6 +16,10 @@
 package com.splicemachine.derby.impl.db;
 
 /**
+ *
+ * Enumeration of Supported Authentication Types.  LDAP is a Splice
+ * Machine Enterprise Feature.
+ *
  * @author Scott Fines
  *         Date: 1/11/16
  */

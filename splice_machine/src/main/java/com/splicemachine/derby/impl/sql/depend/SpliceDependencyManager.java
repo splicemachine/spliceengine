@@ -33,6 +33,14 @@ import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
+/**
+ *
+ * Wrapper around BasicDependencyManager.  The Dependency Manager is critical for
+ * handling plan ejection, etc.
+ *
+ * @see BasicDependencyManager
+ *
+ */
 public class SpliceDependencyManager extends BasicDependencyManager {
     private static final Logger LOG = Logger.getLogger(SpliceDependencyManager.class);
     

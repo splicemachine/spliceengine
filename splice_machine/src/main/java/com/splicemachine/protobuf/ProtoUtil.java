@@ -17,7 +17,6 @@ package com.splicemachine.protobuf;
 
 import com.google.common.base.Function;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
-import com.splicemachine.ddl.DDLMessage;
 import org.sparkproject.guava.base.Joiner;
 import org.sparkproject.guava.collect.Lists;
 import com.google.protobuf.ByteString;
@@ -37,13 +36,14 @@ import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.primitives.Ints;
-
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Created by jleach on 11/13/15.
+ *
+ *
+ *
  */
 public class ProtoUtil {
     private static final Logger LOG = Logger.getLogger(ProtoUtil.class);
