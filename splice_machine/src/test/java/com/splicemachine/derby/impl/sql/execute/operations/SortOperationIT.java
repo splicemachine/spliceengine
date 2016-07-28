@@ -40,12 +40,16 @@ public class SortOperationIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_2 = "PERSON";
     public static final String TABLE_NAME_3 = "BOOL_TABLE";
 	public static final String TABLE_NAME_4 = "A";
+	public static final String TABLE_NAME_5 = "B";
+	public static final String TABLE_NAME_6 = "C";
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(255),value1 varchar(255),value2 varchar(255))");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(255), age float,created_time timestamp)");
 	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(col boolean)");
 	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME,"(id int, text char(20))");
+	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(id int)");
+	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(id int)");
 
 	private static long startTime;
 
@@ -56,6 +60,8 @@ public class SortOperationIT extends SpliceUnitTest {
 		.around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
 			.around(spliceTableWatcher4)
+			.around(spliceTableWatcher5)
+			.around(spliceTableWatcher6)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -140,6 +146,29 @@ public class SortOperationIT extends SpliceUnitTest {
                     ps.setBoolean(1, false);
                     ps.addBatch();
                     ps.executeBatch();
+
+					ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher5+" values (?)");
+					ps.setInt(1,1);  ps.execute();
+					ps.setInt(1,1);  ps.execute();
+					ps.setInt(1,10); ps.execute();
+					ps.setInt(1,5);  ps.execute();
+					ps.setInt(1,2);  ps.execute();
+					ps.setInt(1,7);  ps.execute();
+					ps.setInt(1,90); ps.execute();
+					ps.setInt(1,4);  ps.execute();
+
+
+					ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher6+" values (?)");
+					ps.setInt(1,1);  ps.execute();
+					ps.setInt(1,10); ps.execute();
+					ps.setInt(1,10); ps.execute();
+					ps.setInt(1,50); ps.execute();
+					ps.setInt(1,20); ps.execute();
+					ps.setInt(1,70); ps.execute();
+					ps.setInt(1,2);  ps.execute();
+					ps.setInt(1,40); ps.execute();
+
+
                     spliceClassWatcher.commit();
 				} catch (Exception e) {
 					throw new RuntimeException(e);
@@ -163,7 +192,7 @@ public class SortOperationIT extends SpliceUnitTest {
 	private static List<Triplet> correctByDescAsc = Lists.newArrayList();
 	private static List<Triplet> correctByName = Lists.newArrayList();
 	private static List<Triplet> distinctCorrectByName = Lists.newArrayList();
-	
+
 	private static final Comparator<Triplet>k1Comparator = new Comparator<Triplet>(){
 		@Override
 		public int compare(Triplet o1, Triplet o2) {
@@ -503,6 +532,32 @@ public class SortOperationIT extends SpliceUnitTest {
         Assert.assertTrue(rs.next());
         Assert.assertNull("unexpected sort order", rs.getObject(1));
     }
+
+	/**
+	 * TEST FOR SPLICE-724
+     */
+
+	@Test
+	public void testDistinctUnionOrderByInt() throws Exception {
+		List<Object[]> expected = Arrays.asList(
+				o(1),
+				o(2),
+				o(4),
+				o(5),
+				o(7),
+				o(10),
+				o(20),
+				o(40),
+				o(50),
+				o(70),
+				o(90));
+
+
+		ResultSet rs = methodWatcher.executeQuery(format("select id from %s union select id from %s order by id",TABLE_NAME_5,TABLE_NAME_6));
+		List result = TestUtils.resultSetToArrays(rs);
+
+		Assert.assertArrayEquals(expected.toArray(), result.toArray());
+	}
 
 
     private static class Triplet implements Comparable<Triplet>{
