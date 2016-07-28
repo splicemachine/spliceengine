@@ -17,6 +17,10 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import static org.sparkproject.guava.base.Preconditions.checkArgument;
 
+/**
+ * Utility class for handling overflows currently.
+ *
+ */
 public class CostUtils {
 
     /**

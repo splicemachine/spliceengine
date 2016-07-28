@@ -20,10 +20,13 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.impl.sql.compile.*;
-
-import java.util.Arrays;
 import java.util.BitSet;
 
+/**
+ *
+ * Join Strategy to shuffle only one side of a join.
+ *
+ */
 public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
 
     public HalfMergeSortJoinStrategy() {

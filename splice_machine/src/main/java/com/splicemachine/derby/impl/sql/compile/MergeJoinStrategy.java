@@ -24,6 +24,12 @@ import com.splicemachine.db.impl.sql.compile.*;
 import java.util.Arrays;
 import java.util.BitSet;
 
+/**
+ *
+ * Join Strategy where both sides are sorted by the join keys.  In this case,
+ * the right side is scanned via a remote scan.
+ *
+ */
 public class MergeJoinStrategy extends HashableJoinStrategy{
 
     public MergeJoinStrategy(){
@@ -76,7 +82,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         if(outerRowOrdering==null) return false;
 
         /* Currently MergeJoin does not work with a right side IndexRowToBaseRowOperation */
-        if(JoinStrategyUtil.isNonCoveringIndex(innerTable)){
+        if(isNonCoveringIndex(innerTable)){
             return false;
         }
         boolean hashFeasible=super.feasible(innerTable, predList, optimizer, outerCost, wasHinted);

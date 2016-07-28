@@ -20,9 +20,22 @@ import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 
 /**
- * Created by jleach on 2/2/16.
+ *
+ * Add Unique Constraint Handling to the Splice Database.
+ *
+ * Only applies for types of ADD_UNIQUE_CONSTRAINT.
+ *
+ * @see ContextFactoryLoader
+ *
  */
 public class AddUniqueConstraintToPipeline implements DDLAction {
+    /**
+     *
+     * Main Accept method for processing an ADD_UNIQUE_CONSTRAINT message on
+     * each node.
+     *
+     * @param change
+     */
     @Override
     public void accept(DDLMessage.DDLChange change) {
         if (change.getDdlChangeType() != DDLMessage.DDLChangeType.ADD_UNIQUE_CONSTRAINT)

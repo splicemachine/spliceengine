@@ -26,6 +26,11 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+/**
+ *
+ * NestedLoop Join Strategy.
+ *
+ */
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     private static final Logger LOG=Logger.getLogger(NestedLoopJoinStrategy.class);
 
