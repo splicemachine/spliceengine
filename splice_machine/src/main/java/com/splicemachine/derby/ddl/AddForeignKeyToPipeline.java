@@ -20,21 +20,9 @@ import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 
 /**
- *
- * Registers Foreign Key with Splice Database.  Each DDL Message that is a ADD_FOREIGN_KEY
- * will call the ContextFactoryLoader.
- *
- * @see ContextFactoryLoader
- *
+ * Created by jleach on 2/2/16.
  */
 public class AddForeignKeyToPipeline implements DDLAction {
-    /**
-     *
-     * Accept the message and only process ADD_FOREIGN_KEY messages.  This method
-     * will be called on each node.
-     *
-     * @param change
-     */
     @Override
     public void accept(DDLMessage.DDLChange change) {
         if (change.getDdlChangeType() != DDLMessage.DDLChangeType.ADD_FOREIGN_KEY)

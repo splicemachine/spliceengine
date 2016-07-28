@@ -18,8 +18,10 @@ package com.splicemachine.derby.impl.db;
 import javax.security.auth.login.Configuration;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -76,25 +78,11 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
-/**
- *
- * Top Level Extension of the BasicDatabase to support handling system
- * level variables at boot time.
- *
- */
 public class SpliceDatabase extends BasicDatabase{
 
     private static Logger LOG=Logger.getLogger(SpliceDatabase.class);
     private AtomicBoolean registered = new AtomicBoolean(false);
 
-    /**
-     *
-     * Main Boot Method for Starting Splice Machine.
-     *
-     * @param create
-     * @param startParams
-     * @throws StandardException
-     */
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         Configuration.setConfiguration(null);
@@ -127,20 +115,6 @@ public class SpliceDatabase extends BasicDatabase{
         super.boot(create,startParams);
     }
 
-    /**
-     *
-     * Adds Visitors to the Connection for parsing of queries.  These visitors
-     * do everything from assigning result set ids, pulling predicates, and query
-     * unrolling.
-     *
-     * @param cm
-     * @param user
-     * @param drdaID
-     * @param dbname
-     * @param dspt
-     * @return
-     * @throws StandardException
-     */
     @Override
     public LanguageConnectionContext setupConnection(ContextManager cm,String user,String drdaID,String dbname,CompilerContext.DataSetProcessorType dspt)
             throws StandardException{
@@ -210,11 +184,51 @@ public class SpliceDatabase extends BasicDatabase{
         return lctx;
     }
 
-    /**
-     *
-     * Specialized configuration method for handling authentication.
-     *
-     */
+    @Override
+    public void startReplicationMaster(String dbmaster,String host,int port,String replicationMode) throws SQLException{
+        throw new SQLException("Unsupported Exception");
+    }
+
+    @Override
+    public void stopReplicationMaster() throws SQLException{
+        throw new SQLException("Unsupported Exception");
+    }
+
+    @Override
+    public void stopReplicationSlave() throws SQLException{
+        throw new SQLException("Unsupported Exception");
+    }
+
+    @Override
+    public void failover(String dbname) throws StandardException{
+        throw StandardException.plainWrapException(new SQLException("Unsupported Exception"));
+    }
+
+    @Override
+    public void freeze() throws SQLException{
+        throw new SQLException("Unsupported Exception");
+    }
+
+    @Override
+    public void unfreeze() throws SQLException{
+        throw new SQLException("Unsupported Exception");
+    }
+
+    @Override
+    public void backupAndEnableLogArchiveMode(String backupDir,boolean deleteOnlineArchivedLogFiles,boolean wait) throws SQLException{
+        throw new SQLException("Unsupported Exception");
+    }
+
+    @Override
+    public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles) throws SQLException{
+        throw new SQLException("Unsupported Exception");
+    }
+
+    @Override
+    public void checkpoint() throws SQLException{
+        throw new SQLException("Unsupported Exception");
+    }
+
     protected void configureAuthentication(){
         SConfiguration configuration =SIDriver.driver().getConfiguration();
         if(configuration.authenticationNativeCreateCredentialsDatabase()) {
@@ -243,12 +257,6 @@ public class SpliceDatabase extends BasicDatabase{
         }
     }
 
-    /**
-     *
-     * Specialized method for handling LDAP authentication.
-     *
-     * @param config
-     */
     private void configureLDAPAuth(SConfiguration config){
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
@@ -271,12 +279,6 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.authentication.server",authenticationLDAPServer);
     }
 
-    /**
-     *
-     * Specialized method for handling custom authentication.
-     *
-     * @param configuration
-     */
     private void configureCustomAuth(SConfiguration configuration){
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
@@ -289,13 +291,6 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.authentication.provider",authenticationCustomProvider);
     }
 
-    /**
-     *
-     * Specialized configuration for native (in database) authentication
-     *
-     * @param config
-     * @param warn
-     */
     private void configureNative(SConfiguration config,boolean warn){
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
@@ -445,6 +440,9 @@ public class SpliceDatabase extends BasicDatabase{
 
     @Override
     protected void bootStore(boolean create,Properties startParams) throws StandardException{
+        //boot the ddl environment if necessary
+//        DDLEnvironment env = DDLEnvironmentLoader.loadEnvironment(SIDriver.driver().getConfiguration());
+
         SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
         af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);
         ((SpliceAccessManager) af).setDatabase(this);

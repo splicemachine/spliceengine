@@ -95,7 +95,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         if(td==null) return false;
 
         /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
-        if(isNonCoveringIndex(innerTable)) {
+        if(JoinStrategyUtil.isNonCoveringIndex(innerTable)) {
             return false;
         }
 

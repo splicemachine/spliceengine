@@ -35,8 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
- *
+ * Created by jleach on 4/17/15.
  */
 public class ControlOperationContext<Op extends SpliceOperation> implements OperationContext<Op> {
     private static final String LINE_SEP = System.lineSeparator();

@@ -59,6 +59,7 @@ import com.splicemachine.storage.Partition;
 /**
  * Local control side DataSetProcessor.
  *
+ * @author jleach
  */
 public class ControlDataSetProcessor implements DataSetProcessor{
     private long badRecordThreshold=-1;

@@ -330,8 +330,85 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		return this.authenticationService;
 	}
 
-    public void backup(String backupDir, boolean wait) 
+    /**
+     * Start the replication master role for this database
+     * @param dbmaster The master database that is being replicated.
+     * @param host The hostname for the slave
+     * @param port The port the slave is listening on
+     * @param replicationMode The type of replication contract.
+     * Currently only asynchronous replication is supported, but
+     * 1-safe/2-safe/very-safe modes may be added later.
+     * @exception SQLException Thrown on error
+     */
+    public void startReplicationMaster(String dbmaster, String host, int port,
+                                       String replicationMode)
         throws SQLException {
+        try {
+            af.startReplicationMaster(dbmaster, host, port, replicationMode);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+    
+    /**
+     * Stop the replication master role for this database.
+     * 
+     * @exception SQLException Thrown on error
+     */
+    public void stopReplicationMaster()  throws SQLException {
+        try {
+            af.stopReplicationMaster();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+    
+    /**
+     * Only a SlaveDatabase can be in replication slave mode. Always 
+     * throws an exception
+     * 
+     * @exception SQLException Always thrown because BasicDatabase cannot 
+     * be in replication slave mode
+     */
+    public void stopReplicationSlave() throws SQLException {
+        StandardException se = StandardException.
+            newException(SQLState.REPLICATION_NOT_IN_SLAVE_MODE);
+        throw PublicAPI.wrapStandardException(se);
+    }
+    
+    public boolean isInSlaveMode() {
+        return false;
+    }
+    
+    /**
+     * @see com.splicemachine.db.iapi.db.Database#failover(String)
+     */
+    public void failover(String dbname) throws StandardException {
+        af.failover(dbname);
+    }
+
+	public void freeze() throws SQLException
+	{
+		try {
+			af.freeze();
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
+	}
+
+	public void unfreeze() throws SQLException
+	{
+		try {
+			af.unfreeze();
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
+	}
+
+
+    public void backup(String backupDir, boolean wait) 
+        throws SQLException
+    {
 		try {
 			af.backup(backupDir, wait);
 		} catch (StandardException se) {
@@ -340,7 +417,43 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 	}
 
     public void restore(String restoreDir, boolean wait) throws SQLException {
-    		throw new UnsupportedOperationException("UnsupportedException");
+    		throw new RuntimeException("UnsupportedException");
+    	}
+
+
+    public void backupAndEnableLogArchiveMode(String  backupDir, 
+                                              boolean deleteOnlineArchivedLogFiles,
+                                              boolean wait)
+        throws SQLException
+	{
+		try {
+			af.backupAndEnableLogArchiveMode(backupDir, 
+                                             deleteOnlineArchivedLogFiles,
+                                             wait); 
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
+	}
+
+	
+	public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles)
+		throws SQLException
+	{
+		try{
+			af.disableLogArchiveMode(deleteOnlineArchivedLogFiles);
+		}catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
+	}
+
+
+	public void	checkpoint() throws SQLException
+	{
+		try {
+			af.checkpoint();
+		} catch (StandardException se) {
+			throw PublicAPI.wrapStandardException(se);
+		}
 	}
 
 	/* Methods from com.splicemachine.db.database.Database */
