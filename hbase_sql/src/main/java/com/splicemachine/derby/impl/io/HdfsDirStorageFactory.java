@@ -92,7 +92,7 @@ public class HdfsDirStorageFactory implements WritableStorageFactory
 					dataDirectory = home + getSeparator() +  dataDirectory;
 				}
 			}
-			canonicalName = databaseRoot.getCanonicalPath();
+			canonicalName = databaseRoot.getPath();
 			separatedDataDirectory = dataDirectory + getSeparator();
 		}
 		else if (home != null)
