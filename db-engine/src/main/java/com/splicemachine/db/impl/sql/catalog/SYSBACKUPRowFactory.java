@@ -37,6 +37,11 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 import org.joda.time.DateTime;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.Types;
 
 public class SYSBACKUPRowFactory extends CatalogRowFactory {
@@ -55,7 +60,6 @@ public class SYSBACKUPRowFactory extends CatalogRowFactory {
 
 
     protected static final int SYSBACKUP_INDEX1_ID = 0;
-    protected static final int SYSBACKUP_INDEX2_ID = 1;
 
     private	static	final	boolean[]	uniqueness = {
             true,
@@ -65,7 +69,6 @@ public class SYSBACKUPRowFactory extends CatalogRowFactory {
     private static final int[][] indexColumnPositions =
             {
                     {BACKUP_ID},
-                    {INCREMENTAL_PARENT_BACKUP_ID}
             };
 
 
@@ -118,7 +121,7 @@ public class SYSBACKUPRowFactory extends CatalogRowFactory {
         row.setColumn(FILESYSTEM, new SQLVarchar(fileSystem));
         row.setColumn(SCOPE, new SQLVarchar(scope));
         row.setColumn(IS_INCREMENTAL_BACKUP, new SQLBoolean(isIncremental));
-        row.setColumn(INCREMENTAL_PARENT_BACKUP_ID, new SQLDouble(parentId));
+        row.setColumn(INCREMENTAL_PARENT_BACKUP_ID, new SQLLongint(parentId));
         row.setColumn(ITEMS, new SQLInteger(items));
 
         return row;
@@ -170,7 +173,7 @@ public class SYSBACKUPRowFactory extends CatalogRowFactory {
         return new SystemColumn[]{
                 SystemColumnImpl.getColumn("BACKUP_ID", Types.BIGINT, false),
                 SystemColumnImpl.getColumn("BEGIN_TIMESTAMP",Types.TIMESTAMP,false),
-                SystemColumnImpl.getColumn("END_TIMESTAMP",Types.TIMESTAMP,true),
+                SystemColumnImpl.getColumn("END_TIMESTAMP",Types.TIMESTAMP,false),
                 SystemColumnImpl.getColumn("STATUS",Types.VARCHAR,false,20),
                 SystemColumnImpl.getColumn("FILESYSTEM",Types.VARCHAR,false,32642),
                 SystemColumnImpl.getColumn("SCOPE",Types.VARCHAR,false,10),
