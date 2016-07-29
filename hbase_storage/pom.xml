@@ -161,16 +161,16 @@
                     <artifactId>hadoop-core</artifactId>
                 </exclusion>
                 <exclusion>
-                    <artifactId>org.mortbay.jetty</artifactId>
-                    <groupId>jetty-sslengine</groupId>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jetty-sslengine</artifactId>
                 </exclusion>
                 <exclusion>
-                    <artifactId>org.mortbay.jetty</artifactId>
-                    <groupId>jsp-2.1</groupId>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jsp-2.1</artifactId>
                 </exclusion>
                 <exclusion>
-                    <artifactId>org.mortbay.jetty</artifactId>
-                    <groupId>jsp-api-2.1</groupId>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jsp-api-2.1</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>tomcat</groupId>
