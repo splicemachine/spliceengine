@@ -17,8 +17,16 @@ package com.splicemachine.hbase;
 
 import com.google.protobuf.Service;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.backup.BackupRestoreConstants;
+import com.splicemachine.backup.BackupUtils;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
@@ -26,6 +34,7 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -47,10 +56,15 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     private String tableName;
     private String regionName;
     private String path;
+    private Path backupDir;
+    private Configuration conf;
+    private FileSystem fs;
+    Path rootDir;
+    private volatile boolean preparing;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
-        region = (HRegion) ((RegionCoprocessorEnvironment) e).getRegion();
+        region = ((RegionCoprocessorEnvironment) e).getRegion();
         String[] name = region.getTableDesc().getNameAsString().split(":");
         if (name.length == 2) {
             namespace = name[0];
@@ -62,6 +76,11 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         regionName = region.getRegionInfo().getEncodedName();
 
         path = HConfiguration.getConfiguration().getBackupPath() + "/" + tableName + "/" + regionName;
+        conf = HConfiguration.unwrapDelegate();
+        rootDir = FSUtils.getRootDir(conf);
+        fs = FSUtils.getCurrentFileSystem(conf);
+        backupDir = new Path(rootDir, BackupRestoreConstants.BACKUP_DIR + "/data/splice/" + tableName + "/" + regionName);
+        preparing = false;
     }
 
     @Override
@@ -77,6 +96,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
             com.google.protobuf.RpcCallback<SpliceMessage.PrepareBackupResponse> done) {
 
         try {
+            preparing = true;
             SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
             boolean canceled = false;
             if (isSplitting) {
@@ -88,7 +108,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
             } else {
                 // A region might have been in backup
                 if (!regionIsBeingBackup()) {
-                    canceled = backupCanceled();
+                   canceled = backupCanceled();
                     if (!canceled) {
                         HBasePlatformUtils.flush(region);
                         // Create a ZNode to indicate that the region is being copied
@@ -119,6 +139,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                 else
                     responseBuilder.setReadyForBackup(false);
             }
+            preparing = false;
             done.run(responseBuilder.build());
         } catch (Exception e) {
             controller.setFailed(e.getMessage());
@@ -170,7 +191,14 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
     @Override
     public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) throws IOException {
-        //TODO: register HFiles for incremental backup
+        // Register HFiles for incremental backup
+        SpliceLogUtils.info(LOG, "Flushing region %s.%s", tableName, regionName);
+        try {
+            captureIncrementalChanges(resultFile.getPath().getName());
+        }
+        catch (Exception ex) {
+            throw new IOException(ex);
+        }
     }
 
     private void waitForBackupToComplete() throws IOException{
@@ -219,9 +247,74 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
         return isBackup;
     }
+
     private boolean backupCanceled() throws KeeperException, InterruptedException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
         String path = HConfiguration.getConfiguration().getBackupPath();
         return zooKeeper.exists(path, false) == null;
+    }
+
+    /**
+     * An HFile is eligible for incremental backup if
+     * 1) There is an ongoing full backup, flush is not triggered by preparing and backup for this region is done.
+     * 2) There is no ongoing backup, AND there is a previous full/incremental backup
+     * 3) There is an ongoing incremental backup
+     * @param fileName
+     * @throws StandardException
+     */
+    private void captureIncrementalChanges(String fileName) throws StandardException {
+        boolean shouldRegister = false;
+        try {
+            RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+            String spliceBackupPath = HConfiguration.getConfiguration().getBackupPath();
+            if (zooKeeper.exists(spliceBackupPath, false) != null) {
+                byte[] backupType = ZkUtils.getData(spliceBackupPath);
+                if (Bytes.compareTo(backupType, BackupRestoreConstants.BACKUP_TYPE_FULL_BYTES) == 0) {
+                    if (!preparing && zooKeeper.exists(path, false) != null) {
+                        byte[] status = ZkUtils.getData(path);
+                        if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
+                            if (LOG.isDebugEnabled()) {
+                                SpliceLogUtils.debug(LOG, "Table %s is being backup", tableName);
+                            }
+                            shouldRegister = true;
+                        }
+                    }
+                }
+                else {
+                    shouldRegister = true;
+                }
+
+            }
+            else if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+                shouldRegister = true;
+            }
+            if (shouldRegister) {
+                registerHFile(fileName);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    /**
+     * Register this HFile for incremental backup by creating an empty file
+     * backup/data/splice/tableName/regionName/V/fileName
+     * @param fileName
+     * @throws StandardException
+     */
+    private void registerHFile(String fileName) throws StandardException {
+
+        try {
+            if (!fs.exists(new Path(backupDir, BackupRestoreConstants.REGION_FILE_NAME))) {
+                HRegionFileSystem.createRegionOnFileSystem(conf, fs, backupDir.getParent(), region.getRegionInfo());
+            }
+            fs.create(new Path(backupDir.toString() + "/" + SIConstants.DEFAULT_FAMILY_NAME + "/" + fileName));
+            fs.close();
+        }
+        catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
     }
 }

@@ -30,7 +30,9 @@ package com.splicemachine.db.iapi.sql.dictionary;
  */
 import org.joda.time.DateTime;
 
-public class BackupDescriptor extends TupleDescriptor {
+import java.io.*;
+
+public class BackupDescriptor extends TupleDescriptor{
 
     private long backupId;
     private DateTime beginTimestamp;
@@ -41,6 +43,8 @@ public class BackupDescriptor extends TupleDescriptor {
     private boolean isIncremental;
     private long parentId;
     private int items;
+
+    public BackupDescriptor() {}
 
     public BackupDescriptor(long backupId,
                             DateTime beginTimestamp,
@@ -96,5 +100,29 @@ public class BackupDescriptor extends TupleDescriptor {
 
     public int getItems() {
         return items;
+    }
+
+    public void writeExternal(DataOutput out) throws IOException {
+        out.writeLong(backupId);
+        out.writeLong(beginTimestamp.getMillis());
+        out.writeLong(endTimestamp.getMillis());
+        out.writeUTF(status);
+        out.writeUTF(fileSystem);
+        out.writeUTF(scope);
+        out.writeBoolean(isIncremental);
+        out.writeLong(parentId);
+        out.writeInt(items);
+    }
+
+    public void readExternal(DataInput in) throws IOException {
+        backupId = in.readLong();
+        beginTimestamp = new DateTime(in.readLong());
+        endTimestamp = new DateTime(in.readLong());
+        status = in.readUTF();
+        fileSystem = in.readUTF();
+        scope = in.readUTF();
+        isIncremental = in.readBoolean();
+        parentId = in.readLong();
+        items = in.readInt();
     }
 }

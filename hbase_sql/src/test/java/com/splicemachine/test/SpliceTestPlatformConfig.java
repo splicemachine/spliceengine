@@ -68,6 +68,7 @@ class SpliceTestPlatformConfig {
             SpliceMasterObserver.class);
 
     private static final List<Class<?>> HFILE_CLEANERS = ImmutableList.<Class<?>>of(
+            SpliceHFileCleaner.class,
             TimeToLiveHFileCleaner.class);
 
     /*
