@@ -15,31 +15,24 @@
 
 package com.splicemachine.stream;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.util.DefaultClassResolver;
-import com.esotericsoftware.kryo.util.MapReferenceResolver;
+
 import com.google.common.net.HostAndPort;
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.stream.handlers.OpenHandler;
 import com.splicemachine.utils.kryo.KryoPool;
-import io.netty.channel.*;
 import org.apache.log4j.Logger;
-import org.apache.spark.serializer.KryoRegistrator;
 import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import org.sparkproject.io.netty.bootstrap.ServerBootstrap;
-import org.sparkproject.io.netty.channel.*;
 import org.sparkproject.io.netty.channel.Channel;
 import org.sparkproject.io.netty.channel.ChannelFuture;
 import org.sparkproject.io.netty.channel.ChannelHandler;
 import org.sparkproject.io.netty.channel.ChannelHandlerContext;
 import org.sparkproject.io.netty.channel.ChannelInboundHandlerAdapter;
-import org.sparkproject.io.netty.channel.ChannelInitializer;
 import org.sparkproject.io.netty.channel.ChannelOption;
 import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
-import org.sparkproject.io.netty.channel.socket.SocketChannel;
+
 import org.sparkproject.io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.sparkproject.io.netty.handler.logging.LogLevel;
 import org.sparkproject.io.netty.handler.logging.LoggingHandler;
@@ -47,11 +40,9 @@ import org.sparkproject.io.netty.handler.logging.LoggingHandler;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 
 
