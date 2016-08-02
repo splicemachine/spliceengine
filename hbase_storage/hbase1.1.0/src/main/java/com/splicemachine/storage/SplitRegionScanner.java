@@ -114,7 +114,7 @@ public class SplitRegionScanner implements RegionScanner {
                     reInitCount++;
                     hasAdditionalScanners = true;
                     close();
-                    partitions = PartitionUtilsgetPartitionsInRange(clientPartition, scan, true);
+                    partitions = PartitionUtils.getPartitionsInRange(clientPartition, scan, true);
                     SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, htable, partitions.size(), partitions);
                 } else
                     throw new IOException(ioe);
