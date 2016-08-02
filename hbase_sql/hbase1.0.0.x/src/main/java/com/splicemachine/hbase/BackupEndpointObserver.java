@@ -29,6 +29,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
@@ -77,6 +78,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
         try {
             SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
+            boolean canceled = false;
             if (isSplitting) {
                 if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.debug(LOG, "%s:%s is being split before trying to prepare for backup", tableName, regionName);
@@ -86,29 +88,36 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
             } else {
                 // A region might have been in backup
                 if (!regionIsBeingBackup()) {
-                    HBasePlatformUtils.flush(region);
-                    // Create a ZNode to indicate that the region is being copied
-                    ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                }
-                // check again if the region is being split. If so, return an error
-                if (isSplitting) {
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "%s:%s is being split when trying to prepare for backup", tableName, regionName);
+                    canceled = backupCanceled();
+                    if (!canceled) {
+                        HBasePlatformUtils.flush(region);
+                        // Create a ZNode to indicate that the region is being copied
+                        ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     }
+                }
+                if (!canceled) {
+                    // check again if the region is being split. If so, return an error
+                    if (isSplitting) {
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG, "%s:%s is being split when trying to prepare for backup", tableName, regionName);
+                        }
+                        responseBuilder.setReadyForBackup(false);
+                        //delete the ZNode
+                        ZkUtils.recursiveDelete(path);
+                    } else {
+                        //wait for all compaction and flush to complete
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG, "%s:%s waits for flush and compaction to complete", tableName, regionName);
+                        }
+                        region.waitForFlushesAndCompactions();
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG, "%s:%s is ready for backup", tableName, regionName);
+                        }
+                        responseBuilder.setReadyForBackup(true);
+                    }
+                }
+                else
                     responseBuilder.setReadyForBackup(false);
-                    //delete the ZNode
-                    ZkUtils.recursiveDelete(path);
-                } else {
-                    //wait for all compaction and flush to complete
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "%s:%s waits for flush and compaction to complete", tableName, regionName);
-                    }
-                    region.waitForFlushesAndCompactions();
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "%s:%s is ready for backup", tableName, regionName);
-                    }
-                    responseBuilder.setReadyForBackup(true);
-                }
             }
             done.run(responseBuilder.build());
         } catch (Exception e) {
@@ -210,5 +219,9 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
         return isBackup;
     }
-
+    private boolean backupCanceled() throws KeeperException, InterruptedException {
+        RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+        String path = HConfiguration.getConfiguration().getBackupPath();
+        return zooKeeper.exists(path, false) == null;
+    }
 }
