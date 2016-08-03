@@ -24,8 +24,6 @@ import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.google.common.collect.ArrayListMultimap;
-import com.splicemachine.EngineDriver;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
@@ -55,7 +53,6 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
-import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.UUIDSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.*;
@@ -93,39 +90,10 @@ import java.util.*;
  * @author Scott Fines
  * Created on: 8/15/13
  */
-public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.KryoRegistry {
+public class SpliceSparkKryoRegistrator implements KryoRegistrator {
     //ExternalizableSerializers are stateless, no need to create more than we need
     private static final ExternalizableSerializer EXTERNALIZABLE_SERIALIZER = ExternalizableSerializer.INSTANCE;
     private static final UnmodifiableCollectionsSerializer UNMODIFIABLE_COLLECTIONS_SERIALIZER = new UnmodifiableCollectionsSerializer();
-
-    private static volatile KryoPool spliceKryoPool;
-
-
-    public static KryoPool getInstance(){
-        KryoPool kp = spliceKryoPool;
-        if(kp==null){
-            synchronized(SpliceKryoRegistry.class){
-                kp = spliceKryoPool;
-                if(kp==null){
-                    EngineDriver driver = EngineDriver.driver();
-                    if(driver==null){
-                        kp = new KryoPool(1000);
-                    }else{
-                        int kpSize = driver.getConfiguration().getKryoPoolSize();
-                        kp = spliceKryoPool = new KryoPool(kpSize);
-                    }
-                    kp.setKryoRegistry(new SpliceSparkKryoRegistrator());
-
-                }
-            }
-        }
-        return kp;
-    }
-
-    @Override
-    public void register(Kryo instance) {
-        registerClasses(instance);
-    }
 
     @Override
     public void registerClasses(Kryo instance) {
