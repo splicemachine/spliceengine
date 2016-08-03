@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.storage.util.PartitionUtils;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
@@ -79,7 +78,7 @@ public class SplitRegionScanner implements RegionScanner {
     private void init(boolean refresh) throws IOException {
         scannerPosition = 1;
         scannerCount = 0;
-        List<Partition> partitions = PartitionUtils.getPartitionsInRange(clientPartition, scan, refresh);
+        List<Partition> partitions = getPartitionsInRange(clientPartition, scan, refresh);
         if (LOG.isDebugEnabled()) {
             SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, htable, partitions.size(), partitions);
         }
@@ -114,7 +113,7 @@ public class SplitRegionScanner implements RegionScanner {
                     reInitCount++;
                     hasAdditionalScanners = true;
                     close();
-                    partitions = PartitionUtils.getPartitionsInRange(clientPartition, scan, true);
+                    partitions = getPartitionsInRange(clientPartition, scan, true);
                     SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, htable, partitions.size(), partitions);
                 } else
                     throw new IOException(ioe);
@@ -259,6 +258,47 @@ public class SplitRegionScanner implements RegionScanner {
         }
 
         return rethrow;
+    }
+
+    /**
+     * Get Partitions in Range without refreshing the underlying cache.
+     *
+     * @param partition
+     * @param scan
+     * @return
+     */
+    public List<Partition> getPartitionsInRange(Partition partition, Scan scan) throws IOException {
+        return getPartitionsInRange(partition, scan, false);
+    }
+
+    /**
+     * Get the partitions in range with optional refreshing of the cache
+     *
+     * @param partition
+     * @param scan
+     * @param refresh
+     * @return
+     */
+    public List<Partition> getPartitionsInRange(Partition partition, Scan scan, boolean refresh) throws IOException {
+        List<Partition> partitions;
+        while (true) {
+            partitions = partition.subPartitions(scan.getStartRow(), scan.getStopRow(), refresh);
+            if (partitions == null || partitions.isEmpty()) {
+                if (!refresh) {
+                    // try again with a refresh
+                    refresh = true;
+                    continue;
+                } else {
+                    // Not Good, partition missing, bail out...
+                    String msg = String.format("Couldn't find subpartitions in range for %s and scan %s",partition,scan);
+                    SpliceLogUtils.error(LOG,msg);
+                    throw new IllegalStateException(msg);
+                }
+            } else {
+                break;
+            }
+        }
+        return partitions;
     }
 
     @Override
