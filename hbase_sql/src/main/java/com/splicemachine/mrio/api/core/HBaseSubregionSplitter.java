@@ -16,7 +16,6 @@
 package com.splicemachine.mrio.api.core;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
@@ -74,9 +73,9 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                                 }
 
                                 SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
-                                        .setBeginKey(ZeroCopyLiteralByteString.wrap(scanStartRow))
-                                        .setEndKey(ZeroCopyLiteralByteString.wrap(scanStopRow))
-                                        .setRegionEndKey(ZeroCopyLiteralByteString.wrap(stopKey)).build();
+                                        .setBeginKey(ByteString.copyFrom(scanStartRow))
+                                        .setEndKey(ByteString.copyFrom(scanStopRow))
+                                        .setRegionEndKey(ByteString.copyFrom(stopKey)).build();
 
                                 BlockingRpcCallback<SpliceMessage.SpliceSplitServiceResponse> rpcCallback = new BlockingRpcCallback<>();
                                 instance.computeSplits(controller, message, rpcCallback);
