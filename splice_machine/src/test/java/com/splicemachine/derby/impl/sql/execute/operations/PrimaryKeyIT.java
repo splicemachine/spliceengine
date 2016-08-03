@@ -80,7 +80,7 @@ public class PrimaryKeyIT {
         conn.setAutoCommit(false);
         conn.setSchema(SCHEMA); //just in case the schema wasn't set already
         try(Statement s = conn.createStatement()){
-            s.execute("create table T (a int, b int, PRIMARY KEY(a))");
+            s.execute("create table T (a int, b int, CONSTRAINT PK_T_1 PRIMARY KEY(a))");
             int rowsModified = s.executeUpdate("insert into T(a,b) values (1,1),(2,1),(3,2)");
             Assert.assertEquals("Did not insert rows!",3,rowsModified);
             try{
@@ -90,6 +90,8 @@ public class PrimaryKeyIT {
                 Assert.assertEquals("Incorrect error code!",
                         ErrorState.LANG_DUPLICATE_KEY_CONSTRAINT.getSqlState(),
                         se.getSQLState());
+                Assert.assertTrue("Incorrect error message: Does not contain constraint name!",se.getMessage().contains("'PK_T_1'"));
+                Assert.assertTrue("Incorrect error message: Does not contain table name!",se.getMessage().contains("'T'"));
             }
         }finally{
             conn.rollback();
