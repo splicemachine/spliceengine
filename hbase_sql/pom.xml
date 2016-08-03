@@ -444,7 +444,7 @@
                                 <!-- Skip all unit tests -->
                                 <exclude>**/*Test.java</exclude>
                             </excludes>
-                            <!--<runOrder>alphabetical</runOrder>-->
+                            <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
                 </executions>
