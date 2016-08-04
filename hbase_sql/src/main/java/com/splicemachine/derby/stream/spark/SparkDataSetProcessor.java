@@ -24,10 +24,12 @@ import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.lib.input.CombineTextInputFormat;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.input.StreamInputFormat;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -169,10 +171,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
-            SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + OperationContext.Scope.READ_TEXT_FILE.displayName() : "");
+            String displayString="";
+            if(op!=null)
+                displayString = op.getScopeName()+": "+OperationContext.Scope.READ_TEXT_FILE.displayName();
+            SpliceSpark.pushScope(displayString);
             JavaPairRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(
-                path, WholeTextInputFormat.class, String.class, InputStream.class,
-                HConfiguration.unwrapDelegate());
+                    path,
+                    WholeTextInputFormat.class,
+                    String.class,
+                    InputStream.class,
+                    HConfiguration.unwrapDelegate());
             // RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkPairDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException ioe) {
@@ -192,14 +200,25 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
-            SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + OperationContext.Scope.READ_TEXT_FILE.displayName() : "");
-            JavaRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(path, SMTextInputFormat.class, LongWritable.class,Text.class,
-                                                                    new Configuration(HConfiguration.unwrapDelegate())).values().map(new Function<Text,String>() {
-                @Override
-                public String call(Text o) throws Exception {
-                    return o.toString();
-                }
-            });
+            String displayString="";
+            if(op!=null)
+                displayString = op.getScopeName()+": "+OperationContext.Scope.READ_TEXT_FILE.displayName();
+
+            SpliceSpark.pushScope(displayString);
+            JavaPairRDD<LongWritable, Text> pairRdd=SpliceSpark.getContext().newAPIHadoopFile(
+                    path,
+                    SMTextInputFormat.class,
+                    LongWritable.class,
+                    Text.class,
+                    new Configuration(HConfiguration.unwrapDelegate()));
+
+            JavaRDD rdd =pairRdd.values()
+                    .map(new Function<Text,String>() {
+                        @Override
+                        public String call(Text o) throws Exception {
+                            return o.toString();
+                        }
+                    });
             RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException ioe) {

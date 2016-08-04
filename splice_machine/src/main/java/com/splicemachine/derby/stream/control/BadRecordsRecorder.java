@@ -239,4 +239,9 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         numberOfBadRecords = in.readLong();
         badRecordMasterPath = fileSystem.getPath(in.readUTF());
     }
+
+    @Override
+    public String toString(){
+        return Long.toString(numberOfBadRecords);
+    }
 }
