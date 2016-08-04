@@ -59,7 +59,7 @@ public class FileFunction extends AbstractFileFunction<String> {
     @Override
     public Iterable<LocatedRow> call(final String s) throws Exception {
         if (operationContext.isFailed())
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         if (!initialized) {
             Reader reader = new StringReader(s);
             checkPreference();
@@ -69,11 +69,11 @@ public class FileFunction extends AbstractFileFunction<String> {
         try {
             tokenizer.setLine(s);
             LocatedRow lr =  call(tokenizer.read());
-            return lr==null?Collections.EMPTY_LIST:Collections.singletonList(lr);
+            return lr==null?Collections.<LocatedRow>emptyList():Collections.singletonList(lr);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
                 operationContext.recordBadRecord(e.getLocalizedMessage(), e);
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
             }
             throw StandardException.plainWrapException(e);
         }

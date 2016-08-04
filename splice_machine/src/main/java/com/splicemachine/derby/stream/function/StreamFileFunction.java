@@ -59,7 +59,7 @@ import java.util.NoSuchElementException;
     @Override
     public Iterable<LocatedRow> call(final InputStream s) throws Exception {
         if (operationContext.isFailed())
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         checkPreference();
 
         return new Iterable<LocatedRow>() {

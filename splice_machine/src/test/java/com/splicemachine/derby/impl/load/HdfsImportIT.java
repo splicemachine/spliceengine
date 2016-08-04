@@ -170,6 +170,9 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher19 = new SpliceTableWatcher(TABLE_19, spliceSchemaWatcher
             .schemaName, "(order_date TIMESTAMP)");
 
+    private static SpliceTableWatcher  multiLine = new SpliceTableWatcher("mytable",spliceSchemaWatcher.schemaName,
+            "(a int, b char(10),c timestamp, d varchar(100),e bigint)");
+
 
     protected static SpliceTableWatcher autoIncTableWatcher = new SpliceTableWatcher(AUTO_INCREMENT_TABLE,
             spliceSchemaWatcher.schemaName,
@@ -199,6 +202,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher18)
             .around(spliceTableWatcher19)
             .around(spliceTableWatcher20)
+            .around(multiLine)
             .around(autoIncTableWatcher);
 
     @Rule
@@ -279,6 +283,34 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "AGE", BADDIR.getCanonicalPath(), 0, 5);
     }
 
+    @Test
+    public void testImportMultiLineFilesInDirectory() throws Exception {
+        try(PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "0," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "'false'," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName,multiLine.tableName, getResourceDirectory()+"/multiLineDirectory",
+                BADDIR.getCanonicalPath()))){
+            ps.execute();
+        }
+        try(ResultSet rs = methodWatcher.executeQuery("select count(*) from "+multiLine)){
+            Assert.assertTrue("Did not return a row!",rs.next());
+            long c = rs.getLong(1);
+            Assert.assertEquals("Incorrect row count!",16,c);
+            Assert.assertFalse("Returned too many rows!",rs.next());
+        }
+    }
+
     // more tests to write:
     // test bad records at threshold and beyond threshold
 
@@ -324,12 +356,21 @@ public class HdfsImportIT extends SpliceUnitTest {
     // checks count at the end
     private void testNewImport(String schemaName, String tableName, String location, String colList, String badDir,
                                int failErrorCount, int importCount) throws Exception {
+       testNewImport(schemaName, tableName, location, colList, badDir, "null",failErrorCount, importCount);
+    }
+
+    private void testNewImport(String schemaName, String tableName, String location, String colList, String badDir,
+                               String multiLineRecords,int failErrorCount, int importCount) throws Exception {
         methodWatcher.executeUpdate("delete from " + schemaName + "." + tableName);
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s'," +
-                        "'%s',',',null,null,null,null,%d,'%s',null," +
-                        "null)",
-                schemaName, tableName, colList, location,
-                failErrorCount, badDir));
+        String  sqlFormat="call SYSCS_UTIL.IMPORT_DATA('%s','%s',%s,'%s',',',null,null,null,null,%d,'%s','%s',null)";
+        String sql;
+        if(colList!=null){
+            sql = String.format(sqlFormat,schemaName, tableName, "'"+colList+"'", location, failErrorCount, badDir,multiLineRecords);
+        }else{
+            sql = String.format(sqlFormat,schemaName, tableName,"null", location, failErrorCount, badDir,multiLineRecords);
+        }
+
+        PreparedStatement ps = methodWatcher.prepareStatement(sql);
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", schemaName, tableName));
         List<String> results = Lists.newArrayList();

@@ -20,6 +20,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.io.LimitInputStream;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.mapreduce.*;
@@ -53,16 +54,16 @@ public class WholeTextInputFormat extends CombineFileInputFormat<String, InputSt
     }
 
     private class StringInputStreamRecordReader extends RecordReader<String, InputStream> {
-        public boolean processed;
-        public String key;
-        public InputStream value;
-        public FileSystem fs;
-        public Path path;
-        public CombineFileSplit split;
+        private String key;
+        private InputStream value;
+        private FileSystem fs;
+        private CombineFileSplit split;
 
-        public StringInputStreamRecordReader(CombineFileSplit inputSplit, TaskAttemptContext taskAttemptContext) {
+        private int currentPath = 0;
+
+        StringInputStreamRecordReader(CombineFileSplit inputSplit,TaskAttemptContext taskAttemptContext) {
             this.split = inputSplit;
-            this.path = split.getPath(0);
+            Path path = split.getPath(0);
             try {
                 this.fs = path.getFileSystem(taskAttemptContext.getConfiguration());
             } catch (IOException e) {
@@ -77,20 +78,26 @@ public class WholeTextInputFormat extends CombineFileInputFormat<String, InputSt
 
         @Override
         public boolean nextKeyValue() throws IOException, InterruptedException {
-            if (processed) {
+            if (currentPath>=split.getNumPaths()) {
                 return false;
             }
-            processed = true;
+
+            Path path = split.getPath(currentPath);
+            long off = split.getOffset(currentPath);
+            long len = split.getLength(currentPath);
+            currentPath++;
 
             CompressionCodecFactory factory = new CompressionCodecFactory(conf);
             CompressionCodec codec = factory.getCodec(path);
             key = path.toString();
             FSDataInputStream fileIn = fs.open(path);
-            if (codec != null) {
-                value = codec.createInputStream(fileIn);
-            } else {
-                value = fileIn;
-            }
+            fileIn.seek(off); //move to the proper offset
+
+            InputStream decodedStream = codec!=null?codec.createInputStream(fileIn):fileIn;
+            if(len<fileIn.available())
+                decodedStream = new LimitInputStream(decodedStream,len);
+
+            value = decodedStream;
             return true;
         }
 
@@ -106,7 +113,7 @@ public class WholeTextInputFormat extends CombineFileInputFormat<String, InputSt
 
         @Override
         public float getProgress() throws IOException, InterruptedException {
-            return processed ? 100 : 0;
+            return ((float)currentPath)/split.getNumPaths();
         }
 
         @Override
