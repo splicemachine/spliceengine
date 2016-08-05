@@ -77,6 +77,7 @@ public class Trigger_Row_IT {
         Connection c = classWatcher.createConnection();
         try(Statement s = c.createStatement()){
             s.executeUpdate("create table T (a int, b int, c int)");
+            s.executeUpdate("create table S (a int, b int, c int)");
             s.executeUpdate("create table RECORD (text varchar(99))");
             s.executeUpdate("insert into T values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5),(6,6,6)");
         }
@@ -463,6 +464,27 @@ public class Trigger_Row_IT {
         catch (Exception e) {
             String message = e.getLocalizedMessage();
             Assert.assertTrue(message.compareTo("Operation on table 'CAS3' caused a violation of foreign key constraint 'TEST_ROLLBACK' for key (STR_F).  The statement has been rolled back.") == 0);
+        }
+    }
+
+
+    @Test
+    public void testDropColumnTriggerViolation() throws Exception {
+
+        String errorMsg = "Operation 'DROP COLUMN' cannot be performed on object 'A' because TRIGGER 'TRIGGERBUILDERDEFAULTTRIGGERNAME' is dependent on that object.";
+        String query = "alter table T drop column a restrict";
+
+        createTrigger(tb.after().insert().on("T").referencing("NEW as N").row().then("INSERT INTO S VALUES(N.a, N.b, N.c)"));
+
+        try(Statement s = conn.createStatement()){
+            // drop a column with dependency
+            assertQueryFails(s, query, errorMsg);
+
+            // try a second time to make sure HBaseConglomerate is not stale - look at SPLICE 735
+            assertQueryFails(s, query, errorMsg);
+
+
+
         }
     }
 

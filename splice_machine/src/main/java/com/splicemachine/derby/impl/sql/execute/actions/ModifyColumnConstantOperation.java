@@ -18,6 +18,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.derby.utils.DataDictionaryUtils;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.db.catalog.DefaultInfo;
@@ -118,6 +119,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         boolean tableScanned = false;
         int numRows = -1;
 
+        try {
+
         /* NOTE: We only allow a single column to be added within
          * each ALTER TABLE command at the language level.  However,
          * this may change some day, so we will try to plan for it.
@@ -125,79 +128,85 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          * for each new column, see if the user is adding a non-nullable
          * column.  This is only allowed on an empty table.
          */
-        for (ColumnInfo aColumnInfo : columnInfo) {
+            for (ColumnInfo aColumnInfo : columnInfo) {
             /* Is this new column non-nullable?
              * If so, it can only be added to an
              * empty table if it does not have a default value.
              * We need to scan the table to find out how many rows
              * there are.
              */
-            if ((aColumnInfo.action == ColumnInfo.CREATE) && !(aColumnInfo.dataType.isNullable()) &&
-                    (aColumnInfo.defaultInfo == null) && (aColumnInfo.autoincInc == 0)) {
-                tableNeedsScanning = true;
+                if ((aColumnInfo.action == ColumnInfo.CREATE) && !(aColumnInfo.dataType.isNullable()) &&
+                        (aColumnInfo.defaultInfo == null) && (aColumnInfo.autoincInc == 0)) {
+                    tableNeedsScanning = true;
+                }
             }
-        }
 
-        // Scan the table if necessary
-        if (tableNeedsScanning) {
-            numRows = getSemiRowCount(tc,td);
-            // Don't allow add of non-nullable column to non-empty table
-            if (numRows > 0) {
-                throw StandardException.newException(SQLState.LANG_ADDING_NON_NULL_COLUMN_TO_NON_EMPTY_TABLE,td.getQualifiedName());
+            // Scan the table if necessary
+            if (tableNeedsScanning) {
+                numRows = getSemiRowCount(tc, td);
+                // Don't allow add of non-nullable column to non-empty table
+                if (numRows > 0) {
+                    throw StandardException.newException(SQLState.LANG_ADDING_NON_NULL_COLUMN_TO_NON_EMPTY_TABLE, td.getQualifiedName());
+                }
+                tableScanned = true;
             }
-            tableScanned = true;
-        }
 
-        // for each related column, stuff system.column
-        for (int ix = 0; ix < columnInfo.length; ix++) {
+            // for each related column, stuff system.column
+            for (int ix = 0; ix < columnInfo.length; ix++) {
             /* If there is a default value, use it, otherwise use null */
 
-            // Are we adding a new column or modifying a default?
+                // Are we adding a new column or modifying a default?
 
-            switch(columnInfo[ix].action){
-                case ColumnInfo.CREATE:
-                    addNewColumnToTable(activation, td, ix);
-                    break;
-                case ColumnInfo.MODIFY_COLUMN_DEFAULT_RESTART:
-                case ColumnInfo.MODIFY_COLUMN_DEFAULT_VALUE:
-                case ColumnInfo.MODIFY_COLUMN_DEFAULT_INCREMENT:
-                    modifyColumnDefault(lcc,dd,td,ix);
-                    break;
-                case ColumnInfo.MODIFY_COLUMN_TYPE:
-                    modifyColumnType(dd,tc,td,ix);
-                    break;
-                case ColumnInfo.MODIFY_COLUMN_CONSTRAINT:
-                    modifyColumnConstraint(activation,td,columnInfo[ix].name,true);
-                    break;
-                case ColumnInfo.MODIFY_COLUMN_CONSTRAINT_NOT_NULL:
-                    if(!tableScanned){
-                        tableScanned=true;
-                        numRows = getSemiRowCount(tc,td);
-                    }
-                    // check that the data in the column is not null
-                    String colNames[]  = new String[1];
-                    colNames[0]        = columnInfo[ix].name;
-                    boolean nullCols[] = new boolean[1];
+                switch (columnInfo[ix].action) {
+                    case ColumnInfo.CREATE:
+                        addNewColumnToTable(activation, td, ix);
+                        break;
+                    case ColumnInfo.MODIFY_COLUMN_DEFAULT_RESTART:
+                    case ColumnInfo.MODIFY_COLUMN_DEFAULT_VALUE:
+                    case ColumnInfo.MODIFY_COLUMN_DEFAULT_INCREMENT:
+                        modifyColumnDefault(lcc, dd, td, ix);
+                        break;
+                    case ColumnInfo.MODIFY_COLUMN_TYPE:
+                        modifyColumnType(dd, tc, td, ix);
+                        break;
+                    case ColumnInfo.MODIFY_COLUMN_CONSTRAINT:
+                        modifyColumnConstraint(activation, td, columnInfo[ix].name, true);
+                        break;
+                    case ColumnInfo.MODIFY_COLUMN_CONSTRAINT_NOT_NULL:
+                        if (!tableScanned) {
+                            tableScanned = true;
+                            numRows = getSemiRowCount(tc, td);
+                        }
+                        // check that the data in the column is not null
+                        String colNames[] = new String[1];
+                        colNames[0] = columnInfo[ix].name;
+                        boolean nullCols[] = new boolean[1];
 
                     /* note validateNotNullConstraint returns true if the
                      * column is nullable
                      */
-                    if (validateNotNullConstraint(colNames, nullCols, numRows, lcc, td,SQLState.LANG_NULL_DATA_IN_NON_NULL_COLUMN)) {
+                        if (validateNotNullConstraint(colNames, nullCols, numRows, lcc, td, SQLState.LANG_NULL_DATA_IN_NON_NULL_COLUMN)) {
                         /* nullable column - modify it to be not null
                          * This is O.K. at this point since we would have
                          * thrown an exception if any data was null
                          */
-                        modifyColumnConstraint(activation,td,columnInfo[ix].name, false);
-                    }
-                    break;
-                case ColumnInfo.DROP:
-                    dropColumnFromTable(activation, td, columnInfo[ix].name);
-                    break;
-                default:
-                    SanityManager.THROWASSERT("Unexpected action in AlterTableConstantAction");
+                            modifyColumnConstraint(activation, td, columnInfo[ix].name, false);
+                        }
+                        break;
+                    case ColumnInfo.DROP:
+                        dropColumnFromTable(activation, td, columnInfo[ix].name);
+                        break;
+                    default:
+                        SanityManager.THROWASSERT("Unexpected action in AlterTableConstantAction");
+                }
             }
+            return numRows;
+        } catch ( Exception e) {
+            // if modifying this column fails, it could happen that the table object in cache has been modified
+            // Invalidate the table in cache
+            DataDictionaryUtils.invalidateTableCache(dd,td);
+            throw e;
         }
-        return numRows;
     }
 
     private void addNewColumnToTable(Activation activation, TableDescriptor tableDescriptor, int infoIndex) throws StandardException {
