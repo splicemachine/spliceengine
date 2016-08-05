@@ -715,7 +715,7 @@
             </activation>
             <properties>
                 <envClassifier>hdp2.3.6</envClassifier>
-                <envHbase>hbase1.1.0</envHbase>
+                <envHbase>hbase1.1.2</envHbase>
                 <hadoop.version>2.7.1.2.3.6.0-3796</hadoop.version>
                 <hadoop.tools.version>1.2.0.23</hadoop.tools.version>
                 <hbase.version>1.1.2.2.3.6.0-3796</hbase.version>
