@@ -629,7 +629,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .varchar("ownerName", 128)
                         .build());
 
-                    procedures.add(Procedure.newBuilder().name("CANCEL_BACKUP")
+                    procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_BACKUP")
                             .numOutputParams(0)
                             .numResultSets(1)
                             .ownerClass(BackupSystemProcedures.class.getCanonicalName())

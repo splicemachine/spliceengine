@@ -8825,6 +8825,10 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>A data file {0} is missing. The restored table may be corrupted.</text>
                <arg>fileName</arg>
            </msg>
+           <msg>
+               <name>BR011</name>
+               <text>Backup was canceled.</text>
+           </msg>
        </family>
     </section>
 

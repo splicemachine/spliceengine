@@ -84,6 +84,7 @@ public class BackupSystemProcedures {
         } catch (Throwable t) {
             resultSets[0] = generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
         }
     }
 
@@ -269,7 +270,7 @@ public class BackupSystemProcedures {
         }
     }
 
-    public static void CANCEL_BACKUP(ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void SYSCS_CANCEL_BACKUP(ResultSet[] resultSets) throws StandardException, SQLException {
         try {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             backupManager.cancelBackup();
