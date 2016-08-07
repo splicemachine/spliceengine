@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
+import com.splicemachine.db.impl.sql.catalog.TableKey;
 import org.sparkproject.guava.collect.Lists;
 
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -33,6 +35,20 @@ import java.util.List;
  */
 public class DataDictionaryUtils {
 
+    /**
+     * Sometime ddl operations fails and return exceptions. The Table descriptor might
+     * be stall and need to be invalidate and clean up. Use this function if your code
+     * do such operation. Once the cache is clean up the Table Descriptor will be reload
+     * in the cache from the disk and will be in a consistent state.
+     * @param dd
+     * @param td
+     */
+    public static void invalidateTableCache(DataDictionary dd,  TableDescriptor td) throws StandardException{
+        DataDictionaryCache cache = dd.getDataDictionaryCache();
+        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(), td.getName());
+        cache.nameTdCacheRemove(tableKey);
+        cache.oidTdCacheRemove(td.getUUID());
+    }
 
     public static TableDescriptor getTableDescriptor(LanguageConnectionContext lcc, UUID tableId) throws StandardException {
         DataDictionary dd = lcc.getDataDictionary();

@@ -16,8 +16,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
-import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -31,9 +29,8 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.protobuf.ProtoUtil;
-
-import java.util.List;
 
 
 /**
@@ -180,10 +177,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         } catch (Exception e) {
             // If dropping table fails, it could happen that the table object in cache has been modified.
             // Invalidate the table in cache.
-            DataDictionaryCache cache = dd.getDataDictionaryCache();
-            TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(), td.getName());
-            cache.nameTdCacheRemove(tableKey);
-            cache.oidTdCacheRemove(td.getUUID());
+            DataDictionaryUtils.invalidateTableCache(dd,td);
             throw e;
         }
     }
