@@ -17,17 +17,18 @@ package com.splicemachine.derby.transactions;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.Transactions;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
-import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * ITs relating to transactional behavior when queries time out.
@@ -39,8 +40,7 @@ import java.sql.Statement;
  * @author Jeff Cunningham
  *         Date: 12/8/14
  */
-@Category({Transactions.class})
-@Ignore("DB-4272")
+@Category({Transactions.class,SerialTest.class })
 public class QueryTimeoutIT extends SpliceUnitTest {
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(QueryTimeoutIT.class.getSimpleName());
 
@@ -96,9 +96,9 @@ public class QueryTimeoutIT extends SpliceUnitTest {
     @Before
     public void setUpClass() throws Exception {
         // Install the jar file of user-defined stored procedures.
-        String STORED_PROCS_JAR_FILE = TestProcs.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-        File jar = new File(STORED_PROCS_JAR_FILE);
-        Assert.assertTrue("Can't run test without " + STORED_PROCS_JAR_FILE, jar.exists());
+        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/sql-it/sql-it.jar";;
+        assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
+                STORED_PROCS_JAR_FILE.endsWith("jar"));
         classWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_STRING, STORED_PROCS_JAR_FILE, DERBY_JAR_NAME));
         classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
         classWatcher.executeUpdate(CREATE_PROC_UPDATE_TIMEOUT_BEFORE);
