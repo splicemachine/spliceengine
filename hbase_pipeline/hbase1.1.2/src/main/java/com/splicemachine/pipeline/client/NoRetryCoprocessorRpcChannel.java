@@ -20,7 +20,9 @@ import com.splicemachine.hbase.SpliceRpcController;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.RegionServerCallable;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.SpliceRetryingCaller;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
@@ -30,6 +32,7 @@ import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 
@@ -58,7 +61,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 	public void callMethod(Descriptors.MethodDescriptor method, RpcController controller, Message request, Message responsePrototype, RpcCallback<Message> callback) {
 		Message response = null;
 		try {
-			response = callExecService(method, request, responsePrototype);
+			response = callExecService(controller,method, request, responsePrototype);
 		} catch (IOException ioe) {
 			if(controller instanceof SpliceRpcController){
 				((SpliceRpcController)controller).setFailed(ioe);
@@ -71,7 +74,22 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 	}
 
 	@Override
-	protected Message callExecService(Descriptors.MethodDescriptor method, Message request, Message responsePrototype) throws IOException {
+	public Message callBlockingMethod(Descriptors.MethodDescriptor method,RpcController controller,Message request,Message responsePrototype) throws ServiceException{
+		Message response = null;
+		try {
+			response = callExecService(controller,method, request, responsePrototype);
+		} catch (IOException ioe) {
+			if(controller instanceof SpliceRpcController){
+				((SpliceRpcController)controller).setFailed(ioe);
+			}else
+				ResponseConverter.setControllerException(controller, ioe);
+		}
+		return response;
+	}
+
+
+	@Override
+	protected Message callExecService(final RpcController rpcController,Descriptors.MethodDescriptor method,Message request,Message responsePrototype) throws IOException {
 		if (LOG.isTraceEnabled()) {
 			LOG.trace("Call: "+method.getName()+", "+request.toString());
 		}
@@ -94,7 +112,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 
 					public ClientProtos.CoprocessorServiceResponse call() throws Exception {
 						byte[] regionName = getLocation().getRegionInfo().getRegionName();
-						return ProtobufUtil.execService(getStub(), call, regionName);
+						return ProtobufUtil.execService(rpcController,getStub(),call,regionName);
 					}
 				};
 		SpliceRetryingCall<ClientProtos.CoprocessorServiceResponse> wrapperCall = new SpliceRetryingCaller<>(callable);

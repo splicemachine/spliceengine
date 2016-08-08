@@ -37,6 +37,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.*;
+import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.log4j.Logger;
 
@@ -80,9 +81,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     @Override
-    public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController) throws IOException {
+    public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController,User user) throws IOException {
         if(!allowSpark)
-            return super.compact(request, throughputController);
+            return super.compact(request, throughputController,user);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
 
@@ -137,7 +138,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         ScanType scanType =
                 request.isAllFiles() ? ScanType.COMPACT_DROP_DELETES : ScanType.COMPACT_RETAIN_DELETES;
         // trigger MemstoreAwareObserver
-        postCreateCoprocScanner(request, scanType, null);
+        postCreateCoprocScanner(request, scanType, null,user);
 
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
         scr.preStorefilesRename();
@@ -314,6 +315,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return newFiles;
     }
 
+    private InternalScanner getOrCreateInternalScanner(CompactionRequest request,FileDetails fd,long smallestReadPoint,List<StoreFileScanner> scanners,ScanType scanType) throws IOException{
+        InternalScanner scanner;
+        scanner = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners);
+        if (scanner == null) {
+            scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
+        }
+        return scanner;
+    }
+
     private boolean needsSI(TableName tableName) {
         TableType type = EnvUtils.getTableType(HConfiguration.getConfiguration(), tableName);
         switch (type) {
@@ -328,62 +338,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             default:
                 throw new RuntimeException("Unknow table type " + type);
         }
-    }
-
-    /*
-    @Override
-    protected StoreFile.Writer createTmpWriter(FileDetails fd, long smallestReadPoint) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createTempWriter");
-        return super.createTmpWriter(fd, smallestReadPoint);
-    }
-    */
-
-    @Override
-    public List<Path> compactForTesting(Collection<StoreFile> filesToCompact, boolean isMajor) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"compactForTesting");
-        return super.compactForTesting(filesToCompact, isMajor);
-    }
-
-    @Override
-    public CompactionProgress getProgress() {
-        return super.getProgress();
-    }
-
-    @Override
-    protected FileDetails getFileDetails(Collection<StoreFile> filesToCompact, boolean allFiles) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getFileDetails");
-        return super.getFileDetails(filesToCompact, allFiles);
-    }
-
-    @Override
-    protected List<StoreFileScanner> createFileScanners(Collection<StoreFile> filesToCompact, long smallestReadPoint) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createFileScanners");
-        return super.createFileScanners(filesToCompact, smallestReadPoint);
-    }
-
-    @Override
-    protected long getSmallestReadPoint() {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getSmallestReadPoint");
-        return this.smallestReadPoint;
-    }
-
-    @Override
-    protected InternalScanner preCreateCoprocScanner(CompactionRequest request, ScanType scanType, long earliestPutTs, List<StoreFileScanner> scanners) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"preCreateCoprocScanner");
-        return super.preCreateCoprocScanner(request, scanType, earliestPutTs, scanners);
-    }
-
-    @Override
-    protected InternalScanner postCreateCoprocScanner(CompactionRequest request, ScanType scanType, InternalScanner scanner) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"postCreateCoprocScanner");
-        return super.postCreateCoprocScanner(request, scanType, scanner);
     }
 
     @Override
