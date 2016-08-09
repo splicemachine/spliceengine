@@ -772,7 +772,6 @@
                 <envClassifier>cdh5.4.10</envClassifier>
                 <envHbase>hbase1.0.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.4.10</hadoop.version>
-                <hadoop.tools.version>2.6.0-mr1-cdh5.4.10</hadoop.tools.version>
                 <hbase.version>1.0.0-cdh5.4.10</hbase.version>
                 <hive.version>1.1.0-cdh5.4.10</hive.version>
                 <zookeeper.version>3.4.5-cdh5.4.10</zookeeper.version>
@@ -799,7 +798,6 @@
                 <envClassifier>cdh5.5.2</envClassifier>
                 <envHbase>hbase1.0.0.x</envHbase>
                 <hadoop.version>2.6.0-cdh5.5.2</hadoop.version>
-                <hadoop.tools.version>2.6.0-mr1-cdh5.5.2</hadoop.tools.version>
                 <hbase.version>1.0.0-cdh5.5.2</hbase.version>
                 <hive.version>1.1.0-cdh5.5.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.5.2</zookeeper.version>
@@ -826,7 +824,6 @@
                 <envClassifier>cdh5.6.0</envClassifier>
                 <envHbase>hbase1.0.0.x</envHbase>
                 <hadoop.version>2.6.0-cdh5.6.0</hadoop.version>
-                <hadoop.tools.version>2.6.0-mr1-cdh5.6.0</hadoop.tools.version>
                 <hbase.version>1.0.0-cdh5.6.0</hbase.version>
                 <hive.version>1.1.0-cdh5.6.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.6.0</zookeeper.version>
@@ -853,7 +850,6 @@
                 <envClassifier>cdh5.7.2</envClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.7.2</hadoop.version>
-                <hadoop.tools.version>2.6.0-mr1-cdh5.7.2</hadoop.tools.version>
                 <hbase.version>1.2.0-cdh5.7.2</hbase.version>
                 <hive.version>1.1.0-cdh5.7.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.2</zookeeper.version>
@@ -880,7 +876,6 @@
                 <envClassifier>cdh5.8.0</envClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.8.0</hadoop.version>
-                <hadoop.tools.version>2.6.0-mr1-cdh5.8.0</hadoop.tools.version>
                 <hbase.version>1.2.0-cdh5.8.0</hbase.version>
                 <hive.version>1.1.0-cdh5.8.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.0</zookeeper.version>
