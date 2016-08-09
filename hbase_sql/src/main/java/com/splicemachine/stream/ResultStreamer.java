@@ -15,21 +15,17 @@
 
 package com.splicemachine.stream;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.util.DefaultClassResolver;
-import com.esotericsoftware.kryo.util.MapReferenceResolver;
-import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
+
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
+import com.splicemachine.stream.handlers.OpenHandler;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.serializer.KryoRegistrator;
 import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import org.sparkproject.io.netty.bootstrap.Bootstrap;
 import org.sparkproject.io.netty.channel.*;
 import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
-import org.sparkproject.io.netty.channel.socket.SocketChannel;
 import org.sparkproject.io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.io.Serializable;
@@ -45,7 +41,6 @@ import java.util.concurrent.*;
 public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable {
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
-    private static final KryoRegistrator registry = new SpliceSparkKryoRegistrator();
     private OperationContext<?> context;
     private UUID uuid;
     private int batchSize;
@@ -210,20 +205,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             bootstrap.group(workerGroup);
             bootstrap.channel(NioSocketChannel.class);
             bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
-
-            bootstrap.handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ChannelPipeline p = ch.pipeline();
-                    Kryo kryo = new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
-                    registry.registerClasses(kryo);
-                    p.addLast(new KryoEncoder(kryo));
-                    kryo = new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
-                    registry.registerClasses(kryo);
-                    p.addLast(new KryoDecoder(kryo));
-                    p.addLast(ResultStreamer.this);
-                }
-            });
+            bootstrap.handler(new OpenHandler(this));
 
 
             ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();

@@ -20,8 +20,8 @@ import com.esotericsoftware.kryo.util.DefaultClassResolver;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Simple Pool of Kryo objects that allows a core of Kryo objects to remain
@@ -32,12 +32,14 @@ import java.util.concurrent.BlockingQueue;
  * Created on: 8/15/13
  */
 public class KryoPool {
-    private final BlockingQueue<Kryo> instances;
+    private final Queue<Kryo> instances;
 
     private volatile KryoRegistry kryoRegistry;
+    private int poolSize;
 
     public KryoPool(int poolSize) {
-        this.instances =new ArrayBlockingQueue<>(poolSize);
+        this.poolSize = poolSize;
+        this.instances =new ConcurrentLinkedQueue<>();
     }
 
     public void setKryoRegistry(KryoRegistry kryoRegistry){
@@ -63,7 +65,10 @@ public class KryoPool {
          * which will allow the GC to collect it. Thus, we can suppress
          * the findbugs warning
          */
-        instances.offer(kryo);
+        if(instances.size()< this.poolSize){
+            instances.offer(kryo);
+        }
+
     }
     public interface KryoRegistry{
         void register(Kryo instance);
