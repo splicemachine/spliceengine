@@ -141,7 +141,7 @@
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.10</artifactId>
+                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.5.2</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -188,7 +188,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.9.1</version>
+                <version>1.12</version>
                 <executions>
                     <execution>
                         <id>add-platform-source</id>
@@ -212,6 +212,36 @@
                             <sources>
                                 <source>${envHbase}/src/test/java</source>
                             </sources>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>add-platform-resource</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>add-resource</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                <directory>${envHbase}/src/main/resources</directory>
+                            </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>add-platform-test-resource</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>add-test-resource</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>src/test/resources</directory>
+                                </resource>
+                            </resources>
                         </configuration>
                     </execution>
                 </executions>
@@ -244,10 +274,5 @@
                 </configuration>
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>${envHbase}/src/main/resources</directory>
-            </resource>
-        </resources>
     </build>
 </project>
