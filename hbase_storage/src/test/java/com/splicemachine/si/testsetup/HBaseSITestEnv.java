@@ -233,8 +233,8 @@ public class HBaseSITestEnv implements SITestEnv{
         configuration.setInt("hbase.master.info.port", basePort + 1);
         configuration.setInt("hbase.regionserver.port", basePort + 2);
         configuration.setInt("hbase.regionserver.info.port", basePort + 3);
-
-        testUtility.startMiniCluster(1);
+        testUtility.startMiniZKCluster();
+        testUtility.startMiniHBaseCluster(1, 1, null, null, false);
         ZkUtils.getZkManager().initialize(HConfiguration.getConfiguration());
         ZkUtils.initializeZookeeper();
     }
