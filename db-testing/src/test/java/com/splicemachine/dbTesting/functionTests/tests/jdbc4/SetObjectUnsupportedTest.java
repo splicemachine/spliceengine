@@ -67,7 +67,7 @@ public class SetObjectUnsupportedTest extends BaseJDBCTestCase {
      * Returns the name of the test.
      */
     public String getName() {
-        return super.getName() + "_" + typeInfo.name;
+        return super.getName() + "F" + typeInfo.name;
     }
 
     /**

@@ -145,7 +145,7 @@ public static String[][]SQLData =
 
 
 
-    public static final boolean _ = false;
+    public static final boolean F = false;
     public static final boolean X = true;
 
     /**
@@ -169,23 +169,23 @@ public static String[][]SQLData =
 //                                            H     T  B           P
 //                                            A        I
 //                                            R        T
-/* 0 SMALLINT */        { X, X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _ },
-/* 1 INTEGER  */        { X, X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _ },
-/* 2 BIGINT   */        { X, X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _ },
-/* 3 DECIMAL  */        { X, X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _ },
-/* 4 REAL     */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 5 DOUBLE   */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 6 CHAR     */        { X, X, X, X, _, _, X, X, X, _, _, _, X, X, X, X, _ },
-/* 7 VARCHAR  */        { X, X, X, X, _, _, X, X, X, _, _, _, X, X, X, X, _ },
-/* 8 LONGVARCHAR */     { _, _, _, _, _, _, X, X, X, _, _, _, X, _, _, _, _ },
-/* 9 CHAR FOR BIT */    { _, _, _, _, _, _, _, _, _, X, X, X, _, _, _, _, X },
-/* 10 VARCH. BIT   */   { _, _, _, _, _, _, _, _, _, X, X, X, _, _, _, _, X },
-/* 11 LONGVAR. BIT */   { _, _, _, _, _, _, _, _, _, X, X, X, _, _, _, _, X },
-/* 12 CLOB         */   { _, _, _, _, _, _, X, X, X, _, _, _, X, _, _, _, _ },
-/* 13 DATE         */   { _, _, _, _, _, _, X, X, _, _, _, _, _, X, _, _, _ },
-/* 14 TIME         */   { _, _, _, _, _, _, X, X, _, _, _, _, _, _, X, _, _ },
-/* 15 TIMESTAMP    */   { _, _, _, _, _, _, X, X, _, _, _, _, _, X, X, X, _ },
-/* 16 BLOB         */   { _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, X },
+/* 0 SMALLINT */        { X, X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F},
+/* 1 INTEGER  */        { X, X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F},
+/* 2 BIGINT   */        { X, X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F},
+/* 3 DECIMAL  */        { X, X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F},
+/* 4 REAL     */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 5 DOUBLE   */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 6 CHAR     */        { X, X, X, X, F, F, X, X, X, F, F, F, X, X, X, X, F},
+/* 7 VARCHAR  */        { X, X, X, X, F, F, X, X, X, F, F, F, X, X, X, X, F},
+/* 8 LONGVARCHAR */     {F, F, F, F, F, F, X, X, X, F, F, F, X, F, F, F, F},
+/* 9 CHAR FOR BIT */    {F, F, F, F, F, F, F, F, F, X, X, X, F, F, F, F, X },
+/* 10 VARCH. BIT   */   {F, F, F, F, F, F, F, F, F, X, X, X, F, F, F, F, X },
+/* 11 LONGVAR. BIT */   {F, F, F, F, F, F, F, F, F, X, X, X, F, F, F, F, X },
+/* 12 CLOB         */   {F, F, F, F, F, F, X, X, X, F, F, F, X, F, F, F, F},
+/* 13 DATE         */   {F, F, F, F, F, F, X, X, F, F, F, F, F, X, F, F, F},
+/* 14 TIME         */   {F, F, F, F, F, F, X, X, F, F, F, F, F, F, X, F, F},
+/* 15 TIMESTAMP    */   {F, F, F, F, F, F, X, X, F, F, F, F, F, X, X, X, F},
+/* 16 BLOB         */   {F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, X },
 
     };
 
@@ -210,23 +210,23 @@ public static String[][]SQLData =
 //                                           H     T  B           P
 //                                           A        I
 //                                              R        T
-/* 0 SMALLINT */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 1 INTEGER  */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 2 BIGINT   */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 3 DECIMAL  */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 4 REAL     */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 5 DOUBLE   */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 6 CHAR     */        { _, _, _, _, _, _, X, X, X, _, _, _, X, X, X, X, _ },
-/* 7 VARCHAR  */        { _, _, _, _, _, _, X, X, X, _, _, _, X, X, X, X, _ },
-/* 8 LONGVARCHAR */     { _, _, _, _, _, _, X, X, X, _, _, _, X, _, _, _, _ },
-/* 9 CHAR FOR BIT */    { _, _, _, _, _, _, _, _, _, X, X, X, _, _, _, _, _ },
-/* 10 VARCH. BIT   */   { _, _, _, _, _, _, _, _, _, X, X, X, _, _, _, _, _ },
-/* 11 LONGVAR. BIT */   { _, _, _, _, _, _, _, _, _, X, X, X, _, _, _, _, _ },
-/* 12 CLOB         */   { _, _, _, _, _, _, X, X, X, _, _, _, X, _, _, _, _ },
-/* 13 DATE         */   { _, _, _, _, _, _, X, X, _, _, _, _, _, X, _, _, _ },
-/* 14 TIME         */   { _, _, _, _, _, _, X, X, _, _, _, _, _, _, X, _, _ },
-/* 15 TIMESTAMP    */   { _, _, _, _, _, _, X, X, _, _, _, _, _, _, _, X, _ },
-/* 16 BLOB         */   { _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, X },
+/* 0 SMALLINT */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 1 INTEGER  */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 2 BIGINT   */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 3 DECIMAL  */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 4 REAL     */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 5 DOUBLE   */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 6 CHAR     */        {F, F, F, F, F, F, X, X, X, F, F, F, X, X, X, X, F},
+/* 7 VARCHAR  */        {F, F, F, F, F, F, X, X, X, F, F, F, X, X, X, X, F},
+/* 8 LONGVARCHAR */     {F, F, F, F, F, F, X, X, X, F, F, F, X, F, F, F, F},
+/* 9 CHAR FOR BIT */    {F, F, F, F, F, F, F, F, F, X, X, X, F, F, F, F, F},
+/* 10 VARCH. BIT   */   {F, F, F, F, F, F, F, F, F, X, X, X, F, F, F, F, F},
+/* 11 LONGVAR. BIT */   {F, F, F, F, F, F, F, F, F, X, X, X, F, F, F, F, F},
+/* 12 CLOB         */   {F, F, F, F, F, F, X, X, X, F, F, F, X, F, F, F, F},
+/* 13 DATE         */   {F, F, F, F, F, F, X, X, F, F, F, F, F, X, F, F, F},
+/* 14 TIME         */   {F, F, F, F, F, F, X, X, F, F, F, F, F, F, X, F, F},
+/* 15 TIMESTAMP    */   {F, F, F, F, F, F, X, X, F, F, F, F, F, F, F, X, F},
+/* 16 BLOB         */   {F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, X },
 
     };
 
@@ -248,23 +248,23 @@ public static String[][]SQLData =
 //                                            H     T  B           P
 //                                            A        I
 //                                            R        T
-/* 0 SMALLINT */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 1 INTEGER  */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 2 BIGINT   */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 3 DECIMAL  */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 4 REAL     */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 5 DOUBLE   */        { X, X, X, X, X, X, _, _, _, _, _, _, _, _, _, _, _ },
-/* 6 CHAR     */        { _, _, _, _, _, _, X, X, _, _, _, _, _, X, X, X, _ },
-/* 7 VARCHAR  */        { _, _, _, _, _, _, X, X, _, _, _, _, _, X, X, X, _ },
-/* 8 LONGVARCHAR */     { _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ },
-/* 9 CHAR FOR BIT */    { _, _, _, _, _, _, _, _, _, X, X, _, _, _, _, _, _ },
-/* 10 VARCH. BIT   */   { _, _, _, _, _, _, _, _, _, X, X, _, _, _, _, _, _ },
-/* 11 LONGVAR. BIT */   { _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ },
-/* 12 CLOB         */   { _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ },
-/* 13 DATE         */   { _, _, _, _, _, _, X, X, _, _, _, _, _, X, _, _, _ },
-/* 14 TIME         */   { _, _, _, _, _, _, X, X, _, _, _, _, _, _, X, _, _ },
-/* 15 TIMESTAMP    */   { _, _, _, _, _, _, X, X, _, _, _, _, _, _, _, X, _ },
-/* 16 BLOB         */   { _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ },
+/* 0 SMALLINT */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 1 INTEGER  */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 2 BIGINT   */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 3 DECIMAL  */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 4 REAL     */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 5 DOUBLE   */        { X, X, X, X, X, X, F, F, F, F, F, F, F, F, F, F, F},
+/* 6 CHAR     */        {F, F, F, F, F, F, X, X, F, F, F, F, F, X, X, X, F},
+/* 7 VARCHAR  */        {F, F, F, F, F, F, X, X, F, F, F, F, F, X, X, X, F},
+/* 8 LONGVARCHAR */     {F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F},
+/* 9 CHAR FOR BIT */    {F, F, F, F, F, F, F, F, F, X, X, F, F, F, F, F, F},
+/* 10 VARCH. BIT   */   {F, F, F, F, F, F, F, F, F, X, X, F, F, F, F, F, F},
+/* 11 LONGVAR. BIT */   {F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F},
+/* 12 CLOB         */   {F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F},
+/* 13 DATE         */   {F, F, F, F, F, F, X, X, F, F, F, F, F, X, F, F, F},
+/* 14 TIME         */   {F, F, F, F, F, F, X, X, F, F, F, F, F, F, X, F, F},
+/* 15 TIMESTAMP    */   {F, F, F, F, F, F, X, X, F, F, F, F, F, F, F, X, F},
+/* 16 BLOB         */   {F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F},
 
 
 };

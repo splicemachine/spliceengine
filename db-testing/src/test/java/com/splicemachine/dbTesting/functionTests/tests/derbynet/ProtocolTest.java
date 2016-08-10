@@ -139,7 +139,7 @@ public class ProtocolTest
             throws IOException, UnknownHostException {
         // Update the name of the test.
         super.setName(
-                filename + "_" + startLine + "_" + (startLine + lineCount));
+                filename + "F" + startLine + "F" + (startLine + lineCount));
         println(getName() + " :: STARTED");
         // Validate the line count. Expects a newline also at end of last line.
         assertEquals("Actual line count does not match the specified count",

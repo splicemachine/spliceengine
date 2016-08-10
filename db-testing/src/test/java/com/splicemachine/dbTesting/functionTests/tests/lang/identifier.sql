@@ -251,7 +251,7 @@ create table "" (c1 int);
 create table t1111 ("" int);
 -- test3
 create schema "";
--- identifiers can not start with "_"
+-- identifiers can not start with "F"
 -- test4
 create table _t1(_c1 int);
 -- test5

@@ -119,7 +119,7 @@ public class RolesConferredPrivilegesTest extends BaseJDBCTestCase
                      *           e---+           \      /
                      *            \   \           \    /
                      *             \   \---------+ \  /
-                     *              \             \_ f
+                     *              \             \F f
                      *               \             /
                      *                \           /
                      *                 \         /

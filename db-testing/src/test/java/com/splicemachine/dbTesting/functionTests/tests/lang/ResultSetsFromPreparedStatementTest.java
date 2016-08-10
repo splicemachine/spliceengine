@@ -819,18 +819,18 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
         };
 
         for (int i = 0; i < expected.length; ++i) {
-            tst.setString(1, new Integer(i).toString()+"_");
+            tst.setString(1, new Integer(i).toString()+"F");
             ResultSet rs = tst.executeQuery();
-            assertResultSet("?="+i+"_", expected[i], rs);
+            assertResultSet("?="+i+"F", expected[i], rs);
 
             // Re-execute tst with the same parameters
             rs = tst.executeQuery();
-            assertResultSet("R ?="+i+"_", expected[i], rs);
+            assertResultSet("R ?="+i+"F", expected[i], rs);
 
             String victim = (String)expected[i][0][0];
 
             if (victim == null) { continue; }
-            del.setString(1, victim.substring(victim.indexOf('_')+1));
+            del.setString(1, victim.substring(victim.indexOf('F')+1));
             del.execute();
         }
     }
@@ -897,7 +897,7 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
             {{ null }}
         };
         for (int i = 0; i < expected.length; ++i) {
-            tst.setString(1,new Integer(i) +"_");
+            tst.setString(1,new Integer(i) +"F");
             ResultSet rs = tst.executeQuery();
             JDBC.assertUnorderedResultSet(rs, expected[i], false);
 

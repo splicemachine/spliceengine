@@ -400,13 +400,13 @@ public class InListMultiProbeTest extends BaseJDBCTestCase {
         // 1 additional START key.
         assertResultsAndQueryPlan(st.executeQuery(
             "select i,c1,c2 from ct where c1 in ('1','2') and " +
-            "c2 >= '_' order by i"),
+            "c2 >= F order by i"),
             null, st);
 
         // 1 additional STOP key.
         assertResultsAndQueryPlan(st.executeQuery(
             "select i,c1,c2 from ct where c1 in ('14','91') and " +
-            "c2 < '_' order by i"),
+            "c2 < F order by i"),
             new String [][] {
                 {"14","14   ","14   14   "},
                 {"14","14   ","14   14   "},
@@ -1082,7 +1082,7 @@ public class InListMultiProbeTest extends BaseJDBCTestCase {
     private static String genUUIDValue(Random random)
     {
         char[] chars = new char[23];
-        chars[0] = '_';
+        chars[0] = 'F';
         for (int ndx = 1; ndx < chars.length; ndx++)
         {
             int offset = random.nextInt(uuid_chars.length);

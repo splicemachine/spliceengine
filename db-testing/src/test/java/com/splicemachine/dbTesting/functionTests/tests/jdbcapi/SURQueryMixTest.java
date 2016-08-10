@@ -528,7 +528,7 @@ public class SURQueryMixTest extends SURBaseTest
 
             for (int i = 0; i < selectConditions.length; i++) {
                 for (int j = 0; j < projectConditions.length; j++) {
-                    final String cursorName = "cursor_" + i + "_" + j;
+                    final String cursorName = "cursor_" + i + "F" + j;
                     
                     final String stmtString = "SELECT " + projectConditions[j] +
                             " FROM T1 " + selectConditions[i];
