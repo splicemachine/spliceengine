@@ -31,12 +31,12 @@ public interface Limits
         * Various fixed Limits. DB2 related limits are prefixed with "DB2_".
         */
 
-	public static final int DB2_MAX_TRIGGER_RECURSION = 16; /* Maximum nesting level for triggers */
+	int DB2_MAX_TRIGGER_RECURSION = 16; /* Maximum nesting level for triggers */
 
 	/** Maximum number of indexes on a table */
-	public static final int DB2_MAX_INDEXES_ON_TABLE = 32767;
+	int DB2_MAX_INDEXES_ON_TABLE = 32767;
 	/* Maximum number of columns in a table */
-	public static final int DB2_MAX_COLUMNS_IN_TABLE = 1012;
+	int DB2_MAX_COLUMNS_IN_TABLE =1<<17 ; //set to 131K
 
 	/* Maximum number of columns in a view */
 	public static final int DB2_MAX_COLUMNS_IN_VIEW = 5000;
@@ -45,7 +45,7 @@ public interface Limits
 	public static final int DB2_MAX_PARAMS_IN_STORED_PROCEDURE = 90;
 
 	/* Maximum number of elements in a select list */
-	public static final int DB2_MAX_ELEMENTS_IN_SELECT_LIST = 1012;
+	public static final int DB2_MAX_ELEMENTS_IN_SELECT_LIST = DB2_MAX_COLUMNS_IN_TABLE;
 	/* Maximum number of columns in a group by list */
 	public static final int DB2_MAX_ELEMENTS_IN_GROUP_BY = 32677;
 	/* Maximum number of columns in an order by list */
