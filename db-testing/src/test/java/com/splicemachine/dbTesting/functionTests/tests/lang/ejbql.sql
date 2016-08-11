@@ -443,7 +443,7 @@ values{ fn concat( '45', 67 )};
 values{ fn concat( 45, '67' )};
 values{ fn concat( CHAR('C'), CHAR('#') ) };
 values{ fn concat( 'ABCDEFGHIJKLMNOPQRSTUVWXYZ`1234567890-=\    [];,./ \'' |',
-                   'abcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+|<>?:"{}     ''''''      ' ) };
+                   'abcdefghijklmnopqrstuvwxyz~!@#$%^&*()F+|<>?:"{}     ''''''      ' ) };
 create table concat ( a int );
 insert into concat values (1);
 select * from CONCAT;
@@ -1506,7 +1506,7 @@ maximumdisplaywidth 128;
 --
 -- the like tests are all run through the unit test
 -- mechanism that is fired off with this test's
--- properties file.  that test tests all the %, _ combinations
+-- properties file.  that test tests all the %, F combinations
 -- to exhaustion.
 --
 -- we show that the language level support works, here, which is:

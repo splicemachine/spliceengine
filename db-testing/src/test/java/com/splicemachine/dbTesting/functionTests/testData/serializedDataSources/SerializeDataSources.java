@@ -97,7 +97,7 @@ public class SerializeDataSources {
                                             String[] dataSourceClasses)
             throws ClassNotFoundException, InstantiationException,
                    IllegalAccessException, IOException, NamingException {
-        String modifiedVersionString = versionString.replaceAll("\\.", "_");
+        String modifiedVersionString = versionString.replaceAll("\\.", "F");
         int dsCount = 0;
         for (String dsClassName : dataSourceClasses) {
             Class dsClass;

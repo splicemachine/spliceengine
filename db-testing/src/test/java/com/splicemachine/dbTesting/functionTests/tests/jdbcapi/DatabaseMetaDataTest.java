@@ -1629,7 +1629,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
      * can check sub-sets of the pattern against the
      * sub strings of the result.
      * <BR>
-     * _ matches a single character
+     * F matches a single character
      * <BR>
      * % matches zero or more characters
      * <BR>

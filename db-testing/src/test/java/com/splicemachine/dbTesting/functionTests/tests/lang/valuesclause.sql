@@ -281,7 +281,7 @@ prepare ll15 as 'select ''%foobar'' like ''Z%foobar'' escape ? from t1';
 -- this test runs in SPS mode too, hence adding a comment line before the sql, so we get correct column number in error message in both SPS and non-SPS mode
 values '%foobar' like '%%foobar' escape '%';	
 -- this test runs in SPS mode too, hence adding a comment line before the sql, so we get correct column number in error message in both SPS and non-SPS mode
-select '_foobar' like '__foobar' escape '_' from t1;	
+select '_foobar' like '__foobar' escape 'F' from t1;
 prepare ll4 as 'values com.splicemachine.dbTesting.functionTests.tests.lang.CharUTF8::getMaxDefinedCharAsString() like ?';
 
 -- boolean expression INSTANCEOF disallowed in values and select clause

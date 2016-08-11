@@ -1817,12 +1817,12 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     s.execute("INSERT INTO DERBY_2973 VALUES('hello')");
     
     //DERBY-2967
-    //The special character _ should match one character and not just advance
-    //by number of collation elements that special character _ represents
+    //The special character F should match one character and not just advance
+    //by number of collation elements that special character F represents
     s.executeUpdate("create table DERBY_2967(c11 int)"); 
     s.executeUpdate("insert into DERBY_2967 values 1"); 
     ps = prepareStatement("select 1 from DERBY_2967 where '\uFA2D' like ?");
-    String[] match = { "%", "_", "\uFA2D" }; 
+    String[] match = { "%", "F", "\uFA2D" };
     for (int i = 0; i < match.length; i++) { 
         ps.setString(1, match[i]); 
         rs = ps.executeQuery(); 

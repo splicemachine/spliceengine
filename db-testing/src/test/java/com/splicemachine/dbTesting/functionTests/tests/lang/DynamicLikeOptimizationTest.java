@@ -132,7 +132,7 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
             prepareStatement("select 1 from t1 where 'asdf' like ?");
 
         // queries that expect one row
-        String[] one = { "%", "%f", "asd%", "_%", "%_", "%asdf" };
+        String[] one = { "%", "%f", "asd%", "F%", "%F", "%asdf" };
         for (int i = 0; i < one.length; i++) {
             ps.setString(1, one[i]);
             JDBC.assertSingleValueResultSet(ps.executeQuery(), "1");
@@ -188,7 +188,7 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
             "1");
         JDBC.assertSingleValueResultSet(
             s.executeQuery(
-                "select 1 from t1 where '_foobar' like '__foobar' escape '_'"),
+                "select 1 from t1 where '_foobar' like '__foobar' escape F"),
             "1");
         s.close();
     }
@@ -251,7 +251,7 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
         PreparedStatement ps =
             prepareStatement("select 1 from t1 where '\uFA2D' like ?");
 
-        String[] match = { "%", "_", "\uFA2D" };
+        String[] match = { "%", "F", "\uFA2D" };
         for (int i = 0; i < match.length; i++) {
             ps.setString(1, match[i]);
             JDBC.assertSingleValueResultSet(ps.executeQuery(), "1");
@@ -275,9 +275,9 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
             /* %f */ { },
             /* %g */ { },
             /* asd% */ { {"asdf"},{"asdg"} },
-            /* _% */ { {"MAX_CHAR"}, {"asdf"}, {"asdg"}, {"aasdf"},
+            /* F% */ { {"MAX_CHAR"}, {"asdf"}, {"asdg"}, {"aasdf"},
                        {"%foobar"}, {"foo%bar"}, {"foo_bar"} },
-            /* %_ */ { {"MAX_CHAR"}, {"asdf"}, {"asdg"}, {"aasdf"},
+            /* %F */ { {"MAX_CHAR"}, {"asdf"}, {"asdg"}, {"aasdf"},
                        {"%foobar"}, {"foo%bar"}, {"foo_bar"} },
             /* _asdf */ { },
             /* _asdf % */ { {"aasdf"} },
@@ -298,9 +298,9 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
             /* %f */ { {"asdf"}, {"aasdf"} },
             /* %g */ { {"asdg"} },
             /* asd% */ { {"asdf"},{"asdg"} },
-            /* _% */ { {"MAX_CHAR"}, {"asdf"}, {"asdg"}, {"aasdf"},
+            /* F% */ { {"MAX_CHAR"}, {"asdf"}, {"asdg"}, {"aasdf"},
                        {"%foobar"}, {"foo%bar"}, {"foo_bar"} },
-            /* %_ */ { {"MAX_CHAR"}, {"asdf"}, {"asdg"}, {"aasdf"},
+            /* %F */ { {"MAX_CHAR"}, {"asdf"}, {"asdg"}, {"aasdf"},
                        {"%foobar"}, {"foo%bar"}, {"foo_bar"} },
             /* _asdf */ { {"aasdf"} },
             /* _asdf % */ { },
@@ -322,7 +322,7 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
                                          String[][][] rows)
             throws SQLException {
         Object[] args = {
-            null, new Integer(1), "", "%", "%f", "%g", "asd%", "_%", "%_",
+            null, new Integer(1), "", "%", "%f", "%g", "asd%", "F%", "%F",
             "_asdf", "_asdf %", "%asdf"
         };
         assertEquals(args.length, rows.length);
@@ -344,7 +344,7 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
                              "where match_me like pattern escape esc");
 
         // In embedded, the first two should go fine, third one should fail
-        // because the escape character is not followed by _ or %. In
+        // because the escape character is not followed by F or %. In
         // client/server mode, executeQuery() should fail because of
         // pre-fetching. (This test only works correctly if the rows are
         // returned in the insert order, which happens to be the case but is
@@ -441,13 +441,13 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
             new String[] {"Warning", "W\\_Unloc%"},
             new Object[][] { CEI_ROWS[8] });
         inputOutput.put(
-            new String[] {"Warning", "_\\_Unlock\\_Door"},
+            new String[] {"Warning", "F\\_Unlock\\_Door"},
             new Object[][] { CEI_ROWS[8] });
         inputOutput.put(
             new String[] {"W%", "Warn\\%Unlock\\%Door"},
             new Object[][] { CEI_ROWS[7] });
         inputOutput.put(
-            new String[] {"%ing", "W\\_Unlock\\_%Door"},
+            new String[] {"%ing", "W\\_Unlock\\F%Door"},
             new Object[][] { CEI_ROWS[8] });
         inputOutput.put(new String[] {"Bogus", "Name"}, new Object[][] {});
 
@@ -488,7 +488,7 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
 
     /**
      * Test that it is possible to escape an escape character that is before
-     * the first wildcard (% or _) in the pattern (DERBY-1386).
+     * the first wildcard (% or F) in the pattern (DERBY-1386).
      */
     public void testEscapedEscapeCharacterPrecedingFirstWildcard()
             throws SQLException {

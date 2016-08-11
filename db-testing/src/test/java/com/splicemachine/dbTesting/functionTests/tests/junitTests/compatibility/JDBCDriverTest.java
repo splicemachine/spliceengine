@@ -64,7 +64,7 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
 	// facts of the COERCIONS table leap out at you.
 	//
 	private	static	final			boolean	Y = true;
-	private	static	final			boolean	_ = false;
+	private	static	final			boolean F = false;
 
 	//
 	// This table declares the datatypes supported by Derby and the earliest
@@ -164,7 +164,7 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
 	// squeeze this table onto a readable screen.
 	//
 	// Please read the introductory comment top-to-bottom. 'Y' means a coercion
-	// is legal; '_' means it isn't.
+	// is legal; 'F' means it isn't.
 	//
 	private	static	final	T_CN[]	COERCIONS =
 	{
@@ -181,25 +181,25 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
 		//												  -|-|-|-|-|-|-|-|-|-|R|A|-|-|-|-|-|-|-
 		//												  -|-|-|-|-|-|-|-|-|-|-|R|-|-|-|-|-|-|-
 		//												  -|-|-|-|-|-|-|-|-|-|-|Y|-|-|-|-|-|-|-
-		new T_CN( Types.BIGINT, new boolean[]			{ Y,_,Y,_,_,_,_,Y,Y,Y,Y,_,Y,Y,Y,_,_,Y,_ } ),
-		new T_CN( Types.BLOB, new boolean[] 			{ _,Y,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ } ),
-		new T_CN( Types.CHAR, new boolean[]				{ _,_,Y,_,_,_,_,_,_,_,Y,_,_,_,_,_,_,Y,_ } ),
-		new T_CN( Types.BINARY, new boolean[]			{ _,_,_,Y,_,_,_,_,_,_,_,Y,_,_,_,_,_,_,Y } ),
-		new T_CN( Types.CLOB, new boolean[]				{ _,_,_,_,Y,_,_,_,_,_,_,_,_,_,_,_,_,_,_ } ),
-		new T_CN( Types.DATE, new boolean[]				{ _,_,_,_,_,Y,_,_,_,_,_,_,_,_,_,_,_,_,_ } ),
-		new T_CN( Types.DECIMAL, new boolean[]			{ Y,_,_,_,_,_,Y,Y,Y,Y,Y,_,Y,Y,Y,_,_,Y,_ } ),
-		new T_CN( Types.DOUBLE, new boolean[]			{ Y,_,_,_,_,_,Y,Y,Y,Y,Y,_,Y,Y,Y,_,_,Y,_ } ),
-		new T_CN( Types.REAL, new boolean[]				{ Y,_,Y,_,_,_,Y,Y,Y,Y,Y,_,Y,Y,Y,_,_,Y,_ } ),
-		new T_CN( Types.INTEGER, new boolean[]			{ Y,_,Y,_,_,_,Y,Y,Y,Y,Y,_,Y,Y,Y,_,_,Y,_ } ),
-		new T_CN( Types.LONGVARCHAR, new boolean[]		{ _,_,Y,_,_,_,_,_,_,_,Y,_,_,_,_,_,_,Y,_ } ),
-		new T_CN( Types.LONGVARBINARY, new boolean[]	{ _,_,_,_,_,_,_,_,_,_,_,Y,_,_,_,_,_,_,Y } ),
-		new T_CN( Types.NUMERIC, new boolean[]			{ Y,_,Y,_,_,_,Y,Y,Y,Y,Y,_,Y,Y,Y,_,_,Y,_ } ),
-		new T_CN( Types.REAL, new boolean[]				{ Y,_,Y,_,_,_,Y,Y,Y,Y,Y,_,Y,Y,Y,_,_,Y,_ } ),
-		new T_CN( Types.SMALLINT, new boolean[]			{ Y,_,Y,_,_,_,Y,Y,Y,Y,Y,_,Y,Y,Y,_,_,Y,_ } ),
-		new T_CN( Types.TIME, new boolean[]				{ _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,Y,_,_,_ } ),
-		new T_CN( Types.TIMESTAMP, new boolean[]		{ _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,Y,_,_ } ),
-		new T_CN( Types.VARCHAR, new boolean[]			{ _,_,Y,_,_,_,_,_,_,_,Y,_,_,_,_,_,_,Y,_ } ),
-		new T_CN( Types.VARBINARY, new boolean[]		{ _,_,_,_,_,_,_,_,_,_,_,Y,_,_,_,_,_,_,Y } ),
+		new T_CN( Types.BIGINT, new boolean[]			{ Y, F,Y, F, F, F, F,Y,Y,Y,Y, F,Y,Y,Y, F, F,Y, F} ),
+		new T_CN( Types.BLOB, new boolean[] 			{F,Y, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F} ),
+		new T_CN( Types.CHAR, new boolean[]				{F, F,Y, F, F, F, F, F, F, F,Y, F, F, F, F, F, F,Y, F} ),
+		new T_CN( Types.BINARY, new boolean[]			{F, F, F,Y, F, F, F, F, F, F, F,Y, F, F, F, F, F, F,Y } ),
+		new T_CN( Types.CLOB, new boolean[]				{F, F, F, F,Y, F, F, F, F, F, F, F, F, F, F, F, F, F, F} ),
+		new T_CN( Types.DATE, new boolean[]				{F, F, F, F, F,Y, F, F, F, F, F, F, F, F, F, F, F, F, F} ),
+		new T_CN( Types.DECIMAL, new boolean[]			{ Y, F, F, F, F, F,Y,Y,Y,Y,Y, F,Y,Y,Y, F, F,Y, F} ),
+		new T_CN( Types.DOUBLE, new boolean[]			{ Y, F, F, F, F, F,Y,Y,Y,Y,Y, F,Y,Y,Y, F, F,Y, F} ),
+		new T_CN( Types.REAL, new boolean[]				{ Y, F,Y, F, F, F,Y,Y,Y,Y,Y, F,Y,Y,Y, F, F,Y, F} ),
+		new T_CN( Types.INTEGER, new boolean[]			{ Y, F,Y, F, F, F,Y,Y,Y,Y,Y, F,Y,Y,Y, F, F,Y, F} ),
+		new T_CN( Types.LONGVARCHAR, new boolean[]		{F, F,Y, F, F, F, F, F, F, F,Y, F, F, F, F, F, F,Y, F} ),
+		new T_CN( Types.LONGVARBINARY, new boolean[]	{F, F, F, F, F, F, F, F, F, F, F,Y, F, F, F, F, F, F,Y } ),
+		new T_CN( Types.NUMERIC, new boolean[]			{ Y, F,Y, F, F, F,Y,Y,Y,Y,Y, F,Y,Y,Y, F, F,Y, F} ),
+		new T_CN( Types.REAL, new boolean[]				{ Y, F,Y, F, F, F,Y,Y,Y,Y,Y, F,Y,Y,Y, F, F,Y, F} ),
+		new T_CN( Types.SMALLINT, new boolean[]			{ Y, F,Y, F, F, F,Y,Y,Y,Y,Y, F,Y,Y,Y, F, F,Y, F} ),
+		new T_CN( Types.TIME, new boolean[]				{F, F, F, F, F, F, F, F, F, F, F, F, F, F, F,Y, F, F, F} ),
+		new T_CN( Types.TIMESTAMP, new boolean[]		{F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F,Y, F, F} ),
+		new T_CN( Types.VARCHAR, new boolean[]			{F, F,Y, F, F, F, F, F, F, F,Y, F, F, F, F, F, F,Y, F} ),
+		new T_CN( Types.VARBINARY, new boolean[]		{F, F, F, F, F, F, F, F, F, F, F,Y, F, F, F, F, F, F,Y } ),
 	};
 
 	/////////////////////////////////////////////////////////////

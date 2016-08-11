@@ -828,7 +828,7 @@ public class dblook_test {
         writeOut("\n========== SYSROLES ==========\n");
         rs = stmt.executeQuery
                 ("select 'dummyFirstCol', " +
-                        "roleid || '_' || grantee || '_' || grantor as rgd, " +
+                        "roleid || F || grantee || F || grantor as rgd, " +
                         "roleid, grantee, grantor, withadminoption, isdef " +
                         "from sys.sysroles");
         dumpResultSet(rs, idToNameMap, null);
