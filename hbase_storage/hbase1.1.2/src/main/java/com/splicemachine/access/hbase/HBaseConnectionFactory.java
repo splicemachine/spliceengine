@@ -56,6 +56,7 @@ public class HBaseConnectionFactory{
     private static final Logger LOG=Logger.getLogger(HBaseConnectionFactory.class);
     private static volatile HBaseConnectionFactory INSTANCE;
     private final Connection connection;
+    private final Connection noRetryConnection;
     private final SConfiguration config;
     private final String namespace;
     private final byte[] namespaceBytes;
@@ -65,7 +66,11 @@ public class HBaseConnectionFactory{
         this.namespace=configuration.getNamespace();
         this.namespaceBytes=Bytes.toBytes(namespace);
         try{
-            this.connection=ConnectionFactory.createConnection((Configuration) configuration.getConfigSource().unwrapDelegate());
+            Configuration config = (Configuration) configuration.getConfigSource().unwrapDelegate();
+            this.connection=ConnectionFactory.createConnection(config);
+            Configuration clonedConfig = new Configuration(config);
+            clonedConfig.setInt("hbase.client.retries.number",1);
+            this.noRetryConnection=ConnectionFactory.createConnection(clonedConfig);
         }catch(IOException ioe){
             throw new RuntimeException(ioe);
         }
@@ -88,6 +93,11 @@ public class HBaseConnectionFactory{
     public Connection getConnection() throws IOException{
         return connection;
     }
+
+    public Connection getNoRetryConnection() throws IOException{
+        return noRetryConnection;
+    }
+
 
     public Admin getAdmin() throws IOException{
         return connection.getAdmin();

@@ -24,7 +24,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.*;
 
@@ -121,9 +120,11 @@ public abstract class AbstractIteratorRegionScanner implements RegionScanner{
     }
 
     private boolean containedInScan(Cell kv) {
-        byte[] row=kv.getRow();
-        if(Bytes.compareTo(scan.getStartRow(),row)>0) return false;
-        if(Bytes.compareTo(scan.getStopRow(),row)<=0) return false;
+        byte[] rowArray = kv.getRowArray();
+        int rowOffset = kv.getRowOffset();
+        int rowLength = kv.getRowLength();
+        if(Bytes.compareTo(scan.getStartRow(),0,scan.getStartRow().length,rowArray,rowOffset,rowLength)>0) return false;
+        if(Bytes.compareTo(scan.getStopRow(),0,scan.getStopRow().length,rowArray,rowOffset,rowLength)<=0) return false;
         byte[] family = kv.getFamily();
         Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
         if(familyMap.size()<=0) return true;
