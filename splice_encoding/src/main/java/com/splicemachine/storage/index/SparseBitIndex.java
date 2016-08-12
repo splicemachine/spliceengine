@@ -20,8 +20,6 @@ import com.splicemachine.storage.BitWriter;
 
 import com.carrotsearch.hppc.BitSet;
 
-import java.util.Arrays;
-
 
 /**
  * A Sparse implementation of a BitIndex.
@@ -124,10 +122,6 @@ class SparseBitIndex implements BitIndex {
             lastSetPos=i;
         }
 
-        if(encodedVersion[encodedVersion.length-1]==0x00){
-            //we ended on a boundary field, so just truncate off the last byte
-            encodedVersion =Arrays.copyOf(encodedVersion,encodedVersion.length-1);
-        }
         return encodedVersion;
     }
 
