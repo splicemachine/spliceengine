@@ -16,84 +16,13 @@
 package com.splicemachine.storage.index;
 
 
-import com.carrotsearch.hppc.BitSet;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-
 /**
  * @author Scott Fines
  *         Created on: 7/8/13
  */
-@RunWith(Parameterized.class)
 public class SparseBitIndexTest {
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> parameters(){
-        List<Object[]> ds = new ArrayList<>();
-        /*
-         * Regression data for SPLICE-816
-         */
-        BitSet nnCols = new BitSet();
-        nnCols.set(0,6);
-        nnCols.set(7);
-        nnCols.set(10);
-        nnCols.set(15,22);
-        nnCols.set(34,37);
-        nnCols.set(43,46);
-        nnCols.set(48,50);
-        nnCols.set(56);
-        nnCols.set(58);
-        nnCols.set(62,64);
-        nnCols.set(67,70);
-        nnCols.set(89,91);
-        nnCols.set(92);
-        nnCols.set(94,96);
-
-        BitSet scalars = new BitSet();
-        scalars.set(0);
-        scalars.set(3);
-        scalars.set(34,37);
-        scalars.set(44);
-        scalars.set(63);
-        scalars.set(68);
-        scalars.set(90);
-        scalars.intersect(nnCols);
-
-        ds.add(new Object[]{nnCols,scalars,new BitSet(),new BitSet()});
-
-        return ds;
-    }
-    private BitSet nnCols;
-    private BitSet scalars;
-    private BitSet doubles;
-    private BitSet floats;
-
-    public SparseBitIndexTest(BitSet nnCols,BitSet scalars,BitSet doubles,BitSet floats){
-        this.nnCols=nnCols;
-        this.scalars=scalars;
-        this.doubles=doubles;
-        this.floats=floats;
-    }
-
-    @Test
-    public void testSparseBitIndexHasNoZeros() throws Exception{
-
-        BitIndex bi = SparseBitIndex.create(nnCols,scalars,doubles,floats);
-        byte[] d = bi.encode();
-        for(int i=0;i<d.length;i++){
-            Assert.assertNotEquals("Contained a 0 at pos <"+i+">!",0x00,d[i]);
-        }
-        BitIndex nbi = SparseBitIndex.wrap(d,0,d.length);
-        Assert.assertEquals("Incorrect deserialization!",bi,nbi);
-    }
-    //    @Test
+//    @Test
 //    public void testCorrectHandCheck() throws Exception {
 //        //makes sure it lines up to the hand constructed entities
 //        Map<byte[],Integer> correctReps = Maps.newHashMap();
