@@ -678,15 +678,15 @@ public class CallableStatement extends PreparedStatement
                 super.checkForClosedStatement();
                 checkGetterPreconditions(parameterIndex);
                 setWasNull(parameterIndex);
-                java.sql.Array result = wasNullX() ? null : singletonRowData_.getArray(parameterIndex);
-                if (true) {
+//                java.sql.Array result = wasNullX() ? null : singletonRowData_.getArray(parameterIndex);
+//                if (true) {
                     throw new SqlException(agent_.logWriter_, 
                         new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
-                }
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceExit(this, "getArray", result);
-                }
-                return result;
+//                }
+//                if (agent_.loggingEnabled()) {
+//                    agent_.logWriter_.traceExit(this, "getArray", result);
+//                }
+//                return result;
             }
         }
         catch ( SqlException se )
@@ -705,15 +705,15 @@ public class CallableStatement extends PreparedStatement
                 super.checkForClosedStatement();
                 checkGetterPreconditions(parameterIndex);
                 setWasNull(parameterIndex);
-                java.sql.Ref result = wasNullX() ? null : singletonRowData_.getRef(parameterIndex);
-                if (true) {
+//                java.sql.Ref result = wasNullX() ? null : singletonRowData_.getRef(parameterIndex);
+//                if (true) {
                     throw new SqlException(agent_.logWriter_, 
                         new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
-                }
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceExit(this, "getRef", result);
-                }
-                return result;
+//                }
+//                if (agent_.loggingEnabled()) {
+//                    agent_.logWriter_.traceExit(this, "getRef", result);
+//                }
+//                return result;
             }
         }
         catch ( SqlException se )

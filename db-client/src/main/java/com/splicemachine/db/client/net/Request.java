@@ -1429,18 +1429,14 @@ public class Request {
         byte[] buffer = null;
         int length = 0;
         
-        try
-        {
-            DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream( dbaos );
+        try(DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream( dbaos )){
 
             oos.writeObject( val );
 
             buffer = dbaos.getByteArray();
             length = dbaos.getUsed();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new SqlException
                 (
                  netAgent_.logWriter_, 
@@ -1450,8 +1446,7 @@ public class Request {
                  );
         }
 
-        if ( length > DRDAConstants.MAX_DRDA_UDT_SIZE )
-        {
+        if ( length > DRDAConstants.MAX_DRDA_UDT_SIZE ) {
             throw new SqlException
                 (
                  netAgent_.logWriter_, 

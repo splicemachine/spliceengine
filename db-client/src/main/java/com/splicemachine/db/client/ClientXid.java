@@ -204,7 +204,8 @@ public class ClientXid implements Xid {
         return formatID_ + gtrid_length_ - bqual_length_;
     }
 
-    public boolean equals(Object obj) {
-        return com.splicemachine.db.client.net.NetXAResource.xidsEqual(this, (javax.transaction.xa.Xid) obj);
+    public boolean equals(Object obj){
+        return obj instanceof Xid && com.splicemachine.db.client.net.NetXAResource.xidsEqual(this,(Xid)obj);
+
     }
 } // class Xid

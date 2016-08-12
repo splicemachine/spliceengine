@@ -385,12 +385,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         }
     }
 
-    public void addSpecialRegisters(String s) {
-        if (xares_ != null) {
-            xares_.addSpecialRegisters(s);
-        }
-    }
-
     public void completeConnect() throws SqlException {
         super.completeConnect();
     }
@@ -581,10 +575,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
             }
             throw sqle;
         }
-    }
-
-    protected void finalize() throws java.lang.Throwable {
-        super.finalize();
     }
 
     protected byte[] getCnnToken() {
@@ -1489,26 +1479,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         netAgent_.connectionReply_.readCommitSubstitute(this);
     }
 
-    public void writeLocalXAStart_() throws SqlException {
-        netAgent_.connectionRequest_.writeLocalXAStart(this);
-    }
-
-    public void readLocalXAStart_() throws SqlException {
-        netAgent_.connectionReply_.readLocalXAStart(this);
-    }
-
-    public void writeLocalXACommit_() throws SqlException {
-        netAgent_.connectionRequest_.writeLocalXACommit(this);
-    }
-
-    public void readLocalXACommit_() throws SqlException {
-        netAgent_.connectionReply_.readLocalXACommit(this);
-    }
-
-    public void writeLocalXARollback_() throws SqlException {
-        netAgent_.connectionRequest_.writeLocalXARollback(this);
-    }
-
     public void readLocalXARollback_() throws SqlException {
         netAgent_.connectionReply_.readLocalXARollback(this);
     }
@@ -1746,17 +1716,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         return metadata.serverSupportsEXTDTAAbort();
     }
 
-    /**
-     * Checks whether the server supports locators for large objects.
-     *
-     * @return {@code true} if LOB locators are supported.
-     */
-    protected final boolean serverSupportsLocators() {
-        // Support for locators was added in the same version as layer B
-        // streaming.
-        return serverSupportsLayerBStreaming();
-    }
-
     /** Return true if the server supports nanoseconds in timestamps */
     protected final boolean serverSupportsTimestampNanoseconds()
     {
@@ -1921,15 +1880,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     protected void writeXARollback_() throws SqlException {
         xares_.netXAConn_.writeRollback();
     }
-    
-    /**
-     * Invokes writeRollback on NetXAConnection
-     */
-    protected void readXARollback_() throws SqlException {
-            xares_.netXAConn_.readRollback();
-    }
-    
-    
+
+
     protected void writeXATransactionStart(Statement statement) throws SqlException {
         xares_.netXAConn_.writeTransactionStart(statement);
     }

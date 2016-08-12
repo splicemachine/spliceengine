@@ -283,8 +283,7 @@ public class NetConnectionReply extends Reply
             // incorrect but consider it a conversation protocol error
             // 0x03 - OBJDSS sent when not allowed.
             //parseSECTKN (true);
-            boolean done = false;
-            byte[] bytes = parseSECTKN(false);
+            parseSECTKN(false);
         }
     }
 
@@ -3112,9 +3111,9 @@ public class NetConnectionReply extends Reply
         if (readFastUnsignedByte() == CodePoint.NULLDATA) {
             return 0;
         }
-        int sqldsFcod = readFastInt(); // FUNCTION_CODE
-        int sqldsCost = readFastInt(); // COST_ESTIMATE
-        int sqldsLrow = readFastInt(); // LAST_ROW
+        readFastInt(); // FUNCTION_CODE
+        readFastInt(); // COST_ESTIMATE
+        readFastInt(); // LAST_ROW
 
         skipFastBytes(16);
 

@@ -52,16 +52,16 @@ public class PreparedStatement extends Statement
 
     //-----------------------------state------------------------------------------
 
-    public String sql_;
+    String sql_;
 
     // This variable is only used by Batch.
     // True if a call sql statement has an OUT or INOUT parameter registered.
-    public boolean outputRegistered_ = false;
+    boolean outputRegistered_ = false;
 
     // Parameter inputs are cached as objects so they may be sent on execute()
-    public Object[] parameters_;
+    Object[] parameters_;
 
-    boolean[] parameterSet_;
+    private boolean[] parameterSet_;
     boolean[] parameterRegistered_;
     
     void setInput(int parameterIndex, Object input) {
@@ -69,7 +69,7 @@ public class PreparedStatement extends Statement
         parameterSet_[parameterIndex - 1] = true;
     }
 
-    public ColumnMetaData parameterMetaData_; // type information for input sqlda
+    ColumnMetaData parameterMetaData_; // type information for input sqlda
     
     private ArrayList parameterTypeList;
 
@@ -81,11 +81,11 @@ public class PreparedStatement extends Statement
     // gets repositioned.
     // So instead of caching the scrollableRS_, we will cache the cursorName.  And re-retrieve the scrollable
     // result set from the map using this cursorName every time the PreparedStatement excutes.
-    String positionedUpdateCursorName_ = null;
+    private String positionedUpdateCursorName_ = null;
     
     // the ClientPooledConnection object used to notify of the events that occur
     // on this prepared statement object
-    protected final ClientPooledConnection pooledConnection_;
+    private final ClientPooledConnection pooledConnection_;
 
 
     private void initPreparedStatement() {
@@ -395,8 +395,7 @@ public class PreparedStatement extends Statement
 
 
     public int executeUpdate() throws SQLException {
-        try
-        {
+        try {
             synchronized (connection_) {
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "executeUpdate");
@@ -407,8 +406,7 @@ public class PreparedStatement extends Statement
                 }
                 return updateValue;
             }
-        }
-        catch ( SqlException se ) {
+        } catch ( SqlException se ) {
             checkStatementValidity(se);
             throw se.getSQLException();
         }
@@ -420,8 +418,7 @@ public class PreparedStatement extends Statement
     }
 
     public void setNull(int parameterIndex, int jdbcType) throws SQLException {
-        try
-        {
+        try {
             synchronized (connection_) {
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "setNull", parameterIndex, jdbcType);
@@ -442,9 +439,8 @@ public class PreparedStatement extends Statement
                     
                     //This exception mimic embedded behavior.
                     //see http://issues.apache.org/jira/browse/DERBY-1610#action_12432568
-                    PossibleTypes.throw22005Exception(agent_.logWriter_,
-                                                      jdbcType,
-                                                      paramType );
+                    //noinspection ThrowableResultOfMethodCallIgnored
+                    PossibleTypes.throw22005Exception(agent_.logWriter_, jdbcType, paramType );
                 }
                 
                 setNullX(parameterIndex, jdbcType);
@@ -463,7 +459,7 @@ public class PreparedStatement extends Statement
         if (!parameterMetaData_.nullable_[parameterIndex - 1]) {
             throw new SqlException(agent_.logWriter_, 
                 new ClientMessageId(SQLState.LANG_NULL_INTO_NON_NULL),
-                new Integer(parameterIndex));
+                    parameterIndex);
         }
         setInput(parameterIndex, null);
     }
@@ -479,8 +475,7 @@ public class PreparedStatement extends Statement
     }
 
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-        try
-        {
+        try {
             synchronized (connection_) {
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "setBoolean", parameterIndex, x);
@@ -500,8 +495,7 @@ public class PreparedStatement extends Statement
                 parameterMetaData_.clientParamtertype_[parameterIndex - 1] = java.sql.Types.BIT;
                 setInput(parameterIndex, Boolean.valueOf(x));
             }
-        }
-        catch ( SqlException se )
+        } catch ( SqlException se )
         {
             throw se.getSQLException();
         }
@@ -933,8 +927,7 @@ public class PreparedStatement extends Statement
     }
 
     public void setRowId(int parameterIndex, java.sql.RowId x) throws SQLException{
-        try
-        {
+        try {
             synchronized (connection_) {
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "setRowId", parameterIndex, x);
@@ -942,8 +935,9 @@ public class PreparedStatement extends Statement
 
                 final int paramType =
                         getColumnMetaDataX().getColumnType(parameterIndex);
+                /*
 
-                /*if( paramType != java.sql.Types.ROWID ) {
+                if( paramType != java.sql.Types.ROWID ) {
 
                     PossibleTypes.throw22005Exception(agent_.logWriter_,
                             java.sql.Types.ROWID,
@@ -959,14 +953,13 @@ public class PreparedStatement extends Statement
                 }
                 setInput(parameterIndex, x);
             }
-        }
-        catch ( SqlException se )
-        {
+        } catch ( SqlException se ) {
             throw se.getSQLException();
         }
     }
+
     // also used by BLOB
-    public void setBytesX(int parameterIndex, byte[] x) throws SqlException {
+    void setBytesX(int parameterIndex,byte[] x) throws SqlException {
         parameterMetaData_.clientParamtertype_[parameterIndex - 1] = java.sql.Types.LONGVARBINARY;
         if (x == null) {
             setNullX(parameterIndex, java.sql.Types.LONGVARBINARY);
