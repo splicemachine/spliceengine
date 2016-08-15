@@ -87,6 +87,7 @@ public class ConfigurationBuilder {
     public String spliceRootPath;
     public String hbaseSecurityAuthorization;
     public boolean hbaseSecurityAuthentication;
+    public int backupParallelism;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
