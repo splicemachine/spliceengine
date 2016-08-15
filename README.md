@@ -2,6 +2,9 @@
 
 Before proceeding with these instructions, please follow the instructions found in the GETTING-STARTED.md file.
 
+## A note about branches in this project
+This `master` branch is the home for the 3.0 version of Splice Machine.  Any pull requests submitted to this branch will only be picked up by that release. For patches to the current released version (2.0)  of Splice Machine see `branch-2.0`
+
 ## Quick start
 (First make sure you have followed the instructions in the GETTING-STARTED.md file)
 
