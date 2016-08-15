@@ -74,6 +74,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String spliceRootPath;
     private final  String hbaseSecurityAuthorization;
     private final  boolean hbaseSecurityAuthentication;
+    private final int backupParallelism;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -248,6 +249,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public String getBackupPath() {
         return backupPath;
+    }
+    @Override
+    public int getBackupParallelism() {
+        return backupParallelism;
     }
     @Override
     public String getCompressionAlgorithm() {
@@ -613,6 +618,7 @@ public final class SConfigurationImpl implements SConfiguration {
         timestampBlockSize = builder.timestampBlockSize;
         regionLoadUpdateInterval = builder.regionLoadUpdateInterval;
         backupPath = builder.backupPath;
+        backupParallelism = builder.backupParallelism;
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;
