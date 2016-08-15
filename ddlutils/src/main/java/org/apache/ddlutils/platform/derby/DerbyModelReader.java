@@ -1,0 +1,151 @@
+/*
+ * ddlUtils is a subproject of the Apache DB project, and is licensed under
+ * the Apache License, Version 2.0 (the "License"); you may not use these files
+ * except in compliance with the License. You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ * Splice Machine, Inc. has modified this file.
+ *
+ * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
+ * and are licensed to you under the License; you may not use this file except in
+ * compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package org.apache.ddlutils.platform.derby;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.ddlutils.Platform;
+import org.apache.ddlutils.model.Column;
+import org.apache.ddlutils.model.ForeignKey;
+import org.apache.ddlutils.model.Index;
+import org.apache.ddlutils.model.Schema;
+import org.apache.ddlutils.model.Table;
+import org.apache.ddlutils.model.TypeMap;
+import org.apache.ddlutils.platform.DatabaseMetaDataWrapper;
+import org.apache.ddlutils.platform.JdbcModelReader;
+
+/**
+ * Reads a database model from a Derby database.
+ *
+ * @version $Revision: $
+ */
+public class DerbyModelReader extends JdbcModelReader {
+
+    /**
+     * Creates a new model reader for Derby databases.
+     *
+     * @param platform The platform that this model reader belongs to
+     */
+    public DerbyModelReader(Platform platform) {
+        super(platform);
+    }
+
+    /**
+     * Determines whether the index is an internal index, i.e. one created by Derby.
+     *
+     * @param index The index to check
+     * @return <code>true</code> if the index seems to be an internal one
+     */
+    private boolean isInternalIndex(Index index) {
+        String name = index.getName();
+
+        // Internal names normally have the form "SQL051228005030780"
+        if ((name != null) && name.startsWith("SQL")) {
+            try {
+                //noinspection ResultOfMethodCallIgnored
+                Long.parseLong(name.substring(3));
+                return true;
+            } catch (NumberFormatException ex) {
+                // we ignore it
+            }
+        }
+        return false;
+    }
+
+    private final static String SCHEMA_QUERY = "select SCHEMANAME, SCHEMAID, AUTHORIZATIONID from SYS.SYSSCHEMAS";
+    private final static String SCHEMA_REFINE = " WHERE SCHEMANAME LIKE '%s'";
+    @Override
+    protected Iterable<? extends Schema> readSchemas(String catalog, String schemaPattern) throws SQLException {
+        // We need to specialize reading schemas because DatabaseMetadata does not contain AUTHORIZATIONID,
+        // which we need to create the schema by owner.
+        // TODO: JC - ignoring catalog here
+        List<Schema> schemas = new ArrayList<>();
+        try (Statement st = _connection.createStatement()) {
+            try (ResultSet rs = st.executeQuery((schemaPattern == null ? SCHEMA_QUERY : String.format(SCHEMA_QUERY + SCHEMA_REFINE,
+                                                                                                      schemaPattern)))) {
+                while (rs.next()) {
+                    schemas.add(new Schema(rs.getString(1), rs.getString(2), rs.getString(3)));
+                }
+                Collections.sort(schemas);
+            }
+        }
+        return schemas;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean isInternalPrimaryKeyIndex(DatabaseMetaDataWrapper metaData, Table table, Index index) {
+        return isInternalIndex(index);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean isInternalForeignKeyIndex(DatabaseMetaDataWrapper metaData, Table table, ForeignKey fk, Index index) {
+        return isInternalIndex(index);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected Column readColumn(DatabaseMetaDataWrapper metaData, Map values) throws SQLException {
+        Column column = super.readColumn(metaData, values);
+        String defaultValue = column.getDefaultValue();
+
+        if (defaultValue != null) {
+            // we check for these strings
+            //   GENERATED_BY_DEFAULT               -> 'GENERATED BY DEFAULT AS IDENTITY'
+            //   AUTOINCREMENT: start 1 increment 1 -> 'GENERATED ALWAYS AS IDENTITY'
+            if ("GENERATED_BY_DEFAULT".equals(defaultValue) || defaultValue.startsWith("AUTOINCREMENT:")) {
+                column.setDefaultValue(null);
+                column.setAutoIncrement(true);
+            } else if (TypeMap.isTextType(column.getTypeCode())) {
+                column.setDefaultValue(unescape(defaultValue, "'", "''"));
+            }
+        }
+        return column;
+    }
+
+    private static final String VIEW_DFN_QUERY = "SELECT V.VIEWDEFINITION FROM SYS.SYSVIEWS V, SYS.SYSTABLES T WHERE T.SCHEMAID = '%s' AND T.TABLENAME = '%s' AND T.TABLEID = V.TABLEID";
+    @Override
+    protected String readViewDefinition(Table view) throws SQLException {
+        String viewDefn = "";
+        try (Statement st = _connection.createStatement()) {
+            try (ResultSet rs = st.executeQuery(String.format(VIEW_DFN_QUERY, view.getSchema().getSchemaId(), view.getName()))) {
+                while (rs.next()) {
+                    viewDefn = rs.getString(1);
+                }
+            }
+        }
+        return viewDefn;
+    }
+}
