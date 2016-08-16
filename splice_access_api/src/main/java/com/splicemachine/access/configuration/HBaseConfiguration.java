@@ -119,6 +119,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
     protected static final String REGION_MAX_FILE_SIZE = StorageConfiguration.REGION_MAX_FILE_SIZE;
     protected static final String TRANSACTION_LOCK_STRIPES = SIConfigurations.TRANSACTION_LOCK_STRIPES;
 
+    public static final String SPLICE_BACKUP_PARALLELISM = "splice.backup.parallelism";
+    public static final int DEFAULT_SPLICE_BACKUP_PARALLELISM = 16;
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
      * from the ZkTimestampSource implementation.
@@ -175,6 +177,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.hbaseSecurityAuthentication = configurationSource.getBoolean(HBASE_SECURITY_AUTHENTICATION, false);
         builder.hbaseSecurityAuthorization = configurationSource.getString(HBASE_SECURITY_AUTHORIZATION,
                                                                            DEFAULT_HBASE_SECURITY_AUTHORIZATION);
+
+        builder.backupParallelism = configurationSource.getInt(SPLICE_BACKUP_PARALLELISM, DEFAULT_SPLICE_BACKUP_PARALLELISM);
 
     }
 }

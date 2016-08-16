@@ -86,6 +86,8 @@ public interface SConfiguration {
 
     String getBackupPath();
 
+    int getBackupParallelism();
+
     String getCompressionAlgorithm();
 
     String getNamespace();
