@@ -32,6 +32,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -331,4 +332,14 @@ public class TableConstantOperationIT extends SpliceUnitTest {
             methodWatcher.closeAll();
         }
     }
+
+    @Test
+    public void createTableWithTextField() throws Exception {
+        methodWatcher.execute(format("create table %s.%s (col1 text)",CLASS_NAME,"FOO"));
+        methodWatcher.execute(format("insert into %s.%s values ('1232')",CLASS_NAME,"FOO"));
+        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getColumns(null,CLASS_NAME,"FOO","COL1");
+        Assert.assertTrue("Could not find column",rs.next());
+        Assert.assertEquals("type conversion did not work","CLOB",rs.getString("TYPE_NAME"));
+    }
+
 }
