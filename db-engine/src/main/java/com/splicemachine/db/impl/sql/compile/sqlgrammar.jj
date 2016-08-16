@@ -773,6 +773,7 @@ public class SQLParser
 		  case NCLOB:
 		  case BINARY: // LARGE OBJECT
 		  case XML:
+		  case TEXT:
 			retval = true;
 			break;
 
@@ -2926,6 +2927,7 @@ TOKEN [IGNORE_CASE] :
 |	<RTRIM: "rtrim">
 |	<SUBSTR:	"substr">
 |	<XML:	"xml">
+|   <TEXT:	"text">
 |	<XMLEXISTS:	"xmlexists">
 |	<XMLPARSE:	"xmlparse">
 |	<XMLQUERY:	"xmlquery">
@@ -4904,6 +4906,11 @@ LOBType() throws StandardException :
 		}
 	|
 		<CLOB> [ length = lengthAndModifier() ]
+		{
+			type = TypeId.CLOB_NAME;
+		}
+	|
+		<TEXT> [ length = lengthAndModifier() ]
 		{
 			type = TypeId.CLOB_NAME;
 		}
