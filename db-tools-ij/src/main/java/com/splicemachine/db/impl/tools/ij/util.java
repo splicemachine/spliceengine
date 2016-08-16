@@ -771,6 +771,7 @@ AppUI.out.println("SIZE="+l);
                     { "jdbc:splice:net:",			"com.ibm.db2.jcc.DB2Driver"},
                     { "jdbc:splice://",              "com.splicemachine.db.jdbc.ClientDriver"},
                     { "jdbc:splice:",				"com.splicemachine.db.jdbc.EmbeddedDriver" },
+					{ "jdbc:spliceClustered:",		"com.splicemachine.db.client.cluster.ClusteredDriver" },
             };
 
 	/**

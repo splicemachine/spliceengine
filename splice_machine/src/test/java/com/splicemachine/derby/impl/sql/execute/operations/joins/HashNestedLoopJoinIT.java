@@ -15,13 +15,19 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.RuledConnection;
+import com.splicemachine.derby.test.framework.SchemaRule;
+import com.splicemachine.derby.test.framework.TestConnectionPool;
 import com.splicemachine.test_tools.IntegerRows;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
-import java.sql.Connection;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
 import java.sql.ResultSet;
+import java.sql.Statement;
+
 import static com.splicemachine.homeless.TestUtils.FormattedResult.ResultFactory;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -30,19 +36,23 @@ import static org.junit.Assert.assertEquals;
 //@Category(SerialTest.class) //made sequential because of joinWithStatistics() test
 public class HashNestedLoopJoinIT {
 
+    private static final TestConnectionPool connPool = new TestConnectionPool();
     private static final String CLASS_NAME = HashNestedLoopJoinIT.class.getSimpleName().toUpperCase();
 
-    @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+//    @ClassRule
+//    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+//
+//    @Rule
+//    public SpliceWatcher watcher = new SpliceWatcher(CLASS_NAME);
 
-    @Rule
-    public SpliceWatcher watcher = new SpliceWatcher(CLASS_NAME);
+    private final RuledConnection conn = new RuledConnection(connPool,false);
+
+    @Rule public TestRule rules =RuleChain.outerRule(conn)
+            .around(new SchemaRule(conn,CLASS_NAME));
 
     /* DB-1715: rows were dropped from the expected result set */
     @Test
     public void expectedRowsPresent() throws Exception {
-
-        Connection conn = watcher.getOrCreateConnection();
 
         TableCreator tableCreator = new TableCreator(conn)
                 .withCreate("create table %s (c1 int, c2 int, primary key(c1))")
@@ -56,25 +66,25 @@ public class HashNestedLoopJoinIT {
                 "t1 inner join t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on t1.c1 = t2.c1";
 
-        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(JOIN_SQL)){
 
-        String EXPECTED = "" +
-                "C1 |C2 |C1 |C2 |\n" +
-                "----------------\n" +
-                " 1 |10 | 1 |10 |\n" +
-                " 2 |20 | 2 |20 |\n" +
-                " 3 |30 | 3 |30 |\n" +
-                " 4 |40 | 4 |40 |";
+                String EXPECTED=""+
+                        "C1 |C2 |C1 |C2 |\n"+
+                        "----------------\n"+
+                        " 1 |10 | 1 |10 |\n"+
+                        " 2 |20 | 2 |20 |\n"+
+                        " 3 |30 | 3 |30 |\n"+
+                        " 4 |40 | 4 |40 |";
 
-        assertEquals(EXPECTED, ResultFactory.toString(rs));
+                assertEquals(EXPECTED,ResultFactory.toString(rs));
+            }
+        }
     }
 
     /* DB-1715: rows were dropped from the expected result set */
     @Test
     public void expectedRowsPresentBigTableLotsOfPredicates() throws Exception {
-
-        Connection conn = watcher.getOrCreateConnection();
-
         TableCreator tableCreator = new TableCreator(conn)
                 .withCreate("create table %s (c1 int, c2 int, c3 int, c4 int, c5 int, primary key(c1))")
                 .withInsert("insert into %s values(?,?,?,?,?)")
@@ -94,22 +104,24 @@ public class HashNestedLoopJoinIT {
                 " (B.c2=106 and B.c3=107 and B.c4=108 and B.c5=109)" +
                 ")";
 
-        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(JOIN_SQL)){
 
-        String EXPECTED = "" +
-                "C1  | C2  | C3  | C4  | C5  | C1  | C2  | C3  | C4  | C5  |\n" +
-                "------------------------------------------------------------\n" +
-                " 105 | 106 | 107 | 108 | 109 | 105 | 106 | 107 | 108 | 109 |\n" +
-                "3375 |3376 |3377 |3378 |3379 |3375 |3376 |3377 |3378 |3379 |\n" +
-                " 95  | 96  | 97  | 98  | 99  | 95  | 96  | 97  | 98  | 99  |";
+                String EXPECTED=""+
+                        "C1  | C2  | C3  | C4  | C5  | C1  | C2  | C3  | C4  | C5  |\n"+
+                        "------------------------------------------------------------\n"+
+                        " 105 | 106 | 107 | 108 | 109 | 105 | 106 | 107 | 108 | 109 |\n"+
+                        "3375 |3376 |3377 |3378 |3379 |3375 |3376 |3377 |3378 |3379 |\n"+
+                        " 95  | 96  | 97  | 98  | 99  | 95  | 96  | 97  | 98  | 99  |";
 
-        assertEquals(EXPECTED, ResultFactory.toString(rs));
+                assertEquals(EXPECTED,ResultFactory.toString(rs));
+            }
+        }
     }
 
     /* DB-1684: predicates were not applied to the right table scan */
     @Test
     public void rightSidePredicatesApplied() throws Exception {
-        Connection conn = watcher.getOrCreateConnection();
 
         new TableCreator(conn)
                 .withCreate("create table ta (c1 int, alpha int, primary key(c1))")
@@ -127,20 +139,22 @@ public class HashNestedLoopJoinIT {
                 "ta inner join tb --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on ta.c1 = tb.c1 where beta=30";
 
-        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(JOIN_SQL)){
 
-        String EXPECTED = "" +
-                "C1 | ALPHA |C1 |BETA |\n" +
-                "----------------------\n" +
-                " 3 |  30   | 3 | 30  |";
+                String EXPECTED=""+
+                        "C1 | ALPHA |C1 |BETA |\n"+
+                        "----------------------\n"+
+                        " 3 |  30   | 3 | 30  |";
 
-        assertEquals(EXPECTED, ResultFactory.toString(rs));
+                assertEquals(EXPECTED,ResultFactory.toString(rs));
+            }
+        }
     }
 
     /* DB-1684: predicates were not applied to the right table scan */
     @Test
     public void rightSidePredicatesAppliedComplex() throws Exception {
-        Connection conn = watcher.getOrCreateConnection();
 
         new TableCreator(conn)
                 .withCreate("create table schemas (schemaid char(36), schemaname varchar(128))")
@@ -172,21 +186,22 @@ public class HashNestedLoopJoinIT {
                 "schemas s join tables t --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on s.schemaid = t.schemaid where t.tablename='table_07' and s.schemaname='schema_02'";
 
-        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(JOIN_SQL)){
 
-        String EXPECTED = "" +
-                "SCHEMANAME | TABLENAME | VERSION  |\n" +
-                "-----------------------------------\n" +
-                " schema_02 | table_07  |version_x |";
+                String EXPECTED=""+
+                        "SCHEMANAME | TABLENAME | VERSION  |\n"+
+                        "-----------------------------------\n"+
+                        " schema_02 | table_07  |version_x |";
 
-        assertEquals(EXPECTED, ResultFactory.toString(rs));
+                assertEquals(EXPECTED,ResultFactory.toString(rs));
+            }
+        }
     }
 
     /* DB-1794: We were creating invalid scan ranges when left table/scan had null values in join col. */
     @Test
     public void nullValuesInLeftJoinColumns() throws Exception {
-
-        Connection conn = watcher.getOrCreateConnection();
 
         // DATES
         new TableCreator(conn).withCreate("create table dates(date_id int, d1 int, primary key(date_id))")
@@ -219,15 +234,18 @@ public class HashNestedLoopJoinIT {
                 "on sales.date_id = dates.date_id \n" +
                 "";
 
-        ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(JOIN_SQL)){
 
-        String EXPECTED = "" +
-                "ITEM_ID | B | DATE_ID | ITEM_ID |I1 | DATE_ID |D1 |\n" +
-                "----------------------------------------------------\n" +
-                "   100   | 1 |   20    |   100   |-1 |   20    | 2 |\n" +
-                "   100   | 4 |   40    |   100   |-1 |   40    | 4 |";
+                String EXPECTED=""+
+                        "ITEM_ID | B | DATE_ID | ITEM_ID |I1 | DATE_ID |D1 |\n"+
+                        "----------------------------------------------------\n"+
+                        "   100   | 1 |   20    |   100   |-1 |   20    | 2 |\n"+
+                        "   100   | 4 |   40    |   100   |-1 |   40    | 4 |";
 
-        assertEquals(EXPECTED, ResultFactory.toString(rs));
+                assertEquals(EXPECTED,ResultFactory.toString(rs));
+            }
+        }
     }
 
 }

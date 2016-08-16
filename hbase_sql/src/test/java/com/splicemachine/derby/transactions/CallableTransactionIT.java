@@ -16,22 +16,19 @@
 package com.splicemachine.derby.transactions;
 
 import static org.junit.Assert.assertTrue;
-import java.sql.CallableStatement;
-import java.sql.ResultSet;
-import java.sql.Types;
+
+import java.sql.*;
+
+import com.splicemachine.derby.test.framework.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.Transactions;
 
@@ -50,9 +47,6 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
 	public static final String CLASS_NAME = CallableTransactionIT.class.getSimpleName().toUpperCase();
 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
 	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".TXN_IT_PROCS_JAR";
@@ -62,7 +56,6 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	private static final String CALL_INSTALL_JAR_FORMAT_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
 	private static final String CALL_REMOVE_JAR_FORMAT_STRING = "CALL SQLJ.REMOVE_JAR('%s', 0)";
 	private static final String CALL_SET_CLASSPATH_FORMAT_STRING = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')";
-	private static final String CALL_SET_CLASSPATH_TO_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)";
 
 	// SQL statements to create and drop stored procedures.
 	private static final String CREATE_PROC_CREATE_EMPLOYEE_TABLE = String.format("CREATE PROCEDURE %s.CREATE_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.CREATE_EMPLOYEE_TABLE'", SCHEMA_NAME);
@@ -77,10 +70,6 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE", SCHEMA_NAME);
 	private static final String CREATE_PROC_CREATE_INSERT_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.CREATE_INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.CREATE_INSERT_AND_GET_EMPLOYEE'", SCHEMA_NAME);
 	private static final String DROP_PROC_CREATE_INSERT_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.CREATE_INSERT_AND_GET_EMPLOYEE", SCHEMA_NAME);
-	private static final String CREATE_PROC_INSERT_UPDATE_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_UPDATE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_UPDATE_AND_GET_EMPLOYEE'", SCHEMA_NAME);
-	private static final String DROP_PROC_INSERT_UPDATE_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_UPDATE_AND_GET_EMPLOYEE", SCHEMA_NAME);
-	private static final String CREATE_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30), IN id2 INT) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE'", SCHEMA_NAME);
-	private static final String DROP_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE", SCHEMA_NAME);
 	private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN'", SCHEMA_NAME);
 	private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN", SCHEMA_NAME);
 	private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN'", SCHEMA_NAME);
@@ -103,8 +92,6 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	private static final String CALL_GET_EMPLOYEE_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".GET_EMPLOYEE('%s', 2)";
 	private static final String CALL_INSERT_AND_GET_EMPLOYEE_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_AND_GET_EMPLOYEE('%s', 2, 'Barney', 'Rubble')";
 	private static final String CALL_CREATE_INSERT_AND_GET_EMPLOYEE_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".CREATE_INSERT_AND_GET_EMPLOYEE('%s', 1, 'Fred', 'Flintstone')";
-	private static final String CALL_INSERT_UPDATE_AND_GET_EMPLOYEE_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_UPDATE_AND_GET_EMPLOYEE('%s', 2, 'Barney', 'Rubble', 'Wilma', 'Flintsone')";
-	private static final String CALL_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE('%s', 2, 'Barney', 'Rubble', 'Wilma', 'Flintsone', 3)";
 	private static final String CALL_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_AND_GET_EMPLOYEE_COMMIT_TXN('%s', 2, 'Barney', 'Rubble')";
 	private static final String CALL_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN('%s', 2, 'Barney', 'Rubble')";
 	private static final String CALL_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN('%s', 2, 'Barney', 'Rubble')";
@@ -114,48 +101,51 @@ public class CallableTransactionIT extends SpliceUnitTest {
     private static final String CALL_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS = "CALL " + SCHEMA_NAME + ".GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(?, ?, ?, ?)";
 
 	// SQL queries.
-	private static final String SELECT_FROM_SYSTABLES_BY_TABLENAME = "SELECT * FROM SYS.SYSTABLES WHERE TABLENAME = ?";
 
-	@ClassRule
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-			.around(spliceSchemaWatcher);
+    private static final TestConnectionPool connPool = new TestConnectionPool();
 
-	@Rule
-	public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Rule public final RuledConnection conn = new RuledConnection(connPool,true);
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/txn-it/txn-it.jar";//getJarFileForClass(TxnTestProcs.class);
-        assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
-            STORED_PROCS_JAR_FILE.endsWith("jar"));
+        String STORED_PROCS_JAR_FILE = SpliceUnitTest.getArchitectureSqlDirectory()+"/target/txn-it/txn-it.jar";//getJarFileForClass(TxnTestProcs.class);
+        assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE,STORED_PROCS_JAR_FILE.endsWith("jar"));
 
-        // Install the jar file of user-defined stored procedures.
-		spliceClassWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
+        try(Connection conn = connPool.getConnection()){
+            new SchemaRule(conn,CLASS_NAME).setupSchema();
+            try(Statement s = conn.createStatement()){
+               // Install the jar file of user-defined stored procedures.
+               s.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
 
-		// Add the jar file into the DB class path.
-		spliceClassWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
+               // Add the jar file into the DB class path.
+               s.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
 
-		// Recompile the stored statements since the SQLJ and CLASSPATH stored procedures invalidate all of the stored statements.
-		// Recompiling will avoid write-write conflicts between the concurrent IT execution threads.
-//		spliceClassWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS()");
+               // Recompile the stored statements since the SQLJ and CLASSPATH stored procedures invalidate all of the stored statements.
+               // Recompiling will avoid write-write conflicts between the concurrent IT execution threads.
 
-		// Create the user-defined stored procedures to create and drop the EMPLOYEE table.
-		spliceClassWatcher.executeUpdate(CREATE_PROC_CREATE_EMPLOYEE_TABLE);
-		spliceClassWatcher.executeUpdate(CREATE_PROC_DROP_EMPLOYEE_TABLE);
+               // Create the user-defined stored procedures to create and drop the EMPLOYEE table.
+               s.executeUpdate(CREATE_PROC_CREATE_EMPLOYEE_TABLE);
+               s.executeUpdate(CREATE_PROC_DROP_EMPLOYEE_TABLE);
+           }
+        }
     }
 
     @AfterClass
     public static void tearDownClass() throws Exception {
 
 		// Drop the user-defined stored procedures to create and drop the EMPLOYEE table.
-		spliceClassWatcher.executeUpdate(DROP_PROC_CREATE_EMPLOYEE_TABLE);
-		spliceClassWatcher.executeUpdate(DROP_PROC_DROP_EMPLOYEE_TABLE);
+        try(Connection conn = connPool.getConnection()){
+           try(Statement s = conn.createStatement()){
+               s.executeUpdate(DROP_PROC_CREATE_EMPLOYEE_TABLE);
+               s.executeUpdate(DROP_PROC_DROP_EMPLOYEE_TABLE);
 
-		// Remove the jar file from the DB class path.
+               // Remove the jar file from the DB class path.
 //		spliceClassWatcher.executeUpdate(CALL_SET_CLASSPATH_TO_DEFAULT);
 
-		// Remove the jar file from the DB.
-		spliceClassWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
+               // Remove the jar file from the DB.
+               s.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
+           }
+        }
     }
 
 	/**
@@ -165,15 +155,16 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testCreateTableDropTable2Procedures() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "1";
-		int rc = 0;
 
 		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            int rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
 	/**
@@ -183,37 +174,37 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testCreateTableInsertRowSelectRowDropTable4Procedures() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "2";
-		int rc = 0;
-		ResultSet rs = null;
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_EMPLOYEE);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
-		rc = methodWatcher.executeUpdate(CREATE_PROC_GET_EMPLOYEE);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_EMPLOYEE);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+            rc=s.executeUpdate(CREATE_PROC_GET_EMPLOYEE);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Insert the row.
-		rc = methodWatcher.executeUpdate(String.format(CALL_INSERT_EMPLOYEE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Insert the row.
+            rc=s.executeUpdate(String.format(CALL_INSERT_EMPLOYEE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Get the row.
-		rs = methodWatcher.executeQuery(String.format(CALL_GET_EMPLOYEE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-		rs.close();
+            // Get the row.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_GET_EMPLOYEE_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_EMPLOYEE);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
-		rc = methodWatcher.executeUpdate(DROP_PROC_GET_EMPLOYEE);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_EMPLOYEE);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+            rc=s.executeUpdate(DROP_PROC_GET_EMPLOYEE);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
 	/**
@@ -223,29 +214,29 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testCreateTableInsertAndSelectRowDropTable3Procedures() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "3";
-		int rc = 0;
-		ResultSet rs = null;
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Insert and get the row in one stored procedure.
-		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-		rs.close();
+            // Insert and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
 	/**
@@ -255,25 +246,25 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testCreateTableInsertAndSelectRowDropTable2Procedures() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "4";
-		int rc = 0;
-		ResultSet rs = null;
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_CREATE_INSERT_AND_GET_EMPLOYEE);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_CREATE_INSERT_AND_GET_EMPLOYEE);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table, insert a row, and get the row in one stored procedure.
-		rs = methodWatcher.executeQuery(String.format(CALL_CREATE_INSERT_AND_GET_EMPLOYEE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-		rs.close();
+            // Create the table, insert a row, and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_CREATE_INSERT_AND_GET_EMPLOYEE_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_CREATE_INSERT_AND_GET_EMPLOYEE);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_CREATE_INSERT_AND_GET_EMPLOYEE);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
 	/**
@@ -283,31 +274,32 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testInsertAndSelectRowProcedureWithExplicitTransactionCommit() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "5";
-		int rc = 0;
-		ResultSet rs = null;
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Insert and get the row in one stored procedure.
-		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-		rs.close();
+            // Insert and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
+    @Test
     @Ignore("DB-3177 - this test simulates the issue but it is tbd whether we will change product")
     public void testInsertAndSelectRowProcedureWithExplicitTransactionCommit2() throws Exception {
 
@@ -317,37 +309,42 @@ public class CallableTransactionIT extends SpliceUnitTest {
         // will find the records that the stored procedure inserted.
 
         String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "5b";
-        int rc = 0;
-        ResultSet rs = null;
 
         // TestConnection conn = new TestConnection(SpliceNetConnection.getConnectionAs(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD));
-        methodWatcher.setAutoCommit(false);
+        conn.setAutoCommit(false);
+        try(Statement s = conn.createStatement()){
 
-        // Create the user-defined stored procedures.
-        rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-        // Create the table.
-        rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-        // Insert and get the row in one stored procedure.
-        rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN_FORMAT_STRING, employeeTableName));
-        Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-        rs.close();
+            // Insert and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-        // Select to look for what the stored proc inserted
-        rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", employeeTableName));
-        Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-        rs.close();
+            // Select to look for what the stored proc inserted
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s",employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-        // Drop the user-defined stored procedures.
-        rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-        // Drop the table.
-        rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }finally{
+            //noinspection ThrowFromFinallyBlock
+            conn.rollback();
+            //noinspection ThrowFromFinallyBlock
+            conn.reset();
+        }
     }
 
     /**
@@ -355,31 +352,31 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testInsertAndSelectRowProcedureWithoutExplicitTransactionCommit() throws Exception {
-		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "6";
-		int rc = 0;
-		ResultSet rs = null;
+	public void testInsertAndSelectRowProcedureWithoutExplicitTransactionCommit() throws Exception{
+        String employeeTableName=EMPLOYEE_TABLE_NAME_BASE+"6";
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Insert and get the row in one stored procedure.
-		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-		rs.close();
+            // Insert and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
 	/**
@@ -389,29 +386,29 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testInsertAndSelectRowProcedureWithTransactionRollback() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "7";
-		int rc = 0;
-		ResultSet rs = null;
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Insert and get the row in one stored procedure.
-		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 0, resultSetSize(rs));
-		rs.close();
+            // Insert and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",0,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
 	/**
@@ -421,29 +418,29 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testInsertAndSelectRowProcedureWithExplicitSavepointRelease() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "8";
-		int rc = 0;
-		ResultSet rs = null;
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Insert and get the row in one stored procedure.
-		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-		rs.close();
+            // Insert and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
 	/**
@@ -453,29 +450,29 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testInsertAndSelectRowProcedureWithoutExplicitSavepointRelease() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "9";
-		int rc = 0;
-		ResultSet rs = null;
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Insert and get the row in one stored procedure.
-		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
-		rs.close();
+            // Insert and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",1,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
 	/**
@@ -485,29 +482,29 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	@Test
 	public void testInsertAndSelectRowProcedureWithSavepointRollback() throws Exception {
 		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "10";
-		int rc = 0;
-		ResultSet rs = null;
 
-		// Create the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Create the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Insert and get the row in one stored procedure.
-		rs = methodWatcher.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect # of rows returned!", 0, resultSetSize(rs));
-		rs.close();
+            // Insert and get the row in one stored procedure.
+            try(ResultSet rs=s.executeQuery(String.format(CALL_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT_FORMAT_STRING,employeeTableName))){
+                Assert.assertEquals("Incorrect # of rows returned!",0,resultSetSize(rs));
+            }
 
-		// Drop the user-defined stored procedures.
-		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT);
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-		// Drop the table.
-		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
 	}
 
     /**
@@ -518,35 +515,36 @@ public class CallableTransactionIT extends SpliceUnitTest {
     @Test
     public void testProcedureWithMultipleOutputParameters() throws Exception {
         String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "11";
-        int rc = 0;
-        ResultSet rs = null;
 
-        // Create the user-defined stored procedures.
-        rc = methodWatcher.executeUpdate(CREATE_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS);
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+        try(Statement s = conn.createStatement()){
+            // Create the user-defined stored procedures.
+            int rc=s.executeUpdate(CREATE_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-        // Create the table.
-        rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Create the table.
+            rc=s.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-        CallableStatement stmt = methodWatcher.prepareCall(CALL_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS);
-        stmt.setString(1, employeeTableName);
-        stmt.setLong(2, 12345L); // won't be found
-        stmt.registerOutParameter(3, Types.VARCHAR);
-        stmt.registerOutParameter(4, Types.VARCHAR);
+            try(CallableStatement stmt=conn.prepareCall(CALL_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS)){
+                stmt.setString(1,employeeTableName);
+                stmt.setLong(2,12345L); // won't be found
+                stmt.registerOutParameter(3,Types.VARCHAR);
+                stmt.registerOutParameter(4,Types.VARCHAR);
 
-        rs = stmt.executeQuery();
-        Assert.assertEquals("Incorrect # of rows returned!", 0, resultSetSize(rs));
-        Assert.assertEquals("Incorrect error code", "0", stmt.getString(3));
-        Assert.assertEquals("Incorrect error message", "Success", stmt.getString(4));
-        rs.close();
+                try(ResultSet rs=stmt.executeQuery()){
+                    Assert.assertEquals("Incorrect # of rows returned!",0,resultSetSize(rs));
+                    Assert.assertEquals("Incorrect error code","0",stmt.getString(3));
+                    Assert.assertEquals("Incorrect error message","Success",stmt.getString(4));
+                }
+            }
 
-        // Drop the user-defined stored procedures.
-        rc = methodWatcher.executeUpdate(DROP_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS);
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the user-defined stored procedures.
+            rc=s.executeUpdate(DROP_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS);
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
 
-        // Drop the table.
-        rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
-        Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+            // Drop the table.
+            rc=s.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING,employeeTableName));
+            Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+        }
     }
 }

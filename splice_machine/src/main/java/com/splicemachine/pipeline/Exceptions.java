@@ -53,7 +53,7 @@ public class Exceptions {
 
         ErrorState state = ErrorState.stateFor(e);
 
-        return state.newException(rootCause);
+        return state.newException(e);
     }
 
     /*

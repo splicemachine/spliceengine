@@ -96,32 +96,7 @@ public class SpliceUnitTest {
          *
          * Of course, if we are in the correct location to begin with, then we are good to go.
          */
-        if(userDir.endsWith("splice_machine")) return userDir;
-
-        Path nioPath = Paths.get(userDir);
-        while(nioPath!=null){
-            /*
-             * Look for splice_machine in our parent hierarchy. If we can find it, then we are good
-             */
-            if(nioPath.endsWith("splice_machine")) break;
-            nioPath = nioPath.getParent();
-        }
-        if(nioPath==null){
-            /*
-             * We did not find it in our parent hierarchy.  It's possible that it's in a child
-             * directory of us, so look around at it directly
-             */
-            Path us = Paths.get(userDir);
-            nioPath = Paths.get(us.toString(),"splice_machine");
-            if(!Files.exists(nioPath)){
-             /* Try to go up and to the left. If it's not
-             * there, then we are screwed anyway, so just go with it
-             */
-                Path parent=Paths.get(userDir).getParent();
-                nioPath=Paths.get(parent.toString(),"splice_machine");
-            }
-        }
-        return nioPath.toString();
+        return findDirectory(userDir,"splice_machine");
 	}
 
     public static String getResourceDirectory() {
@@ -143,14 +118,30 @@ public class SpliceUnitTest {
          *
          * Of course, if we are in the correct location to begin with, then we are good to go.
          */
-        if(userDir.endsWith("hbase_sql")) return userDir;
+        String suffix="hbase_sql";
+        return findDirectory(userDir,suffix);
+    }
+
+    public static String getArchitectureSqlDirectory(){
+        /*
+         * The ITs may run in different directories depending on the architecture. We want to make sure
+         * that the correct architecture is used; to do this, we rely on the system property "architecture.name",
+         * and then append "_sql" to the end of it to make sure we point to the correct directory.
+         */
+        String arch = System.getProperty("architecture.name");
+        if(arch==null) arch = "hbase"; //by default, assume that we are running in Hbase
+        return findDirectory(System.getProperty("user.dir"),arch+"_sql");
+    }
+
+    private static String findDirectory(String userDir,String suffix){
+        if(userDir.endsWith(suffix)) return userDir;
 
         Path nioPath = Paths.get(userDir);
         while(nioPath!=null){
             /*
              * Look for splice_machine in our parent hierarchy. If we can find it, then we are good
              */
-            if(nioPath.endsWith("hbase_sql")) break;
+            if(nioPath.endsWith(suffix)) break;
             nioPath = nioPath.getParent();
         }
         if(nioPath==null){
@@ -159,18 +150,18 @@ public class SpliceUnitTest {
              * directory of us, so look around at it directly
              */
             Path us = Paths.get(userDir);
-            nioPath = Paths.get(us.toString(),"hbase_sql");
+            nioPath = Paths.get(us.toString(),suffix);
             if(!Files.exists(nioPath)){
              /* Try to go up and to the left. If it's not
              * there, then we are screwed anyway, so just go with it
              */
                 Path parent=Paths.get(userDir).getParent();
-                nioPath=Paths.get(parent.toString(),"hbase_sql");
+                nioPath=Paths.get(parent.toString(),suffix);
             }
         }
         return nioPath.toString();
     }
-    
+
     public static String getHiveWarehouseDirectory() {
 		return getBaseDirectory()+"/user/hive/warehouse";
 	}

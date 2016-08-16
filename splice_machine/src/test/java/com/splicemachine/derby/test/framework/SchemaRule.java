@@ -43,18 +43,7 @@ public class SchemaRule implements TestRule{
         return new Statement(){
             @Override
             public void evaluate() throws Throwable{
-                try{
-                    createSchema();
-                }catch(SQLException se){
-                    //X0Y68 is the "SCHEMA already exists" error, so just ignore those
-                    if(!"X0Y68".equals(se.getSQLState()))
-                        throw new SetupFailureException(se);
-                }
-                try{
-                    connection.setSchema(schemaName);
-                }catch(SQLException se){
-                    throw new SetupFailureException(se);
-                }
+                String oldSchema=setupSchema();
 
                 List<Throwable> errors = new LinkedList<>();
                 try{
@@ -63,9 +52,39 @@ public class SchemaRule implements TestRule{
                     errors.add(t);
                 }
 
+                try{
+                    connection.setSchema(oldSchema);
+                }catch(SQLException se){
+                    errors.add(se);
+                }
+
                 MultipleFailureException.assertEmpty(errors);
             }
         };
+    }
+
+    public String setupSchema() throws SetupFailureException{
+        String oldSchema;
+        try{
+            oldSchema = connection.getSchema();
+        }catch(SQLException se){
+            oldSchema="SPLICE";
+        }
+        try{
+            connection.setSchema("SPLICE");
+            createSchema();
+        }catch(SQLException se){
+            //X0Y68 is the "SCHEMA already exists" error, so just ignore those
+            if(!"X0Y68".equals(se.getSQLState()))
+                throw new SetupFailureException(se);
+        }
+
+        try{
+            connection.setSchema(schemaName);
+        }catch(SQLException se){
+            throw new SetupFailureException(se);
+        }
+        return oldSchema;
     }
 
     private void createSchema() throws SQLException{

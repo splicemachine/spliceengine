@@ -20,10 +20,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
+import java.sql.*;
 import java.util.Iterator;
 
 /**
@@ -33,12 +30,14 @@ import java.util.Iterator;
 public class ResultSetIterator implements Iterable<LocatedRow>, Iterator<LocatedRow>, Closeable {
     private ExecRow execRow;
     private ResultSet resultSet;
+    private PreparedStatement ps;
     private boolean[] isNullable;
     private Connection connection;
 
 
     public ResultSetIterator(Connection connection, PreparedStatement ps, ExecRow execRow) {
         this.connection = connection;
+        this.ps = ps;
         try {
             this.resultSet = ps.executeQuery();
             ResultSetMetaData rsm = resultSet.getMetaData();
@@ -92,12 +91,32 @@ public class ResultSetIterator implements Iterable<LocatedRow>, Iterator<Located
 
     @Override
     public void close() throws IOException {
+        SQLException error = null;
+        if(resultSet!=null){
+            try{
+                resultSet.close();
+            }catch(SQLException se){
+               error = se;
+            }
+        }
+        if(ps!=null){
+            try{
+                ps.close();
+            }catch(SQLException se){
+                if(error==null) error = se;
+                else
+                    error.setNextException(se);
+            }
+        }
         if (connection != null) {
             try {
                 connection.close();
-            } catch (Exception se) {
-                throw new IOException(se);
+            } catch (SQLException se) {
+                if(error==null) error = se;
+                else error.setNextException(se);
             }
         }
+        if(error!=null)
+            throw new IOException(error);
     }
 }

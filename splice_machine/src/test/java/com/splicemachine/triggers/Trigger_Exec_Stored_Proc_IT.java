@@ -42,7 +42,7 @@ import org.spark_project.guava.collect.Lists;
 //@Ignore
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
-public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
+public class Trigger_Exec_Stored_Proc_IT {
 
     private static final String SCHEMA = Trigger_Exec_Stored_Proc_IT.class.getSimpleName();
 
@@ -84,85 +84,87 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @ClassRule
     public static SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-    private TriggerBuilder tb = new TriggerBuilder();
-    private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
         return params;
     }
 
     private String connectionString;
 
+    private TestConnection conn;
+    private TriggerBuilder tb;
+    private TriggerDAO triggerDAO;
     public Trigger_Exec_Stored_Proc_IT(String connectionString) {
         this.connectionString = connectionString;
     }
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-
-        String storedProcsJarFilePath = System.getProperty("user.dir")+"/target/sql-it/sql-it.jar";
+        String storedProcsJarFilePath = SpliceUnitTest.getArchitectureSqlDirectory()+"/target/sql-it/sql-it.jar";
         // Install the jar file of stored procedures.
         File jar = new File(storedProcsJarFilePath);
         Assert.assertTrue("Can't run test without " + storedProcsJarFilePath, jar.exists());
-        classWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", storedProcsJarFilePath, DERBY_JAR_NAME));
-        classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
-        classWatcher.executeUpdate(CREATE_PROC);
-        classWatcher.executeUpdate(CREATE_PROC_WITH_TRANSITION_VAR);
-        classWatcher.executeUpdate(CREATE_PROC_WITH_RESULT);
-        classWatcher.executeUpdate(CREATE_EXEC_PROC);
+        try(Connection conn = classWatcher.getOrCreateConnection()){
+            try(Statement s = conn.createStatement()){
+                s.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)",storedProcsJarFilePath,DERBY_JAR_NAME));
+                s.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING,"'"+DERBY_JAR_NAME+"'"));
+                s.executeUpdate(CREATE_PROC);
+                s.executeUpdate(CREATE_PROC_WITH_TRANSITION_VAR);
+                s.executeUpdate(CREATE_PROC_WITH_RESULT);
+                s.executeUpdate(CREATE_EXEC_PROC);
+            }
+        }
     }
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        try {
-            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit"));
-            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit_with_transition"));
-            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit_with_result"));
-            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_exec_sql"));
-        } catch (Exception e) {
-            System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
-        }
-        try {
-            classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "NULL"));
-        } catch (Exception e) {
-            System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
-        }
-        try {
-            classWatcher.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)", DERBY_JAR_NAME));
-        } catch (Exception e) {
-            System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
+        try(Connection conn = classWatcher.getOrCreateConnection()) {
+            try(Statement s = conn.createStatement()){
+                s.executeUpdate(String.format("DROP PROCEDURE %s.%s",SCHEMA,"proc_call_audit"));
+                s.executeUpdate(String.format("DROP PROCEDURE %s.%s",SCHEMA,"proc_call_audit_with_transition"));
+                s.executeUpdate(String.format("DROP PROCEDURE %s.%s",SCHEMA,"proc_call_audit_with_result"));
+                s.executeUpdate(String.format("DROP PROCEDURE %s.%s",SCHEMA,"proc_exec_sql"));
+                s.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "NULL"));
+                s.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)", DERBY_JAR_NAME));
+            }
         }
     }
 
     @Before
     public void setUp() throws Exception {
-        classWatcher.executeUpdate("drop table if exists S");
-        classWatcher.executeUpdate("create table S (id integer, name varchar(30))");
-        classWatcher.executeUpdate("drop table if exists audit");
-        classWatcher.executeUpdate("create table audit (username varchar(20),insert_time timestamp, new_id integer, old_id integer)");
-
-        classWatcher.executeUpdate("drop table if exists t_out");
-        classWatcher.executeUpdate("create table t_out(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
-        classWatcher.executeUpdate("drop table if exists t_master");
-        classWatcher.executeUpdate("create table t_master(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
-        classWatcher.executeUpdate("drop table if exists t_slave");
-        classWatcher.executeUpdate("create table t_slave(id int, description varchar(10),tm_time timestamp)");
-        classWatcher.executeUpdate("drop table if exists t_slave2");
-        classWatcher.executeUpdate("create table t_slave2(id int, description varchar(10),tm_time timestamp)");
-
-        Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        conn = new TestConnection(DriverManager.getConnection(connectionString,new Properties()));
         conn.setSchema(SCHEMA.toUpperCase());
-        methodWatcher.setConnection(conn);
+        tb = new TriggerBuilder();
+        triggerDAO = new TriggerDAO(conn);
+
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("drop table if exists S");
+            s.executeUpdate("create table S (id integer, name varchar(30))");
+            s.executeUpdate("drop table if exists audit");
+            s.executeUpdate("create table audit (username varchar(20),insert_time timestamp, new_id integer, old_id integer)");
+
+            s.executeUpdate("drop table if exists t_out");
+            s.executeUpdate("create table t_out(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
+            s.executeUpdate("drop table if exists t_master");
+            s.executeUpdate("create table t_master(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
+            s.executeUpdate("drop table if exists t_slave");
+            s.executeUpdate("create table t_slave(id int, description varchar(10),tm_time timestamp)");
+            s.executeUpdate("drop table if exists t_slave2");
+            s.executeUpdate("create table t_slave2(id int, description varchar(10),tm_time timestamp)");
+        }
+        conn.setAutoCommit(false);
     }
 
     @After
     public void cleanup() throws Exception {
-        triggerDAO.dropAllTriggers(SCHEMA, "S");
+        conn.rollback();
+        conn.reset();
     }
+
     /**
      * Create/fire a statement trigger that records username and timestamp of an insert in another table.
      */
@@ -172,22 +174,21 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
             then(String.format("CALL proc_call_audit('%s','%s')", SCHEMA,"audit"));
         createTrigger(tb);
 
-        Connection c1 = classWatcher.createConnection();
-        Statement s = c1.createStatement();
-        s.execute("insert into S values (13, 'Joe')");
-        s.execute("insert into S values (14, 'Henry')");
+        try(Statement s = conn.createStatement()){
+            s.execute("insert into S values (13, 'Joe')");
+            s.execute("insert into S values (14, 'Henry')");
 
-        ResultSet rs = s.executeQuery("select * from audit");
-        int count =0;
-        while (rs.next()) {
-            ++count;
-            Assert.assertEquals("splice",rs.getString(1));
-            Assert.assertNotNull(rs.getObject(2));
+            try(ResultSet rs=s.executeQuery("select * from audit")){
+                int count=0;
+                while(rs.next()){
+                    ++count;
+                    Assert.assertEquals("splice",rs.getString(1));
+                    Assert.assertNotNull(rs.getObject(2));
+                }
+                Assert.assertEquals(2,count);
+            }
         }
-        Assert.assertEquals(2, count);
 
-        rs.close();
-        c1.close();
         triggerDAO.drop("auditme");
     }
 
@@ -202,20 +203,22 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
                                                   SCHEMA, "audit", "N.id", null)));
 
         // when - insert a row
-        methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
-        methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into S values (13, 'Joe')");
+            s.executeUpdate("insert into S values (14, 'Henry')");
 
-        ResultSet rs = methodWatcher.executeQuery("select * from audit");
-        int count =0;
-        while (rs.next()) {
-            Assert.assertEquals("splice",rs.getString(1));
-            Assert.assertNotNull(rs.getObject(2));
-            Assert.assertNotNull(rs.getObject(3));
-            ++count;
+            try(ResultSet rs=s.executeQuery("select * from audit")){
+                int count=0;
+                while(rs.next()){
+                    Assert.assertEquals("splice",rs.getString(1));
+                    Assert.assertNotNull(rs.getObject(2));
+                    Assert.assertNotNull(rs.getObject(3));
+                    ++count;
+                }
+                Assert.assertEquals(2,count);
+            }
         }
-        Assert.assertEquals(2, count);
 
-        rs.close();
         triggerDAO.drop("row_insert");
     }
 
@@ -226,30 +229,32 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Test
     public void testRowUpdateTriggerUserStoredProcNewTransitionValue() throws Exception {
 
-        methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
-        methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
-        createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N")
-                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  SCHEMA, "audit", "N.id", null)));
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into S values (13, 'Joe')");
+            s.executeUpdate("insert into S values (14, 'Henry')");
+            createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N")
+                    .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                            SCHEMA,"audit","N.id",null)));
 
-        // when - update a row
-        methodWatcher.executeUpdate("update S set id = 39 where id = 13");
+            // when - update a row
+            s.executeUpdate("update S set id = 39 where id = 13");
 
-        ResultSet rs = methodWatcher.executeQuery("select * from audit");
+            try(ResultSet rs=s.executeQuery("select * from audit")){
 //        TestUtils.printResult("select * from audit", rs, System.out);
-        int count =0;
-        while (rs.next()) {
-            Assert.assertEquals("splice",rs.getString(1));
-            Assert.assertNotNull(rs.getObject(2));
-            int id = rs.getInt(3);
-            Assert.assertNotNull(id);
-            Assert.assertEquals(39,id);
-            Assert.assertNull(rs.getObject(4));
-            ++count;
+                int count=0;
+                while(rs.next()){
+                    Assert.assertEquals("splice",rs.getString(1));
+                    Assert.assertNotNull(rs.getObject(2));
+                    int id=rs.getInt(3);
+                    Assert.assertNotNull(id);
+                    Assert.assertEquals(39,id);
+                    Assert.assertNull(rs.getObject(4));
+                    ++count;
+                }
+                Assert.assertEquals(1,count);
+            }
         }
-        Assert.assertEquals(1, count);
 
-        rs.close();
         triggerDAO.drop("row_update_new");
     }
 
@@ -260,29 +265,30 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Test
     public void testRowUpdateTriggerUserStoredProcOldTransitionValue() throws Exception {
 
-        methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
-        methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
-        createTrigger(tb.named("row_update_old").after().update().on("S").referencing("OLD AS o")
-                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  SCHEMA, "audit", null, "O.id")));
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into S values (13, 'Joe')");
+            s.executeUpdate("insert into S values (14, 'Henry')");
+            createTrigger(tb.named("row_update_old").after().update().on("S").referencing("OLD AS o")
+                    .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                            SCHEMA,"audit",null,"O.id")));
 
-        // when - update a row
-        methodWatcher.executeUpdate("update S set id = 39 where id = 13");
+            // when - update a row
+            s.executeUpdate("update S set id = 39 where id = 13");
 
-        ResultSet rs = methodWatcher.executeQuery("select * from audit");
-        int count =0;
-        while (rs.next()) {
-            Assert.assertEquals("splice",rs.getString(1));
-            Assert.assertNotNull(rs.getObject(2));
-            Assert.assertNull(rs.getObject(3));
-            int oldID = rs.getInt(4);
-            Assert.assertNotNull(oldID);
-            Assert.assertEquals(13, oldID);
-            ++count;
+            try(ResultSet rs=s.executeQuery("select * from audit")){
+                int count=0;
+                while(rs.next()){
+                    Assert.assertEquals("splice",rs.getString(1));
+                    Assert.assertNotNull(rs.getObject(2));
+                    Assert.assertNull(rs.getObject(3));
+                    int oldID=rs.getInt(4);
+                    Assert.assertNotNull(oldID);
+                    Assert.assertEquals(13,oldID);
+                    ++count;
+                }
+                Assert.assertEquals(1,count);
+            }
         }
-        Assert.assertEquals(1, count);
-
-        rs.close();
         triggerDAO.drop("row_update_old");
     }
 
@@ -293,31 +299,32 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Test
     public void testRowUpdateTriggerUserStoredProcNewAndOldTransitionValues() throws Exception {
 
-        methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
-        methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
-        createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N OLD AS O")
-                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  SCHEMA, "audit", "N.id", "O.id")));
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into S values (13, 'Joe')");
+            s.executeUpdate("insert into S values (14, 'Henry')");
+            createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N OLD AS O")
+                    .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                            SCHEMA,"audit","N.id","O.id")));
 
-        // when - update a row
-        methodWatcher.executeUpdate("update S set id = 39 where id = 13");
+            // when - update a row
+            s.executeUpdate("update S set id = 39 where id = 13");
 
-        ResultSet rs = methodWatcher.executeQuery("select * from audit");
-        int count =0;
-        while (rs.next()) {
-            Assert.assertEquals("splice", rs.getString(1));
-            Assert.assertNotNull(rs.getObject(2));
-            int newIDd = rs.getInt(3);
-            Assert.assertNotNull(newIDd);
-            Assert.assertEquals(39, newIDd);
-            int oldID = rs.getInt(4);
-            Assert.assertNotNull(oldID);
-            Assert.assertEquals(13, oldID);
-            ++count;
+            try(ResultSet rs=s.executeQuery("select * from audit")){
+                int count=0;
+                while(rs.next()){
+                    Assert.assertEquals("splice",rs.getString(1));
+                    Assert.assertNotNull(rs.getObject(2));
+                    int newIDd=rs.getInt(3);
+                    Assert.assertNotNull(newIDd);
+                    Assert.assertEquals(39,newIDd);
+                    int oldID=rs.getInt(4);
+                    Assert.assertNotNull(oldID);
+                    Assert.assertEquals(13,oldID);
+                    ++count;
+                }
+                Assert.assertEquals(1,count);
+            }
         }
-        Assert.assertEquals(1, count);
-
-        rs.close();
         triggerDAO.drop("row_update_new");
     }
 
@@ -328,17 +335,19 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Test
     public void testRowUpdateTriggerUserStoredProcTwoTriggers() throws Exception {
 
-        methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
-        methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
-        createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N")
-                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  SCHEMA, "audit", "N.id", null)));
-        createTrigger(tb.named("row_update_old").after().update().on("S").referencing("OLD AS o")
-                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  SCHEMA, "audit", null, "O.id")));
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into S values (13, 'Joe')");
+            s.executeUpdate("insert into S values (14, 'Henry')");
+            createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N")
+                    .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                            SCHEMA,"audit","N.id",null)));
+            createTrigger(tb.named("row_update_old").after().update().on("S").referencing("OLD AS o")
+                    .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                            SCHEMA,"audit",null,"O.id")));
 
-        // when - update a row
-        methodWatcher.executeUpdate("update S set id = 39 where id = 13");
+            // when - update a row
+            s.executeUpdate("update S set id = 39 where id = 13");
+        }
 
         triggerDAO.drop("row_update_new");
         triggerDAO.drop("row_update_old");
@@ -353,22 +362,20 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
             then(String.format("CALL proc_call_audit_with_result('%s','%s')", SCHEMA,"audit"));
         createTrigger(tb);
 
-        Connection c1 = classWatcher.createConnection();
-        Statement s = c1.createStatement();
-        s.execute("insert into S values (13,'Joe')");
-        s.execute("insert into S values (-1,'Henry')");
+        try(Statement s = conn.createStatement()){
+            s.execute("insert into S values (13,'Joe')");
+            s.execute("insert into S values (-1,'Henry')");
 
-        ResultSet rs = s.executeQuery("select * from audit");
-        int count =0;
-        while (rs.next()) {
-            ++count;
-            Assert.assertEquals("splice",rs.getString(1));
-            Assert.assertNotNull(rs.getObject(2));
+            try(ResultSet rs=s.executeQuery("select * from audit")){
+                int count=0;
+                while(rs.next()){
+                    ++count;
+                    Assert.assertEquals("splice",rs.getString(1));
+                    Assert.assertNotNull(rs.getObject(2));
+                }
+                Assert.assertEquals(2,count);
+            }
         }
-        Assert.assertEquals(2, count);
-
-        rs.close();
-        c1.close();
         triggerDAO.drop("auditme2");
     }
 
@@ -377,37 +384,36 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
      */
     @Test
     public void testStatementTriggerSysStoredProc() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder')");
-        String originalLevel = null;
-        while (rs.next()) {
-            originalLevel = rs.getString(1);
+        try(Statement s = conn.createStatement()){
+            String newlevel="INFO";
+            String originalLevel=null;
+            try(ResultSet rs=s.executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder')")){
+                while(rs.next()){
+                    originalLevel=rs.getString(1);
+                }
+                Assert.assertNotNull(originalLevel);
+                if(originalLevel.equals("INFO")){
+                    newlevel="WARN";
+                }
+            }
+            tb.named("log_level_change").before().insert().on("S").statement().
+                    then("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder', '"+newlevel+"')");
+            createTrigger(tb);
+
+            s.execute("insert into S values (13,'Joe')");
+
+            try(ResultSet rs=s.executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder')")){
+                String changedLevel=null;
+                while(rs.next()){
+                    changedLevel=rs.getString(1);
+                }
+                Assert.assertNotNull(changedLevel);
+                Assert.assertEquals(newlevel,changedLevel);
+
+                s.execute("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.tools.version"+
+                        ".ManifestFinder', '"+originalLevel+"')");
+            }
         }
-        Assert.assertNotNull(originalLevel);
-        String newlevel = "INFO";
-        if (originalLevel.equals("INFO")) {
-            newlevel = "WARN";
-        }
-        tb.named("log_level_change").before().insert().on("S").statement().
-            then("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder', '"+newlevel+"')");
-        createTrigger(tb);
-
-        Connection c1 = classWatcher.createConnection();
-        Statement s = c1.createStatement();
-        s.execute("insert into S values (13,'Joe')");
-
-        rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder')");
-        String changedLevel = null;
-        while (rs.next()) {
-            changedLevel = rs.getString(1);
-        }
-        Assert.assertNotNull(changedLevel);
-        Assert.assertEquals(newlevel, changedLevel);
-
-        c1.createStatement().execute("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.tools.version" +
-                                         ".ManifestFinder', '" + originalLevel+"')");
-
-        rs.close();
-        c1.close();
         triggerDAO.drop("log_level_change");
     }
 
@@ -417,20 +423,22 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Test @Ignore("DB-3424: Executing trigger action insert thru a stored proc (disallowed directly) causes infinite recursion.")
     public void testExecSQLRecursion() throws Exception {
 
-        methodWatcher.executeUpdate("insert into t_master values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
-        methodWatcher.executeUpdate("insert into t_slave values (99, 'trigger01', CURRENT_TIMESTAMP)");
-        methodWatcher.executeUpdate("insert into t_slave2 values (22, 'trigger02', CURRENT_TIMESTAMP)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into t_master values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
+            s.executeUpdate("insert into t_slave values (99, 'trigger01', CURRENT_TIMESTAMP)");
+            s.executeUpdate("insert into t_slave2 values (22, 'trigger02', CURRENT_TIMESTAMP)");
 
-        createTrigger(tb.named("TriggerMaster01").before().insert().on("t_master")
-                        .statement().then(String.format("CALL proc_exec_sql('%s')",
-                  "insert into "+SCHEMA+".t_master select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave")));
+            createTrigger(tb.named("TriggerMaster01").before().insert().on("t_master")
+                    .statement().then(String.format("CALL proc_exec_sql('%s')",
+                            "insert into "+SCHEMA+".t_master select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave")));
 
-        createTrigger(tb.named("TriggerMaster02").before().insert().on("t_master")
-                        .statement().then(String.format("CALL proc_exec_sql('%s')",
-                  "insert into "+SCHEMA+".t_master select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave2")));
+            createTrigger(tb.named("TriggerMaster02").before().insert().on("t_master")
+                    .statement().then(String.format("CALL proc_exec_sql('%s')",
+                            "insert into "+SCHEMA+".t_master select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave2")));
 
-        // never returns...
-        methodWatcher.executeUpdate("insert into "+SCHEMA+".t_master values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
+            // never returns...
+            s.executeUpdate("insert into "+SCHEMA+".t_master values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
+        }
 
         triggerDAO.drop("TriggerMaster01");
         triggerDAO.drop("TriggerMaster02");
@@ -442,19 +450,20 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Test
     public void testExecSQL() throws Exception {
 
-        methodWatcher.executeUpdate("insert into t_master values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
-        methodWatcher.executeUpdate("insert into t_slave values (22, 'trigger01', CURRENT_TIMESTAMP)");
-        methodWatcher.executeUpdate("insert into t_slave2 values (99, 'trigger02', CURRENT_TIMESTAMP)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into t_master values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
+            s.executeUpdate("insert into t_slave values (22, 'trigger01', CURRENT_TIMESTAMP)");
+            s.executeUpdate("insert into t_slave2 values (99, 'trigger02', CURRENT_TIMESTAMP)");
+//
+            createTrigger(tb.named("TriggerMaster01").before().insert().on("t_master")
+                    .statement().then(String.format("CALL proc_exec_sql('%s')",
+                            "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave")));
 
-        createTrigger(tb.named("TriggerMaster01").before().insert().on("t_master")
-                        .statement().then(String.format("CALL proc_exec_sql('%s')",
-                  "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave")));
+            createTrigger(tb.named("TriggerMaster02").before().insert().on("t_master")
+                    .statement().then(String.format("CALL proc_exec_sql('%s')",
+                            "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave2")));
 
-        createTrigger(tb.named("TriggerMaster02").before().insert().on("t_master")
-                        .statement().then(String.format("CALL proc_exec_sql('%s')",
-                  "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave2")));
-
-        methodWatcher.executeUpdate("insert into " + SCHEMA + ".t_master values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
+            s.executeUpdate("insert into "+SCHEMA+".t_master values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
 
 //        String query = "select * from t_master";
 //        ResultSet rs = methodWatcher.executeQuery(query);
@@ -463,33 +472,35 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
 //        rs = methodWatcher.executeQuery(query);
 //        TestUtils.printResult(query, rs, System.out);
 
-        ResultSet rs = methodWatcher.executeQuery("select * from t_master");
-        int count = 0;
-        while (rs.next()) {
-            ++count;
-        }
-        Assert.assertEquals("Expected 2 rows in t_master", 2, count);
+            try(ResultSet rs=s.executeQuery("select * from t_master")){
+                int count=0;
+                while(rs.next()){
+                    ++count;
+                }
+                Assert.assertEquals("Expected 2 rows in t_master",2,count);
+            }
 
-        rs = methodWatcher.executeQuery("select * from t_out order by id");
-        Timestamp t1 = null;
-        Timestamp t2 = null;
-        count = 0;
-        while (rs.next()) {
-            ++count;
-            if (count == 1) {
-                Assert.assertEquals("trigger01", rs.getString(2).trim());
-                t1 = rs.getTimestamp(4);
-            } else {
-                Assert.assertEquals("trigger02", rs.getString(2).trim());
-                t2 = rs.getTimestamp(4);
+            try(ResultSet rs=s.executeQuery("select * from t_out order by id")){
+                Timestamp t1=null;
+                Timestamp t2=null;
+                int count=0;
+                while(rs.next()){
+                    ++count;
+                    if(count==1){
+                        Assert.assertEquals("trigger01",rs.getString(2).trim());
+                        t1=rs.getTimestamp(4);
+                    }else{
+                        Assert.assertEquals("trigger02",rs.getString(2).trim());
+                        t2=rs.getTimestamp(4);
+                    }
+                }
+                Assert.assertEquals("Expected 2 rows in t_out",2,count);
+                Assert.assertNotNull(t1);
+                Assert.assertNotNull(t2);
+                Assert.assertTrue(t1.before(t2));
+
             }
         }
-        Assert.assertEquals("Expected 2 rows in t_out", 2, count);
-        Assert.assertNotNull(t1);
-        Assert.assertNotNull(t2);
-        Assert.assertTrue(t1.before(t2));
-
-        rs.close();
         triggerDAO.drop("TriggerMaster01");
         triggerDAO.drop("TriggerMaster02");
     }
@@ -499,7 +510,8 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void createTrigger(TriggerBuilder tb) throws Exception {
-//        System.out.println(tb.build());
-        methodWatcher.executeUpdate(tb.build());
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate(tb.build());
+        }
     }
 }

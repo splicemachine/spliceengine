@@ -18,6 +18,7 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SchemaRule;
 import com.splicemachine.derby.test.framework.TableRule;
+import com.splicemachine.derby.test.framework.TestConnectionPool;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -33,9 +34,10 @@ import java.sql.*;
 // SPLICE-894 Remove Serial
 @Category(value = {SerialTest.class})
 public class ForeignKeyMetadataIT{
+    private static final TestConnectionPool connPool = new TestConnectionPool();
     private static final String SCHEMA = ForeignKeyMetadataIT.class.getSimpleName().toUpperCase();
 
-    private RuledConnection conn = new RuledConnection(null,true);
+    private RuledConnection conn = new RuledConnection(connPool,true);
 
     private TableRule p = new TableRule(conn,"P","(a int, b int, CONSTRAINT P_PK PRIMARY KEY(A), CONSTRAINT P_UNIQ UNIQUE(B))");
     private TableRule c1  =new TableRule(conn,"C1","(c int, f int, CONSTRAINT C1_FK FOREIGN KEY (f) REFERENCES P(a))");

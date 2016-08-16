@@ -223,7 +223,8 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size() >= 1);
+        int size=fr.size();
+        Assert.assertTrue("Size <"+size+"> is too small!",size>= 1);
         DbUtils.closeQuietly(rs);
     }
 

@@ -179,6 +179,7 @@ public final class JarLoader extends SecureClassLoader {
         // number of classes it has to check for.
         if (className.startsWith("com.splicemachine.db.")
                 && !className.startsWith("com.splicemachine.db.jdbc.")
+				&& !className.startsWith("com.splicemachine.db.client.")
                 && !className.startsWith("com.splicemachine.db.vti.")
                 && !className.startsWith("com.splicemachine.db.agg.")
 				&& !className.startsWith("com.splicemachine.db.shared.common.udt.")

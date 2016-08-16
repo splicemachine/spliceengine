@@ -26,36 +26,35 @@ package com.splicemachine.db.client.am;
 
 import java.io.StringReader;
 
-public class AsciiStream extends java.io.InputStream {
+class AsciiStream extends java.io.InputStream{
     private java.io.Reader reader_;
     private String materializedString_;
-    private int charsRead_ = 0;
-	
-	public AsciiStream(String materializedString){
-		this(materializedString,new StringReader(materializedString));
-	}
-	
-    public AsciiStream(String materializedString, java.io.Reader reader) {
-        reader_ = reader;
-        materializedString_ = materializedString;
+    private int charsRead_=0;
+
+    AsciiStream(String materializedString){
+        this(materializedString,new StringReader(materializedString));
     }
 
-    public int read() throws java.io.IOException {
-        int oneChar = reader_.read();
+    AsciiStream(String materializedString,java.io.Reader reader){
+        reader_=reader;
+        materializedString_=materializedString;
+    }
+
+    public int read() throws java.io.IOException{
+        int oneChar=reader_.read();
         ++charsRead_;
-        if (oneChar != -1) // if not eos
-        {
-		if(oneChar <= 0x00ff)
-			return oneChar;
-		else
-			return 0x003f;
-		
-        } else {
+        if(oneChar!=-1){ // if not eos
+            if(oneChar<=0x00ff)
+                return oneChar;
+            else
+                return 0x003f;
+
+        }else{
             return -1; // end of stream
         }
     }
 
-    public int available() {
-        return materializedString_.length() - charsRead_;
+    public int available(){
+        return materializedString_.length()-charsRead_;
     }
 }

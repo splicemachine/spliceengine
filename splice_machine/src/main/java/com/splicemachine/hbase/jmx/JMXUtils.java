@@ -16,16 +16,16 @@
 package com.splicemachine.hbase.jmx;
 
 import javax.management.JMX;
+import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
+import com.splicemachine.db.mbeans.drda.NetworkServerMBean;
 import org.spark_project.guava.collect.Lists;
 
 import com.splicemachine.EngineDriver;
@@ -42,14 +42,15 @@ import com.splicemachine.utils.logging.Logging;
 public class JMXUtils {
 
 
-	public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
-    public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
-	public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
-    public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.derby.hbase:type=ActiveWriteHandlers";
-    public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=DatabaseVersion";
-    public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.client.timestamp.generator:type=TimestampMasterManagement";
-    public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.client.timestamp.request:type=TimestampRegionManagement";
+	private static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
+    private static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
+	private static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
+    private static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.derby.hbase:type=ActiveWriteHandlers";
+    private static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=DatabaseVersion";
+    private static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.client.timestamp.generator:type=TimestampMasterManagement";
+    private static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.client.timestamp.request:type=TimestampRegionManagement";
 	public static final String DATABASE_PROPERTY_MANAGEMENT = "com.splicemachine.derby.utils:type=DatabasePropertyManagement";
+    private static final String NETWORK_SERVER_MANAGEMENT="com.splicemachine.db.NetworkServer:type=NetworkServerMBean";
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
         List<Pair<String,JMXConnector>> mbscArray =new ArrayList<>(serverConnections.size());
@@ -130,6 +131,23 @@ public class JMXUtils {
         	dbProps.add(getNewMXBeanProxy(mbsc.getSecond(), DATABASE_PROPERTY_MANAGEMENT, DatabasePropertyManagement.class));
         }
         return dbProps;
+    }
+
+    public static Map<String,Collection<NetworkServerMBean>> getNetworkServer(List<Pair<String, JMXConnector>> jmxConnector) throws IOException, MalformedObjectNameException{
+        Map<String,Collection<NetworkServerMBean>> servers = new HashMap<>(jmxConnector.size());
+        ObjectName searchTerm = ObjectName.getInstance("com.splicemachine.db:type=NetworkServer,*");
+        for(Pair<String,JMXConnector> mbsc : jmxConnector){
+            String host = mbsc.getFirst();
+            JMXConnector jmxConn = mbsc.getSecond();
+            MBeanServerConnection mConn=jmxConn.getMBeanServerConnection();
+            Set<ObjectName> objectNames=mConn.queryNames(searchTerm,ObjectName.WILDCARD);
+            Collection<NetworkServerMBean> mbeans = new ArrayList<>(objectNames.size());
+            for(ObjectName networkName:objectNames){
+                mbeans.add(JMX.newMBeanProxy(mConn,networkName,NetworkServerMBean.class,true));
+            }
+            servers.put(host,mbeans);
+        }
+        return servers;
     }
 
 	public static <T> T getNewMBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {

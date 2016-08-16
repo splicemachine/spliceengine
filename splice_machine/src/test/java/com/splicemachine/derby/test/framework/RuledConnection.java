@@ -28,7 +28,9 @@ import java.util.concurrent.Executor;
  *         Date: 6/21/16
  */
 public class RuledConnection extends TestWatcher implements Connection{
-    private static final TestConnectionPool connPool = new TestConnectionPool();
+    private static final TestConnectionPool DEFAULT_CONN_POOL= new TestConnectionPool();
+
+    private final TestConnectionPool connPool;
     private TestConnection delegate;
     private final String userName;
     private final String password;
@@ -37,6 +39,11 @@ public class RuledConnection extends TestWatcher implements Connection{
 
     public RuledConnection(String schema){
         this(schema,true);
+    }
+
+    public RuledConnection(TestConnectionPool connPool,boolean autoCommit){
+        this(SpliceNetConnection.DEFAULT_USER,
+                SpliceNetConnection.DEFAULT_USER_PASSWORD,null,autoCommit,connPool);
     }
 
     public RuledConnection(String schema,boolean autoCommit){
@@ -54,11 +61,18 @@ public class RuledConnection extends TestWatcher implements Connection{
         this(userName,password,null,autoCommit);
     }
 
+
     public RuledConnection(String userName,String password,String schema,boolean autoCommit){
+        this(userName, password, schema, autoCommit,DEFAULT_CONN_POOL);
+    }
+
+    public RuledConnection(String userName,String password,String schema,boolean autoCommit,
+                           TestConnectionPool connectionPool){
         this.userName=userName;
         this.password=password;
         this.schema = processSchemaName(schema);
         this.autoCommit = autoCommit;
+        this.connPool = connectionPool;
     }
 
 

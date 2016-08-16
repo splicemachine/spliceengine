@@ -17,6 +17,7 @@ package com.splicemachine.test_dao;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 
@@ -70,12 +71,14 @@ public class SchemaDAO {
 
             // Delete Triggers
 
-            try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select triggername from sys.systriggers, sys.sysschemas where " +
-                    "sys.systriggers.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema)).executeQuery()) {
-                while(resultSet.next()){
-                    jdbcTemplate.executeUpdate(String.format("drop trigger %s.%s",uSchema,resultSet.getString(1)));
+            try(PreparedStatement ps=jdbcTemplate.getConnection().prepareStatement(String.format("select triggername from sys.systriggers, sys.sysschemas where "+
+                    "sys.systriggers.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema))){
+                try(ResultSet resultSet=ps.executeQuery()){
+                    while(resultSet.next()){
+                        jdbcTemplate.executeUpdate(String.format("drop trigger %s.%s",uSchema,resultSet.getString(1)));
+                    }
                 }
-            } catch (Exception e) {
+            }catch(Exception e){
                 throw new RuntimeException(e);
             }
 
@@ -84,10 +87,12 @@ public class SchemaDAO {
 
             // Delete Files
 
-            try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select FILENAME from sys.SYSFILES, sys.sysschemas where " +
-                    "sys.SYSFILES.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema)).executeQuery()) {
-                while(resultSet.next()){
-                    jdbcTemplate.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)",uSchema+"."+resultSet.getString(1)));
+            try(PreparedStatement ps=jdbcTemplate.getConnection().prepareStatement(String.format("select FILENAME from sys.SYSFILES, sys.sysschemas where "+
+                    "sys.SYSFILES.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema))){
+                try(ResultSet resultSet = ps.executeQuery()){
+                    while(resultSet.next()){
+                        jdbcTemplate.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)",uSchema+"."+resultSet.getString(1)));
+                    }
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);

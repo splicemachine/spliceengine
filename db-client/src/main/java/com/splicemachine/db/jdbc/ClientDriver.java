@@ -47,7 +47,7 @@ public class ClientDriver implements java.sql.Driver {
 
     static private SQLException exceptionsOnLoadDriver__ = null;
     // Keep track of the registere driver so that we can deregister it if we're a stored proc.
-    static private ClientDriver registeredDriver__ = null;
+    public static ClientDriver registeredDriver__;
 
     static {
         try {
@@ -150,8 +150,7 @@ public class ClientDriver implements java.sql.Driver {
 
 
             conn = (com.splicemachine.db.client.net.NetConnection) getFactory().
-                    newNetConnection((com.splicemachine.db.client.net.NetLogWriter)
-                                    dncLogWriter,
+                    newNetConnection(dncLogWriter,
                             java.sql.DriverManager.getLoginTimeout(),
                             server,
                             port,
@@ -180,7 +179,7 @@ public class ClientDriver implements java.sql.Driver {
      */
     private String appendDatabaseAttributes(String database, Properties augmentedProperties) {
 
-        StringBuffer longDatabase = new StringBuffer(database);
+        StringBuilder longDatabase = new StringBuilder(database);
         for (Enumeration keys = augmentedProperties.propertyNames();
              keys.hasMoreElements(); ) {
             String key = (String) keys.nextElement();

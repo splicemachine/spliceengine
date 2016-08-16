@@ -26,6 +26,8 @@
 package com.splicemachine.db.client.am;
 
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
@@ -38,6 +40,10 @@ public class SQLExceptionFactory {
         SqlException sqlException = new SqlException (null, 
                 new ClientMessageId (SQLState.NOT_IMPLEMENTED), feature);
         return sqlException.getSQLException();
+    }
+
+    public static SQLException notSupported(String feature){
+        return new SQLFeatureNotSupportedException(feature,SQLState.NOT_IMPLEMENTED);
     }
     
     /**

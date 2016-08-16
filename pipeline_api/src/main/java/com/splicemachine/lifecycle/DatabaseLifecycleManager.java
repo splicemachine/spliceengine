@@ -107,8 +107,8 @@ public class DatabaseLifecycleManager{
                     }catch(InterruptedException ignored){
                        Thread.currentThread().interrupt();
                     }
-                    shutdown();
-                    return;
+                    shouldContinue = true;
+                    break;
                 case RUNNING:
                     shouldContinue = !state.compareAndSet(State.RUNNING,State.SHUTTING_DOWN);
                     break;

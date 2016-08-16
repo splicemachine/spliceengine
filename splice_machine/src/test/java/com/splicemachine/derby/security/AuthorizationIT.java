@@ -21,31 +21,24 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.concurrent.Callable;
-
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.assertFailed;
 import static java.lang.String.format;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class AuthorizationIT {
 
     private static final String SCHEMA = AuthorizationIT.class.getSimpleName().toUpperCase();
 
-    protected static final String USER1 = "john";
-    protected static final String PASSWORD1 = "jleach";
-    protected static final String ROLE1 = "super_user";
+    private static final String USER1 = "john";
+    private static final String PASSWORD1 = "jleach";
+    private static final String ROLE1 = "super_user";
 
-    protected static final String USER2 = "jim";
-    protected static final String PASSWORD2 = "bo";
-    protected static final String ROLE2 = "read_only";
+    private static final String USER2 = "jim";
+    private static final String PASSWORD2 = "bo";
+    private static final String ROLE2 = "read_only";
 
-    protected static final String USER3 = "suzy";
-    protected static final String PASSWORD3 = "X)X)X";
-    protected static final String ROLE3 = "app_user";
+    private static final String USER3 = "suzy";
+    private static final String PASSWORD3 = "X)X)X";
+    private static final String ROLE3 = "app_user";
 
 
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
@@ -68,9 +61,9 @@ public class AuthorizationIT {
             .around(spliceRoleWatcher2)
             .around(spliceRoleWatcher3);
 
-    protected static TestConnection user1Conn;
-    protected static TestConnection user2Conn;
-    protected static TestConnection user3Conn;
+    private static TestConnection user1Conn;
+    private static TestConnection user2Conn;
+//    private static TestConnection user3Conn;
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
@@ -79,7 +72,7 @@ public class AuthorizationIT {
     public static void setUpClass() throws Exception {
         user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
         user2Conn = spliceClassWatcher.createConnection(USER2, PASSWORD2);
-        user3Conn = spliceClassWatcher.createConnection(USER3, PASSWORD3);
+//        user3Conn = spliceClassWatcher.createConnection(USER3, PASSWORD3);
 
         user1Conn.createStatement().executeUpdate("create table STAFF " +
                 "(EMPNUM   VARCHAR(3) NOT NULL, " +

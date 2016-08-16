@@ -70,7 +70,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     public AsyncOlapNIOLayer(String host,int port){
         InetSocketAddress socketAddr=new InetSocketAddress(host,port);
         Bootstrap bootstrap=new Bootstrap();
-        NioEventLoopGroup group=new NioEventLoopGroup(5,
+        NioEventLoopGroup group=new NioEventLoopGroup(4,
                 new ThreadFactoryBuilder().setNameFormat("olapClientWorker-%d").setDaemon(true)
                         .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                             @Override

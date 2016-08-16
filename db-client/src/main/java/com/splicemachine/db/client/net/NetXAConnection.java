@@ -78,6 +78,7 @@ public class NetXAConnection {
 
     protected void finalize() throws java.lang.Throwable {
         netCon.finalize();
+        super.finalize();
     }
 
     public void setCorrelatorToken(byte[] crttoken) {

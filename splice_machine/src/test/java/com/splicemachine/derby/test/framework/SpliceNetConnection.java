@@ -26,7 +26,7 @@ import java.util.Properties;
  */
 public class SpliceNetConnection {
 
-    private static final String DB_URL_LOCAL = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s";
+    public static final String DB_URL_LOCAL = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s;clustered=false";
     public static final String DEFAULT_USER = "splice";
     public static final String DEFAULT_USER_PASSWORD = "admin";
 

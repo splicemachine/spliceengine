@@ -31,10 +31,14 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.sun.tools.internal.xjc.reader.xmlschema.ParticleBinder;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -50,10 +54,17 @@ public class Procedure {
     private final boolean isDeterministic;
     private final TypeDescriptor returnType;
     private final String ownerClass;
+    private final boolean allowPublicAccess;
 
     private Procedure(Arg[] args, String name, int numberOutputParameters,
                       int numResultSets, short routineSqlControl,
                       boolean isDeterministic, TypeDescriptor returnType, String ownerClass) {
+       this(args,name,numberOutputParameters,numResultSets,routineSqlControl,isDeterministic,returnType,ownerClass,false);
+    }
+
+    private Procedure(Arg[] args, String name, int numberOutputParameters,
+                      int numResultSets, short routineSqlControl,
+                      boolean isDeterministic, TypeDescriptor returnType, String ownerClass,boolean allowPublicAccess) {
         this.args = args;
         this.name = name;
         this.numberOutputParameters = numberOutputParameters;
@@ -62,6 +73,7 @@ public class Procedure {
         this.isDeterministic = isDeterministic;
         this.returnType = returnType;
         this.ownerClass = ownerClass;
+        this.allowPublicAccess = allowPublicAccess;
     }
 
     public String getName() {
@@ -131,7 +143,13 @@ public class Procedure {
                 false,
                 rai,
                 null);
+
         dataDictionary.addDescriptor(ads,null,DataDictionary.SYSALIASES_CATALOG_NUM,false,tc);
+        if(allowPublicAccess){
+            PermissionsDescriptor pd=new RoutinePermsDescriptor(dataDictionary,Authorizer.PUBLIC_AUTHORIZATION_ID,null,routineId,true);
+            dataDictionary.addRemovePermissionsDescriptor(true,pd,Authorizer.PUBLIC_AUTHORIZATION_ID,tc);
+        }
+
 
         return rai;
     }
@@ -145,6 +163,7 @@ public class Procedure {
         private boolean isDeterministic = true;
         private TypeDescriptor returnType = null;
         private String ownerClass;
+        private boolean allowPublicAccess = false; //by default we restrict access
 
         private Builder(String name, int numberOutputParameters,
                         int numResultSets, short routineSqlControl,
@@ -248,6 +267,11 @@ public class Procedure {
             return this;
         }
 
+        public Builder allowPublicAccess(){
+            this.allowPublicAccess = true;
+            return this;
+        }
+
         public Procedure build(){
             assert name !=null;
             assert numberOutputParameters>=0;
@@ -261,7 +285,7 @@ public class Procedure {
             Arg[] argsToPut = new Arg[args.size()];
             args.toArray(argsToPut);
             return new Procedure(argsToPut,name,numberOutputParameters,
-                    numResultSets,routineSqlControl,isDeterministic,returnType, ownerClass);
+                    numResultSets,routineSqlControl,isDeterministic,returnType, ownerClass,allowPublicAccess);
         }
 
     }
