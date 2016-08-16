@@ -15,11 +15,14 @@
 
 package com.splicemachine.kafka;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServerStartable;
 import kafka.utils.TestUtils;
+import org.apache.kafka.common.protocol.SecurityProtocol;
+import scala.Option;
 
 public class TestKafkaCluster {
     KafkaServerStartable kafkaServer;
@@ -39,8 +42,10 @@ public class TestKafkaCluster {
     }
 
     private static KafkaConfig getKafkaConfig(final String zkConnectString) {
+        final Option<File> noFile = scala.Option.apply(null);
+        final Option<SecurityProtocol> noInterBrokerSecurityProtocol = scala.Option.apply(null);
         scala.collection.Iterator<Properties> propsI =
-                TestUtils.createBrokerConfigs(1, zkConnectString, true, false, null, null, true, false, false, false).iterator();
+                TestUtils.createBrokerConfigs(1, zkConnectString, true, false, noInterBrokerSecurityProtocol, noFile, true, false, false, false).iterator();
         assert propsI.hasNext();
         Properties props = propsI.next();
         assert props.containsKey("zookeeper.connect");
