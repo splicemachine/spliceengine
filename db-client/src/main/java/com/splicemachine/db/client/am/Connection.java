@@ -69,7 +69,6 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
     // See ClientDataSource pre-connect settings
     protected final String user_;
     boolean retrieveMessageText_;
-    private boolean jdbcReadOnly_;
     /**
      * Holdabilty for created statements.
      * Only access through the holdability method
@@ -182,7 +181,7 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
     // For jdbc 2 connections
     protected Connection(com.splicemachine.db.client.am.LogWriter logWriter,
                          String user,
-                         String password,
+                         @SuppressWarnings("UnusedParameters") String password,
                          com.splicemachine.db.jdbc.ClientBaseDataSource dataSource)
             throws SqlException{
         this.user_=user;
@@ -191,7 +190,7 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
 
     protected Connection(com.splicemachine.db.client.am.LogWriter logWriter,
                          String user,
-                         String password,
+                         @SuppressWarnings("UnusedParameters") String password,
                          boolean isXAConn,
                          com.splicemachine.db.jdbc.ClientBaseDataSource dataSource)
             throws SqlException{
@@ -201,9 +200,9 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
     }
 
     // For jdbc 2 connections
-    protected void initConnection(com.splicemachine.db.client.am.LogWriter logWriter,
-                                  com.splicemachine.db.jdbc.ClientBaseDataSource
-                                          dataSource) throws SqlException{
+    private void initConnection(com.splicemachine.db.client.am.LogWriter logWriter,
+                                com.splicemachine.db.jdbc.ClientBaseDataSource
+                                        dataSource) throws SqlException{
         if(logWriter!=null){
             logWriter.traceConnectEntry(dataSource);
         }
@@ -300,7 +299,7 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
         holdability=ResultSet.HOLD_CURSORS_OVER_COMMIT;
 
         this.agent_.resetAgent(
-                this,logWriter,loginTimeout_,serverNameIP_,portNumber_);
+                logWriter,loginTimeout_,serverNameIP_,portNumber_);
     }
 
     // For jdbc 1 connections
@@ -340,7 +339,7 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
     // and this will give the driver a chance to close (or otherwise clean up) the objects.
     // Note, however, that there is no guarantee that the garbage collector will ever run.
     // If that is the case, the finalizers will not be called.
-    protected void finalize() throws java.lang.Throwable{
+    public void finalize() throws java.lang.Throwable{
         if(agent_.loggingEnabled()){
             agent_.logWriter_.traceEntry(this,"finalize");
         }
@@ -584,10 +583,7 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
     }
 
     public boolean willAutoCommitGenerateFlow() throws com.splicemachine.db.client.am.SqlException{
-        if(!autoCommit_){
-            return false;
-        }
-        return allowLocalCommitRollback_();
+        return autoCommit_ && allowLocalCommitRollback_();
     }
 
     // precondition: autoCommit_ is true
@@ -709,6 +705,7 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
 
     public abstract void setQueryTimeout(int timeout);
 
+    @SuppressWarnings("unused")
     public abstract int getQueryTimeout(int timeout);
 
     /**
@@ -1225,7 +1222,7 @@ public abstract class Connection implements java.sql.Connection, ConnectionCallb
         try{
             checkForClosedConnection();
             if(agent_.loggingEnabled()){
-                agent_.logWriter_.traceExit(this,"isReadOnly",jdbcReadOnly_);
+                agent_.logWriter_.traceExit(this,"isReadOnly",false);
             }
             return false;
         }catch(SqlException se){

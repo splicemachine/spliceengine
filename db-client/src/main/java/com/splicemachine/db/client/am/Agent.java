@@ -27,17 +27,17 @@ package com.splicemachine.db.client.am;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 
-public abstract class Agent {
-    public SqlException accumulatedReadExceptions_ = null;
+public abstract class Agent{
+    SqlException accumulatedReadExceptions_=null;
 
     private boolean enableBatchedExceptionTracking_;
     private int batchedExceptionLabelIndex_;
     private boolean[] batchedExceptionGenerated_;
 
     Connection connection_; // made friendly for lobs only, refactor !!
-    public SectionManager sectionManager_ = null; // temporarily public, make friendly at least !!
+    SectionManager sectionManager_=null; // temporarily public, make friendly at least !!
 
-    public LogWriter logWriter_ = null;
+    public LogWriter logWriter_=null;
 
     final CrossConverters crossConverters_;
 
@@ -45,99 +45,102 @@ public abstract class Agent {
     // cannot be thrown on the getMessage() invocation because the signature of getMessage() does not
     // allow for throwing an exception.
     // Therefore, we must save the exception and throw it at our very first opportunity.
-    SqlException deferredException_;
+    private SqlException deferredException_;
 
-    void checkForDeferredExceptions() throws SqlException {
-        if (deferredException_ != null) {
-            SqlException temp = deferredException_;
-            deferredException_ = null;
+    void checkForDeferredExceptions() throws SqlException{
+        if(deferredException_!=null){
+            SqlException temp=deferredException_;
+            deferredException_=null;
             throw temp;
         }
     }
 
-    public void accumulateDeferredException(SqlException e) {
-        if (deferredException_ == null) {
-            deferredException_ = e;
-        } else {
+    void accumulateDeferredException(SqlException e){
+        if(deferredException_==null){
+            deferredException_=e;
+        }else{
             deferredException_.setNextException(e);
         }
     }
 
-    protected Agent(Connection connection, LogWriter logWriter) {
-        connection_ = connection;
-        logWriter_ = logWriter;
-        crossConverters_ = new CrossConverters(this);
+    protected Agent(Connection connection,LogWriter logWriter){
+        connection_=connection;
+        logWriter_=logWriter;
+        crossConverters_=new CrossConverters(this);
     }
 
-    protected void resetAgent(LogWriter logWriter) {
+    private void resetAgent(LogWriter logWriter){
         // sectionManager_ is set elsewhere
-        accumulatedReadExceptions_ = null;
-        enableBatchedExceptionTracking_ = false;
-        batchedExceptionLabelIndex_ = 0;
-        batchedExceptionGenerated_ = null;
-        logWriter_ = logWriter;
-        deferredException_ = null;
+        accumulatedReadExceptions_=null;
+        enableBatchedExceptionTracking_=false;
+        batchedExceptionLabelIndex_=0;
+        batchedExceptionGenerated_=null;
+        logWriter_=logWriter;
+        deferredException_=null;
     }
 
-    public void resetAgent(Connection connection, LogWriter logWriter, int loginTimeout, String server, int port) throws SqlException {
+    void resetAgent(LogWriter logWriter,int loginTimeout,String server,int port) throws SqlException{
         resetAgent(logWriter);
-        resetAgent_(logWriter, loginTimeout, server, port);
+        resetAgent_(logWriter,loginTimeout,server,port);
     }
 
-    abstract protected void resetAgent_(LogWriter logWriter, int loginTimeout, String server, int port) throws SqlException;
+    abstract protected void resetAgent_(LogWriter logWriter,int loginTimeout,String server,int port) throws SqlException;
 
     //-------------------- entry points ------------------------------------------
 
-    public final boolean loggingEnabled() {
-        return !com.splicemachine.db.client.am.Configuration.traceSuspended__ && logWriter_ != null;
+    public final boolean loggingEnabled(){
+        return !com.splicemachine.db.client.am.Configuration.traceSuspended__ && logWriter_!=null;
     }
 
-    public final void setLogWriter(LogWriter logWriter) {
-        synchronized (connection_) {
-            if (logWriter_ != null) {
+    @SuppressWarnings("SynchronizeOnNonFinalField")
+    public final void setLogWriter(LogWriter logWriter){
+        synchronized(connection_){
+            if(logWriter_!=null){
                 logWriter_.close();
             }
-            logWriter_ = logWriter;
+            logWriter_=logWriter;
         }
     }
 
-    public final java.io.PrintWriter getLogWriter() {
-        return (logWriter_ == null) ? null : logWriter_.printWriter_;
+    public final java.io.PrintWriter getLogWriter(){
+        return (logWriter_==null)?null:logWriter_.printWriter_;
     }
 
-    abstract public LogWriter newLogWriter_(java.io.PrintWriter printWriter, int traceLevel);
+    abstract public LogWriter newLogWriter_(java.io.PrintWriter printWriter,int traceLevel);
 
     //----------------------------------------------------------------------------
 
 
-    public final void accumulateReadException(SqlException e) {
-        if (enableBatchedExceptionTracking_) {
-            batchedExceptionGenerated_[batchedExceptionLabelIndex_] = true;
-            labelAsBatchedException(e, batchedExceptionLabelIndex_);
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+    public final void accumulateReadException(SqlException e){
+        if(enableBatchedExceptionTracking_){
+            batchedExceptionGenerated_[batchedExceptionLabelIndex_]=true;
+            labelAsBatchedException(e,batchedExceptionLabelIndex_);
         }
-        if (accumulatedReadExceptions_ == null) {
-            accumulatedReadExceptions_ = e;
-        } else {
+        if(accumulatedReadExceptions_==null){
+            accumulatedReadExceptions_=e;
+        }else{
             accumulatedReadExceptions_.setNextException(e);
         }
     }
 
     // Called only for disconnect event
-    public final void accumulateDisconnectException(DisconnectException e) {
-        if (enableBatchedExceptionTracking_) {
-            batchedExceptionGenerated_[batchedExceptionLabelIndex_] = true;
-            labelAsBatchedException(e, batchedExceptionLabelIndex_);
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+    private void accumulateDisconnectException(DisconnectException e){
+        if(enableBatchedExceptionTracking_){
+            batchedExceptionGenerated_[batchedExceptionLabelIndex_]=true;
+            labelAsBatchedException(e,batchedExceptionLabelIndex_);
         }
-        if (accumulatedReadExceptions_ != null) {
+        if(accumulatedReadExceptions_!=null){
             e.setNextException(accumulatedReadExceptions_);
         }
 
-        accumulatedReadExceptions_ = null;
+        accumulatedReadExceptions_=null;
     }
 
     // For now, it looks like the only time we accumulate chain breaking exceptions
     // is for disconnect exceptions.
-    public final void accumulateChainBreakingReadExceptionAndThrow(DisconnectException e) throws DisconnectException {
+    public final void accumulateChainBreakingReadExceptionAndThrow(DisconnectException e) throws DisconnectException{
         accumulateDisconnectException(e); // tacks disconnect exc to end of chain
         markChainBreakingException_(); // sets a severity code in the NET agent
         throw e; // disconnect will be caught in Reply classes, and front of original chain thrown
@@ -147,55 +150,50 @@ public abstract class Agent {
 
     abstract public void checkForChainBreakingException_() throws SqlException;
 
-    private final void enableBatchedExceptionTracking(int batchSize) {
-        enableBatchedExceptionTracking_ = true;
-        batchedExceptionGenerated_ = new boolean[batchSize];
-        batchedExceptionLabelIndex_ = 0;
+    private void enableBatchedExceptionTracking(int batchSize){
+        enableBatchedExceptionTracking_=true;
+        batchedExceptionGenerated_=new boolean[batchSize];
+        batchedExceptionLabelIndex_=0;
     }
 
-    final void disableBatchedExceptionTracking() {
-        enableBatchedExceptionTracking_ = false;
+    final void disableBatchedExceptionTracking(){
+        enableBatchedExceptionTracking_=false;
     }
 
-    public final void setBatchedExceptionLabelIndex(int index) {
-        batchedExceptionLabelIndex_ = index;
+    final void setBatchedExceptionLabelIndex(int index){
+        batchedExceptionLabelIndex_=index;
     }
 
-    private final SqlException labelAsBatchedException(SqlException e, int index) {
-        SqlException firstInChain = e;
-        while (e != null) {
+    private SqlException labelAsBatchedException(SqlException e,int index){
+        SqlException firstInChain=e;
+        while(e!=null){
             e.setBatchPositionLabel(index);
-            e = (SqlException) e.getNextException();
+            e=e.getNextException();
         }
         return firstInChain;
     }
 
-    protected final void checkForExceptions() throws SqlException {
-        if (accumulatedReadExceptions_ != null) {
-            SqlException e = accumulatedReadExceptions_;
-            accumulatedReadExceptions_ = null;
+    protected final void checkForExceptions() throws SqlException{
+        if(accumulatedReadExceptions_!=null){
+            SqlException e=accumulatedReadExceptions_;
+            accumulatedReadExceptions_=null;
             throw e;
         }
     }
 
-    // precondition: all batch execute reads have occurred
-    final boolean batchUpdateExceptionGenerated() {
-        return batchedExceptionGenerated_[batchedExceptionLabelIndex_];
-    }
-
-    public final void flow(Statement statement) throws SqlException {
+    public final void flow(Statement statement) throws SqlException{
         endWriteChain();
         flush_();
         beginReadChain(statement);
     }
 
-    public final void flowBatch(Statement statement, int batchSize) throws SqlException {
+    final void flowBatch(Statement statement,int batchSize) throws SqlException{
         endBatchedWriteChain();
         flush_();
-        beginBatchedReadChain(statement, batchSize);
+        beginBatchedReadChain(statement,batchSize);
     }
 
-    public final void flowOutsideUOW() throws SqlException {
+    public final void flowOutsideUOW() throws SqlException{
         endWriteChain();
         flush_();
         beginReadChainOutsideUOW();
@@ -207,73 +205,73 @@ public abstract class Agent {
     // Close client resources associated with this agent, such as socket and streams for the net.
     abstract public void close_() throws SqlException;
 
-    public void close() throws SqlException {
+    public void close() throws SqlException{
         close_();
-        if (logWriter_ != null) {
+        if(logWriter_!=null){
             logWriter_.close();
         }
     }
 
-    public final void disconnectEvent() {
+    final void disconnectEvent(){
         // closes client-side resources associated with database connection
-        try {
+        try{
             close();
-        } catch (SqlException doNothing) {
+        }catch(SqlException ignored){
         }
         connection_.completeChainBreakingDisconnect();
     }
 
-    public void beginWriteChainOutsideUOW() throws SqlException {
+    public void beginWriteChainOutsideUOW() throws SqlException{
     }
 
-    public void beginWriteChain(Statement statement) throws SqlException {
+    public void beginWriteChain(Statement statement) throws SqlException{
         connection_.writeTransactionStart(statement);
     }
 
-    public final void beginBatchedWriteChain(Statement statement) throws SqlException {
+    final void beginBatchedWriteChain(Statement statement) throws SqlException{
         beginWriteChain(statement);
     }
 
-    protected void endWriteChain() {
+    protected void endWriteChain(){
     }
 
-    protected final void endBatchedWriteChain() {
+    private void endBatchedWriteChain(){
     }
 
-    protected void beginReadChain(Statement statement) throws SqlException {
+    protected void beginReadChain(Statement statement) throws SqlException{
         connection_.readTransactionStart();
     }
 
-    protected final void beginBatchedReadChain(Statement statement, int batchSize) throws SqlException {
+    private void beginBatchedReadChain(Statement statement,int batchSize) throws SqlException{
         enableBatchedExceptionTracking(batchSize);
         beginReadChain(statement);
     }
 
-    protected void beginReadChainOutsideUOW() throws SqlException {
+    protected void beginReadChainOutsideUOW() throws SqlException{
     }
 
-    public void endReadChain() throws SqlException {
+    public void endReadChain() throws SqlException{
         checkForExceptions();
     }
 
-    public final void endBatchedReadChain(int[] updateCounts, SqlException accumulatedExceptions) throws BatchUpdateException {
+    final void endBatchedReadChain(int[] updateCounts,SqlException accumulatedExceptions) throws BatchUpdateException{
         disableBatchedExceptionTracking();
-        for (int i = 0; i < batchedExceptionGenerated_.length; i++) {
-            if (batchedExceptionGenerated_[i]) {
-                updateCounts[i] = -3;
+        for(int i=0;i<batchedExceptionGenerated_.length;i++){
+            if(batchedExceptionGenerated_[i]){
+                updateCounts[i]=-3;
             }
         }
-        if (accumulatedExceptions == null) {
-            try {
+        if(accumulatedExceptions==null){
+            try{
                 endReadChain();
-            } catch (SqlException e) {
-                accumulatedExceptions = e;
+            }catch(SqlException e){
+                accumulatedExceptions=e;
             }
         }
-        if (accumulatedExceptions != null) {
+        if(accumulatedExceptions!=null){
             throw new BatchUpdateException(logWriter_,
-                new ClientMessageId(SQLState.BATCH_NON_ATOMIC_FAILURE),
-                null, updateCounts, accumulatedExceptions);
+                    new ClientMessageId(SQLState.BATCH_NON_ATOMIC_FAILURE),
+                    null,updateCounts,accumulatedExceptions);
         }
     }
 }

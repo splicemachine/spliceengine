@@ -32,9 +32,8 @@ package com.splicemachine.db.client.am;
  * Once all messages have been internationalized, we could conceivably
  * get rid of this class.
  */
-public class ClientMessageId
-{
-    public String msgid;
+public class ClientMessageId {
+    String msgid;
     
     /** Creates a new instance of MessageId */
     public ClientMessageId(String msgid)

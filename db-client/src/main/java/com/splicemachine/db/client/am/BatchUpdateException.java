@@ -25,57 +25,54 @@
 
 package com.splicemachine.db.client.am;
 
-import com.splicemachine.db.shared.common.i18n.MessageUtil;
 import com.splicemachine.db.shared.common.error.ExceptionUtil;
+import com.splicemachine.db.shared.common.i18n.MessageUtil;
 
-public class BatchUpdateException extends java.sql.BatchUpdateException {
+public class BatchUpdateException extends java.sql.BatchUpdateException{
 
-    /** 
-     *  The message utility instance we use to find messages
-     *  It's primed with the name of the client message bundle so that
-     *  it knows to look there if the message isn't found in the
-     *  shared message bundle.
+    /**
+     * The message utility instance we use to find messages
+     * It's primed with the name of the client message bundle so that
+     * it knows to look there if the message isn't found in the
+     * shared message bundle.
      */
-    private static final MessageUtil msgutil_ =
-        SqlException.getMessageUtil();
+    private static final MessageUtil msgutil_=
+            SqlException.getMessageUtil();
 
-    public BatchUpdateException(LogWriter logWriter, ClientMessageId msgid,
-        Object[] args, int[] updateCounts, SqlException cause)
-    {
+    BatchUpdateException(LogWriter logWriter,ClientMessageId msgid,
+                         Object[] args,int[] updateCounts,SqlException cause){
         super(
-            msgutil_.getCompleteMessage(
-                msgid.msgid,
-                args),
-            ExceptionUtil.getSQLStateFromIdentifier(msgid.msgid),
-            ExceptionUtil.getSeverityFromIdentifier(msgid.msgid),
-            updateCounts);
+                msgutil_.getCompleteMessage(
+                        msgid.msgid,
+                        args),
+                ExceptionUtil.getSQLStateFromIdentifier(msgid.msgid),
+                ExceptionUtil.getSeverityFromIdentifier(msgid.msgid),
+                updateCounts);
 
-        if (logWriter != null) {
+        if(logWriter!=null){
             logWriter.traceDiagnosable(this);
         }
 
-        if (cause != null) {
+        if(cause!=null){
             initCause(cause);
             setNextException(cause.getSQLException());
         }
     }
-    
+
     // Syntactic sugar constructors to make it easier to create
     // a BatchUpdateException with substitution parameters
-    public BatchUpdateException(LogWriter logWriter, ClientMessageId msgid,
-        Object[] args, int[] updateCounts) {
-        this(logWriter, msgid, args, updateCounts, null);
+    private BatchUpdateException(LogWriter logWriter,ClientMessageId msgid,
+                                 Object[] args,int[] updateCounts){
+        this(logWriter,msgid,args,updateCounts,null);
     }
 
-    public BatchUpdateException(LogWriter logWriter, ClientMessageId msgid,
-        int[] updateCounts)
-    {
-        this(logWriter, msgid, (Object [])null, updateCounts);
+    BatchUpdateException(LogWriter logWriter,ClientMessageId msgid,
+                         int[] updateCounts){
+        this(logWriter,msgid,null,updateCounts);
     }
-    
-    public BatchUpdateException(LogWriter logWriter, ClientMessageId msgid,
-        Object arg1, int[] updateCounts)
-    {
-        this(logWriter, msgid, new Object[] {arg1}, updateCounts);
+
+    BatchUpdateException(LogWriter logWriter,ClientMessageId msgid,
+                         Object arg1,int[] updateCounts){
+        this(logWriter,msgid,new Object[]{arg1},updateCounts);
     }
 }

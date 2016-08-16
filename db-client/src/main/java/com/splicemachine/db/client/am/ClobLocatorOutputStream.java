@@ -39,13 +39,9 @@ import java.io.IOException;
  * buffering of data is done.  Hence, for efficieny #write(byte[])
  * should be used instead of #write(int).
  */
-public class ClobLocatorOutputStream extends java.io.OutputStream {
-    
-    /**
-     * Connection used to read Clob from server.
-     */
-    private final Connection connection;
-    
+@SuppressWarnings("NullableProblems")
+class ClobLocatorOutputStream extends java.io.OutputStream {
+
     /**
      * The Clob to be accessed.
      */
@@ -62,21 +58,17 @@ public class ClobLocatorOutputStream extends java.io.OutputStream {
      * Create an <code>OutputStream</code> for writing to the
      * <code>Clob</code> value represented by the given locator based
      * <code>Clob</code> object.
-     * @param connection connection to be used to write to the
-     *        <code>Clob</code> value on the server
      * @param clob <code>Clob</code> object that contains locator for
      *        the <code>Clob</code> value on the server.
      * @param pos the position in the <code>CLOB</code> value at which
      *        to start writing; the first position is 1
      * @throws com.splicemachine.db.client.am.SqlException
      */
-    public ClobLocatorOutputStream(Connection connection, Clob clob, long pos)
-    throws SqlException {
+    ClobLocatorOutputStream(Clob clob,long pos) throws SqlException {
         if (pos-1 > clob.sqlLength()) {
             throw new IndexOutOfBoundsException();
         }
         
-        this.connection = connection;
         this.clob = clob;
         this.currentPos = pos;
     }
@@ -140,9 +132,7 @@ public class ClobLocatorOutputStream extends java.io.OutputStream {
             clob.setStringX(currentPos, clobStr, 0, clobStr.length());
             currentPos += b.length;
         } catch (SqlException ex) {
-            IOException ioEx= new IOException();
-            ioEx.initCause(ex);
-            throw ioEx;
+            throw new IOException(ex);
         }
     }
 }

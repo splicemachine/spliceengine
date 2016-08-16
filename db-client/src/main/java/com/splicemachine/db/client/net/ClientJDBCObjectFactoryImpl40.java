@@ -82,14 +82,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
             String password) throws SQLException {
         return new ClientPooledConnection40(ds,logWriter,user,password);
     }
-    /**
-     * Returns an instance of com.splicemachine.db.client.ClientPooledConnection40
-     */
-    public ClientPooledConnection newClientPooledConnection(
-            ClientBaseDataSource ds, LogWriter logWriter,String user,
-            String password,int rmId) throws SQLException {
-        return new ClientPooledConnection40(ds,logWriter,user,password,rmId);
-    }
+
     /**
      * Returns an instance of com.splicemachine.db.client.ClientXAConnection40
      */
@@ -243,26 +236,6 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection40
      */
-    public com.splicemachine.db.client.am.Connection newNetConnection
-            (com.splicemachine.db.client.am.LogWriter netLogWriter,
-            String databaseName,java.util.Properties properties)
-            throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,databaseName,properties));
-    }
-    /**
-     * returns an instance of com.splicemachine.db.client.net.NetConnection40
-     */
-    public com.splicemachine.db.client.am.Connection newNetConnection
-            (com.splicemachine.db.client.am.LogWriter netLogWriter,
-            com.splicemachine.db.jdbc.ClientBaseDataSource clientDataSource,
-            String user,String password) throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,clientDataSource,user,password));
-    }
-    /**
-     * returns an instance of com.splicemachine.db.client.net.NetConnection40
-     */
     public com.splicemachine.db.client.am.Connection
             newNetConnection(com.splicemachine.db.client.am.LogWriter netLogWriter,
             int driverManagerLoginTimeout,String serverName,
@@ -285,18 +258,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
         (new NetConnection40((NetLogWriter)netLogWriter,user,password,dataSource,
                 rmId,isXAConn));
     }
-    /**
-     * returns an instance of com.splicemachine.db.client.net.NetConnection40
-     */
-    public com.splicemachine.db.client.am.Connection
-            newNetConnection(com.splicemachine.db.client.am.LogWriter netLogWriter,
-            String ipaddr,int portNumber,
-            com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
-            boolean isXAConn) throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,ipaddr,portNumber,dataSource,
-                isXAConn));
-    }
+
     /**
      * Returns an instance of com.splicemachine.db.client.net.NetConnection.
      * @param netLogWriter placeholder for NetLogWriter object associated with this connection

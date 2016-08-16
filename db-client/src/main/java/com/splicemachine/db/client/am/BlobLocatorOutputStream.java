@@ -24,9 +24,10 @@
  */
 
 package com.splicemachine.db.client.am;
-import java.io.IOException;
 
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+
+import java.io.IOException;
 
 /**
  * An <code>OutputStream</code> that will use an locator to write
@@ -38,75 +39,68 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
  * <p>
  * This <code>OutputStream</code> implementation is pretty basic.  No
  * buffering of data is done.  Hence, for efficieny #write(byte[])
- * should be used instead of #write(int).  
+ * should be used instead of #write(int).
  */
-public class BlobLocatorOutputStream extends java.io.OutputStream {
-    
+@SuppressWarnings("NullableProblems")
+class BlobLocatorOutputStream extends java.io.OutputStream{
+
     /**
      * Create an <code>OutputStream</code> for writing to the
      * <code>Blob</code> value represented by the given locator based
      * <code>Blob</code> object.
-     * @param connection connection to be used to write to the
-     *        <code>Blob</code> value on the server
-     * @param blob <code>Blob</code> object that contains locator for
-     *        the <code>Blob</code> value on the server.
-     * @param pos the position in the <code>BLOB</code> value at which
-     *        to start writing; the first position is 1
+     *
+     * @param blob       <code>Blob</code> object that contains locator for
+     *                   the <code>Blob</code> value on the server.
+     * @param pos        the position in the <code>BLOB</code> value at which
+     *                   to start writing; the first position is 1
      * @throws com.splicemachine.db.client.am.SqlException
      */
-    public BlobLocatorOutputStream(Connection connection, Blob blob, long pos)
-        throws SqlException
-    {
-        if (SanityManager.DEBUG) {
+    BlobLocatorOutputStream(Blob blob,long pos) throws SqlException{
+        if(SanityManager.DEBUG){
             SanityManager.ASSERT(blob.isLocator());
         }
 
-        if (pos-1 > blob.sqlLength()) {
+        if(pos-1>blob.sqlLength()){
             throw new IndexOutOfBoundsException();
         }
-        
-        this.connection = connection;
-        this.blob = blob;
-        this.currentPos = pos;
+
+        this.blob=blob;
+        this.currentPos=pos;
     }
 
     /**
      * @see java.io.OutputStream#write(int)
-     *
-     * This method writes one byte at a time to the server. For more 
+     * <p>
+     * This method writes one byte at a time to the server. For more
      * efficient writing, use #write(byte[]).
      */
-    public void write(int b) throws IOException            
-    {
-        byte[] ba = {(byte )b};
+    public void write(int b) throws IOException{
+        byte[] ba={(byte)b};
         writeBytes(ba);
     }
 
     /**
      * @see java.io.OutputStream#write(byte[])
      */
-    public void write(byte[] b) throws IOException 
-    {
+    public void write(byte[] b) throws IOException{
         writeBytes(b);
     }
-    
-    
-    
+
+
     /**
-     * @see java.io.OutputStream#write(byte[], int, int)
+     * @see java.io.OutputStream#write(byte[],int,int)
      */
-    public void write(byte[] b, int off, int len) throws IOException 
-    {
-        if (len == 0) return;
-        if ((off < 0) || (off > b.length) || (len < 0) || 
-            (off+len > b.length) || (off+len < 0)) {
+    public void write(byte[] b,int off,int len) throws IOException{
+        if(len==0) return;
+        if((off<0) || (off>b.length) || (len<0) ||
+                (off+len>b.length) || (off+len<0)){
             throw new IndexOutOfBoundsException();
-        } 
-        
-        byte[] ba = b;
-        if ((off > 0) || (len < b.length)) { // Copy the part we will use
-            ba = new byte[len];
-            System.arraycopy(b, off, ba, 0, len);
+        }
+
+        byte[] ba=b;
+        if((off>0) || (len<b.length)){ // Copy the part we will use
+            ba=new byte[len];
+            System.arraycopy(b,off,ba,0,len);
         }
         writeBytes(ba);
     }
@@ -114,27 +108,19 @@ public class BlobLocatorOutputStream extends java.io.OutputStream {
     /**
      * Write the <code>byte[]</code> to the <code>Blob</code> value on
      * the server; starting from the current position of this stream.
-     * 
+     *
      * @param b The byte array containing the bytes to be written
      * @throws java.io.IOException Wrapped SqlException if writing
-     *         to server fails.
+     *                             to server fails.
      */
-    private void writeBytes(byte[] b) throws IOException
-    {
-        try {         
-            blob.setBytesX(currentPos, b, 0, b.length);
-            currentPos += b.length;
-        } catch (SqlException ex) {
-            IOException ioEx= new IOException();
-            ioEx.initCause(ex);
-            throw ioEx;
+    private void writeBytes(byte[] b) throws IOException{
+        try{
+            blob.setBytesX(currentPos,b,0,b.length);
+            currentPos+=b.length;
+        }catch(SqlException ex){
+            throw new IOException(ex);
         }
     }
-    
-    /**
-     * Connection used to read Blob from server.
-     */
-    private final Connection connection;
 
     /**
      * The Blob to be accessed.

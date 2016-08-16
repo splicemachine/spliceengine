@@ -24,101 +24,114 @@
  */
 package com.splicemachine.db.client.am;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A stream whose source is a list of byte arrays.
- *
+ * <p>
  * This class was created when first implementing the JDBC 4 length less
  * overloads in the client driver. The reason was missing support for
  * streaming data with unknown length from the client to the server.
- *
+ * <p>
  * The purpose of the stream is to avoid having to repeatedly copy data to grow
  * the byte buffer, or doing a single big copy to combine the byte arrays in
  * the end. This is important for the temporary solution, since we must
  * materialize the stream to find the length anyway.
- *
+ * <p>
  * If there is less data available than the specified length, an exception is
  * thrown. Available data is determined by the length of the byte arrays, not
  * the contents of them. A byte array with all 0's is considered valid data.
- *
+ * <p>
  * Besides from truncation, this stream does not change the underlying data in
  * any way.
  */
-public class ByteArrayCombinerStream
-    extends InputStream {
+@SuppressWarnings("NullableProblems")
+public class ByteArrayCombinerStream extends InputStream{
 
-    /** A list of the arrays to combine. */
-    private final ArrayList arrays;
-    /** Length of the stream. */
+    /**
+     * A list of the arrays to combine.
+     */
+    private final List<byte[]> arrays;
+    /**
+     * Length of the stream.
+     */
     private final long specifiedLength;
-    /** Global offset into the whole stream. */
-    private long gOffset = 0;
-    /** Index of the array we are currently reading from. */
-    private int arrayIndex = 0;
-    /** The array we are currently reading from. */
+    /**
+     * Global offset into the whole stream.
+     */
+    private long gOffset=0;
+    /**
+     * Index of the array we are currently reading from.
+     */
+    private int arrayIndex=0;
+    /**
+     * The array we are currently reading from.
+     */
     private byte[] curArray;
-    /** The local offset into the current array. */
-    private int off = 0;
+    /**
+     * The local offset into the current array.
+     */
+    private int off=0;
 
     /**
      * Create a stream whose source is a list of byte arrays.
      *
      * @param arraysIn an <code>ArrayList</code> with references to the source
-     *      byte arrays. The references are copied to a new
-     *      <code>ArrayList</code> instance.
-     * @param length the length of the stream. Never published outside
-     *      this object. Note that the length specified can be shorter
-     *      than the actual number of bytes in the byte arrays.
+     *                 byte arrays. The references are copied to a new
+     *                 <code>ArrayList</code> instance.
+     * @param length   the length of the stream. Never published outside
+     *                 this object. Note that the length specified can be shorter
+     *                 than the actual number of bytes in the byte arrays.
      * @throws IllegalArgumentException if there is less data available than
-     *      specified by <code>length</code>, or <code>length</code> is
-     *      negative.
+     *                                  specified by <code>length</code>, or <code>length</code> is
+     *                                  negative.
      */
-    public ByteArrayCombinerStream(ArrayList arraysIn, long length) {
+    public ByteArrayCombinerStream(ArrayList arraysIn,long length){
         // Don't allow negative length.
-        if (length < 0) {
-            throw new IllegalArgumentException("Length cannot be negative: " +
+        if(length<0){
+            throw new IllegalArgumentException("Length cannot be negative: "+
                     length);
         }
-        this.specifiedLength = length;
-        long tmpRemaining = length;
-        if (arraysIn != null && arraysIn.size() > 0) {
+        this.specifiedLength=length;
+        long tmpRemaining=length;
+        if(arraysIn!=null && arraysIn.size()>0){
             // Copy references to the byte arrays to a new ArrayList.
-            int arrayCount = arraysIn.size();
+            int arrayCount=arraysIn.size();
             byte[] tmpArray;
-            arrays = new ArrayList(arrayCount);
+            arrays=new ArrayList<>(arrayCount);
             // Truncate data if there are more bytes then specified.
             // Done to simplify boundary checking in the read-methods.
-            for (int i=0; i < arrayCount && tmpRemaining > 0; i++) {
-                tmpArray = (byte[])arraysIn.get(i);
-                if (tmpRemaining < tmpArray.length) {
+            for(int i=0;i<arrayCount && tmpRemaining>0;i++){
+                tmpArray=(byte[])arraysIn.get(i);
+                if(tmpRemaining<tmpArray.length){
                     // Create a new shrunk array.
-                    byte[] shrunkArray =
-                        new byte[(int)(tmpRemaining)];
-                    System.arraycopy(tmpArray, 0,
-                                     shrunkArray, 0, shrunkArray.length);
+                    byte[] shrunkArray=
+                            new byte[(int)(tmpRemaining)];
+                    System.arraycopy(tmpArray,0,
+                            shrunkArray,0,shrunkArray.length);
                     arrays.add(shrunkArray);
-                    tmpRemaining -= shrunkArray.length;
+                    tmpRemaining-=shrunkArray.length;
                     break;
-                } else {
+                }else{
                     // Add the whole array.
-                    tmpRemaining -= tmpArray.length;
+                    tmpRemaining-=tmpArray.length;
                     arrays.add(tmpArray);
                 }
             }
             // Set the first array as the current one.
-            curArray = nextArray();
-        } else {
+            curArray=nextArray();
+        }else{
             // Specify gOffset so available returns 0;
-            gOffset = length;
-            arrays = null;
+            gOffset=length;
+            arrays=null;
         }
         // If we don't have enough data, throw exception.
-        if (tmpRemaining > 0) {
-            throw new IllegalArgumentException("Not enough data, " + 
-                    tmpRemaining + " bytes short of specified length " +
+        if(tmpRemaining>0){
+            throw new IllegalArgumentException("Not enough data, "+
+                    tmpRemaining+" bytes short of specified length "+
                     length);
         }
     }
@@ -128,14 +141,13 @@ public class ByteArrayCombinerStream
      *
      * @return a byte, or <code>-1</code> if the end-of-stream is reached
      */
-    public int read()
-            throws IOException {
-        if (curArray == null) {
+    public int read() throws IOException{
+        if(curArray==null){
             return -1;
         }
-        if (off >= curArray.length) {
-            curArray = nextArray();
-            if (curArray == null) {
+        if(off>=curArray.length){
+            curArray=nextArray();
+            if(curArray==null){
                 return -1;
             }
         }
@@ -150,35 +162,35 @@ public class ByteArrayCombinerStream
      * a smaller number may be read. The number of bytes actually read
      * is returned as an integer.
      *
-     * @param buf the array to copy bytes into
+     * @param buf    the array to copy bytes into
      * @param offset offset into the array
      * @param length the maximum number of bytes to read
      * @return the number of bytes read, or <code>-1</code> if end-of-stream
-     *      is reached
+     * is reached
      */
-    public int read(byte[] buf, int offset, int length)
-            throws IOException {
-        int read = 0;
-        if (curArray == null) {
+    public int read(byte[] buf,int offset,int length)
+            throws IOException{
+        int read=0;
+        if(curArray==null){
             return -1;
         }
-        if (length <= (curArray.length - off)) {
-            System.arraycopy(curArray, off, buf, offset, length);
-            off += length;
-            gOffset += length;
-            read = length;
-        } else {
-            int toRead = 0;
-            while (curArray != null && read < length) {
-                toRead = Math.min(curArray.length - off, length - read);
-                System.arraycopy(curArray, off, buf, offset + read, toRead);
-                read += toRead;
-                gOffset += toRead;
-                off += toRead;
-                if ( off < curArray.length) {
+        if(length<=(curArray.length-off)){
+            System.arraycopy(curArray,off,buf,offset,length);
+            off+=length;
+            gOffset+=length;
+            read=length;
+        }else{
+            int toRead;
+            while(curArray!=null && read<length){
+                toRead=Math.min(curArray.length-off,length-read);
+                System.arraycopy(curArray,off,buf,offset+read,toRead);
+                read+=toRead;
+                gOffset+=toRead;
+                off+=toRead;
+                if(off<curArray.length){
                     break;
                 }
-                curArray = nextArray();
+                curArray=nextArray();
             }
         }
         return read;
@@ -190,8 +202,8 @@ public class ByteArrayCombinerStream
      *
      * @return number of available bytes
      */
-    public int available() {
-        return (int)(specifiedLength - gOffset);
+    public int available(){
+        return (int)(specifiedLength-gOffset);
     }
 
     /**
@@ -200,15 +212,15 @@ public class ByteArrayCombinerStream
      * is "taken out".
      *
      * @return a <code>byte[]</code>-object, or <code>null</code> if there are
-     *      no more arrays
+     * no more arrays
      */
-    private byte[] nextArray() {
-        if (arrayIndex >= arrays.size()) {
+    private byte[] nextArray(){
+        if(arrayIndex>=arrays.size()){
             return null;
         }
-        byte[] tmp = (byte[])arrays.get(arrayIndex);
-        arrays.set(arrayIndex++, null);
-        off = 0;
+        byte[] tmp=arrays.get(arrayIndex);
+        arrays.set(arrayIndex++,null);
+        off=0;
         return tmp;
     }
 } // End of class ByteArrayCombinerStream
