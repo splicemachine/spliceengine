@@ -133,7 +133,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     }
 
     @Override
-    public long getSequenceID(){
+    public long getScannerOrder(){
         return Long.MAX_VALUE; // Set the max value - we have the most recent data
     }
 
