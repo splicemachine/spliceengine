@@ -253,4 +253,6 @@ public interface SConfiguration {
     int getCompactionReservedSlots();
 
     int getReservedSlotsTimeout();
+
+    int getOlapServerTickLimit();
 }

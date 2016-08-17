@@ -107,6 +107,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapClientTickTime;
     private final int olapServerBindPort;
     private final int olapServerThreads;
+    private final int olapServerTickLimit;
     private final  int readResolverQueueSize;
     private final  int readResolverThreads;
     private final  int timestampClientWaitTime;
@@ -663,6 +664,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapClientTickTime = builder.olapClientTickTime;
         olapServerBindPort = builder.olapServerBindPort;
         olapServerThreads = builder.olapServerThreads;
+        olapServerTickLimit = builder.olapServerTickLimit;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;
@@ -706,6 +708,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getReservedSlotsTimeout() {
         return reservedSlotsTimeout;
+    }
+
+    @Override
+    public int getOlapServerTickLimit(){
+        return olapServerTickLimit;
     }
 
 }
