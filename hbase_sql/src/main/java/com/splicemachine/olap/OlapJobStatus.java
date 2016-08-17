@@ -37,9 +37,9 @@ public class OlapJobStatus implements OlapStatus{
     private volatile AtomicReference<OlapStatus.State> currentState = new AtomicReference<>(State.NOT_SUBMITTED);
     private volatile OlapResult results;
 
-    public OlapJobStatus(long tickTime){
+    public OlapJobStatus(long tickTime,int numTicks){
         //TODO -sf- remove the constants
-        FiniteDuration maxHeartbeatInterval = FiniteDuration.apply(10*tickTime,TimeUnit.MILLISECONDS);
+        FiniteDuration maxHeartbeatInterval = FiniteDuration.apply(numTicks*tickTime,TimeUnit.MILLISECONDS);
         FiniteDuration stdDev = FiniteDuration.apply(2*tickTime,TimeUnit.MILLISECONDS);
         FiniteDuration firstTick = FiniteDuration.apply(tickTime,TimeUnit.MILLISECONDS);
 
