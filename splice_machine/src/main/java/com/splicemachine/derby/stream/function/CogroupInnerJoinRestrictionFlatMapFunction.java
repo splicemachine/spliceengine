@@ -15,21 +15,21 @@
 
 package com.splicemachine.derby.stream.function;
 
-import org.sparkproject.guava.collect.Iterables;
-import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.ConcatenatedIterable;
 import scala.Tuple2;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
+ *
  * Created by jleach on 4/30/15.
  */
 public class CogroupInnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, Tuple2<Iterable<LocatedRow>,Iterable<LocatedRow>>,LocatedRow> {
-    protected InnerJoinRestrictionFlatMapFunction innerJoinRestrictionFlatMapFunction;
+    private InnerJoinRestrictionFlatMapFunction<Op> innerJoinRestrictionFlatMapFunction;
     protected LocatedRow leftRow;
     public CogroupInnerJoinRestrictionFlatMapFunction() {
         super();
@@ -42,18 +42,18 @@ public class CogroupInnerJoinRestrictionFlatMapFunction<Op extends SpliceOperati
     @Override
     public Iterable<LocatedRow> call(Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>> tuple) throws Exception {
         checkInit();
-        Set<LocatedRow> rightSide = Sets.newHashSet(tuple._2); // Memory Issue, HashSet ?
-        Iterable<LocatedRow> returnRows = new ArrayList();
-        Iterator<LocatedRow> it = tuple._1.iterator();
-        while (it.hasNext()) {
-            returnRows = Iterables.concat(returnRows, innerJoinRestrictionFlatMapFunction.call(new Tuple2(it.next(),rightSide)));
+//        Iterable<LocatedRow> rightSide = Sets.newHashSet(tuple._2); // Memory Issue, HashSet ?
+        Iterable<LocatedRow> rightSide = tuple._2; // Memory Issue, HashSet ?
+        List<Iterable<LocatedRow>> returnRows = new LinkedList<>();
+        for(LocatedRow a_1 : tuple._1){
+            returnRows.add(innerJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,rightSide)));
         }
-        return returnRows;
+        return new ConcatenatedIterable<>(returnRows);
     }
     @Override
     protected void checkInit() {
         if (!initialized)
-            innerJoinRestrictionFlatMapFunction = new InnerJoinRestrictionFlatMapFunction(operationContext);
+            innerJoinRestrictionFlatMapFunction = new InnerJoinRestrictionFlatMapFunction<>(operationContext);
         super.checkInit();
     }
 
