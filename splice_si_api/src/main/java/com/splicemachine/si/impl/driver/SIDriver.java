@@ -46,8 +46,20 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.GreenLight;
+import org.apache.log4j.Logger;
 
 public class SIDriver {
+    private static final Logger LOG = Logger.getLogger("splice.uncaught");
+
+    static {
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                LOG.error("["+t.getName()+"] Uncaught error, killing thread: ", e);
+            }
+        });
+    }
+
     private static volatile SIDriver INSTANCE;
 
     public static SIDriver driver(){ return INSTANCE;}
