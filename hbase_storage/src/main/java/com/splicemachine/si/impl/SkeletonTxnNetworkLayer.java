@@ -16,14 +16,13 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
-import com.splicemachine.hbase.SpliceRpcController;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,8 +37,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public void beginTransaction(byte[] rowKey,TxnMessage.TxnInfo txnInfo) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-
-        SpliceRpcController controller=new SpliceRpcController();
+        ServerRpcController controller=new ServerRpcController();
         service.beginTransaction(controller,txnInfo,new BlockingRpcCallback<TxnMessage.VoidResponse>());
         dealWithError(controller);
     }
@@ -48,7 +46,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public TxnMessage.ActionResponse lifecycleAction(byte[] rowKey,TxnMessage.TxnLifecycleMessage lifecycleMessage) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-        SpliceRpcController controller=new SpliceRpcController();
+        ServerRpcController controller=new ServerRpcController();
         BlockingRpcCallback<TxnMessage.ActionResponse> done=new BlockingRpcCallback<>();
         service.lifecycleAction(controller,lifecycleMessage,done);
         dealWithError(controller);
@@ -59,7 +57,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     public void elevate(byte[] rowKey,TxnMessage.ElevateRequest elevateRequest) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
 
-        SpliceRpcController controller=new SpliceRpcController();
+        ServerRpcController controller=new ServerRpcController();
         service.elevateTransaction(controller,elevateRequest,new BlockingRpcCallback<TxnMessage.VoidResponse>());
         dealWithError(controller);
     }
@@ -70,7 +68,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
                     HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW,new Batch.Call<TxnMessage.TxnLifecycleService, TxnMessage.ActiveTxnIdResponse>(){
                         @Override
                         public TxnMessage.ActiveTxnIdResponse call(TxnMessage.TxnLifecycleService instance) throws IOException{
-                            SpliceRpcController controller=new SpliceRpcController();
+                            ServerRpcController controller=new ServerRpcController();
                             BlockingRpcCallback<TxnMessage.ActiveTxnIdResponse> response=new BlockingRpcCallback<>();
 
                             instance.getActiveTransactionIds(controller,request,response);
@@ -98,7 +96,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
                     HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW,new Batch.Call<TxnMessage.TxnLifecycleService, TxnMessage.ActiveTxnResponse>(){
                         @Override
                         public TxnMessage.ActiveTxnResponse call(TxnMessage.TxnLifecycleService instance) throws IOException{
-                            SpliceRpcController controller=new SpliceRpcController();
+                            ServerRpcController controller=new ServerRpcController();
                             BlockingRpcCallback<TxnMessage.ActiveTxnResponse> response=new BlockingRpcCallback<>();
 
                             instance.getActiveTransactions(controller,request,response);
@@ -112,7 +110,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public TxnMessage.Txn getTxn(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-        SpliceRpcController controller=new SpliceRpcController();
+        ServerRpcController controller=new ServerRpcController();
         BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
         service.getTransaction(controller,request,done);
         dealWithError(controller);
@@ -128,12 +126,9 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
 
     /* ***************************************************************************************************************/
     /*private helper methods*/
-    private void dealWithError(SpliceRpcController controller) throws IOException{
+    private void dealWithError(ServerRpcController controller) throws IOException{
         if(!controller.failed()) return; //nothing to worry about
-        SpliceLogUtils.error(LOG,controller.getThrowable());
-        Throwable t=controller.getThrowable();
-        if(t instanceof IOException)
-            throw (IOException)t;
-        else throw new IOException(t);
+        SpliceLogUtils.error(LOG,controller.getFailedOn());
+        throw controller.getFailedOn();
     }
 }

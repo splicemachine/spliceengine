@@ -20,7 +20,6 @@ import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.hbase.SpliceRpcController;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.storage.PartitionInfoCache;
@@ -29,6 +28,7 @@ import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.log4j.Logger;
 
@@ -75,11 +75,10 @@ public class BulkWriteChannelInvoker {
             SpliceMessage.BulkWriteRequest bwr = builder.build();
 
             BlockingRpcCallback<SpliceMessage.BulkWriteResponse> doneCallback =new BlockingRpcCallback<>();
-            SpliceRpcController controller = new SpliceRpcController();
-
+            ServerRpcController controller = new ServerRpcController();
             service.bulkWrite(controller, bwr, doneCallback);
             if (controller.failed()){
-                Throwable error=controller.getThrowable();
+                IOException error=controller.getFailedOn();
                 clearCacheIfNeeded(error);
                 cacheCheck=true;
                 if(error!=null)

@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.impl;
 
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.sparkproject.guava.collect.Iterators;
 import org.sparkproject.guava.collect.Lists;
 import org.sparkproject.guava.primitives.Longs;
@@ -25,7 +26,6 @@ import com.splicemachine.encoding.DecodingIterator;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.SpliceRpcController;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -403,13 +403,9 @@ public class CoprocessorTxnStore implements TxnStore {
         return TxnUtils.getRowKey(txnId);
     }
 
-    private void dealWithError(SpliceRpcController controller) throws IOException{
+    private void dealWithError(ServerRpcController controller) throws IOException{
         if(!controller.failed()) return; //nothing to worry about
-        Throwable t=controller.getThrowable();
-        if(t instanceof IOException)
-            throw (IOException)t;
-        else throw new IOException(t);
-
+        throw controller.getFailedOn();
     }
 
     public static void main(String... args) throws Exception{
