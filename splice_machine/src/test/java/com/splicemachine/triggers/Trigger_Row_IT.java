@@ -77,7 +77,7 @@ public class Trigger_Row_IT {
         Connection c = classWatcher.createConnection();
         try(Statement s = c.createStatement()){
             s.executeUpdate("create table T (a int, b int, c int)");
-            s.executeUpdate("create table RECORD (text varchar(99))");
+            s.executeUpdate("create table RECORD (text2 varchar(99))");
             s.executeUpdate("insert into T values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5),(6,6,6)");
         }
     }
@@ -240,8 +240,8 @@ public class Trigger_Row_IT {
             s.executeUpdate("create table T3391 (a bigint primary key, b bigint unique, c bigint)");
             s.executeUpdate("insert into T3391 values(1,1,1),(2,2,2)");
             s.executeUpdate("insert into RECORD values('aaa'), ('bbb')");
-            createTrigger(tb.named("t3391a").after().delete().on("T3391").row().then("delete from RECORD where text='aaa'"));
-            createTrigger(tb.named("t3391b").after().delete().on("T3391").row().then("delete from RECORD where text='bbb'"));
+            createTrigger(tb.named("t3391a").after().delete().on("T3391").row().then("delete from RECORD where text2='aaa'"));
+            createTrigger(tb.named("t3391b").after().delete().on("T3391").row().then("delete from RECORD where text2='bbb'"));
             assertRecordCount(s,"aaa",1);
             assertRecordCount(s,"bbb",1);
 
@@ -471,7 +471,7 @@ public class Trigger_Row_IT {
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void assertRecordCount(Statement s,String tag,long expectedCount) throws Exception {
-        long actualCount = StatementUtils.onlyLong(s, "select count(*) from RECORD where text='" + tag + "'");
+        long actualCount = StatementUtils.onlyLong(s, "select count(*) from RECORD where text2='" + tag + "'");
         assertEquals("Didn't find expected number of rows:", expectedCount, actualCount);
     }
 
