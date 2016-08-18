@@ -15,30 +15,19 @@
 
 package com.splicemachine.test;
 
-import java.io.IOException;
-import java.sql.Connection;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.protobuf.RpcCallback;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.hbase.SpliceRpcController;
-import com.splicemachine.homeless.TestUtils;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 
 /**
  * Test utilities requiring HBase
@@ -57,7 +46,7 @@ public class HBaseTestUtils {
     private static boolean setBlock(final boolean onOff, CallType type) throws Throwable {
         org.apache.hadoop.hbase.client.Connection hbaseConnection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
         Admin admin = hbaseConnection.getAdmin();
-        SpliceRpcController controller = new SpliceRpcController();
+        ServerRpcController controller = new ServerRpcController();
         SpliceMessage.BlockingProbeRequest message = SpliceMessage.BlockingProbeRequest.newBuilder().setDoBlock(onOff).build();
         final AtomicBoolean success = new AtomicBoolean(true);
         Collection<ServerName> servers = admin.getClusterStatus().getServers();

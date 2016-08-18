@@ -391,6 +391,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                         SpliceLogUtils.debug(LOG,"Retrying write after receiving global error: id=%d, class=%s, message=%s",id,e.getClass(),e.getMessage());
                     }
                     ctx.sleep=true;
+                    ctx.refreshCache = true;
                     for(BulkWrite bw : nextWrite.getBulkWrites()){
                         ctx.addBulkWrites(bw.getMutations());
                         catchRetriedRows.add(bw.getSize());

@@ -26,17 +26,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
 import com.google.common.collect.Maps;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Throwables;
-
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
@@ -186,12 +185,12 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                      new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, Pair<String, Long>>() {
                         @Override
                         public Pair<String, Long> call(SpliceMessage.SpliceDerbyCoprocessorService inctance) throws IOException {
-                            SpliceRpcController controller = new SpliceRpcController();
+                            ServerRpcController controller = new ServerRpcController();
                             SpliceMessage.SpliceRegionSizeRequest message = SpliceMessage.SpliceRegionSizeRequest.newBuilder().build();
                             BlockingRpcCallback<SpliceMessage.SpliceRegionSizeResponse> rpcCallback = new BlockingRpcCallback<>();
                             inctance.computeRegionSize(controller, message, rpcCallback);
                             if (controller.failed()) {
-                                Throwable t = Throwables.getRootCause(controller.getThrowable());
+                                Throwable t = Throwables.getRootCause(controller.getFailedOn());
                                 if (t instanceof IOException) throw (IOException) t;
                                 else throw new IOException(t);
                             }
