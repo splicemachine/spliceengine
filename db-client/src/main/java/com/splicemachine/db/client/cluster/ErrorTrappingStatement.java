@@ -23,9 +23,9 @@ import java.sql.*;
  *         Date: 8/15/16
  */
 abstract class ErrorTrappingStatement implements Statement{
-    private final Statement delegate;
+    protected Statement delegate;
 
-    public ErrorTrappingStatement(Statement delegate){
+    ErrorTrappingStatement(Statement delegate){
         this.delegate=delegate;
     }
 

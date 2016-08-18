@@ -257,6 +257,7 @@ public class ClusteredDataSource implements DataSource{
     }
 
     static final String DEFAULT_ACTIVE_SERVER_QUERY="call SYSCS_UTIL.GET_ACTIVE_SERVERS()";
+
     @SuppressWarnings("WeakerAccess")
     protected Set<String> detectServers(){
         int numTries=activeServers.size();
