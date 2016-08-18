@@ -54,7 +54,7 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
             op.setCurrentRow(mergedRow);
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
                 operationContext.recordFilter();
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
             }
         }
         // No Rows Matched...
