@@ -15,22 +15,20 @@
 
 package com.splicemachine.derby.stream.stats;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.StatisticsAdmin;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +64,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data>{
                              int[] columnPositionMap){
         super(scanner,region,template,scan,rowDecodingMap,txn,keyColumnEncodingOrder,
                 keyColumnSortOrder,keyColumnTypes,keyDecodingMap,accessedPks,reuseRowLocation,indexName,
-                tableVersion,filterFactory);
+                tableVersion,filterFactory, Metrics.basicMetricFactory());
         this.columnPositionMap=columnPositionMap;
         this.conglomId = conglomId;
         regionId = region.getRegionName();

@@ -361,6 +361,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     indexName,
                     tableVersion,
                     filterFactory,
+                    Metrics.noOpMetricFactory(),
                     demarcationPoint);
         }
     }

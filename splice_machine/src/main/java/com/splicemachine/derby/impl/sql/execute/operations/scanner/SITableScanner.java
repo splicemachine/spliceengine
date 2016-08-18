@@ -97,7 +97,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              boolean reuseRowLocation,
                              String indexName,
                              final String tableVersion,
-                             SIFilterFactory filterFactory) {
+                             SIFilterFactory filterFactory,
+                             MetricFactory metricFactory) {
         assert template!=null:"Template cannot be null into a scanner";
         this.region = region;
         this.scan = scan;
@@ -106,7 +107,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.keyColumnSortOrder = keyColumnSortOrder;
         this.indexName = indexName;
         this.reuseRowLocation = reuseRowLocation;
-        MetricFactory metricFactory = Metrics.basicMetricFactory();
         this.filterCounter = metricFactory.newCounter();
         this.outputBytesCounter = metricFactory.newCounter();
         this.regionScanner = scanner;
@@ -137,10 +137,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              String indexName,
                              final String tableVersion,
                              SIFilterFactory filterFactory,
+                             MetricFactory metricFactory,
                              final long demarcationPoint) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory);
+                tableVersion, filterFactory,metricFactory);
         this.demarcationPoint = demarcationPoint;
         if(filterFactory==null)
             this.filterFactory = createFilterFactory(txn, demarcationPoint);
