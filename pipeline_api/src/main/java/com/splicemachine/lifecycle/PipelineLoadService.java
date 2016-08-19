@@ -17,7 +17,6 @@ package com.splicemachine.lifecycle;
 
 import com.google.common.base.Function;
 import com.splicemachine.access.api.ServerControl;
-import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
