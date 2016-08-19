@@ -687,7 +687,7 @@ public class Subquery_Flattening_NotExists_IT {
         methodWatcher.executeUpdate("insert into Y values(1),(2),(3)");
         int deleteCount = methodWatcher.executeUpdate("delete from Y where not exists (select 1 from Z)");
         assertEquals(3, deleteCount);
-        assertEquals(0L, methodWatcher.query("select count(*) from Y"));
+        assertEquals(0L, (long)methodWatcher.query("select count(*) from Y"));
 
         // uncorrelated -- all rows excluded because of not exists subquery
         methodWatcher.executeUpdate("insert into Y values(1),(2),(3)");
@@ -698,7 +698,7 @@ public class Subquery_Flattening_NotExists_IT {
         // uncorrelated -- not exists subquery does not exclude any rows because of a predicate it has
         deleteCount = methodWatcher.executeUpdate("delete from Y where not exists (select 1 from Z where z1 > 100)");
         assertEquals(3, deleteCount);
-        assertEquals(0L, methodWatcher.query("select count(*) from Y"));
+        assertEquals(0L, (long)methodWatcher.query("select count(*) from Y"));
     }
 
     @Test

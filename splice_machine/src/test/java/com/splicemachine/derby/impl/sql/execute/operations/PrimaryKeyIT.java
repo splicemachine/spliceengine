@@ -70,7 +70,7 @@ public class PrimaryKeyIT {
             fail("Did not throw an exception on duplicate records on primary key");
         } catch (SQLException e) {
             assertEquals("Incorrect error returned.", "23505", e.getSQLState());
-            assertEquals("Expected 2 rows in table X", 2L, methodWatcher.query("select count(*) from X"));
+            assertEquals("Expected 2 rows in table X", 2L, (long)methodWatcher.query("select count(*) from X"));
         }
     }
 
@@ -105,8 +105,8 @@ public class PrimaryKeyIT {
         methodWatcher.executeUpdate("create table UU(a int primary key, b int unique)");
         methodWatcher.executeUpdate("insert into UU values(1,1)");
         methodWatcher.executeUpdate("update UU set a=-10 where a=1");
-        assertEquals(1L, methodWatcher.query("select count(*) from UU where a=-10"));
-        assertEquals(0L, methodWatcher.query("select count(*) from UU where a=1"));
+        assertEquals(1L, (long)methodWatcher.query("select count(*) from UU where a=-10"));
+        assertEquals(0L, (long)methodWatcher.query("select count(*) from UU where a=1"));
     }
 
     @Test
@@ -116,7 +116,7 @@ public class PrimaryKeyIT {
             fail("Did not throw an exception on duplicate records on primary key");
         } catch (SQLException e) {
             assertEquals("Incorrect error returned.", "23505", e.getSQLState());
-            assertEquals(1L, methodWatcher.query("select count(*) from A where name = 'sfines'"));
+            assertEquals(1L, (long)methodWatcher.query("select count(*) from A where name = 'sfines'"));
         }
     }
 
@@ -125,12 +125,12 @@ public class PrimaryKeyIT {
         Connection conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
         try {
-            assertEquals(1L, methodWatcher.query("select count(*) from A where name='sfines'"));
+            assertEquals(1L, (long)methodWatcher.query("select count(*) from A where name='sfines'"));
 
             methodWatcher.executeUpdate("delete from A");
             methodWatcher.executeUpdate("insert into A (name,val) values ('sfines',2)");
 
-            assertEquals(1L, methodWatcher.query("select count(*) from A where name='sfines'"));
+            assertEquals(1L, (long)methodWatcher.query("select count(*) from A where name='sfines'"));
         } finally {
             conn.rollback();
         }
@@ -141,14 +141,14 @@ public class PrimaryKeyIT {
         Connection conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
         try {
-            assertEquals(0L, methodWatcher.query("select count(*) from A where name='other'"));
+            assertEquals(0L, (long)methodWatcher.query("select count(*) from A where name='other'"));
 
             methodWatcher.executeUpdate("insert into A (name, val) values ('other',2)");
-            assertEquals(1L, methodWatcher.query("select count(*) from A where name='other'"));
+            assertEquals(1L, (long)methodWatcher.query("select count(*) from A where name='other'"));
 
             methodWatcher.executeUpdate("delete from A where name = 'other'");
 
-            assertEquals(0L, methodWatcher.query("select count(*) from A where name='other'"));
+            assertEquals(0L, (long)methodWatcher.query("select count(*) from A where name='other'"));
         } finally {
             conn.rollback();
         }

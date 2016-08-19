@@ -70,14 +70,14 @@ public class TPCHIT {
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
 
         // validate
-        assertEquals(9958L, spliceClassWatcher.query("select count(*) from " + LINEITEM));
-        assertEquals(2500L, spliceClassWatcher.query("select count(*) from " + ORDERS));
-        assertEquals(250L, spliceClassWatcher.query("select count(*) from " + CUSTOMERS));
-        assertEquals(1332L, spliceClassWatcher.query("select count(*) from " + PARTSUPP));
-        assertEquals(16L, spliceClassWatcher.query("select count(*) from " + SUPPLIER));
-        assertEquals(333L, spliceClassWatcher.query("select count(*) from " + PART));
-        assertEquals(25L, spliceClassWatcher.query("select count(*) from " + NATION));
-        assertEquals(5L, spliceClassWatcher.query("select count(*) from " + REGION));
+        assertEquals(9958L, (long)spliceClassWatcher.query("select count(*) from " + LINEITEM));
+        assertEquals(2500L, (long)spliceClassWatcher.query("select count(*) from " + ORDERS));
+        assertEquals(250L, (long)spliceClassWatcher.query("select count(*) from " + CUSTOMERS));
+        assertEquals(1332L, (long)spliceClassWatcher.query("select count(*) from " + PARTSUPP));
+        assertEquals(16L, (long)spliceClassWatcher.query("select count(*) from " + SUPPLIER));
+        assertEquals(333L, (long)spliceClassWatcher.query("select count(*) from " + PART));
+        assertEquals(25L, (long)spliceClassWatcher.query("select count(*) from " + NATION));
+        assertEquals(5L, (long)spliceClassWatcher.query("select count(*) from " + REGION));
     }
 
 

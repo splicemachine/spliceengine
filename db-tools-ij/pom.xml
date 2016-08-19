@@ -67,7 +67,7 @@
                             <goal>javacc</goal>
                         </goals>
                         <configuration>
-                            <jdkVersion>1.7</jdkVersion>
+                            <jdkVersion>1.8</jdkVersion>
                             <packageName>com.splicemachine.db.impl.tools.ij</packageName>
                             <sourceDirectory>src/main/grammar</sourceDirectory>
                             <outputDirectory>${project.build.directory}/generated-sources/javacc_ij

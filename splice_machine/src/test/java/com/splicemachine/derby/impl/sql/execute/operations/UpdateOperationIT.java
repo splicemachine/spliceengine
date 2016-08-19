@@ -147,7 +147,7 @@ public class UpdateOperationIT {
         int updated = methodWatcher.executeUpdate("update c set k = NULL where l = 2");
 
         assertEquals("incorrect num rows updated!", 1L, updated);
-        assertEquals("incorrect num rows present!", 2L, methodWatcher.query("select count(*) from c"));
+        assertEquals("incorrect num rows present!", 2L, (long)methodWatcher.query("select count(*) from c"));
 
         ResultSet rs = methodWatcher.executeQuery("select * from c");
         assertEquals("" +
@@ -326,8 +326,8 @@ public class UpdateOperationIT {
         int rows = methodWatcher.executeUpdate("update tab2 set c2=99 where c3=2");
 
         assertEquals("incorrect num rows updated!", 2L, rows);
-        assertEquals("incorrect num rows present!", 7L, methodWatcher.query("select count(*) from tab2"));
-        assertEquals("incorrect num rows present!", 7L, methodWatcher.query("select count(*) from tab2 --SPLICE-PROPERTIES index=ti"));
+        assertEquals("incorrect num rows present!", 7L, (long)methodWatcher.query("select count(*) from tab2"));
+        assertEquals("incorrect num rows present!", 7L, (long)methodWatcher.query("select count(*) from tab2 --SPLICE-PROPERTIES index=ti"));
 
         ResultSet rs1 = methodWatcher.executeQuery("select * from tab2 where c3=2");
         ResultSet rs2 = methodWatcher.executeQuery("select * from tab2 --SPLICE-PROPERTIES index=ti \n where c3=2");
@@ -352,9 +352,9 @@ public class UpdateOperationIT {
         int rows = methodWatcher.executeUpdate("update tab4 set c2=88, c3=888, c4=8888 where c1=10 or c1 = 20");
 
         assertEquals("incorrect num rows updated!", 2L, rows);
-        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab4"));
-        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab4 --SPLICE-PROPERTIES index=tab4_idx"));
-        assertEquals("expected this row to be deleted from index", 0L, methodWatcher.query("select count(*) from tab4 --SPLICE-PROPERTIES index=tab4_idx\n where c2=10"));
+        assertEquals("incorrect num rows present!", 3L, (long)methodWatcher.query("select count(*) from tab4"));
+        assertEquals("incorrect num rows present!", 3L, (long)methodWatcher.query("select count(*) from tab4 --SPLICE-PROPERTIES index=tab4_idx"));
+        assertEquals("expected this row to be deleted from index", 0L, (long)methodWatcher.query("select count(*) from tab4 --SPLICE-PROPERTIES index=tab4_idx\n where c2=10"));
 
         ResultSet rs1 = methodWatcher.executeQuery("select * from tab4 where c1=10 or c1 = 20");
         ResultSet rs2 = methodWatcher.executeQuery("select * from tab4 --SPLICE-PROPERTIES index=tab4_idx \n where c1=10 or c1 = 20");
@@ -385,8 +385,8 @@ public class UpdateOperationIT {
         int rows = methodWatcher.executeUpdate("update tab3 set a=99,b=99,c=99 where d=30");
 
         assertEquals("incorrect num rows updated!", 1L, rows);
-        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab3"));
-        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab3 --SPLICE-PROPERTIES index=index_tab3"));
+        assertEquals("incorrect num rows present!", 3L, (long)methodWatcher.query("select count(*) from tab3"));
+        assertEquals("incorrect num rows present!", 3L, (long)methodWatcher.query("select count(*) from tab3 --SPLICE-PROPERTIES index=index_tab3"));
 
         ResultSet rs1 = methodWatcher.executeQuery("select * from tab3 where d=30");
         ResultSet rs2 = methodWatcher.executeQuery("select * from tab3 --SPLICE-PROPERTIES index=index_tab3 \n where d=30");
@@ -416,15 +416,15 @@ public class UpdateOperationIT {
 
         // updates to null should remain null.  So we are testing setting null to null on base and index conglom.
         // Even though null to null rows are not physically changed they should still contribute to row count.
-        assertEquals(4L, methodWatcher.executeUpdate("update NT set a = a + 9"));
+        assertEquals(4L, (long)methodWatcher.executeUpdate("update NT set a = a + 9"));
 
         // same thing, but updating using primary key
-        assertEquals(1L, methodWatcher.executeUpdate("update NT set a = a + 9 where id=1"));
+        assertEquals(1L, (long)methodWatcher.executeUpdate("update NT set a = a + 9 where id=1"));
 
-        assertEquals(4L, methodWatcher.query("select count(*) from nt"));
-        assertEquals(4L, methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx"));
-        assertEquals(3L, methodWatcher.query("select count(*) from nt where a is null"));
-        assertEquals(3L, methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx\n where a is null"));
+        assertEquals(4L, (long)methodWatcher.query("select count(*) from nt"));
+        assertEquals(4L, (long)methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx"));
+        assertEquals(3L, (long)methodWatcher.query("select count(*) from nt where a is null"));
+        assertEquals(3L,(long) methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx\n where a is null"));
     }
 
     // If you change one of the following 'update over join' tests,

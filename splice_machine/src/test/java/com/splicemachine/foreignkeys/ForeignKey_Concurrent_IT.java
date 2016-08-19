@@ -73,8 +73,8 @@ public class ForeignKey_Concurrent_IT {
         connection1.commit();
 
         // After concurrent transaction commit verify row count seen by third transaction.
-        assertEquals(1L, methodWatcher.query("select count(*) from P where a=4"));
-        assertEquals(1L, methodWatcher.query("select count(*) from C where a=4"));
+        assertEquals(1L, (long)methodWatcher.query("select count(*) from P where a=4"));
+        assertEquals(1L, (long)methodWatcher.query("select count(*) from C where a=4"));
     }
 
     @Test(timeout = 10000)
@@ -94,10 +94,10 @@ public class ForeignKey_Concurrent_IT {
         connection2.commit();
 
         // After concurrent transaction commit verify row count seen by third transaction.
-        assertEquals(0L, methodWatcher.query("select count(*) from P where a=2"));
-        assertEquals(0L, methodWatcher.query("select count(*) from P where a=3"));
-        assertEquals(1L, methodWatcher.query("select count(*) from P where a=300"));
-        assertEquals(0L, methodWatcher.query("select count(*) from C where a=2"));
+        assertEquals(0L, (long)methodWatcher.query("select count(*) from P where a=2"));
+        assertEquals(0L, (long)methodWatcher.query("select count(*) from P where a=3"));
+        assertEquals(1L, (long)methodWatcher.query("select count(*) from P where a=300"));
+        assertEquals(0L, (long)methodWatcher.query("select count(*) from C where a=2"));
     }
 
         /**

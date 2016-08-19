@@ -506,7 +506,7 @@ public class DropColumnTransactionIT {
         // Important: we count rows by iteration and via select count(*) because
         // while resolving the related defect these returned different counts.
 
-        Assert.assertEquals(1L, methodWatcher.query(String.format(
+        Assert.assertEquals(1L, (long)methodWatcher.query(String.format(
             "select count(*) from %s where bar = 100 %s", tableRef, suffix)));
 
         List<Object[]> expected = (num == 1 ?
@@ -517,7 +517,7 @@ public class DropColumnTransactionIT {
         List results = TestUtils.resultSetToArrays(rs);
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
 
-        Assert.assertEquals(0L, methodWatcher.query(String.format(
+        Assert.assertEquals(0L, (long)methodWatcher.query(String.format(
             "select count(*) from %s where bar = 5 %s", tableRef, suffix)));
 
         expected = Collections.emptyList();
@@ -526,7 +526,7 @@ public class DropColumnTransactionIT {
         results = TestUtils.resultSetToArrays(rs);
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
 
-        Assert.assertEquals(0L, methodWatcher.query(String.format(
+        Assert.assertEquals(0L, (long)methodWatcher.query(String.format(
             "select count(bar) from %s where bar = 5 %s", tableRef, suffix)));
 
         expected = Collections.emptyList();

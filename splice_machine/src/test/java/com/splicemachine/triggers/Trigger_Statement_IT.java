@@ -100,14 +100,14 @@ public class Trigger_Statement_IT {
         // when - update
         methodWatcher.executeUpdate("update T set b = b * 2 where a <= 4");
         // then - verify trigger has fired
-        Assert.assertEquals(1L,methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+        Assert.assertEquals(1L,(long)methodWatcher.query("select count(*) from RECORD where text = 'update'"));
 
         // when -- update twice more
         methodWatcher.executeUpdate("update T set b = b * 2 where a <= 2");
         methodWatcher.executeUpdate("update T set b = b * 2 where a <= 2");
 
         // then - verify trigger has fired twice more
-        Assert.assertEquals(3L,methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+        Assert.assertEquals(3L,(long)methodWatcher.query("select count(*) from RECORD where text = 'update'"));
     }
 
     /* When an update succeeds but the trigger action fails then the changes from the triggering statement should be rolled back. */
@@ -124,7 +124,7 @@ public class Trigger_Statement_IT {
         }
 
         // most important original update changes should not be visible
-        Assert.assertEquals(0L,methodWatcher.query("select count(*) from T where b=0 or c=0"));
+        Assert.assertEquals(0L,(long)methodWatcher.query("select count(*) from T where b=0 or c=0"));
     }
 
     /* Need a test that fires the same trigger more than 16 times to verify it doesn't blow up because of failure
@@ -139,7 +139,7 @@ public class Trigger_Statement_IT {
         }
 
         // then - verify trigger has fired
-        Assert.assertEquals(32L,methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+        Assert.assertEquals(32L,(long)methodWatcher.query("select count(*) from RECORD where text = 'update'"));
     }
 
     /* Trigger on subset of columns */
@@ -150,13 +150,13 @@ public class Trigger_Statement_IT {
         // when - update
         methodWatcher.executeUpdate("update T set a = a * 2");
         // then - verify trigger has fired
-        Assert.assertEquals(0L,methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+        Assert.assertEquals(0L,(long)methodWatcher.query("select count(*) from RECORD where text = 'update'"));
 
         // when -- update twice more
         methodWatcher.executeUpdate("update T set b = b * 2");
-        Assert.assertEquals(1L,methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+        Assert.assertEquals(1L,(long)methodWatcher.query("select count(*) from RECORD where text = 'update'"));
         methodWatcher.executeUpdate("update T set c = c * 2");
-        Assert.assertEquals(2L,methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+        Assert.assertEquals(2L,(long)methodWatcher.query("select count(*) from RECORD where text = 'update'"));
     }
 
     @Test
@@ -165,16 +165,16 @@ public class Trigger_Statement_IT {
 
         // one insert
         methodWatcher.executeUpdate("insert into T select * from T");
-        Assert.assertEquals(1L,methodWatcher.query("select count(*) from RECORD where text='insert'"));
+        Assert.assertEquals(1L,(long)methodWatcher.query("select count(*) from RECORD where text='insert'"));
 
         // two more inserts
         methodWatcher.executeUpdate("insert into T select * from T");
         methodWatcher.executeUpdate("insert into T select * from T");
-        Assert.assertEquals(3L,methodWatcher.query("select count(*) from RECORD where text='insert'"));
+        Assert.assertEquals(3L,(long)methodWatcher.query("select count(*) from RECORD where text='insert'"));
 
         // Insert VALUES - a special case in splice at the time of writing, different code is executed.
         methodWatcher.executeUpdate("insert into T values (1,1,1),(2,2,2),(3,3,3)");
-        Assert.assertEquals(4L,methodWatcher.query("select count(*) from RECORD where text='insert'"));
+        Assert.assertEquals(4L,(long)methodWatcher.query("select count(*) from RECORD where text='insert'"));
     }
 
     @Test
@@ -186,8 +186,8 @@ public class Trigger_Statement_IT {
 
         // one insert
         methodWatcher.executeUpdate("insert into T select * from T");
-        Assert.assertEquals(1L,methodWatcher.query("select count(*) from RECORD where text='insert01'"));
-        Assert.assertEquals(1L,methodWatcher.query("select count(*) from RECORD where text='insert02'"));
+        Assert.assertEquals(1L,(long)methodWatcher.query("select count(*) from RECORD where text='insert01'"));
+        Assert.assertEquals(1L,(long)methodWatcher.query("select count(*) from RECORD where text='insert02'"));
     }
 
     @Test
@@ -196,11 +196,11 @@ public class Trigger_Statement_IT {
 
         // trigger fires on single delete
         methodWatcher.executeUpdate("delete from T where a = 4");
-        Assert.assertEquals(1L,methodWatcher.query("select count(*) from RECORD where text = 'delete'"));
+        Assert.assertEquals(1L,(long)methodWatcher.query("select count(*) from RECORD where text = 'delete'"));
 
         // delete two rows, trigger still fires once
         methodWatcher.executeUpdate("delete from T where a = 5 or a = 6");
-        Assert.assertEquals(2L,methodWatcher.query("select count(*) from RECORD where text = 'delete'"));
+        Assert.assertEquals(2L,(long)methodWatcher.query("select count(*) from RECORD where text = 'delete'"));
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -218,7 +218,7 @@ public class Trigger_Statement_IT {
         assertQueryFails("update T set b = 99", "Attempt to divide by zero.");
 
         // triggering statement should have had no affect.
-        Assert.assertEquals(0L,methodWatcher.query("select count(*) from T where b = 99"));
+        Assert.assertEquals(0L,(long)methodWatcher.query("select count(*) from T where b = 99"));
     }
 
     @Test
@@ -229,7 +229,7 @@ public class Trigger_Statement_IT {
         assertQueryFails("insert into T values(99,99,99)", "Attempt to divide by zero.");
 
         // triggering statement should have had no affect.
-        Assert.assertEquals(0L,methodWatcher.query("select count(*) from T where a = 99"));
+        Assert.assertEquals(0L,(long)methodWatcher.query("select count(*) from T where a = 99"));
     }
 
     @Test
@@ -265,7 +265,7 @@ public class Trigger_Statement_IT {
         assertQueryFails("update T set b = b + 1", "Maximum depth of nested triggers was exceeded.");
 
         // then
-        Assert.assertEquals("expected unchanged row count",6L,methodWatcher.query("select count(*) from T"));
+        Assert.assertEquals("expected unchanged row count",6L,(long)methodWatcher.query("select count(*) from T"));
     }
 
     @Test
@@ -293,7 +293,7 @@ public class Trigger_Statement_IT {
         assertQueryFails("insert into T values(1,1,1)", "Maximum depth of nested triggers was exceeded.");
 
         // then
-        Assert.assertEquals("expected unchanged row count",6L,methodWatcher.query("select count(*) from T"));
+        Assert.assertEquals("expected unchanged row count",6L,(long)methodWatcher.query("select count(*) from T"));
     }
 
     /* DB-3351 */
@@ -307,7 +307,7 @@ public class Trigger_Statement_IT {
 
         methodWatcher.executeUpdate("delete from a");
 
-        Assert.assertEquals(1L,methodWatcher.query("select count(*) from a"));
+        Assert.assertEquals(1L,(long)methodWatcher.query("select count(*) from a"));
 
         // when - add recursive trigger
         methodWatcher.executeUpdate(tb.named("trig2").after().delete().on("a").statement()

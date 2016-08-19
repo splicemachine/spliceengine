@@ -582,7 +582,7 @@ public class Subquery_Flattening_Exists_IT {
         methodWatcher.executeUpdate("insert into Z values(1),(2),(3)");
         int deleteCount = methodWatcher.executeUpdate("delete from Y where exists (select 1 from Z)");
         assertEquals(3, deleteCount);
-        assertEquals(0L, methodWatcher.query("select count(*) from Y"));
+        assertEquals(0L, (long)methodWatcher.query("select count(*) from Y"));
 
         // uncorrelated -- delete nothing, because subquery predicate excludes all rows
         methodWatcher.executeUpdate("insert into Y values(1),(2),(3)");
@@ -593,7 +593,7 @@ public class Subquery_Flattening_Exists_IT {
         // uncorrelated -- delete everything, because subquery predicate does not exclude all rows
         deleteCount = methodWatcher.executeUpdate("delete from Y where exists (select 1 from Z where z1=1)");
         assertEquals(3, deleteCount);
-        assertEquals(0L, methodWatcher.query("select count(*) from Y"));
+        assertEquals(0L, (long)methodWatcher.query("select count(*) from Y"));
     }
 
     @Test
