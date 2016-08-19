@@ -17,7 +17,6 @@ package com.splicemachine.lifecycle;
 
 import com.google.common.base.Function;
 import com.splicemachine.access.api.ServerControl;
-import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
@@ -27,7 +26,6 @@ import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
-
 import javax.management.MBeanServer;
 import java.io.IOException;
 
