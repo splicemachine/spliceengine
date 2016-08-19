@@ -116,6 +116,11 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     }
 
     @Override
+    public long getScannerOrder() {
+        return Long.MAX_VALUE;
+    }
+
+    @Override
     public boolean requestSeek(Cell kv,boolean forward,boolean useBloom) throws IOException{
         if(!forward)
             throw new UnsupportedOperationException("Backward scans not supported");
@@ -132,7 +137,6 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
         throw new UnsupportedOperationException("Backward scans not supported");
     }
 
-    @Override
     public long getSequenceID(){
         return Long.MAX_VALUE; // Set the max value - we have the most recent data
     }
