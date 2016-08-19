@@ -220,36 +220,36 @@ public class SIObserver extends BaseRegionObserver{
             }
             columnMap.put(column,new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.EMPTY_COLUMN));
         }
-        boolean processed=false;
         for(Map.Entry<byte[], Map<byte[], KVPair>> family : familyMap.entrySet()){
             byte[] fam=family.getKey();
             Map<byte[], KVPair> cols=family.getValue();
             for(Map.Entry<byte[], KVPair> column : cols.entrySet()){
-                @SuppressWarnings("unchecked") Iterable<MutationStatus> status=
-                        region.bulkWrite(txn,fam,column.getKey(),operationStatusFactory.getNoOpConstraintChecker(),Collections.singleton(column.getValue()));
-                Iterator<MutationStatus> itr= status.iterator();
-                if(!itr.hasNext())
-                    throw new IllegalStateException();
-                OperationStatus ms = ((HMutationStatus)itr.next()).unwrapDelegate();
-                switch(ms.getOperationStatusCode()){
-                    case NOT_RUN:
-                        break;
-                    case BAD_FAMILY:
-                        throw new NoSuchColumnFamilyException(ms.getExceptionMsg());
-                    case SANITY_CHECK_FAILURE:
-                        throw new IOException("Sanity Check failure:"+ms.getExceptionMsg());
-                    case FAILURE:
-                        throw new IOException(ms.getExceptionMsg());
-                    default:
-                        processed=true;
+                boolean processed=false;
+                while (!processed) {
+                    @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
+                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()));
+                    Iterator<MutationStatus> itr = status.iterator();
+                    if (!itr.hasNext())
+                        throw new IllegalStateException();
+                    OperationStatus ms = ((HMutationStatus) itr.next()).unwrapDelegate();
+                    switch (ms.getOperationStatusCode()) {
+                        case NOT_RUN:
+                            break;
+                        case BAD_FAMILY:
+                            throw new NoSuchColumnFamilyException(ms.getExceptionMsg());
+                        case SANITY_CHECK_FAILURE:
+                            throw new IOException("Sanity Check failure:" + ms.getExceptionMsg());
+                        case FAILURE:
+                            throw new IOException(ms.getExceptionMsg());
+                        default:
+                            processed = true;
+                    }
                 }
             }
         }
 
-        if(processed){
-            e.bypass();
-            e.complete();
-        }
+        e.bypass();
+        e.complete();
     }
 
     /* ****************************************************************************************************************/
