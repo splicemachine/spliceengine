@@ -49,6 +49,7 @@ public class StatisticsAdminIT{
     private static final String TABLE_OCCUPIED2="OCCUPIED2";
     private static final String MIXED_CASE_TABLE="MixedCaseTable";
     private static final String MIXED_CASE_SCHEMA="MixedCaseSchema";
+    private static final String UPDATE="UP_TABLE";
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -57,7 +58,6 @@ public class StatisticsAdminIT{
     @ClassRule
     public static TestRule chain2=RuleChain.outerRule(spliceClassWatcher2)
             .around(spliceSchemaWatcher2);
-
     @Rule
     public final SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA);
 
@@ -98,6 +98,51 @@ public class StatisticsAdminIT{
                 .withCreate("create table "+TABLE_EMPTY+" (a int)")
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table "+UPDATE+" (a int, b int)")
+                .withInsert("insert into "+UPDATE+" (a,b) values (1,1)")
+                .create();
+    }
+
+    @Test
+    public void testTableStatisticsAreCorrectAfterUpdate() throws Exception{
+        /*
+         * Regression test for SPLICE-856. Confirms that updates don't break the statistics
+         * scanning
+         */
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("update "+UPDATE+" set b = a");
+        }
+
+        try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?)")){
+            cs.setString(1,SCHEMA);
+            cs.setString(2,UPDATE);
+            cs.setBoolean(3, false);
+            cs.execute();
+
+        }
+        try(PreparedStatement ps = conn.prepareStatement("select null_count,null_fraction from sys.syscolumnstatistics where schemaname = ? and tablename = ?")){
+            ps.setString(1,SCHEMA);
+            ps.setString(2,UPDATE);
+
+            try(ResultSet rs = ps.executeQuery()){
+                int countDown = 2; //there should only be 2 rows returned
+                while(rs.next()){
+                    countDown--;
+                    Assert.assertTrue("Too many rows returned!",countDown>=0);
+
+                    Assert.assertEquals("Incorrect null count!",0,rs.getLong(1));
+                    Assert.assertFalse("Did not return a value for null count!",rs.wasNull());
+
+                    Assert.assertEquals("Incorrect null fraction!",0d,rs.getDouble(2),0d);
+                    Assert.assertFalse("Did not return a value for null fraction!",rs.wasNull());
+                }
+                Assert.assertEquals("Not enough rows returned!",0,countDown);
+            }
+        }
     }
 
     @Test
