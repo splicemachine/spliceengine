@@ -15,10 +15,8 @@
 
 package com.splicemachine.storage;
 
-import com.splicemachine.si.data.HExceptionFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +28,19 @@ import java.util.concurrent.locks.Lock;
  *         Date: 12/15/15
  */
 public class HLock implements Lock{
+    protected static boolean HAS_READ_LOCK_IMPL = false;
+
+    static {
+        try {
+            Class rowLockContextClass = Class.forName("org.apache.hadoop.hbase.regionserver.HRegion$RowLockContext");
+            rowLockContextClass.getDeclaredMethod("newReadLock", new Class[]{});
+            HAS_READ_LOCK_IMPL = true;
+        } catch (Exception e) {
+
+        }
+    }
+
+
     private final byte[] key;
 
     private HRegion.RowLock delegate;
@@ -42,11 +53,7 @@ public class HLock implements Lock{
     }
 
     @Override public void lock(){
-        try{
-            delegate = region.getRowLock(key,true);
-        }catch(IOException e){
-            throw new RuntimeException(HExceptionFactory.INSTANCE.processRemoteException(e));
-        }
+        throw new UnsupportedOperationException("Lock Called");
     }
 
     @Override
@@ -54,24 +61,37 @@ public class HLock implements Lock{
         lock();
     }
 
+    /**
+     *
+     * Try Lock Implementation
+     *
+     * // HBase as part of its 1.1.x release modified the locks to
+     * // throw IOException when it cannot be acquired vs. returning null
+     *
+     * @return
+     */
     @Override
     public boolean tryLock(){
         try{
-            delegate = region.getRowLock(key,false); // Null Lock Delegate means not run...
+            delegate = region.getRowLock(key,HAS_READ_LOCK_IMPL?true:false); // Null Lock Delegate means not run...
             return delegate!=null;
         }catch(IOException e){
-            throw new RuntimeException(HExceptionFactory.INSTANCE.processRemoteException(e));
+            return false;
         }
     }
 
+    /**
+     *
+     * The TimeUnit passed in is not used for HBase Row Locks
+     *
+     * @param time
+     * @param unit
+     * @return
+     * @throws InterruptedException
+     */
     @Override
     public boolean tryLock(long time,@Nonnull TimeUnit unit) throws InterruptedException{
-        try{
-            delegate = region.getRowLock(key,false);
-            return true;
-        }catch(IOException e){
-            throw new RuntimeException(HExceptionFactory.INSTANCE.processRemoteException(e));
-        }
+        return tryLock();
     }
 
     @Override
