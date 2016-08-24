@@ -296,8 +296,8 @@ public class StatisticsAdminIT{
         }
 
         // Check collected stats for both schemas
-        verifyStatsCounts(conn,SCHEMA,null,4,4);
-        verifyStatsCounts(conn2,SCHEMA2,null,3,3);
+        verifyStatsCounts(conn,SCHEMA,null,5,6);
+        verifyStatsCounts(conn2,SCHEMA2,null,4,5);
 
         // Drop stats for schema 1
         try (CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)")) {
@@ -307,7 +307,7 @@ public class StatisticsAdminIT{
 
         // Make sure only schema 1 stats were dropped, not schema 2 stats
         verifyStatsCounts(conn,SCHEMA,null,0,0);
-        verifyStatsCounts(conn2,SCHEMA2,null,3,3);
+        verifyStatsCounts(conn2,SCHEMA2,null,4,5);
 
         // Drop stats again for schema 1 to make sure it works with no stats
         try (CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)")) {
@@ -317,7 +317,7 @@ public class StatisticsAdminIT{
 
         // Make sure only schema 1 stats were dropped, not schema 2 stats
         verifyStatsCounts(conn,SCHEMA,null,0,0);
-        verifyStatsCounts(conn2,SCHEMA2,null,3,3);
+        verifyStatsCounts(conn2,SCHEMA2,null,4,5);
 
         // Drop stats for schema 2
         try (CallableStatement cs2=conn2.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)")) {
@@ -356,8 +356,8 @@ public class StatisticsAdminIT{
             cs2.execute();
         }
         // Check collected stats for both schemas
-        verifyStatsCounts(conn,SCHEMA,null,4,4);
-        verifyStatsCounts(conn2,SCHEMA2,null,3,3);
+        verifyStatsCounts(conn,SCHEMA,null,5,6);
+        verifyStatsCounts(conn2,SCHEMA2,null,4,5);
 
         // Drop stats for schema 1, table 1
         try (CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)")) {
@@ -367,9 +367,9 @@ public class StatisticsAdminIT{
         }
 
         // Make sure stats for both table and index were dropped in schema 1.
-        verifyStatsCounts(conn,SCHEMA,null,3,3);
+        verifyStatsCounts(conn,SCHEMA,null,4,5);
         verifyStatsCounts(conn,SCHEMA,TABLE_OCCUPIED,0,0);
-        verifyStatsCounts(conn2,SCHEMA2,null,3,3);
+        verifyStatsCounts(conn2,SCHEMA2,null,4,5);
 
         // Drop stats again for schema 1 to make sure it works with no stats
         try (CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)")) {
@@ -379,9 +379,9 @@ public class StatisticsAdminIT{
         }
 
         // Same as prior check
-        verifyStatsCounts(conn,SCHEMA,null,3,3);
+        verifyStatsCounts(conn,SCHEMA,null,4,5);
         verifyStatsCounts(conn,SCHEMA,TABLE_OCCUPIED,0,0);
-        verifyStatsCounts(conn2,SCHEMA2,null,3,3);
+        verifyStatsCounts(conn2,SCHEMA2,null,4,5);
 
         conn2.rollback();
         conn2.reset();
