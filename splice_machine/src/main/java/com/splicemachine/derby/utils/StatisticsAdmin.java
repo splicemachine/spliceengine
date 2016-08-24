@@ -357,6 +357,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     private static DataScan createScan (TxnView txn) {
         DataScan scan=SIDriver.driver().getOperationFactory().newDataScan(txn);
+        scan.returnAllVersions(); //make sure that we read all versions of the data
         return scan.startKey(new byte[0]).stopKey(new byte[0]);
     }
 
