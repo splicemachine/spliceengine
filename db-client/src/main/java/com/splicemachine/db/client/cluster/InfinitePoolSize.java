@@ -16,16 +16,18 @@
 
 package com.splicemachine.db.client.cluster;
 
-/**
- * @author Scott Fines
- *         Date: 8/16/16
- */
-interface ServerPoolFactory{
 
-    ServerPool newServerPool(String serverId,
-                             String database,
-                             String user,
-                             String password,
-                             PoolSizingStrategy sizingStrategy,
-                             BlackList<ServerPool> blackList);
+/**
+ * A Pool which allows an infinite number of open connections. Useful for testing,
+ * but is otherwise not really recommended.
+ *
+ * In effect, this does nothing
+ *
+ * @author Scott Fines
+ *         Date: 8/23/16
+ */
+public class InfinitePoolSize implements PoolSizingStrategy{
+    @Override public void acquirePermit(){ }
+    @Override public void releasePermit(){ }
+    @Override public int singleServerPoolSize(){ return Integer.MAX_VALUE; }
 }

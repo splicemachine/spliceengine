@@ -23,6 +23,7 @@ import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -95,10 +96,12 @@ public class ClusteredDataSource implements DataSource{
      */
     private static final Logger LOGGER = Logger.getLogger(ClusteredDataSource.class.getName());
 
+    private final String database;
     private final ConnectionSelectionStrategy selectionStrategy;
     private final PoolSizingStrategy sizingStrategy;
 
     private final List<ServerPool> activeServers=new CopyOnWriteArrayList<>();
+    private final String[] initialServerList;
     private final AtomicInteger serverChoice=new AtomicInteger(0);
 
     private final BlackList<ServerPool> blackListedServers=new BlackList<ServerPool>(){
@@ -108,21 +111,32 @@ public class ClusteredDataSource implements DataSource{
         }
     };
 
-    private volatile int loginTimeout=0;
     private final ScheduledExecutorService maintenanceThread;
     private final ServerPoolFactory serverPoolFactory;
     private final long heartbeatInterval;
+    private final String user;
+    private final String password;
+
+    private volatile int loginTimeout=0;
+    private AtomicBoolean closed = new AtomicBoolean(false);
 
     public ClusteredDataSource(String[] initialServers,
+                               String database,
+                               String user,
+                               String password,
                                PoolSizingStrategy poolSizingStrategy,
                                ConnectionSelectionStrategy selectionStrategy,
                                ServerPoolFactory serverPoolFactory,
                                long heartbeatPeriod,
                                long serverCheckPeriod){
+        this.initialServerList = initialServers;
+        this.database=database;
         this.selectionStrategy=selectionStrategy;
         this.sizingStrategy=poolSizingStrategy;
         this.serverPoolFactory = serverPoolFactory;
         this.heartbeatInterval = heartbeatPeriod;
+        this.user = user;
+        this.password = password;
         this.maintenanceThread=Executors.newSingleThreadScheduledExecutor(new ThreadFactory(){
             @Override
             @SuppressWarnings("NullableProblems")
@@ -138,19 +152,20 @@ public class ClusteredDataSource implements DataSource{
         submitMaintenance(serverCheckPeriod);
     }
 
-
     @Override
     public Connection getConnection() throws SQLException{
-        return getConnection(null,null);
-    }
-
-    @Override
-    public Connection getConnection(String username,String password) throws SQLException{
+        checkClosed();
         if(activeServers.size()<=0)
             throw new SQLException("There are no active and available servers; blacklisted nodes:"+blackListedServers.toString(),
                     SQLState.AUTH_DATABASE_CONNECTION_REFUSED,1);
 
-        sizingStrategy.acquirePermit();
+        try{
+            sizingStrategy.acquirePermit();
+        }catch(InterruptedException e){
+            //reset the interrupt flag
+            Thread.currentThread().interrupt();
+            throw new SQLException("Interrupted during connection acquisition",SQLState.CONN_INTERRUPT);
+        }
 
         int serverPos;
         boolean shouldContinue;
@@ -176,7 +191,7 @@ public class ClusteredDataSource implements DataSource{
             if(sp.isDead()){
                 cleanupDeadServer(sp);
             }else{
-                Connection conn=sp.tryAcquireConnection(username,password);
+                Connection conn=sp.tryAcquireConnection();
                 if(conn!=null)
                     return conn;
             }
@@ -199,13 +214,19 @@ public class ClusteredDataSource implements DataSource{
          */
         while(true){
             try{
-                return activeServers.get(serverPos%activeServers.size()).newConnection(username,password);
+                return activeServers.get(serverPos%activeServers.size()).newConnection();
             }catch(ArithmeticException ae){
                 throw new SQLException("There are no active and available servers; blacklisted nodes:"+blackListedServers.toString(),
                         SQLState.AUTH_DATABASE_CONNECTION_REFUSED,1);
             }catch(IndexOutOfBoundsException ignored){ }
         }
     }
+
+    @Override
+    public Connection getConnection(String username,String password) throws SQLException{
+        throw new SQLFeatureNotSupportedException("Cannot Pool multiple connections with different users");
+    }
+
 
 
     @Override
@@ -235,6 +256,7 @@ public class ClusteredDataSource implements DataSource{
 
     @Override
     public void setLoginTimeout(int seconds) throws SQLException{
+        checkClosed();
         this.loginTimeout=seconds;
     }
 
@@ -248,7 +270,7 @@ public class ClusteredDataSource implements DataSource{
         return blackListedServers.currentBlacklist();
     }
 
-    public Set<String> activeServers(){
+    Set<String> activeServers(){
         Set<String> activeServerNames = new HashSet<>(activeServers.size());
         for(ServerPool sp:activeServers){
            activeServerNames.add(sp.serverName);
@@ -256,18 +278,37 @@ public class ClusteredDataSource implements DataSource{
         return activeServerNames;
     }
 
-    static final String DEFAULT_ACTIVE_SERVER_QUERY="call SYSCS_UTIL.GET_ACTIVE_SERVERS()";
+    static final String DEFAULT_ACTIVE_SERVER_QUERY="call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()";
+
+    public void close() throws SQLException{
+        if(!closed.compareAndSet(false,true)) return; //we are already closed
+        SQLException se = null;
+        for(ServerPool sp:activeServers){
+            try{
+                sp.close();
+            }catch(SQLException e){
+                if(se==null) se = e;
+                else {
+                    se.setNextException(e);
+                }
+            }
+        }
+        if(se!=null)
+            throw se;
+    }
 
     @SuppressWarnings("WeakerAccess")
     protected Set<String> detectServers(){
         int numTries=activeServers.size();
         do{
-            try(Connection conn=getConnection()){
+            try(Connection conn=alwaysGetConnection()){
                 try(Statement s=conn.createStatement()){
                     try(ResultSet rs=s.executeQuery(DEFAULT_ACTIVE_SERVER_QUERY)){
                         Set<String> servers=new TreeSet<>();
                         while(rs.next()){
-                            servers.add(rs.getString(1));
+                            String server=rs.getString(1);
+                            String port = rs.getString(2);
+                            servers.add(server+":"+port);
                         }
                         return servers;
                     }
@@ -279,6 +320,7 @@ public class ClusteredDataSource implements DataSource{
         }while(numTries>0);
         return Collections.emptySet();
     }
+
 
     @SuppressWarnings("WeakerAccess")
     public void performServiceDiscovery(){
@@ -321,6 +363,33 @@ public class ClusteredDataSource implements DataSource{
         }
     }
 
+    private Connection alwaysGetConnection() throws SQLException{
+        SQLException noConnection;
+        try{
+            return getConnection();
+        }catch(SQLException se){
+            //if no server was found, we need to try and connect to one of the initial nodes, otherwise explode
+            if(!se.getSQLState().equals(SQLState.AUTH_DATABASE_CONNECTION_REFUSED)){
+                throw se;
+            }else noConnection = se;
+        }
+        for(String initialServer:initialServerList){
+            ServerPool sp = newServerPool(initialServer);
+            try{
+                Connection conn=sp.newConnection(); //TODO -sf- carry user name and password with us
+                if(conn!=null){
+                    activeServers.add(sp);
+                    startHeartbeat(heartbeatInterval,sp);
+                    return conn;
+                }
+            }catch(SQLException e){
+                noConnection.setNextException(e);
+            }
+        }
+        //we can't get access to any server in the list, so we have to explode
+        throw noConnection;
+    }
+
     private void startHeartbeat(long heartbeatInterval,ServerPool sp){
         if(heartbeatInterval>0)
             maintenanceThread.schedule(new Heartbeat(sp,heartbeatInterval),heartbeatInterval,TimeUnit.MILLISECONDS);
@@ -344,7 +413,7 @@ public class ClusteredDataSource implements DataSource{
     }
 
     private ServerPool newServerPool(String newServer){
-        return serverPoolFactory.newServerPool(newServer,sizingStrategy,blackListedServers);
+        return serverPoolFactory.newServerPool(newServer,database,user,password,sizingStrategy,blackListedServers);
     }
 
     private void logError(String operation,SQLException se){
@@ -400,5 +469,10 @@ public class ClusteredDataSource implements DataSource{
                 cleanupDeadServer(sp);
             }
         }
+    }
+
+    private void checkClosed() throws SQLException{
+        if(closed.get())
+            throw new SQLException("DataSource closed",SQLState.PHYSICAL_CONNECTION_ALREADY_CLOSED);
     }
 }

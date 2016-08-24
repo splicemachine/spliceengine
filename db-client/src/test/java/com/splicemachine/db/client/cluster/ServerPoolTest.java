@@ -57,7 +57,7 @@ public class ServerPoolTest{
         ServerPool sp = new ServerPool(ds,"testServer",10,
                 new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,blackList,10);
 
-        Connection c = sp.tryAcquireConnection(null,null);
+        Connection c = sp.tryAcquireConnection();
         Assert.assertNotNull("Did not return a connection!",c);
     }
 
@@ -71,10 +71,10 @@ public class ServerPoolTest{
         ServerPool sp = new ServerPool(ds,"testServer",1,
                 new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,blackList,10);
 
-        Connection c = sp.tryAcquireConnection(null,null);
+        Connection c = sp.tryAcquireConnection();
         Assert.assertNotNull("Did not return a connection!",c);
 
-        Connection shouldBeNull = sp.tryAcquireConnection(null,null);
+        Connection shouldBeNull = sp.tryAcquireConnection();
         Assert.assertNull("Returned too many connections!",shouldBeNull);
     }
 
@@ -89,7 +89,7 @@ public class ServerPoolTest{
         ServerPool sp = new ServerPool(ds,"testServer",1,
                 new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,blackList,10);
 
-        Connection c = sp.tryAcquireConnection(null,null);
+        Connection c = sp.tryAcquireConnection();
         Assert.assertNotNull("Did not return a connection!",c);
 
         c.close();
@@ -107,7 +107,7 @@ public class ServerPoolTest{
         ServerPool sp = new ServerPool(ds,"testServer",1,
                 new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,blackList,10);
 
-        Connection c = sp.tryAcquireConnection(null,null);
+        Connection c = sp.tryAcquireConnection();
         Assert.assertNotNull("Did not return a connection!",c);
 
         try{

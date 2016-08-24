@@ -16,15 +16,15 @@
 
 package com.splicemachine.db.client.cluster;
 
+import com.splicemachine.db.client.am.ResultSet;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -32,74 +32,183 @@ import java.util.Set;
  *         Date: 8/18/16
  */
 class ClusterConnectionManager{
-    private Connection currentConn;
+    private final ClusteredConnection sourceConn;
+    private Properties connectionProperties;
     private final ClusteredDataSource poolSource;
+    private RefCountedConnection currentConn;
 
-    private final Map<ClusteredStatement,Boolean> openStatementsMap = new IdentityHashMap<>();
-    private final Set<ClusteredStatement> openStatementsSet = openStatementsMap.keySet();
-    private final Map<ClusteredPreparedStatement,Boolean> openPreparedStatements = new IdentityHashMap<>();
+    private final Set<ClusteredStatement> openStatements =Collections.newSetFromMap(new IdentityHashMap<ClusteredStatement, Boolean>());
 
-    ClusterConnectionManager(ClusteredDataSource poolSource){
+    ClusterConnectionManager(ClusteredConnection sourceConn,
+                             ClusteredDataSource poolSource,
+                             Properties connectionProperties){
         this.poolSource=poolSource;
+        this.sourceConn = sourceConn;
+        this.connectionProperties=connectionProperties;
     }
 
-    boolean autoCommit = false;
+    private boolean autoCommit = true;
+    private boolean queryRan = false; //only set if autocommit = false
+
+    private boolean readOnly = false;
+    private TxnIsolation isolationLevel = TxnIsolation.READ_COMMITTED;
+    private int holdability =ResultSet.CLOSE_CURSORS_AT_COMMIT;
+    private String schema;
 
     public void setAutoCommit(boolean autoCommit) throws SQLException{
-        if(currentConn!=null){
+        if(hasOpenConnection()){
             if(this.autoCommit!=autoCommit)
-                currentConn.setAutoCommit(autoCommit); //force the transaction commit
+                currentConn.element().setAutoCommit(autoCommit); //force the transaction commit
         }
         this.autoCommit = autoCommit;
     }
 
     public void commit() throws SQLException{
-        if(currentConn!=null){
-            currentConn.commit();
+        if(hasOpenConnection()){
+            currentConn.element().commit();
             releaseConnectionIfPossible();
         }
+        queryRan=false;
     }
 
     public void rollback() throws SQLException{
-        if(currentConn!=null){
-            currentConn.rollback();
+        if(hasOpenConnection()){
+            currentConn.element().rollback();
             releaseConnectionIfPossible();
         }
+        queryRan = false;
     }
 
-    public void close() throws SQLException{
-        if(openStatementsSet.size()>0||
-                openPreparedStatements.size()>0){
+    public void close(boolean closeDataSourceOnClose) throws SQLException{
+        if(openStatements.size()>0){
             throw new SQLException("There are open statements",SQLState.CANNOT_CLOSE_ACTIVE_CONNECTION);
         }
-        if(currentConn!=null)
-            currentConn.close(); //this really just returns the connection to the pool, but close enough
+        if(hasOpenConnection())
+            currentConn.element().close(); //this really just returns the connection to the pool, but close enough
+        if(closeDataSourceOnClose)
+            this.poolSource.close();
     }
 
-    void registerStatement(ClusteredStatement cs){
-        openStatementsMap.put(cs,Boolean.TRUE);
+    public void setReadOnly(boolean readOnly) throws SQLException{
+        if(currentConn!=null && this.readOnly !=readOnly)
+            currentConn.element().setReadOnly(readOnly);
+    }
+
+    public boolean isReadOnly(){
+        return readOnly;
+    }
+
+    public void setHoldability(int holdability) throws SQLException{
+        this.holdability = holdability;
+        if(hasOpenConnection())
+            currentConn.element().setHoldability(holdability);
+    }
+
+    public int getHoldability(){
+        return holdability;
+    }
+
+    public boolean isValid(int timeout) throws SQLException{
+        reopenConnectionIfNecessary();
+        return currentConn.element().isValid(timeout);
+    }
+
+    public void setSchema(String schema) throws SQLException{
+        this.schema = schema;
+        if(hasOpenConnection())
+            currentConn.element().setSchema(schema);
+
+    }
+
+    public String getSchema(){
+        return schema;
+    }
+
+    public boolean isAutoCommit(){
+        return autoCommit;
+    }
+
+    public Statement createStatement(int resultSetType,int resultSetConcurrency,int resultSetHoldability) throws SQLException{
+        reopenConnectionIfNecessary();
+        Statement delegate = currentConn.element().createStatement(resultSetType,resultSetConcurrency,resultSetHoldability);
+        ClusteredStatement cs = new ClusteredStatement(currentConn,sourceConn,delegate);
+        registerStatement(cs);
+        queryRan = true;
+
+        return cs;
+    }
+
+    TxnIsolation getTxnIsolation(){
+        return isolationLevel;
+    }
+
+    void setTxnIsolation(TxnIsolation isolationLevel) throws SQLException{
+        this.isolationLevel = isolationLevel;
+        if(hasOpenConnection())
+            currentConn.element().setTransactionIsolation(isolationLevel.level);
+    }
+
+    boolean inActiveTransaction(){
+        return currentConn!=null && !autoCommit && queryRan;
+    }
+
+    private void registerStatement(ClusteredStatement cs){
+        currentConn.acquire();
+        openStatements.add(cs);
+    }
+
+    void releaseStatement(ClusteredStatement clusteredStatement){
+        openStatements.remove(clusteredStatement);
     }
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
+    private void reopenConnectionIfNecessary() throws SQLException{
+        if(hasOpenConnection()) return;
+
+        Connection conn = this.poolSource.getConnection(); //TODO -sf- do username/password here
+        conn.setAutoCommit(autoCommit);
+        conn.setTransactionIsolation(isolationLevel.level);
+        conn.setHoldability(holdability);
+
+        if(schema!=null)
+            conn.setSchema(schema);
+
+        currentConn = new RefCountedConnection(conn);
+    }
+
+    private boolean hasOpenConnection() throws SQLException{
+        return currentConn!=null &&!currentConn.element().isClosed();
+    }
+
     private void releaseConnectionIfPossible() throws SQLException{
         /*
-         * For now, we will only release the connection if there are no outstanding
-         * Prepared statements (otherwise we'd have to re-prepare the statement after each
-         * commit, which would probably be expensive). On the upside, this means that
-         * prepared statements will not re-prepare. On the downside, prepared statements
-         * will not distribute their requests across multiple servers unless the previous connection
-         * is ended.
+         * If we do not have open statements, then we just close this connection
+         * and allow it to return to the pool directly.
          *
-         * For now, this works better than attempting to re-prepare for load distribution, but
-         * eventually we may need to change that behavior.
+         * However, there may be open statements when this method is called:
+         *
+         * try(Statement s = conn.createStatement){
+         *  conn.commit()
+         *  //do stuff with statement
+         * }
+         *
+         * When this happens, the commit() will trigger a release of this connection,
+         * but the open statement must remain connected to the existing server. We do
+         * this by passing the connection ref to the statement, and then nulling out
+         * our own internal reference. This allows existing statements to work
+         * against the correct connection, but allows newly created statements to operate
+         * against a new server (and therefore load balancing).
+         *
+         * The downside is that this allows Connections to leak from the pool if people don't
+         * close their statements properly--so close your statements properly!
          */
-        if(openPreparedStatements.size()<=0){
-            for(ClusteredStatement s:openStatementsSet){
-                s.invalidate();
-            }
-            currentConn.close(); //closing the connection will return it to the pool
-            currentConn=null;
+        if(currentConn.getReferenceCount()<=0){
+            currentConn.element().close(); //release the underlying connection to the pool
+            currentConn=null; //null the reference so that we know to reconnect
+        }else{
+           currentConn.invalidate();
         }
     }
+
 }

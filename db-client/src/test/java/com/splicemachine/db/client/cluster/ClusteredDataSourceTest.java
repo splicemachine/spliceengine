@@ -26,6 +26,7 @@ import javax.sql.DataSource;
 import java.net.ConnectException;
 import java.sql.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -63,7 +64,10 @@ public class ClusteredDataSourceTest{
         };
         ServerPoolFactory spf = new ConfiguredServerPoolFactory(failureDetectorFactory){
             @Override
-            protected DataSource newDataSource(String serverId){
+            protected DataSource newDataSource(String serverId,
+                                               String database,
+                                               String user,
+                                               String password){
                 DataSource ds = mock(DataSource.class);
                 try{
                     when(ds.getConnection()).thenReturn(mock(Connection.class));
@@ -74,7 +78,7 @@ public class ClusteredDataSourceTest{
                 return ds;
             }
         };
-        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"testServer:1527"},pss,css,spf,0,0);
+        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"testServer:1527"},"test","tu","tp",pss,css,spf,0,0);
         Connection c = cds.getConnection();
         Assert.assertNotNull("Did not get a non-null connection!",c);
     }
@@ -99,7 +103,10 @@ public class ClusteredDataSourceTest{
         };
         ServerPoolFactory spf = new ConfiguredServerPoolFactory(failureDetectorFactory){
             @Override
-            protected DataSource newDataSource(String serverId){
+            protected DataSource newDataSource(String serverId,
+                                               String database,
+                                               String user,
+                                               String password){
                 DataSource ds = mock(DataSource.class);
                 try{
                     when(ds.getConnection()).thenReturn(mock(Connection.class));
@@ -110,9 +117,9 @@ public class ClusteredDataSourceTest{
                 return ds;
             }
         };
-        ClusteredDataSource cds = new ClusteredDataSource(new String[]{},pss,css,spf,0,0);
+        ClusteredDataSource cds = new ClusteredDataSource(new String[]{},"test","tu","tp",pss,css,spf,0,0);
         try{
-            Connection c=cds.getConnection();
+            cds.getConnection();
             Assert.fail("Did not throw exception!");
         }catch(SQLException se){
             Assert.assertEquals("Incorrect SQLState!",
@@ -140,9 +147,9 @@ public class ClusteredDataSourceTest{
         };
         //in this case, we want to use derby's logic so that we know we actually try to connect
         ServerPoolFactory spf = new ConfiguredServerPoolFactory(failureDetectorFactory);
-        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"localhost:60000"},pss,css,spf,0,0);
+        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"localhost:60000"},"test","tu","tp",pss,css,spf,0,0);
         try{
-            Connection c=cds.getConnection();
+            cds.getConnection();
             Assert.fail("Did not throw exception!");
         }catch(SQLException se){
             se.printStackTrace();
@@ -174,7 +181,10 @@ public class ClusteredDataSourceTest{
         //in this case, we want to use derby's logic so that we know we actually try to connect
         ServerPoolFactory spf = new ConfiguredServerPoolFactory(failureDetectorFactory){
             @Override
-            protected DataSource newDataSource(String serverId){
+            protected DataSource newDataSource(String serverId,
+                                               String database,
+                                               String user,
+                                               String password){
                 DataSource ds=mock(DataSource.class);
                 if(serverId.equals("failServer")){
                     SQLNonTransientConnectionException e = new SQLNonTransientConnectionException(new ConnectException("Connection refused"));
@@ -197,7 +207,7 @@ public class ClusteredDataSourceTest{
                 return ds;
             }
         };
-        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"failServer","successServer"},pss,css,spf,0,0);
+        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"failServer","successServer"},"test","tu","tp",pss,css,spf,0,0);
         Connection c=cds.getConnection();
         Assert.assertNotNull("Returned a null connection!",c);
         Assert.assertFalse("Returned a closed connection!",c.isClosed());
@@ -229,7 +239,10 @@ public class ClusteredDataSourceTest{
         //in this case, we want to use derby's logic so that we know we actually try to connect
         ServerPoolFactory spf = new ConfiguredServerPoolFactory(failureDetectorFactory){
             @Override
-            protected DataSource newDataSource(String serverId){
+            protected DataSource newDataSource(String serverId,
+                                               String database,
+                                               String user,
+                                               String password){
                 final Iterator<String> servers = Arrays.asList("newServer","oldServer").iterator();
                 ResultSet rs = mock(ResultSet.class);
                 Statement s = mock(Statement.class);
@@ -258,7 +271,7 @@ public class ClusteredDataSourceTest{
                 return ds;
             }
         };
-        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"oldServer"},pss,css,spf,0,0);
+        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"oldServer"},"test","tu","tp",pss,css,spf,0,0);
 
         cds.performServiceDiscovery();
         Set<String> activeServers = cds.activeServers();
@@ -288,7 +301,10 @@ public class ClusteredDataSourceTest{
         //in this case, we want to use derby's logic so that we know we actually try to connect
         ServerPoolFactory spf = new ConfiguredServerPoolFactory(failureDetectorFactory){
             @Override
-            protected DataSource newDataSource(String serverId){
+            protected DataSource newDataSource(String serverId,
+                                               String database,
+                                               String user,
+                                               String password){
                 DataSource ds = mock(DataSource.class);
                 if(serverId.equals("deadServer")){
                     try{
@@ -305,7 +321,7 @@ public class ClusteredDataSourceTest{
                         throw new RuntimeException(se);
                     }
                 }else{
-                    final Iterator<String> servers=Arrays.asList("oldServer").iterator();
+                    final Iterator<String> servers=Collections.singletonList("oldServer").iterator();
                     ResultSet rs=mock(ResultSet.class);
                     Statement s=mock(Statement.class);
                     Connection conn=mock(Connection.class);
@@ -333,7 +349,7 @@ public class ClusteredDataSourceTest{
                 return ds;
             }
         };
-        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"deadServer","oldServer"},pss,css,spf,0,0);
+        ClusteredDataSource cds = new ClusteredDataSource(new String[]{"deadServer","oldServer"},"test","tu","tp",pss,css,spf,0,0);
 
         cds.performServiceDiscovery();
         Set<String> activeServers = cds.activeServers();

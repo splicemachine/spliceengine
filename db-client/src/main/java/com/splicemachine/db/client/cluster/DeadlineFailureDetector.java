@@ -29,6 +29,7 @@ class DeadlineFailureDetector implements FailureDetector{
 
     DeadlineFailureDetector(long maxTimeWindow){
         this.maxTimeWindow=maxTimeWindow;
+        this.lastGoodTimestamp = System.currentTimeMillis();
     }
 
     @Override

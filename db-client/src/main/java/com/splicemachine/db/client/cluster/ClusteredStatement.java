@@ -16,22 +16,42 @@
 
 package com.splicemachine.db.client.cluster;
 
-import java.sql.Statement;
+import java.sql.*;
 
 /**
  * @author Scott Fines
  *         Date: 8/18/16
  */
-public class ClusteredStatement implements Statement{
-    private ClusterConnectionManager connectionManager;
-    private Statement currDelegate;
+class ClusteredStatement extends ErrorTrappingStatement{
+    private final RefCountedConnection referenceConn;
+    private final ClusteredConnection sourceConnection;
 
-    ClusteredStatement(ClusterConnectionManager connectionManager){
-        this.connectionManager=connectionManager;
+    private final Statement statement;
+
+    public ClusteredStatement(RefCountedConnection referenceConn,
+                              ClusteredConnection sourceConnection,
+                              Statement statement){
+        super(statement);
+        this.referenceConn=referenceConn;
+        this.sourceConnection=sourceConnection;
+        this.statement=statement;
     }
 
-    public void invalidate(){
-       currDelegate=null;
+    @Override
+    public void close() throws SQLException{
+        statement.close();
+        referenceConn.release();
+        sourceConnection.statementClosed(this);
     }
 
+    @Override
+    public Connection getConnection() throws SQLException{
+        return sourceConnection;
+    }
+
+    @Override
+    protected void reportError(Throwable t){
+        //TODO -sf- consider automatically getting a new statement if autoCommit is off
+
+    }
 }

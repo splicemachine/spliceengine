@@ -69,7 +69,7 @@ class ServerPool{
         this.blackList = blackList;
     }
 
-    Connection tryAcquireConnection(String userName,String password) throws SQLException{
+    Connection tryAcquireConnection() throws SQLException{
         while(true){
             Connection conn=pooledConnection.poll();
             if(conn!=null){
@@ -90,8 +90,12 @@ class ServerPool{
                     shouldContinue = !trackedSize.compareAndSet(currPoolSize,currPoolSize+1);
                 }while(shouldContinue);
                 try{
-                    return createConnection(userName,password);
+                    return createConnection();
                 }catch(SQLNonTransientConnectionException se){
+                    //authorization error
+                    if(se.getSQLState().equals(SQLState.LOGIN_FAILED))
+                        throw se;
+
                     //this server is dead, blacklist it
                     logError("tryAcquire("+serverName+")",se);
                     blackList.blacklist(this);
@@ -103,9 +107,9 @@ class ServerPool{
     }
 
 
-    Connection newConnection(String userName, String password) throws SQLException{
+    Connection newConnection() throws SQLException{
         trackedSize.incrementAndGet();
-        return createConnection(userName,password);
+        return createConnection();
     }
 
 
@@ -168,16 +172,14 @@ class ServerPool{
         LOGGER.log(Level.SEVERE,"error during "+operation,t);
     }
 
-    private Connection createConnection(String userName,String password) throws SQLException{
-        if(userName!=null)
-            return wrapConnection(connectionBuilder.getConnection(userName,password));
-        else return wrapConnection(connectionBuilder.getConnection());
+    private Connection createConnection() throws SQLException{
+        return wrapConnection(connectionBuilder.getConnection());
     }
 
     private Connection acquireConnection() throws SQLException{
-        Connection conn = tryAcquireConnection(null,null);
+        Connection conn = tryAcquireConnection();
         if(conn==null)
-            conn = newConnection(null,null);
+            conn = newConnection();
         return conn;
     }
 

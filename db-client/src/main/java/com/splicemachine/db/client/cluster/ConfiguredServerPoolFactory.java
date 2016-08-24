@@ -45,10 +45,14 @@ public class ConfiguredServerPoolFactory implements ServerPoolFactory{
     }
 
     @Override
-    public ServerPool newServerPool(String serverId,PoolSizingStrategy sizingStrategy,BlackList<ServerPool> blacklist){
+    public ServerPool newServerPool(String serverId,
+                                    String database,
+                                    String user,
+                                    String password,
+                                    PoolSizingStrategy sizingStrategy,BlackList<ServerPool> blacklist){
         int singleServerPoolSize = sizingStrategy.singleServerPoolSize();
 
-        DataSource delegateDataSource=newDataSource(serverId);
+        DataSource delegateDataSource=newDataSource(serverId,database,user,password);
 
         return new ServerPool(delegateDataSource,
                 serverId,
@@ -65,7 +69,7 @@ public class ConfiguredServerPoolFactory implements ServerPoolFactory{
      * @param serverId the id of the server, of the form "[serverId]" or "[serverId]:[port]"
      * @return a DataSource to allow connections to that server
      */
-    protected DataSource newDataSource(String serverId){
+    protected DataSource newDataSource(String serverId,String database,String user,String password){
         ClientDataSource delegateDataSource = new ClientDataSource40();
         delegateDataSource.setLoginTimeout(loginTimeout);
         String[] split=serverId.split(":");
@@ -73,6 +77,9 @@ public class ConfiguredServerPoolFactory implements ServerPoolFactory{
         int port = split.length==2? Integer.parseInt(split[1]):1527;
         delegateDataSource.setServerName(serverName);
         delegateDataSource.setPortNumber(port);
+        delegateDataSource.setDatabaseName(database);
+        delegateDataSource.setUser(user);
+        delegateDataSource.setPassword(password);
         return delegateDataSource;
     }
 

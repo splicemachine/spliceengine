@@ -150,8 +150,7 @@ public class ClientDriver implements java.sql.Driver {
 
 
             conn = (com.splicemachine.db.client.net.NetConnection) getFactory().
-                    newNetConnection((com.splicemachine.db.client.net.NetLogWriter)
-                                    dncLogWriter,
+                    newNetConnection(dncLogWriter,
                             java.sql.DriverManager.getLoginTimeout(),
                             server,
                             port,

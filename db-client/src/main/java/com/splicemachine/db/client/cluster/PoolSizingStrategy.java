@@ -22,7 +22,7 @@ package com.splicemachine.db.client.cluster;
  */
 public interface PoolSizingStrategy{
 
-    void acquirePermit();
+    void acquirePermit() throws InterruptedException;
 
     void releasePermit();
 
