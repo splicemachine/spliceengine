@@ -27,13 +27,12 @@ import java.util.concurrent.Executor;
  * @author Scott Fines
  *         Date: 8/18/16
  */
-public class ClusteredConnection implements Connection{
+class ClusteredConnection implements Connection{
     private final ClusterConnectionManager connectionManager;
     private final boolean closeDataSourceOnClose;
     private boolean closed = false;
 
-
-    public ClusteredConnection(ClusteredDataSource dataSource,boolean closeDataSourceOnClose,Properties connectionproperties){
+    ClusteredConnection(ClusteredDataSource dataSource,boolean closeDataSourceOnClose,Properties connectionproperties){
         this.connectionManager = new ClusterConnectionManager(this,dataSource,connectionproperties);
         this.closeDataSourceOnClose = closeDataSourceOnClose;
     }
@@ -80,12 +79,14 @@ public class ClusteredConnection implements Connection{
 
     @Override
     public PreparedStatement prepareStatement(String sql,int resultSetType,int resultSetConcurrency,int resultSetHoldability) throws SQLException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        checkClosed();
+        return connectionManager.prepareStatement(sql,resultSetType,resultSetConcurrency,resultSetHoldability);
     }
 
     @Override
     public CallableStatement prepareCall(String sql,int resultSetType,int resultSetConcurrency,int resultSetHoldability) throws SQLException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        checkClosed();
+        return connectionManager.prepareCall(sql,resultSetType,resultSetConcurrency,resultSetHoldability);
     }
 
     @Override

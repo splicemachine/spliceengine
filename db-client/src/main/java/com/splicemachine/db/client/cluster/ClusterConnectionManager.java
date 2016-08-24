@@ -16,12 +16,9 @@
 
 package com.splicemachine.db.client.cluster;
 
-import com.splicemachine.db.client.am.ResultSet;
 import com.splicemachine.db.iapi.reference.SQLState;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Properties;
@@ -136,6 +133,26 @@ class ClusterConnectionManager{
         queryRan = true;
 
         return cs;
+    }
+
+    public PreparedStatement prepareStatement(String sql,int resultSetType,int resultSetConcurrency,int resultSetHoldability) throws SQLException{
+        reopenConnectionIfNecessary();
+        PreparedStatement delegate = currentConn.element().prepareStatement(sql,resultSetType,resultSetConcurrency,resultSetHoldability);
+        ClusteredPreparedStatement cps = new ClusteredPreparedStatement(currentConn,sourceConn,delegate);
+        registerStatement(cps);
+        queryRan=true;
+
+        return cps;
+    }
+
+    public CallableStatement prepareCall(String sql,int resultSetType,int resultSetConcurrency,int resultSetHoldability) throws SQLException{
+        reopenConnectionIfNecessary();
+        CallableStatement delegate = currentConn.element().prepareCall(sql,resultSetType,resultSetConcurrency,resultSetHoldability);
+        ClusteredCallableStatement cps = new ClusteredCallableStatement(currentConn,sourceConn,delegate);
+        registerStatement(cps);
+        queryRan=true;
+
+        return cps;
     }
 
     TxnIsolation getTxnIsolation(){
