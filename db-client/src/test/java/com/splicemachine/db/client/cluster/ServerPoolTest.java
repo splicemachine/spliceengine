@@ -17,13 +17,18 @@
 package com.splicemachine.db.client.cluster;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.jdbc.ClientDriver40;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import javax.sql.DataSource;
-
+import java.net.ConnectException;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -34,6 +39,12 @@ import static org.mockito.Mockito.when;
  *         Date: 8/16/16
  */
 public class ServerPoolTest{
+    private static final FailureDetector noFailDetector=new FailureDetector(){
+        @Override public void success(){ }
+        @Override public boolean failed(){ return false; }
+        @Override public boolean isAlive(){ return true; }
+        @Override public void kill(){ }
+    };
     private static final PoolSizingStrategy poolSizingStrategy = new PoolSizingStrategy(){
         @Override public void acquirePermit(){ }
         @Override public void releasePermit(){ }
@@ -46,6 +57,17 @@ public class ServerPoolTest{
             try{ element.close(); }catch(SQLException e){ throw new RuntimeException(e); }
         }
     };
+
+    @Test
+    public void blah() throws Exception{
+        DriverManager.setLoginTimeout(1);
+        Connection conn = new ClientDriver40().connect("jdbc:splice://10.1.1.237:1527/splicedb;user=splice;password=admin",null);
+
+        System.out.println(conn.isClosed());
+        long s = System.nanoTime();
+        System.out.println(conn.isValid(1));
+        System.out.printf("time taken: %f%n",(System.nanoTime()-s)/1000d/1000d);
+    }
 
     @Test
     public void tryAcquireConnectionWorks() throws Exception{
@@ -69,13 +91,49 @@ public class ServerPoolTest{
         when(ds.getConnection(anyString(),anyString())).thenReturn(conn);
 
         ServerPool sp = new ServerPool(ds,"testServer",1,
-                new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,blackList,10);
+                noFailDetector,poolSizingStrategy,blackList,10);
 
         Connection c = sp.tryAcquireConnection();
         Assert.assertNotNull("Did not return a connection!",c);
 
         Connection shouldBeNull = sp.tryAcquireConnection();
         Assert.assertNull("Returned too many connections!",shouldBeNull);
+    }
+
+    @Test
+    public void tryAcquireConnectionFailsIfInvalidUsername() throws Exception{
+        DataSource ds = mock(DataSource.class);
+        when(ds.getConnection()).thenThrow(new SQLNonTransientConnectionException(null,SQLState.LOGIN_FAILED));
+
+        ServerPool sp = new ServerPool(ds,"testServer",1,noFailDetector,poolSizingStrategy,blackList,10);
+
+        try{
+            sp.tryAcquireConnection();
+            Assert.fail("Did not fail login error");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error code!",SQLState.LOGIN_FAILED,se.getSQLState());
+        }
+    }
+
+    @Test
+    public void tryAcquireConnectionRetriesOnConnectionRefused() throws Exception{
+        final Connection conn = mock(Connection.class);
+        DataSource ds = mock(DataSource.class);
+        final boolean[] visited = new boolean[]{false};
+        when(ds.getConnection()).then(new Answer<Connection>(){
+            @Override
+            public Connection answer(InvocationOnMock invocation) throws Throwable{
+                if(!visited[0]){
+                    visited[0] = true;
+                    throw new SQLNonTransientConnectionException(null,"08001",new ConnectException("Connection refused"));
+                }else return conn;
+            }
+        });
+
+        ServerPool sp = new ServerPool(ds,"testServer",1,noFailDetector,poolSizingStrategy,blackList,10);
+
+        Connection pooledConn= sp.tryAcquireConnection();
+        Assert.assertNotNull("Did not return a connection!",pooledConn);
     }
 
     /*close tests*/

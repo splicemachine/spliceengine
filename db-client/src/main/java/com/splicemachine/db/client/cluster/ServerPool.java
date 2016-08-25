@@ -19,6 +19,8 @@ package com.splicemachine.db.client.cluster;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import javax.sql.DataSource;
+import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,6 +42,7 @@ class ServerPool{
      * causing all kinds of potential dependency problems).
      */
     private static final Logger LOGGER = Logger.getLogger(ClusteredDataSource.class.getName());
+    private static final int DEFAULT_MAX_CONNECT_ATTEMPTS=3;
 
     final String serverName;
     private final FailureDetector failureDetector;
@@ -52,6 +55,7 @@ class ServerPool{
     private final int validationTimeout;
     private AtomicBoolean closed = new AtomicBoolean(false);
     private final PoolSizingStrategy poolSizingStrategy;
+    private final int maxConnectAttempts;
 
     ServerPool(DataSource connectionBuilder,
                String serverName,
@@ -60,6 +64,24 @@ class ServerPool{
                PoolSizingStrategy poolSizingStrategy,
                BlackList<ServerPool> blackList,
                int validationTimeout){
+       this(connectionBuilder,
+               serverName,
+               maxPoolSize,
+               failureDetector,
+               poolSizingStrategy,
+               blackList,
+               validationTimeout,
+               DEFAULT_MAX_CONNECT_ATTEMPTS);
+    }
+
+    ServerPool(DataSource connectionBuilder,
+               String serverName,
+               int maxPoolSize,
+               FailureDetector failureDetector,
+               PoolSizingStrategy poolSizingStrategy,
+               BlackList<ServerPool> blackList,
+               int validationTimeout,
+               int maxConnectAttempts){
         this.serverName=serverName;
         this.failureDetector=failureDetector;
         this.connectionBuilder = connectionBuilder;
@@ -67,6 +89,7 @@ class ServerPool{
         this.poolSizingStrategy=poolSizingStrategy;
         this.validationTimeout = validationTimeout;
         this.blackList = blackList;
+        this.maxConnectAttempts = maxConnectAttempts;
     }
 
     Connection tryAcquireConnection() throws SQLException{
@@ -89,34 +112,80 @@ class ServerPool{
                     if(currPoolSize>=maxSize) return null; //we have too many open already, so we cannot acquire a new one
                     shouldContinue = !trackedSize.compareAndSet(currPoolSize,currPoolSize+1);
                 }while(shouldContinue);
-                try{
-                    return createConnection();
-                }catch(SQLNonTransientConnectionException se){
-                    //authorization error
-                    if(se.getSQLState().equals(SQLState.LOGIN_FAILED))
-                        throw se;
-
-                    //this server is dead, blacklist it
-                    logError("tryAcquire("+serverName+")",se);
-                    blackList.blacklist(this);
-                    trackedSize.decrementAndGet();
-                    return null;
-                }
+                return createNewConnection("tryAcquire");
             }
+        }
+    }
+
+    private Connection createNewConnection(String op) throws SQLException{
+        int attemptsRemaining = maxConnectAttempts;
+        SQLException e = null;
+        while(attemptsRemaining>0){
+            attemptsRemaining--;
+            try{
+                return createConnection();
+            }catch(SQLNonTransientConnectionException se){
+                //throw the exception if appropriate
+                dealWithNonTransientErrors(op,se);
+                if(e==null) e = se;
+                else e.setNextException(se);
+            }
+        }
+
+        blackList.blacklist(this);
+        logError(op,e); //e is not null because we would have returned before otherwise
+        return null;
+    }
+
+    private void dealWithNonTransientErrors(String op,SQLNonTransientConnectionException se) throws SQLNonTransientConnectionException{
+        /*
+         * Look at the error, and determine whether or not it should be thrown, or whether
+         * a retry is allowed. If a retry is allowed, then return true. Otherwise, throw the exception
+         */
+        logError(op+"("+this+")",se);
+        switch(se.getSQLState()){
+            //the following are errors that allow connection retries
+            case SQLState.DRDA_CONNECTION_TERMINATED:
+            case SQLState.NO_CURRENT_CONNECTION:
+            case SQLState.PHYSICAL_CONNECTION_ALREADY_CLOSED:
+            case SQLState.CONNECT_SOCKET_EXCEPTION:
+            case SQLState.SOCKET_EXCEPTION:
+            case SQLState.CONNECT_UNABLE_TO_CONNECT_TO_SERVER:
+            case SQLState.CONNECT_UNABLE_TO_OPEN_SOCKET_STREAM:
+                return;
+            case "08001":
+                /*
+                 * This is a generic connection error, that derby exceptionfactory didn't parse; this
+                 * means that we are wrapping an underlying exception, so we need to parse that
+                 */
+                Throwable t = ErrorUtils.getRootCause(se);
+                //put specific return exceptions here
+                if(t instanceof ConnectException
+                        || t instanceof UnknownHostException) return;
+            default:
+                /*
+                 * This exception is categorized as Connection severity or higher, and
+                 * cannot be retried (we are getting errors that the server is telling us will
+                 * never be correct, like bad authorization or database names). Therefore,
+                 * we should blacklist ourselves and then throw the exception directly
+                 */
+                trackedSize.decrementAndGet();
+                blackList.blacklist(this);
+                throw se;
         }
     }
 
 
     Connection newConnection() throws SQLException{
         trackedSize.incrementAndGet();
-        return createConnection();
+        return createNewConnection("newConnection");
     }
 
 
     boolean heartbeat() throws SQLException{
         try(Connection conn=acquireConnection()){
             try(Statement s=conn.createStatement()){
-                s.execute("CALL SYSCS_UTIL.CHECK_SERVER_LIVENESS()");
+                s.execute("values (1)");
                 failureDetector.success();
                 return true;
             }catch(SQLException se){
@@ -169,7 +238,15 @@ class ServerPool{
     /*private helper methods and classes*/
 
     private void logError(String operation,Throwable t){
-        LOGGER.log(Level.SEVERE,"error during "+operation,t);
+        String errorMessage= "error during "+operation+":";
+        if(t instanceof SQLException){
+            SQLException se = (SQLException)t;
+            errorMessage +="["+se.getSQLState()+"]";
+        }
+        if(t.getMessage()!=null)
+            errorMessage+=t.getMessage();
+
+        LOGGER.log(Level.SEVERE,errorMessage,t);
     }
 
     private Connection createConnection() throws SQLException{
@@ -239,10 +316,10 @@ class ServerPool{
         public void close() throws SQLException{
             int currTrackedSize = trackedSize.get();
             if(currTrackedSize>maxSize || delegate.isClosed()){
-                    /*
-                     * We've exceeded this pool size, so discard the underlying connection
-                     * cleanly and then allow GC to occur.
-                     */
+                /*
+                 * We've exceeded this pool size, so discard the underlying connection
+                 * cleanly and then allow GC to occur.
+                 */
                 super.close();
                 trackedSize.decrementAndGet(); //we are no longer tracking this connection
             }else{
