@@ -84,7 +84,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     @Override
     public List<Path> compact(CompactionRequest request) throws IOException {
-        if(!allowSpark)
+        if(!allowSpark || store.getRegionInfo().isSystemTable())
             return super.compact(request);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
