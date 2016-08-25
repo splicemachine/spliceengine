@@ -29,6 +29,11 @@
 ### Development Environment setup
 #### Development/Build tools (Java, maven, etc.):
 * [Java 1.7.0_x](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
+or
+* [Java 1.8.0_x](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+
+Note: JDK 1.8 is required for the master branch.
+
 * [Apache Maven 3.3.x (Jenkins uses 3.3.9)](https://maven.apache.org/download.cgi)
 * [Google Protocol Buffers (source download)](https://protobuf.googlecode.com/files/protobuf-2.5.0.tar.bz2)
 
