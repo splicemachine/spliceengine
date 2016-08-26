@@ -25,6 +25,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Coprocessor;
@@ -194,6 +195,8 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         // Register HFiles for incremental backup
         SpliceLogUtils.info(LOG, "Flushing region %s.%s", tableName, regionName);
         try {
+            if (namespace.compareTo("splice") != 0)
+                return;
             captureIncrementalChanges(resultFile.getPath().getName());
         }
         catch (Exception ex) {
@@ -306,15 +309,23 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
      */
     private void registerHFile(String fileName) throws StandardException {
 
+        FSDataOutputStream out = null;
         try {
             if (!fs.exists(new Path(backupDir, BackupRestoreConstants.REGION_FILE_NAME))) {
                 HRegionFileSystem.createRegionOnFileSystem(conf, fs, backupDir.getParent(), region.getRegionInfo());
             }
-            fs.create(new Path(backupDir.toString() + "/" + SIConstants.DEFAULT_FAMILY_NAME + "/" + fileName));
-            fs.close();
+            out = fs.create(new Path(backupDir.toString() + "/" + SIConstants.DEFAULT_FAMILY_NAME + "/" + fileName));
         }
         catch (Exception e) {
             throw Exceptions.parseException(e);
+        }
+        finally {
+            try {
+                out.close();
+            }
+            catch (Exception e) {
+                throw Exceptions.parseException(e);
+            }
         }
     }
 }
