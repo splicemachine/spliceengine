@@ -19,6 +19,8 @@ import com.splicemachine.backup.BackupManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
+import java.util.List;
+
 /**
  * @author Scott Fines
  *         Date: 1/12/16
@@ -34,7 +36,7 @@ public class NoOpBackupManager implements BackupManager{
 
     @Override
     public void fullBackup(String backupDirectory) throws StandardException {
-//        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
@@ -53,8 +55,8 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public void removeBackup(long backupId) throws StandardException{
-//        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    public void removeBackup(List<Long> backupIds) throws StandardException{
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override

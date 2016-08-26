@@ -62,6 +62,7 @@ import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import org.sparkproject.guava.collect.ImmutableListMultimap;
+import org.sparkproject.guava.collect.Lists;
 import org.sparkproject.guava.collect.Multimaps;
 import javax.annotation.Nullable;
 import java.io.File;
@@ -9807,6 +9808,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1,sequenceIdOrderable);
 
         ti.deleteRow(tc,keyRow,SYSSEQUENCESRowFactory.SYSSEQUENCES_INDEX1_ID);
+        ti.deleteRow(tc, keyRow, SYSSEQUENCESRowFactory.SYSSEQUENCES_INDEX1_ID);
 
         dropSequenceID(descriptor);
     }
@@ -10058,5 +10060,91 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void clearCaches()
     {
         dataDictionaryCache.clearAll();
+    }
+
+    @Override
+    public void addBackup(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSBACKUP_CATALOG_NUM);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
+        int insertRetCode=ti.insertRow(row,tc);
+    }
+
+    @Override
+    public void deleteBackup(long backupId, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSBACKUP_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLLongint(backupId));
+        ti.deleteRow(tc, keyRow, SYSBACKUPRowFactory.SYSBACKUP_INDEX1_ID);
+    }
+
+    @Override
+    public List<BackupDescriptor> getBackupDescriptorList() throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSBACKUP_CATALOG_NUM);
+        SYSBACKUPRowFactory rf=(SYSBACKUPRowFactory)ti.getCatalogRowFactory();
+        ExecRow outRow;
+        ScanController scanController;
+        TransactionController tc;
+        List<BackupDescriptor> backupDescriptorList = Lists.newArrayList();
+
+        // Get the current transaction controller
+        tc=getTransactionCompile();
+
+        outRow=rf.makeEmptyRow();
+        /*
+		** Table scan
+		*/
+        scanController=tc.openScan(
+                ti.getHeapConglomerate(),      // conglomerate to open
+                false,                          // don't hold open across commit
+                0,                              // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,               // all fields as objects
+                null, // start position - first row
+                0,                          // startSearchOperation - none
+                null,              // scanQualifier,
+                null, // stop position -through last row
+                0);                          // stopSearchOperation - none
+
+        try{
+            while(scanController.fetchNext(outRow.getRowArray())){
+                BackupDescriptor bd = (BackupDescriptor)rf.buildDescriptor(outRow, null, this);
+                backupDescriptorList.add(bd);
+            }
+        }finally{
+            scanController.close();
+        }
+
+        return backupDescriptorList;
+    }
+
+    @Override
+    public void addBackupItem(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSBACKUPITEMS_CATALOG_NUM);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
+        int insertRetCode=ti.insertRow(row,tc);
+    }
+
+    @Override
+    public void deleteAllBackupItems(long backupId, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSBACKUPITEMS_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLLongint(backupId));
+        ti.deleteRow(tc, keyRow, SYSBACKUPITEMSRowFactory.SYSBACKUPITEMS_INDEX1_ID);
+    }
+
+    @Override
+    public void addBackupJob(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSBACKUPJOBS_CATALOG_NUM);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
+        int insertRetCode=ti.insertRow(row,tc);
+    }
+
+    @Override
+    public void deleteBackupJob(long jobId, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSBACKUPJOBS_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLLongint(jobId));
+        ti.deleteRow(tc, keyRow, SYSBACKUPJOBSRowFactory.SYSBACKUPJOBS_INDEX1_ID);
     }
 }
