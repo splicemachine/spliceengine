@@ -103,7 +103,8 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                     }
                 }
                 SubregionSplitter splitter = new HBaseSubregionSplitter();
-                List<InputSplit> results = splitter.getSubSplits(table, splits);
+                List<InputSplit> results = splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow());
+
                 return results;
             } catch (HMissedSplitException e) {
                 // retry;
