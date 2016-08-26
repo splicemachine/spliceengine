@@ -1941,5 +1941,6 @@ public interface SQLState {
     String DATA_FILE_MISSING                                       = "BR010";
 	String BACKUP_CANCELED                                         = "BR011";
 	String BACKUP_DOESNOT_EXIST                                    = "BR012";
+	String PARENT_BACKUP_MISSING                                   = "BR013";
 }
 
