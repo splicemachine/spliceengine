@@ -158,7 +158,7 @@ class ServerPool{
                  * This is a generic connection error, that derby exceptionfactory didn't parse; this
                  * means that we are wrapping an underlying exception, so we need to parse that
                  */
-                Throwable t = ErrorUtils.getRootCause(se);
+                @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = ErrorUtils.getRootCause(se);
                 //put specific return exceptions here
                 if(t instanceof ConnectException
                         || t instanceof UnknownHostException) return;
@@ -184,13 +184,21 @@ class ServerPool{
 
     boolean heartbeat() throws SQLException{
         try(Connection conn=acquireConnection()){
-            try(Statement s=conn.createStatement()){
-                s.execute("values (1)");
+            /*
+             * since Connection.isValid() ensures that we actually talk to the server, we can
+             * use it to determine if we can still talk to that server. Essentially, we say
+             * "hey, if at least one connection is able to communicate with that server safely,
+             * then we can't be dead yet".
+             */
+            if(conn.isValid(1)){
                 failureDetector.success();
                 return true;
-            }catch(SQLException se){
-                return failureDetector.failed();
+            }else{
+                failureDetector.failed();
+                return false;
             }
+        }catch(SQLException se){
+            return failureDetector.failed();
         }
     }
 
@@ -215,17 +223,18 @@ class ServerPool{
                 errors.add(se);
             }
         }
-        if(trackedSize.get()>removed){
-            throw new SQLException("Cannot close connection pool while there are outstanding connections",
-                    SQLState.CANNOT_CLOSE_ACTIVE_CONNECTION,1);
-        }else if(errors!=null){
+
+        if(errors!=null){
             if(errors.size()==1)
                 throw errors.get(0);
             SQLException se = new SQLException("Unable to close connections", "SE001",1);
             for(SQLException underlying:errors){
-               se.addSuppressed(underlying);
+                se.addSuppressed(underlying);
             }
             throw se;
+        } else if(trackedSize.get()>removed){
+            throw new SQLException("Cannot close connection pool while there are outstanding connections",
+                    SQLState.CANNOT_CLOSE_ACTIVE_CONNECTION,1);
         }
     }
 
