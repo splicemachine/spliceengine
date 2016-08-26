@@ -89,11 +89,19 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
 			TableSplit tSplit = ((SMSplit)split).getSplit();
 			DataScan scan = builder.getScan();
-			scan.startKey(tSplit.getStartRow()).stopKey(tSplit.getEndRow());
+			if (Bytes.startComparator.compare(scan.getStartKey(), tSplit.getStartRow()) < 0) {
+				// the split itself is more restrictive
+				scan.startKey(tSplit.getStartRow());
+			}
+			if (Bytes.endComparator.compare(scan.getStopKey(), tSplit.getEndRow()) > 0) {
+				// the split itself is more restrictive
+				scan.stopKey(tSplit.getEndRow());
+			}
             setScan(((HScan)scan).unwrapDelegate());
             // TODO (wjk): this seems weird (added with DB-4483)
             this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
-            restart(tSplit.getStartRow());
+	    restart(scan.getStartKey());
+
             SparkOperationContext operationContext = (SparkOperationContext)builder.getOperationContext();
             if (operationContext != null) {
                 activationHolder = operationContext.getActivationHolder();
