@@ -146,7 +146,6 @@ public class SpliceSpark {
             Application Properties
          */
         conf.set("spark.app.name", System.getProperty("splice.spark.app.name", "SpliceMachine"));
-        conf.set("spark.driver.cores",System.getProperty("splice.spark.driver.cores", "8"));
         conf.set("spark.driver.maxResultSize", System.getProperty("splice.spark.driver.maxResultSize", "1g"));
         conf.set("spark.driver.memory", System.getProperty("splice.spark.driver.memory", "1g"));
         conf.set("spark.executor.memory", System.getProperty("splice.spark.executor.memory", "2g"));
