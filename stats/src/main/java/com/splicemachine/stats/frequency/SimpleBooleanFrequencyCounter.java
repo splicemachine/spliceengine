@@ -15,7 +15,7 @@
 
 package com.splicemachine.stats.frequency;
 
-import org.sparkproject.guava.collect.Iterators;
+import org.spark_project.guava.collect.Iterators;
 import com.splicemachine.encoding.Encoder;
 
 import java.io.DataInput;

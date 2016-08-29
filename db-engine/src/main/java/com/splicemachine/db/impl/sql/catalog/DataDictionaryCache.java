@@ -36,8 +36,8 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.cache.Cache;
-import org.sparkproject.guava.cache.CacheBuilder;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
 
 import javax.management.MXBean;
 import java.util.List;

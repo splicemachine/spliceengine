@@ -15,12 +15,12 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.google.common.base.Function;
-import org.sparkproject.guava.collect.ArrayListMultimap;
-import org.sparkproject.guava.collect.FluentIterable;
-import org.sparkproject.guava.collect.Multimap;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.*;
 import scala.Tuple2;
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 
 
@@ -28,8 +28,8 @@ import java.util.Map;
  * Created by dgomezferro on 7/31/15.
  */
 public class ControlUtils {
-    public static <K, V> Iterable<Tuple2<K, V>> entryToTuple(Iterable<Map.Entry<K, V>> iterable) {
-        return FluentIterable.from(iterable).transform(new Function<Map.Entry<K, V>, Tuple2<K, V>>() {
+    public static <K, V> Iterator<Tuple2<K, V>> entryToTuple(Collection<Map.Entry<K, V>> collection) {
+        return Iterators.transform(collection.iterator(),new Function<Map.Entry<K, V>, Tuple2<K, V>>() {
 
             @Nullable
             @Override
@@ -40,9 +40,10 @@ public class ControlUtils {
         });
     }
 
-    public static <K, V> Multimap<K,V> multimapFromIterable(Iterable<Tuple2<K, V>> iterable) {
+    public static <K, V> Multimap<K,V> multimapFromIterator(Iterator<Tuple2<K, V>> iterator) {
         Multimap<K,V> newMap = ArrayListMultimap.create();
-        for (Tuple2<K, V> t : iterable) {
+        while (iterator.hasNext()) {
+            Tuple2<K, V> t = iterator.next();
             newMap.put(t._1(), t._2());
         }
         return newMap;

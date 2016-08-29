@@ -25,7 +25,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.google.common.base.Optional;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -61,8 +61,8 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import org.sparkproject.guava.collect.ImmutableListMultimap;
-import org.sparkproject.guava.collect.Multimaps;
+import org.spark_project.guava.collect.ImmutableListMultimap;
+import org.spark_project.guava.collect.Multimaps;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;

@@ -21,7 +21,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -78,11 +77,11 @@ public class ScalarAggregateFlatMapFunction
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
         if (!locatedRows.hasNext()) {
             return returnDefault ?
-                Collections.singletonList(new LocatedRow(getOperation().getExecRowDefinition())) :
-                Collections.EMPTY_LIST;
+                Collections.singletonList(new LocatedRow(getOperation().getExecRowDefinition())).iterator() :
+                Collections.EMPTY_LIST.iterator();
         }
         if (!initialized) {
             op = getOperation();
@@ -104,6 +103,6 @@ public class ScalarAggregateFlatMapFunction
             }
         }
         op.finishAggregation(r1); // calls setCurrentRow
-        return Collections.singletonList(new LocatedRow(r1));
+        return Collections.singletonList(new LocatedRow(r1)).iterator();
     }
 }

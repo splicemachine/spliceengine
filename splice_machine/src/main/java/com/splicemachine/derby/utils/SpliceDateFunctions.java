@@ -24,7 +24,7 @@ import org.joda.time.Months;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-import org.sparkproject.guava.collect.ImmutableMap;
+import org.spark_project.guava.collect.ImmutableMap;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;

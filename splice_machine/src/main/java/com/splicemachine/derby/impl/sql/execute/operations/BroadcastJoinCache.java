@@ -15,8 +15,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.sparkproject.guava.cache.Cache;
-import org.sparkproject.guava.cache.CacheBuilder;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;

@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.stream.function.merge;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -24,19 +24,15 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.sparkproject.guava.collect.Iterators;
-import org.sparkproject.guava.collect.PeekingIterator;
-
+import org.spark_project.guava.collect.Iterators;
+import org.spark_project.guava.collect.PeekingIterator;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
@@ -72,13 +68,13 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     }
 
     @Override
-    public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
         PeekingIterator<LocatedRow> leftPeekingIterator = Iterators.peekingIterator(locatedRows);
         if (!initialized) {
             joinOperation = getOperation();
             initialized = true;
             if (!leftPeekingIterator.hasNext())
-                return Collections.EMPTY_LIST;
+                return Collections.EMPTY_LIST.iterator();
             initRightScan(leftPeekingIterator);
         }
         final SpliceOperation rightSide = joinOperation.getRightOperation();

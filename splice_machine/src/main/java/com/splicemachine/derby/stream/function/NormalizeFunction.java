@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
+import java.util.Iterator;
 
 /**
  * Created by jleach on 11/4/15.
@@ -49,7 +50,7 @@ public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation,
     }
 
     @Override
-    public Iterable<LocatedRow> call(LocatedRow sourceRow) throws Exception {
+    public Iterator<LocatedRow> call(LocatedRow sourceRow) throws Exception {
 
         NormalizeOperation normalize = operationContext.getOperation();
         normalize.source.setCurrentLocatedRow(sourceRow);
@@ -60,13 +61,13 @@ public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation,
             } catch (StandardException e) {
                 if (operationContext!=null && operationContext.isPermissive()) {
                     operationContext.recordBadRecord(e.getLocalizedMessage() + sourceRow.toString(), e);
-                    return Collections.emptyList();
+                    return Collections.<LocatedRow>emptyList().iterator();
                 }
                 throw e;
             }
             getActivation().setCurrentRow(normalized, normalize.getResultSetNumber());
-            return Collections.singletonList(new LocatedRow(sourceRow.getRowLocation(), normalized.getClone()));
-        }else return Collections.emptyList();
+            return Collections.singletonList(new LocatedRow(sourceRow.getRowLocation(), normalized.getClone())).iterator();
+        }else return Collections.<LocatedRow>emptyList().iterator();
     }
 
 

@@ -42,7 +42,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.base.Strings;
+import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;

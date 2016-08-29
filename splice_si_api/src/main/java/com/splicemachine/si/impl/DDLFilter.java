@@ -17,8 +17,8 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import org.sparkproject.guava.cache.Cache;
-import org.sparkproject.guava.cache.CacheBuilder;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;

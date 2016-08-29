@@ -29,7 +29,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sparkproject.guava.base.Joiner;
+import org.spark_project.guava.base.Joiner;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import com.splicemachine.utils.Pair;

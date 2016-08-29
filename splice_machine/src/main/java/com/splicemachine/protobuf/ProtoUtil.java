@@ -15,11 +15,11 @@
 
 package com.splicemachine.protobuf;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.ddl.DDLMessage;
-import org.sparkproject.guava.base.Joiner;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
@@ -36,7 +36,7 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.primitives.Ints;
+import org.spark_project.guava.primitives.Ints;
 
 import javax.annotation.Nullable;
 import java.util.Collections;

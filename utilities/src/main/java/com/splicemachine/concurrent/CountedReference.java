@@ -15,9 +15,8 @@
 
 package com.splicemachine.concurrent;
 
-import com.google.common.base.Supplier;
-import org.sparkproject.guava.base.Suppliers;
-
+import org.spark_project.guava.base.Supplier;
+import org.spark_project.guava.base.Suppliers;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**

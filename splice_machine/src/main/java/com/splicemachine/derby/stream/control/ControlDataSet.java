@@ -15,12 +15,10 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.google.common.base.Function;
-import org.sparkproject.guava.collect.FluentIterable;
-import org.sparkproject.guava.collect.Iterables;
-import org.sparkproject.guava.collect.Multimaps;
-import org.sparkproject.guava.collect.Sets;
-import org.sparkproject.guava.util.concurrent.Futures;
+import org.apache.commons.collections.IteratorUtils;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.*;
+import org.spark_project.guava.util.concurrent.Futures;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -32,7 +30,7 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.sparkproject.guava.io.Closeables;
+import org.spark_project.guava.io.Closeables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import scala.Tuple2;
 import javax.annotation.Nullable;
@@ -43,7 +41,6 @@ import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.Future;
-
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 
 /**
@@ -54,30 +51,26 @@ import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
  *
  */
 public class ControlDataSet<V> implements DataSet<V> {
-    protected Iterable<V> iterable;
+    protected Iterator<V> iterator;
     protected Map<String,String> attributes;
-    public ControlDataSet(Iterable<V> iterable) {
-        this.iterable = iterable;
+    public ControlDataSet(Iterator<V> iterator) {
+        this.iterator = iterator;
     }
 
     @Override
     public List<V> collect() {
-        List<V> rows =new ArrayList<>();
-        for(V anIterable : iterable) rows.add(anIterable);
-        return rows;
+        return IteratorUtils.<V>toList(iterator);
     }
 
     @Override
     public Future<List<V>> collectAsync(boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
-        List<V> rows =new ArrayList<>();
-        for(V anIterable : iterable) rows.add(anIterable);
-        return Futures.immediateFuture(rows);
+        return Futures.immediateFuture(IteratorUtils.<V>toList(iterator));
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
         try {
-            return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
+            return new ControlDataSet<>(f.call(iterator));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -95,7 +88,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> distinct() {
-        return new ControlDataSet<>(Sets.newHashSet(iterable));
+        return new ControlDataSet<>(Sets.<V>newHashSet(iterator).iterator());
     }
 
     @Override
@@ -104,7 +97,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function) {
-        return new ControlPairDataSet<>(FluentIterable.from(iterable).transform(new Function<V, Tuple2<K, U>>() {
+        return new ControlPairDataSet<>(Iterators.transform(iterator,new Function<V, Tuple2<K, U>>() {
             @Nullable
             @Override
             public Tuple2<K, U> apply(@Nullable V v) {
@@ -129,7 +122,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
-        return new ControlDataSet<U>(Iterables.transform(iterable, function));
+        return new ControlDataSet<U>(Iterators.transform(iterator, function));
     }
 
     @Override
@@ -144,12 +137,12 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public Iterator<V> toLocalIterator() {
-        return iterable.iterator();
+        return iterator;
     }
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function) {
-        return new ControlPairDataSet<>(entryToTuple(Multimaps.index(iterable,function).entries()));
+        return new ControlPairDataSet<>(entryToTuple(Multimaps.index(iterator,function).entries()));
     }
 
     @Override
@@ -170,12 +163,12 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public long count() {
-        return Iterables.size(iterable);
+        return Iterators.size(iterator);
     }
 
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
-        return new ControlDataSet<>(Iterables.concat(iterable, ((ControlDataSet<V>) dataSet).iterable));
+        return new ControlDataSet<>(Iterators.concat(iterator, ((ControlDataSet<V>) dataSet).iterator));
     }
 
     @Override
@@ -185,7 +178,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
-        return new ControlDataSet<>(Iterables.filter(iterable,f));
+        return new ControlDataSet<>(Iterators.filter(iterator,f));
     }
 
     @Override
@@ -196,27 +189,27 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet< V> intersect(DataSet< V> dataSet) {
-        Set<V> left=Sets.newHashSet(iterable);
-        Set<V> right=Sets.newHashSet(((ControlDataSet<V>)dataSet).iterable);
+        Set<V> left=Sets.newHashSet(iterator);
+        Set<V> right=Sets.newHashSet(((ControlDataSet<V>)dataSet).iterator);
         Sets.SetView<V> intersection=Sets.intersection(left,right);
-        return new ControlDataSet<>(intersection);
+        return new ControlDataSet<>(intersection.iterator());
     }
 
     @Override
     public DataSet< V> subtract(DataSet< V> dataSet) {
-        Set<V> left=Sets.newHashSet(iterable);
-        Set<V> right=Sets.newHashSet(((ControlDataSet<V>)dataSet).iterable);
-        return new ControlDataSet<>(Sets.difference(left,right));
+        Set<V> left=Sets.newHashSet(iterator);
+        Set<V> right=Sets.newHashSet(((ControlDataSet<V>)dataSet).iterator);
+        return new ControlDataSet<>(Sets.difference(left,right).iterator());
     }
 
     @Override
     public boolean isEmpty() {
-        return Iterables.isEmpty(iterable);
+        return iterator.hasNext();
     }
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
-        return new ControlDataSet(Iterables.concat(FluentIterable.from(iterable).transform(f)));
+        return new ControlDataSet(Iterators.concat(Iterators.transform(iterator,f)));
     }
 
     @Override
@@ -237,7 +230,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> f) {
         try {
-            return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
+            return new ControlDataSet<>(f.call(iterator));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -254,7 +247,6 @@ public class ControlDataSet<V> implements DataSet<V> {
         try {
             DistributedFileSystem dfs = SIDriver.driver().fileSystem();
             fileOut = dfs.newOutputStream(path, StandardOpenOption.CREATE);
-            Iterator iterator = iterable.iterator();
             while (iterator.hasNext()) {
                 fileOut.write(Bytes.toBytes(iterator.next().toString()));
             }
@@ -274,7 +266,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public PairDataSet<V, Long> zipWithIndex() {
-        return new ControlPairDataSet<V, Long>(Iterables.transform(iterable, new Function<V, Tuple2<V, Long>>() {
+        return new ControlPairDataSet<V, Long>(Iterators.<V,Tuple2<V, Long>>transform(iterator, new Function<V, Tuple2<V, Long>>() {
             long counter = 0;
             @Nullable
             @Override

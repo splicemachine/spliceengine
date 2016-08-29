@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 
-import static org.sparkproject.guava.base.Preconditions.checkNotNull;
+import static org.spark_project.guava.base.Preconditions.checkNotNull;
 
 /**
  * Writes ExecRows to a CSVWriter

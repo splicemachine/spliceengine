@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.hbase;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;

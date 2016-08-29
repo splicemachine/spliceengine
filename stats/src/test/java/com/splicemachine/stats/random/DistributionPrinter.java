@@ -16,7 +16,7 @@
 package com.splicemachine.stats.random;
 
 import com.carrotsearch.hppc.IntLongOpenHashMap;
-import org.sparkproject.guava.base.Strings;
+import org.spark_project.guava.base.Strings;
 
 import java.util.Random;
 

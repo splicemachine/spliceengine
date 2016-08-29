@@ -17,11 +17,10 @@ package com.splicemachine.stream.handlers;
 
 import com.splicemachine.stream.KryoDecoder;
 import com.splicemachine.stream.KryoEncoder;
-import org.sparkproject.io.netty.channel.ChannelHandler;
-import org.sparkproject.io.netty.channel.ChannelInboundHandlerAdapter;
-import org.sparkproject.io.netty.channel.ChannelInitializer;
-import org.sparkproject.io.netty.channel.socket.SocketChannel;
-
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.socket.SocketChannel;
 
 /**
  * We are using Kryo for serialization message between spark and the Olap Server.

@@ -15,9 +15,9 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
-import org.sparkproject.guava.base.Charsets;
-import org.sparkproject.guava.io.Files;
-import org.sparkproject.guava.io.PatternFilenameFilter;
+import org.spark_project.guava.base.Charsets;
+import org.spark_project.guava.io.Files;
+import org.spark_project.guava.io.PatternFilenameFilter;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;

@@ -28,7 +28,7 @@ import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.collect.Lists;
 
 import java.util.*;
 import java.util.Map.Entry;

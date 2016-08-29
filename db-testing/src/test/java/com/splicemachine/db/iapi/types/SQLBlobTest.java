@@ -30,26 +30,22 @@ public class SQLBlobTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter();
-                writer.initialize(new BufferHolder(),1);
+                UnsafeRow row = new UnsafeRow();
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 SQLBlob value = new SQLBlob("1".getBytes());
                 SQLBlob valueA = new SQLBlob();
                 value.write(writer, 0);
-                UnsafeRow row = new UnsafeRow();
-                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 valueA.read(row,0);
                 Assert.assertTrue("SerdeIncorrect",Bytes.equals("1".getBytes(),valueA.getBytes()));
         }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter();
-                writer.initialize(new BufferHolder(),1);
+                UnsafeRow row = new UnsafeRow();
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 SQLBlob value = new SQLBlob();
                 SQLBlob valueA = new SQLBlob();
                 value.write(writer, 0);
-                UnsafeRow row = new UnsafeRow();
-                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());

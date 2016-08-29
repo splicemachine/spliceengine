@@ -15,7 +15,7 @@
 
 package com.splicemachine.lifecycle;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;

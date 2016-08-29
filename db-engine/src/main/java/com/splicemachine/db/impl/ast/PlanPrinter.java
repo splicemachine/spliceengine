@@ -25,7 +25,7 @@
 
 package com.splicemachine.db.impl.ast;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
@@ -36,9 +36,9 @@ import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.base.Strings;
-import org.sparkproject.guava.collect.Iterators;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.base.Strings;
+import org.spark_project.guava.collect.Iterators;
+import org.spark_project.guava.collect.Lists;
 import java.util.*;
 
 

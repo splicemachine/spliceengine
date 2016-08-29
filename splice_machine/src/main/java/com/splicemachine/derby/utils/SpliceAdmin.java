@@ -21,7 +21,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionAdmin;

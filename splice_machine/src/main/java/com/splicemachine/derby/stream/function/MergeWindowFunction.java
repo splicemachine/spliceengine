@@ -56,7 +56,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
     }
 
     @Override
-    public Iterable<LocatedRow> call(Tuple2<ExecRow, Iterable<LocatedRow>> tuple) throws Exception {
+    public Iterator<LocatedRow> call(Tuple2<ExecRow, Iterable<LocatedRow>> tuple) throws Exception {
         Iterable<LocatedRow> locatedRows = tuple._2();
         List<LocatedRow> partitionRows =new ArrayList<>();
         for(LocatedRow lr:locatedRows){

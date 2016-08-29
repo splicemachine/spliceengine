@@ -15,8 +15,8 @@
 
 package com.splicemachine.derby.stream.function.broadcast;
 
-import com.google.common.base.Function;
-import org.sparkproject.guava.collect.FluentIterable;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.FluentIterable;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
