@@ -17,7 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.TakeFunction;
-import org.sparkproject.guava.base.Strings;
+import org.spark_project.guava.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -31,7 +31,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.sparkproject.guava.collect.Iterators;
+import org.spark_project.guava.collect.Iterators;
 
 import java.io.IOException;
 import java.io.ObjectInput;

@@ -26,9 +26,10 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>${spark-assembly-id}</artifactId>
+            <artifactId>spark-network-common_2.11</artifactId>
             <version>${spark.version}</version>
         </dependency>
+
         <dependency>
             <groupId>com.carrotsearch</groupId>
             <artifactId>hppc</artifactId>

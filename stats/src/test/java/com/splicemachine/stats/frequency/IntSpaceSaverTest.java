@@ -15,8 +15,8 @@
 
 package com.splicemachine.stats.frequency;
 
-import org.sparkproject.guava.collect.Lists;
-import org.sparkproject.guava.primitives.Ints;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.hash.HashFunctions;
 import org.junit.Assert;
 import org.junit.Test;

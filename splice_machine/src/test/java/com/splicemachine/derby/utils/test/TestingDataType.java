@@ -16,7 +16,7 @@
 package com.splicemachine.derby.utils.test;
 
 import com.carrotsearch.hppc.BitSet;
-import org.sparkproject.guava.base.Charsets;
+import org.spark_project.guava.base.Charsets;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyVarchar;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;

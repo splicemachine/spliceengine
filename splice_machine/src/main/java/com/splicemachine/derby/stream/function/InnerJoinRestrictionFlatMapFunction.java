@@ -45,7 +45,7 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
     }
 
     @Override
-    public Iterable<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
+    public Iterator<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
         checkInit();
         leftRow = tuple._1();
         Iterator<LocatedRow> it = tuple._2.iterator();
@@ -58,10 +58,10 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
                 LocatedRow lr = new LocatedRow(rightRow.getRowLocation(),mergedRow);
                 op.setCurrentLocatedRow(lr);
-                return Collections.singletonList(lr);
+                return Collections.singletonList(lr).iterator();
             }
             operationContext.recordFilter();
         }
-        return Collections.EMPTY_LIST;
+        return Collections.EMPTY_LIST.iterator();
     }
 }

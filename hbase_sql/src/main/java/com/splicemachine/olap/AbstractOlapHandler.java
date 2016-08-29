@@ -17,14 +17,14 @@ package com.splicemachine.olap;
 
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import org.apache.log4j.Logger;
-import org.sparkproject.jboss.netty.channel.*;
+import org.jboss.netty.channel.*;
 import java.io.IOException;
 
 /**
  * @author Scott Fines
  *         Date: 4/4/16
  */
-public abstract class AbstractOlapHandler extends SimpleChannelUpstreamHandler{
+public abstract class AbstractOlapHandler extends SimpleChannelUpstreamHandler {
 
     protected final OlapJobRegistry jobRegistry;
 
@@ -33,7 +33,7 @@ public abstract class AbstractOlapHandler extends SimpleChannelUpstreamHandler{
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx,ExceptionEvent e) throws Exception{
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception{
         Logger.getLogger(this.getClass()).warn("Unexpected error caught in Olap pipeline: ",e.getCause());
         final Throwable t = e.getCause();
         Channel c = e.getChannel();

@@ -15,7 +15,7 @@
 
 package com.splicemachine.encoding;
 
-import org.sparkproject.guava.base.Preconditions;
+import org.spark_project.guava.base.Preconditions;
 import com.splicemachine.utils.ByteSlice;
 import java.math.BigDecimal;
 

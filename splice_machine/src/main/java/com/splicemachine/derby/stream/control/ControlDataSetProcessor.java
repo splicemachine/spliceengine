@@ -30,7 +30,7 @@ import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.base.Charsets;
+import org.spark_project.guava.base.Charsets;
 import scala.Tuple2;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -131,7 +131,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <V> DataSet<V> getEmpty(){
-        return new ControlDataSet<>(Collections.<V>emptyList());
+        return new ControlDataSet<>(Collections.<V>emptyList().iterator());
     }
 
     @Override
@@ -141,7 +141,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value){
-        return new ControlDataSet<>(Collections.singletonList(value));
+        return new ControlDataSet<>(Collections.singletonList(value).iterator());
     }
 
     @Override
@@ -151,7 +151,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <K,V> PairDataSet<K, V> singleRowPairDataSet(K key,V value){
-        return new ControlPairDataSet<>(Collections.singletonList(new Tuple2<>(key,value)));
+        return new ControlPairDataSet<>(Collections.singletonList(new Tuple2<>(key,value)).iterator());
     }
 
     @Override
@@ -190,17 +190,12 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public DataSet<String> readTextFile(final String s){
-        return new ControlDataSet<>(new Iterable<String>(){
-            @Override
-            public Iterator<String> iterator(){
-                try{
-                    InputStream is=getFileStream(s);
-                    return new TextFileIterator(is);
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            }
-        });
+        try{
+            InputStream is=getFileStream(s);
+            return new ControlDataSet<>(new TextFileIterator(is));
+        }catch(IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -212,17 +207,16 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <K,V> PairDataSet<K, V> getEmptyPair(){
-        Iterable<Tuple2<K, V>> ks=Collections.emptyList();
-        return new ControlPairDataSet<>(ks);
+        return new ControlPairDataSet<>(Collections.<Tuple2<K, V>>emptyList().iterator());
     }
 
     @Override
-    public <V> DataSet<V> createDataSet(Iterable<V> value){
+    public <V> DataSet<V> createDataSet(Iterator<V> value){
         return new ControlDataSet<>(value);
     }
 
     @Override
-    public <V> DataSet<V> createDataSet(Iterable<V> value, String name) {
+    public <V> DataSet<V> createDataSet(Iterator<V> value, String name) {
         return new ControlDataSet<>(value);
     }
 

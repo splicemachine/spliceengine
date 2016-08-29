@@ -54,8 +54,8 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import java.lang.reflect.Modifier;
 import java.util.*;
-import org.sparkproject.guava.base.Joiner;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.Lists;
 
 // Temporary until user override for disposable stats has been removed.
 

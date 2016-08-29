@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.utils.marshall;
 
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;

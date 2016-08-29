@@ -17,11 +17,11 @@ package com.splicemachine.timestamp.impl;
 
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.sparkproject.jboss.netty.channel.ChannelHandler;
-import org.sparkproject.jboss.netty.channel.ChannelPipeline;
-import org.sparkproject.jboss.netty.channel.ChannelPipelineFactory;
-import org.sparkproject.jboss.netty.channel.Channels;
-import org.sparkproject.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
+import org.jboss.netty.channel.ChannelHandler;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
+import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 
 public class TimestampPipelineFactoryLite implements ChannelPipelineFactory {
 

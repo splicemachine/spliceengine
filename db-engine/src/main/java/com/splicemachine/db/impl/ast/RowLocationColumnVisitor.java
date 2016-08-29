@@ -33,8 +33,8 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.exists.ExistsSubqueryFlatteningVisitor;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.base.Predicates;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.base.Predicates;
+import org.spark_project.guava.collect.Lists;
 
 import java.util.List;
 
@@ -294,7 +294,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 
         /* Find column references starting at the DML node but don't go below the current join node. */
         CollectingVisitor<IsNullNode> collectingVisitorVisitor = new CollectingVisitor<>(new NotExistsFlatteningIsNullPredicate());
-        org.sparkproject.guava.base.Predicate<? super Visitable> skipPredicate = Predicates.<Visitable>equalTo(joinNode);
+        org.spark_project.guava.base.Predicate<? super Visitable> skipPredicate = Predicates.<Visitable>equalTo(joinNode);
         SkippingVisitor skippingVisitor = new SkippingVisitor(collectingVisitorVisitor, skipPredicate);
         node.acceptChildren(skippingVisitor);
         List<IsNullNode> isNullNodes = collectingVisitorVisitor.getCollected();
@@ -331,7 +331,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
      *
      * Where the ColumnReference is for a table created as part of not exists subquery flattening.
      */
-    private static class NotExistsFlatteningIsNullPredicate implements org.sparkproject.guava.base.Predicate<Visitable> {
+    private static class NotExistsFlatteningIsNullPredicate implements org.spark_project.guava.base.Predicate<Visitable> {
         @Override
         public boolean apply(Visitable visitable) {
 

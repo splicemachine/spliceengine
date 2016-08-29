@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.impl.stats;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLTinyint;

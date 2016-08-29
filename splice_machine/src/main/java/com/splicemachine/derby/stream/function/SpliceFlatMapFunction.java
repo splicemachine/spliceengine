@@ -15,16 +15,17 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import javax.annotation.Nullable;
+import java.util.Iterator;
 
 /**
  * Created by dgomezferro on 4/4/14.
  */
 public abstract class SpliceFlatMapFunction<Op extends SpliceOperation, From, To>
-		extends AbstractSpliceFunction<Op> implements ExternalizableFlatMapFunction<From, To>, Function<From,Iterable<To>> {
+		extends AbstractSpliceFunction<Op> implements ExternalizableFlatMapFunction<From, To>, Function<From,Iterator<To>> {
 	public SpliceFlatMapFunction() {
 	}
 
@@ -34,7 +35,7 @@ public abstract class SpliceFlatMapFunction<Op extends SpliceOperation, From, To
 
     @Nullable
     @Override
-    public Iterable<To> apply(@Nullable From  from) {
+    public Iterator<To> apply(@Nullable From  from) {
         try {
             return call(from);
         } catch (Exception e) {

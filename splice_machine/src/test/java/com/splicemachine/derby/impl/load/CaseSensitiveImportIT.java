@@ -22,7 +22,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.collect.Lists;
 
 import java.io.File;
 import java.sql.*;

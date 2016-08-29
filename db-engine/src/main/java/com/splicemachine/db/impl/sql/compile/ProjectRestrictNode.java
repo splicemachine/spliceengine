@@ -40,8 +40,8 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
-import org.sparkproject.guava.base.Joiner;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.Lists;
 
 import java.util.*;
 

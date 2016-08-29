@@ -423,6 +423,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(double[].class);
         instance.register(float[].class);
         instance.register(long[].class);
+        instance.register(short[].class);
         instance.register(Collections.emptyList().getClass());
         instance.register(Collections.unmodifiableList(new LinkedList()).getClass(), UNMODIFIABLE_COLLECTIONS_SERIALIZER);
         instance.register(Collections.unmodifiableList(new ArrayList()).getClass(), UNMODIFIABLE_COLLECTIONS_SERIALIZER);
@@ -635,7 +636,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
 
         instance.register(UpdateNoOpPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(WindowFinisherFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(WindowFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(IndexRowReaderBuilder.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(VTIOperation.class, EXTERNALIZABLE_SERIALIZER);

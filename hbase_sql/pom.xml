@@ -47,14 +47,58 @@
             <version>1.9</version>
         </dependency>
         <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-remote_2.11</artifactId>
+            <version>2.4.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-network-common_2.11</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-network-yarn_2.11</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-yarn_2.11</artifactId>
+            <version>${spark.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-server-web-proxy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-client</artifactId>
+                </exclusion>
+            </exclusions>
+
+
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-mllib_2.11</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
             <version>${project.version}</version>
             <exclusions>
-                <exclusion>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.10</artifactId>
-                </exclusion>
                 <exclusion>
                     <artifactId>hadoop-common</artifactId>
                     <groupId>org.apache.hadoop</groupId>
@@ -101,36 +145,18 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-server</artifactId>
-            <version>${hbase.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.mortbay.jetty</groupId>
-                    <artifactId>jsp-2.1</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.mortbay.jetty</groupId>
-                    <artifactId>jsp-api-2.1</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>${spark-assembly-id}</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.10</artifactId>
+            <artifactId>kafka_2.11</artifactId>
             <version>${kafka.version}</version>
             <classifier>test</classifier>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.11</artifactId>
+            <version>${kafka.version}</version>
+        </dependency>
+
         <!--Test dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -145,12 +171,6 @@
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.10</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -217,6 +237,10 @@
                     <artifactId>guava</artifactId>
                     <groupId>com.google.guava</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>hive-exec</artifactId>
+                    <groupId>org.apache.hive</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -228,6 +252,13 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-contrib</artifactId>
             <version>${hive.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-exec</artifactId>
+                </exclusion>
+
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
@@ -824,9 +855,15 @@
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
+                                <argument>
+                                    -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
+                                </argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2g</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
+
+                                <argument>-Dspark.broadcast.compress=true</argument>
+
                                 <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
                                 <argument>
                                     -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator
@@ -840,7 +877,7 @@
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
                                 <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
-                                <argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer
+                               <argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=-XX:MaxPermSize=128m

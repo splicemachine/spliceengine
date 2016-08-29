@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.test.framework;
 
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.*;
 import java.util.List;

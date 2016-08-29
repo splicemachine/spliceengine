@@ -20,16 +20,15 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.input.CombineTextInputFormat;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.input.StreamInputFormat;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -234,13 +233,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public <V> DataSet< V> createDataSet(Iterable<V> value) {
+    public <V> DataSet< V> createDataSet(Iterator<V> value) {
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public <V> DataSet< V> createDataSet(Iterable<V> value, String name) {
+    public <V> DataSet< V> createDataSet(Iterator<V> value, String name) {
         JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Lists.newArrayList(value));
         rdd1.setName(name);
         return new SparkDataSet(rdd1);

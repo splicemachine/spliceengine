@@ -21,7 +21,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sparkproject.guava.base.Strings;
+import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;

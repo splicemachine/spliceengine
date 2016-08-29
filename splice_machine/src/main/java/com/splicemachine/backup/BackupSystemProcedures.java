@@ -23,7 +23,7 @@ import java.util.TimeZone;
 
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.collect.Lists;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
