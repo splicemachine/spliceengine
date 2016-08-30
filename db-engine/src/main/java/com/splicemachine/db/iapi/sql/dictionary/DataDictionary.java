@@ -2069,4 +2069,18 @@ public interface DataDictionary{
     public boolean canUseCache(TransactionController xactMgr) throws StandardException;
 
     boolean canUseSPSCache() throws StandardException;
+
+    void addBackup(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
+
+    void deleteBackup(long backupId, TransactionController tc) throws StandardException;
+
+    List<BackupDescriptor> getBackupDescriptorList() throws StandardException;
+
+    void addBackupItem(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
+
+    void deleteAllBackupItems(long backupId, TransactionController tc) throws StandardException;
+
+    void addBackupJob(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
+
+    void deleteBackupJob(long jobId, TransactionController tc) throws StandardException;
 }

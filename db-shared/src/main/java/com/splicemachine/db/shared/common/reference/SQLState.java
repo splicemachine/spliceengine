@@ -1940,5 +1940,6 @@ public interface SQLState {
     String BAD_FILE_CHECKSUM                                       = "BR009";
     String DATA_FILE_MISSING                                       = "BR010";
 	String BACKUP_CANCELED                                         = "BR011";
+	String BACKUP_DOESNOT_EXIST                                    = "BR012";
 }
 

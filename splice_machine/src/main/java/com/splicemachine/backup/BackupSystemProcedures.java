@@ -229,7 +229,9 @@ public class BackupSystemProcedures {
     public static void SYSCS_DELETE_BACKUP(long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
         try{
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            backupManager.removeBackup(backupId);
+            List<Long> backupIds = Lists.newArrayList();
+            backupIds.add(new Long(backupId));
+            backupManager.removeBackup(backupIds);
             resultSets[0] = generateResult("Success", "Delete backup "+backupId);
         } catch (Throwable t) {
             resultSets[0] = generateResult("Error", t.getLocalizedMessage());
@@ -253,15 +255,15 @@ public class BackupSystemProcedures {
             String sqlText = "select backup_id from sys.sysbackup where begin_timestamp<?";
             try(PreparedStatement ps = conn.prepareStatement(sqlText)){
                 ps.setTimestamp(1,ts);
+                List<Long> backupIdList=new ArrayList<>();
+                BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
                 try(ResultSet rs=ps.executeQuery()){
-                    List<Long> backupIdList=new ArrayList<>();
-                    BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
                     while(rs.next()){
                         long backupId=rs.getLong(1);
                         backupIdList.add(backupId);
-                        backupManager.removeBackup(backupId);
                     }
                 }
+                backupManager.removeBackup(backupIdList);
             }
             resultSets[0] = generateResult("Success", "Delete old backups in window "+backupWindow);
         } catch (Throwable t) {

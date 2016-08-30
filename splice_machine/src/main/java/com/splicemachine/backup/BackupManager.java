@@ -17,6 +17,7 @@ package com.splicemachine.backup;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -32,7 +33,7 @@ public interface BackupManager{
 
     void restoreDatabase(String directory,long backupId)throws StandardException;
 
-    void removeBackup(long backupId) throws StandardException;
+    void removeBackup(List<Long> backupIds) throws StandardException;
 
     void scheduleDailyBackup(String directory, String type, int hour) throws StandardException;
 

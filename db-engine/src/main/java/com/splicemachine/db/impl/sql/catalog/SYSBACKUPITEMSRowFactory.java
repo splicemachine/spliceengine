@@ -49,20 +49,23 @@ public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
     private static final int END_TIMESTAMP = 4;
 
     protected static final int SYSBACKUPITEMS_INDEX1_ID = 0;
+    protected static final int SYSBACKUPITEMS_INDEX2_ID = 1;
 
     private	static	final	boolean[]	uniqueness = {
-            true
+            false, true
     };
 
     private static final int[][] indexColumnPositions = {
-                    {BACKUP_ID, ITEM}
-            };
+            {BACKUP_ID},
+            {BACKUP_ID, ITEM}
+    };
 
 
     private static String uuids[] = {
             "a0527143-4f6e-42df-98ab-b1dff6bea7db",
             "a0527143-4f6c-42df-98ab-b1dff6bea7db",
-            "a0527143-4f6z-42df-98ab-b1dff6bea7db"
+            "a0527143-4f6d-42df-98ab-b1dff6bea7db",
+            "a0527143-4f6e-42df-98ab-b1dff6bea7db"
     };
 
     public SYSBACKUPITEMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
