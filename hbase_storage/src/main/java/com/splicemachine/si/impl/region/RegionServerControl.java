@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 
 import java.io.IOException;
 
@@ -28,11 +29,13 @@ import java.io.IOException;
  *         Date: 12/14/15
  */
 public class RegionServerControl implements ServerControl{
+    private final RegionServerServices rsServices;
     private final HRegion region;
     private String regionNameAsString;
 
-    public RegionServerControl(HRegion region){
+    public RegionServerControl(HRegion region,RegionServerServices rsServices){
         this.region=region;
+        this.rsServices = rsServices;
         this.regionNameAsString = region.getRegionInfo().getRegionNameAsString();
     }
 
@@ -49,6 +52,11 @@ public class RegionServerControl implements ServerControl{
     @Override
     public void ensureNetworkOpen() throws IOException{
         checkCallerDisconnect(region,regionNameAsString);
+    }
+
+    @Override
+    public boolean isAvailable(){
+        return rsServices.getFromOnlineRegions(region.getRegionInfo().getEncodedName())!=null;
     }
 
     private static void checkCallerDisconnect(HRegion region, String task) throws CallerDisconnectedException{

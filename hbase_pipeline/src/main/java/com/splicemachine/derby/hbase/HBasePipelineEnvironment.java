@@ -24,11 +24,14 @@ import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.pipeline.MappedPipelineFactory;
+import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
+import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.client.RpcChannelFactory;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
@@ -64,6 +67,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     private final PipelineCompressor compressor;
     private final BulkWriterFactory writerFactory;
     private final PipelineMeter meter = new CountingPipelineMeter();
+    private final WritePipelineFactory pipelineFactory;
 
     public static HBasePipelineEnvironment loadEnvironment(Clock systemClock,ContextFactoryDriver ctxFactoryLoader) throws IOException{
         HBasePipelineEnvironment env = INSTANCE;
@@ -87,6 +91,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
         this.pipelineExceptionFactory = pef;
         this.contextFactoryLoader = ctxFactoryLoader;
         this.pipelineConfiguration = env.configuration();
+        this.pipelineFactory = new AvailablePipelineFactory();
 
         KryoPool kryoPool=new KryoPool(pipelineConfiguration.getPipelineKryoPoolSize());
         kryoPool.setKryoRegistry(new PipelineKryoRegistry());
@@ -170,6 +175,11 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     }
 
     @Override
+    public WritePipelineFactory pipelineFactory(){
+        return pipelineFactory;
+    }
+
+    @Override
     public DistributedFileSystem fileSystem(){
         return delegate.fileSystem();
     }
@@ -183,5 +193,50 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override
     public SnowflakeFactory snowflakeFactory() {
         return delegate.snowflakeFactory();
+    }
+
+    private static class AvailablePipelineFactory implements WritePipelineFactory{
+        /*
+         * As it turns out, a Region cannot be considered to be "online" until it has been
+         * added to the HBase network logic.
+         *
+         * For most coprocessors, this isn't an important distinction, since the coprocessor is
+         * attached to the network logic, so requests can't be made unless it is through the stack.
+         *
+         * However, the BulkWrite pipeline sends multiple regions in a single request. Therefore, it is
+         * possible for us to send a request to a region that isn't yet added to the network stack. This in turn
+         * causes a race condition to occur when performing splits--specifically, a bulk write may advance the MVCC
+         * write point for a newly opened daughter region before it is finished fully initializing. When that happens,
+         * the daughter region will "fail after the point-of-no-return" and terminate the RegionServer JVM.
+         *
+         * Clearly, we don't want that to happen. In order to avoid it, we have to be sure that the region
+         * is in fact fully constructed and ready to accept writes; this means that we have to check that
+         * the RegionServerServices is aware of the region.
+         *
+         * In a perfect world, we would check this once and be done. However, doing so would mean implicitly
+         * introducing the possibility that we make decisions on outdated information; i.e. we would be re-introducing
+         * the race condition. We simply have to pay the price of an extra concurrent map lookup on each
+         * bulk write request.
+         */
+        private final MappedPipelineFactory delegate = new MappedPipelineFactory();
+
+        @Override
+        public PartitionWritePipeline getPipeline(String partitionName){
+            PartitionWritePipeline pipeline=delegate.getPipeline(partitionName);
+            if(pipeline!=null && pipeline.getRegionCoprocessorEnvironment().isAvailable())
+                return pipeline;
+            else
+                return null;
+        }
+
+        @Override
+        public void registerPipeline(String name,PartitionWritePipeline writePipeline){
+            delegate.registerPipeline(name,writePipeline);
+        }
+
+        @Override
+        public void deregisterPipeline(String partitionName){
+            delegate.deregisterPipeline(partitionName);
+        }
     }
 }

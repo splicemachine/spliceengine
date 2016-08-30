@@ -24,4 +24,8 @@ import com.splicemachine.pipeline.PartitionWritePipeline;
 public interface WritePipelineFactory{
 
     PartitionWritePipeline getPipeline(String partitionName);
+
+    void registerPipeline(String name,PartitionWritePipeline writePipeline);
+
+    void deregisterPipeline(String partitionName);
 }
