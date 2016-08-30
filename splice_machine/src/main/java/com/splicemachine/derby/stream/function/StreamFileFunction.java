@@ -61,7 +61,11 @@ import java.util.NoSuchElementException;
             return Collections.<LocatedRow>emptyList().iterator();
         checkPreference();
 
-        return new Iterator<LocatedRow>() {
+        return new Iterable<LocatedRow>() {
+
+            @Override
+            public Iterator<LocatedRow> iterator() {
+                return new Iterator<LocatedRow>() {
                     private LocatedRow nextRow;
                     private boolean initialized = false;
                     private Reader reader;
@@ -116,4 +120,6 @@ import java.util.NoSuchElementException;
                     }
                 };
             }
+        }.iterator();
     }
+}
