@@ -108,7 +108,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<String> call(Iterator it) throws Exception {
+    public Iterable<String> call(Iterator it) throws Exception {
 
         ArrayList<StoreFile> readersToClose = new ArrayList<StoreFile>();
         Configuration conf = HConfiguration.unwrapDelegate();
@@ -158,8 +158,8 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         }
 
         return (paths == null || paths.isEmpty()) ?
-            Collections.EMPTY_LIST.iterator():
-            Collections.singletonList(paths.get(0).toString()).iterator();
+            Collections.EMPTY_LIST:
+            Collections.singletonList(paths.get(0).toString());
     }
 
 }

@@ -15,9 +15,10 @@
 
 package com.splicemachine.system;
 
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.base.Function;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Lists;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.FileStore;
@@ -25,6 +26,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Overall representation of the configuration of the file system.

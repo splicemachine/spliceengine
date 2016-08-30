@@ -15,10 +15,11 @@
 
 package com.splicemachine.stats.frequency;
 
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.primitives.Doubles;
+import com.google.common.base.Function;
+import org.sparkproject.guava.collect.Collections2;
+import org.sparkproject.guava.primitives.Doubles;
 import com.splicemachine.hash.Hash32;
+
 import java.util.Collection;
 import java.util.Comparator;
 

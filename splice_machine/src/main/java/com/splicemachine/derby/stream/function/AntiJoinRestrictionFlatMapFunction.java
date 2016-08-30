@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.Iterator;
 
 /**
- *
+ * Created by jleach on 4/22/15.
  */
 @NotThreadSafe
 public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<LocatedRow,Iterable<LocatedRow>>,LocatedRow> {
@@ -42,7 +42,7 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
     }
 
     @Override
-    public Iterator<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
+    public Iterable<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
         checkInit();
         leftRow = tuple._1();
         Iterator<LocatedRow> it = tuple._2.iterator();
@@ -54,7 +54,7 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
             op.setCurrentRow(mergedRow);
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
                 operationContext.recordFilter();
-                return Collections.<LocatedRow>emptyList().iterator();
+                return Collections.emptyList();
             }
         }
         // No Rows Matched...
@@ -62,6 +62,6 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
                 op.getEmptyRow(), op.wasRightOuterJoin,
                 executionFactory.getValueRow(numberOfColumns)));
         op.setCurrentLocatedRow(returnRow);
-        return Collections.singletonList(returnRow).iterator();
+        return Collections.singletonList(returnRow);
     }
 }

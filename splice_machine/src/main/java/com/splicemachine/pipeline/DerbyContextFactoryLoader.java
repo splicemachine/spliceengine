@@ -15,10 +15,10 @@
 
 package com.splicemachine.pipeline;
 
-import org.spark_project.guava.base.Optional;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Multimap;
-import org.spark_project.guava.collect.Multimaps;
+import com.google.common.base.Optional;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Multimap;
+import org.sparkproject.guava.collect.Multimaps;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;

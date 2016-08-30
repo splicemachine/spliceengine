@@ -15,8 +15,8 @@
 
 package com.splicemachine.derby.impl.load;
 
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Ints;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;

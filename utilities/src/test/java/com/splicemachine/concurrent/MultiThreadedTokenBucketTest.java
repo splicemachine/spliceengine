@@ -15,7 +15,7 @@
 
 package com.splicemachine.concurrent;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.concurrent.traffic.TrafficController;
 import com.splicemachine.concurrent.traffic.TrafficShaping;
 import com.splicemachine.metrics.ConcurrentEWMA;

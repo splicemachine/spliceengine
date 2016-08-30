@@ -15,9 +15,10 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.spark_project.guava.base.Function;
+import com.google.common.base.Function;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import org.spark_project.guava.collect.Iterators;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -171,7 +172,12 @@ public class ExplainOperation extends SpliceBaseOperation {
         OperationContext operationContext = dsp.createOperationContext(this);
         operationContext.pushScope();
         try {
-            return dsp.createDataSet(Iterators.transform(explainString.iterator(), new Function<String, LocatedRow>() {
+            return dsp.createDataSet(Iterables.transform(new Iterable<String>() {
+                                                             @Override
+                                                             public Iterator<String> iterator() {
+                                                                 return explainString.iterator();
+                                                             }
+                                                         }, new Function<String, LocatedRow>() {
                                                              @Nullable
                                                              @Override
                                                              public LocatedRow apply(@Nullable String n) {

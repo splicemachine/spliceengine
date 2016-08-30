@@ -16,20 +16,18 @@
 package com.splicemachine.stream;
 
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.stream.handlers.OpenHandler;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function2;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.io.netty.bootstrap.Bootstrap;
+import org.sparkproject.io.netty.channel.*;
+import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
+import org.sparkproject.io.netty.channel.socket.nio.NioSocketChannel;
+
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.Arrays;

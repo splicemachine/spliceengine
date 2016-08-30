@@ -20,7 +20,7 @@ import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import org.spark_project.guava.primitives.Ints;
+import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;

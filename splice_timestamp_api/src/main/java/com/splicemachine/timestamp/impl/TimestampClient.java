@@ -31,14 +31,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.CountDownLatches;
 import com.splicemachine.timestamp.api.Callback;
 import com.splicemachine.timestamp.api.TimestampClientStatistics;
@@ -46,6 +39,12 @@ import com.splicemachine.timestamp.api.TimestampHostProvider;
 import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.jboss.netty.bootstrap.ClientBootstrap;
+import org.sparkproject.jboss.netty.buffer.ChannelBuffer;
+import org.sparkproject.jboss.netty.buffer.ChannelBuffers;
+import org.sparkproject.jboss.netty.channel.*;
+import org.sparkproject.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.sparkproject.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 
 /**
  * Accepts concurrent requests for new transactional timestamps and

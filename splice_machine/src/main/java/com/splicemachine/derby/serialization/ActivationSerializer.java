@@ -15,8 +15,8 @@
 
 package com.splicemachine.derby.serialization;
 
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;

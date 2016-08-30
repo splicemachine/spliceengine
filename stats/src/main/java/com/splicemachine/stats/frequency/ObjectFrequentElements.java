@@ -15,7 +15,7 @@
 
 package com.splicemachine.stats.frequency;
 
-import org.spark_project.guava.primitives.Longs;
+import org.sparkproject.guava.primitives.Longs;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.Mergeable;
 

@@ -16,9 +16,9 @@
 package com.splicemachine.si.impl;
 
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Longs;
+import org.sparkproject.guava.collect.Iterators;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.primitives.Longs;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.annotations.ThreadSafe;

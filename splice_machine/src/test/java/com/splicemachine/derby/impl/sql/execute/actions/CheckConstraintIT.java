@@ -36,7 +36,7 @@ import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 /**
  * Integration tests specific to CHECK constraints.

@@ -43,8 +43,8 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Maps;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Maps;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.SystemClock;

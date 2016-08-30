@@ -19,10 +19,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.*;
 import java.util.Collections;
-import java.util.Iterator;
 
 /**
  *
@@ -57,9 +57,9 @@ public class FileFunction extends AbstractFileFunction<String> {
      * @throws Exception
      */
     @Override
-    public Iterator<LocatedRow> call(final String s) throws Exception {
+    public Iterable<LocatedRow> call(final String s) throws Exception {
         if (operationContext.isFailed())
-            return Collections.<LocatedRow>emptyList().iterator();
+            return Collections.emptyList();
         if (!initialized) {
             Reader reader = new StringReader(s);
             checkPreference();
@@ -69,11 +69,11 @@ public class FileFunction extends AbstractFileFunction<String> {
         try {
             tokenizer.setLine(s);
             LocatedRow lr =  call(tokenizer.read());
-            return lr==null?Collections.<LocatedRow>emptyList().iterator():Collections.singletonList(lr).iterator();
+            return lr==null?Collections.<LocatedRow>emptyList():Collections.singletonList(lr);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
                 operationContext.recordBadRecord(e.getLocalizedMessage(), e);
-                return Collections.<LocatedRow>emptyList().iterator();
+                return Collections.emptyList();
             }
             throw StandardException.plainWrapException(e);
         }

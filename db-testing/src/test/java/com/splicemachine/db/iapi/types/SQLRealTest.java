@@ -23,6 +23,7 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -62,11 +63,13 @@ public class SQLRealTest {
     
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 SQLReal value = new SQLReal(100.0f);
                 SQLReal valueA = new SQLReal();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertEquals("SerdeIncorrect",100.0f,row.getFloat(0),0.0f);
                 valueA.read(row,0);
                 Assert.assertEquals("SerdeIncorrect",100f,valueA.getFloat(),0.0d);
@@ -74,11 +77,13 @@ public class SQLRealTest {
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 SQLReal value = new SQLReal();
                 SQLReal valueA = new SQLReal();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());

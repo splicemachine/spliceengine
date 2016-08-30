@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
-import java.util.Iterator;
 
 /**
  * Created by jleach on 5/1/15.
@@ -56,7 +55,7 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
+    public Iterable<LocatedRow> call(LocatedRow from) throws Exception {
         if (!initialized) {
             initialized = true;
             op = (ProjectRestrictOperation) getOperation();
@@ -67,13 +66,13 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
         if (!op.getRestriction().apply(from.getRow())) {
             operationContext.recordFilter();
             StreamLogUtils.logOperationRecordWithMessage(from,operationContext,"filtered");
-            return Collections.<LocatedRow>emptyList().iterator();
+            return Collections.emptyList();
         }
 //        ExecRow execRow = executionFactory.getValueRow(numberOfColumns);
         ExecRow preCopy = op.doProjection(from.getRow());
         LocatedRow locatedRow = new LocatedRow(from.getRowLocation(), preCopy);
         op.setCurrentLocatedRow(locatedRow);
         StreamLogUtils.logOperationRecord(locatedRow,operationContext);
-        return Collections.singletonList(locatedRow).iterator();
+        return Collections.singletonList(locatedRow);
     }
 }

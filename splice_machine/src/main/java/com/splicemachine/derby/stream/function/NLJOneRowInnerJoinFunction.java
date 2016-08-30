@@ -22,6 +22,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.StreamUtils;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -53,7 +55,7 @@ public class NLJOneRowInnerJoinFunction<Op extends SpliceOperation> extends Spli
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
+    public Iterable<LocatedRow> call(LocatedRow from) throws Exception {
         checkInit();
         leftRow = from;
         DataSet dataSet = null;
@@ -69,9 +71,9 @@ public class NLJOneRowInnerJoinFunction<Op extends SpliceOperation> extends Spli
 
                 LocatedRow populatedRow = new LocatedRow(from.getRowLocation(),mergedRow);
                 op.setCurrentLocatedRow(populatedRow);
-                return Collections.singletonList(populatedRow).iterator();
+                return Collections.singletonList(populatedRow);
             } else {
-                return Collections.EMPTY_LIST.iterator();
+                return Collections.EMPTY_LIST;
             }
         } finally {
             if (op.getRightOperation()!= null)

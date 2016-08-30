@@ -34,23 +34,27 @@ public class SQLTimestampTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 SQLTimestamp value = new SQLTimestamp(timestamp);
                 SQLTimestamp valueA = new SQLTimestamp();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 valueA.read(row,0);
                 Assert.assertEquals("SerdeIncorrect",timestamp.toString(),valueA.getTimestamp(new GregorianCalendar()).toString());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 SQLTimestamp value = new SQLTimestamp();
                 SQLTimestamp valueA = new SQLTimestamp();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
     

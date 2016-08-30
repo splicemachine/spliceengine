@@ -23,12 +23,9 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Arrays;
-import java.util.Iterator;
 
 /**
- *
- * TODO REVISIT (NOT SCALABLE)
- *
+ * Created by jleach on 4/22/15.
  */
 @NotThreadSafe
 public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,LocatedRow,LocatedRow> {
@@ -45,7 +42,7 @@ public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> e
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
+    public Iterable<LocatedRow> call(LocatedRow from) throws Exception {
         if (!initialized) {
             initialized = true;
             op = (GroupedAggregateOperation) getOperation();
@@ -65,6 +62,6 @@ public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> e
             rollUpPos--;
             pos++;
         } while (rollUpPos >= 0);
-        return Arrays.asList(rollupRows).iterator();
+        return Arrays.asList(rollupRows);
     }
 }

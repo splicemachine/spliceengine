@@ -23,6 +23,13 @@
         <version>3.0.0.3-SNAPSHOT</version>
     </parent>
     <dependencies>
+        <!-- Dependency added so Splice Machine will use
+        the shaded libraries for Guava and Netty-->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>${spark-assembly-id}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_encoding</artifactId>

@@ -22,7 +22,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import org.spark_project.guava.base.Joiner;
+import org.sparkproject.guava.base.Joiner;
 
 import java.sql.*;
 import java.util.List;

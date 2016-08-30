@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -28,9 +29,9 @@ import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.Optional;
 import scala.Tuple2;
 import scala.util.Either;
+
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;

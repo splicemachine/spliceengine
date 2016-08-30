@@ -54,7 +54,7 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
+    public Iterable<LocatedRow> call(LocatedRow from) throws Exception {
         checkInit();
         DataSet dataSet = null;
         try {
@@ -62,14 +62,14 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
             Iterator<LocatedRow> rightSideNLJ = op.getRightOperation().getLocatedRowIterator();
             if (rightSideNLJ.hasNext()) {
                 StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join filtered");
-                return Collections.<LocatedRow>emptyList().iterator();
+                return Collections.emptyList();
             }
             ExecRow mergedRow = JoinUtils.getMergedRow(from.getRow(), op.getEmptyRow(),
                     op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns));
             StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join");
             op.setCurrentRow(mergedRow);
             op.setCurrentRowLocation(from.getRowLocation());
-            return Collections.singletonList(new LocatedRow(from.getRowLocation(), mergedRow)).iterator();
+            return Collections.singletonList(new LocatedRow(from.getRowLocation(), mergedRow));
         } finally {
             if (op.getRightOperation()!= null)
                 op.getRightOperation().close();

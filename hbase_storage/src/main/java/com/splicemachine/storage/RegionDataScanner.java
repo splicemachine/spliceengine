@@ -15,8 +15,8 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.base.Function;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;

@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import org.spark_project.guava.primitives.Ints;
+import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
 

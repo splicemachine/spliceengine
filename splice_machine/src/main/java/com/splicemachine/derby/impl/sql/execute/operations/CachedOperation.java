@@ -15,10 +15,14 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.spark_project.guava.base.Strings;
+import org.sparkproject.guava.base.Strings;
+import org.sparkproject.guava.collect.Lists;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -27,6 +31,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
@@ -34,6 +39,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -140,7 +146,7 @@ public class CachedOperation extends SpliceBaseOperation {
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 
         if (ds == null && rows.size() > 0) {
-            DataSet dataSet = dsp.createDataSet(rows.iterator());
+            DataSet dataSet = dsp.createDataSet(rows);
             ds = dataSet.map(new CacheFunction(dsp.createOperationContext(this)));
         }
 

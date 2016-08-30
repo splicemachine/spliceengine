@@ -15,22 +15,46 @@
 
 package com.splicemachine.stream;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.util.DefaultClassResolver;
+import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.EngineDriver;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
+import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
+import com.splicemachine.derby.stream.spark.BroadcastedActivation;
 import com.splicemachine.pipeline.Exceptions;
-import io.netty.channel.ChannelHandler;
+import com.splicemachine.timestamp.api.TimestampIOException;
+import com.splicemachine.timestamp.impl.TimestampPipelineFactoryLite;
+import com.splicemachine.timestamp.impl.TimestampServer;
+import com.splicemachine.timestamp.impl.TimestampServerHandler;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ListenableFuture;
-import org.spark_project.guava.util.concurrent.MoreExecutors;
+import org.apache.spark.serializer.KryoRegistrator;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
+import org.sparkproject.guava.util.concurrent.MoreExecutors;
+import org.sparkproject.io.netty.bootstrap.ServerBootstrap;
+import org.sparkproject.io.netty.channel.*;
+import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
+import org.sparkproject.io.netty.channel.socket.SocketChannel;
+import org.sparkproject.io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.sparkproject.io.netty.handler.logging.LogLevel;
+import org.sparkproject.io.netty.handler.logging.LoggingHandler;
+
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.*;
 

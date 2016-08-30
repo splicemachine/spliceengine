@@ -61,7 +61,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.apache.commons.lang3.text.WordUtils;
-import org.spark_project.guava.base.Strings;
+import org.sparkproject.guava.base.Strings;
 
 /**
  * QueryTreeNode is the root class for all query tree nodes. All

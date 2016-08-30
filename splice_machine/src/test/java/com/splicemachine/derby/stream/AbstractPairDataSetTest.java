@@ -15,19 +15,21 @@
 
 package com.splicemachine.derby.stream;
 
+import com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.stream.BaseStreamTest;
 import com.splicemachine.derby.stream.function.RowComparator;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import org.apache.spark.api.java.Optional;
 import org.junit.Assert;
 import org.junit.Test;
 import scala.Tuple2;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -262,10 +264,10 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
 
         }
         @Override
-        public Iterator<Integer> call(Tuple2<ExecRow, ExecRow> tuple) throws Exception {
+        public Iterable<Integer> call(Tuple2<ExecRow, ExecRow> tuple) throws Exception {
             if (tuple._1.getColumn(1).getInt()%2==0)
-                return Arrays.asList(tuple._2.getColumn(1).getInt(),tuple._2.getColumn(2).getInt()).iterator();
-            return Collections.EMPTY_LIST.iterator();
+                return Arrays.asList(tuple._2.getColumn(1).getInt(),tuple._2.getColumn(2).getInt());
+            return Collections.EMPTY_LIST;
         }
     }
 

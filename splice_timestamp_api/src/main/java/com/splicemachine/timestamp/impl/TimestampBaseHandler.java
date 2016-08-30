@@ -16,10 +16,10 @@
 package com.splicemachine.timestamp.impl;
 
 import com.splicemachine.timestamp.api.TimestampIOException;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
+import org.sparkproject.jboss.netty.buffer.ChannelBuffer;
+import org.sparkproject.jboss.netty.channel.ChannelHandlerContext;
+import org.sparkproject.jboss.netty.channel.ExceptionEvent;
+import org.sparkproject.jboss.netty.channel.SimpleChannelHandler;
 
 public abstract class TimestampBaseHandler extends SimpleChannelHandler {
 

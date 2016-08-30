@@ -59,11 +59,11 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
         if (!locatedRows.hasNext()) {
             return returnDefault ?
-                Collections.singletonList(new LocatedRow(getOperation().getExecRowDefinition())).iterator() :
-                Collections.EMPTY_LIST.iterator();
+                Collections.singletonList(new LocatedRow(getOperation().getExecRowDefinition())) :
+                Collections.EMPTY_LIST;
         }
         if (!initialized) {
             op = (GenericAggregateOperation) getOperation();
@@ -96,6 +96,6 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
             }
         }
         op.finishAggregation(r1); // calls setCurrentRow
-        return Collections.singletonList(new LocatedRow(r1)).iterator();
+        return Collections.singletonList(new LocatedRow(r1));
     }
 }

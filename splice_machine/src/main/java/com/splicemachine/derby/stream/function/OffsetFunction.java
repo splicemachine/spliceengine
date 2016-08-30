@@ -15,12 +15,12 @@
 
 package com.splicemachine.derby.stream.function;
 
-import org.spark_project.guava.base.Function;
+import com.google.common.base.Function;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.PeekingIterator;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterators;
+import org.sparkproject.guava.collect.PeekingIterator;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -31,8 +31,7 @@ import java.util.Collections;
 import java.util.Iterator;
 
 /**
- *
- *
+ * Created by jleach on 11/3/15.
  */
 public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapFunction<Op, Iterator<Tuple2<V, Long>>, V> {
     private long limit;
@@ -62,7 +61,7 @@ public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapF
     }
 
     @Override
-    public Iterator<V> call(Iterator<Tuple2<V, Long>> in) throws Exception {
+    public Iterable<V> call(Iterator<Tuple2<V, Long>> in) throws Exception {
         final PeekingIterator<Tuple2<V, Long>> peeking = Iterators.peekingIterator(in);
         while(peeking.hasNext()) {
             Tuple2<V, Long> tuple = peeking.peek();
@@ -90,9 +89,9 @@ public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapF
                 public V apply(@Nullable Tuple2<V, Long> tuple) {
                     return tuple._1();
                 }
-            }).iterator();
+            });
         }
         // consumed
-        return Collections.<V>emptyList().iterator();
+        return Collections.emptyList();
     }
 }

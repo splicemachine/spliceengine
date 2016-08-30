@@ -24,6 +24,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.NestedLoopLeftOuterIterator;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -54,7 +55,7 @@ public class NLJOuterJoinFunction<Op extends SpliceOperation> extends SpliceJoin
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
+    public Iterable<LocatedRow> call(LocatedRow from) throws Exception {
         checkInit();
         DataSet dataSet = null;
         try {
@@ -69,7 +70,7 @@ public class NLJOuterJoinFunction<Op extends SpliceOperation> extends SpliceJoin
                 LocatedRow lr = new LocatedRow(leftRow.getRowLocation(),mergedRow.getClone());
                 StreamLogUtils.logOperationRecordWithMessage(lr,operationContext,"outer - right side no rows");
                 op.setCurrentLocatedRow(lr);
-                return Collections.singletonList(lr).iterator();
+                return Collections.singletonList(lr);
             }
             return new NestedLoopLeftOuterIterator(this);
         } finally {

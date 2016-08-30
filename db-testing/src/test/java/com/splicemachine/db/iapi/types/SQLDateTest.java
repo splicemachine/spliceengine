@@ -35,13 +35,15 @@ public class SQLDateTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 Date date = new Date(System.currentTimeMillis());
                 int computeEncodedDate = SQLDate.computeEncodedDate(date);
                 SQLDate value = new SQLDate(date);
                 SQLDate valueA = new SQLDate();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertEquals("SerdeIncorrect",computeEncodedDate,row.getInt(0));
                 valueA.read(row,0);
                 Assert.assertEquals("SerdeIncorrect",date.toString(),valueA.getDate(new GregorianCalendar()).toString());
@@ -49,11 +51,13 @@ public class SQLDateTest {
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 SQLDate value = new SQLDate();
                 SQLDate valueA = new SQLDate();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());

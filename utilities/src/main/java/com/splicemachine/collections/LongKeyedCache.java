@@ -15,8 +15,8 @@
 
 package com.splicemachine.collections;
 
-import org.spark_project.guava.base.Preconditions;
-import org.spark_project.guava.cache.CacheStats;
+import org.sparkproject.guava.base.Preconditions;
+import org.sparkproject.guava.cache.CacheStats;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.metrics.Counter;

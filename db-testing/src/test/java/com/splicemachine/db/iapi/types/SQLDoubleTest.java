@@ -64,11 +64,13 @@ public class SQLDoubleTest {
     
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 SQLDouble value = new SQLDouble(100.0d);
                 SQLDouble valueA = new SQLDouble();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertEquals("SerdeIncorrect",100.0d,row.getDouble(0),0.0d);
                 valueA.read(row,0);
                 Assert.assertEquals("SerdeIncorrect",100,valueA.getDouble(),0.0d);
@@ -76,11 +78,13 @@ public class SQLDoubleTest {
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 SQLDouble value = new SQLDouble();
                 SQLDouble valueA = new SQLDouble();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());

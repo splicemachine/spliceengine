@@ -2273,13 +2273,13 @@ public class SelectNode extends ResultSetNode{
         return orderByList;
     }
 
-    public static class SelectNodeWithSubqueryPredicate implements org.spark_project.guava.base.Predicate<Visitable> {
+    public static class SelectNodeWithSubqueryPredicate implements org.sparkproject.guava.base.Predicate<Visitable> {
         @Override
         public boolean apply(Visitable input) {
             return (input instanceof SelectNode) && !((SelectNode) input).getWhereSubquerys().isEmpty();
         }
     }
-    public static class SelectNodeNestingLevelFunction implements org.spark_project.guava.base.Function<SelectNode, Integer> {
+    public static class SelectNodeNestingLevelFunction implements com.google.common.base.Function<SelectNode, Integer> {
         @Override
         public Integer apply(SelectNode input) {
             return input.getNestingLevel();

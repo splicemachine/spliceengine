@@ -26,7 +26,7 @@
 package com.splicemachine.db.impl.ast;
 
 
-import org.spark_project.guava.base.Function;
+import com.google.common.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
@@ -43,11 +43,11 @@ import com.splicemachine.db.impl.sql.compile.ResultColumnList;
 import com.splicemachine.db.impl.sql.compile.ResultSetNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.base.Predicates;
+import org.sparkproject.guava.collect.Collections2;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Sets;
 import java.util.*;
 
 
@@ -102,13 +102,13 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
                 RSUtils.rsnHasPreds);
 
-        org.spark_project.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
+        org.sparkproject.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
 
         for (ResultSetNode rsn: rightsUntilBinary) {
             List<? extends Predicate> c = null;
             // Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
-            org.spark_project.guava.base.Predicate<Predicate> shouldPull =
+            org.sparkproject.guava.base.Predicate<Predicate> shouldPull =
                     Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
             if(rsn instanceof ProjectRestrictNode)
                 c = pullPredsFromPR((ProjectRestrictNode)rsn,shouldPull);
@@ -150,7 +150,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     private List<? extends Predicate> pullPredsFromIndex(IndexToBaseRowNode rsn,
-                                                                                     org.spark_project.guava.base.Predicate<Predicate> shouldPull) throws StandardException {
+                                                                                     org.sparkproject.guava.base.Predicate<Predicate> shouldPull) throws StandardException {
         List<Predicate> pulled = new LinkedList<Predicate>();
         if (rsn.restrictionList != null) {
             for (int i = rsn.restrictionList.size() - 1; i >= 0; i--) {
@@ -170,7 +170,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     public List<Predicate> pullPredsFromPR(ProjectRestrictNode pr,
-                                           org.spark_project.guava.base.Predicate<Predicate> shouldPull)
+                                           org.sparkproject.guava.base.Predicate<Predicate> shouldPull)
             throws StandardException {
         List<Predicate> pulled = new LinkedList<Predicate>();
         if (pr.restrictionList != null) {
@@ -191,7 +191,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     public List<Predicate> pullPredsFromTable(FromBaseTable t,
-                                              org.spark_project.guava.base.Predicate<Predicate> shouldPull,
+                                              org.sparkproject.guava.base.Predicate<Predicate> shouldPull,
                                               boolean shouldRemove)
             throws StandardException {
         List<Predicate> pulled = new LinkedList<Predicate>();
@@ -231,7 +231,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
                 RSUtils.rsnHasPreds);
 
-        org.spark_project.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
+        org.sparkproject.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
 
     	if (LOG.isDebugEnabled())
     		LOG.debug(String.format("joinScoped joinScoped=%s",joinScoped));
@@ -241,7 +241,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         		LOG.debug(String.format("rewriteNLJColumnRefs rightsUntilBinary=%s",rsn));
         	// Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
-            org.spark_project.guava.base.Predicate<Predicate> predOfInterest =
+            org.sparkproject.guava.base.Predicate<Predicate> predOfInterest =
                     Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
             joinPreds.addAll(Collections2
                                  .filter(RSUtils.collectExpressionNodes(rsn, Predicate.class),
@@ -273,10 +273,10 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     /**
      * Returns a fn that returns true if a Predicate can be evaluated at the node rsn
      */
-    public static org.spark_project.guava.base.Predicate<Predicate> evalableAtNode(final ResultSetNode rsn)
+    public static org.sparkproject.guava.base.Predicate<Predicate> evalableAtNode(final ResultSetNode rsn)
             throws StandardException {
         final Set<Integer> rsns = Sets.newHashSet(Lists.transform(RSUtils.getSelfAndDescendants(rsn), RSUtils.rsNum));
-        return new org.spark_project.guava.base.Predicate<Predicate>() {
+        return new org.sparkproject.guava.base.Predicate<Predicate>() {
             @Override
             public boolean apply(Predicate p) {
                 try {

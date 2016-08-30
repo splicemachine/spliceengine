@@ -29,7 +29,7 @@ public class ControlDataSetTest extends AbstractDataSetTest{
 
     @Override
     protected DataSet<ExecRow> getTenRowsTwoDuplicateRecordsDataSet() {
-        return new ControlDataSet<>(tenRowsTwoDuplicateRecords.iterator());
+        return new ControlDataSet<>(tenRowsTwoDuplicateRecords);
     }
 
 }

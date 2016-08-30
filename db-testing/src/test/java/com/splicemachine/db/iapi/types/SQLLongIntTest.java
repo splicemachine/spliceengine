@@ -61,11 +61,13 @@ public class SQLLongIntTest {
     
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 SQLLongint value = new SQLLongint(100l);
                 SQLLongint valueA = new SQLLongint();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertEquals("SerdeIncorrect",100l,row.getLong(0),0l);
                 valueA.read(row,0);
                 Assert.assertEquals("SerdeIncorrect",100l,valueA.getLong(),0l);
@@ -73,11 +75,13 @@ public class SQLLongIntTest {
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter();
+                writer.initialize(new BufferHolder(),1);
                 SQLLongint value = new SQLLongint();
                 SQLLongint valueA = new SQLLongint();
                 value.write(writer, 0);
+                UnsafeRow row = new UnsafeRow();
+                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());

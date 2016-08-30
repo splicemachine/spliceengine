@@ -25,7 +25,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.IOException;
 import java.io.ObjectInput;

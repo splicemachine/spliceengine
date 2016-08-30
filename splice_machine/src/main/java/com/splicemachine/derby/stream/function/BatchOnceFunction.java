@@ -24,10 +24,10 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.Set;
 
-import org.spark_project.guava.collect.ArrayListMultimap;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Multimap;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.ArrayListMultimap;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Multimap;
+import org.sparkproject.guava.collect.Sets;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -85,7 +85,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
     }
 
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
 
         if (!initialized) {
             init();
@@ -95,7 +95,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         if (rowQueue.size() == 0) {
             loadNextBatch(locatedRows);
         }
-        return rowQueue.iterator();
+        return rowQueue;
     }
 
     private void init() {

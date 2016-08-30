@@ -15,8 +15,8 @@
 
 package com.splicemachine.derby.stream.function.broadcast;
 
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
+import com.google.common.base.Function;
+import org.sparkproject.guava.collect.FluentIterable;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -49,7 +49,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     }
 
     @Override
-    public final Iterator<Out> call(Iterator<In> locatedRows) throws Exception {
+    public final Iterable<Out> call(Iterator<In> locatedRows) throws Exception {
         JoinTable joinTable ;
         operation = getOperation();
         Callable<Stream<ExecRow>> rhsLoader = new Callable<Stream<ExecRow>>() {
@@ -80,7 +80,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
         ExecRow leftTemplate = operation.getLeftOperation().getExecRowDefinition();
         joinTable = broadcastJoinCache.get(operation.getSequenceId(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), leftTemplate).newTable();
 
-        return call(locatedRows, joinTable).iterator();
+        return call(locatedRows, joinTable);
     }
 
     protected abstract Iterable<Out> call(Iterator<In> locatedRows, JoinTable joinTable);

@@ -20,7 +20,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.ConcatenatedIterable;
-import org.apache.commons.collections.IteratorUtils;
 import scala.Tuple2;
 
 import java.util.*;
@@ -41,15 +40,15 @@ public class CogroupOuterJoinRestrictionFlatMapFunction<Op extends SpliceOperati
     }
 
     @Override
-    public Iterator<LocatedRow> call(Tuple2<ExecRow,Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>>> tuple) throws Exception {
+    public Iterable<LocatedRow> call(Tuple2<ExecRow,Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>>> tuple) throws Exception {
         checkInit();
         //linked list saves memory, and since we are just doing iteration anyway, there isn't really much penalty here
         List<Iterable<LocatedRow>> returnRows = new LinkedList<>();
         for(LocatedRow a_1 : tuple._2._1){
             Iterable<LocatedRow> locatedRows=tuple._2._2;
-            returnRows.add(IteratorUtils.toList(outerJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,locatedRows))));
+            returnRows.add(outerJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,locatedRows)));
         }
-        return new ConcatenatedIterable<>(returnRows).iterator();
+        return new ConcatenatedIterable<>(returnRows);
     }
     @Override
     protected void checkInit() {

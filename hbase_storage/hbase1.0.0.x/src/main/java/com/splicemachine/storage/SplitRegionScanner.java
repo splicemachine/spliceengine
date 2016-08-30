@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import com.splicemachine.hbase.CellUtils;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
-import org.spark_project.guava.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
 import com.splicemachine.concurrent.Clock;

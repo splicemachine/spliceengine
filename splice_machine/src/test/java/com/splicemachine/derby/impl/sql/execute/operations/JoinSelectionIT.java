@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.spark_project.guava.base.Joiner;
+import org.sparkproject.guava.base.Joiner;
 import com.splicemachine.derby.test.framework.*;
 
 import com.splicemachine.test.SlowTest;

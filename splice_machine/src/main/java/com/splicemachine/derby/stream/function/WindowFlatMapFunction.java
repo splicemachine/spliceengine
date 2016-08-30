@@ -15,30 +15,19 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.base.Function;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import javax.annotation.Nullable;
+import scala.Tuple2;
+
+import java.util.Iterator;
 
 /**
- * Created by dgomezferro on 4/4/14.
+ * Created by jleach on 4/28/15.
  */
-public abstract class SpliceFlatMapFunction<Op extends SpliceOperation, From, To>
-		extends AbstractSpliceFunction<Op> implements ExternalizableFlatMapFunction<From, To>, Function<From,Iterable<To>> {
-	public SpliceFlatMapFunction() {
-	}
+public class WindowFlatMapFunction<Op extends SpliceOperation,K,V,U> extends SpliceFlatMapFunction<Op,Iterator<Tuple2<K, V>>, U> {
 
-	public SpliceFlatMapFunction(OperationContext<Op> operationContext) {
-        super(operationContext);
-	}
 
-    @Nullable
     @Override
-    public Iterable<To> apply(@Nullable From  from) {
-        try {
-            return call(from);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public Iterable<U> call(Iterator<Tuple2<K, V>> sourceIterator) throws Exception {
+        return null;
     }
 }

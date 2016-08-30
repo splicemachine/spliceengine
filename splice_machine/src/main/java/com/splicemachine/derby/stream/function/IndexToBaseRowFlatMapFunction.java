@@ -61,7 +61,7 @@ public class IndexToBaseRowFlatMapFunction<Op extends SpliceOperation> extends S
     }
 
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
         if (!initialized) {
             indexRowToBaseRowOperation = (IndexRowToBaseRowOperation) getOperation();
             reader = indexRowReaderBuilder.source(locatedRows).build();

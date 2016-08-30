@@ -15,11 +15,13 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import scala.Tuple2;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
+
 import java.io.Serializable;
 import java.util.Iterator;
 
@@ -29,9 +31,14 @@ import java.util.Iterator;
  */
 public class ExceptionWrapperFunction<K,V> implements PairFlatMapFunction<Iterator<Tuple2<K,V>>, K,Either<Exception,V>>, Serializable {
     @Override
-    public Iterator<Tuple2<K, Either<Exception, V>>> call(final Iterator<Tuple2<K, V>> tuple2Iterator) throws Exception {
-            return new IteratorExceptionWrapper(tuple2Iterator);
-    };
+    public Iterable<Tuple2<K, Either<Exception, V>>> call(final Iterator<Tuple2<K, V>> tuple2Iterator) throws Exception {
+        return new Iterable<Tuple2<K, Either<Exception, V>>>() {
+            @Override
+            public Iterator<Tuple2<K, Either<Exception, V>>> iterator() {
+                return new IteratorExceptionWrapper(tuple2Iterator);
+            }
+        };
+    }
 }
 
 class IteratorExceptionWrapper<K,V> implements Iterator<Tuple2<K, ? extends Either<Exception, V>>> {

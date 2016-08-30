@@ -68,7 +68,7 @@
   </property>
   <property>
     <name>yarn.nodemanager.aux-services.spark_shuffle.class</name>
-    <value>org.apache.spark.network.yarn.YarnShuffleService</value>
+    <value>org.sparkproject.network.yarn.YarnShuffleService</value>
   </property>
   <property>
     <name>spark.shuffle.service.port</name>

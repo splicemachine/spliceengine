@@ -17,6 +17,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import java.io.IOException;
 
+import com.google.common.base.Supplier;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
@@ -45,7 +46,6 @@ import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.spark_project.guava.base.Supplier;
 
 /**
  * @author Scott Fines

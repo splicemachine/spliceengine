@@ -16,7 +16,7 @@
 package com.splicemachine.derby.test.framework;
 
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -26,7 +26,7 @@ import java.sql.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static org.spark_project.guava.base.Strings.isNullOrEmpty;
+import static org.sparkproject.guava.base.Strings.isNullOrEmpty;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

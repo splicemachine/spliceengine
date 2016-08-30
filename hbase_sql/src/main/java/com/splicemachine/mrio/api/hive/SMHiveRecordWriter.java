@@ -117,7 +117,7 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
         LocatedRow locatedRow = new LocatedRow(rowLocation, value.get());
         ArrayList<LocatedRow> rows = Lists.newArrayList();
         rows.add(locatedRow);
-        return new ControlDataSet(rows.iterator());
+        return new ControlDataSet(rows);
     }
 
     private void init() {

@@ -17,26 +17,27 @@ package com.splicemachine.olap;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.pool.AbstractChannelPoolHandler;
-import io.netty.channel.pool.ChannelPool;
-import io.netty.channel.pool.SimpleChannelPool;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.protobuf.ProtobufDecoder;
-import io.netty.handler.codec.protobuf.ProtobufEncoder;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
+import org.sparkproject.guava.util.concurrent.ExecutionList;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
+import org.sparkproject.io.netty.bootstrap.Bootstrap;
+import org.sparkproject.io.netty.channel.*;
+import org.sparkproject.io.netty.channel.nio.NioEventLoopGroup;
+import org.sparkproject.io.netty.channel.pool.AbstractChannelPoolHandler;
+import org.sparkproject.io.netty.channel.pool.ChannelPool;
+import org.sparkproject.io.netty.channel.pool.SimpleChannelPool;
+import org.sparkproject.io.netty.channel.socket.nio.NioSocketChannel;
+import org.sparkproject.io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import org.sparkproject.io.netty.handler.codec.LengthFieldPrepender;
+import org.sparkproject.io.netty.handler.codec.protobuf.ProtobufDecoder;
+import org.sparkproject.io.netty.handler.codec.protobuf.ProtobufEncoder;
+import org.sparkproject.io.netty.util.concurrent.Future;
+import org.sparkproject.io.netty.util.concurrent.GenericFutureListener;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ExecutionList;
-import org.spark_project.guava.util.concurrent.ListenableFuture;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -195,9 +196,9 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
 
         @Override
-        public OlapResult get() throws InterruptedException, ExecutionException {
+        public OlapResult get() throws InterruptedException, ExecutionException{
             try{
-                return get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                return get(Long.MAX_VALUE,TimeUnit.NANOSECONDS);
             }catch(TimeoutException e){
                 //this will never happen, because we wait for forever. But just in case, wrap it in a runtime and
                 //throw it anyway
@@ -429,7 +430,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     }
 
     @ChannelHandler.Sharable
-    private final class ResultHandler extends SimpleChannelInboundHandler<OlapMessage.Response> {
+    private final class ResultHandler extends SimpleChannelInboundHandler<OlapMessage.Response>{
         private final OlapFuture future;
 
         ResultHandler(OlapFuture future){

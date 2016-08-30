@@ -16,17 +16,20 @@
 package com.splicemachine.derby.stream.output.direct;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.control.ControlPairDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
+
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -54,7 +57,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
 
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(rows.count));
-            return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)).iterator());
+            return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

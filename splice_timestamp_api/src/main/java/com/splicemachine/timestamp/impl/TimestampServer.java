@@ -18,15 +18,14 @@ package com.splicemachine.timestamp.impl;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.jboss.netty.bootstrap.ServerBootstrap;
+import org.sparkproject.jboss.netty.channel.Channel;
+import org.sparkproject.jboss.netty.channel.ChannelFactory;
+import org.sparkproject.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
 public class TimestampServer {
     private static final Logger LOG = Logger.getLogger(TimestampServer.class);

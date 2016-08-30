@@ -55,7 +55,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
-import org.spark_project.guava.base.Predicates;
+import org.sparkproject.guava.base.Predicates;
 
 
 /**
@@ -1143,7 +1143,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @see #findColumnDescriptor(ResultColumn)
      */
     private static class ResultColumnFinder implements ColumnFinder {
-        private final org.spark_project.guava.base.Predicate<ColumnDescriptor> predicate;
+        private final org.sparkproject.guava.base.Predicate<ColumnDescriptor> predicate;
 
         ResultColumnFinder(ResultColumn srcRC) {
             assert srcRC != null : "ResultColumnFinder predicate cannot accept a null source ResultColumn.";

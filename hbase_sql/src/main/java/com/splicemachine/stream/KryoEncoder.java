@@ -19,9 +19,9 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.utils.kryo.KryoPool;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToByteEncoder;
+import org.sparkproject.io.netty.buffer.ByteBuf;
+import org.sparkproject.io.netty.channel.ChannelHandlerContext;
+import org.sparkproject.io.netty.handler.codec.MessageToByteEncoder;
 
 import java.io.ByteArrayOutputStream;
 

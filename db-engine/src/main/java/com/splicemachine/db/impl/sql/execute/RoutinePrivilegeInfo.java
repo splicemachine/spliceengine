@@ -31,7 +31,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import java.util.Iterator;
 import java.util.List;
 

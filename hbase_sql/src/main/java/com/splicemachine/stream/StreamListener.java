@@ -17,13 +17,17 @@ package com.splicemachine.stream;
 
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.log4j.Logger;
+import org.sparkproject.io.netty.channel.Channel;
+import org.sparkproject.io.netty.channel.ChannelHandler;
+import org.sparkproject.io.netty.channel.ChannelHandlerContext;
+import org.sparkproject.io.netty.channel.ChannelInboundHandlerAdapter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;

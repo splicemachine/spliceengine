@@ -21,7 +21,7 @@ import java.io.PrintStream;
 import java.sql.*;
 import java.util.*;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.FileUtils;

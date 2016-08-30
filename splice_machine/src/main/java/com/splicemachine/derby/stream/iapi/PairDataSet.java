@@ -15,14 +15,16 @@
 
 package com.splicemachine.derby.stream.iapi;
 
+import com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
-import org.apache.spark.api.java.Optional;
 import scala.Tuple2;
+
 import java.util.Comparator;
 import java.util.Iterator;
 

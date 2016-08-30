@@ -17,8 +17,8 @@ package com.splicemachine.stats.frequency;
 
 import com.carrotsearch.hppc.IntLongOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntLongCursor;
-import org.spark_project.guava.primitives.Ints;
-import org.spark_project.guava.primitives.Longs;
+import org.sparkproject.guava.primitives.Ints;
+import org.sparkproject.guava.primitives.Longs;
 import com.splicemachine.stats.random.Generators;
 import com.splicemachine.stats.random.ParetoGenerator;
 import com.splicemachine.stats.random.RandomGenerator;

@@ -15,7 +15,7 @@
 
 package com.splicemachine.pipeline;
 
-import org.spark_project.guava.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.si.api.data.ExceptionFactory;

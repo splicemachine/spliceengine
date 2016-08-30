@@ -18,9 +18,7 @@ package com.splicemachine.olap;
 import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-
+import org.sparkproject.jboss.netty.channel.*;
 import java.io.IOException;
 
 /**
@@ -34,7 +32,7 @@ public class OlapStatusHandler extends AbstractOlapHandler{
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception{
+    public void messageReceived(ChannelHandlerContext ctx,MessageEvent e) throws Exception{
         OlapMessage.Command cmd = (OlapMessage.Command)e.getMessage();
         if(cmd.getType()!=OlapMessage.Command.Type.STATUS){
             ctx.sendUpstream(e);

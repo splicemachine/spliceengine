@@ -28,8 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- *
- *
+ * Created by jleach on 4/22/15.
  */
 @NotThreadSafe
 public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<LocatedRow,Iterable<LocatedRow>>,LocatedRow> {
@@ -45,7 +44,7 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
     }
 
     @Override
-    public Iterator<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
+    public Iterable<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
         checkInit();
         leftRow = tuple._1();
         List<LocatedRow> returnRows = new ArrayList();
@@ -69,6 +68,6 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
             LocatedRow lr = new LocatedRow(leftRow.getRowLocation(),mergedRow);
             returnRows.add(lr);
         }
-        return returnRows.iterator();
+        return returnRows;
     }
 }

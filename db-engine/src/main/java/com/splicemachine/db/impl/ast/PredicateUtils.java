@@ -25,13 +25,14 @@
 
 package com.splicemachine.db.impl.ast;
 
+import com.google.common.base.*;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.OperatorToString;
 import com.splicemachine.db.impl.sql.compile.Predicate;
-import org.spark_project.guava.base.Function;
 import java.util.ArrayList;
 import java.util.List;
+import static java.lang.String.format;
 
 /**
  * @author P Trolard
@@ -39,7 +40,7 @@ import java.util.List;
  */
 public class PredicateUtils {
 
-    public static org.spark_project.guava.base.Predicate<Predicate> isEquiJoinPred = new org.spark_project.guava.base.Predicate<Predicate>() {
+    public static org.sparkproject.guava.base.Predicate<Predicate> isEquiJoinPred = new org.sparkproject.guava.base.Predicate<Predicate>() {
         @Override
         public boolean apply(Predicate p) {
             return p != null &&
@@ -48,7 +49,7 @@ public class PredicateUtils {
         }
     };
 
-    public static org.spark_project.guava.base.Predicate<Predicate> isJoinPred = new org.spark_project.guava.base.Predicate<Predicate>() {
+    public static org.sparkproject.guava.base.Predicate<Predicate> isJoinPred = new org.sparkproject.guava.base.Predicate<Predicate>() {
         @Override
         public boolean apply(Predicate p) {
             return p != null &&

@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.impl.stats;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.estimate.Distribution;
