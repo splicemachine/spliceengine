@@ -23,6 +23,20 @@
         <version>3.0.0.3-SNAPSHOT</version>
     </parent>
     <dependencies>
+    	 
+		<dependency>
+		    <groupId>org.apache.hadoop</groupId>
+		    <artifactId>hadoop-common</artifactId>
+		    <version>${hadoop.version}</version>
+		     <scope>provided</scope>
+		</dependency>
+		<dependency>
+    		<groupId>org.apache.hive</groupId>
+    		<artifactId>hive-exec</artifactId>
+    		<version>${hive.version}</version> 
+    		 <scope>provided</scope>
+    		
+		</dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
@@ -45,6 +59,8 @@
             <groupId>com.splicemachine</groupId>
             <artifactId>db-tools-ij</artifactId>
         </dependency>
+        
+       
         <dependency>
             <groupId>net.sf.supercsv</groupId>
             <artifactId>super-csv</artifactId>
