@@ -34,28 +34,24 @@ public class SQLTimeTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter();
-                writer.initialize(new BufferHolder(),1);
+                UnsafeRow row = new UnsafeRow();
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 Time time = new Time(System.currentTimeMillis());
                 SQLTime value = new SQLTime(time);
                 SQLTime valueA = new SQLTime();
                 value.write(writer, 0);
-                UnsafeRow row = new UnsafeRow();
-                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 valueA.read(row,0);
                 Assert.assertEquals("SerdeIncorrect",time.toString(),valueA.getTime(new GregorianCalendar()).toString());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter();
-                writer.initialize(new BufferHolder(),1);
+                UnsafeRow row = new UnsafeRow();
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 Time time = new Time(System.currentTimeMillis());
                 SQLTime value = new SQLTime(time);
                 SQLTime valueA = new SQLTime();
                 value.write(writer, 0);
-                UnsafeRow row = new UnsafeRow();
-                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
     

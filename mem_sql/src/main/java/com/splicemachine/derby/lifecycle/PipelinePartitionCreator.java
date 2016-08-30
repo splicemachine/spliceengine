@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.lifecycle;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.PipelineLoadService;

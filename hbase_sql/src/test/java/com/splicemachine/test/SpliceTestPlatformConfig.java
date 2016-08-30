@@ -17,14 +17,11 @@ package com.splicemachine.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
-import static com.google.common.collect.Lists.transform;
-
+import static org.spark_project.guava.collect.Lists.transform;
 import java.util.List;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.ImmutableList;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.hbase.*;
 import org.apache.hadoop.conf.Configuration;

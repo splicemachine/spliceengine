@@ -15,10 +15,8 @@
 
 package com.splicemachine.pipeline;
 
-import akka.event.NoLogging$;
 import com.splicemachine.pipeline.api.WritePipelineFactory;
 import org.apache.log4j.Logger;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 

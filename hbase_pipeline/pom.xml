@@ -122,6 +122,10 @@
                     <groupId>com.sun.jersey</groupId>
                     <artifactId>jersey-json</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-all</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <!--Test dependencies -->
@@ -143,12 +147,6 @@
             <version>3.0.0.3-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.4.10</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>

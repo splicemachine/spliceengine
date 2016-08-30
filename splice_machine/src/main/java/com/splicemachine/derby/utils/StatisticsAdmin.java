@@ -15,13 +15,13 @@
 
 package com.splicemachine.derby.utils;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.utils.stats.DistributedStatsCollection;
 import com.splicemachine.derby.utils.stats.StatsResult;
-import org.sparkproject.guava.collect.FluentIterable;
-import org.sparkproject.guava.collect.Lists;
+import org.spark_project.guava.collect.FluentIterable;
+import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;

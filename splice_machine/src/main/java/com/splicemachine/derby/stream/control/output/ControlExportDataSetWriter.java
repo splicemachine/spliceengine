@@ -16,7 +16,6 @@
 package com.splicemachine.derby.stream.control.output;
 
 import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -33,14 +32,8 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.Iterator;
@@ -97,7 +90,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         ValueRow valueRow = new ValueRow(2);
         valueRow.setColumn(1,new SQLLongint(count));
         valueRow.setColumn(2,new SQLInteger(0));
-        return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
+        return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)).iterator());
     }
 
     @Override

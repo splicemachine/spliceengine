@@ -73,10 +73,7 @@
         <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <spark.version>1.6.2</spark.version>
-        <!-- Dependency added so Splice Machine will use the shaded libraries for Guava and Netty -->
-        <!-- TODO: Remove CDH version dependency in favor of generic apache hbase spark assembly -->
-        <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
+        <spark.version>2.0.0</spark.version>
     </properties>
     <!-- TODO: Will need to point this to splice open repo -->
     <scm>
@@ -220,11 +217,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>com.esotericsoftware.kryo</groupId>
-                <artifactId>kryo</artifactId>
-                <version>2.21</version>
-            </dependency>
-            <dependency>
                 <groupId>com.github.stephenc.high-scale-lib</groupId>
                 <artifactId>high-scale-lib</artifactId>
                 <version>1.1.1</version>
@@ -308,7 +300,7 @@
             <dependency>
                 <groupId>de.javakaffee</groupId>
                 <artifactId>kryo-serializers</artifactId>
-                <version>0.26</version>
+                <version>0.38</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
@@ -695,7 +687,7 @@
                 <zookeeper.version>3.4.6</zookeeper.version>
                 <!-- Just to try to get things to compile. Will need a generic spark assembly. -->
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
-                <spark.version>1.6.2</spark.version>
+                <spark.version>2.0.0</spark.version>
                 <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
                 <hadoop.tools.version>1.2.1</hadoop.tools.version>
             </properties>
@@ -722,7 +714,7 @@
                 <hive.version>1.2.1.2.3.6.0-3796</hive.version>
                 <zookeeper.version>3.4.6.2.3.6.0-3796</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.1.2.3.6.0-3796</spark-assembly-id>
-                <spark.version>1.6.2</spark.version>
+                <spark.version>2.0.0</spark.version>
                 <kafka.version>0.9.0.2.3.6.0-3796</kafka.version>
             </properties>
             <modules>
@@ -748,7 +740,7 @@
                 <hive.version>1.2.1000.2.4.2.0-258</hive.version>
                 <zookeeper.version>3.4.6.2.4.2.0-258</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.1.2.4.2.0-258</spark-assembly-id>
-                <spark.version>1.6.2</spark.version>
+                <spark.version>2.0.0</spark.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
             </properties>
             <modules>
@@ -774,7 +766,7 @@
                 <hive.version>1.1.0-cdh5.4.10</hive.version>
                 <zookeeper.version>3.4.5-cdh5.4.10</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.10</spark-assembly-id>
-                <spark.version>1.6.2</spark.version>
+                <spark.version>2.0.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -799,7 +791,7 @@
                 <hbase.version>1.0.0-cdh5.5.2</hbase.version>
                 <hive.version>1.1.0-cdh5.5.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.5.2</zookeeper.version>
-                <spark.version>1.6.2</spark.version>
+                <spark.version>2.0.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
@@ -825,7 +817,7 @@
                 <hbase.version>1.0.0-cdh5.6.0</hbase.version>
                 <hive.version>1.1.0-cdh5.6.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.6.0</zookeeper.version>
-                <spark.version>1.6.2</spark.version>
+                <spark.version>2.0.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.6.0</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
@@ -851,8 +843,8 @@
                 <hbase.version>1.2.0-cdh5.7.2</hbase.version>
                 <hive.version>1.1.0-cdh5.7.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.2</zookeeper.version>
-                <spark.version>1.6.2</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.2</spark-assembly-id>
+                <spark.version>2.0.0</spark.version>
+<!--                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.2</spark-assembly-id> -->
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -877,7 +869,7 @@
                 <hbase.version>1.2.0-cdh5.8.0</hbase.version>
                 <hive.version>1.1.0-cdh5.8.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.0</zookeeper.version>
-                <spark.version>1.6.2</spark.version>
+                <spark.version>2.0.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.8.0</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
@@ -904,7 +896,7 @@
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.1.0-mapr</maprfs.version>
-                <spark.version>1.6.2</spark.version>
+                <spark.version>2.0.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1602</spark-assembly-id>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
             </properties>

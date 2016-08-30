@@ -21,7 +21,8 @@ import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import org.apache.log4j.Logger;
-import org.sparkproject.jboss.netty.channel.*;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -51,7 +52,7 @@ class OlapRequestHandler extends AbstractOlapHandler{
 
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx,MessageEvent e) throws Exception{
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception{
         final OlapMessage.Command jobRequest=((OlapMessage.Command)e.getMessage());
         assert jobRequest!=null;
         if(jobRequest.getType()!=OlapMessage.Command.Type.SUBMIT){

@@ -16,12 +16,12 @@
 package com.splicemachine.derby.stream.function;
 
 import java.io.Externalizable;
+import java.util.Iterator;
 
 /**
  * @author Scott Fines
  *         Date: 1/8/16
  */
 public interface ExternalizableFlatMapFunction<T,V> extends Externalizable{
-
-    Iterable<V> call(T t) throws Exception;
+    Iterator<V> call(T t) throws Exception;
 }

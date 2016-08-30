@@ -15,8 +15,8 @@
 
 package com.splicemachine.storage;
 
-import org.sparkproject.guava.cache.Cache;
-import org.sparkproject.guava.cache.CacheBuilder;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;

@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.batchonce;
 
-import org.sparkproject.guava.base.Strings;
+import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;

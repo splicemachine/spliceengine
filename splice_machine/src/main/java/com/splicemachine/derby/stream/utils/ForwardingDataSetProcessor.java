@@ -23,6 +23,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
 import java.io.InputStream;
+import java.util.Iterator;
 
 /**
  * @author Scott Fines
@@ -66,12 +67,12 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> createDataSet(Iterable<V> value){
+    public <V> DataSet<V> createDataSet(Iterator<V> value){
         return delegate.createDataSet(value);
     }
 
     @Override
-    public <V> DataSet<V> createDataSet(Iterable<V> value, String name) {
+    public <V> DataSet<V> createDataSet(Iterator<V> value, String name) {
         return delegate.createDataSet(value);
     }
 

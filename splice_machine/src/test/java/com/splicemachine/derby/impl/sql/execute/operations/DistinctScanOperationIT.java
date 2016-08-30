@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.sparkproject.guava.collect.Sets;
+import org.spark_project.guava.collect.Sets;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.ConcurrentTicker;
 import com.splicemachine.concurrent.IncrementingClock;

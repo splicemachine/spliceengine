@@ -52,8 +52,8 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
-import org.sparkproject.guava.collect.Lists;
-import org.sparkproject.guava.collect.Maps;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Maps;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;

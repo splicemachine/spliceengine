@@ -15,7 +15,7 @@
 
 package com.splicemachine.si.impl;
 
-import com.google.common.base.Function;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.si.api.txn.TransactionStatus;
 
 /**

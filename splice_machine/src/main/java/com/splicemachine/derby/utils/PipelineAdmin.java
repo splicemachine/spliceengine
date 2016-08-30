@@ -15,8 +15,8 @@
 
 package com.splicemachine.derby.utils;
 
-import org.sparkproject.guava.collect.Lists;
-import org.sparkproject.guava.collect.Maps;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Maps;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;

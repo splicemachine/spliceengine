@@ -20,15 +20,14 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-
 import java.io.*;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * Created by jleach on 10/8/15.
+ *
+ *
  */
     public class StreamFileFunction extends AbstractFileFunction<InputStream> {
     private String charset;
@@ -57,16 +56,12 @@ import java.util.NoSuchElementException;
     }
 
     @Override
-    public Iterable<LocatedRow> call(final InputStream s) throws Exception {
+    public Iterator<LocatedRow> call(final InputStream s) throws Exception {
         if (operationContext.isFailed())
-            return Collections.emptyList();
+            return Collections.<LocatedRow>emptyList().iterator();
         checkPreference();
 
-        return new Iterable<LocatedRow>() {
-
-            @Override
-            public Iterator<LocatedRow> iterator() {
-                return new Iterator<LocatedRow>() {
+        return new Iterator<LocatedRow>() {
                     private LocatedRow nextRow;
                     private boolean initialized = false;
                     private Reader reader;
@@ -121,6 +116,4 @@ import java.util.NoSuchElementException;
                     }
                 };
             }
-        };
     }
-}

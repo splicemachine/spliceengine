@@ -15,7 +15,7 @@
 
 package com.splicemachine.stats;
 
-import org.sparkproject.guava.io.ByteArrayDataOutput;
+import org.spark_project.guava.io.ByteArrayDataOutput;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;

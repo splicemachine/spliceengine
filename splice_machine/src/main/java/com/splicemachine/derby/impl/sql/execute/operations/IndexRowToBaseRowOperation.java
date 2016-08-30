@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.base.Strings;
+import org.spark_project.guava.base.Strings;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;

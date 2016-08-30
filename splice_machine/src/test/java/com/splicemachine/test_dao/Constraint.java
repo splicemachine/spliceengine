@@ -15,7 +15,7 @@
 
 package com.splicemachine.test_dao;
 
-import org.sparkproject.guava.base.Predicate;
+import org.spark_project.guava.base.Predicate;
 
 public class Constraint {
 

@@ -15,9 +15,9 @@
 
 package com.splicemachine.storage;
 
-import com.google.common.base.Function;
-import org.sparkproject.guava.collect.Iterables;
-import org.sparkproject.guava.collect.Iterators;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.Iterables;
+import org.spark_project.guava.collect.Iterators;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Result;

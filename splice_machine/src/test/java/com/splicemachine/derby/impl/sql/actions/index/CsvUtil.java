@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.actions.index;
 
-import org.sparkproject.guava.io.Files;
+import org.spark_project.guava.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 

@@ -17,7 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
+import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.db.iapi.error.StandardException;

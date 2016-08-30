@@ -17,11 +17,11 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.derby.stream.function.ExternalizableFlatMapFunction;
 import org.apache.spark.api.java.function.FlatMapFunction;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Iterator;
 
 /**
  * Mapping between Spark and SpliceMachine functional APIs.
@@ -39,7 +39,7 @@ public class SparkFlatMapFunction<T,R> implements FlatMapFunction<T,R>,Externali
     public SparkFlatMapFunction(){ }
 
     @Override
-    public Iterable<R> call(T t) throws Exception{
+    public Iterator<R> call(T t) throws Exception{
         return delegate.call(t);
     }
 

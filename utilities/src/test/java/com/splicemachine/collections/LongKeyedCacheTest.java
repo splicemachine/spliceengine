@@ -16,7 +16,7 @@
 package com.splicemachine.collections;
 
 
-import org.sparkproject.guava.cache.CacheStats;
+import org.spark_project.guava.cache.CacheStats;
 import com.splicemachine.hash.HashFunctions;
 import org.junit.Assert;
 import org.junit.Test;

@@ -19,8 +19,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.ConcatenatedIterable;
+import org.apache.commons.collections.IteratorUtils;
 import scala.Tuple2;
-
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -40,15 +41,14 @@ public class CogroupInnerJoinRestrictionFlatMapFunction<Op extends SpliceOperati
     }
 
     @Override
-    public Iterable<LocatedRow> call(Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>> tuple) throws Exception {
+    public Iterator<LocatedRow> call(Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>> tuple) throws Exception {
         checkInit();
-//        Iterable<LocatedRow> rightSide = Sets.newHashSet(tuple._2); // Memory Issue, HashSet ?
         Iterable<LocatedRow> rightSide = tuple._2; // Memory Issue, HashSet ?
         List<Iterable<LocatedRow>> returnRows = new LinkedList<>();
         for(LocatedRow a_1 : tuple._1){
-            returnRows.add(innerJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,rightSide)));
+            returnRows.add(IteratorUtils.toList(innerJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,rightSide))));
         }
-        return new ConcatenatedIterable<>(returnRows);
+        return new ConcatenatedIterable<>(returnRows).iterator();
     }
     @Override
     protected void checkInit() {

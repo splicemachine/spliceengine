@@ -27,7 +27,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.utils.ByteDataInput;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;

@@ -23,6 +23,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
 
 import java.io.InputStream;
+import java.util.Iterator;
 
 /**
  * Higher level constructs for getting datasets and manipulating the processing mechanisms.
@@ -50,9 +51,9 @@ public interface DataSetProcessor {
     /**
      * Creates a dataset from a provided Iterable.
      */
-    <V> DataSet<V> createDataSet(Iterable<V> value);
+    <V> DataSet<V> createDataSet(Iterator<V> value);
 
-    <V> DataSet<V> createDataSet(Iterable<V> value, String name);
+    <V> DataSet<V> createDataSet(Iterator<V> value, String name);
 
     /**
      * Creates a single row PairDataSet

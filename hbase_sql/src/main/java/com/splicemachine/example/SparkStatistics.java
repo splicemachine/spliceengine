@@ -15,7 +15,7 @@
 
 package com.splicemachine.example;
 
-import org.sparkproject.guava.base.Throwables;
+import org.spark_project.guava.base.Throwables;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;

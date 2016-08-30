@@ -25,7 +25,7 @@ import java.util.List;
 
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.base.Splitter;
+import org.spark_project.guava.base.Splitter;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;

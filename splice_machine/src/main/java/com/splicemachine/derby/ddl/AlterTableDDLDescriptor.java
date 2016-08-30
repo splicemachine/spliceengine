@@ -18,7 +18,7 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.sparkproject.guava.base.Throwables;
+import org.spark_project.guava.base.Throwables;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SqlExceptionFactory;

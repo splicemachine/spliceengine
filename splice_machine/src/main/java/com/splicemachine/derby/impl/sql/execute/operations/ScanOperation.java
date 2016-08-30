@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.sparkproject.guava.base.Strings;
+import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;

@@ -31,7 +31,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.sparkproject.guava.base.Strings;
+import org.spark_project.guava.base.Strings;
 
 /**
  *

@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.cache.Cache;
-import org.sparkproject.guava.cache.CacheBuilder;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
