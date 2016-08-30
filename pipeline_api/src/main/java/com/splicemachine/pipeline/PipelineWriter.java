@@ -57,6 +57,7 @@ public class PipelineWriter{
         this.pipelineMeter = pipelineMeter;
     }
 
+
     public BulkWritesResult bulkWrite(@Nonnull BulkWrites bulkWrites) throws IOException{
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
         int numBulkWrites = bulkWrites.getBulkWrites().size();
@@ -201,6 +202,15 @@ public class PipelineWriter{
         return writeCoordinator;
     }
 
+    public BulkWritesResult rejectAll(BulkWrites bulkWrites,WriteResult globalStatus) {
+        Collection<BulkWriteResult> results = new ArrayList<>(bulkWrites.numRegions());
+        for(int i=0;i<bulkWrites.numRegions();i++){
+            BulkWriteResult result=new BulkWriteResult();
+            result.setGlobalStatus(globalStatus);
+            results.add(result);
+        }
+        return new BulkWritesResult(results);
+    }
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void rejectAll(Collection<BulkWrite> writes, Collection<BulkWriteResult> result, Code status,String msg) {

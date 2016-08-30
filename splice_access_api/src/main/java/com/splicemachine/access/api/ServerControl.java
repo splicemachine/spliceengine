@@ -53,5 +53,15 @@ public interface ServerControl{
      */
     void ensureNetworkOpen() throws IOException;
 
-
+    /**
+     * Determine if we should treat the "server" as available or not. If true, then this server
+     * can be considered active and actions can be taken against it. If false, then actions should
+     * not be taken.
+     *
+     * This is particularly prevalent in systems where a "server" is differentiated by sub-units (such as with
+     * HBase, where a "server" is really a region + network layer).
+     *
+     * @return {@code true} if the server should be considered available, {@code false} otherwise.
+     */
+    boolean isAvailable();
 }

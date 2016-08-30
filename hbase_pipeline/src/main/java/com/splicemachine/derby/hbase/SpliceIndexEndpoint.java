@@ -42,8 +42,10 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -57,21 +59,20 @@ import java.io.IOException;
  * @author Scott Fines
  *         Created on: 3/11/13
  */
-public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implements BatchProtocol,Coprocessor, IndexEndpoint{
+public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implements CoprocessorService,Coprocessor{
     private static final Logger LOG=Logger.getLogger(SpliceIndexEndpoint.class);
 
     private PartitionWritePipeline writePipeline;
     private PipelineWriter pipelineWriter;
     private PipelineCompressor compressor;
+
     private volatile PipelineLoadService<TableName> service;
-
-
 
     @Override
     @SuppressWarnings("unchecked")
     public void start(final CoprocessorEnvironment env) throws IOException{
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)env);
-        final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion());
+        final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion(),rce.getRegionServerServices());
 
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
         TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),(RegionCoprocessorEnvironment)env);
@@ -126,7 +127,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         }
     }
 
-    @Override
+//    @Override
     public SpliceIndexEndpoint getBaseIndexEndpoint(){
         return this;
     }
@@ -168,12 +169,12 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
             }
     }
 
-    @Override
+//    @Override
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
         return pipelineWriter.bulkWrite(bulkWrites);
     }
 
-    @Override
+//    @Override
     public byte[] bulkWrites(byte[] bulkWriteBytes) throws IOException{
         assert bulkWriteBytes!=null;
         BulkWrites bulkWrites=compressor.decompress(bulkWriteBytes,BulkWrites.class);

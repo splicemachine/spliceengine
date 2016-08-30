@@ -35,7 +35,8 @@ public class MappedPipelineFactory implements WritePipelineFactory{
         return map.get(partitionName);
     }
 
-    public PartitionWritePipeline registerPipeline(String name,PartitionWritePipeline pipelineWriter){
+    @Override
+    public void registerPipeline(String name,PartitionWritePipeline pipelineWriter){
         if(LOG.isDebugEnabled()){
             LOG.debug("Registering pipeline for region "+ name);
         }
@@ -43,9 +44,9 @@ public class MappedPipelineFactory implements WritePipelineFactory{
         if(LOG.isDebugEnabled() && partitionWritePipeline!=null){
             LOG.debug("Region "+ name+" was already registered");
         }
-        return partitionWritePipeline;
     }
 
+    @Override
     public void deregisterPipeline(String name){
         if(LOG.isDebugEnabled())
             LOG.debug("De-registering region "+ name);

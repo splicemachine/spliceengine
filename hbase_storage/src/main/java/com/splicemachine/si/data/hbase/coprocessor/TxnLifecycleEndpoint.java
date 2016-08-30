@@ -71,10 +71,11 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException{
-        HRegion region=(HRegion)((RegionCoprocessorEnvironment)env).getRegion();
+        RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)env;
+        HRegion region=(HRegion)rce.getRegion();
         HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
         SConfiguration configuration=siEnv.configuration();
-        TableType table=EnvUtils.getTableType(configuration,(RegionCoprocessorEnvironment)env);
+        TableType table=EnvUtils.getTableType(configuration,rce);
         if(table.equals(TableType.TRANSACTION_TABLE)){
             TransactionResolver resolver=resolverRef.get();
             SIDriver driver=siEnv.getSIDriver();
@@ -88,7 +89,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             TimestampSource timestampSource=driver.getTimestampSource();
             int txnLockStrips = configuration.getTransactionLockStripes();
             lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,
-                    new RegionServerControl(region),timestampSource);
+                    new RegionServerControl(region,rce.getRegionServerServices()),timestampSource);
             isTxnTable=true;
         }
     }

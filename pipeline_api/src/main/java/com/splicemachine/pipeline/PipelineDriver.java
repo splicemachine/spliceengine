@@ -32,6 +32,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
+import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
@@ -48,7 +49,7 @@ public class PipelineDriver{
     private static PipelineDriver INSTANCE;
 
     private final SpliceWriteControl writeControl;
-    private final MappedPipelineFactory writePipelineFactory=new MappedPipelineFactory();
+    private final WritePipelineFactory writePipelineFactory;
     private final PipelineMeter pipelineMeter;
     private final PipelineWriter pipelineWriter;
     private final PipelineCompressor compressor;
@@ -66,8 +67,9 @@ public class PipelineDriver{
         PipelineCompressor compressor = env.pipelineCompressor();
         BulkWriterFactory writerFactory = env.writerFactory();
         PipelineMeter meter = env.pipelineMeter();
+        WritePipelineFactory pipelineFactory = env.pipelineFactory();
 
-        INSTANCE = new PipelineDriver(config,ctxFactoryDriver,pef,partitionFactory,compressor,writerFactory,meter,env.systemClock());
+        INSTANCE = new PipelineDriver(config,ctxFactoryDriver,pef,partitionFactory,compressor,writerFactory,pipelineFactory,meter,env.systemClock());
         writerFactory.setWriter(INSTANCE.pipelineWriter);
     }
 
@@ -79,12 +81,14 @@ public class PipelineDriver{
                            PartitionFactory partitionFactory,
                            PipelineCompressor compressor,
                            BulkWriterFactory channelFactory,
+                           WritePipelineFactory writePipelineFactory,
                            PipelineMeter meter,
                            Clock clock){
         this.ctxFactoryDriver = ctxFactoryDriver;
         this.pef = pef;
         this.compressor = compressor;
         this.pipelineMeter= meter;
+        this.writePipelineFactory = writePipelineFactory;
 
         int ipcThreads = config.getIpcThreads();
         int maxIndependentWrites = config.getMaxIndependentWrites();

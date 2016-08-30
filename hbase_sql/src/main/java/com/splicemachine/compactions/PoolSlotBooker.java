@@ -53,7 +53,13 @@ public class PoolSlotBooker implements Runnable {
     @Override
     public void run() {
         try {
-            DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
+            EngineDriver driver=EngineDriver.driver();
+            /*
+             * If the driver is null, then we haven't finished booting yet. This means that we can't really
+             * get access to the distributed processor either (since it isn't alive yet)
+             */
+            if(driver==null) return;
+            DistributedDataSetProcessor dsp = driver.processorFactory().distributedProcessor();
             dsp.setJobGroup(group + "-" + counter++, "Ignore, reserved slot for " + pool);
             dsp.setSchedulerPool(pool);
 

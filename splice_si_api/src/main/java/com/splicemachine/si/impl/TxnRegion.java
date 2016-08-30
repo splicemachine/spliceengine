@@ -148,4 +148,9 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     public Partition unwrap(){
         return region;
     }
+
+    @Override
+    public String toString(){
+        return region.getName();
+    }
 }
