@@ -225,10 +225,10 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterator(((ControlPairDataSet<K,W>) rightDataSet).source);
-        return new ControlPairDataSet(Iterators.transform(source,new Function<Tuple2<K, V>, Iterable<Tuple2<K, Tuple2<V, W>>>>() {
+        return new ControlPairDataSet(Iterators.concat(Iterators.transform(source,new Function<Tuple2<K, V>, Iterator<Tuple2<K, Tuple2<V, W>>>>() {
             @Nullable
             @Override
-            public Iterable<Tuple2<K, Tuple2<V, W>>> apply(@Nullable Tuple2<K, V> t) {
+            public Iterator<Tuple2<K, Tuple2<V, W>>> apply(@Nullable Tuple2<K, V> t) {
                 assert t!=null: "Tuple cannot be null";
                 List<Tuple2<K,Tuple2<V,W>>> result = new ArrayList<>();
                 K key = t._1();
@@ -236,9 +236,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 for (W rightValue : rightSide.get(key)) {
                     result.add(new Tuple2<>(key,new Tuple2<>(value,rightValue)));
                 }
-                return result;
+                return result.iterator();
             }
-        }));
+        })));
     }
 
     @Override
@@ -292,13 +292,13 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function) {
         try {
-            ArrayList arrayList =new ArrayList();
+            Iterator<U> iterator = Iterators.emptyIterator();
 
             while (source.hasNext()) {
                 Tuple2<K, V> entry = source.next();
-                arrayList.add(function.call(new Tuple2<>(entry._1(),entry._2())));
+                iterator = Iterators.concat(iterator, function.call(new Tuple2<>(entry._1(),entry._2())));
             }
-            return new ControlDataSet<>(arrayList.iterator());
+            return new ControlDataSet<>(iterator);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
