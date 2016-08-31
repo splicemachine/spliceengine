@@ -212,15 +212,16 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
+	    <exclusions>
+		    <exclusion>
+			    <groupId>asm</groupId>
+			    <artifactId>asm</artifactId>
+		    </exclusion>
+	    </exclusions>
         </dependency>
 	<dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-distcp</artifactId>
-            <version>${hadoop.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
         </dependency>
         <dependency>
@@ -269,6 +270,12 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-hwi</artifactId>
             <version>${hive.version}</version>
+	    <exclusions>
+		    <exclusion>
+			    <groupId>asm</groupId>
+			    <artifactId>asm</artifactId>
+		    </exclusion>
+	    </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
@@ -279,6 +286,12 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-service</artifactId>
             <version>${hive.version}</version>
+	    <exclusions>
+		    <exclusion>
+			    <groupId>asm</groupId>
+			    <artifactId>asm</artifactId>
+		    </exclusion>
+	    </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
