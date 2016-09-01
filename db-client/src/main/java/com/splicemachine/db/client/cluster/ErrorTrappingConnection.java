@@ -32,7 +32,7 @@ import java.util.concurrent.Executor;
 abstract class ErrorTrappingConnection implements Connection{
     protected final Connection delegate;
 
-    public ErrorTrappingConnection(Connection delegate){
+    ErrorTrappingConnection(Connection delegate){
         this.delegate=delegate;
     }
 

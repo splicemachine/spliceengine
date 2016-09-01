@@ -19,11 +19,7 @@ package com.splicemachine.db.client.cluster;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import javax.sql.DataSource;
-import java.net.ConnectException;
-import java.net.UnknownHostException;
 import java.sql.*;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +28,14 @@ import java.util.logging.Level;
 
 /**
  * A Pool of Connections to a specific server.
+ *
+ * Error handling:
+ *
+ * There are a number of connection-related problems that can occur within this class (such as
+ * SocketExceptions, etc). The contract of this class is that these are <em>rethrown without blacklisting</em>.
+ * Specifically, it is the responsibility of the caller to deal with any connection-related exceptions
+ * which may occur. However, these connection-related problems will be treated as a "failure", and the FailureDetector
+ * will be notified.
  *
  * @author Scott Fines
  *         Date: 8/15/16
@@ -42,17 +46,14 @@ class ServerPool{
      * causing all kinds of potential dependency problems).
      */
     private static final Logger LOGGER = Logger.getLogger(ClusteredDataSource.class.getName());
-    private static final int DEFAULT_MAX_CONNECT_ATTEMPTS=3;
 
     final String serverName;
     private final FailureDetector failureDetector;
-    private final BlackList<ServerPool> blackList;
     private final int maxSize;
     private final AtomicInteger trackedSize = new AtomicInteger(0);
     private final DataSource connectionBuilder;
     private final int validationTimeout;
     private final PoolSizingStrategy poolSizingStrategy;
-    private final int maxConnectAttempts;
     private ConcurrentLinkedQueue<Connection> pooledConnection = new ConcurrentLinkedQueue<>();
     private AtomicBoolean closed = new AtomicBoolean(false);
 
@@ -61,34 +62,13 @@ class ServerPool{
                int maxPoolSize,
                FailureDetector failureDetector,
                PoolSizingStrategy poolSizingStrategy,
-               BlackList<ServerPool> blackList,
                int validationTimeout){
-       this(connectionBuilder,
-               serverName,
-               maxPoolSize,
-               failureDetector,
-               poolSizingStrategy,
-               blackList,
-               validationTimeout,
-               DEFAULT_MAX_CONNECT_ATTEMPTS);
-    }
-
-    ServerPool(DataSource connectionBuilder,
-               String serverName,
-               int maxPoolSize,
-               FailureDetector failureDetector,
-               PoolSizingStrategy poolSizingStrategy,
-               BlackList<ServerPool> blackList,
-               int validationTimeout,
-               int maxConnectAttempts){
         this.serverName=serverName;
         this.failureDetector=failureDetector;
         this.connectionBuilder = connectionBuilder;
         this.maxSize = maxPoolSize;
         this.poolSizingStrategy=poolSizingStrategy;
         this.validationTimeout = validationTimeout;
-        this.blackList = blackList;
-        this.maxConnectAttempts = maxConnectAttempts;
     }
 
     public void close() throws SQLException{
@@ -184,66 +164,21 @@ class ServerPool{
     /* ****************************************************************************************************************/
     /*private helper methods and classes*/
     private Connection createNewConnection(String op) throws SQLException{
-        int attemptsRemaining = maxConnectAttempts;
-        SQLException e = null;
-        while(attemptsRemaining>0){
-            attemptsRemaining--;
-            try{
-                return createConnection();
-            }catch(SQLNonTransientConnectionException se){
-                //throw the exception if appropriate
-                dealWithNonTransientErrors(op,se);
-                if(e==null) e =se;
-                else {
-                    e.setNextException(se);
-                }
-            }
-        }
-
-        trackedSize.decrementAndGet();
-        blackList.blacklist(this);
-        //e is not null because we would have returned before otherwise
-        throw e;
-    }
-
-    private void dealWithNonTransientErrors(String op,SQLNonTransientConnectionException se) throws SQLNonTransientConnectionException{
-        /*
-         * Look at the error, and determine whether or not it should be thrown, or whether
-         * a retry is allowed. If a retry is allowed, then return true. Otherwise, throw the exception
-         */
-        logError(op+"("+this+")",se);
-        switch(se.getSQLState()){
-            //the following are errors that allow connection retries
-            case SQLState.DRDA_CONNECTION_TERMINATED:
-            case SQLState.NO_CURRENT_CONNECTION:
-            case SQLState.PHYSICAL_CONNECTION_ALREADY_CLOSED:
-            case SQLState.CONNECT_SOCKET_EXCEPTION:
-            case SQLState.SOCKET_EXCEPTION:
-            case SQLState.CONNECT_UNABLE_TO_CONNECT_TO_SERVER:
-            case SQLState.CONNECT_UNABLE_TO_OPEN_SOCKET_STREAM:
-                return;
-            case "08001":
-                /*
-                 * This is a generic connection error, that derby exceptionfactory didn't parse; this
-                 * means that we are wrapping an underlying exception, so we need to parse that
-                 */
-                @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = ErrorUtils.getRootCause(se);
-                //put specific return exceptions here
-                if(t instanceof ConnectException
-                        || t instanceof UnknownHostException) return;
-            default:
-                /*
-                 * This exception is categorized as Connection severity or higher, and
-                 * cannot be retried (we are getting errors that the server is telling us will
-                 * never be correct, like bad authorization or database names). Therefore,
-                 * we should blacklist ourselves and then throw the exception directly
-                 */
-                trackedSize.decrementAndGet();
-                blackList.blacklist(this);
-                throw se;
+        try{
+            return createConnection();
+        }catch(SQLException se){
+            //throw the exception if appropriate
+            logError(op+"("+this+")",se);
+            /*
+             * If it's a network error that we encountered, we should mark
+             * it as such, then re-throw the error
+             */
+            if(ClientErrors.isNetworkError(se))
+                failureDetector.failed();
+            trackedSize.decrementAndGet();
+            throw se;
         }
     }
-
 
     private void logError(String operation,Throwable t){
        logError(operation,t,Level.SEVERE);
@@ -303,32 +238,29 @@ class ServerPool{
 
         @Override
         protected void reportError(Throwable t){
-            if(t instanceof SQLNonTransientConnectionException ||
-                    t instanceof SQLTransientConnectionException){
+            if(t instanceof SQLException && ClientErrors.isNetworkError((SQLException)t))
                 failureDetector.failed();
-            }
         }
 
         @Override
         protected Statement wrapStatement(Statement statement){
             return new ErrorTrappingStatement(statement){
-                @Override
-                protected void reportError(Throwable t){
-                   PooledConnection.this.reportError(t);
-                }
+                @Override protected void reportError(Throwable t){ PooledConnection.this.reportError(t); }
             };
         }
 
         @Override
         protected PreparedStatement wrapPrepare(PreparedStatement preparedStatement){
-            //TODO -sf- implement
-            return preparedStatement;
+            return new ErrorTrappingPreparedStatement(preparedStatement){
+                @Override protected void reportError(Throwable t){ PooledConnection.this.reportError(t); }
+            };
         }
 
         @Override
         protected CallableStatement wrapCall(CallableStatement callableStatement){
-            //TODO -sf- implement
-            return callableStatement;
+            return new ErrorTrappingCallableStatement(callableStatement){
+                @Override protected void reportError(Throwable t){ PooledConnection.this.reportError(t); }
+            };
         }
     }
 }

@@ -16,25 +16,19 @@
 
 package com.splicemachine.db.client.cluster;
 
-import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.sql.DataSource;
-import java.net.ConnectException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
+import java.sql.*;
 import java.util.LinkedList;
-import java.util.Queue;
 
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * @author Scott Fines
@@ -51,13 +45,6 @@ public class ServerPoolTest{
         @Override public void acquirePermit(){ }
         @Override public void releasePermit(){ }
         @Override public int singleServerPoolSize(){ return 1; }
-    };
-
-    private static final BlackList<ServerPool> blackList = new BlackList<ServerPool>(){
-        @Override
-        protected void cleanupResources(ServerPool element){
-            try{ element.close(); }catch(SQLException e){ throw new RuntimeException(e); }
-        }
     };
 
 
@@ -79,7 +66,7 @@ public class ServerPoolTest{
             }
         });
 
-        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,10);
 
         Connection c = sp.tryAcquireConnection(true);
         Assert.assertNotNull("Did not return a connection!",c);
@@ -114,7 +101,7 @@ public class ServerPoolTest{
             }
         });
 
-        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,10);
 
         Connection c = sp.tryAcquireConnection(true);
         Assert.assertNotNull("Did not return a connection!",c);
@@ -153,7 +140,7 @@ public class ServerPoolTest{
             }
         });
 
-        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,10);
 
         Connection c = sp.tryAcquireConnection(true);
         Assert.assertNotNull("Did not return a connection!",c);
@@ -179,7 +166,7 @@ public class ServerPoolTest{
             }
         });
 
-        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,10);
         try{
             sp.tryAcquireConnection(true);
             Assert.fail("Did not throw an error");
@@ -198,7 +185,7 @@ public class ServerPoolTest{
         when(ds.getConnection(anyString(),anyString())).thenReturn(conn);
 
         ServerPool sp = new ServerPool(ds,"testServer",10,
-                new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,blackList,10);
+                new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,10);
 
         Connection c = sp.tryAcquireConnection(true);
         Assert.assertNotNull("Did not return a connection!",c);
@@ -212,7 +199,7 @@ public class ServerPoolTest{
         when(ds.getConnection(anyString(),anyString())).thenReturn(conn);
 
         ServerPool sp = new ServerPool(ds,"testServer",1,
-                noFailDetector,poolSizingStrategy,blackList,10);
+                noFailDetector,poolSizingStrategy,10);
 
         Connection c = sp.tryAcquireConnection(true);
         Assert.assertNotNull("Did not return a connection!",c);
@@ -226,7 +213,7 @@ public class ServerPoolTest{
         DataSource ds = mock(DataSource.class);
         when(ds.getConnection()).thenThrow(new SQLNonTransientConnectionException(null,SQLState.LOGIN_FAILED));
 
-        ServerPool sp = new ServerPool(ds,"testServer",1,noFailDetector,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",1,noFailDetector,poolSizingStrategy,10);
 
         try{
             sp.tryAcquireConnection(true);
@@ -236,29 +223,7 @@ public class ServerPoolTest{
         }
     }
 
-    @Test
-    public void tryAcquireConnectionRetriesOnConnectionRefused() throws Exception{
-        final Connection conn = mock(Connection.class);
-        DataSource ds = mock(DataSource.class);
-        final boolean[] visited = new boolean[]{false};
-        when(ds.getConnection()).then(new Answer<Connection>(){
-            @Override
-            public Connection answer(InvocationOnMock invocation) throws Throwable{
-                if(!visited[0]){
-                    visited[0] = true;
-                    throw new SQLNonTransientConnectionException(null,"08001",new ConnectException("Connection refused"));
-                }else return conn;
-            }
-        });
-
-        ServerPool sp = new ServerPool(ds,"testServer",1,noFailDetector,poolSizingStrategy,blackList,10);
-
-        Connection pooledConn= sp.tryAcquireConnection(true);
-        Assert.assertNotNull("Did not return a connection!",pooledConn);
-    }
-
     /*heartbeat tests*/
-
     @Test
     public void heartbeatFunctionsOnSuccessfulConnection() throws Exception{
         Connection conn = mock(Connection.class);
@@ -286,7 +251,7 @@ public class ServerPoolTest{
             }
         };
 
-        ServerPool sp = new ServerPool(ds,"testServer",1,tfd,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",1,tfd,poolSizingStrategy,10);
 
         sp.heartbeat();
 
@@ -321,7 +286,7 @@ public class ServerPoolTest{
             }
         };
 
-        ServerPool sp = new ServerPool(ds,"testServer",1,tfd,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",1,tfd,poolSizingStrategy,10);
 
         sp.heartbeat();
 
@@ -359,7 +324,7 @@ public class ServerPoolTest{
             }
         };
 
-        ServerPool sp = new ServerPool(ds,"testServer",1,tfd,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",1,tfd,poolSizingStrategy,10);
 
         sp.heartbeat();
 
@@ -376,7 +341,7 @@ public class ServerPoolTest{
         when(ds.getConnection(anyString(),anyString())).thenReturn(conn);
 
         ServerPool sp = new ServerPool(ds,"testServer",1,
-                new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,blackList,10);
+                new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,10);
 
         Connection c = sp.tryAcquireConnection(true);
         Assert.assertNotNull("Did not return a connection!",c);
@@ -394,7 +359,7 @@ public class ServerPoolTest{
         when(ds.getConnection(anyString(),anyString())).thenReturn(conn);
 
         ServerPool sp = new ServerPool(ds,"testServer",1,
-                new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,blackList,10);
+                new DeadlineFailureDetector(Long.MAX_VALUE),poolSizingStrategy,10);
 
         Connection c = sp.tryAcquireConnection(true);
         Assert.assertNotNull("Did not return a connection!",c);
@@ -415,7 +380,7 @@ public class ServerPoolTest{
         DataSource ds = mock(DataSource.class);
         when(ds.getConnection()).thenReturn(goodConn,errorConn);
 
-        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,blackList,10);
+        ServerPool sp = new ServerPool(ds,"testServer",10, noFailDetector,poolSizingStrategy,10);
 
         Connection c = sp.tryAcquireConnection(true);
         Assert.assertNotNull("Did not return a connection!",c);
@@ -431,5 +396,204 @@ public class ServerPoolTest{
         }catch(SQLException se){
             Assert.assertEquals("Incorrect error code!",SQLState.PHYSICAL_CONNECTION_ALREADY_CLOSED,se.getSQLState());
         }
+    }
+
+    /*Statement tests*/
+
+    @Test
+    public void statementRecordsNetworkFailureToFailureDetector() throws Exception{
+        Connection baseConn = mock(Connection.class);
+        Statement errorStatement = mock(Statement.class);
+        when(errorStatement.executeQuery(anyString())).thenThrow(new SQLNonTransientConnectionException("Connection Refused",SQLState.CONNECT_SOCKET_EXCEPTION));
+        when(baseConn.createStatement()).thenReturn(errorStatement);
+
+        DataSource ds = mock(DataSource.class);
+        when(ds.getConnection()).thenReturn(baseConn);
+
+        FailureDetector fd=failOnlyDetector();
+        ServerPool sp = new ServerPool(ds,"testServer",1,fd,poolSizingStrategy,10);
+
+        Connection connection=sp.tryAcquireConnection(true);
+        Assert.assertNotNull("Did not return a connection!",connection);
+        try(Statement s = connection.createStatement()){
+            s.executeQuery("values (1)");
+            Assert.fail("Did not receive an exception");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error code!",SQLState.CONNECT_SOCKET_EXCEPTION,se.getSQLState());
+        }
+
+        Assert.assertFalse("did not receive failure notice!",fd.isAlive());
+    }
+
+    @Test
+    public void statementIgnoresNonNetworkError() throws Exception{
+        Connection baseConn = mock(Connection.class);
+        Statement errorStatement = mock(Statement.class);
+        when(errorStatement.executeQuery(anyString())).thenThrow(new SQLException("PK Violation",SQLState.LANG_DUPLICATE_KEY_CONSTRAINT));
+        when(baseConn.createStatement()).thenReturn(errorStatement);
+
+        DataSource ds = mock(DataSource.class);
+        when(ds.getConnection()).thenReturn(baseConn);
+
+        FailureDetector fd=new FailureDetector(){
+            @Override public void success(){ }
+
+            @Override
+            public boolean failed(){
+                Assert.fail("Should not have called failed())");
+                return false;
+            }
+
+            @Override public boolean isAlive(){ return true; }
+            @Override public void kill(){ }
+        };
+        ServerPool sp = new ServerPool(ds,"testServer",1,fd,poolSizingStrategy,10);
+
+        Connection connection=sp.tryAcquireConnection(true);
+        Assert.assertNotNull("Did not return a connection!",connection);
+        try(Statement s = connection.createStatement()){
+            s.executeQuery("values (1)");
+            Assert.fail("Did not receive an exception");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error code!",SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,se.getSQLState());
+        }
+    }
+
+    @Test
+    public void preparedStatementRecordsNetworkFailureToFailureDetector() throws Exception{
+        Connection baseConn = mock(Connection.class);
+        PreparedStatement errorStatement = mock(PreparedStatement.class);
+        when(errorStatement.executeQuery()).thenThrow(new SQLNonTransientConnectionException("Connection Refused",SQLState.CONNECT_SOCKET_EXCEPTION));
+        when(baseConn.prepareStatement(anyString())).thenReturn(errorStatement);
+
+        DataSource ds = mock(DataSource.class);
+        when(ds.getConnection()).thenReturn(baseConn);
+
+        FailureDetector fd=failOnlyDetector();
+        ServerPool sp = new ServerPool(ds,"testServer",1,fd,poolSizingStrategy,10);
+
+        Connection connection=sp.tryAcquireConnection(true);
+        Assert.assertNotNull("Did not return a connection!",connection);
+        try(PreparedStatement s = connection.prepareStatement("values (1)")){
+            s.executeQuery();
+            Assert.fail("Did not receive an exception");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error code!",SQLState.CONNECT_SOCKET_EXCEPTION,se.getSQLState());
+        }
+
+        Assert.assertFalse("did not receive failure notice!",fd.isAlive());
+    }
+
+    @Test
+    public void preparedStatementIgnoresNonNetworkError() throws Exception{
+        Connection baseConn = mock(Connection.class);
+        PreparedStatement errorStatement = mock(PreparedStatement.class);
+        when(errorStatement.executeQuery()).thenThrow(new SQLException("PK Violation",SQLState.LANG_DUPLICATE_KEY_CONSTRAINT));
+        when(baseConn.prepareStatement(anyString())).thenReturn(errorStatement);
+
+        DataSource ds = mock(DataSource.class);
+        when(ds.getConnection()).thenReturn(baseConn);
+
+        FailureDetector fd=new FailureDetector(){
+            @Override public void success(){ }
+
+            @Override
+            public boolean failed(){
+                Assert.fail("Should not have called failed())");
+                return false;
+            }
+
+            @Override public boolean isAlive(){ return true; }
+            @Override public void kill(){ }
+        };
+        ServerPool sp = new ServerPool(ds,"testServer",1,fd,poolSizingStrategy,10);
+
+        Connection connection=sp.tryAcquireConnection(true);
+        Assert.assertNotNull("Did not return a connection!",connection);
+        try(PreparedStatement s = connection.prepareStatement("values (1)")){
+            s.executeQuery();
+            Assert.fail("Did not receive an exception");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error code!",SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,se.getSQLState());
+        }
+    }
+
+    @Test
+    public void callableStatementRecordsNetworkFailureToFailureDetector() throws Exception{
+        Connection baseConn = mock(Connection.class);
+        CallableStatement errorStatement = mock(CallableStatement.class);
+        when(errorStatement.executeQuery()).thenThrow(new SQLNonTransientConnectionException("Connection Refused",SQLState.CONNECT_SOCKET_EXCEPTION));
+        when(baseConn.prepareCall(anyString())).thenReturn(errorStatement);
+
+        DataSource ds = mock(DataSource.class);
+        when(ds.getConnection()).thenReturn(baseConn);
+
+        FailureDetector fd=failOnlyDetector();
+        ServerPool sp = new ServerPool(ds,"testServer",1,fd,poolSizingStrategy,10);
+
+        Connection connection=sp.tryAcquireConnection(true);
+        Assert.assertNotNull("Did not return a connection!",connection);
+        try(CallableStatement s = connection.prepareCall("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()")){
+            s.executeQuery();
+            Assert.fail("Did not receive an exception");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error code!",SQLState.CONNECT_SOCKET_EXCEPTION,se.getSQLState());
+        }
+
+        Assert.assertFalse("did not receive failure notice!",fd.isAlive());
+    }
+
+    @Test
+    public void callableStatementIgnoresNonNetworkError() throws Exception{
+        Connection baseConn = mock(Connection.class);
+        CallableStatement errorStatement = mock(CallableStatement.class);
+        when(errorStatement.executeQuery()).thenThrow(new SQLException("PK Violation",SQLState.LANG_DUPLICATE_KEY_CONSTRAINT));
+        when(baseConn.prepareCall(anyString())).thenReturn(errorStatement);
+
+        DataSource ds = mock(DataSource.class);
+        when(ds.getConnection()).thenReturn(baseConn);
+
+        FailureDetector fd=new FailureDetector(){
+            @Override public void success(){ }
+
+            @Override
+            public boolean failed(){
+                Assert.fail("Should not have called failed())");
+                return false;
+            }
+
+            @Override public boolean isAlive(){ return true; }
+            @Override public void kill(){ }
+        };
+        ServerPool sp = new ServerPool(ds,"testServer",1,fd,poolSizingStrategy,10);
+
+        Connection connection=sp.tryAcquireConnection(true);
+        Assert.assertNotNull("Did not return a connection!",connection);
+        try(CallableStatement s = connection.prepareCall("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()")){
+            s.executeQuery();
+            Assert.fail("Did not receive an exception");
+        }catch(SQLException se){
+            Assert.assertEquals("Incorrect error code!",SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,se.getSQLState());
+        }
+    }
+
+    private FailureDetector failOnlyDetector(){
+        return new FailureDetector(){
+            private boolean gotFailure = false;
+            @Override public void success(){ Assert.fail("Should not record success"); }
+            @Override public void kill(){ Assert.fail("Should not be calling kill"); }
+
+            @Override
+            public boolean failed(){
+                Assert.assertFalse("Received more than one failure!",gotFailure);
+                gotFailure = true;
+                return true;
+            }
+
+            @Override
+            public boolean isAlive(){
+                return !gotFailure;
+            }
+        };
     }
 }

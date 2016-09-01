@@ -59,7 +59,6 @@ public class ConfiguredServerPoolFactory implements ServerPoolFactory{
                 singleServerPoolSize,
                 failureDetectorFactory.newFailureDetector(),
                 sizingStrategy,
-                blacklist,
                 validationTimeout);
     }
 
