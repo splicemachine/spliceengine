@@ -341,7 +341,7 @@ public abstract class PlatformImplBase extends JdbcSupport implements Platform {
                 try {
                     int results;
                     String uppercaseCommand = command.toUpperCase();
-                    // FIXME: JC - statements w/o a ResultSet
+                    // FIXME: JC - these are statements w/o a ResultSet
                     if (uppercaseCommand.startsWith("CALL") || uppercaseCommand.startsWith("EXPORT")) {
                         statement.execute(command);
                         if (_log.isDebugEnabled()) {

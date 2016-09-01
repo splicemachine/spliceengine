@@ -165,12 +165,6 @@
       <version>19.0</version>
     </dependency>
     <dependency>
-      <groupId>dom4j</groupId>
-      <artifactId>dom4j</artifactId>
-      <version>1.4</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.11</version>
@@ -184,24 +178,37 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>stax</groupId>
-      <artifactId>stax-api</artifactId>
-      <version>1.0.1</version>
-    </dependency>
-    <dependency>
-      <groupId>woodstox</groupId>
-      <artifactId>wstx-asl</artifactId>
-      <version>3.2.6</version>
-      <scope>runtime</scope>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
       <groupId>com.splicemachine</groupId>
       <artifactId>db-client</artifactId>
       <version>2.0.1.22-SNAPSHOT</version>
       <scope>runtime</scope>
     </dependency>
+    <dependency>
+      <groupId>com.splicemachine</groupId>
+      <!-- Required for querying UDTs in sys tables (sys.syschecks.referencedcolumns) -->
+      <artifactId>db-engine</artifactId>
+      <version>2.0.1.22-SNAPSHOT</version>
+      <scope>runtime</scope>
+    </dependency>
     <!--
+        <dependency>
+          <groupId>dom4j</groupId>
+          <artifactId>dom4j</artifactId>
+          <version>1.4</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>stax</groupId>
+          <artifactId>stax-api</artifactId>
+          <version>1.0.1</version>
+        </dependency>
+        <dependency>
+          <groupId>woodstox</groupId>
+          <artifactId>wstx-asl</artifactId>
+          <version>3.2.6</version>
+          <scope>runtime</scope>
+          <optional>true</optional>
+        </dependency>
         <dependency>
           <groupId>axion</groupId>
           <artifactId>axion</artifactId>

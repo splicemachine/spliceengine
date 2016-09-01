@@ -29,9 +29,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.ddlutils.Platform;
 import org.apache.ddlutils.model.Column;
 import org.apache.ddlutils.model.ForeignKey;
@@ -100,9 +103,22 @@ public class DerbyModelReader extends JdbcModelReader {
         return schemas;
     }
 
+    private final static String TABLE_ID_QUERY = "SELECT TABLEID FROM SYS.SYSTABLES WHERE SCHEMAID = '%s' AND TABLENAME = '%s'";
+    @Override
+    protected void setTableInternalId(Table table) throws SQLException {
+        try (Statement st = _connection.createStatement()) {
+            try (ResultSet rs = st.executeQuery(String.format(TABLE_ID_QUERY, table.getSchema().getSchemaId(), table.getName()))) {
+                if (rs.next()) {
+                    table.setInternalId(rs.getString(1));
+                }
+            }
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
+    @Override
     protected boolean isInternalPrimaryKeyIndex(DatabaseMetaDataWrapper metaData, Table table, Index index) {
         return isInternalIndex(index);
     }
@@ -110,6 +126,7 @@ public class DerbyModelReader extends JdbcModelReader {
     /**
      * {@inheritDoc}
      */
+    @Override
     protected boolean isInternalForeignKeyIndex(DatabaseMetaDataWrapper metaData, Table table, ForeignKey fk, Index index) {
         return isInternalIndex(index);
     }
@@ -117,8 +134,10 @@ public class DerbyModelReader extends JdbcModelReader {
     /**
      * {@inheritDoc}
      */
-    protected Column readColumn(DatabaseMetaDataWrapper metaData, Map values) throws SQLException {
+    @Override
+    protected Column readColumn(DatabaseMetaDataWrapper metaData, Map<String,Object> values) throws SQLException {
         Column column = super.readColumn(metaData, values);
+
         String defaultValue = column.getDefaultValue();
 
         if (defaultValue != null) {
@@ -131,6 +150,11 @@ public class DerbyModelReader extends JdbcModelReader {
             } else if (TypeMap.isTextType(column.getTypeCode())) {
                 column.setDefaultValue(unescape(defaultValue, "'", "''"));
             }
+        }
+
+        // add column check constraints, if any
+        if (column.getSchemaId() != null && column.getTableId() != null) {
+            addCheckConstraint(column);
         }
         return column;
     }
@@ -147,5 +171,66 @@ public class DerbyModelReader extends JdbcModelReader {
             }
         }
         return viewDefn;
+    }
+
+    private final static String CHECK_QUERY = "select b.REFERENCEDCOLUMNS, a.CONSTRAINTNAME, b.CHECKDEFINITION from sys.sysconstraints a, " +
+        "SYS.SYSCHECKS b where a.schemaid = '%s' AND a.tableid = '%s' AND a.CONSTRAINTID = b.CONSTRAINTID AND A.TYPE = 'C' AND A.STATE = 'E'";
+    private void addCheckConstraint(Column column) throws SQLException {
+        try (Statement st = _connection.createStatement()) {
+            try (ResultSet rs = st.executeQuery(String.format(CHECK_QUERY, column.getSchemaId(), column.getTableId()))) {
+                while (rs.next()) {
+                    Object referencedColumns = rs.getObject(1);
+                    if (referencedColumns != null) {
+                        if (containsOrdinalPosition(column.getOrdinalPosition(), referencedColumns.toString())) {
+                            String constraintName = rs.getString(2);
+                            String checkDefinition = rs.getString(3);
+                            column.createCheckConstraint(constraintName, checkDefinition);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void postProcessTable(Table table) {
+        // There's no way to tell a table check constraint from a column constraint.
+        // A table check constraint is created by including ALL column positions in its definition.
+        // We'll have to post-process the table after it's been completely created and, if all columns contain
+        // a given constraint, pull that up to the table and remove all from the columns so that the proper
+        // SQL create stmt can be generated.
+        table.pullUpCheckConstraintIfNeeded();
+    }
+
+    private static boolean containsOrdinalPosition(int oridinalPosition, String columnPositionsString) {
+        // Check constraint column position values are a user defined type, which all we can do is call toString() on.
+        // The returned string is in the for "(1)" or "(1,2)", etc. It has to be parsed to see if our column is
+        // a member.  Thus all this gyration.
+        // A further annoyance, there's no way to tell a table check constraint from a column constraint.
+        // A table check constraint is created by including ALL column positions in its definition.
+        // We'll have to post-process the table after it's been completely created and, if all columns contain
+        // a given constraint, pull that up to the table so that the proper SQL create stmt can be generated.
+        String cos = columnPositionsString;
+        // strip parens
+        if (cos.indexOf('(') == 0 && cos.indexOf(')') == cos.length()-1) {
+            cos = cos.replace("(", "");
+            cos = cos.replace(")", "");
+        }
+        // turn comma-separated string into Set<Integer>
+        return createIntSet(cos).contains(oridinalPosition);
+    }
+
+    private static Set<Integer> createIntSet(String intString) {
+        Set<Integer> intSet = new HashSet<>();
+        if (intString != null && ! intString.isEmpty()) {
+            if (intString.contains(",")) {
+                for (String anInt : intString.split(",")) {
+                    intSet.add(Integer.parseInt(anInt));
+                }
+            } else {
+                intSet.add(Integer.parseInt(intString));
+            }
+        }
+        return intSet;
     }
 }

@@ -370,10 +370,10 @@ public class TestUtils {
      * @throws Exception
      */
     public static void execQuery(Connection connection, String query) throws Exception {
+        System.out.println("* "+query);
         try (Statement stmt = connection.createStatement()) {
             ResultSet rs = stmt.executeQuery(query);
             List<String> row = new ArrayList<>();
-            System.out.println("* "+query);
             ResultSetMetaData md = rs.getMetaData();
             for (int i=1; i <= md.getColumnCount(); i++) {
                 row.add(md.getColumnName(i));
@@ -382,7 +382,10 @@ public class TestUtils {
             row.clear();
             while (rs.next()) {
                 for (int i=1; i <= md.getColumnCount(); i++) {
-                    row.add(rs.getObject(i).toString());
+                    Object val = rs.getObject(i);
+                    if (val != null) {
+                        row.add(val.toString());
+                    }
                 }
                 System.out.println(row);
                 row.clear();

@@ -37,7 +37,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -248,6 +247,7 @@ public class JdbcModelReader {
         result.add(new MetaDataColumnDescriptor("COLUMN_SIZE", Types.VARCHAR));
         result.add(new MetaDataColumnDescriptor("IS_NULLABLE", Types.VARCHAR, "YES"));
         result.add(new MetaDataColumnDescriptor("REMARKS", Types.VARCHAR));
+        result.add(new MetaDataColumnDescriptor("ORDINAL_POSITION", Types.INTEGER));
 
         return result;
     }
@@ -666,8 +666,9 @@ public class JdbcModelReader {
             table.setCatalog((String) values.get("TABLE_CAT"));
             table.setSchema(schema);
             table.setDescription((String) values.get("REMARKS"));
+            setTableInternalId(table);
 
-            table.addColumns(readColumns(metaData, tableName));
+            table.addColumns(readColumns(metaData, table));
             table.addForeignKeys(readForeignKeys(metaData, tableName));
             table.addIndices(readIndices(metaData, tableName));
 
@@ -680,8 +681,19 @@ public class JdbcModelReader {
             if (getPlatformInfo().isSystemIndicesReturned()) {
                 removeSystemIndices(metaData, table);
             }
+
+            // opportunity to post process the created table
+            postProcessTable(table);
         }
         return table;
+    }
+
+    protected void postProcessTable(Table table) {
+        // must be overridden by a specific reader
+    }
+
+    protected void setTableInternalId(Table table) throws SQLException {
+        // must be overridden by a specific reader
     }
 
     /**
@@ -828,19 +840,23 @@ public class JdbcModelReader {
      * Reads the column definitions for the indicated table.
      *
      * @param metaData  The database meta data
-     * @param tableName The name of the table
+     * @param table The the table
      * @return The columns
      */
-    protected Collection readColumns(DatabaseMetaDataWrapper metaData, String tableName) throws SQLException {
+    protected Collection readColumns(DatabaseMetaDataWrapper metaData, Table table) throws SQLException {
         ResultSet columnData = null;
 
         try {
-            columnData = metaData.getColumns(metaData.escapeForSearch(tableName), getDefaultColumnPattern());
+            columnData = metaData.getColumns(metaData.escapeForSearch(table.getName()), getDefaultColumnPattern());
 
             List<Column> columns = new ArrayList<>();
 
             while (columnData.next()) {
-                Map values = readColumns(columnData, getColumnsForColumn());
+                Map<String, Object> values = readColumns(columnData, getColumnsForColumn());
+                if (table.hasInternalId()) {
+                    values.put("SCHEMA_ID", table.getSchema().getSchemaId());
+                    values.put("TABLE_ID", table.getInternalId());
+                }
 
                 columns.add(readColumn(metaData, values));
             }
@@ -857,12 +873,15 @@ public class JdbcModelReader {
      * @param values   The column meta data values as defined by {@link #getColumnsForColumn()}
      * @return The column
      */
-    protected Column readColumn(DatabaseMetaDataWrapper metaData, Map values) throws SQLException {
+    protected Column readColumn(DatabaseMetaDataWrapper metaData, Map<String,Object> values) throws SQLException {
         Column column = new Column();
 
         column.setName((String) values.get("COLUMN_NAME"));
         column.setDefaultValue((String) values.get("COLUMN_DEF"));
         column.setTypeCode((Integer) values.get("DATA_TYPE"));
+        column.setOrdinalPosition((Integer) values.get("ORDINAL_POSITION"));
+        column.setSchemaId((String) values.get("SCHEMA_ID"));
+        column.setTableId((String) values.get("TABLE_ID"));
 
         Integer precision = (Integer) values.get("NUM_PREC_RADIX");
 
@@ -1099,12 +1118,10 @@ public class JdbcModelReader {
      * @param columnDescriptors The dscriptors of the columns to read
      * @return The read values keyed by the column name
      */
-    protected Map readColumns(ResultSet resultSet, List<MetaDataColumnDescriptor> columnDescriptors) throws SQLException {
-        HashMap values = new HashMap();
+    protected Map<String, Object> readColumns(ResultSet resultSet, List<MetaDataColumnDescriptor> columnDescriptors) throws SQLException {
+        Map<String, Object> values = new HashMap<>();
 
-        for (Iterator<MetaDataColumnDescriptor> it = columnDescriptors.iterator(); it.hasNext(); ) {
-            MetaDataColumnDescriptor descriptor = it.next();
-
+        for (MetaDataColumnDescriptor descriptor : columnDescriptors) {
             values.put(descriptor.getName(), descriptor.readColumn(resultSet));
         }
         return values;

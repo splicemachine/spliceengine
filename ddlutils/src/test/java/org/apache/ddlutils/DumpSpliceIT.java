@@ -26,6 +26,7 @@ package org.apache.ddlutils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.apache.ddlutils.testutils.TestUtils.*;
 
@@ -219,6 +220,50 @@ public class DumpSpliceIT {
     }
 
     @Test
+    public void testCheckConstraints() throws Exception {
+        Platform platform = PlatformFactory.createNewPlatformInstance(dataSource);
+        Database db = null;
+        try (Connection connection = dataSource.getConnection()) {
+            try {
+                setup(getInputFileAsResource("check_constraint.sql", getClass()), platform, connection);
+                // read model
+                db = platform.readModelFromDatabase("check-constraint", null, "CHECK_CONSTRAINT", null);
+                String sql = platform.getCreateModelSql(db, true, true, true);
+
+                assertNull("Didn't expect table check constraint on CHECK_CONSTRAINT.COLUMN_CONSTRAINT",
+                           db.findTable("CHECK_CONSTRAINT", "COLUMN_CONSTRAINT", false).getCheckConstraint());
+                assertNotNull("Expected column check constraint on CHECK_CONSTRAINT.COLUMN_CONSTRAINT.KEY_COL",
+                              db.findTable("CHECK_CONSTRAINT", "COLUMN_CONSTRAINT", false).findColumn("KEY_COL").getCheckConstraint());
+                assertNotNull("Expected column check constraint on CHECK_CONSTRAINT.COLUMN_CONSTRAINT.INT2_COL",
+                              db.findTable("CHECK_CONSTRAINT", "COLUMN_CONSTRAINT", false).findColumn("INT2_COL").getCheckConstraint());
+
+                assertNotNull("Expected table check constraint on CHECK_CONSTRAINT.TABLE_CONSTRAINT",
+                              db.findTable("CHECK_CONSTRAINT", "TABLE_CONSTRAINT", false).getCheckConstraint());
+                assertNull("Didn't expect column check constraint on CHECK_CONSTRAINT.TABLE_CONSTRAINT.EFFECTIVE_START_DATE",
+                              db.findTable("CHECK_CONSTRAINT", "TABLE_CONSTRAINT", false).findColumn("EFFECTIVE_START_DATE").getCheckConstraint());
+                assertNull("Didn't expect column check constraint on CHECK_CONSTRAINT.TABLE_CONSTRAINT.EFFECTIVE_END_DATE",
+                              db.findTable("CHECK_CONSTRAINT", "TABLE_CONSTRAINT", false).findColumn("EFFECTIVE_END_DATE").getCheckConstraint());
+
+                assertTrue("Expected CHECK_CONSTRAINT.ALL_COLS_CHECKED.JOIN_DATE to be primary key.",
+                           db.findTable("CHECK_CONSTRAINT", "ALL_COLS_CHECKED", false).findColumn("JOIN_DATE").isPrimaryKey());
+                assertTrue("Expected CHECK_CONSTRAINT.ALL_COLS_CHECKED.ID to be primary key.",
+                           db.findTable("CHECK_CONSTRAINT", "ALL_COLS_CHECKED", false).findColumn("ID").isPrimaryKey());
+                assertTrue("Expected CHECK_CONSTRAINT.COLUMN_CONSTRAINT.KEY_COL to be primary key.",
+                           db.findTable("CHECK_CONSTRAINT", "COLUMN_CONSTRAINT", false).findColumn("KEY_COL").isPrimaryKey());
+
+                // string is regex so need to escape special chars
+                assertCountString("V_IN VARCHAR\\(32\\) CONSTRAINT V_IN_CK1 CHECK \\(V_IN IN \\('good1', 'good2', 'good3'\\)\\)", sql, 1);
+
+            } finally {
+                if (db != null) {
+                    platform.dropModel(connection, db, true);
+                }
+            }
+            assertSchemaDropped("CHECK_CONSTRAINT", connection);
+        }
+    }
+
+    @Test
     @Ignore("No triggers yet")
     public void testSqlSchemaTriggersQuery() throws Exception {
 
@@ -241,77 +286,5 @@ public class DumpSpliceIT {
                 }
             }
         }
-    }
-
-    @Test
-    @Ignore
-    public void roleImpact() throws Exception {
-        // TODO: for testing implementation only. delete
-        Platform platform = PlatformFactory.createNewPlatformInstance(dataSource);
-        try (Connection connection = platform.borrowConnection()) {
-            System.out.println("* create user");
-            printSysTableImpact(platform, "SYS", "CALL SYSCS_UTIL.SYSCS_CREATE_USER('Ted','')");
-
-            System.out.println("* create user");
-            printSysTableImpact(platform, "SYS", "CALL SYSCS_UTIL.SYSCS_CREATE_USER('Joe','')");
-
-            System.out.println("* create role");
-            printSysTableImpact(platform, "SYS", "Create ROLE funny_role");
-            execQuery(connection, "select * from sys.sysroles");
-
-            System.out.println("* grant role");
-            printSysTableImpact(platform, "SYS", "GRANT funny_role to Ted");
-            execQuery(connection, "select * from sys.sysroles");
-
-            System.out.println("* grant role");
-            printSysTableImpact(platform, "SYS", "GRANT funny_role to Joe");
-            execQuery(connection, "select * from sys.sysroles");
-
-            System.out.println("* revoke role");
-            printSysTableImpact(platform, "SYS", "revoke funny_role from Ted");
-        } finally {
-            // clean up
-            try (Connection connection = platform.borrowConnection()) {
-                exec(connection, "drop role funny_role");
-                exec(connection, "CALL SYSCS_UTIL.SYSCS_DROP_USER('Ted')");
-                exec(connection, "CALL SYSCS_UTIL.SYSCS_DROP_USER('Joe')");
-            }
-        }
-    }
-
-    @Test
-    @Ignore
-    public void permissionImpact() throws Exception {
-        // TODO: for testing implementation only. delete
-        Platform platform = PlatformFactory.createNewPlatformInstance(dataSource);
-        try (Connection connection = platform.borrowConnection()) {
-            System.out.println("* create user");
-            exec(connection, "CALL SYSCS_UTIL.SYSCS_CREATE_USER('Ted','')");
-            exec(connection, "create table TedsTable(x int, y int)");
-
-            System.out.println("* create user");
-            exec(connection, "CALL SYSCS_UTIL.SYSCS_CREATE_USER('Joe','')");
-            exec(connection, "create table JoesTable(x int, y int)");
-
-            System.out.println("* create user");
-            exec(connection, "CALL SYSCS_UTIL.SYSCS_CREATE_USER('Jean','')");
-
-            System.out.println("* create permission");
-            printSysTableImpact(platform, "SYS", "grant update on TedsTable to Joe, Ted");
-            execQuery(connection, "select * from sys.SYSTABLEPERMS");
-            printSysTableImpact(platform, "SYS", "grant select on TedsTable to Jean");
-            execQuery(connection, "select * from sys.SYSTABLEPERMS");
-            execQuery(connection, "select a.tablepermsid, a.GRANTEE, a.GRANTOR, a.SELECTPRIV, a.DELETEPRIV, a.INSERTPRIV, a.UPDATEPRIV, a.REFERENCESPRIV, a.TRIGGERPRIV, c.schemaname, b.tablename from sys.SYSTABLEPERMS a, sys.SYSTABLES b, sys.sysschemas c where a.tableID = b.tableID and b.schemaid = c.schemaid");
-        } finally {
-            // clean up
-            try (Connection connection = platform.borrowConnection()) {
-                exec(connection, "drop table if exists TedsTable");
-                exec(connection, "CALL SYSCS_UTIL.SYSCS_DROP_USER('Ted')");
-                exec(connection, "drop table if exists JoesTable");
-                exec(connection, "CALL SYSCS_UTIL.SYSCS_DROP_USER('Joe')");
-                exec(connection, "CALL SYSCS_UTIL.SYSCS_DROP_USER('Jean')");
-            }
-        }
-
     }
  }

@@ -50,7 +50,7 @@ public class SpliceModelReader extends DerbyModelReader {
 
     private final static String USER_QUERY = "select USERNAME from SYS.SYSUSERS";
     protected void addUsers(Database db) throws SQLException {
-        // TODO: JC - User pwd?, User auths?
+        // TODO: JC - User pwd?
         try (Statement st = _connection.createStatement()) {
             try (ResultSet rs = st.executeQuery(USER_QUERY)) {
                 while (rs.next()) {

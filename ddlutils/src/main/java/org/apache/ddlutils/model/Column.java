@@ -78,6 +78,8 @@ public class Column implements Serializable {
      * The name of the JDBC type.
      */
     private String _type;
+    /** The ordinal (1-based) position of the column in the table */
+    private int _ordinalPosition;
     /**
      * The size of the column for JDBC types that require/support this.
      */
@@ -94,6 +96,14 @@ public class Column implements Serializable {
      * The default value.
      */
     private String _defaultValue;
+    /**
+     * A column level check constraint, if any (may be null)
+     */
+    private CheckConstraint _checkConstraint;
+    /** column's table id, may be null. */
+    private String tableId;
+    /** column's schema id. may be null. */
+    private String schemaId;
 
     /**
      * Returns the name of the column.
@@ -111,6 +121,38 @@ public class Column implements Serializable {
      */
     public void setName(String name) {
         _name = name;
+    }
+
+    /**
+     * Get this column's schema identifier.  May be null.
+     * @return schema id
+     */
+    public String getSchemaId() {
+        return schemaId;
+    }
+
+    /**
+     * Set this column's schema identifier.
+     * @param schemaId id string.
+     */
+    public void setSchemaId(String schemaId) {
+        this.schemaId = schemaId;
+    }
+
+    /**
+     * Get this column's table identifier. May be null.
+     * @return table id
+     */
+    public String getTableId() {
+        return tableId;
+    }
+
+    /**
+     * Set this column's table identifier.
+     * @param tableId id string.
+     */
+    public void setTableId(String tableId) {
+        this.tableId = tableId;
     }
 
     /**
@@ -238,6 +280,22 @@ public class Column implements Serializable {
      */
     public String getType() {
         return _type;
+    }
+
+    /**
+     * The ordinal position of the column in the table (1-based)
+     * @param ordinalPosition position
+     */
+    public void setOrdinalPosition(int ordinalPosition) {
+        this._ordinalPosition = ordinalPosition;
+    }
+
+    /**
+     * The ordinal position of the column in the table (1-based)
+     * @return  ordinalPosition
+     */
+    public int getOrdinalPosition() {
+        return this._ordinalPosition;
     }
 
     /**
@@ -477,6 +535,39 @@ public class Column implements Serializable {
     }
 
     /**
+     * Check to see if this column has a check constraint.
+     * @return true if this column has a non-null check constraint.
+     */
+    public boolean hasCheckConstraint() {
+        return this._checkConstraint != null;
+    }
+
+    /**
+     * Get the column check constraint, if any.
+     * @return the check constraint, or null if none contained.
+     */
+    public CheckConstraint getCheckConstraint() {
+        return _checkConstraint;
+    }
+
+    /**
+     * Create a column check constraint.
+     * @param constaintName the name of the constraint. If null, the system is expected to
+     *                      generate one.
+     * @param checkDefinition the constraint check definition.
+     */
+    public void createCheckConstraint(String constaintName, String checkDefinition) {
+        this._checkConstraint = new CheckConstraint(constaintName, checkDefinition);
+    }
+
+    /**
+     * Remove this column's check constraint, if present.
+     */
+    public void removeCheckConstraint() {
+        this._checkConstraint = null;
+    }
+
+    /**
      * {@inheritDoc}
      */
     public boolean equals(Object obj) {
@@ -511,15 +602,14 @@ public class Column implements Serializable {
      * {@inheritDoc}
      */
     public String toString() {
-        StringBuffer result = new StringBuffer();
 
-        result.append("Column [name=");
-        result.append(getName());
-        result.append("; type=");
-        result.append(getType());
-        result.append("]");
-
-        return result.toString();
+        return "Column [name=" +
+            getName() +
+            "; type=" +
+            getType() +
+            "; position=" +
+            getOrdinalPosition() +
+            "]";
     }
 
     /**
@@ -528,32 +618,32 @@ public class Column implements Serializable {
      * @return The string representation
      */
     public String toVerboseString() {
-        StringBuffer result = new StringBuffer();
 
-        result.append("Column [name=");
-        result.append(getName());
-        result.append("; javaName=");
-        result.append(getJavaName());
-        result.append("; type=");
-        result.append(getType());
-        result.append("; typeCode=");
-        result.append(getTypeCode());
-        result.append("; size=");
-        result.append(getSize());
-        result.append("; required=");
-        result.append(isRequired());
-        result.append("; primaryKey=");
-        result.append(isPrimaryKey());
-        result.append("; autoIncrement=");
-        result.append(isAutoIncrement());
-        result.append("; defaultValue=");
-        result.append(getDefaultValue());
-        result.append("; precisionRadix=");
-        result.append(getPrecisionRadix());
-        result.append("; scale=");
-        result.append(getScale());
-        result.append("]");
-
-        return result.toString();
+        return "Column [name=" +
+            getName() +
+            "; javaName=" +
+            getJavaName() +
+            "; ordinalPosition=" +
+            getOrdinalPosition() +
+            "; type=" +
+            getType() +
+            "; typeCode=" +
+            getTypeCode() +
+            "; size=" +
+            getSize() +
+            "; required=" +
+            isRequired() +
+            "; primaryKey=" +
+            isPrimaryKey() +
+            "; autoIncrement=" +
+            isAutoIncrement() +
+            "; defaultValue=" +
+            getDefaultValue() +
+            "; precisionRadix=" +
+            getPrecisionRadix() +
+            "; scale=" +
+            getScale() +
+            (_checkConstraint != null ? getCheckConstraint() : "") +
+            "]";
     }
 }

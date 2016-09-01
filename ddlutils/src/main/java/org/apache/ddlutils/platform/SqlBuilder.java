@@ -43,6 +43,7 @@ import org.apache.ddlutils.DdlUtilsException;
 import org.apache.ddlutils.Platform;
 import org.apache.ddlutils.PlatformInfo;
 import org.apache.ddlutils.model.CascadeActionEnum;
+import org.apache.ddlutils.model.CheckConstraint;
 import org.apache.ddlutils.model.Column;
 import org.apache.ddlutils.model.Database;
 import org.apache.ddlutils.model.ForeignKey;
@@ -1158,8 +1159,6 @@ public abstract class SqlBuilder {
                 break;
             case Types.TIMESTAMP:
                 result.append(getPlatformInfo().getValueQuoteToken());
-                // TODO: SimpleDateFormat does not support nano seconds so we would
-                //       need a custom date formatter for timestamps
                 result.append(value.toString());
                 result.append(getPlatformInfo().getValueQuoteToken());
                 break;
@@ -1321,6 +1320,7 @@ public abstract class SqlBuilder {
         println("(");
 
         writeColumns(table);
+        writeCheckConstraint(table);
 
         if (getPlatformInfo().isPrimaryKeyEmbedded()) {
             writeEmbeddedPrimaryKeysStmt(table);
@@ -1345,6 +1345,25 @@ public abstract class SqlBuilder {
      */
     protected void writeTableCreationStmtEnding(Table table, Map parameters) throws IOException {
         printEndOfStatement();
+    }
+
+    /**
+     * Writes the check constraint of the given table, if any.
+     *
+     * @param table The table
+     */
+    protected void writeCheckConstraint(Table table) throws IOException {
+        if (table.hasCheckConstraint()) {
+            CheckConstraint checkConstraint = table.getCheckConstraint();
+            println(",");
+            printIndent();
+            writeCheckConstraint(checkConstraint);
+            println();
+        }
+    }
+
+    protected void writeCheckConstraint(CheckConstraint checkConstraint) throws IOException {
+        print("CONSTRAINT "+checkConstraint.getConstraintName()+" CHECK "+checkConstraint.getCheckDefinition());
     }
 
     /**
@@ -1400,6 +1419,11 @@ public abstract class SqlBuilder {
             }
             print(" ");
             writeColumnAutoIncrementStmt(table, column);
+        }
+        if (column.hasCheckConstraint()) {
+            CheckConstraint checkConstraint = column.getCheckConstraint();
+            print(" ");
+            writeCheckConstraint(checkConstraint);
         }
     }
 

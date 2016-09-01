@@ -61,6 +61,8 @@ public class Table implements Serializable {
      * The name.
      */
     private String _name = null;
+    /** table internal id. may be null */
+    private String _internalId;
     /**
      * The view definition.  Only non-null if this is of type {@link TableType#VIEW}
      */
@@ -80,7 +82,7 @@ public class Table implements Serializable {
     /**
      * The columns in this table.
      */
-    private ArrayList _columns = new ArrayList();
+    private ArrayList<Column> _columns = new ArrayList<>();
     /**
      * The foreign keys associated to this table.
      */
@@ -89,6 +91,10 @@ public class Table implements Serializable {
      * The indices applied to this table.
      */
     private ArrayList _indices = new ArrayList();
+    /**
+     * A table level check constraint, if any (may be null)
+     */
+    private CheckConstraint _checkConstraint;
 
     /**
      * Returns the catalog of this table as read from the database.
@@ -189,6 +195,65 @@ public class Table implements Serializable {
      */
     public void setName(String name) {
         _name = name;
+    }
+
+    public boolean hasCheckConstraint() {
+        return _checkConstraint != null;
+    }
+
+    public CheckConstraint getCheckConstraint() {
+        return _checkConstraint;
+    }
+
+    public void setCheckConstraint(CheckConstraint _checkConstraint) {
+        this._checkConstraint = _checkConstraint;
+    }
+
+    public void pullUpCheckConstraintIfNeeded() {
+        if (_columns.size() > 0) {
+            Column firstCol = _columns.get(0);
+            if (firstCol.hasCheckConstraint()) {
+                // check constraint to test. all must be identical to pull up to table level
+                CheckConstraint first = firstCol.getCheckConstraint();
+                for (Column col :_columns) {
+                    if (! col.hasCheckConstraint() || ! col.getCheckConstraint().equals(first))
+                        return;
+                }
+
+                // all were identical. pull up
+                setCheckConstraint(first);
+                // remove all from columns
+                for (Column col :_columns) {
+                    col.removeCheckConstraint();
+                }
+            }
+        }
+    }
+
+    /**
+     * Check whether internal identifier has been set.
+     * @return true if internal identifier has been set.
+     */
+    public boolean hasInternalId() {
+        return _internalId != null && ! _internalId.isEmpty();
+    }
+
+    /**
+     * Returns the internal identifier of the table.
+     *
+     * @return The id
+     */
+    public String getInternalId() {
+        return _internalId;
+    }
+
+    /**
+     * Sets the internal identifier of the table.
+     *
+     * @param id The id
+     */
+    public void setInternalId(String id) {
+        _internalId = id;
     }
 
     /**
@@ -856,15 +921,12 @@ public class Table implements Serializable {
      * {@inheritDoc}
      */
     public String toString() {
-        StringBuffer result = new StringBuffer();
 
-        result.append("Table [name=");
-        result.append(getName());
-        result.append("; ");
-        result.append(getColumnCount());
-        result.append(" columns]");
-
-        return result.toString();
+        return "Table [name=" +
+            getName() +
+            "; " +
+            getColumnCount() +
+            " columns]";
     }
 
     /**
@@ -873,7 +935,7 @@ public class Table implements Serializable {
      * @return The string representation
      */
     public String toVerboseString() {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
 
         result.append("Table [name=");
         result.append(getName());
