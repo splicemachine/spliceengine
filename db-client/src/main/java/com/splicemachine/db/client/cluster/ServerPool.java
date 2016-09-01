@@ -47,15 +47,14 @@ class ServerPool{
     final String serverName;
     private final FailureDetector failureDetector;
     private final BlackList<ServerPool> blackList;
-
-    private ConcurrentLinkedQueue<Connection> pooledConnection = new ConcurrentLinkedQueue<>();
     private final int maxSize;
     private final AtomicInteger trackedSize = new AtomicInteger(0);
     private final DataSource connectionBuilder;
     private final int validationTimeout;
-    private AtomicBoolean closed = new AtomicBoolean(false);
     private final PoolSizingStrategy poolSizingStrategy;
     private final int maxConnectAttempts;
+    private ConcurrentLinkedQueue<Connection> pooledConnection = new ConcurrentLinkedQueue<>();
+    private AtomicBoolean closed = new AtomicBoolean(false);
 
     ServerPool(DataSource connectionBuilder,
                String serverName,
@@ -92,7 +91,41 @@ class ServerPool{
         this.maxConnectAttempts = maxConnectAttempts;
     }
 
-    Connection tryAcquireConnection() throws SQLException{
+    public void close() throws SQLException{
+        if(!closed.compareAndSet(false,true)) return; //already been closed
+
+        //close all pooled connections
+        SQLException e = null;
+        Connection toClose;
+        int removed = 0;
+        while((toClose = pooledConnection.poll())!=null){
+            try{
+                toClose.close();
+                removed++;
+            }catch(SQLException se){
+                if(e==null) e =se;
+                else{
+                    e.setNextException(se);
+                }
+            }
+        }
+
+        if(e!=null){
+            throw e;
+        } else if(trackedSize.get()>removed){
+            throw new SQLException("Cannot close connection pool while there are outstanding connections",
+                    SQLState.CANNOT_CLOSE_ACTIVE_CONNECTION,1);
+        }
+    }
+
+    @Override
+    public String toString(){
+        return serverName;
+    }
+
+    /* ****************************************************************************************************************/
+    /*package-local methods*/
+    Connection tryAcquireConnection(boolean validate) throws SQLException{
         while(true){
             Connection conn=pooledConnection.poll();
             if(conn!=null){
@@ -100,7 +133,7 @@ class ServerPool{
                     trackedSize.decrementAndGet();
                     continue;
                 }
-                if(validationTimeout<=0 || conn.isValid(validationTimeout)){
+                if(!validate || validationTimeout<=0 || conn.isValid(validationTimeout)){
                     return wrapConnection(conn);
                 } else{
                     conn.close(); //close this connection and try again
@@ -117,6 +150,39 @@ class ServerPool{
         }
     }
 
+    Connection newConnection() throws SQLException{
+        trackedSize.incrementAndGet();
+        return createNewConnection("newConnection");
+    }
+
+
+    boolean heartbeat() throws SQLException{
+        try(Connection conn=acquireConnection(false)){ //don't validate, since we are going to do that ourselves
+            /*
+             * since Connection.isValid() ensures that we actually talk to the server, we can
+             * use it to determine if we can still talk to that server. Essentially, we say
+             * "hey, if at least one connection is able to communicate with that server safely,
+             * then we can't be dead yet".
+             */
+            if(conn.isValid(1)){
+                failureDetector.success();
+                return true;
+            }else{
+                failureDetector.failed();
+                return false;
+            }
+        }catch(SQLException se){
+            logError("heartbeat",se,Level.INFO);
+            return failureDetector.failed();
+        }
+    }
+
+    boolean isDead(){
+        return !failureDetector.isAlive();
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods and classes*/
     private Connection createNewConnection(String op) throws SQLException{
         int attemptsRemaining = maxConnectAttempts;
         SQLException e = null;
@@ -127,14 +193,17 @@ class ServerPool{
             }catch(SQLNonTransientConnectionException se){
                 //throw the exception if appropriate
                 dealWithNonTransientErrors(op,se);
-                if(e==null) e = se;
-                else e.setNextException(se);
+                if(e==null) e =se;
+                else {
+                    e.setNextException(se);
+                }
             }
         }
 
+        trackedSize.decrementAndGet();
         blackList.blacklist(this);
-        logError(op,e); //e is not null because we would have returned before otherwise
-        return null;
+        //e is not null because we would have returned before otherwise
+        throw e;
     }
 
     private void dealWithNonTransientErrors(String op,SQLNonTransientConnectionException se) throws SQLNonTransientConnectionException{
@@ -176,77 +245,10 @@ class ServerPool{
     }
 
 
-    Connection newConnection() throws SQLException{
-        trackedSize.incrementAndGet();
-        return createNewConnection("newConnection");
-    }
-
-
-    boolean heartbeat() throws SQLException{
-        try(Connection conn=acquireConnection()){
-            /*
-             * since Connection.isValid() ensures that we actually talk to the server, we can
-             * use it to determine if we can still talk to that server. Essentially, we say
-             * "hey, if at least one connection is able to communicate with that server safely,
-             * then we can't be dead yet".
-             */
-            if(conn.isValid(1)){
-                failureDetector.success();
-                return true;
-            }else{
-                failureDetector.failed();
-                return false;
-            }
-        }catch(SQLException se){
-            return failureDetector.failed();
-        }
-    }
-
-    boolean isDead(){
-        return !failureDetector.isAlive();
-    }
-
-    public void close() throws SQLException{
-        if(!closed.compareAndSet(false,true)) return; //already been closed
-
-        //close all pooled connections
-        List<SQLException> errors = null;
-        Connection toClose;
-        int removed = 0;
-        while((toClose = pooledConnection.poll())!=null){
-            try{
-                toClose.close();
-                removed++;
-            }catch(SQLException se){
-                if(errors==null)
-                    errors = new LinkedList<>();
-                errors.add(se);
-            }
-        }
-
-        if(errors!=null){
-            if(errors.size()==1)
-                throw errors.get(0);
-            SQLException se = new SQLException("Unable to close connections", "SE001",1);
-            for(SQLException underlying:errors){
-                se.addSuppressed(underlying);
-            }
-            throw se;
-        } else if(trackedSize.get()>removed){
-            throw new SQLException("Cannot close connection pool while there are outstanding connections",
-                    SQLState.CANNOT_CLOSE_ACTIVE_CONNECTION,1);
-        }
-    }
-
-    @Override
-    public String toString(){
-        return serverName;
-    }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods and classes*/
-
     private void logError(String operation,Throwable t){
+       logError(operation,t,Level.SEVERE);
+    }
+    private void logError(String operation,Throwable t,Level logLevel){
         String errorMessage= "error during "+operation+":";
         if(t instanceof SQLException){
             SQLException se = (SQLException)t;
@@ -255,15 +257,15 @@ class ServerPool{
         if(t.getMessage()!=null)
             errorMessage+=t.getMessage();
 
-        LOGGER.log(Level.SEVERE,errorMessage,t);
+        LOGGER.log(logLevel,errorMessage,t);
     }
 
     private Connection createConnection() throws SQLException{
         return wrapConnection(connectionBuilder.getConnection());
     }
 
-    private Connection acquireConnection() throws SQLException{
-        Connection conn = tryAcquireConnection();
+    private Connection acquireConnection(boolean validate) throws SQLException{
+        Connection conn = tryAcquireConnection(validate);
         if(conn==null)
             conn = newConnection();
         return conn;
@@ -280,22 +282,30 @@ class ServerPool{
         }
 
         @Override
-        protected void reportError(Throwable t){
-            boolean close = false;
-            if(t instanceof SQLNonTransientConnectionException){
-                blackList.blacklist(ServerPool.this);
-                close = true;
-            } else if(t instanceof SQLTransientConnectionException){
-                failureDetector.failed();
-                close = true;
+        public void close() throws SQLException{
+            int currTrackedSize = trackedSize.get();
+            if(currTrackedSize>maxSize || delegate.isClosed()){
+                /*
+                 * We've exceeded this pool size, so discard the underlying connection
+                 * cleanly and then allow GC to occur.
+                 */
+                super.close();
+                trackedSize.decrementAndGet(); //we are no longer tracking this connection
+            }else{
+                /*
+                 * We are under the max pool size, so return this to the pool to ensure proper
+                 * re-use
+                 */
+                pooledConnection.add(delegate);
+                poolSizingStrategy.releasePermit();
             }
+        }
 
-            if(close){
-                try{
-                    delegate.close();
-                }catch(SQLException e){
-                    failureDetector.failed();
-                }
+        @Override
+        protected void reportError(Throwable t){
+            if(t instanceof SQLNonTransientConnectionException ||
+                    t instanceof SQLTransientConnectionException){
+                failureDetector.failed();
             }
         }
 
@@ -319,26 +329,6 @@ class ServerPool{
         protected CallableStatement wrapCall(CallableStatement callableStatement){
             //TODO -sf- implement
             return callableStatement;
-        }
-
-        @Override
-        public void close() throws SQLException{
-            int currTrackedSize = trackedSize.get();
-            if(currTrackedSize>maxSize || delegate.isClosed()){
-                /*
-                 * We've exceeded this pool size, so discard the underlying connection
-                 * cleanly and then allow GC to occur.
-                 */
-                super.close();
-                trackedSize.decrementAndGet(); //we are no longer tracking this connection
-            }else{
-                /*
-                 * We are under the max pool size, so return this to the pool to ensure proper
-                 * re-use
-                 */
-                pooledConnection.add(delegate);
-                poolSizingStrategy.releasePermit();
-            }
         }
     }
 }

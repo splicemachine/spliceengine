@@ -191,7 +191,7 @@ public class ClusteredDataSource implements DataSource{
             if(sp.isDead()){
                 cleanupDeadServer(sp);
             }else{
-                Connection conn=sp.tryAcquireConnection();
+                Connection conn=sp.tryAcquireConnection(true);
                 if(conn!=null)
                     return conn;
             }
