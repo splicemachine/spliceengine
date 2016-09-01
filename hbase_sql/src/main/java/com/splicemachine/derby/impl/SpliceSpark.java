@@ -91,6 +91,7 @@ public class SpliceSpark {
                 //boot the pipeline components
                 final Clock clock = driver.getClock();
                 ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
+                //we specify rsServices = null here because we don't actually use the receiving side of the Pipeline environment
                 HBasePipelineEnvironment pipelineEnv=HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();

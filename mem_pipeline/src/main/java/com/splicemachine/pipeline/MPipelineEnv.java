@@ -23,6 +23,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
+import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.context.NoOpPipelineMeter;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.mem.DirectBulkWriterFactory;
@@ -54,6 +55,7 @@ public class MPipelineEnv  implements PipelineEnvironment{
     private SIEnvironment siEnv;
     private BulkWriterFactory writerFactory;
     private ContextFactoryDriver ctxFactoryDriver;
+    private final WritePipelineFactory pipelineFactory= new MappedPipelineFactory();
 
     public MPipelineEnv(SIEnvironment siEnv) throws IOException{
         super();
@@ -172,6 +174,11 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public PipelineMeter pipelineMeter(){
         return NoOpPipelineMeter.INSTANCE;
+    }
+
+    @Override
+    public WritePipelineFactory pipelineFactory(){
+        return pipelineFactory;
     }
 
     @Override

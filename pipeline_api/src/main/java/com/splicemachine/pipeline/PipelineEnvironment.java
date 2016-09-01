@@ -18,6 +18,7 @@ package com.splicemachine.pipeline;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
+import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.si.impl.driver.SIEnvironment;
@@ -38,4 +39,6 @@ public interface PipelineEnvironment extends SIEnvironment{
     BulkWriterFactory writerFactory();
 
     PipelineMeter pipelineMeter();
+
+    WritePipelineFactory pipelineFactory();
 }

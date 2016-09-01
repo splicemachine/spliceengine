@@ -31,8 +31,6 @@ import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import org.apache.log4j.Level;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * @author Scott Fines
@@ -50,6 +48,7 @@ public class HPipelineTestEnv extends HBaseSITestEnv implements PipelineTestEnv{
             }
         };
         ContextFactoryDriverService.setDriver(ctxFactoryLoader);
+        //pass in rsServices = null because we don't need the extra safety for these tests
         this.env = HBasePipelineEnvironment.loadEnvironment(super.getClock(),ctxFactoryLoader);
         DatabaseLifecycleManager.manager().start(); //start the database
     }

@@ -30,4 +30,9 @@ public class MServerControl implements ServerControl{
     @Override public void startOperation() throws IOException{ }
     @Override public void stopOperation() throws IOException{ }
     @Override public void ensureNetworkOpen() throws IOException{ }
+
+    @Override
+    public boolean isAvailable(){
+        return true;
+    }
 }
