@@ -35,7 +35,6 @@ import static org.junit.Assert.fail;
 
 /**
  * Created by jyuan on 10/12/15.
- * Updated by jramineni on 08/29/16 - add orcfilevti test
  */
 public class VTIOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = VTIOperationIT.class.getSimpleName().toUpperCase();
@@ -183,18 +182,7 @@ public class VTIOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals(5, count);
     }
-    //
-    @Test
-    public void testORCFileVTI() throws Exception {
-        String location = getResourceDirectory()+"orcVtiFile.in";
-        String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceORCFileVTI('%s') as b (id bigint,name varchar(128),active char(1), start_dt date, update_dt timestamp )", location);
-        ResultSet rs = spliceClassWatcher.executeQuery(sql);
-        int count = 0;
-        while (rs.next()) {
-            count++;
-        }
-        Assert.assertEquals(5, count);
-    }
+    
 
 
 }
