@@ -17,7 +17,6 @@ package com.splicemachine.derby.utils.test;
 
 import com.carrotsearch.hppc.BitSet;
 import org.spark_project.guava.base.Charsets;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyVarchar;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -25,7 +24,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -235,46 +233,6 @@ public enum TestingDataType {
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
             return new SQLVarchar();
-        }
-
-        @Override
-        public void decodeNext(DataValueDescriptor dvd, MultiFieldDecoder decoder) throws StandardException {
-            if(decoder.nextIsNull())
-                dvd.setToNull();
-            else
-                dvd.setValue(decoder.decodeNextString());
-        }
-
-        @Override
-        public String toString(Object value) {
-            return (String)value;
-        }
-
-        @Override
-        public void setNext(DataValueDescriptor dvd, Object value) throws StandardException {
-            dvd.setValue((String)value);
-        }
-
-        @Override
-        public Object newObject(Random random) {
-            char[] string = new char[random.nextInt(100)];
-            Charset charset = Charsets.UTF_8;
-            CharsetEncoder encoder = charset.newEncoder().onMalformedInput(CodingErrorAction.REPORT);
-            for(int i=0;i<string.length;i++){
-                char next = (char)random.nextInt();
-                while(!encoder.canEncode(next))
-                    next = (char)random.nextInt();
-
-                string[i] = next;
-            }
-            return new String(string);
-        }
-    },
-    LAZYVARCHAR(Types.VARCHAR){
-        @Override public void encode(Object o, MultiFieldEncoder encoder) { encoder.encodeNext((String)o); }
-        @Override
-        public DataValueDescriptor getDataValueDescriptor() {
-            return new LazyVarchar();
         }
 
         @Override

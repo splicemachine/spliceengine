@@ -18,11 +18,9 @@ package com.splicemachine.derby.stream.spark;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -32,7 +30,6 @@ import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
@@ -87,11 +84,10 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         // rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableDisplayName));
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
-
-        SparkSpliceFunctionWrapper f = new SparkSpliceFunctionWrapper<>(new TableScanTupleFunction<SpliceOperation>(operationContext));
+        SparkFlatMapFunction f = new SparkFlatMapFunction(new TableScanTupleFunction<SpliceOperation>(operationContext,this.optionalProbeValue));
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
-            return new SparkDataSet<>(rawRDD.map(f), op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
+            return new SparkDataSet<>(rawRDD.flatMap(f), op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
         } finally {
             SpliceSpark.popScope();
         }

@@ -192,10 +192,8 @@ public class GenericQualifier implements Qualifier
      *  
      *  @see Qualifier#getUnknownRV
 	 */
-	public void clearOrderableCache()
-	{
-		if ((variantType == SCAN_INVARIANT) || (variantType == VARIANT))
-		{
+	public void clearOrderableCache() {
+		if ((variantType == SCAN_INVARIANT) || (variantType == VARIANT)) {
 			orderableCache = null;
 		}
 	}
@@ -234,5 +232,10 @@ public class GenericQualifier implements Qualifier
 		{
 			return "";
 		}
+	}
+
+	@Override
+	public int getVariantType() {
+		return variantType;
 	}
 }

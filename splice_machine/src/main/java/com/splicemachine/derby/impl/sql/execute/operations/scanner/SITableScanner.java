@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.spark_project.guava.base.Supplier;
 import org.spark_project.guava.base.Suppliers;
 import org.spark_project.guava.base.Throwables;
@@ -45,7 +46,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import com.carrotsearch.hppc.BitSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -82,6 +82,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private EntryDecoder entryDecoder;
     private final Counter outputBytesCounter;
     private long demarcationPoint;
+    private DataValueDescriptor optionalProbeValue;
 
     protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
@@ -144,6 +145,29 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.demarcationPoint = demarcationPoint;
         if(filterFactory==null)
             this.filterFactory = createFilterFactory(txn, demarcationPoint);
+    }
+
+    protected SITableScanner(DataScanner scanner,
+                             final TransactionalRegion region,
+                             final ExecRow template,
+                             DataScan scan,
+                             final int[] rowDecodingMap,
+                             final TxnView txn,
+                             int[] keyColumnEncodingOrder,
+                             boolean[] keyColumnSortOrder,
+                             int[] keyColumnTypes,
+                             int[] keyDecodingMap,
+                             FormatableBitSet accessedPks,
+                             boolean reuseRowLocation,
+                             String indexName,
+                             final String tableVersion,
+                             SIFilterFactory filterFactory,
+                             final long demarcationPoint,
+                             DataValueDescriptor optionalProbeValue) {
+        this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
+                keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
+                tableVersion, filterFactory,demarcationPoint);
+        this.optionalProbeValue = optionalProbeValue;
     }
 
     @Override
@@ -456,11 +480,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
         @Override public boolean isFloatType(int currentPosition) {
             return fF[currentPosition];
-        }
-
-        @Override
-        public int getPredicatePosition(int position) {
-            return allPkColumns[position];
         }
 
         void reset(){

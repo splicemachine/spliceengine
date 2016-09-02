@@ -265,4 +265,6 @@ public interface Qualifier
 	void reinitialize();
 
     String getText();
+
+	int getVariantType();
 }

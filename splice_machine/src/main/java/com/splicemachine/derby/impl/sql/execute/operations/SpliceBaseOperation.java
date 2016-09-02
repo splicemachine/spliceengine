@@ -694,13 +694,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
         if(op!=null){
             op.generateRightOperationStack(initial,operations);
-//            operations.add(op);
         }
         operations.add(this);
-    }
-
-    public void generateAllOperationStack(List<SpliceOperation> operations){
-        OperationUtils.generateAllOperationStack(this,operations);
     }
 
     /**

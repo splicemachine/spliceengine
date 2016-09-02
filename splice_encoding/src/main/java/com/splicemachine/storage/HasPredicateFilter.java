@@ -23,5 +23,4 @@ public interface HasPredicateFilter {
 
 		EntryPredicateFilter getFilter();
 
-		long getBytesVisited();
 }

@@ -211,6 +211,11 @@ public class GenericScanQualifier implements ScanQualifier
     public String getText() {
         return null;
     }
+
+	@Override
+	public int getVariantType() {
+		return SCAN_INVARIANT;
+	}
 }
 
 

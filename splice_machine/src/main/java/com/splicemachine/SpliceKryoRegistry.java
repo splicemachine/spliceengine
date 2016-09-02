@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.TreeMap;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
@@ -36,7 +35,6 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-
 import com.splicemachine.db.catalog.types.AggregateAliasInfo;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
 import com.splicemachine.db.catalog.types.DecimalTypeIdImpl;
@@ -125,17 +123,6 @@ import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyChar;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyClob;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyDate;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyDecimal;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyDouble;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyLongVarchar;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyNumberDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyStringDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyTimestamp;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyVarchar;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
@@ -531,9 +518,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 dvd.setValue((RowLocation)(kryo.readObjectOrNull(input, HBaseRowLocation.class)));
             }
         },43);*/
-        instance.register(LazyDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,44);
-        instance.register(LazyNumberDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,45);
-        instance.register(LazyStringDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,46);
 
 
         //register Activation-related classes
@@ -753,7 +737,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                     }
                 },149);
 
-        instance.register(LazyTimestamp.class,EXTERNALIZABLE_SERIALIZER,154);
 //        instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER,156);
         instance.register(LongBufferedSumAggregator.class,new Serializer<LongBufferedSumAggregator>(){
@@ -924,15 +907,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BatchOnceOperation.class,EXTERNALIZABLE_SERIALIZER,261);
         instance.register(ScrollInsensitiveOperation.class,EXTERNALIZABLE_SERIALIZER,263);
         instance.register(VTIOperation.class,EXTERNALIZABLE_SERIALIZER,264);
-        instance.register(LazyVarchar.class,EXTERNALIZABLE_SERIALIZER,265);
-        instance.register(LazyChar.class,EXTERNALIZABLE_SERIALIZER,266);
-        instance.register(LazyClob.class,EXTERNALIZABLE_SERIALIZER,267);
-        instance.register(LazyLongVarchar.class,EXTERNALIZABLE_SERIALIZER,268);
-        instance.register(LazyDouble.class,EXTERNALIZABLE_SERIALIZER,269);
-        instance.register(LazyDecimal.class,EXTERNALIZABLE_SERIALIZER,270);
         instance.register(UDTAliasInfo.class,EXTERNALIZABLE_SERIALIZER,271);
         instance.register(UDTBase.class,EXTERNALIZABLE_SERIALIZER,272);
-        instance.register(LazyDate.class,EXTERNALIZABLE_SERIALIZER,273);
         instance.register(HalfMergeSortJoinOperation.class,EXTERNALIZABLE_SERIALIZER,274);
         instance.register(HalfMergeSortLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,275);
     }

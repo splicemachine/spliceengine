@@ -55,8 +55,6 @@ public class ByteEntryAccumulator extends BaseEntryAccumulator<ByteEntryAccumula
     @Override
     public byte[] finish() {
         finishCount++;
-        if (checkFilterAfter()) return null;
-
         byte[] dataBytes = getDataBytes();
         if(returnIndex){
             byte[] indexBytes = accumulationSet.encode();
@@ -68,34 +66,6 @@ public class ByteEntryAccumulator extends BaseEntryAccumulator<ByteEntryAccumula
         }
         return dataBytes;
     }
-
-    protected boolean checkFilterAfter() {
-        if(predicateFilter!=null){
-            predicateFilter.reset();
-            BitSet checkColumns = predicateFilter.getCheckedColumns();
-            if(fields!=null){
-                for(int i=checkColumns.nextSetBit(0);i>=0;i=checkColumns.nextSetBit(i+1)){
-                    if(!accumulationSet.isInteresting(i)) continue; //we aren't interested in this field
-                    boolean isNull = i>=fields.length || fields[i]==null || fields[i].length()<=0;
-                    if(isNull){
-                        if(!predicateFilter.checkPredicates(null,i)) return true;
-                    }else{
-                        ByteSlice buffer = fields[i];
-                        if(!predicateFilter.checkPredicates(buffer,i)) return true;
-                    }
-                }
-            }else{
-                for(int i=0;i<checkColumns.length();i++){
-                    if(!accumulationSet.isInteresting(i)) continue; //ignore fields that we aren't interested in
-                    if(!predicateFilter.checkPredicates(null,i)) return true;
-                }
-            }
-
-            predicateFilter.rowReturned();
-        }
-        return false;
-    }
-
 
     @Override
     public void reset() {

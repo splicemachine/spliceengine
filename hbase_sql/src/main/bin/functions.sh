@@ -163,7 +163,6 @@ _startSplice() {
     -XX:CMSInitiatingOccupancyFraction=70 \
     -XX:+UseCMSInitiatingOccupancyOnly \
     -XX:MaxGCPauseMillis=100 \
-    -XX:MaxPermSize=256M \
     -XX:+CMSClassUnloadingEnabled \
     -XX:MaxDirectMemorySize=1g \
     -Dderby.language.updateSystemProcs=false \

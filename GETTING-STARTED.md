@@ -61,7 +61,7 @@ export JAVA_HOME=${J7_HOME}
 # for maven builds
 export M2_HOME="/opt/maven/maven"
 # export M2_HOME="/opt/maven/apache-maven-3.3.9"
-export MAVEN_OPTS="-Xmx4g -Djava.awt.headless=true -XX:MaxPermSize=512M -XX:ReservedCodeCacheSize=512m"
+export MAVEN_OPTS="-Xmx4g -Djava.awt.headless=true -XX:ReservedCodeCacheSize=512m"
 export M2=${M2_HOME}/bin
 export PATH="${M2}:${PATH}"
 ```

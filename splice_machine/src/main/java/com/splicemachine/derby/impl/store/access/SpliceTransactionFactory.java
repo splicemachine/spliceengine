@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -24,10 +23,13 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.locks.LockFactory;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.J2SEDataValueFactory;
 import com.splicemachine.db.io.StorageFactory;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
@@ -37,6 +39,9 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Properties;
 
 public class SpliceTransactionFactory implements ModuleControl, ModuleSupportable{
@@ -46,7 +51,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
     protected static final String NESTED_READONLY_USER_CONTEXT_ID="NestedRawReadOnlyUserTransaction";
 
     protected SpliceLockFactory lockFactory;
-    protected J2SEDataValueFactory dataValueFactory;
+    protected DataValueFactory dataValueFactory;
     protected ContextService contextFactory;
     protected HBaseStore hbaseStore;
     protected StorageFactory storageFactory;
@@ -161,7 +166,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 
     protected final SpliceTransaction startNestedTransaction(HBaseStore hbaseStore,
                                                              ContextManager contextMgr,
-                                                             J2SEDataValueFactory dataValueFactory,
+                                                             DataValueFactory dataValueFactory,
                                                              String transName,
                                                              boolean abortAll,
                                                              String contextName,
@@ -209,7 +214,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
      */
     protected final SpliceTransaction startCommonTransaction(HBaseStore hbaseStore,
                                                              ContextManager contextMgr,
-                                                             J2SEDataValueFactory dataValueFactory,
+                                                             DataValueFactory dataValueFactory,
                                                              String transName,
                                                              boolean abortAll,
                                                              String contextName){
@@ -231,8 +236,8 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
     }
 
     public void boot(boolean create,Properties properties) throws StandardException{
-        dataValueFactory=new J2SEDataValueFactory();
-        dataValueFactory.boot(create,properties);
+        dataValueFactory=new LazyDataValueFactory();
+        ((J2SEDataValueFactory) dataValueFactory).boot(create,properties);
         contextFactory=ContextService.getFactory();
         lockFactory=new SpliceLockFactory();
         lockFactory.boot(create,properties);
@@ -252,5 +257,34 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 
     public FileResource getFileHandler(){
         return fileHandler;
+    }
+
+    /**
+     * Privileged startup. Must be private so that user code
+     * can't call this entry point.
+     */
+    private  static  Object bootServiceModule
+    (
+            final boolean create, final Object serviceModule,
+            final String factoryInterface, final Properties properties
+    )
+            throws StandardException
+    {
+        try {
+            return AccessController.doPrivileged
+                    (
+                            new PrivilegedExceptionAction<Object>()
+                            {
+                                public Object run()
+                                        throws StandardException
+                                {
+                                    return Monitor.bootServiceModule( create, serviceModule, factoryInterface, properties );
+                                }
+                            }
+                    );
+        } catch (PrivilegedActionException pae)
+        {
+            throw StandardException.plainWrapException( pae );
+        }
     }
 }
