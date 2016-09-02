@@ -3,7 +3,13 @@ package com.splicemachine.derby.utils;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.catalog.SystemProcedures;
-import com.splicemachine.db.client.am.SqlWarning;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -27,6 +33,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,6 +48,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
+import java.text.SimpleDateFormat;
 
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -49,9 +57,12 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -63,19 +74,46 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
+import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.management.OperationInfo;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.management.StatementManagement;
+import com.splicemachine.derby.management.XPlainTrace;
+import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.pipeline.api.WriteCoordinatorStatus;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
+import com.splicemachine.pipeline.utils.PipelineConstants;
+import com.splicemachine.tools.version.SpliceMachineVersion;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.logging.Logging;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
+import javax.management.JMX;
+import javax.management.MalformedObjectNameException;
+import javax.management.remote.JMXConnector;
+import java.io.IOException;
+import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Jeff Cunningham
@@ -211,201 +249,191 @@ public class SpliceAdmin extends BaseAdminProcedures {
 			throw PublicAPI.wrapStandardException(se);
 		} catch (ExecutionException ee) {
 			throw PublicAPI.wrapStandardException(Exceptions.parseException(ee));
-		}
+        }
     }
 
-    public static void SYSCS_GET_PAST_STATEMENT_SUMMARY(final ResultSet[] resultSets) throws SQLException {
+    public static void SYSCS_GET_PAST_STATEMENT_SUMMARY(final int maxStatements, final ResultSet[] resultSets) throws SQLException {
         operate(new JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
+                try {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    final ResultSetBuilder rsBuilder = new ResultSetBuilder();
+                    ResultSetBuilder.ColumnBuilder columnBuilder = rsBuilder.getColumnBuilder();
+                    columnBuilder.addColumn("statementUuid",Types.BIGINT);
+                    columnBuilder.addColumn("host",Types.VARCHAR);
+                    columnBuilder.addColumn("userName",Types.VARCHAR);
+                    columnBuilder.addColumn("transactionid",Types.BIGINT);
+                    columnBuilder.addColumn("sql",Types.VARCHAR);
+                    columnBuilder.addColumn("status",Types.VARCHAR,16);
+                    columnBuilder.addColumn("numJobs",Types.INTEGER);
+                    columnBuilder.addColumn("successfulJobs",Types.INTEGER);
+                    columnBuilder.addColumn("numFailedJobs",Types.INTEGER);
+                    columnBuilder.addColumn("numCancelledJobs",Types.INTEGER);
+                    columnBuilder.addColumn("startTime",Types.VARCHAR,24);
+                    columnBuilder.addColumn("stopTime",Types.VARCHAR,24);
+                    columnBuilder.addColumn("elapsedTimeMs",Types.BIGINT);
+                    columnBuilder.addColumn("maxJobTime",Types.BIGINT);
+                    columnBuilder.addColumn("minJobTime",Types.BIGINT);
+                    columnBuilder.addColumn("avgJobTime",Types.BIGINT);
+                    RowBuilder rowBuilder = rsBuilder.getRowBuilder();
 
-                ExecRow dataTemplate = new ValueRow(16);
-                dataTemplate.setRowArray(new DataValueDescriptor[]{
-                        new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),
-                        new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
-                        new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLDouble()
-                });
-                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
-                for (Pair<String, StatementManagement> managementPair : statementManagers) {
-                    StatementManagement management = managementPair.getSecond();
-                    List<StatementInfo> completedStatements = management.getRecentCompletedStatements();
-                    for (StatementInfo completedStatement : completedStatements) {
-                        Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
-                        int numFailedJobs = 0;
-                        long maxJobTime = 0;
-                        long minJobTime = Long.MAX_VALUE;
-                        double avgJobTime = 0;
-                        int numCancelledJobs = 0;
-                        int count = 0;
-                        if (completedJobs != null) {
-                            for (JobInfo info : completedJobs) {
-                                count++;
-                                if (info.getJobState() == JobInfo.JobState.FAILED) {
-                                    numFailedJobs++;
-                                } else if (info.getJobState() == JobInfo.JobState.CANCELLED) {
-                                    numCancelledJobs++;
-                                } else {
-                                    long jobStart = info.getJobStartMs();
-                                    long jobFinish = info.getJobFinishMs();
-                                    long jobTimeTaken = jobFinish - jobStart;
-                                    if (maxJobTime < jobTimeTaken)
-                                        maxJobTime = jobTimeTaken;
-                                    if (minJobTime > jobTimeTaken)
-                                        minJobTime = jobTimeTaken;
-                                    avgJobTime += avgJobTime + (jobTimeTaken - avgJobTime) / count;
+                    for (Pair<String, StatementManagement> managementPair : statementManagers) {
+                        StatementManagement management = managementPair.getSecond();
+                        List<StatementInfo> completedStatements = management.getRecentCompletedStatements();
+                        if (completedStatements == null) {
+                            continue;
+                        }
+                        int numStatements = 0;
+                        for (StatementInfo completedStatement : completedStatements) {
+                            if (completedStatement == null ||
+                                completedStatement.getSql() == null ||
+                                completedStatement.getSql().equals("null") ||
+                                completedStatement.getSql().isEmpty()) {
+                                continue;
+                            }
+                            Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
+                            int numFailedJobs = 0;
+                            long maxJobTime = 0;
+                            long minJobTime = Long.MAX_VALUE;
+                            double avgJobTime = 0;
+                            int numCancelledJobs = 0;
+                            int count = 0;
+                            if (completedJobs != null) {
+                                for (JobInfo info : completedJobs) {
+                                    count++;
+                                    if (info.getJobState() == JobInfo.JobState.FAILED) {
+                                        numFailedJobs++;
+                                    } else if (info.getJobState() == JobInfo.JobState.CANCELLED) {
+                                        numCancelledJobs++;
+                                    } else {
+                                        long jobStart = info.getJobStartMs();
+                                        long jobFinish = info.getJobFinishMs();
+                                        long jobTimeTaken = jobFinish - jobStart;
+                                        if (maxJobTime < jobTimeTaken)
+                                            maxJobTime = jobTimeTaken;
+                                        if (minJobTime > jobTimeTaken)
+                                            minJobTime = jobTimeTaken;
+                                        avgJobTime += avgJobTime + (jobTimeTaken - avgJobTime) / count;
+                                    }
                                 }
                             }
-                        }
-                        if (minJobTime == Long.MAX_VALUE)
-                            minJobTime = 0;
-                        int numJobs = completedJobs != null ? completedJobs.size() : 0;
-                        int successfulJobs = numJobs - numFailedJobs - numCancelledJobs;
-                        long startTimeMs = completedStatement.getStartTimeMs();
-                        long stopTimeMs = completedStatement.getStopTimeMs();
-                        dataTemplate.resetRowArray();
-                        DataValueDescriptor[] dvds = dataTemplate.getRowArray();
-                        try {
-                            dvds[0].setValue(completedStatement.getStatementUuid());
-                            dvds[1].setValue(managementPair.getFirst());
-                            dvds[2].setValue(completedStatement.getUser());
-                            dvds[3].setValue(completedStatement.getTxnId());
-                            dvds[4].setValue(numFailedJobs>0?"FAILED" : numCancelledJobs>0? "CANCELLED":"SUCCESS");
-                            dvds[5].setValue(completedStatement.getSql());
-                            dvds[6].setValue(numJobs);
-                            dvds[7].setValue(successfulJobs);
-                            dvds[8].setValue(numFailedJobs);
-                            dvds[9].setValue(numCancelledJobs);
-                            dvds[10].setValue(startTimeMs);
-                            dvds[11].setValue(stopTimeMs);
-                            dvds[12].setValue(stopTimeMs-startTimeMs);
-                            dvds[13].setValue(minJobTime);
-                            dvds[14].setValue(maxJobTime);
-                            dvds[15].setValue(avgJobTime);
-
-                            rows.add(dataTemplate.getClone());
-                        } catch (StandardException e) {
-                            throw PublicAPI.wrapStandardException(e);
+                            if (minJobTime == Long.MAX_VALUE)
+                                minJobTime = 0;
+                            int numJobs = completedJobs != null ? completedJobs.size() : 0;
+                            int successfulJobs = numJobs - numFailedJobs - numCancelledJobs;
+                            long startTimeMs = completedStatement.getStartTimeMs();
+                            long stopTimeMs = completedStatement.getStopTimeMs();
+                            try {
+                                rowBuilder.getDvd(0).setValue(completedStatement.getStatementUuid());
+                                rowBuilder.getDvd(1).setValue(managementPair.getFirst());
+                                rowBuilder.getDvd(2).setValue(completedStatement.getUser());
+                                rowBuilder.getDvd(3).setValue(completedStatement.getTxnId());
+                                rowBuilder.getDvd(4).setValue(completedStatement.getSql());
+                                rowBuilder.getDvd(5).setValue(numFailedJobs > 0 ? "FAILED" : (numCancelledJobs > 0 ? "CANCELLED" : "SUCCESS"));
+                                rowBuilder.getDvd(6).setValue(numJobs);
+                                rowBuilder.getDvd(7).setValue(successfulJobs);
+                                rowBuilder.getDvd(8).setValue(numFailedJobs);
+                                rowBuilder.getDvd(9).setValue(numCancelledJobs);
+                                rowBuilder.getDvd(10).setValue(dateFormat.format(new Timestamp(startTimeMs)));
+                                rowBuilder.getDvd(11).setValue(dateFormat.format(new Timestamp(stopTimeMs)));
+                                rowBuilder.getDvd(12).setValue(stopTimeMs-startTimeMs);
+                                rowBuilder.getDvd(13).setValue(minJobTime);
+                                rowBuilder.getDvd(14).setValue(maxJobTime);
+                                rowBuilder.getDvd(15).setValue(avgJobTime);
+                                rowBuilder.addRow();
+                            } catch (StandardException e) {
+                                throw PublicAPI.wrapStandardException(e);
+                            }
+                            if (maxStatements > 0 && (++numStatements >= maxStatements)) break;
                         }
                     }
+                    resultSets[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+                } catch(StandardException se) {
+                    throw PublicAPI.wrapStandardException(se);
                 }
-
-
-                //TODO -sf- make static
-                ResultColumnDescriptor[] columns = new ResultColumnDescriptor[16];
-                columns[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[3] = new GenericColumnDescriptor("transactionId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[4] = new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[5] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[6] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columns[7] = new GenericColumnDescriptor("successfulJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columns[8] = new GenericColumnDescriptor("numFailedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columns[9] = new GenericColumnDescriptor("numCancelledJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columns[10] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[11] = new GenericColumnDescriptor("stopTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[12] = new GenericColumnDescriptor("elapsedTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[13] = new GenericColumnDescriptor("maxJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[14] = new GenericColumnDescriptor("minJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[15] = new GenericColumnDescriptor("avgJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE));
-                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columns,lastActivation);
-                try {
-                    resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
-                }
-                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-                resultSets[0] = ers;
             }
         });
     }
 
-    public static void SYSCS_GET_STATEMENT_SUMMARY(final ResultSet[] resultSets) throws SQLException {
+    public static void SYSCS_GET_STATEMENT_SUMMARY(final int maxStatements, final ResultSet[] resultSets) throws SQLException {
         operate(new JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException {
                 List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(jmxConnector);
-
-                ExecRow template = new ValueRow(9);
-                template.setRowArray(new DataValueDescriptor[]{
-                        new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLLongint(),new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint()
-                });
-
-                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
-                for (Pair<String, StatementManagement> managementPair : statementManagers) {
-                    StatementManagement management = managementPair.getSecond();
-                    Collection<StatementInfo> executingStatements = management.getExecutingStatementInfo();
-                    SpliceLogUtils.debug(LOG, "Found %d executing statements", executingStatements != null ? executingStatements.size() : 0);
-                    
-                    for (StatementInfo executingStatement : executingStatements) {
-
-                        // Check for null.  My understanding was that ConcurrentHashMap would guarantee that the element would be there.
-                        // It appears that the guarantee is that the key element will be there but not necessarily the value element.
-                        // This was found to be true when running the ITs in parallel.  DB-1342
-                        if (executingStatement == null) {
-                            SpliceLogUtils.error(LOG, "Found NULL executingStatement. List returned by syscs.get_statement_summary() might not be accurate.");
-                        	continue;
-                        }
-
-                        // If SQL is null, we do not need to include this statement in the output.
-                        // Some operations explicitly invoke an OperationResultSet code path,
-                        // which ends up creating another StatementInfo. This is fine,
-                        // and it's ok to skip it here because the main StatementInfo
-                        // for the same statement will have the SQL.
-                        if (executingStatement.getSql() == null ||
-                        	executingStatement.getSql().equals("null") ||
-                        	executingStatement.getSql().isEmpty()) {
-                        	continue;
-                        }
-                        
-                        Set<JobInfo> completedJobs = executingStatement.getCompletedJobs();
-                        Set<JobInfo> runningJobs = executingStatement.getRunningJobs();
-                        template.resetRowArray();
-                        DataValueDescriptor[] dvds = template.getRowArray();
-                        try{
-                            dvds[0].setValue(executingStatement.getStatementUuid());
-                            dvds[1].setValue(managementPair.getFirst());
-                            dvds[2].setValue(executingStatement.getUser());
-                            dvds[3].setValue(executingStatement.getTxnId());
-                            dvds[4].setValue(executingStatement.getSql());
-                            dvds[5].setValue(executingStatement.getNumJobs());
-                            dvds[6].setValue(completedJobs!=null?completedJobs.size():0);
-                            dvds[7].setValue(runningJobs!=null?runningJobs.size():0);
-                            dvds[8].setValue(executingStatement.getStartTimeMs());
-                        }catch(StandardException se){
-                            throw PublicAPI.wrapStandardException(se);
-                        }
-                        rows.add(template.getClone());
-                    }
-                }
-
-                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
-                columnInfo[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[3] = new GenericColumnDescriptor("transactionid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[4] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[5] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[6] = new GenericColumnDescriptor("completedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[7] = new GenericColumnDescriptor("runningJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[8] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-
-
-                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
                 try {
-                    resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
-                }
-                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    final ResultSetBuilder rsBuilder = new ResultSetBuilder();
+                    ResultSetBuilder.ColumnBuilder columnBuilder = rsBuilder.getColumnBuilder();
+                    columnBuilder.addColumn("statementUuid",Types.BIGINT);
+                    columnBuilder.addColumn("host",Types.VARCHAR);
+                    columnBuilder.addColumn("userName",Types.VARCHAR);
+                    columnBuilder.addColumn("transactionid",Types.BIGINT);
+                    columnBuilder.addColumn("sql",Types.VARCHAR);
+                    columnBuilder.addColumn("numJobs",Types.INTEGER);
+                    columnBuilder.addColumn("completedJobs",Types.INTEGER);
+                    columnBuilder.addColumn("runningJobs",Types.INTEGER);
+                    columnBuilder.addColumn("startTime",Types.VARCHAR,24);
+                    RowBuilder rowBuilder = rsBuilder.getRowBuilder();
 
-                resultSets[0] = ers;
+                    for (Pair<String, StatementManagement> managementPair : statementManagers) {
+                        StatementManagement management = managementPair.getSecond();
+                        Collection<StatementInfo> executingStatements = null;
+                        try {
+                            if (management != null)
+                                executingStatements = management.getExecutingStatementInfo();
+                        } catch (Exception e) {
+                            LOG.error(String.format("Unable to fetch executing statements: %s", e));
+                        }
+                        if (executingStatements == null) {
+                            continue;
+                        }
+
+                        int numStatements = 0;
+                        for (StatementInfo executingStatement : executingStatements) {
+
+                            // Check for null.  My understanding was that ConcurrentHashMap would guarantee that the element would be there.
+                            // It appears that the guarantee is that the key element will be there but not necessarily the value element.
+                            // This was found to be true when running the ITs in parallel.  DB-1342
+                            if (executingStatement == null) {
+                                continue;
+                            }
+
+                            // If SQL is null, we do not need to include this statement in the output.
+                            // Some operations explicitly invoke an OperationResultSet code path,
+                            // which ends up creating another StatementInfo. This is fine,
+                            // and it's ok to skip it here because the main StatementInfo
+                            // for the same statement will have the SQL.
+                            if (executingStatement.getSql() == null ||
+                                executingStatement.getSql().equals("null") ||
+                                executingStatement.getSql().isEmpty()) {
+                                continue;
+                            }
+
+                            Set<JobInfo> completedJobs = executingStatement.getCompletedJobs();
+                            Set<JobInfo> runningJobs = executingStatement.getRunningJobs();
+                            try{
+                                rowBuilder.getDvd(0).setValue(executingStatement.getStatementUuid());
+                                rowBuilder.getDvd(1).setValue(managementPair.getFirst());
+                                rowBuilder.getDvd(2).setValue(executingStatement.getUser());
+                                rowBuilder.getDvd(3).setValue(executingStatement.getTxnId());
+                                rowBuilder.getDvd(4).setValue(executingStatement.getSql());
+                                rowBuilder.getDvd(5).setValue(executingStatement.getNumJobs());
+                                rowBuilder.getDvd(6).setValue(completedJobs != null ? completedJobs.size() : 0);
+                                rowBuilder.getDvd(7).setValue(runningJobs != null ? runningJobs.size() : 0);
+                                rowBuilder.getDvd(8).setValue(dateFormat.format(new Timestamp(executingStatement.getStartTimeMs())));
+                                rowBuilder.addRow();
+                            } catch(StandardException se) {
+                                throw PublicAPI.wrapStandardException(se);
+                            }
+                            if (maxStatements > 0 && (++numStatements >= maxStatements)) break;
+                        }
+                    }
+                    resultSets[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+                } catch(StandardException se) {
+                    throw PublicAPI.wrapStandardException(se);
+                }
             }
         });
     }
@@ -532,6 +560,45 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
     }
 
+    public static void SYSCS_SET_CONCURRENT_ROW_PERMITS(final int permits) throws SQLException{
+        operate(new JMXServerOperation(){
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException{
+                List<SpliceBaseIndexEndpoint.ActiveWriteHandlersIface> activeWriteHandlers=JMXUtils.getActiveWriteHandlers(jmxConnector);
+                for(SpliceBaseIndexEndpoint.ActiveWriteHandlersIface iface:activeWriteHandlers){
+                    iface.setMaxIndependentWriteCount(permits);
+                    iface.setMaxDependentWriteCount(permits);
+                }
+            }
+        });
+    }
+
+    public static void SYSCS_SET_WRITE_RETRY_PAUSE(final long pause) throws SQLException{
+        operate(new JMXServerOperation(){
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException{
+                for(Pair<String,JMXConnector> connectorPair:jmxConnector){
+                    WriteCoordinatorStatus wcs=JMXUtils.getNewMBeanProxy(connectorPair.getSecond(),
+                            PipelineConstants.WRITE_COORDINATOR_OBJECT_LOCATION,WriteCoordinatorStatus.class);
+                    wcs.setPauseTime(pause);
+                }
+            }
+        });
+    }
+
+    public static void SYSCS_SET_WRITE_RETRY_LIMIT(final int numRetries) throws SQLException{
+        operate(new JMXServerOperation(){
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException{
+                for(Pair<String,JMXConnector> connectorPair:jmxConnector){
+                    WriteCoordinatorStatus wcs=JMXUtils.getNewMBeanProxy(connectorPair.getSecond(),
+                            PipelineConstants.WRITE_COORDINATOR_OBJECT_LOCATION,WriteCoordinatorStatus.class);
+                    wcs.setMaximumRetries(numRetries);
+                }
+            }
+        });
+    }
+
     public static void SYSCS_GET_WRITE_POOL(final ResultSet[] resultSet) throws SQLException {
         operate(new JMXServerOperation() {
             @Override
@@ -553,6 +620,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             }
         });
     }
+
 
     private String getConfigProp(String propName) {
     	Configuration config = SpliceUtils.getConfig();
@@ -1277,5 +1345,144 @@ public class SpliceAdmin extends BaseAdminProcedures {
         TransactionController tc  = lcc.getTransactionExecute();
 
         SystemProcedures.updateSystemSchemaAuthorization("SPLICE", tc);
+    }
+
+    /** Query used by SYS_CREATE_MISSING_ROLE_DEFS */
+    private static final String sqlMissingRoleDefs =
+        "select distinct(r1.grantee) from sys.sysroles r1 where isdef='N' " +
+        "and not exists (select 1 from sys.sysroles r2 where r2.roleid = r1.grantee and r2.isdef='Y') " +
+        "and not exists (select 1 from sys.sysusers where username=r1.grantee) ";
+
+    /**
+     * Stored procedure that does a data fix to create missing role definitions
+     * for which role grants exist.
+     *
+     * @param roleId
+     * optional roleId of the missing role definition to create.
+     * If <code>null</code> or empty String, then the procedure will
+     * identify all the missing role definitions.
+     *
+     * @param mode 0 or 1:
+     * 0 = dry run mode - identify missing role definitions but don't create them;
+     * 1 = repair mode - create the missing role definitions
+     *
+     * @param resultSets
+     * result set whose first element will be set to a result set of roleids
+     * of role definitions determined to be missing
+     */
+    public static void SYSCS_CREATE_MISSING_ROLE_DEFS(String roleId, int mode, ResultSet[] resultSets) throws SQLException {
+        if (mode != 0 && mode != 1) throw new SQLException(String.format("Invalid value %d for 'mode'", mode));
+
+        try {
+            EmbedConnection defaultConn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
+            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+            TransactionController tc = lcc.getTransactionExecute();
+            DataDictionary dd = lcc.getDataDictionary();
+            DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+            String currentAuthId = lcc.getCurrentUserId(lastActivation);
+
+            dd.startWriting(lcc);
+
+            if (roleId != null && !roleId.isEmpty()) {
+                RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleId);
+                if (rdDef != null) {
+                    throw new SQLException(String.format("Role definition with roleId %s already exists", roleId));
+                };
+            }
+
+            ResultSetBuilder rsBuilder = new ResultSetBuilder();
+            rsBuilder.getColumnBuilder().addColumn("ROLEID", Types.VARCHAR, 128);
+            RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+
+            ResultSet rs = null;
+            PreparedStatement stmt = null;
+            try {
+                if (roleId != null && !roleId.isEmpty()) {
+                    stmt = defaultConn.prepareStatement(sqlMissingRoleDefs + " and r1.grantee=?");
+                    stmt.setString(1, roleId);
+                } else {
+                    stmt = defaultConn.prepareStatement(sqlMissingRoleDefs);
+                }
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String roleName = rs.getString(1);
+                    if (mode == 0) {
+                        // Dry run mode - return list of missing role definitions
+                        rowBuilder.getDvd(0).setValue(roleName);
+                        rowBuilder.addRow();
+                    } else {
+                        // Repair mode - create the missing role definitions
+                        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName);
+                        if (rdDef != null) {
+                            continue;
+                        }
+                        rdDef = ddg.newRoleGrantDescriptor(
+                            dd.getUUIDFactory().createUUID(),
+                            roleName,
+                            currentAuthId, // grantee
+                            Authorizer.SYSTEM_AUTHORIZATION_ID, // grantor
+                            true, // with admin option
+                            true); // is definition
+                        dd.addDescriptor(
+                            rdDef,
+                            null,  // parent
+                            DataDictionary.SYSROLES_CATALOG_NUM,
+                            false, // duplicatesAllowed
+                            tc);
+                        rowBuilder.getDvd(0).setValue(roleName);
+                        rowBuilder.addRow();
+                    }
+                }
+            } finally {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+            }
+            resultSets[0] = rsBuilder.buildResultSet(defaultConn);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
+    /**
+     * Stored procedure that updates the owner (authorization id) for an existing schema.
+     * Only the database owner is allowed to invoke this action.
+     */
+    public static void SYSCS_UPDATE_SCHEMA_OWNER(String schemaName, String ownerName) throws SQLException {
+        if (schemaName == null || schemaName.isEmpty()) throw new SQLException("Invalid null or empty value for 'schemaName'");
+        if (ownerName == null || ownerName.isEmpty()) throw new SQLException("Invalid null or empty value for 'ownerName'");
+        schemaName = schemaName.toUpperCase();
+        ownerName = ownerName.toUpperCase();
+        try {
+            checkCurrentUserIsDatabaseOwnerAccess();
+            EmbedConnection defaultConn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
+            TransactionController tc = lcc.getTransactionExecute();
+            DataDictionary dd = lcc.getDataDictionary();
+            dd.startWriting(lcc);
+            dd.getSchemaDescriptor(schemaName, tc, /* raiseError= */true);
+            if (dd.getUser(ownerName) == null) {
+                throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
+            }
+            ((DataDictionaryImpl)dd).updateSchemaAuth(schemaName, ownerName, tc);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (Exception e) {
+            throw new SQLException(e);
+        }
+    }
+
+    private static void checkCurrentUserIsDatabaseOwnerAccess() throws Exception
+    {
+        EmbedConnection defaultConn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
+        DataDictionary dd = lcc.getDataDictionary();
+        if (dd.usesSqlAuthorization()) {
+            String databaseOwner = dd.getAuthorizationDatabaseOwner();
+            String currentUser = lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
+            if (!databaseOwner.equals(currentUser)) {
+                throw StandardException.newException(SQLState.DBO_ONLY);
+            }
+        }
     }
 }
