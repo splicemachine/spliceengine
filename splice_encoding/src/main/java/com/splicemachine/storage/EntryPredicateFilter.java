@@ -15,10 +15,8 @@
 
 package com.splicemachine.storage;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
@@ -29,23 +27,17 @@ import org.spark_project.guava.base.Supplier;
  * Created on: 7/8/13
  */
 public class EntryPredicateFilter {
-    public static final EntryPredicateFilter EMPTY_PREDICATE = new EntryPredicateFilter(new BitSet(), new ObjectArrayList<Predicate>());
+    public static final EntryPredicateFilter EMPTY_PREDICATE = new EntryPredicateFilter(new BitSet());
     private BitSet fieldsToReturn;
-    private ObjectArrayList<Predicate> valuePredicates;
     private boolean returnIndex;
-    private BitSet predicateColumns;
+    public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
 
-		private long rowsFiltered = 0l;
-
-		public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
-
-    public EntryPredicateFilter(BitSet fieldsToReturn, ObjectArrayList<Predicate> predicates){
-        this(fieldsToReturn, predicates,true);
+    public EntryPredicateFilter(BitSet fieldsToReturn){
+        this(fieldsToReturn, true);
     }
 
-    public EntryPredicateFilter(BitSet fieldsToReturn, ObjectArrayList<Predicate> predicates,boolean returnIndex){
+    public EntryPredicateFilter(BitSet fieldsToReturn, boolean returnIndex){
         this.fieldsToReturn = fieldsToReturn;
-        this.valuePredicates = predicates;
         this.returnIndex=returnIndex;
     }
 
@@ -91,18 +83,6 @@ public class EntryPredicateFilter {
 						}else if(offset+limit>array.length){
 								limit = array.length-offset;
 						}
-
-						Object[] buffer = valuePredicates.buffer;
-						int bufferSize = valuePredicates.size();
-						if(bufferSize>0){
-								int predicatePosition = index.getPredicatePosition(encodedPos);
-								for (int i =0; i<bufferSize; i++) {
-										if(((Predicate)buffer[i]).applies(predicatePosition) && !((Predicate)buffer[i]).match(predicatePosition,array, offset,limit)){
-												rowsFiltered++;
-												return false;
-										}
-								}
-						}
 						accumulate(index, encodedPos, accumulator, array, offset, limit);
 				}
 				return true;
@@ -113,82 +93,32 @@ public class EntryPredicateFilter {
 				return match(entry.getCurrentIndex(),entry, accumulator);
     }
 
-    public BitSet getCheckedColumns(){
-        if(predicateColumns==null){
-            predicateColumns = new BitSet();
-            Object[] buffer = valuePredicates.buffer;
-            int ibuffer = valuePredicates.size();
-            for (int i =0; i<ibuffer; i++) {
-                ((Predicate)buffer[i]).setCheckedColumns(predicateColumns);
-            }
-        }
-        return predicateColumns;
-    }
-
-    public boolean checkPredicates(ByteSlice buffer,int position){
-        Object[] vpBuffer = valuePredicates.buffer;
-        int ibuffer = valuePredicates.size();
-        for (int i =0; i<ibuffer; i++) {
-            Predicate predicate = (Predicate) vpBuffer[i];
-            if(!predicate.applies(position))
-                continue;
-            if(predicate.checkAfter()){
-                if(buffer!=null){
-                    if(!predicate.match(position,buffer.array(),buffer.offset(),buffer.length()))
-                        return false;
-                }else{
-                    if(!predicate.match(position,null,0,0))
-                        return false;
-                }
-            }
-        }
-        return true;
-    }
-
     public void rowReturned(){
         //no-op
     }
 
     public void reset(){
-        Object[] vpBuffer = valuePredicates.buffer;
-        int ibuffer = valuePredicates.size();
-        for (int i =0; i<ibuffer; i++) {
-        	((Predicate)vpBuffer[i]).reset();
-        	
-        }
+
     }
 
     public EntryAccumulator newAccumulator() {
         return new ByteEntryAccumulator(this,returnIndex,fieldsToReturn);
     }
 
-    public long getRowsOutput() {
-        return 0;
-    }
-
-		public long getRowsFiltered(){ return rowsFiltered; }
-
     public byte[] toBytes() {
         //if we dont have any distinguishing information, just send over an empty byte array
-        if(fieldsToReturn.length()==0 && valuePredicates.size()<=0 && !returnIndex)
+        if(fieldsToReturn.length()==0 && !returnIndex)
             return new byte[]{};
 
         /*
          * Format is as follows:
          * BitSet bytes
          * 1-byte returnIndex
-         * n-bytes predicates
          */
         byte[] bitSetBytes = Bytes.toByteArray(fieldsToReturn);
-        byte[] predicates = Predicates.toBytes(valuePredicates);
-        int size = predicates.length+bitSetBytes.length+1;
-
-        byte[] finalData = new byte[size];
+        byte[] finalData = new byte[bitSetBytes.length+1];
         System.arraycopy(bitSetBytes,0,finalData,0,bitSetBytes.length);
         finalData[bitSetBytes.length] = returnIndex? (byte)0x01: 0x00;
-        System.arraycopy(predicates,0,finalData,bitSetBytes.length+1,predicates.length);
-//        int index = bitSetBytes.length + 1 + predicates.length;
-
         return finalData;
     }
 
@@ -197,16 +127,7 @@ public class EntryPredicateFilter {
 
         Pair<BitSet,Integer> fieldsToReturn = Bytes.fromByteArray(data, 0);
         boolean returnIndex = data[fieldsToReturn.getSecond()] > 0;
-        Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.allFromBytes(data,fieldsToReturn.getSecond()+1);
-				return new EntryPredicateFilter(fieldsToReturn.getFirst(),predicates.getFirst(),returnIndex);
-    }
-
-    public ObjectArrayList<Predicate> getValuePredicates() {
-        return valuePredicates;
-    }
-
-    public void setValuePredicates(ObjectArrayList<Predicate> valuePredicates) {
-        this.valuePredicates = valuePredicates;
+        return new EntryPredicateFilter(fieldsToReturn.getFirst(),returnIndex);
     }
 
     private void skipField(MultiFieldDecoder decoder, int position, Indexed index) {

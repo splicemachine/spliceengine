@@ -48,10 +48,4 @@ public interface Indexed {
 		 */
 		boolean isFloatType(int position);
 
-		/**
-		 * @param encodedPos the physical position in the index.
-		 * @return the "predicate position"--that is, the position in the final decoded row of the encoded position.
-		 * Mainly this is useful when decoding key columns.
-		 */
-		int getPredicatePosition(int encodedPos);
 }

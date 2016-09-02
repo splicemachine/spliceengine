@@ -102,7 +102,7 @@
                         <dependency>com.splicemachine:splice_machine</dependency>
                     </dependenciesToScan>
                     <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
-                    <argLine>-Xmx512m -XX:MaxPermSize=256m</argLine>
+                    <argLine>-Xmx512m</argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -179,7 +179,7 @@
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g -XX:MaxPermSize=256m</argLine>
+                            <argLine>-Xmx3g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -275,8 +275,7 @@
                                     <jvmarg value="-XX:+UseParNewGC"/>
                                     <jvmarg value="-XX:+CMSPermGenSweepingEnabled"/>
                                     <jvmarg value="-XX:+CMSClassUnloadingEnabled"/>
-                                    <jvmarg value="-XX:MaxPermSize=512M"/>
-                                    <sysproperty key="log4j.configuration" value="file://${basedir}/src/test/resources/log4j-file.properties"/>
+                                    <sysproperty key="log4j.configuration" value="file://${basedir}/src/main/resources/log4j.properties"/>
                                 </java>
                                 <java classname="com.splicemachine.test.SpliceTestPlatformWait" classpath="${classpath.test}" spawn="false">
                                     <arg value="localhost"/>

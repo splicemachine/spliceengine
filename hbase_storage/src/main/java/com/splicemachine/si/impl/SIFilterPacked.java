@@ -15,13 +15,11 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterBase;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -37,13 +35,6 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter{
 
     public SIFilterPacked(TxnFilter filterState){
         this.filterState=filterState;
-    }
-
-    @Override
-    public long getBytesVisited(){
-        if(filterState==null) return 0l;
-        RowAccumulator accumulator=filterState.getAccumulator();
-        return accumulator.getBytesVisited();
     }
 
     @Override

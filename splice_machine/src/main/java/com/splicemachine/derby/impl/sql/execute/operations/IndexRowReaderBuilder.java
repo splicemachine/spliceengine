@@ -16,7 +16,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.SameThreadExecutorService;
@@ -35,7 +34,6 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -190,7 +188,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         for(int i=mainTableAccessedRowColumns.anySetBit();i>=0;i=mainTableAccessedRowColumns.anySetBit(i)){
             rowFieldsToReturn.set(i);
         }
-        EntryPredicateFilter epf=new EntryPredicateFilter(rowFieldsToReturn,ObjectArrayList.<Predicate>newInstanceWithCapacity(0));
+        EntryPredicateFilter epf=new EntryPredicateFilter(rowFieldsToReturn);
         byte[] epfBytes=epf.toBytes();
 
         DescriptorSerializer[] templateSerializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(outputTemplate);

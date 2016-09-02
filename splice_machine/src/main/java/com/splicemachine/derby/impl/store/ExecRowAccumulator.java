@@ -141,7 +141,6 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 
     @Override
     public byte[] finish() {
-        if(checkFilterAfter()) return null;
         return SIConstants.EMPTY_BYTE_ARRAY;
     }
 

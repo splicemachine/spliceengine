@@ -15,7 +15,6 @@
 
 package com.splicemachine.storage;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.junit.Assert;
@@ -32,7 +31,7 @@ public class EntryAccumulatorTest {
         BitSet fields = new BitSet();
         fields.set(0);
         fields.set(2);
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, new ObjectArrayList<Predicate>());
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields);
         EntryAccumulator accumulator = new ByteEntryAccumulator(predicateFilter,false,fields);
 				byte[] encodedOne = Encoding.encode(1);
 				accumulator.add(2, encodedOne,0,encodedOne.length);
@@ -50,7 +49,7 @@ public class EntryAccumulatorTest {
         BitSet fields = new BitSet();
         fields.set(0);
         fields.set(2);
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, new ObjectArrayList<Predicate>());
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields);
         EntryAccumulator accumulator = new ByteEntryAccumulator(predicateFilter,false,null);
 				byte[] encodedOne = Encoding.encode(1);
 				accumulator.add(2, encodedOne,0,encodedOne.length);

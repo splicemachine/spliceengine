@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.stream.output.update;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -42,7 +41,7 @@ public class ResultSupplier{
 
     public ResultSupplier(BitSet interestedFields,TxnView txnView, long heapConglom) {
         //we need the index so that we can transform data without the information necessary to decode it
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(interestedFields,new ObjectArrayList<Predicate>(),true);
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(interestedFields,true);
         this.filterBytes = predicateFilter.toBytes();
         this.txnView = txnView;
         this.heapConglom = heapConglom;

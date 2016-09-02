@@ -1127,9 +1127,12 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 			//If we are dealing with territory based collation and returnDVD is 
 			//of type StringDataValue, then we need to return a StringDataValue   
 			//with territory based collation.
-			if (returnDVD instanceof StringDataValue) 
-				return ((StringDataValue)returnDVD).getValue(getCharacterCollator(collationType));
-			else
+
+                // TODO JL Need to collation support in Splice Machine.
+
+//			if (returnDVD instanceof StringDataValue)
+//				return ((StringDataValue)returnDVD).getValue(getCharacterCollator(collationType));
+//			else
 				return returnDVD;			
 		}
     }
