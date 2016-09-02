@@ -287,4 +287,59 @@ public class DumpSpliceIT {
             }
         }
     }
- }
+
+    @Test
+    @Ignore
+    public void createFunctionImpact() throws Exception {
+        // TODO: for testing implementation of specific database entity creation.
+        // I use this type of test as a framework to see what system tables are effected when
+        // specific entities are created using SQL DDL statements (see printSysTableImpact()).
+        // In this case, it shows what's effected when a function is created.
+        // Procedures are similar, and there is enough similarity (user creates and installs executable code)
+        // that they should be done at the same time.
+
+        Exception ex = null;
+
+        Platform platform = PlatformFactory.createNewPlatformInstance(dataSource);
+        String schemaStr = "FUN";
+        String functionName = "SIN";
+        String createProc =
+            "CREATE PROCEDURE "+ schemaStr+".proc_call_audit(" +
+                "in schema_name varchar(30), in table_name varchar(20)) " +
+                "PARAMETER STYLE JAVA LANGUAGE JAVA READS SQL DATA " +
+                "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_call_audit'";
+        // See doc for sysalias table: http://docs.oracle.com/javadb/10.8.3.0/ref/rrefsistabs28114.html
+        // SYS.SYSTEMALIAS column is supposed to indicate whether the function/procedure is system-supplied or build-in (true)
+        // or user-created (false).  It's always false, so need to filter system schema names to know if they're user-created.
+        String sysalisQuery = "select b.schemaname, a.SYSTEMALIAS as USER_CREATED, a.javaclassname, a.aliasinfo from sys.sysaliases a, sys.sysschemas b " +
+            "where a.schemaid = b.schemaid AND b.SCHEMANAME NOT LIKE 'SYS%' AND b.SCHEMANAME NOT LIKE 'SQLJ%'";
+
+        try (Connection connection = platform.borrowConnection()) {
+            System.out.println("* create schema");
+            exec(connection, "create schema "+schemaStr);
+            exec(connection, "set schema "+schemaStr);
+
+            System.out.println("\n* create function");
+            printSysTableImpact(platform, "SYS%", "create function "+schemaStr+"."+functionName+"(data double) returns double external name 'java.lang.Math.sin' language java parameter style java");
+            execQuery(connection, sysalisQuery);
+
+            System.out.println("\n* create procedure");
+            printSysTableImpact(platform, "SYS%", createProc);
+            execQuery(connection, sysalisQuery);
+        } catch (Exception e) {
+            ex = e;
+        } finally {
+            // clean up
+            try (Connection connection = platform.borrowConnection()) {
+                exec(connection, "drop function " + schemaStr.toUpperCase() + "." + functionName.toUpperCase());
+                exec(connection, "DROP PROCEDURE "+ schemaStr+".proc_call_audit");
+                exec(connection, "DROP SCHEMA "+schemaStr+" RESTRICT");
+            } catch (Exception e) {
+                // do nothing. want the original exception
+            }
+        }
+        if (ex != null) {
+            throw ex;
+        }
+    }
+}

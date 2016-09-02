@@ -308,8 +308,7 @@ public class TestUtils {
      * @return mapping of tablename -> rowcount in given schema
      * @throws Exception
      */
-    public static Map<String, Integer> countTablesRowsInSchema(Connection connection, Schema schema) throws Exception {
-        Map<String, Integer> tableCounts = new HashMap<>(schema.getTableCount());
+    public static void countTablesRowsInSchema(Connection connection, Schema schema, Map<String, Integer> tableCounts) throws Exception {
         for (Table table : schema.getTables()) {
             try (Statement stmt = connection.createStatement()) {
                 ResultSet rs = stmt.executeQuery(String.format(COUNT_QUERY, table.getQualifiedName()));
@@ -318,7 +317,6 @@ public class TestUtils {
                 }
             }
         }
-        return tableCounts;
     }
 
     /**
@@ -331,20 +329,29 @@ public class TestUtils {
     public static void printSysTableImpact(Platform platform, String schemaName, String update) throws Exception {
         try (Connection connection = platform.borrowConnection()) {
             Database db = platform.readModelFromDatabase("check_impact", null, schemaName, JdbcModelReader.ALL_TABLE_TYPES);
+
+            // count all tables before update
+            Map<String, Integer> preCount = new HashMap<>();
             for (Schema schema : db.getSchemas()) {
-                Map<String, Integer> preCount = countTablesRowsInSchema(connection, schema);
+                countTablesRowsInSchema(connection, schema, preCount);
+            }
 
-                try (Statement stmt = connection.createStatement()) {
-                    stmt.executeUpdate(update);
-                }
+            // exec update
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate(update);
+            }
 
-                Map<String, Integer> postCount = countTablesRowsInSchema(connection, schema);
+            // count all tables after update
+            Map<String, Integer> postCount = new HashMap<>();
+            for (Schema schema : db.getSchemas()) {
+                countTablesRowsInSchema(connection, schema, postCount);
+            }
 
-                for (Map.Entry<String, Integer> entry : preCount.entrySet()) {
-                    Integer newCount = postCount.get(entry.getKey());
-                    if (newCount.compareTo(entry.getValue()) != 0) {
-                        System.out.println(entry.getKey()+" - Old: "+entry.getValue()+" New: "+newCount);
-                    }
+            // print qualified table name, before count, after count, if there's a difference
+            for (Map.Entry<String, Integer> entry : preCount.entrySet()) {
+                Integer newCount = postCount.get(entry.getKey());
+                if (newCount.compareTo(entry.getValue()) != 0) {
+                    System.out.println(entry.getKey()+" - Old: "+entry.getValue()+" New: "+newCount);
                 }
             }
 
