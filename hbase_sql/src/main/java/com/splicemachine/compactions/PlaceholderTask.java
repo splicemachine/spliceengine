@@ -18,6 +18,7 @@ package com.splicemachine.compactions;
 import com.splicemachine.hbase.ZkUtils;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.spark.api.java.function.Function;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
@@ -35,8 +36,7 @@ public class PlaceholderTask implements Function<Object, Object>, Watcher {
     int timeout;
     volatile CountDownLatch latch;
 
-    public PlaceholderTask() {
-    }
+    public PlaceholderTask() { }
 
     public PlaceholderTask(String path, int timeout) {
         this.path = path;
@@ -46,7 +46,25 @@ public class PlaceholderTask implements Function<Object, Object>, Watcher {
     @Override
     public Object call(Object o) throws Exception {
         latch = new CountDownLatch(1);
-        ZkUtils.getRecoverableZooKeeper().getData(path, this, null);
+        try{
+            ZkUtils.getRecoverableZooKeeper().getData(path,this,null);
+        }catch(KeeperException ke){
+            /*
+             * If the exception is a NONODE type, then we encountered a situation where we were terminated
+             * before we could begin execution. This is cool, we should just skip to the exception throwing
+             * business and not worry about it. If it isn't of that type, though, we need to inform the world
+             * of a potential problem.
+             *
+             * We do that by just counting down the latch, so that subsequent await() calls return immediately.
+             * We don't have to worry about double count downs for two reasons: The first is that we will never
+             * have attached a watcher to the node since the getData() call failed. The second is that if the
+             * latch is already at 0, then calling countDown() is a no-op and doesn't break anything, so yippee
+             * for us!
+             */
+            if(!ke.code().equals(KeeperException.Code.NONODE))
+                throw ke;
+            else latch.countDown(); //just count down the latch, so that await() returns immediately
+        }
         if (latch.await(timeout * 2, TimeUnit.SECONDS)) {
             throw new IgnoreThisException("Expected exception, ignore");
         } else {
