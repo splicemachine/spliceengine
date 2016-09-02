@@ -37,6 +37,7 @@ import static org.junit.Assert.fail;
  *
  * Also contains drop table tests.
  */
+// SPLICE-894 Remove Serial
 @Category(value = {SerialTest.class})
 public class ForeignKey_AlterDropTable_IT {
 

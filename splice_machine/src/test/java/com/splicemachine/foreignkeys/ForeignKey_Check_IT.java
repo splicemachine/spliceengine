@@ -33,6 +33,7 @@ import static org.junit.Assert.*;
 /**
  * Foreign key tests for *checking* that the FK constraint is enforced in various scenarios.
  */
+// SPLICE-894 Remove Serial
 @Category(value = {SerialTest.class})
 public class ForeignKey_Check_IT {
 
