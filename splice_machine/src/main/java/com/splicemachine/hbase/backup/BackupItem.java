@@ -13,6 +13,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -213,6 +214,10 @@ public class BackupItem implements InternalTable {
                 for (FileStatus familyStat : familyStatus) {
                     if (familyStat.getPath().getName().startsWith(".")) {
                         continue; // ignore CRCs
+                    }
+                    if (familyStat.getLen() == 0) {
+                        SpliceLogUtils.warn(LOG, "Skip file %s because its size is 0", familyStat.getPath().toString());
+                        continue;
                     }
                     famPaths.add(new Pair<byte[], String>(family, familyStat.getPath().toString()));
                 }
