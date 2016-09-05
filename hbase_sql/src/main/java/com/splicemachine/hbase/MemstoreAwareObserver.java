@@ -125,9 +125,14 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
     @Override
     public void preClose(ObserverContext<RegionCoprocessorEnvironment> c, boolean abortRequested) throws IOException {
+        if (abortRequested) {
+            // If we are aborting don't wait for scanners to finish
+            super.preClose(c, abortRequested);
+            return;
+        }
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if (latest.currentScannerCount>0) {
+            if (latest.currentScannerCount>0 && !c.getEnvironment().getRegionServerServices().isAborted()) {
                 SpliceLogUtils.warn(LOG, "preClose Delayed waiting for scanners to complete scannersRemaining=%d",latest.currentScannerCount);
                 try {
                     Thread.sleep(1000); // Have Split sleep for a second
