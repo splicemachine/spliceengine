@@ -16,7 +16,6 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -223,7 +222,7 @@ public abstract class SpliceController implements ConglomerateController{
                 fieldsToReturn = new BitSet(destRow.length);
                 fieldsToReturn.set(0,destRow.length);
             }
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn);
             baseGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
             return baseGet;
         } catch (Exception e) {

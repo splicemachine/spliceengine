@@ -281,6 +281,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 	public BigDecimal getBigDecimal()
 	{
+		if (isNull())
+			return null;
 		if ((value == null) && (rawData != null))
 		{
 			setValue(new BigDecimal(new BigInteger(rawData), rawScale));

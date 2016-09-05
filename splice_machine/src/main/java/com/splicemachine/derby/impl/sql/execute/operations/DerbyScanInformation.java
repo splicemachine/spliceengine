@@ -16,7 +16,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -32,7 +31,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -43,7 +41,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;import java.util.List;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -227,6 +225,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         SerializationUtils.writeNullableString(startKeyGetterMethodName, out);
         SerializationUtils.writeNullableString(stopKeyGetterMethodName, out);
         out.writeUTF(tableVersion);
+        out.writeBoolean(rowIdKey);
     }
 
     @Override
@@ -242,6 +241,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         startKeyGetterMethodName = SerializationUtils.readNullableString(in);
         stopKeyGetterMethodName = SerializationUtils.readNullableString(in);
         this.tableVersion = in.readUTF();
+        this.rowIdKey = in.readBoolean();
     }
 
     @Override
@@ -322,63 +322,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 throw StandardException.unexpectedUserException(e);
             }
         }
-        //convert types of filters against column type
-        if (scanQualifiers != null) {
-            Qualifier[][] qualCopy = new Qualifier[scanQualifiers.length][];
-            for (int i = 0; i < scanQualifiers.length; i++) {
-                Qualifier[] scanQualifier = scanQualifiers[i];
-                qualCopy[i] = Arrays.copyOf(scanQualifier, scanQualifier.length);
-            }
-            adjustQualifiers(qualCopy);
-            scanQualifiers = qualCopy;
-        }
         return scanQualifiers;
     }
-
-    private void adjustQualifiers(Qualifier[][] scanQualifiers) throws StandardException {
-        int[] format_ids = getConglomerate().getFormat_ids();
-        for (Qualifier[] qualifiers : scanQualifiers) {
-            for (int qualPos = 0; qualPos < qualifiers.length; qualPos++) {
-                Qualifier qualifier = qualifiers[qualPos];
-                qualifier.clearOrderableCache();
-                int columnFormat;
-                if (rowIdKey) {
-                    // This is a qualifier for rowid
-                    columnFormat =StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID;
-                }
-                else{
-                    columnFormat = format_ids[qualifier.getColumnId()];
-                }
-                DataValueDescriptor dvd = qualifier.getOrderable();
-                if (dvd == null)
-                    continue;
-                if (dvd.getTypeFormatId() != columnFormat && !rowIdKey) {
-                    //we need to convert the types to match
-                    qualifier = QualifierUtils.adjustQualifier(qualifier, columnFormat, activation.getDataValueFactory());
-                    qualifiers[qualPos] = qualifier;
-                }
-                // For SQLChar qualifiers strip trailing character 0 and 32 (space).  Not sure why we strip trailing
-                // character 0 here, as 32 (space) is used as padding when we persist SQLChar values.
-                if (dvd.getTypeFormatId() == StoredFormatIds.SQL_CHAR_ID) {
-                    String value = dvd.getString();
-                    if (value != null) {
-                        char[] valChars = value.toCharArray();
-                        int finalPosition = valChars.length;
-                        for (int i = valChars.length - 1; i >= 0; i--) {
-                            if (valChars[i] != '\u0000' && valChars[i] != SQLChar.PAD) {
-                                finalPosition = i + 1;
-                                break;
-                            }
-                        }
-                        value = value.substring(0, finalPosition);
-
-                        dvd.setValue(value);
-                    }
-                }
-            }
-        }
-    }
-
     protected ExecIndexRow getStopPosition() throws StandardException {
         if (sameStartStopPosition)
             return null;

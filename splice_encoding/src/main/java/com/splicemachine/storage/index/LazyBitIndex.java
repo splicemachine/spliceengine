@@ -244,9 +244,5 @@ public abstract class LazyBitIndex implements BitIndex{
 
     public abstract boolean isCompressed();
 
-    @Override
-    public int getPredicatePosition(int encodedPos){
-        return encodedPos;
-    }
 }
 

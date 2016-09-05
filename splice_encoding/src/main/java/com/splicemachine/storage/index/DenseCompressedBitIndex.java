@@ -408,9 +408,7 @@ class DenseCompressedBitIndex implements BitIndex {
 
         return new DenseCompressedBitIndex(bitSet,lengthDelimitedFields,floatFields,doubleFields);
     }
-
-		@Override public int getPredicatePosition(int encodedPos) { return encodedPos; }
-
+    
 		public static void main(String... args) throws Exception{
         BitSet set = new BitSet();
         set.set(0);

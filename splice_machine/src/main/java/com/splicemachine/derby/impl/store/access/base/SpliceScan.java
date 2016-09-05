@@ -62,15 +62,15 @@ public class SpliceScan implements ScanManager, LazyScan{
     protected Partition table;
     protected boolean currentRowDeleted=false;
     protected HBaseRowLocation currentRowLocation;
-    protected DataValueDescriptor[] currentRow;
+    protected ExecRow currentRow;
     protected DataResult currentResult;
     protected long estimatedRowCount=0;
     protected boolean isKeyed;
     protected boolean scannerInitialized=false;
     protected String tableName;
-
     private TxnOperationFactory opFactory;
     private PartitionFactory partitionFactory;
+    private DescriptorSerializer[] serializers;
 
     public SpliceScan(){
         if(LOG.isTraceEnabled())
@@ -88,7 +88,7 @@ public class SpliceScan implements ScanManager, LazyScan{
                       Transaction trans,
                       boolean isKeyed,
                       TxnOperationFactory operationFactory,
-                      PartitionFactory partitionFactory){
+                      PartitionFactory partitionFactory) throws StandardException {
         this.spliceConglomerate=spliceConglomerate;
         this.isKeyed=isKeyed;
         this.scanColumnList=scanColumnList;
@@ -103,6 +103,13 @@ public class SpliceScan implements ScanManager, LazyScan{
         setupScan();
         attachFilter();
         tableName=Long.toString(spliceConglomerate.getConglomerate().getContainerid());
+        DataValueDescriptor[] dvdArray = this.spliceConglomerate.cloneRowTemplate();
+        // Hack for Indexes...
+        if (dvdArray[dvdArray.length-1] == null)
+            dvdArray[dvdArray.length-1] = new HBaseRowLocation();
+        currentRow = new ValueRow(dvdArray.length);
+        currentRow.setRowArray(dvdArray);
+        serializers = VersionedSerializers.forVersion("1.0", true).getSerializers(currentRow);
         if(LOG.isTraceEnabled()){
             SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s",Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
         }
@@ -184,10 +191,18 @@ public class SpliceScan implements ScanManager, LazyScan{
         initialize();
         currentRowDeleted=false;
         try{
-            currentResult=scanner.next();
-            if(currentResult!=null)
-                this.currentRowLocation=new HBaseRowLocation(currentResult.key());
-            return currentResult!=null;
+            while (true) {
+                currentResult = scanner.next();
+                if (currentResult != null) {
+                    fetchWithoutQualify();
+                    if (qualifier == null || Scans.qualifyRecordFromRow(currentRow.getRowArray(), qualifier, null, null)) {
+                        this.currentRowLocation = new HBaseRowLocation(currentResult.key());
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            }
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
@@ -196,7 +211,7 @@ public class SpliceScan implements ScanManager, LazyScan{
     public void fetch(DataValueDescriptor[] destRow) throws StandardException{
         if(this.currentResult==null)
             return;
-        fetchWithoutQualify(destRow);
+        System.arraycopy(currentRow.getRowArray(),0,destRow,0,currentRow.getRowArray().length);
     }
 
     public void didNotQualify() throws StandardException{
@@ -216,12 +231,10 @@ public class SpliceScan implements ScanManager, LazyScan{
     }
 
     public boolean fetchNext(DataValueDescriptor[] destRow) throws StandardException{
-        next();
-        if(currentResult!=null){
-            fetch(destRow);
-            return true;
-        }else
+        if (!next())
             return false;
+        System.arraycopy(currentRow.getRowArray(),0,destRow,0,currentRow.getRowArray().length);
+        return true;
     }
 
     public boolean isKeyed(){
@@ -261,18 +274,13 @@ public class SpliceScan implements ScanManager, LazyScan{
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException{
+    public void fetchWithoutQualify() throws StandardException{
         try{
-            if(destRow!=null){
-                ExecRow row=new ValueRow(destRow.length);
-                row.setRowArray(destRow);
-                DescriptorSerializer[] serializers=VersionedSerializers.forVersion("1.0",true).getSerializers(destRow);
-
-                try(EntryDataDecoder decoder=new EntryDataDecoder(null,null,serializers)){
-                    DataCell kv=currentResult.userData();//dataLib.matchDataColumn(currentResult);
-                    decoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
-                    decoder.decode(row);
-                    this.currentRow=destRow;
+            if(currentRow!=null){
+                try (EntryDataDecoder decoder = new EntryDataDecoder(null, null, serializers)) {
+                    DataCell kv = currentResult.userData();//dataLib.matchDataColumn(currentResult);
+                    decoder.set(kv.valueArray(), kv.valueOffset(), kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
+                    decoder.decode(currentRow);
                 }
             }
             this.currentRowLocation=new HBaseRowLocation(currentResult.key());
@@ -283,10 +291,6 @@ public class SpliceScan implements ScanManager, LazyScan{
 
     public long getEstimatedRowCount() throws StandardException{
         return estimatedRowCount;
-    }
-
-    public void setEstimatedRowCount(long estimatedRowCount) throws StandardException{
-        this.estimatedRowCount=estimatedRowCount;
     }
 
     public int fetchNextGroup(DataValueDescriptor[][] row_array,RowLocation[] oldrowloc_array,RowLocation[] newrowloc_array) throws StandardException{
@@ -340,36 +344,7 @@ public class SpliceScan implements ScanManager, LazyScan{
                 return 0;
             if(row_array==null || row_array.length==0)
                 return 0;
-
             throw new UnsupportedOperationException("IMPLEMENT");
-//            DataResult[] results=scanner.next(row_array.length);
-//            // Have To generate template
-//            if(results!=null && results.length>0){
-//                SpliceLogUtils.trace(LOG,"HBaseScan fetchNextGroup total number of results=%d",results.length);
-//                for(int i=0;i<results.length;i++){
-//                    DataResult result = results[i];
-//                    DataValueDescriptor[] kdvds=row_array[i];
-//                    ExecRow row=new ValueRow(kdvds.length);
-//                    row.setRowArray(kdvds);
-//                    DescriptorSerializer[] serializers=VersionedSerializers.forVersion("1.0",true).getSerializers(kdvds);
-//                    KeyHashDecoder decoder=new EntryDataDecoder(null,null,serializers);
-//                    try{
-//                        if(results[i]!=null){
-//                            DataCell kv=result.userData();//dataLib.matchDataColumn(results[i]);
-//                            decoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());//dataLib.getDataValueBuffer(kv),
-////                                    dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
-//                            decoder.decode(row);
-//                        }
-//                    }finally{
-//                        Closeables.closeQuietly(decoder);
-//                    }
-//                }
-//                this.currentRowLocation=new HBaseRowLocation(results[results.length-1].key());
-//                this.currentRow=row_array[results.length-1];
-//                this.currentResult=results[results.length-1];
-//                return results.length;
-//            }
-//            return 0;
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
             throw StandardException.newException("Error during fetchNextGroup "+e);

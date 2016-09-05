@@ -149,7 +149,12 @@ class QualifierUtil implements Qualifier
 		// No Orderable caching here
 	}
 
-	/** 
+    @Override
+    public int getVariantType() {
+        return VARIANT;
+    }
+
+    /**
 	 * This method reinitializes all the state of
 	 * the Qualifier.  It is used to distinguish between
 	 * resetting something that is query invariant

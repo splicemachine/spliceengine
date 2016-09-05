@@ -16,7 +16,6 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.splicemachine.SpliceKryoRegistry;
-
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
@@ -32,16 +31,16 @@ public class V1SerializerMap implements SerializerMap,TypeProvider {
 
 		protected void populateFactories(boolean sparse){
 				factories[0]  = NullDescriptorSerializer.nullFactory(BooleanDescriptorSerializer.INSTANCE_FACTORY,sparse);
-				factories[1]  = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.factory(ScalarDescriptorSerializer.INSTANCE_FACTORY, VERSION),sparse);
+				factories[1]  = NullDescriptorSerializer.nullFactory(ScalarDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[2]  = NullDescriptorSerializer.floatChecker(RealDescriptorSerializer.INSTANCE_FACTORY, sparse);
-				factories[3]  = NullDescriptorSerializer.doubleChecker(LazyDescriptorSerializer.factory(DoubleDescriptorSerializer.INSTANCE_FACTORY, VERSION), sparse);
-				factories[4]  = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.factory(StringDescriptorSerializer.INSTANCE_FACTORY, VERSION), sparse);
+				factories[3]  = NullDescriptorSerializer.doubleChecker(DoubleDescriptorSerializer.INSTANCE_FACTORY, sparse);
+				factories[4]  = NullDescriptorSerializer.nullFactory(StringDescriptorSerializer.INSTANCE_FACTORY, sparse);
 				factories[5]  = NullDescriptorSerializer.nullFactory(KryoDescriptorSerializer.newFactory(SpliceKryoRegistry.getInstance()),sparse);
-				factories[6]  = NullDescriptorSerializer.nullFactory(LazyTimeValuedSerializer.newFactory(DateDescriptorSerializer.INSTANCE_FACTORY, VERSION),sparse);
+				factories[6]  = NullDescriptorSerializer.nullFactory(DateDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[7]  = NullDescriptorSerializer.nullFactory(TimeDescriptorSerializer.INSTANCE_FACTORY,sparse);
-				factories[8]  = NullDescriptorSerializer.nullFactory(LazyTimeValuedSerializer.newFactory(TimestampV1DescriptorSerializer.INSTANCE_FACTORY, VERSION),sparse);
+				factories[8]  = NullDescriptorSerializer.nullFactory(TimestampV1DescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[9]  = NullDescriptorSerializer.nullFactory(UnsortedBinaryDescriptorSerializer.INSTANCE_FACTORY,sparse);
-				factories[10] = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.factory(DecimalDescriptorSerializer.INSTANCE_FACTORY, VERSION),sparse);
+				factories[10] = NullDescriptorSerializer.nullFactory(DecimalDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[11] = NullDescriptorSerializer.nullFactory(RefDescriptorSerializer.INSTANCE_FACTORY, sparse);
 				factories[12] = NullDescriptorSerializer.nullFactory(UDTDescriptorSerializer.INSTANCE_FACTORY, sparse);
 				eagerFactories[0]  = NullDescriptorSerializer.nullFactory(BooleanDescriptorSerializer.INSTANCE_FACTORY, sparse);

@@ -70,18 +70,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 //     */
 //    protected DataValueDescriptor [] origProbeValues;
 
-//    /**
-//     * 0-based position of the <b>next</b> value to lookup w.r.t. the probe
-//     * values list.
-//     */
-//    protected int probeValIndex;
-
-    /**
-     * Indicator as to which type of sort we need: ASCENDING, DESCENDING,
-     * or NONE (NONE is represented by "RowOrdering.DONTCARE" and is used
-     * for cases where all necessary sorting occurred at compilation time).
-     */
-    private int sortRequired;
 
 //    /**
 //     * Tells whether or not we should skip the next attempt to (re)open the
@@ -166,7 +154,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     (probingVals != null) && (probingVals.length > 0),
                     "No probe values found for multi-probe scan.");
         }
-        this.sortRequired = sortRequired;
 
 
         if (sortRequired == RowOrdering.DONTCARE) // Already Sorted
@@ -189,6 +176,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 Arrays.sort(probeValues);
             else
                 Arrays.sort(probeValues, Collections.reverseOrder());
+            this.probeValues = probeValues;
         }
         this.scanInformation = new MultiProbeDerbyScanInformation(
                 resultRowAllocator.getMethodName(),
@@ -235,6 +223,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         TxnView txn = getCurrentTransaction();
         List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
         DataSet<LocatedRow> dataSet = dsp.getEmpty();
+        int i = 0;
         for (DataScan scan: scans) {
             deSiify(scan);
             DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation,LocatedRow>newScanSet(this,tableName)
@@ -252,9 +241,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
-                    .rowDecodingMap(baseColumnMap)
+                    .rowDecodingMap(getRowDecodingMap())
+                    .baseColumnMap(baseColumnMap)
+                    .optionalProbeValue(probeValues[i])
                     .buildDataSet(this);
             dataSet = dataSet.union(ds);
+            i++;
         }
         return dataSet;
     }

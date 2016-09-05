@@ -15,7 +15,6 @@
 
 package com.splicemachine.si.testenv;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
@@ -26,9 +25,7 @@ import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
-
 import java.util.*;
-
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -339,7 +336,7 @@ public class TransactorTestUtility {
         final BitSet bitSet = new BitSet(2);
         bitSet.set(0);
         bitSet.set(1);
-        EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, new ObjectArrayList<Predicate>(), true);
+        EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, true);
         operation.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
     }
 

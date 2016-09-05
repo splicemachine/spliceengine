@@ -743,7 +743,7 @@ public abstract class DataType extends NullValueData
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
+	@Override
 	public BooleanDataValue equals(DataValueDescriptor left,
 							DataValueDescriptor right)
 			throws StandardException
@@ -765,7 +765,7 @@ public abstract class DataType extends NullValueData
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
+	@Override
 	public BooleanDataValue notEquals(DataValueDescriptor left,
 							DataValueDescriptor right)
 			throws StandardException
@@ -786,7 +786,7 @@ public abstract class DataType extends NullValueData
 	*
 	* @exception StandardException  Thrown on error
 	*/
-
+	@Override
 	public BooleanDataValue lessThan(DataValueDescriptor left,
 	   DataValueDescriptor right)
 	throws StandardException
@@ -807,7 +807,7 @@ public abstract class DataType extends NullValueData
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
+	@Override
 	public BooleanDataValue greaterThan(DataValueDescriptor left,
 							DataValueDescriptor right)
 			throws StandardException
@@ -829,7 +829,7 @@ public abstract class DataType extends NullValueData
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
+	@Override
 	public BooleanDataValue lessOrEquals(DataValueDescriptor left,
 							DataValueDescriptor right)
 			throws StandardException
@@ -851,7 +851,7 @@ public abstract class DataType extends NullValueData
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
+	@Override
 	public BooleanDataValue greaterOrEquals(DataValueDescriptor left,
 							DataValueDescriptor right)
 			throws StandardException

@@ -18,7 +18,9 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SchemaRule;
 import com.splicemachine.derby.test.framework.TableRule;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -28,6 +30,7 @@ import java.sql.*;
  * @author Scott Fines
  *         Date: 6/27/16
  */
+@Category(value = {SerialTest.class})
 public class ForeignKeyMetadataIT{
     private static final String SCHEMA = ForeignKeyMetadataIT.class.getSimpleName().toUpperCase();
 

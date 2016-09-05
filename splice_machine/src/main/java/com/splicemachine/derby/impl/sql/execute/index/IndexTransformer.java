@@ -16,7 +16,6 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -499,7 +498,7 @@ public class IndexTransformer {
 
         EntryPredicateFilter epf;
         if(indexedColumns!=null && indexedColumns.size()>0){
-            epf = new EntryPredicateFilter(indexedColumns,new ObjectArrayList<Predicate>(0));
+            epf = new EntryPredicateFilter(indexedColumns);
         }else epf = EntryPredicateFilter.emptyPredicate();
 
         TransactionalRegion region=ctx.txnRegion();

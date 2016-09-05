@@ -610,7 +610,6 @@ public class Like {
 		 */
 
 		StringBuffer upperLimit = new StringBuffer(maxWidth);
-
 		// Extract the string leading up to the first wildcard.
 		for (int i = 0; i < pattern.length(); i++) {
 			char c = pattern.charAt(i);
@@ -625,7 +624,6 @@ public class Like {
 			}
 			upperLimit.append(c);
 		}
-
 		// Pattern is empty or starts with wildcard.
 		if (upperLimit.length() == 0) {
 			return SUPER_STRING;
@@ -645,11 +643,14 @@ public class Like {
 
 		upperLimit.setCharAt(lastUsableChar, newLastChar);
 
+		// Padding Not Allowed With Splice Machine
+		// since we use our KeyValue stores lexicographical sorting mechanism for indexes, etc.
+
 		// Pad the string with nulls.
-		if (upperLimit.length() < maxWidth) {
+/*		if (upperLimit.length() < maxWidth) {
 			upperLimit.setLength(maxWidth);
 		}
-
+*/
 		return upperLimit.toString();
 	}
 	
