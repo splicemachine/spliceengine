@@ -42,7 +42,6 @@ import org.junit.rules.TestRule;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
@@ -307,7 +306,7 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
         Scan scan = new Scan();
         SplitRegionScanner srs = new SplitRegionScanner(scan,
                 htable,
-                clock,partition);
+                clock,partition, driver.getConfiguration());
         while (srs.next(newCells)) {
             i++;
             newCells.clear();
