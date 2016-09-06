@@ -338,7 +338,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());
             return new RecordWriter<Void, LocatedRow>() {
                 @Override
-                public void write(Void _, LocatedRow locatedRow) throws IOException, InterruptedException {
+                public void write(Void voided, LocatedRow locatedRow) throws IOException, InterruptedException {
                     try {
                         rowWriter.writeRow(locatedRow.getRow(), op.getSourceResultColumnDescriptors());
                     } catch (StandardException e) {
