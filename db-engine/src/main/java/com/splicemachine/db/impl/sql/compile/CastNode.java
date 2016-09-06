@@ -44,15 +44,11 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import java.lang.reflect.Modifier;
-
 import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import com.splicemachine.db.impl.sql.catalog.Aggregate;
-
 import java.sql.Types;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * An CastNode represents a cast expressionr.
