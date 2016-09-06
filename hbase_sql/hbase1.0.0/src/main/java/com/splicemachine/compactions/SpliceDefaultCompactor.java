@@ -84,7 +84,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     @Override
     public List<Path> compact(CompactionRequest request) throws IOException {
-        if(!allowSpark || store.getRegionInfo().isSystemTable())
+        EngineDriver driver = EngineDriver.driver();
+        if(!allowSpark || store.getRegionInfo().isSystemTable()|| driver==null)
             return super.compact(request);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
@@ -109,7 +110,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 getScope(request),
                 regionLocation);
         CompactionResult result = null;
-        OlapClient olapClient = getOlapClient();
+        OlapClient olapClient = driver.getOlapClient();
         Future<CompactionResult> futureResult = olapClient.submit(jobRequest);
         SConfiguration config = HConfiguration.getConfiguration();
         while(result == null) {
@@ -152,27 +153,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             paths.add(new Path(spath));
         }
         return paths;
-    }
-
-    private OlapClient getOlapClient() throws IOException {
-        EngineDriver driver = null;
-        OlapClient olapClient = null;
-        // Give initialization 5 seconds to complete before aborting.
-        // This is to handle compaction jobs running right away while
-        // server restart is in progress.
-        for (int i = 0; i < 5; i++) {
-            try {
-                driver = EngineDriver.driver();
-                if (driver != null)
-                    olapClient = driver.getOlapClient();
-                if (olapClient != null)
-                    return olapClient;
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new InterruptedIOException();
-            }
-        }
-        throw new IOException("Splice compaction service not initialized yet. Compaction aborted.");
     }
 
     private SparkCompactionFunction getCompactionFunction() {
