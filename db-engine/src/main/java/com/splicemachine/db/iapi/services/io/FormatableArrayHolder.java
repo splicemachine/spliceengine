@@ -114,13 +114,11 @@ public class FormatableArrayHolder implements Formatable
 		** assignment compatible with the input array.  This
 		** is a bug on as400, but to get around it we are
 		** going to do an element by element copy.
+		*
+		* Splice: No Way this is still a bug.
+		*
 		*/
-		//System.arraycopy(array, 0, outArray, 0, outArray.length);
-		for (int i = 0; i < outArray.length; i++)
-		{
-			outArray[i] = array[i];
-		}
-
+		System.arraycopy(array, 0, outArray, 0, outArray.length);
 		return outArray;
 	}
 

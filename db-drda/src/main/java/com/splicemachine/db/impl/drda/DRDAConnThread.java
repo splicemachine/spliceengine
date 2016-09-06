@@ -3390,9 +3390,8 @@ class DRDAConnThread extends Thread {
 					if (l < 9 || l > 23)
 						invalidValue(CodePoint.CRRTKN);
 					byte[] part1 = new byte[l - 6];
-					for (int i = 0; i < part1.length; i++)
-						part1[i] = database.crrtkn[i];
-					long time = SignedBinary.getLong(database.crrtkn, 
+					System.arraycopy(database.crrtkn,0,part1,0,part1.length);
+					long time = SignedBinary.getLong(database.crrtkn,
 							l-8, SignedBinary.BIG_ENDIAN); // as "long" as unique
 					session.drdaID = reader.convertBytes(part1) + 
 									time + leftBrace + session.connNum + rightBrace;
@@ -7504,8 +7503,7 @@ class DRDAConnThread extends Thread {
 		{
 			writer.writeBytes(leftovers, 0, blksize);
 			byte []newLeftovers = new byte[leftovers.length-blksize];
-			for (int i = 0; i < newLeftovers.length; i++)
-				newLeftovers[i] = leftovers[blksize+i];
+			System.arraycopy(leftovers,blksize,newLeftovers,0,newLeftovers.length);
 			stmt.setSplitQRYDTA(newLeftovers);
 		}
 		// finish off query block and send
@@ -8215,8 +8213,7 @@ class DRDAConnThread extends Thread {
 		currentRequiredLength = req.length;
 		if (currentRequiredLength > required.length)
 			required = new int[currentRequiredLength];
-		for (int i = 0; i < req.length; i++)
-			required[i] = req[i];
+		System.arraycopy(req,0,required,0,req.length);
 	}
 	/**
 	 * Remove codepoint from required list

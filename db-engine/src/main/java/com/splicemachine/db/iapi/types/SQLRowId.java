@@ -61,9 +61,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
     public SQLRowId(SQLRowId other) {
         if (other.bytes != null) {
             byte[] b = new byte[other.bytes.length];
-            for (int i = 0; i < other.bytes.length; ++i) {
-                b[i] = other.bytes[i];
-            }
+            System.arraycopy(other.bytes,0,b,0,other.bytes.length);
             setValue(b);
         }
     }

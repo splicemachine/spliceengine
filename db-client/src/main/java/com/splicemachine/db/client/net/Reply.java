@@ -1050,9 +1050,7 @@ public class Reply {
     // Read "length" number of bytes from the buffer into the byte array b starting from offset
     // "offset".  The current offset in the buffer does not change.
     protected final int peekFastBytes(byte[] b, int offset, int length) throws DisconnectException {
-        for (int i = 0; i < length; i++) {
-            b[offset + i] = buffer_[pos_ + i];
-        }
+        System.arraycopy(buffer_,pos_,b,offset,length);
         return offset + length;
     }
 
