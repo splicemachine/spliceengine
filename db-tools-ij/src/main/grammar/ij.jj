@@ -580,7 +580,7 @@ class ij {
     	            	currentConnEnv.removeSession(connectionName);
             	}
             	else {
-            		StringBuffer row = new StringBuffer();
+            		StringBuilder row = new StringBuilder();
 	              	row.append(connectionName);
               		if (currentConnEnv.getSession() != null && 
               			connectionName.equals(currentConnEnv.getSession().getName())) {
@@ -2037,7 +2037,7 @@ throws SQLException
 	Vector			idList;
 	int				idx = 0;
 	int				lastID = 0;
-	StringBuffer	buffer;
+	StringBuilder	buffer;
 	String			className;
 	String			methodName;
 	Class			classC;
@@ -2052,7 +2052,7 @@ throws SQLException
 	idList = staticMethodName() args = staticMethodArgs() [ <AS> name = identifier() ]
 	{
 		lastID = idList.size() - 1;
-		buffer = new StringBuffer();
+		buffer = new StringBuilder();
 
 		for ( ; idx < lastID; idx++ )
 		{
@@ -3150,7 +3150,7 @@ Bang() :
 		LocalizedInput in = new LocalizedInput(p.getInputStream());
 		int c;
 		Vector v = new Vector();
-		StringBuffer output = new StringBuffer();
+		StringBuilder output = new StringBuilder();
 		// echo output
 		while ((c = in.read()) != -1) {
 			output.append((char)c);
