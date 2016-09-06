@@ -32,11 +32,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-
 import java.util.List;
-import java.util.Vector;
 
 abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 {

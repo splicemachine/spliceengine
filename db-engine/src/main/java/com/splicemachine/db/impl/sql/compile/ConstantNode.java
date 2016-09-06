@@ -32,10 +32,8 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * ConstantNode holds literal constants as well as nulls.

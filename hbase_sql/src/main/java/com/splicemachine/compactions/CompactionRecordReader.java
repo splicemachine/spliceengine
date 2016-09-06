@@ -15,8 +15,6 @@
 
 package com.splicemachine.compactions;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.mrio.MRConstants;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -24,7 +22,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
