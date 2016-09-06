@@ -12925,12 +12925,12 @@ numericLiteral(String sign) throws StandardException :
 |
 	tok = <APPROXIMATE_NUMERIC>
 	{
-		StringBuffer doubleImage;
+		StringBuilder doubleImage;
 		String doubleString;
 		int ePosn, dotPosn; // Position of letter e and '.' in value
 		Double		doubleValue;
 		
-		doubleImage = new StringBuffer(sign);
+		doubleImage = new StringBuilder(sign);
 		doubleImage.append(tok.image);
 		doubleString = doubleImage.toString();
 
