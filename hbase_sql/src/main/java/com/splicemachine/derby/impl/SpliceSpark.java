@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.rdd.RDDOperationScope;
+import org.apache.spark.sql.SparkSession;
 import scala.Tuple2;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
@@ -39,25 +40,37 @@ import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 
+import static org.apache.spark.sql.SparkSession.*;
+
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
     static JavaSparkContext ctx;
+    static SparkSession session;
     static boolean initialized = false;
-    static volatile JavaSparkContext localContext = null;
     static boolean spliceStaticComponentsSetup = false;
     private static final String SCOPE_KEY = "spark.rdd.scope";
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
 
-    public static synchronized JavaSparkContext getContext() {
+    // Sets both ctx and session
+    public static synchronized SparkSession getSession() {
         if (!initialized) {
-            ctx = initializeSparkContext();
+            session = initializeSparkSession();
+            ctx =  new JavaSparkContext(session.sparkContext());
             initialized = true;
-        } else if (ctx.sc().isStopped()) {
+        } else if (session.sparkContext().isStopped()) {
             LOG.warn("SparkContext is stopped, reinitializing...");
-            ctx = initializeSparkContext();
+            session = initializeSparkSession();
+            ctx =  new JavaSparkContext(session.sparkContext());
         }
+        return session;
+    }
+
+
+
+    public static synchronized JavaSparkContext getContext() {
+        SparkSession s = getSession();
         return ctx;
     }
 
@@ -107,7 +120,7 @@ public class SpliceSpark {
         }
     }
 
-    private static JavaSparkContext initializeSparkContext() {
+    private static SparkSession initializeSparkSession() {
 
         String master = System.getProperty("splice.spark.master", "local[8,4]"); // 8 parallelism, 4 maxFailures
         String sparkHome = System.getProperty("splice.spark.home", null);
@@ -157,10 +170,6 @@ public class SpliceSpark {
 
         if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
-            if (localContext == null) {
-                localContext = new JavaSparkContext(conf);
-            }
-            return localContext;
         } else if (sparkHome != null) {
             conf.setSparkHome(sparkHome);
         }
@@ -194,7 +203,11 @@ public class SpliceSpark {
             printConfigProps(conf);
         }
 
-        return new JavaSparkContext(conf);
+        SparkSession s = SparkSession.builder()
+                .appName("Splice Spark Session")
+                .config(conf)
+                .getOrCreate();
+        return s;
     }
 
     private static void printConfigProps(SparkConf conf) {

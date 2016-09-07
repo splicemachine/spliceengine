@@ -15,17 +15,36 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 
+import java.sql.ResultSet;
+import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class RDDUtils {
     public static final Logger LOG = Logger.getLogger(RDDUtils.class);
@@ -179,6 +198,85 @@ public class RDDUtils {
         @Override
         public ExecRow call(LocatedRow row) throws Exception {
             return RDDUtils.getKey(row.getRow(), keyColumns);
+        }
+    }
+
+    public static Dataset<Row> resultSetToDF(ResultSet rs) throws StandardException {
+        EmbedResultSet40 ers = (EmbedResultSet40) rs;
+        com.splicemachine.db.iapi.sql.ResultSet serverSideRs = ers.getUnderlyingResultSet();
+        JavaRDD<LocatedRow> rdd = ((SparkDataSet) ((SpliceBaseOperation) serverSideRs).getDataSet(EngineDriver.driver().processorFactory().distributedProcessor())).rdd;
+        // The schema is encoded in a string
+        ResultDescription rd = serverSideRs.getResultDescription();
+        final ResultColumnDescriptor[] columns = rd.getColumnInfo();
+
+        // Generate the schema based on the string of schema
+        List<StructField> fields = new ArrayList<>();
+        int i = 0;
+        for (ResultColumnDescriptor column : columns) {
+            StructField field = DataTypes.createStructField(column.getName(), convertResultColumnDescriptorToSparkType(column), true);
+            fields.add(field);
+            i++;
+        }
+        StructType schema = DataTypes.createStructType(fields);
+
+        // Convert records of the RDD to Rows
+        JavaRDD<Row> rowRDD = rdd.map(new Function<LocatedRow, Row>() {
+            @Override
+            public Row call(LocatedRow record) throws Exception {
+                Object[] values = new Object[columns.length];
+                int i=0;
+                for(DataValueDescriptor dvd : record.getRow().getRowArray()){
+                    values[i] = dvd.getObject();
+                    ++i;
+                }
+                return RowFactory.create(values);
+            }
+        });
+
+        /* Apply the schema to the RDD
+           Maybe we have to dispatcg an OLAP query because this creation is resource intense
+           Staying simple for now
+        */
+        SparkSession s = SpliceSpark.getSession();
+        Dataset<Row> df = s.createDataFrame(rowRDD, schema);
+        return df;
+    }
+
+//TODO: (MZ) Will make a DataType ResultColumnDescriptor.getSparkType() method to make this cleaner
+    public static DataType convertResultColumnDescriptorToSparkType(ResultColumnDescriptor rcd){
+        int position = rcd.getColumnPosition();
+        DataTypeDescriptor type = rcd.getType();
+        switch(type.getJDBCTypeId()) {
+            case Types.BIGINT:
+                return DataTypes.LongType;
+            case Types.INTEGER:
+                return DataTypes.IntegerType;
+            case Types.SMALLINT:
+                return DataTypes.ShortType;
+            case Types.TINYINT:
+                return DataTypes.ShortType;
+            case Types.DECIMAL:
+                return DataTypes.FloatType;
+            case Types.NUMERIC:
+                return DataTypes.DoubleType;
+            case Types.DOUBLE:
+                return DataTypes.DoubleType;
+            case Types.FLOAT:
+                return DataTypes.FloatType;
+            case Types.CHAR:
+                return DataTypes.StringType;
+            case Types.VARCHAR:
+                return DataTypes.StringType;
+            case Types.DATE:
+                return DataTypes.DateType;
+            case Types.TIMESTAMP:
+                return DataTypes.TimestampType;
+            case Types.TIME:
+                return DataTypes.TimestampType; /* TODO: (MZ) Not sure if this is the right conversion */
+            case Types.NULL:
+                return DataTypes.NullType;
+            default:
+                return DataTypes.NullType;
         }
     }
 }
