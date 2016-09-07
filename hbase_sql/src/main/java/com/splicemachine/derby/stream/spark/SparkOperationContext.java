@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -30,10 +32,9 @@ import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;
 import org.apache.spark.AccumulatorParam;
+
+import java.io.*;
 import java.sql.SQLException;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.List;
 
 /**
@@ -464,5 +465,26 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     public ActivationHolder getActivationHolder() {
         return broadcastedActivation!= null ? broadcastedActivation.getActivationHolder() : null;
+    }
+
+    @Override
+    public OperationContext getClone() throws IOException, ClassNotFoundException{
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(this);
+        oos.flush();
+        oos.close();
+        ByteString bs = ZeroCopyLiteralByteString.wrap(baos.toByteArray());
+
+        // Deserialize activation to clone it
+        InputStream is = bs.newInput();
+        ObjectInputStream ois = new ObjectInputStream(is);
+        SparkOperationContext operationContext = (SparkOperationContext) ois.readObject();
+        BroadcastedActivation  broadcastedActivation = operationContext.broadcastedActivation;
+        BroadcastedActivation.ActivationHolderAndBytes activationHolderAndBytes = broadcastedActivation.readActivationHolder();
+        broadcastedActivation.setActivationHolder(activationHolderAndBytes.getActivationHolder());
+        operationContext.op = broadcastedActivation.getActivationHolder().getOperationsMap().get(op.resultSetNumber());
+        operationContext.activation = operationContext.broadcastedActivation.getActivationHolder().getActivation();
+        return operationContext;
     }
 }

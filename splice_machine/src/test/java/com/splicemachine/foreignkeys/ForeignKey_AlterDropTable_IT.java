@@ -17,7 +17,9 @@ package com.splicemachine.foreignkeys;
 
 import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Statement;
 
@@ -35,6 +37,7 @@ import static org.junit.Assert.fail;
  *
  * Also contains drop table tests.
  */
+@Category(SerialTest.class)
 public class ForeignKey_AlterDropTable_IT {
 
     private static final String SCHEMA = ForeignKey_AlterDropTable_IT.class.getSimpleName();

@@ -207,6 +207,8 @@ public interface SConfiguration {
 
     String getStorageFactoryHome();
 
+    int getNestedLoopJoinBatchSize();
+
     // StatsConfiguration
     double getFallbackNullFraction();
 
