@@ -849,9 +849,9 @@ public interface Property {
     public static final String AUTHENTICATION_NATIVE_PASSWORD_LIFETIME =
         "derby.authentication.native.passwordLifetimeMillis";
     
-    // default lifetime (in milliseconds) of a NATIVE password. 31 days.
+    // default lifetime (in milliseconds) of a NATIVE password. FOREVER
     public static final long MILLISECONDS_IN_DAY = 1000L * 60L * 60L * 24L;
-    public static final long AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT = MILLISECONDS_IN_DAY * 31L;
+    public static final long AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT = 0L;
     
     // threshhold for raising a warning that a password is about to expire.
     // raise a warning if the remaining password lifetime is less than this proportion of the max lifetime.
