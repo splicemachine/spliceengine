@@ -82,7 +82,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     @Override
     public List<Path> compact(CompactionRequest request, CompactionThroughputController compactionThroughputController, User user) throws IOException {
-        if(!allowSpark || store.getRegionInfo().isSystemTable())
+        EngineDriver driver = EngineDriver.driver();
+        if(!allowSpark || store.getRegionInfo().isSystemTable()|| driver==null)
             return super.compact(request,compactionThroughputController,user);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
@@ -107,7 +108,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 getScope(request),
                 regionLocation);
         CompactionResult result = null;
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest);
+        Future<CompactionResult> futureResult = driver.getOlapClient().submit(jobRequest);
         SConfiguration config = HConfiguration.getConfiguration();
         while(result == null) {
             try {
