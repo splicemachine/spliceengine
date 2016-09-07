@@ -144,6 +144,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         private final ChannelHandler resultHandler = new ResultHandler(this);
         private final ChannelHandler submitHandler = new SubmitHandler(this);
         private final ExecutionList executionList = new ExecutionList();
+        private long lastStatus = System.currentTimeMillis(); // keeps track of last status received for logging
 
         private final GenericFutureListener<Future<Void>> failListener=new GenericFutureListener<Future<Void>>(){
             @Override
@@ -154,7 +155,6 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 }
             }
         };
-
 
         private volatile OlapResult finalResult;
         private volatile boolean cancelled=false;
@@ -442,8 +442,12 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             //TODO -sf- deal with a OlapServer failover here (i.e. a move to NOT_SUBMITTED from any other state
             if(or instanceof SubmittedResult) {
                 future.tickTimeNanos = TimeUnit.MILLISECONDS.toNanos(((SubmittedResult) or).getTickTime());
-            }else if(future.submitted && !future.isDone() && or instanceof NotSubmittedResult) {
+                future.lastStatus = System.currentTimeMillis();
+            } else if(future.submitted && !future.isDone() && or instanceof NotSubmittedResult) {
                 // The job is no longer submitted, assume aborted
+                long millisSinceLastStatus = System.currentTimeMillis() - future.lastStatus;
+                LOG.error("Status not available for job " + future.job.getUniqueName() +
+                        ", millis since last status " + millisSinceLastStatus);
                 future.fail(new IOException("Status not available, assuming aborted due to client timeout"));
             }else if(or.isSuccess()){
                 future.success(or);

@@ -92,8 +92,7 @@ public class MappedJobRegistry implements OlapJobRegistry{
             while(regIterator.hasNext()){
                 Map.Entry<String,OlapJobStatus> entry = regIterator.next();
                 if(!entry.getValue().isAvailable()){
-                    if(LOG.isTraceEnabled())
-                        LOG.trace("Job with id "+ entry.getKey()+" does not have an available client, removing");
+                    LOG.warn("Job " + entry.getValue() + " with id "+ entry.getKey()+" does not have an available client, removing");
                     regIterator.remove();
                     entry.getValue().cancel();
                 }
