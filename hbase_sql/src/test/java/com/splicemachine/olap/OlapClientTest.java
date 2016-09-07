@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 /**
  * Basic tests around the OlapServer's functionality.
@@ -116,7 +117,7 @@ public class OlapClientTest {
     public void concurrencyTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
-        final DumbOlapResult[] results = new DumbOlapResult[size];
+        final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(size);
         final Random rand = new Random(size);
         for (int i = 0; i < size; ++i) {
             final int j = i;
@@ -125,9 +126,9 @@ public class OlapClientTest {
                 public void run() {
                     int sleep = rand.nextInt(200);
                     try {
-                        results[j] = olapClient.execute(new DumbDistributedJob(sleep,j));
+                        results.set(j, olapClient.<DumbOlapResult>execute(new DumbDistributedJob(sleep,j)));
                     } catch (IOException e) {
-                        results[j] = null;
+                        results.set(j, null);
                     }catch(TimeoutException te){
                         Assert.fail("Timed out");
                     }
@@ -139,8 +140,8 @@ public class OlapClientTest {
             threads[i].join();
         }
         for (int i = 0; i < size; ++i) {
-            Assert.assertNotNull(results[i]);
-            Assert.assertEquals(i, results[i].order);
+            Assert.assertNotNull(results.get(i));
+            Assert.assertEquals(i, results.get(i).order);
         }
     }
 
@@ -148,7 +149,7 @@ public class OlapClientTest {
     public void concurrencySameNameTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
-        final DumbOlapResult[] results = new DumbOlapResult[size];
+        final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(size);
         final Random rand = new Random(size);
         for (int i = 0; i < size; ++i) {
             final int j = i;
@@ -157,10 +158,10 @@ public class OlapClientTest {
                 public void run() {
                     int sleep = rand.nextInt(200);
                     try {
-                        results[j] = olapClient.execute(new SameNameJob(sleep,j));
+                        results.set(j, olapClient.<DumbOlapResult>execute(new SameNameJob(sleep,j)));
                     } catch (Exception e) {
                         LOG.error("Unexpected exception", e);
-                        results[j] = null;
+                        results.set(j, null);
                     }
                 }
             };
@@ -170,8 +171,8 @@ public class OlapClientTest {
             threads[i].join();
         }
         for (int i = 0; i < size; ++i) {
-            Assert.assertNotNull(results[i]);
-            Assert.assertEquals(i, results[i].order);
+            Assert.assertNotNull(results.get(i));
+            Assert.assertEquals(i, results.get(i).order);
         }
     }
 
@@ -179,7 +180,7 @@ public class OlapClientTest {
     public void overflowTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
-        final DumbOlapResult[] results = new DumbOlapResult[size];
+        final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(size);
         final Random rand = new Random(size);
         for (int i = 0; i < size; ++i) {
             final int j = i;
@@ -188,9 +189,9 @@ public class OlapClientTest {
                 public void run() {
                     int sleep = rand.nextInt(2000);
                     try {
-                        results[j] = olapClient.execute(new DumbDistributedJob(sleep,j));
+                        results.set(j, olapClient.<DumbOlapResult>execute(new DumbDistributedJob(sleep,j)));
                     } catch (IOException e) {
-                        results[j] = null;
+                        results.set(j, null);
                     }catch(TimeoutException te){
                         Assert.fail("Timed out");
                     }
@@ -202,8 +203,8 @@ public class OlapClientTest {
             threads[i].join();
         }
         for (int i = 0; i < size; ++i) {
-            Assert.assertNotNull(results[i]);
-            Assert.assertEquals(i, results[i].order);
+            Assert.assertNotNull(results.get(i));
+            Assert.assertEquals(i, results.get(i).order);
         }
     }
 
@@ -213,16 +214,16 @@ public class OlapClientTest {
         * Tests what would happen if the server went down after we had successfully submitted, but while
         * we are waiting. Because this is inherently concurrent, we use multiple threads
         */
-        final DumbOlapResult[]results = new DumbOlapResult[1];
-        final Throwable[] errors = new Throwable[1];
+        final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(1);
+        final AtomicReferenceArray<Throwable> errors = new AtomicReferenceArray<>(1);
         Thread t = new Thread(new Runnable(){
             @Override
             public void run(){
                 try{
-                    results[0] = olapClient.execute(new DumbDistributedJob(100000,0));
+                    results.set(0, olapClient.<DumbOlapResult>execute(new DumbDistributedJob(100000,0)));
                 }catch(IOException | TimeoutException e){
-                    errors[0]=e;
-                    results[0] = null;
+                    errors.set(0, e);
+                    results.set(0, null);
                 }
             }
         });
@@ -234,8 +235,8 @@ public class OlapClientTest {
 
         try{
             t.join();
-            Assert.assertNull(results[0]);
-            Assert.assertNotNull(errors[0]);
+            Assert.assertNull(results.get(0));
+            Assert.assertNotNull(errors.get(0));
         }finally{
             //restart the server
             olapClient.shutdown();
