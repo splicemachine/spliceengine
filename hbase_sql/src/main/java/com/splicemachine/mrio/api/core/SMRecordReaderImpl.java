@@ -27,7 +27,6 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -90,7 +89,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			TableSplit tSplit = ((SMSplit)split).getSplit();
 			DataScan scan = builder.getScan();
 			scan.startKey(tSplit.getStartRow()).stopKey(tSplit.getEndRow());
-            setScan(((HScan)scan).unwrapDelegate());
+            this.scan = ((HScan)scan).unwrapDelegate();
             // TODO (wjk): this seems weird (added with DB-4483)
             this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
             restart(tSplit.getStartRow());
@@ -179,10 +178,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	}
 	
 	public void setScan(Scan scan) {
-		if (Bytes.equals(scan.getStartRow(), scan.getStopRow()) && !Bytes.empty(scan.getStartRow()))
-			throw new IllegalArgumentException("Start/stop rows cannot be equal for scan " + scan.toString());
-		if (Bytes.startComparator.compare(scan.getStartRow(), scan.getStopRow()) < 0)
-			throw new IllegalArgumentException("Start row must come before stop row for scan " + scan.toString());
 		this.scan = scan;
 	}
 	
@@ -194,7 +189,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	public void restart(byte[] firstRow) throws IOException {		
 		Scan newscan = scan;
 		newscan.setStartRow(firstRow);
-        setScan(newscan);
+        scan = newscan;
 		if(htable != null) {
 			SIDriver driver=SIDriver.driver();
 
@@ -207,9 +202,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			SplitRegionScanner srs = new SplitRegionScanner(scan,
 					htable,
 					clock,
-                    clientPartition,
-					driver.getConfiguration()
-			);
+                    clientPartition);
 			this.hregion = srs.getRegion();
 			this.mrs = srs;
 			ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());

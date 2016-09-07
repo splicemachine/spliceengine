@@ -69,7 +69,7 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
                     SplitRegionScanner srs = new SplitRegionScanner(hscan,
                             ((ClientPartition)partition).unwrapDelegate(),
                             clock,
-                            partition, driver.getConfiguration());
+                            partition);
                     final HRegion hregion = srs.getRegion();
                     ExecRow template = SMSQLUtil.getExecRow(getExecRowTypeFormatIds());
                     spliceOperation.registerCloseable(new AutoCloseable() {

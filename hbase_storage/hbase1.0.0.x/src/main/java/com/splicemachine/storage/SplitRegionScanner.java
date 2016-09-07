@@ -19,10 +19,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.pipeline.utils.PipelineUtils;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.spark_project.guava.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
@@ -49,7 +46,6 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SplitRegionScanner implements RegionScanner {
     protected static final Logger LOG = Logger.getLogger(SplitRegionScanner.class);
-    private final int maxRetries;
     protected List<RegionScanner> regionScanners = new ArrayList<>(2);
     protected RegionScanner currentScanner;
     protected HRegion region;
@@ -67,7 +63,7 @@ public class SplitRegionScanner implements RegionScanner {
     public SplitRegionScanner(Scan scan,
                               Table table,
                               Clock clock,
-                              Partition clientPartition, SConfiguration configuration) throws IOException {
+                              Partition clientPartition) throws IOException {
         this.scan = scan;
         this.initialScan = new Scan(scan);
         this.htable = table;
@@ -76,7 +72,6 @@ public class SplitRegionScanner implements RegionScanner {
         totalScannerCount = 0;
         reInitCount = 0;
         scanExceptionCount = 0;
-        maxRetries = configuration.getMaxRetries();
         init(false);
     }
 
@@ -286,10 +281,8 @@ public class SplitRegionScanner implements RegionScanner {
      */
     public List<Partition> getPartitionsInRange(Partition partition, Scan scan, boolean refresh) throws IOException {
         List<Partition> partitions;
-        int tries = 0;
-        while (tries < maxRetries) {
+        while (true) {
             partitions = partition.subPartitions(scan.getStartRow(), scan.getStopRow(), refresh);
-            tries++;
             if (partitions == null || partitions.isEmpty()) {
                 if (!refresh) {
                     // try again with a refresh
@@ -298,18 +291,12 @@ public class SplitRegionScanner implements RegionScanner {
                 } else {
                     // Not Good, partition missing...
                     SpliceLogUtils.warn(LOG,"Couldn't find subpartitions in range for %s and scan %s",partition,scan);
-                    try {
-                        clock.sleep(PipelineUtils.getPauseTime(tries,10),TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException(e);
-                    }
                 }
             } else {
-                return partitions;
+                break;
             }
         }
-        throw new IOException("Couldn't find subpartitions in range");
+        return partitions;
     }
 
     @Override
