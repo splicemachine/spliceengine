@@ -144,7 +144,7 @@ public class SIConfigurations implements ConfigurationDefault {
     private static final int DEFAULT_OLAP_SERVER_THREADS = 16;
 
     public static final String OLAP_SERVER_TICK_LIMIT = "splice.olap_server.tickLimit";
-    private static final int DEFAULT_OLAP_SERVER_TICK_LIMIT = 10;
+    private static final int DEFAULT_OLAP_SERVER_TICK_LIMIT = 120;
 
     public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
     private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
