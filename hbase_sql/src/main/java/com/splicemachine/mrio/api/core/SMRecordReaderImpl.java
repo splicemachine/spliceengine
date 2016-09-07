@@ -179,10 +179,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	}
 	
 	public void setScan(Scan scan) {
-		if (Bytes.equals(scan.getStartRow(), scan.getStopRow()) && !Bytes.empty(scan.getStartRow()))
-			throw new IllegalArgumentException("Start/stop rows cannot be equal for scan " + scan.toString());
-		if (Bytes.startComparator.compare(scan.getStartRow(), scan.getStopRow()) < 0)
-			throw new IllegalArgumentException("Start row must come before stop row for scan " + scan.toString());
 		this.scan = scan;
 	}
 	
