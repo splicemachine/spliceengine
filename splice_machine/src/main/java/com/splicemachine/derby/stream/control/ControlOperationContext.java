@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -27,9 +29,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -333,5 +333,22 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold) {
         this.permissive=true;
         this.badRecordsRecorder = new BadRecordsRecorder(statusDirectory, importFileName, badRecordThreshold);
+    }
+
+    @Override
+    public OperationContext getClone() throws IOException, ClassNotFoundException {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(this);
+            oos.flush();
+            oos.close();
+            ByteString bs = ZeroCopyLiteralByteString.wrap(baos.toByteArray());
+
+            // Deserialize activation to clone it
+            InputStream is = bs.newInput();
+            ObjectInputStream ois = new ObjectInputStream(is);
+            OperationContext operationContext = (OperationContext) ois.readObject();
+            return operationContext;
+
     }
 }

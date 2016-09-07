@@ -605,7 +605,14 @@ public final class ContextService{
             allContexts.remove(cm);
 
         if(threadContextList!=null){
-            threadContextList.remove();
+            Object list = threadContextList.get();
+            if (list instanceof ContextManager) {
+                threadContextList.remove();
+            }
+            else {
+                Stack stack = (Stack)list;
+                stack.remove(cm);
+            }
             cm.activeCount--;
         }
     }

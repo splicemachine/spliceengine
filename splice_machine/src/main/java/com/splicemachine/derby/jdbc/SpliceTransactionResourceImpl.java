@@ -98,6 +98,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             csf.resetCurrentContextManager(cm);
             csf.removeContext(cm);
             if(oldCm!=null){
+                csf.forceRemoveContext(cm);
                 oldCm.setActiveThread();
                 csf.setCurrentContextManager(oldCm);
             }

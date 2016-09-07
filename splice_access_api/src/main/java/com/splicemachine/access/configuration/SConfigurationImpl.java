@@ -139,6 +139,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String networkBindAddress;
     private final  String upgradeForcedFrom;
     private final String storageFactoryHome;
+    private final int nestedLoopJoinBatchSize;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -493,6 +494,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public String getUpgradeForcedFrom() {
         return upgradeForcedFrom;
     }
+    @Override
+    public int getNestedLoopJoinBatchSize() {
+        return nestedLoopJoinBatchSize;
+    }
 
     // StatsConfiguration
     @Override
@@ -670,6 +675,8 @@ public final class SConfigurationImpl implements SConfiguration {
         compactionReservedSlots = builder.compactionReservedSlots;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
+        nestedLoopJoinBatchSize = builder.nestedLoopJoinBatchSize;
+
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

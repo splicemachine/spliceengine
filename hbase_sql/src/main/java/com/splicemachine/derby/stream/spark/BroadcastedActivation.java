@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;import com.splicemachine.derby.stream.ActivationHolder;
@@ -77,7 +79,7 @@ public class BroadcastedActivation implements Externalizable {
         return baos.toByteArray();
     }
 
-    private ActivationHolderAndBytes readActivationHolder(){
+    public ActivationHolderAndBytes readActivationHolder(){
         ByteArrayInputStream bais = new ByteArrayInputStream(serializedValue);
         try(ObjectInputStream ois = new ObjectInputStream(bais)){
             return new ActivationHolderAndBytes((ActivationHolder)ois.readObject(),serializedValue);
@@ -86,7 +88,7 @@ public class BroadcastedActivation implements Externalizable {
         }
     }
 
-    private static class ActivationHolderAndBytes {
+    public static class ActivationHolderAndBytes {
         ActivationHolder activationHolder;
         byte[] bytes;
 
@@ -94,5 +96,17 @@ public class BroadcastedActivation implements Externalizable {
             this.activationHolder=activationHolder;
             this.bytes=bytes;
         }
+
+        public ActivationHolder getActivationHolder() {
+            return activationHolder;
+        }
+    }
+
+    public ActivationHolderAndBytes getActivationHolderAndBytes() {
+        return activationHolderTL.get();
+    }
+
+    public void setActivationHolder(ActivationHolder ah) {
+        activationHolder = ah;
     }
 }
