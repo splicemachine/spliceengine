@@ -20,6 +20,7 @@ import akka.remote.FailureDetector$;
 import akka.remote.PhiAccrualFailureDetector;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import org.apache.log4j.Logger;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.concurrent.TimeUnit;
@@ -31,19 +32,21 @@ import java.util.concurrent.atomic.AtomicReference;
  *         Date: 4/1/16
  */
 public class OlapJobStatus implements OlapStatus{
+    private static final Logger LOG = Logger.getLogger(OlapJobStatus.class);
+
     private final FailureDetector failureDetector;
     private final long tickTime;
 
     private volatile AtomicReference<OlapStatus.State> currentState = new AtomicReference<>(State.NOT_SUBMITTED);
     private volatile OlapResult results;
 
-    public OlapJobStatus(long tickTime){
+    public OlapJobStatus(long tickTime,int numTicks){
         //TODO -sf- remove the constants
-        FiniteDuration maxHeartbeatInterval = FiniteDuration.apply(10*tickTime,TimeUnit.MILLISECONDS);
+        FiniteDuration maxHeartbeatInterval = FiniteDuration.apply(numTicks*tickTime,TimeUnit.MILLISECONDS);
         FiniteDuration stdDev = FiniteDuration.apply(2*tickTime,TimeUnit.MILLISECONDS);
         FiniteDuration firstTick = FiniteDuration.apply(tickTime,TimeUnit.MILLISECONDS);
 
-        failureDetector = new PhiAccrualFailureDetector(0.1d,128,stdDev,maxHeartbeatInterval,firstTick,
+        failureDetector = new PhiAccrualFailureDetector(10,128,stdDev,maxHeartbeatInterval,firstTick,
                 FailureDetector$.MODULE$.defaultClock());
         this.tickTime = tickTime;
     }
@@ -178,5 +181,11 @@ public class OlapJobStatus implements OlapStatus{
         return curState;
     }
 
-
+    @Override
+    public String toString() {
+        return "OlapJobStatus{" +
+                "currentState=" + currentState +
+                ", failureDetector.phi =" + ((PhiAccrualFailureDetector)failureDetector).phi() +
+                '}';
+    }
 }

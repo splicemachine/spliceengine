@@ -31,9 +31,11 @@ public class MappedJobRegistry implements OlapJobRegistry{
     private final ConcurrentMap<String/*jobName*/,OlapJobStatus/*jobStatus*/> registry;
     private final ScheduledExecutorService registryCleaner;
     private final long tickTime;
+    private final int numTicks;
 
-    public MappedJobRegistry(long tickTime,TimeUnit unit){
+    public MappedJobRegistry(long tickTime,int numTicks,TimeUnit unit){
         this.tickTime=unit.toMillis(tickTime);
+        this.numTicks = numTicks;
         this.registry = new ConcurrentHashMap<>();
         this.registryCleaner =Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("jobRegistryCleaner").build());
         this.registryCleaner.scheduleWithFixedDelay(new Cleaner(),1l,10l,unit);
@@ -50,7 +52,7 @@ public class MappedJobRegistry implements OlapJobRegistry{
          */
         OlapJobStatus status = registry.get(uniqueJobName);
         if(status!=null) return status;
-        status = new OlapJobStatus(tickTime);
+        status = new OlapJobStatus(tickTime,numTicks);
         OlapJobStatus old = registry.putIfAbsent(uniqueJobName,status);
         if(old!=null)
             status = old;
@@ -90,8 +92,7 @@ public class MappedJobRegistry implements OlapJobRegistry{
             while(regIterator.hasNext()){
                 Map.Entry<String,OlapJobStatus> entry = regIterator.next();
                 if(!entry.getValue().isAvailable()){
-                    if(LOG.isTraceEnabled())
-                        LOG.trace("Job with id "+ entry.getKey()+" does not have an available client, removing");
+                    LOG.warn("Job " + entry.getValue() + " with id "+ entry.getKey()+" does not have an available client, removing");
                     regIterator.remove();
                     entry.getValue().cancel();
                 }
