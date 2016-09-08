@@ -98,7 +98,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 				scan.stopKey(tSplit.getEndRow());
 			}
 
-            this.scan = ((HScan)scan).unwrapDelegate();
+            setScan(((HScan)scan).unwrapDelegate());
             // TODO (wjk): this seems weird (added with DB-4483)
             this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
 			restart(scan.getStartKey());
@@ -199,7 +199,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	public void restart(byte[] firstRow) throws IOException {		
 		Scan newscan = scan;
 		newscan.setStartRow(firstRow);
-        scan = newscan;
+        setScan(newscan);
 		if(htable != null) {
 			SIDriver driver=SIDriver.driver();
 
@@ -212,7 +212,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			SplitRegionScanner srs = new SplitRegionScanner(scan,
 					htable,
 					clock,
-                    clientPartition);
+					clientPartition,
+					driver.getConfiguration()
+			);
 			this.hregion = srs.getRegion();
 			this.mrs = srs;
 			ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());
