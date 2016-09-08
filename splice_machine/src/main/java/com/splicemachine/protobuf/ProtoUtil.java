@@ -415,6 +415,28 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange createRevokeSchemaPrivilege(long txnId, SchemaPermsDescriptor permissionsDescriptor) {
+        RevokeSchemaPrivilege revokeSchemaPrivilege = RevokeSchemaPrivilege.newBuilder()
+                .setSchemaId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getSchemaUUID()))
+                .setSelectPerm(permissionsDescriptor.getSelectPriv())
+                .setDeletePerm(permissionsDescriptor.getDeletePriv())
+                .setInsertPerm(permissionsDescriptor.getInsertPriv())
+                .setUpdatePerm(permissionsDescriptor.getUpdatePriv())
+                .setReferencesPerm(permissionsDescriptor.getReferencesPriv())
+                .setTriggerPerm(permissionsDescriptor.getTriggerPriv())
+                .setGrantor(permissionsDescriptor.getGrantor())
+                .setGrantee(permissionsDescriptor.getGrantee())
+                .setPermObjectId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getUUID()))
+                .build();
+        RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
+                .setType(RevokePrivilege.Type.REVOKE_SCHEMA_PRIVILEGE)
+                .setRevokeSchemaPrivilege(revokeSchemaPrivilege)
+                .build();
+
+        return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.REVOKE_PRIVILEGE)
+                .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
+    }
+
     public static DDLChange createRevokeTablePrivilege(long txnId, TablePermsDescriptor permissionsDescriptor) {
         RevokeTablePrivilege revokeTablePrivilege = RevokeTablePrivilege.newBuilder()
                 .setTableId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getTableUUID()))

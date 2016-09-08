@@ -1259,6 +1259,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+            source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);
             return top;

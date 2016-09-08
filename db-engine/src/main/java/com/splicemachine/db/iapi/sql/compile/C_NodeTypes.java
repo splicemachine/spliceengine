@@ -150,7 +150,7 @@ public interface C_NodeTypes
 	static final int ALTER_TABLE_NODE = 114;
 	static final int AGGREGATE_NODE = 115;
 	static final int COLUMN_DEFINITION_NODE = 116;
-	// 117 is available
+	static final int SCHEMA_PRIVILEGES_NODE = 117;
 	static final int EXEC_SPS_NODE = 118;
 	static final int FK_CONSTRAINT_DEFINITION_NODE = 119;
 	static final int FROM_VTI = 120;

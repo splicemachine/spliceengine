@@ -28,32 +28,31 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.impl.sql.execute.PrivilegeInfo;
+import com.splicemachine.db.impl.sql.execute.SchemaPrivilegeInfo;
 import com.splicemachine.db.impl.sql.execute.TablePrivilegeInfo;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class represents a set of privileges on one table.
+ * This class represents a set of privileges on one table and schema.
  */
-public class TablePrivilegesNode extends QueryTreeNode
+public class BasicPrivilegesNode extends QueryTreeNode
 {
 	private boolean[] actionAllowed = new boolean[ TablePrivilegeInfo.ACTION_COUNT];
 	private ResultColumnList[] columnLists = new ResultColumnList[ TablePrivilegeInfo.ACTION_COUNT];
 	private FormatableBitSet[] columnBitSets = new FormatableBitSet[ TablePrivilegeInfo.ACTION_COUNT];
 	private TableDescriptor td;  
-	private List descriptorList; 
+	private SchemaDescriptor sd;
+	private List descriptorList;
 	
 	/**
 	 * Add all actions
@@ -113,13 +112,43 @@ public class TablePrivilegesNode extends QueryTreeNode
 			bindPrivilegesForView(td);
 		}
 	}
+
+	/**
+	 * Bind for schemas
+	 * @param sd
+	 * @param isGrant
+	 * @throws StandardException
+	 */
+
+	public void bind(SchemaDescriptor sd, boolean isGrant) throws StandardException
+	{
+		this.sd = sd;
+
+		for( int action = 0; action < TablePrivilegeInfo.ACTION_COUNT; action++)
+		{
+			if( columnLists[ action] != null)
+				columnBitSets[action] = columnLists[ action].bindResultColumnsByName( td, (DMLStatementNode) null);
+
+		}
+
+
+	}
 	
 	/**
-	 * @return PrivilegeInfo for this node
+	 * @return PrivilegeInfo for this node with a schema info
 	 */
+	public PrivilegeInfo makeSchemaPrivilegeInfo()
+	{
+		return new SchemaPrivilegeInfo(  sd, actionAllowed, columnBitSets,
+				descriptorList);
+	}
+	/**
+	 * @return PrivilegeInfo for this node with a table Info
+	 */
+
 	public PrivilegeInfo makePrivilegeInfo()
 	{
-		return new TablePrivilegeInfo( td, actionAllowed, columnBitSets, 
+		return new TablePrivilegeInfo(td, actionAllowed, columnBitSets,
 				descriptorList);
 	}
 	

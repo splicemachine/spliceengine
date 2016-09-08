@@ -39,10 +39,9 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
  * This class describes a table permission required by a statement.
  */
 
-public class StatementTablePermission extends StatementPermission
+public class StatementTablePermission extends StatementSchemaPermission
 {
 	UUID tableUUID;
-	int privType; // One of Authorizer.SELECT_PRIV, UPDATE_PRIV, etc.
 
 	/**
 	 * Constructor for StatementTablePermission. Creates an instance of
@@ -54,8 +53,17 @@ public class StatementTablePermission extends StatementPermission
 	 */
 	public StatementTablePermission(UUID tableUUID, int privType)
 	{
+		super(null,privType);
 		this.tableUUID = tableUUID;
 		this.privType = privType;
+	}
+
+
+	public StatementTablePermission(UUID schemaUUID, UUID tableUUID, int privType)
+	{
+		super(schemaUUID,privType);
+		this.tableUUID = tableUUID;
+
 	}
 
 	/**
@@ -161,14 +169,29 @@ public class StatementTablePermission extends StatementPermission
 		DataDictionary dd = lcc.getDataDictionary();
         String currentUserId = lcc.getCurrentUserId(activation);
 
-		boolean result =
-			oneAuthHasPermissionOnTable(dd,
-										Authorizer.PUBLIC_AUTHORIZATION_ID,
-										forGrant) ||
-			oneAuthHasPermissionOnTable(dd,
-                                        currentUserId,
-										forGrant);
-		if (!result) {
+		// Let check the table level first
+		int authorization =
+				oneAuthHasPermissionOnTable(dd, Authorizer.PUBLIC_AUTHORIZATION_ID, forGrant);
+
+		if(authorization == NONE || authorization == UNAUTHORIZED ) {
+			authorization = oneAuthHasPermissionOnTable(dd, currentUserId, forGrant);
+		}
+
+		// Let see if we have schema level privileges. We overwrite only it there is no privileges for tables
+		if(authorization == NONE){
+			int authorizationSchema =
+					oneAuthHasPermissionOnSchema(dd, Authorizer.PUBLIC_AUTHORIZATION_ID, forGrant);
+			// if there is no privileges for the special user PUBLIC or if it is unauthorized, then :
+			if(authorizationSchema == NONE || authorizationSchema == UNAUTHORIZED ) {
+				authorizationSchema = oneAuthHasPermissionOnSchema(dd, currentUserId, forGrant);
+			}
+
+			// we overwrite the authorization type with what we found for schemas
+			authorization = authorizationSchema;
+		}
+
+
+		if (authorization == NONE) {
 			// Since no permission exists for the current user or PUBLIC,
 			// check if a permission exists for the current role (if set).
 			String role = lcc.getCurrentRoleId(activation);
@@ -211,12 +234,17 @@ public class StatementTablePermission extends StatementPermission
 
 					String r;
 
-					while (!result && (r = rci.next()) != null) {
-						result = oneAuthHasPermissionOnTable
+					while ((authorization != AUTHORIZED) && (r = rci.next()) != null) {
+						authorization = oneAuthHasPermissionOnTable
 							(dd, r, forGrant);
+
+						if( authorization == NONE){
+							authorization = oneAuthHasPermissionOnSchema
+									(dd, r, forGrant);
+						}
 					}
 
-					if (result) {
+					if (authorization == AUTHORIZED) {
 						// Also add a dependency on the role (qua provider), so
 						// that if role is no longer available to the current
 						// user (e.g. grant is revoked, role is dropped,
@@ -234,15 +262,17 @@ public class StatementTablePermission extends StatementPermission
 				}
 			}
 		}
-		return result;
+		return authorization == AUTHORIZED;
 	}
 
-	protected boolean oneAuthHasPermissionOnTable(DataDictionary dd, String authorizationId, boolean forGrant)
+
+
+	protected int oneAuthHasPermissionOnTable(DataDictionary dd, String authorizationId, boolean forGrant)
 		throws StandardException
 	{
 		TablePermsDescriptor perms = dd.getTablePermissions( tableUUID, authorizationId);
 		if( perms == null)
-			return false;
+			return NONE;
 		
 		String priv = null;
 			
@@ -269,8 +299,44 @@ public class StatementTablePermission extends StatementPermission
 			break;
 		}
 
-		return "Y".equals(priv) || (!forGrant) && "y".equals( priv);
+		return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ? AUTHORIZED : UNAUTHORIZED;
 	} // end of hasPermissionOnTable
+
+	protected int oneAuthHasPermissionOnSchema(DataDictionary dd, String authorizationId, boolean forGrant)
+			throws StandardException
+	{
+		SchemaPermsDescriptor perms = dd.getSchemaPermissions( schemaUUID, authorizationId);
+		if( perms == null)
+			return NONE;
+
+		String priv = null;
+
+		switch( privType)
+		{
+			case Authorizer.SELECT_PRIV:
+			case Authorizer.MIN_SELECT_PRIV:
+				priv = perms.getSelectPriv();
+				break;
+			case Authorizer.UPDATE_PRIV:
+				priv = perms.getUpdatePriv();
+				break;
+			case Authorizer.REFERENCES_PRIV:
+				priv = perms.getReferencesPriv();
+				break;
+			case Authorizer.INSERT_PRIV:
+				priv = perms.getInsertPriv();
+				break;
+			case Authorizer.DELETE_PRIV:
+				priv = perms.getDeletePriv();
+				break;
+			case Authorizer.TRIGGER_PRIV:
+				priv = perms.getTriggerPriv();
+				break;
+		}
+
+		return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ? AUTHORIZED : UNAUTHORIZED;
+	} // end of hasPermissionOnSchema
+
 
 	/**
 	 * @see StatementPermission#getPermissionDescriptor
@@ -280,7 +346,7 @@ public class StatementTablePermission extends StatementPermission
 	{
 		//if the required type of privilege exists for the given authorizer,
 		//then pass the permission descriptor for it.
-		if (oneAuthHasPermissionOnTable( dd, authid, false))
+		if (oneAuthHasPermissionOnTable( dd, authid, false) == AUTHORIZED)
 			return dd.getTablePermissions(tableUUID, authid);
 		else return null;
 	}

@@ -64,7 +64,11 @@ public class GrantRevokeConstantOperation implements ConstantAction {
 	}
 
     private DDLMessage.DDLChange  createDDLChange(long txnId, PermissionsDescriptor permissionsDescriptor) {
-        if (permissionsDescriptor instanceof TablePermsDescriptor) {
+        if (permissionsDescriptor instanceof SchemaPermsDescriptor) {
+            SchemaPermsDescriptor schemaPermsDescriptor = (SchemaPermsDescriptor) permissionsDescriptor;
+            return ProtoUtil.createRevokeSchemaPrivilege(txnId, schemaPermsDescriptor);
+        }
+        else if (permissionsDescriptor instanceof TablePermsDescriptor) {
             TablePermsDescriptor tablePermsDescriptor = (TablePermsDescriptor) permissionsDescriptor;
             return ProtoUtil.createRevokeTablePrivilege(txnId, tablePermsDescriptor);
         }

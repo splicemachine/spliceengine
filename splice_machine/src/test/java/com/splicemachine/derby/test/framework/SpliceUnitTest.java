@@ -21,10 +21,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,9 +32,7 @@ import org.junit.runner.Description;
 import com.splicemachine.utils.Pair;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class SpliceUnitTest {
 
@@ -540,5 +535,16 @@ public class SpliceUnitTest {
         if (jarURL == null)
             return null;
         return jarURL.toURI().getPath();
+    }
+
+    public static void assertFailed(Connection connection, String sql, String errorState) {
+        try {
+            connection.createStatement().execute(sql);
+            fail("Did not fail");
+        } catch (Exception e) {
+            assertTrue("Incorrect error type!", e instanceof SQLException);
+            SQLException se = (SQLException) e;
+            assertEquals("Incorrect error state!", errorState, se.getSQLState());
+        }
     }
 }

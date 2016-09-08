@@ -53,12 +53,14 @@ public class PrivilegeNode extends QueryTreeNode
     public static final int SEQUENCE_PRIVILEGES = 2;
     public static final int UDT_PRIVILEGES = 3;
     public static final int AGGREGATE_PRIVILEGES = 4;
+    public static final int SCHEMA_PRIVILEGES = 5;
     //
     // State initialized when the node is instantiated
     //
     private int objectType;
     private TableName objectName;
-    private TablePrivilegesNode specificPrivileges; // Null for routine and usage privs
+    private String schemaName;
+    private BasicPrivilegesNode specificPrivileges; // Null for routine and usage privs
     private RoutineDesignator routineDesignator; // null for table and usage privs
 
     private String privilege;  // E.g., PermDescriptor.USAGE_PRIV
@@ -94,9 +96,17 @@ public class PrivilegeNode extends QueryTreeNode
                                       "null specific privileges used with table privilege");
             }
             objectName = (TableName) objectOfPrivilege;
-            this.specificPrivileges = (TablePrivilegesNode) specificPrivileges;
+            this.specificPrivileges = (BasicPrivilegesNode) specificPrivileges;
             break;
-            
+        case SCHEMA_PRIVILEGES:
+            if( SanityManager.DEBUG)
+            {
+                SanityManager.ASSERT( specificPrivileges != null,
+                        "null specific privileges used with schema privilege");
+            }
+            schemaName = (String) objectOfPrivilege;
+            this.specificPrivileges = (BasicPrivilegesNode) specificPrivileges;
+        break;
         case ROUTINE_PRIVILEGES:
             if( SanityManager.DEBUG)
             {
@@ -127,6 +137,23 @@ public class PrivilegeNode extends QueryTreeNode
         this.privilege = (String) privilege;
         this.restrict = ((Boolean) restrict).booleanValue();
     }
+
+    /**
+     * Utility function, make sure we don't revoke ourself from the list of grantees.
+     * @param sd
+     * @param grantees
+     * @throws StandardException
+     */
+    public void verifySelfGrantRevoke(SchemaDescriptor sd, List grantees) throws StandardException{
+
+
+        // Can not grant/revoke permissions from self
+        if (grantees.contains(sd.getAuthorizationId()))
+        {
+            throw StandardException.newException
+                    (SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, sd.getObjectName());
+        }
+    }
     
     /**
      * Bind this GrantNode. Resolve all table, column, and routine references. Register
@@ -143,23 +170,37 @@ public class PrivilegeNode extends QueryTreeNode
      */
 	public QueryTreeNode bind( HashMap dependencies, List grantees, boolean isGrant ) throws StandardException
 	{
-        // The below code handles the case where objectName.getSchemaName()
-        // returns null, in which case we'll fetch the schema descriptor for
-        // the current compilation schema (see getSchemaDescriptor).
-        SchemaDescriptor sd = getSchemaDescriptor( objectName.getSchemaName(), true);
-        objectName.setSchemaName( sd.getSchemaName() );
-        
-        // Can not grant/revoke permissions from self
-        if (grantees.contains(sd.getAuthorizationId()))
-        {
-            throw StandardException.newException
-                (SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
-        }
+        SchemaDescriptor sd;
 
         switch( objectType)
         {
+        case SCHEMA_PRIVILEGES:
+            sd = getSchemaDescriptor( schemaName, true);
+            verifySelfGrantRevoke(sd,grantees);
+
+            if (sd.isSystemSchema())
+            {
+                throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
+            }
+
+            // Don't allow authorization on SESSION schema tables. Causes confusion if
+            // a temporary table is created later with same name.
+            if (isSessionSchema(sd.getSchemaName()))
+            {
+                throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
+            }
+            specificPrivileges.bind( sd, isGrant);
+            dependencyProvider = sd;
+            break;
         case TABLE_PRIVILEGES:
 
+            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            verifySelfGrantRevoke(sd,grantees);
+
+            // The below code handles the case where objectName.getSchemaName()
+            // returns null, in which case we'll fetch the schema descriptor for
+            // the current compilation schema (see getSchemaDescriptor).
+            objectName.setSchemaName( sd.getSchemaName() );
             // can't grant/revoke privileges on system tables
             if (sd.isSystemSchema())
             {
@@ -190,6 +231,14 @@ public class PrivilegeNode extends QueryTreeNode
             break;
 
         case ROUTINE_PRIVILEGES:
+            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            verifySelfGrantRevoke(sd,grantees);
+
+            // The below code handles the case where objectName.getSchemaName()
+            // returns null, in which case we'll fetch the schema descriptor for
+            // the current compilation schema (see getSchemaDescriptor).
+            objectName.setSchemaName( sd.getSchemaName() );
+
             if (!sd.isSchemaWithGrantableRoutines())
             {
                 throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
@@ -263,6 +312,14 @@ public class PrivilegeNode extends QueryTreeNode
             dependencyProvider = proc;
             break;
         case AGGREGATE_PRIVILEGES:
+
+            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            verifySelfGrantRevoke(sd,grantees);
+
+            // The below code handles the case where objectName.getSchemaName()
+            // returns null, in which case we'll fetch the schema descriptor for
+            // the current compilation schema (see getSchemaDescriptor).
+            objectName.setSchemaName( sd.getSchemaName() );
                    
             dependencyProvider = getDataDictionary().getAliasDescriptor
             ( sd.getUUID().toString(), objectName.getTableName(), AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR  );
@@ -274,6 +331,14 @@ public class PrivilegeNode extends QueryTreeNode
             break;           
 
         case SEQUENCE_PRIVILEGES:
+
+            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            verifySelfGrantRevoke(sd,grantees);
+
+            // The below code handles the case where objectName.getSchemaName()
+            // returns null, in which case we'll fetch the schema descriptor for
+            // the current compilation schema (see getSchemaDescriptor).
+            objectName.setSchemaName( sd.getSchemaName() );
             
             dependencyProvider = getDataDictionary().getSequenceDescriptor( sd, objectName.getTableName() );
             if ( dependencyProvider == null )
@@ -283,6 +348,14 @@ public class PrivilegeNode extends QueryTreeNode
             break;
             
         case UDT_PRIVILEGES:
+
+            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            verifySelfGrantRevoke(sd,grantees);
+
+            // The below code handles the case where objectName.getSchemaName()
+            // returns null, in which case we'll fetch the schema descriptor for
+            // the current compilation schema (see getSchemaDescriptor).
+            objectName.setSchemaName( sd.getSchemaName() );
             
             dependencyProvider = getDataDictionary().getAliasDescriptor
                 ( sd.getUUID().toString(), objectName.getTableName(), AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR  );
@@ -317,7 +390,8 @@ public class PrivilegeNode extends QueryTreeNode
         {
         case TABLE_PRIVILEGES:
             return specificPrivileges.makePrivilegeInfo();
-
+        case SCHEMA_PRIVILEGES:
+                return specificPrivileges.makeSchemaPrivilegeInfo();
         case ROUTINE_PRIVILEGES:
             return routineDesignator.makePrivilegeInfo();
         case AGGREGATE_PRIVILEGES:

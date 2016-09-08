@@ -84,7 +84,7 @@ import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TableElementList;
 import com.splicemachine.db.impl.sql.compile.TableElementNode;
 import com.splicemachine.db.impl.sql.compile.TableOperatorNode;
-import com.splicemachine.db.impl.sql.compile.TablePrivilegesNode;
+import com.splicemachine.db.impl.sql.compile.BasicPrivilegesNode;
 import com.splicemachine.db.impl.sql.compile.TransactionStatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.compile.UnionNode;
@@ -105,7 +105,9 @@ import com.splicemachine.db.impl.sql.compile.Token;
 import com.splicemachine.db.impl.sql.compile.TokenMgrError;
 import com.splicemachine.db.impl.sql.compile.SQLParserConstants;
 import com.splicemachine.db.impl.sql.compile.CharStream;
+import com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo;
 import com.splicemachine.db.impl.sql.execute.TablePrivilegeInfo;
+import com.splicemachine.db.impl.sql.execute.SchemaPrivilegeInfo;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.PermDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -15057,7 +15059,7 @@ tableGrantStatement() throws StandardException :
     List grantees;
 }
 {
-       privileges = tablePrivileges()
+       privileges = privileges()
        <TO> grantees = granteeList()
     {
         return (StatementNode) nodeFactory.getNode( C_NodeTypes.GRANT_NODE,
@@ -15067,44 +15069,73 @@ tableGrantStatement() throws StandardException :
 }// end of tableGrantStatement
 
 /*
- * <A NAME="tablePrivileges">tablePrivileges</A>
+ * <A NAME="privileges">privileges</A>
  */
-PrivilegeNode tablePrivileges() throws StandardException :
+PrivilegeNode privileges() throws StandardException :
 {
-    TablePrivilegesNode tablePrivilegesNode = null;
-    TableName objectName = null;
+    PrivilegeNode privilegeNode = null;
+    BasicPrivilegesNode basicPrivilegesNode = null;
+
 }
 {
-    tablePrivilegesNode = tableActions()
-      <ON> [ <TABLE> ] objectName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    basicPrivilegesNode = basicActions()
+    <ON> privilegeNode = basicPrivileges(basicPrivilegesNode)
     {
-        return (PrivilegeNode) nodeFactory.getNode( C_NodeTypes.PRIVILEGE_NODE,
-                                                    ReuseFactory.getInteger( PrivilegeNode.TABLE_PRIVILEGES),
-                                                    objectName, tablePrivilegesNode,
-                                                    getContextManager());
+        return privilegeNode;
     }
-} // end of   tablePrivilege                               
+}// end of privileges
 
 /*
- * <A NAME="tableActions">tableActions</A>
+ * <A NAME="basicPrivileges">basicPrivileges</A>
  */
-TablePrivilegesNode tableActions() throws StandardException :
+PrivilegeNode basicPrivileges( BasicPrivilegesNode basicPrivilegesNode) throws StandardException :
 {
-    TablePrivilegesNode tableActionsNode = (TablePrivilegesNode)
+
+    TableName objectName = null;
+    String schemaName = null;
+
+}
+{
+
+
+    <SCHEMA>
+        schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, false)
+    {
+        return (PrivilegeNode) nodeFactory.getNode( C_NodeTypes.PRIVILEGE_NODE,
+                                                            ReuseFactory.getInteger( PrivilegeNode.SCHEMA_PRIVILEGES),
+                                                            schemaName, basicPrivilegesNode,
+                                                            getContextManager());
+    }
+|   [  <TABLE> ]
+        objectName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    {
+             return (PrivilegeNode) nodeFactory.getNode( C_NodeTypes.PRIVILEGE_NODE,
+                                                         ReuseFactory.getInteger( PrivilegeNode.TABLE_PRIVILEGES),
+                                                         objectName, basicPrivilegesNode,
+                                                         getContextManager());
+    }
+} // end of   basicPrivileges
+
+/*
+ * <A NAME="basicActions">basicActions</A>
+ */
+BasicPrivilegesNode basicActions() throws StandardException :
+{
+    BasicPrivilegesNode basicActionsNode = (BasicPrivilegesNode)
       nodeFactory.getNode( C_NodeTypes.TABLE_PRIVILEGES_NODE, getContextManager());
 }
 {
     <ALL> <PRIVILEGES>
     {
-        tableActionsNode.addAll();
-        return tableActionsNode;
+        basicActionsNode.addAll();
+        return basicActionsNode;
     }
 |
-    tableAction( tableActionsNode) ( <COMMA> tableAction( tableActionsNode) )*
+    basicAction( basicActionsNode) ( <COMMA> basicAction( basicActionsNode) )*
     {
-        return tableActionsNode;
+        return basicActionsNode;
     }
-} // end of tableActions
+} // end of basicActionsNode
 
 /*
  * <A NAME="routineGrantStatement">routineGrantStatement</A>
@@ -15236,41 +15267,41 @@ List/*<TypeDescriptor>*/ parameterTypeList( ) throws StandardException :
 
 
 /*
- * <A NAME="tableAction">tableAction</A>
+ * <A NAME="basicAction">basicAction</A>
  */
-void tableAction( TablePrivilegesNode tablePrivilegesNode)  throws StandardException :
+void basicAction( BasicPrivilegesNode basicPrivilegesNode)  throws StandardException :
 {
     ResultColumnList columnList = null;
 }
 {
     <SELECT> [ columnList = privilegeColumnList() ]
     {
-        tablePrivilegesNode.addAction( TablePrivilegeInfo.SELECT_ACTION, columnList);
+        basicPrivilegesNode.addAction( BasicPrivilegeInfo.SELECT_ACTION, columnList);
     }
 |
     <DELETE>
     {
-        tablePrivilegesNode.addAction( TablePrivilegeInfo.DELETE_ACTION, (ResultColumnList) null);
+        basicPrivilegesNode.addAction( BasicPrivilegeInfo.DELETE_ACTION, (ResultColumnList) null);
     }
 |
     <INSERT>
     {
-        tablePrivilegesNode.addAction( TablePrivilegeInfo.INSERT_ACTION, (ResultColumnList) null);
+        basicPrivilegesNode.addAction( BasicPrivilegeInfo.INSERT_ACTION, (ResultColumnList) null);
     }
 |
     <UPDATE> [ columnList = privilegeColumnList() ]
     {
-        tablePrivilegesNode.addAction( TablePrivilegeInfo.UPDATE_ACTION, columnList);
+        basicPrivilegesNode.addAction( BasicPrivilegeInfo.UPDATE_ACTION, columnList);
     }
 |
     <REFERENCES> [ columnList = privilegeColumnList() ]
     {
-        tablePrivilegesNode.addAction( TablePrivilegeInfo.REFERENCES_ACTION, columnList);
+        basicPrivilegesNode.addAction( BasicPrivilegeInfo.REFERENCES_ACTION, columnList);
     }
 |
     <TRIGGER>
     {
-        tablePrivilegesNode.addAction( TablePrivilegeInfo.TRIGGER_ACTION, (ResultColumnList) null);
+        basicPrivilegesNode.addAction( BasicPrivilegeInfo.TRIGGER_ACTION, (ResultColumnList) null);
     }
 } // end of tableAction
 
@@ -15451,7 +15482,7 @@ tableRevokeStatement() throws StandardException :
     List grantees;
 }
 {
-       privileges = tablePrivileges()
+       privileges = privileges()
        <FROM> grantees = granteeList()
     {
         return (StatementNode) nodeFactory.getNode( C_NodeTypes.REVOKE_NODE,

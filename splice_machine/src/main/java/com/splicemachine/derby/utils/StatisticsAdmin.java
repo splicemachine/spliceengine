@@ -219,7 +219,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         for (TableDescriptor tableDescriptor : tableDescriptorList) {
             StatementTablePermission key = null;
             try {
-                key = new StatementTablePermission(tableDescriptor.getUUID(), Authorizer.INSERT_PRIV);
+
+                key = new StatementTablePermission(
+                        tableDescriptor.getSchemaDescriptor().getUUID(),
+                        tableDescriptor.getUUID(),
+                        Authorizer.INSERT_PRIV);
+
                 requiredPermissionsList.add(key);
                 lcc.getAuthorizer().authorize(activation, 1);
             } catch (StandardException e) {

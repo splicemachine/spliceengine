@@ -706,7 +706,7 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
-    public Visitable visit(TablePrivilegesNode node) throws StandardException {
+    public Visitable visit(BasicPrivilegesNode node) throws StandardException {
         return defaultVisit(node);
     }
 

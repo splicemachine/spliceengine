@@ -41,6 +41,9 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 
 public abstract class StatementPermission
 {
+	public static final int UNAUTHORIZED = 0;
+	public static final int AUTHORIZED = 1;
+	public static final int NONE = 2;
 	/**
 	 * Restrict implementations to this package to reduce
 	 * risk of external code spoofing the GRANT/REVOKE system

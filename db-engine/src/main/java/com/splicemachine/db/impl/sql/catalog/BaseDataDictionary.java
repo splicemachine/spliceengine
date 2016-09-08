@@ -26,7 +26,6 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.cache.CacheableFactory;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -138,6 +137,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 									"SYSFILES",
 									"SYSTRIGGERS",
                                     "SYSTABLEPERMS",
+                                    "SYSSCHEMAPERMS",
                                     "SYSCOLPERMS",
                                     "SYSROUTINEPERMS",
 									"SYSROLES",
