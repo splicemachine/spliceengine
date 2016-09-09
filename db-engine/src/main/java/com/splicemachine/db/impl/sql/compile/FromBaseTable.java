@@ -1932,6 +1932,8 @@ public class FromBaseTable extends FromTable {
 		 */
         assignResultSetNumber();
 
+        determineSpark();
+
 		/*
 		** If we are doing a special scan to get the last row
 		** of an index, generate it separately.
@@ -2104,6 +2106,9 @@ public class FromBaseTable extends FromTable {
 		/* Get the hash key columns and wrap them in a formattable */
         int[] hashKeyColumns;
 
+        acb.setDataSetProcessorType(dataSetProcessorType);
+
+
         hashKeyColumns=new int[resultColumns.size()];
         if(referencedCols==null){
             for(int index=0;index<hashKeyColumns.length;index++){
@@ -2167,11 +2172,6 @@ public class FromBaseTable extends FromTable {
         int colRefItem=-1;
         if(referencedCols!=null){
             colRefItem=acb.addItem(referencedCols);
-        }
-        // Set Spark Baby...
-        if (dataSetProcessorType.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
-            getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000) {
-            dataSetProcessorType = CompilerContext.DataSetProcessorType.SPARK;
         }
 
         acb.setDataSetProcessorType(dataSetProcessorType);
@@ -3326,5 +3326,13 @@ public class FromBaseTable extends FromTable {
 
     public CompilerContext.DataSetProcessorType getDataSetProcessorType() {
         return dataSetProcessorType;
+    }
+
+    private void determineSpark() {
+        // Set Spark Baby...
+        if (dataSetProcessorType.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
+                getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000) {
+            dataSetProcessorType = CompilerContext.DataSetProcessorType.SPARK;
+        }
     }
 }
