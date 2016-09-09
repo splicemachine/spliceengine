@@ -102,6 +102,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         protected String emptyRowFunMethodName;
         public boolean wasRightOuterJoin = false;
         public boolean isOuterJoin = false;
+		private Restriction mergeRestriction;
 
     public JoinOperation() {
 				super();
@@ -317,17 +318,19 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         }
 
     public Restriction getRestriction() {
-        Restriction mergeRestriction = Restriction.noOpRestriction;
-        if (restriction != null) {
-            mergeRestriction = new Restriction() {
-                @Override
-                public boolean apply(ExecRow row) throws StandardException {
-                    activation.setCurrentRow(row, resultSetNumber);
-                    DataValueDescriptor shouldKeep = restriction.invoke();
-                    return !shouldKeep.isNull() && shouldKeep.getBoolean();
-                }
-            };
-        }
+		if (mergeRestriction == null) {
+			mergeRestriction = Restriction.noOpRestriction;
+			if (restriction != null) {
+					mergeRestriction = new Restriction() {
+						@Override
+						public boolean apply(ExecRow row) throws StandardException {
+							activation.setCurrentRow(row, resultSetNumber);
+							DataValueDescriptor shouldKeep = restriction.invoke();
+							return !shouldKeep.isNull() && shouldKeep.getBoolean();
+						}
+					};
+			}
+		}
         return mergeRestriction;
     }
 
