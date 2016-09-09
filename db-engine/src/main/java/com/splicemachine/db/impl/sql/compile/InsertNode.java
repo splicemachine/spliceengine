@@ -707,7 +707,7 @@ public final class InsertNode extends DMLModStatementNode {
         String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
         String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
 
-		if (insertMode != null) {
+		if (insertModeString != null) {
             String upperValue = StringUtil.SQLToUpperCase(insertModeString);
             try {
                 insertMode = InsertMode.valueOf(upperValue);
