@@ -29,6 +29,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.log4j.Logger;
+import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
@@ -58,6 +59,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private NioEventLoopGroup workerGroup;
     private transient CountDownLatch active;
     private int batches;
+    private volatile TaskContext taskContext;
 
     // Serialization
     public ResultStreamer() {
@@ -80,7 +82,6 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         LOG.trace("Starting result streamer " + this);
         // Write init data right away
         ctx.writeAndFlush(new StreamProtocol.Init(uuid, numPartitions, partition));
-
         // Subsequent writes are from a separate thread, so we don't block this one
         this.future = this.workerGroup.submit(new Callable<Long>() {
             private long consumed;
@@ -89,6 +90,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
 
             @Override
             public Long call() throws InterruptedException {
+                org.apache.spark.TaskContext$.MODULE$.setTaskContext(taskContext);
                 boolean prepared = false;
                 ActivationHolder ah = null;
                 if (context != null) {
@@ -197,10 +199,11 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         this.partition = partition;
         this.locatedRowIterator = locatedRowIterator;
         this.active = new CountDownLatch(1);
-
+        taskContext = TaskContext.get();
         Bootstrap bootstrap;
         ThreadFactory tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ResultStreamer-"+host+":"+port+"["+partition+"]").build();
         this.workerGroup = new NioEventLoopGroup(2, tf);
+
         try {
 
             bootstrap = new Bootstrap();
