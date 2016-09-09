@@ -705,7 +705,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(Properties.class,new MapSerializer(),146);
 
         //instance.register(com.splicemachine.derby.client.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
-        instance.register(com.splicemachine.derby.impl.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER,148);
         instance.register(com.splicemachine.db.impl.sql.execute.IndexRow.class,
                 new ValueRowSerializer<com.splicemachine.db.impl.sql.execute.IndexRow>(){
                     @Override
