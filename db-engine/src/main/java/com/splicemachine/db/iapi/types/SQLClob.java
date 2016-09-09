@@ -782,6 +782,7 @@ public class SQLClob
                 srcIn.mark(MAX_STREAM_HEADER_LENGTH);
             }
             byte[] header = new byte[MAX_STREAM_HEADER_LENGTH];
+            // TODO fix this, read() isn't guaranteed to return more than 1 byte, see SPLICE-915
             int read = in.read(header);
             // Expect at least two header bytes.
             if (SanityManager.DEBUG) {
