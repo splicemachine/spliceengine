@@ -150,8 +150,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     public TxnView readTxn(ObjectInput oi) throws IOException{
         int size=oi.readInt();
         byte[] txnData=new byte[size];
-        int readAmt = oi.read(txnData);
-        if(readAmt!=size) throw new IOException("Did not read enough bytes!");
+        oi.readFully(txnData);
 
         return decode(txnData,0,txnData.length);
     }
