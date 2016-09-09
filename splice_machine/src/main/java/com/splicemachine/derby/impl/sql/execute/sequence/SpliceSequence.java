@@ -93,7 +93,6 @@ public class SpliceSequence extends AbstractSequence{
         super.readExternal(in);
         int size=in.readInt();
         sysColumnsRow=new byte[size];
-        int read=in.read(sysColumnsRow);
-        assert read==size: "Did not read entire byte array!";
+        in.readFully(sysColumnsRow);
     }
 }
