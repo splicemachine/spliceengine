@@ -143,9 +143,12 @@ public class ORCRecordReader implements Iterable<LocatedRow> {
 			try {
 				// Return Row Format
 				// Changed for performance
-				// ExecRow returnRow = execRow.getClone();
-				ExecRow returnRow = execRow;
+				//Reverting it back, since on import i.e. using insert with splice properties, inserted rows
+				// with all rows identical, the values of the last row.
+				 ExecRow returnRow = execRow.getClone();
+				//ExecRow returnRow = execRow;
 				// Get the row
+				
 				row = records.next(row);
 
 				// Get the row details
