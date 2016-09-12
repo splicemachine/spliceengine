@@ -1362,8 +1362,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return retval;
         }
         retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
-        if (retval!=null)
-            dataDictionaryCache.nameTdCacheAdd(tableKey,retval);
+        if (retval!=null) {
+            ConglomerateDescriptor[] conglomerateDescriptors = retval.getConglomerateDescriptors();
+            if (conglomerateDescriptors.length > 0 &&
+                    conglomerateDescriptors[0].getConglomerateNumber() < DataDictionary.FIRST_USER_TABLE_NUMBER)
+                retval.setVersion(SYSTABLESRowFactory.ORIGINAL_TABLE_VERSION);
+            dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
+        }
         return retval;
     }
 
