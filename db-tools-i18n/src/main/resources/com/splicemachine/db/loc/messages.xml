@@ -8841,6 +8841,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>backupId</arg>
                <arg>parentBackupId</arg>
            </msg>
+           <msg>
+               <name>BR014</name>
+               <text>A concurrent {0} backup is running.</text>
+               <arg>backupType</arg>
+           </msg>
        </family>
     </section>
 
