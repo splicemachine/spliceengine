@@ -277,14 +277,11 @@ public class TernaryOperatorNode extends OperatorNode
 	 * @exception StandardException	thrown on error
 	 */
 	protected int getOrderableVariantType() throws StandardException {
-
-        return Qualifier.VARIANT;
-      /*
-      int leftType = leftOperand.getOrderableVariantType();
-      return rightOperand == null ?
-               leftType : Math.min(leftType, rightOperand.getOrderableVariantType());
-
-      */
+		if (operator != null && operator.equals("trim") && rightOperand == null)
+			return Qualifier.VARIANT;
+		int leftType = leftOperand.getOrderableVariantType();
+		return rightOperand == null ?
+				leftType : Math.min(leftType, rightOperand.getOrderableVariantType());
 	}
 	
 	/**
