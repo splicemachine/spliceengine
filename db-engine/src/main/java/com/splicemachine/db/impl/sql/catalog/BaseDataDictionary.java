@@ -52,6 +52,9 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final int		SYSCOLUMNS_CORE_NUM = 2;
 	protected	static final int		SYSSCHEMAS_CORE_NUM = 3;
 	protected static final int        NUM_CORE = 4;
+	// NOTE: JC - When adding a new sys table, this
+	// number will need to be increased in BOTH places.
+	public static final long FIRST_USER_TABLE_NUMBER = 1458;
 	/**
 	* SYSFUN functions. Table of functions that automatically appear
 	* in the SYSFUN schema. These functions are resolved to directly

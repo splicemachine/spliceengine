@@ -17,6 +17,7 @@ package com.splicemachine.constants;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.TableName;
@@ -26,9 +27,6 @@ import org.apache.log4j.Logger;
 
 public class EnvUtils {
 	private static Logger LOG = Logger.getLogger(EnvUtils.class);
-    // NOTE: JC - this constant is also defined in DataDictionary. When adding a new sys table, this
-    // number will need to be increased in BOTH places.
-	private static final long FIRST_USER_TABLE_NUMBER = 1458;
 
     public static TableType getTableType(SConfiguration config,RegionCoprocessorEnvironment e) {
         return EnvUtils.getTableType(config,e.getRegion().getTableDesc().getTableName());
@@ -51,7 +49,7 @@ public class EnvUtils {
         else {
 			try {
 				long tableNumber = Long.parseLong(tableName.getQualifierAsString());
-				if (tableNumber < FIRST_USER_TABLE_NUMBER)
+				if (tableNumber < DataDictionaryImpl.FIRST_USER_TABLE_NUMBER)
 					return TableType.DERBY_SYS_TABLE;
 			} catch(NumberFormatException nfe){
                 return TableType.HBASE_TABLE;
