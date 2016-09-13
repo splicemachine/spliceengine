@@ -27,6 +27,7 @@ import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.Lock;
 
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.HMissedSplitException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.hfile.BlockType;
@@ -34,7 +35,6 @@ import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileBlock;
 import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
 import org.apache.hadoop.hbase.util.BloomFilter;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.HConfiguration;
@@ -68,8 +68,8 @@ public class HRegionUtil extends BaseHRegionUtil{
         HBasePlatformUtils.updateReadRequests(region,numReads);
     }
 
-    public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end) throws IOException {
-        assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length == 0;
+    public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end, byte[] expectedRegionEnd) throws IOException {
+        assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getCutpoints");
         Collection<StoreFile> storeFiles;
@@ -81,29 +81,26 @@ public class HRegionUtil extends BaseHRegionUtil{
         byte[] regionStart = store.getRegionInfo().getStartKey();
         byte[] regionEnd = store.getRegionInfo().getEndKey();
 
-        if ((end.length == 0 && regionEnd.length != 0)
-            || Bytes.compareTo(end, regionEnd) > 0) {
+        if ((expectedRegionEnd.length == 0 && regionEnd.length != 0)
+                || Bytes.endComparator.compare(expectedRegionEnd, regionEnd) > 0) {
             throw new HMissedSplitException("Subplit computation missed region split");
         }
 
         if (regionStart != null && regionStart.length > 0) {
-            if (start == null || Bytes.compareTo(start, regionStart) < 0) {
+            if (start == null || Bytes.startComparator.compare(start, regionStart) < 0) {
                 start = regionStart;
             }
         }
         if (regionEnd != null && regionEnd.length > 0) {
-            if (end == null || Bytes.compareTo(end, regionEnd) > 0) {
+            if (end == null || Bytes.endComparator.compare(end, regionEnd) > 0) {
                 end = regionEnd;
             }
         }
 
-
         Pair<byte[], byte[]> range = new Pair<>(start, end);
-//        double multiplier = Math.pow(1.05, storeFiles.size());
         for (StoreFile file : storeFiles) {
             if (file != null) {
                 long storeFileInBytes = file.getFileInfo().getFileStatus().getLen();
-                // If we have many store files, partitions will be harder to estimate and will tend to be bigger, apply a correction factor
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
                 fileReader = file.createReader().getHFileReader();
@@ -111,11 +108,11 @@ public class HRegionUtil extends BaseHRegionUtil{
             }
         }
 
-        if (storeFiles.size() > 1) {              // have to sort, hopefully will not happen a lot if major compaction is working properly...
+        if (storeFiles.size() > 1) {  // have to sort, hopefully will not happen a lot if major compaction is working properly...
             Collections.sort(cutPoints, new Comparator<byte[]>() {
                 @Override
                 public int compare(byte[] left, byte[] right) {
-                    return Bytes.compareTo(left, right);
+                    return org.apache.hadoop.hbase.util.Bytes.compareTo(left, right);
                 }
             });
         }
