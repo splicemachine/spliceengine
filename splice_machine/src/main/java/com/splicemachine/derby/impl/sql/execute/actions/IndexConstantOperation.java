@@ -148,7 +148,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
 
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
-			ScanSetBuilder<LocatedRow> builder = dsp.newScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
+			ScanSetBuilder<LocatedRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
 			builder.tableDisplayName(tableName)
 			.demarcationPoint(demarcationPoint)
 			.transaction(indexTransaction)
@@ -156,7 +156,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			.keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
 			.execRowTypeFormatIds(indexFormatIds)
 			.reuseRowLocation(false)
-			.operationContext(dsp.createOperationContext(activation))
 			.rowDecodingMap(rowDecodingMap)
 			.keyColumnTypes(ScanOperation.getKeyFormatIds(
 					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
