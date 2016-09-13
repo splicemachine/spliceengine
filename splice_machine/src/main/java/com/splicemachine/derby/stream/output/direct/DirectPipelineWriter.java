@@ -99,19 +99,21 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
             writeBuffer.flushBufferAndWait();
             writeBuffer.close();
             WriteStats ws = writeBuffer.getWriteStats();
-            opCtx.recordPipelineWrites(ws.getWrittenCounter());
-            opCtx.recordRetry(ws.getRetryCounter());
-            opCtx.recordThrownErrorRows(ws.getThrownErrorsRows());
-            opCtx.recordRetriedRows(ws.getRetriedRows());
-            opCtx.recordPartialRows(ws.getPartialRows());
-            opCtx.recordPartialThrownErrorRows(ws.getPartialThrownErrorRows());
-            opCtx.recordPartialRetriedRows(ws.getPartialRetriedRows());
-            opCtx.recordPartialIgnoredRows(ws.getPartialIgnoredRows());
-            opCtx.recordPartialWrite(ws.getPartialWrite());
-            opCtx.recordIgnoredRows(ws.getIgnoredRows());
-            opCtx.recordCatchThrownRows(ws.getCatchThrownRows());
-            opCtx.recordCatchRetriedRows(ws.getCatchRetriedRows());
-            opCtx.recordRegionTooBusy(ws.getRegionTooBusy());
+            if (opCtx != null) {
+                opCtx.recordPipelineWrites(ws.getWrittenCounter());
+                opCtx.recordRetry(ws.getRetryCounter());
+                opCtx.recordThrownErrorRows(ws.getThrownErrorsRows());
+                opCtx.recordRetriedRows(ws.getRetriedRows());
+                opCtx.recordPartialRows(ws.getPartialRows());
+                opCtx.recordPartialThrownErrorRows(ws.getPartialThrownErrorRows());
+                opCtx.recordPartialRetriedRows(ws.getPartialRetriedRows());
+                opCtx.recordPartialIgnoredRows(ws.getPartialIgnoredRows());
+                opCtx.recordPartialWrite(ws.getPartialWrite());
+                opCtx.recordIgnoredRows(ws.getIgnoredRows());
+                opCtx.recordCatchThrownRows(ws.getCatchThrownRows());
+                opCtx.recordCatchRetriedRows(ws.getCatchRetriedRows());
+                opCtx.recordRegionTooBusy(ws.getRegionTooBusy());
+            }
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
