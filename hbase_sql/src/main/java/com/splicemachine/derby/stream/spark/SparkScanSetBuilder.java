@@ -65,7 +65,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
     public DataSet<V> buildDataSet(Object caller) throws StandardException {
         if (op != null)
             operationContext = dsp.createOperationContext(op);
-        else if (activation != null)
+        else // this call works even if activation is null
             operationContext = dsp.createOperationContext(activation);
 
         JavaSparkContext ctx = SpliceSpark.getContext();
