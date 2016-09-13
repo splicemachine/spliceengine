@@ -19,7 +19,6 @@ import com.splicemachine.utils.Pair;
 import org.spark_project.guava.collect.ImmutableMap;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -34,8 +33,6 @@ import java.util.*;
 import static com.splicemachine.homeless.TestUtils.o;
 
 public class OuterJoinIT extends SpliceUnitTest { 
-
-    private static Logger LOG = Logger.getLogger(OuterJoinIT.class);
 
     public static final String CLASS_NAME = OuterJoinIT.class.getSimpleName().toUpperCase()+ "_2"; 
     public static final String TABLE_NAME_1 = "A";
@@ -204,7 +201,6 @@ public class OuterJoinIT extends SpliceUnitTest {
         int j = 0;
         while (rs.next()) {
             j++;
-            LOG.info(String.format("cc.sa=%s,count=%dd", rs.getString(1), rs.getInt(2)));
 			Assert.assertNotNull(rs.getString(1));
 			if (!rs.getString(1).equals("9")) {
 				Assert.assertEquals(1l,rs.getLong(2));
@@ -219,7 +215,6 @@ public class OuterJoinIT extends SpliceUnitTest {
         int j = 0;
         while (rs.next()) {
             j++;
-            LOG.info("cc.si=" + rs.getString(1) + ",dd.si=" + rs.getString(2));
             Assert.assertNotNull(rs.getString(2));
             if (!rs.getString(2).equals("9")) {
                 Assert.assertNotNull(rs.getString(1));
@@ -287,7 +282,6 @@ public class OuterJoinIT extends SpliceUnitTest {
         int j = 0;
         while (rs.next()) {
             j++;
-            LOG.info("c.si=" + rs.getString(1) + ",d.si=" + rs.getString(2));
             Assert.assertNotNull(rs.getString(2));
             if (!rs.getString(2).equals("9")) {
                 Assert.assertNotNull(rs.getString(1));
@@ -309,7 +303,6 @@ public class OuterJoinIT extends SpliceUnitTest {
         int j = 0;
         while (rs.next()) {
             j++;
-            LOG.info("c.si=" + rs.getString(1) + ",d.si=" + rs.getString(4));
             Assert.assertNotNull(rs.getString(4));
             if (!rs.getString(4).equals("9")) {
                 Assert.assertNotNull(rs.getString(1));
