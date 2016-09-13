@@ -28,8 +28,6 @@ import java.io.ObjectOutput;
  */
 public class AntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, LocatedRow, LocatedRow> {
     private static final long serialVersionUID = 3988079974858059941L;
-    protected int numberOfColumns = 0;
-
     public AntiJoinFunction() {
     }
 
