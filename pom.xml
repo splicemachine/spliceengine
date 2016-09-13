@@ -75,7 +75,6 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <spark.version>2.0.0</spark.version>
     </properties>
-    <!-- TODO: Will need to point this to splice open repo -->
     <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
         <developerConnection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</developerConnection>
@@ -88,7 +87,7 @@
     </ciManagement>
     <issueManagement>
         <system>jira</system>
-        <url>https://splicemachine.atlassian.net</url>
+        <url>https://splice.atlassian.net</url>
     </issueManagement>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Fail the build if not using maven >= 3.3.0  Just a sanity check.  3.3.0 because this
@@ -103,7 +102,12 @@
   Where 'mvn deploy' uploads files to.
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <distributionManagement>
-        <!--TODO: public nexus required for open src -->
+        <!--
+          TODO: public nexus required for open src
+          everything is in place, but still a little opaque:
+          - we do a separate set of deployments for "core" to splicemachine-public in Jenkins
+          - we use Maven opts (-DaltReleaseDeploymentRepository/-DaltSnapshotDeploymentRepository)
+        -->
         <repository>
             <id>splicemachine</id>
             <name>Splice Machine Releases</name>
