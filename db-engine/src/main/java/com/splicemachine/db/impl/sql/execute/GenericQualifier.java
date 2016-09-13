@@ -127,8 +127,7 @@ public class GenericQualifier implements Qualifier
 		if (variantType != VARIANT) {
 			if (orderableCache == null) {
 				try {
-					Method method = activation.getClass().getMethod(orderableGetter.getMethodName(), null);
-					orderableCache = (DataValueDescriptor) (method.invoke(activation,null));
+					orderableCache = (DataValueDescriptor) (orderableGetter.invoke(activation));
 				} catch (Exception e) {
 					throw StandardException.unexpectedUserException(e);
 				}
@@ -136,8 +135,7 @@ public class GenericQualifier implements Qualifier
 			return orderableCache;
 		}
 		try {
-			Method method = activation.getClass().getMethod(orderableGetter.getMethodName(), null);
-			return (DataValueDescriptor) (method.invoke(activation,null));
+			return (DataValueDescriptor) (orderableGetter.invoke(activation));
 		} catch (Exception e) {
 			throw StandardException.unexpectedUserException(e);
 		}
