@@ -53,6 +53,11 @@ public class WholeTextInputFormat extends CombineFileInputFormat<String, InputSt
         return conf;
     }
 
+    @Override
+    protected boolean isSplitable(JobContext context, Path file) {
+        return false;
+    }
+
     private class StringInputStreamRecordReader extends RecordReader<String, InputStream> {
         private String key;
         private InputStream value;
@@ -83,19 +88,14 @@ public class WholeTextInputFormat extends CombineFileInputFormat<String, InputSt
             }
 
             Path path = split.getPath(currentPath);
-            long off = split.getOffset(currentPath);
-            long len = split.getLength(currentPath);
             currentPath++;
 
             CompressionCodecFactory factory = new CompressionCodecFactory(conf);
             CompressionCodec codec = factory.getCodec(path);
             key = path.toString();
             FSDataInputStream fileIn = fs.open(path);
-            fileIn.seek(off); //move to the proper offset
 
             InputStream decodedStream = codec!=null?codec.createInputStream(fileIn):fileIn;
-            if(len<fileIn.available())
-                decodedStream = new LimitInputStream(decodedStream,len);
 
             value = decodedStream;
             return true;
