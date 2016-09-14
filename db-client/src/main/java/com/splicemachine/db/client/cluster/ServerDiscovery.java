@@ -16,22 +16,14 @@
 
 package com.splicemachine.db.client.cluster;
 
+import java.sql.SQLException;
+import java.util.List;
 
 /**
- * A Pool which allows an infinite number of open connections. Useful for testing,
- * but is otherwise not really recommended.
- *
- * In effect, this does nothing
- *
  * @author Scott Fines
- *         Date: 8/23/16
+ *         Date: 9/14/16
  */
-public class InfinitePoolSize implements PoolSizingStrategy{
-    public static PoolSizingStrategy INSTANCE = new InfinitePoolSize();
+public interface ServerDiscovery{
 
-    private InfinitePoolSize(){}
-
-    @Override public void acquirePermit(){ }
-    @Override public void releasePermit(){ }
-    @Override public int singleServerPoolSize(){ return Integer.MAX_VALUE; }
+    List<String> detectServers() throws SQLException;
 }

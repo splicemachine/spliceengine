@@ -21,10 +21,12 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -96,10 +98,70 @@ public class ClusteredDataSource implements DataSource{
      */
     private static final Logger LOGGER = Logger.getLogger(ClusteredDataSource.class.getName());
 
+    private final ServerList serverList;
+    private final ServerPoolFactory poolFactory;
+    private final String[] initialServers;
+    private final AtomicBoolean closed = new AtomicBoolean();
+    private final boolean validateConnections;
+
+    private final ScheduledExecutorService maintainer;
+    private final long discoveryWindow;
+
+    private final AtomicReference<FutureTask<Void>> discoveryTask = new AtomicReference<>(null);
+
+
+    ClusteredDataSource(String[] initialServers,
+                        ServerList serverList,
+                        ServerPoolFactory poolFactory,
+                        ScheduledExecutorService maintainer,
+                        boolean validateConnections,
+                        long discoveryWindow){
+        this.initialServers = initialServers;
+        this.serverList = serverList;
+        this.poolFactory = poolFactory;
+        this.validateConnections = validateConnections;
+        this.maintainer = maintainer;
+        this.discoveryWindow=discoveryWindow;
+    }
+
+    public void start(){
+        Discovery command=new Discovery();
+        schedule(command);
+    }
+
+
     @Override
     public Connection getConnection() throws SQLException{
-        return null;
+        if(closed.get())
+            throw new SQLException("DataSource is closed",SQLState.ALREADY_CLOSED);
+        Connection conn=tryAcquire();
+        if(conn!=null) return conn;
+
+        /*
+         * If we get to this point, then we tried to get a connection from an underlying pool,
+         * but all pools are currently full. To that end, we go back to the original server pool
+         * list and attempt to get a new connection; if that doesn't work, then we will fail
+         */
+        Iterator<ServerPool> activeServers = serverList.activeServers(); //get a new list
+        while(activeServers.hasNext()){
+            ServerPool serverPool = activeServers.next();
+            try{
+                conn = serverPool.tryAcquireConnection(validateConnections); //try the pool one more time
+                if(conn!=null) return conn;
+                else return serverPool.newConnection(); //try to get a new connection, but if that fails we keep trying
+            }catch(SQLException se){
+                if(!ClientErrors.isNetworkError(se)){
+                    throw se;
+                }
+                logError("getConnection("+serverPool.serverName+")",se,Level.INFO);
+                if(serverPool.isDead())
+                    serverList.serverDead(serverPool);
+            }
+        }
+
+        throw new SQLException("Unable to acquire a connection to any server: blacklisted nodes:"+serverList.blacklist(),SQLState.NO_CURRENT_CONNECTION);
     }
+
 
     @Override
     public Connection getConnection(String username,String password) throws SQLException{
@@ -108,7 +170,7 @@ public class ClusteredDataSource implements DataSource{
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException{
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("unwrap");
     }
 
     @Override
@@ -118,17 +180,17 @@ public class ClusteredDataSource implements DataSource{
 
     @Override
     public PrintWriter getLogWriter() throws SQLException{
-        return null;
+        throw new SQLFeatureNotSupportedException("getLogWriter");
     }
 
     @Override
     public void setLogWriter(PrintWriter out) throws SQLException{
-
+        throw new SQLFeatureNotSupportedException("setLogWriter");
     }
 
     @Override
     public void setLoginTimeout(int seconds) throws SQLException{
-
+        throw new SQLFeatureNotSupportedException("setLoginTimeout"); //TODO -sf- implement this
     }
 
     @Override
@@ -138,10 +200,108 @@ public class ClusteredDataSource implements DataSource{
 
     @Override
     public Logger getParentLogger() throws SQLFeatureNotSupportedException{
+        throw new SQLFeatureNotSupportedException("getParentLogger");
+    }
+
+    public void close() throws SQLException{
+        if(!closed.compareAndSet(false,true)) return;
+        ServerPool[] clear=serverList.clear();
+        SQLException se = null;
+        for(ServerPool sp:clear){
+            try{
+                sp.close();
+            }catch(SQLException e){
+                if(se==null) se = e;
+                else se.setNextException(e);
+            }
+        }
+        if(se!=null)
+            throw se;
+    }
+
+    public void detectServers() throws SQLException{
+        performDiscovery(new Discovery());
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private void logError(String operation,Throwable t){
+        logError(operation,t,Level.SEVERE);
+    }
+
+    private void logError(String operation,Throwable t,Level logLevel){
+        String errorMessage="error during "+operation+":";
+        if(t instanceof SQLException){
+            SQLException se=(SQLException)t;
+            errorMessage+="["+se.getSQLState()+"]";
+        }
+        if(t.getMessage()!=null)
+            errorMessage+=t.getMessage();
+
+        LOGGER.log(logLevel,errorMessage,t);
+    }
+
+    private class Discovery implements Runnable,Callable<Void>{
+        @Override
+        public void run(){
+            performDiscovery(this);
+        }
+
+        @Override
+        public Void call() throws Exception{
+
+            return null;
+        }
+    }
+
+    private Connection tryAcquire() throws SQLException{
+        Iterator<ServerPool> activeServers = serverList.activeServers();
+        while(activeServers.hasNext()){
+            ServerPool serverPool = activeServers.next();
+            try{
+                Connection conn = serverPool.tryAcquireConnection(validateConnections);
+                if(conn!=null) return conn;
+            }catch(SQLException se){
+                if(!ClientErrors.isNetworkError(se)){
+                    throw se;
+                }
+                logError("getConnection("+serverPool.serverName+")",se,Level.INFO);
+                if(serverPool.isDead())
+                    serverList.serverDead(serverPool);
+            }
+        }
         return null;
     }
 
-    public void close(){
+    private void performDiscovery(Callable<Void> callable){
+        FutureTask<Void> running;
+        do{
+            running = discoveryTask.get();
+            if(running!=null){
+                try{
+                    running.get();
+                }catch(InterruptedException e){
+                    Thread.currentThread().interrupt();
+                }catch(ExecutionException e){
+                    //this shouldn't happen, but just in case, we'll re-throw
+                    throw new RuntimeException(e.getCause());
+                }
+                return;
+            }else{
+                FutureTask<Void> pTask =new FutureTask<>(callable);
+                if(discoveryTask.compareAndSet(null,pTask)){
+                    running = pTask;
+                    break;
+                }
+            }
+        }while(true);
+        running.run();
+        discoveryTask.set(null);
+    }
 
+    private void schedule(Runnable command){
+        maintainer.scheduleAtFixedRate(command,
+                0L,discoveryWindow,
+                TimeUnit.MILLISECONDS);
     }
 }

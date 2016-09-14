@@ -22,9 +22,5 @@ package com.splicemachine.db.client.cluster;
  */
 interface ServerPoolFactory{
 
-    ServerPool newServerPool(String serverId,
-                             String database,
-                             String user,
-                             String password,
-                             PoolSizingStrategy sizingStrategy);
+    ServerPool newServerPool(String serverId);
 }

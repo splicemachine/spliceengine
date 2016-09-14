@@ -32,24 +32,34 @@ public class ConfiguredServerPoolFactory implements ServerPoolFactory{
     private volatile int loginTimeout;
     private volatile int validationTimeout;
     private final FailureDetectorFactory failureDetectorFactory;
+    private final PoolSizingStrategy sizingStrategy;
+    private final String database;
+    private final String user;
+    private final String password;
 
-    public ConfiguredServerPoolFactory(FailureDetectorFactory failureDetectorFactory){
-        this(DEFAULT_LOGIN_TIMEOUT,DEFAULT_VALIDATION_TIMEOUT,failureDetectorFactory);
+    public ConfiguredServerPoolFactory(String database,String user, String password,
+                                       FailureDetectorFactory failureDetectorFactory,
+                                       PoolSizingStrategy sizingStrategy){
+        this(database,user,password,DEFAULT_LOGIN_TIMEOUT,DEFAULT_VALIDATION_TIMEOUT,failureDetectorFactory,sizingStrategy);
     }
 
     @SuppressWarnings("WeakerAccess")
-    public ConfiguredServerPoolFactory(int loginTimeout,int validationTimeout,FailureDetectorFactory failureDetectorFactory){
+    public ConfiguredServerPoolFactory(String database,
+                                       String user,String password,
+                                       int loginTimeout,int validationTimeout,
+                                       FailureDetectorFactory failureDetectorFactory,
+                                       PoolSizingStrategy sizingStrategy){
         this.loginTimeout=loginTimeout;
         this.validationTimeout=validationTimeout;
         this.failureDetectorFactory=failureDetectorFactory;
+        this.sizingStrategy = sizingStrategy;
+        this.database = database;
+        this.user = user;
+        this.password = password;
     }
 
     @Override
-    public ServerPool newServerPool(String serverId,
-                                    String database,
-                                    String user,
-                                    String password,
-                                    PoolSizingStrategy sizingStrategy){
+    public ServerPool newServerPool(String serverId){
         int singleServerPoolSize = sizingStrategy.singleServerPoolSize();
 
         DataSource delegateDataSource=newDataSource(serverId,database,user,password);

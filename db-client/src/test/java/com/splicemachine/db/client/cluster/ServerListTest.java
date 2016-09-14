@@ -36,6 +36,19 @@ import static org.mockito.Mockito.*;
 public class ServerListTest{
 
     @Test
+    public void functionsWithEmptyServerList() throws Exception{
+        ServerList sl = new ServerList(new ConnectionSelectionStrategy(){
+            @Override
+            public int nextServer(int previous,int numServers){
+                return 1;
+            }
+        },new ServerPool[]{});
+
+        Iterator<ServerPool> spIter=sl.activeServers();
+        Assert.assertFalse("Returns a server!",spIter.hasNext());
+    }
+
+    @Test
     public void activeServersReturnsActive() throws Exception{
         FailureDetector fd = new DeadlineFailureDetector(Long.MAX_VALUE);
         ServerPool active = new ServerPool(mock(DataSource.class),

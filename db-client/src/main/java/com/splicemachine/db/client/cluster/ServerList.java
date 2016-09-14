@@ -84,6 +84,12 @@ class ServerList{
         }
     }
 
+    /**
+     * Merge a new set of servers into the list.
+     *
+     * @param newServers the new set of servers
+     * @throws SQLException if something goes wrong during the setting.
+     */
     void setServerList(ServerPool[] newServers) throws SQLException{
         activeServers.mergeArray(newServers);
     }
@@ -99,6 +105,15 @@ class ServerList{
      */
     void validateAllServers() throws SQLException{
         activeServers.heartbeatAll();
+    }
+
+    ServerPool[] clear(){
+        blacklist.clear();
+        return activeServers.clear();
+    }
+
+    Collection<String> blacklist(){
+        return Collections.unmodifiableSet(blacklist);
     }
 
     /* ****************************************************************************************************************/
@@ -153,6 +168,17 @@ class ServerList{
             this.css=css;
             Arrays.sort(initialArray);
             this.array=initialArray;
+        }
+
+        public ServerPool[] clear(){
+            mutationLock.lock();
+            try{
+                ServerPool[] sp = array;
+                array = null;
+                return sp;
+            }finally{
+                mutationLock.unlock();
+            }
         }
 
         void heartbeatAll() throws SQLException{

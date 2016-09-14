@@ -32,7 +32,8 @@ public enum ConnectionStrategy implements ConnectionSelectionStrategy{
     ROUND_ROBIN{
         @Override
         public int nextServer(int previous,int numServers){
-            return (previous+1) % numServers;
+            if(numServers==0) return 0;
+            else return (previous+1) % numServers;
         }
     },
 }

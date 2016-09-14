@@ -274,7 +274,7 @@ public class ClusteredDriver implements Driver{
 
     private PoolSizingStrategy configurePoolSizing(Properties augmentedProperties){
         //TODO -sf- make this bounded by default
-        return new InfinitePoolSize();
+        return InfinitePoolSize.INSTANCE;
     }
 
     private ConnectionSelectionStrategy configureSelectionStrategy(Properties augmentedProperties){
@@ -294,7 +294,8 @@ public class ClusteredDriver implements Driver{
         }
         FailureDetectorFactory fdf = new DeadlineFailureDetectorFactory(failureTimeMillis);
         //TODO -sf- configure loging timeout
-        return new ConfiguredServerPoolFactory(fdf);
+//        return new ConfiguredServerPoolFactory(fdf);
+        return null;
     }
 
     private static final String HEARTBEAT = "heartbeat";
