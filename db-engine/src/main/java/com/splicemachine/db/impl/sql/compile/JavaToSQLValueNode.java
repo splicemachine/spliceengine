@@ -142,7 +142,9 @@ public class JavaToSQLValueNode extends ValueNode
 			mb.conditionalIfNull();
 			mb.getField(nullValueField);
 			acb.generateNullWithExpress(mb, getTypeCompiler(), 
-					getTypeServices().getCollationType());
+					getTypeServices().getCollationType(),
+					getTypeServices().getPrecision(),
+					getTypeServices().getScale());
 
 
 			/*

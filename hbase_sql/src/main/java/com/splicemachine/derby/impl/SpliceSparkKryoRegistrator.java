@@ -71,6 +71,7 @@ import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
+import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -687,5 +688,22 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(RowPartition.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(HalfMergeSortJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(HalfMergeSortLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(RowToLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LocatedRowToRowFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CachedOperation.CacheFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CountJoinedLeftFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CountJoinedRightFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CountProducedFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CountReadFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(EmptyFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(HTableScanTupleFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(IndexToBaseRowFilterPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(IndexTransformFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(InnerJoinNullFilterFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(RowTransformFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TxnViewDecoderFunction.class,EXTERNALIZABLE_SERIALIZER);
+
+
     }
 }

@@ -51,8 +51,11 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * SQLBoolean satisfies the DataValueDescriptor
@@ -82,8 +85,7 @@ public final class SQLBoolean
 	 * (mostly implemented in DataType)
 	 */
 
-	public boolean	getBoolean()
-	{
+	public boolean	getBoolean() {
 		return value;
 	}
 
@@ -1078,8 +1080,10 @@ public final class SQLBoolean
 	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
 		if (isNull())
 			unsafeRowWriter.setNullAt(ordinal);
-		else
-		unsafeRowWriter.write(ordinal,value);
+		else {
+			isNull = false;
+			unsafeRowWriter.write(ordinal, value);
+		}
 	}
 
 	/**
@@ -1096,9 +1100,20 @@ public final class SQLBoolean
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 			setToNull();
-		else
+		else {
+			isNull = false;
 			value = unsafeRow.getBoolean(ordinal);
+		}
 	}
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else
+			value = row.getBoolean(ordinal);
+	}
+
 
 	/**
 	 *
@@ -1147,5 +1162,8 @@ public final class SQLBoolean
 			value = OrderedBytes.decodeInt8(src)==T?true:false;
 	}
 
-
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.BooleanType, true);
+	}
 }

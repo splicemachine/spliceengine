@@ -28,6 +28,29 @@ import java.util.concurrent.Future;
  * Stream of data acting on an iterable set of values.
  */
 public interface DataSet<V> extends Iterable<V>, Serializable {
+
+    public enum JoinType {
+        INNER("inner"),
+        OUTER("outer"),
+        FULL("full"),
+        FULLOUTER("fullouter"),
+        LEFTOUTER("leftouter"),
+        RIGHTOUTER("rightouter"),
+        RIGHT("right"),
+        LEFTSEMI("leftsemi"),
+        LEFTANTI("leftanti");
+
+        private final String strategy;
+
+        JoinType(String strategy) {
+            this.strategy = strategy;
+        }
+
+        public String strategy() {
+            return strategy;
+        }
+    }
+
     /**
      *
      * Collect the stream of data, materializes to a list (memory beware).
@@ -212,4 +235,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     void saveAsTextFile(String path);
 
     PairDataSet<V, Long> zipWithIndex();
+
+    DataSet<V> join(OperationContext operationContext, DataSet<V> rightDataSet,JoinType joinType, boolean isBroadcast);
+
 }

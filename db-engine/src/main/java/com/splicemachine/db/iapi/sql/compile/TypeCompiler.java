@@ -180,7 +180,7 @@ public interface TypeCompiler
 	 *   decide whether to generate CollatorSQLcharDVDs or SQLcharDVDs.
 	 */
 
-	void generateNull(MethodBuilder mb, int collationType);
+	void generateNull(MethodBuilder mb, int collationType, int precision, int scale);
 
 
 	/**

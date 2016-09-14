@@ -71,4 +71,17 @@ public class J2SEDataValueFactory extends DataValueFactoryImpl
 			return dataValue;
 		}
 	}
+
+	public NumberDataValue getNullDecimal(NumberDataValue dataValue, int precision, int scale) {
+		if (dataValue == null) {
+			SQLDecimal sqlDecimal = new SQLDecimal();
+			sqlDecimal.setPrecision(precision);
+			sqlDecimal.setScale(scale);
+			return sqlDecimal;
+		} else {
+			dataValue.setToNull();
+			return dataValue;
+		}
+	}
+
 }

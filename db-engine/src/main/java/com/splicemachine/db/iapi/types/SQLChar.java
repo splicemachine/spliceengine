@@ -72,8 +72,11 @@ import org.apache.hadoop.hbase.types.OrderedString;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.joda.time.DateTime;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
@@ -3316,8 +3319,9 @@ public class SQLChar
     public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
         if (isNull())
             unsafeRowWriter.setNullAt(ordinal);
-        else
+        else {
             unsafeRowWriter.write(ordinal, UTF8String.fromString(value));
+        }
     }
 
     /**
@@ -3334,8 +3338,20 @@ public class SQLChar
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
         if (unsafeRow.isNullAt(ordinal))
             setToNull();
-        else
+        else {
+            isNull = false;
             value = unsafeRow.getUTF8String(ordinal).toString();
+        }
+    }
+
+    @Override
+    public void read(Row row, int ordinal) throws StandardException {
+        if (row.isNullAt(ordinal))
+            setToNull();
+        else {
+            isNull = false;
+            value = row.getString(ordinal);
+        }
     }
 
     /**
@@ -3381,4 +3397,11 @@ public class SQLChar
     public void decodeFromKey(PositionedByteRange src) throws StandardException {
         value = OrderedBytes.decodeString(src);
     }
+
+    @Override
+    public StructField getStructField(String columnName) {
+        return DataTypes.createStructField(columnName, DataTypes.StringType, true);
+    }
+
+
 }
