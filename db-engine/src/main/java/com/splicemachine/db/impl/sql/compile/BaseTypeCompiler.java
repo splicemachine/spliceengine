@@ -26,6 +26,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -107,10 +108,15 @@ abstract class BaseTypeCompiler implements TypeCompiler
      * 
      * @see TypeCompiler#generateNull(MethodBuilder, int)
      */
-	public void generateNull(MethodBuilder mb, int collationType)
+	public void generateNull(MethodBuilder mb, int collationType, int precision, int scale)
 	{
         int argCount;
-        if (pushCollationForDataValue(collationType))
+		if (correspondingTypeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID) {
+			mb.push(precision);
+			mb.push(scale);
+			argCount = 3;
+		}
+        else if (pushCollationForDataValue(collationType))
         {
             mb.push(collationType);
             argCount = 2;

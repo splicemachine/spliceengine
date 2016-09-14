@@ -54,8 +54,11 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * This type implements the XMLDataValue interface and thus is
@@ -1134,6 +1137,14 @@ public class XML
         xmlStringValue = new SQLChar(unsafeRow.getUTF8String(ordinal).toString());
     }
 
+    @Override
+    public void read(Row row, int ordinal) throws StandardException {
+        if (row.isNullAt(ordinal))
+            setToNull();
+        else
+            xmlStringValue = new SQLChar(row.getString(ordinal));
+    }
+
     /**
      *
      * Get encoded key length.
@@ -1178,5 +1189,10 @@ public class XML
                     xmlStringValue = new SQLChar();
         xmlStringValue.decodeFromKey(src);
     }
-    
+
+    @Override
+    public StructField getStructField(String columnName) {
+        return DataTypes.createStructField(columnName, DataTypes.StringType, true);
+    }
+
 }

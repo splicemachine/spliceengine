@@ -39,9 +39,12 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.Platform;
 import org.joda.time.DateTime;
 
@@ -170,7 +173,7 @@ public final class SQLTimestamp extends DataType
 			return null;
 
         if( cal == null)
-            cal = new GregorianCalendar();
+            cal = SQLDate.GREGORIAN_CALENDAR.get();
         
         // Will clear all the other fields to zero
         // that we require at zero, specifically
@@ -379,7 +382,7 @@ public final class SQLTimestamp extends DataType
 			/* O.K. have to do it the hard way and calculate the numeric value
 			 * from the value
 			 */
-			Calendar cal = new GregorianCalendar();
+			Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
 			Timestamp otherts = other.getTimestamp(cal);
 			otherEncodedDate = SQLTimestamp.computeEncodedDate(otherts, cal);
 			otherEncodedTime = SQLTimestamp.computeEncodedTime(otherts, cal);
@@ -464,7 +467,7 @@ public final class SQLTimestamp extends DataType
         }
         else
         {
-            cal = new GregorianCalendar();
+            cal = SQLDate.GREGORIAN_CALENDAR.get();
             encodedDateLocal = computeEncodedDate( date.getDate( cal), cal);
         }
         if( time instanceof SQLTime)
@@ -475,7 +478,7 @@ public final class SQLTimestamp extends DataType
         else
         {
             if( cal == null)
-                cal = new GregorianCalendar();
+                cal = SQLDate.GREGORIAN_CALENDAR.get();
             encodedTimeLocal = computeEncodedTime( time.getTime( cal), cal);
         }
 		setValue(encodedDateLocal, encodedTimeLocal);
@@ -577,7 +580,7 @@ public final class SQLTimestamp extends DataType
         else
             timestampFormat = (DateFormat) localeFinder.getTimestampFormat().clone();
         if( cal == null)
-            cal = new GregorianCalendar();
+            cal = SQLDate.GREGORIAN_CALENDAR.get();
         else
             timestampFormat.setCalendar( cal);
         java.util.Date date = timestampFormat.parse( str);
@@ -652,7 +655,7 @@ public final class SQLTimestamp extends DataType
         }
 		else
         {
-            Calendar cal = new GregorianCalendar();
+            Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
 			setValue(theValue.getTimestamp( cal), cal);
         }
 	}
@@ -668,7 +671,7 @@ public final class SQLTimestamp extends DataType
         if( value != null)
         {
             if( cal == null)
-                cal = new GregorianCalendar();
+                cal = SQLDate.GREGORIAN_CALENDAR.get();
             setValue(computeEncodedDate(value, cal));
         }
 		/* encodedTime and nanos are already set to zero by restoreToNull() */
@@ -1010,7 +1013,7 @@ public final class SQLTimestamp extends DataType
 	}
 
 	private Timestamp computeGregorianCalendarTimestamp(int year) {
-		GregorianCalendar c = new GregorianCalendar();
+		GregorianCalendar c = SQLDate.GREGORIAN_CALENDAR.get();
 		c.clear();
 		c.set(year, SQLDate.getMonth(encodedDate) - 1, SQLDate.getDay(encodedDate), SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime));
 		// c.setTimeZone(...); if necessary
@@ -1297,7 +1300,7 @@ public final class SQLTimestamp extends DataType
 
     private void addInternal( int calIntervalType, int count, SQLTimestamp tsResult) throws StandardException
     {
-        Calendar cal = new GregorianCalendar();
+        Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
         setCalendar( cal);
         try
         {
@@ -1408,7 +1411,7 @@ public final class SQLTimestamp extends DataType
         /* Years, months, and quarters are difficult because their lengths are not constant.
          * The other intervals are relatively easy (because we ignore leap seconds).
          */
-        Calendar cal = new GregorianCalendar();
+        Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
         setCalendar( cal);
         long thisInSeconds = cal.getTime().getTime()/1000;
         ts1.setCalendar( cal);
@@ -1555,7 +1558,7 @@ public final class SQLTimestamp extends DataType
         else if( dateTime instanceof SQLDate)
             return new SQLTimestamp( ((SQLDate) dateTime).getEncodedDate(), 0, 0);
         else
-            return new SQLTimestamp( dateTime.getTimestamp( new GregorianCalendar()));
+            return new SQLTimestamp( dateTime.getTimestamp( SQLDate.GREGORIAN_CALENDAR.get()));
     } // end of promote
     
     public Format getFormat() {
@@ -1604,9 +1607,20 @@ public final class SQLTimestamp extends DataType
 				encodedDate = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset);
 				encodedTime = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 4L);
 				nanos = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 8L);
-				setIsNull(false);
+				isNull = false;
 			}
 	    }
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			Timestamp ts = row.getTimestamp(ordinal);
+			setNumericTimestamp(ts,null);
+			isNull = false;
+		}
+	}
 
 	/**
 	 *
@@ -1656,4 +1670,9 @@ public final class SQLTimestamp extends DataType
 				setIsNull(false);
 			}
 	    }
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.TimestampType, true);
+	}
+
 }

@@ -34,10 +34,8 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.util.JBitSet;
-
 import java.lang.reflect.Modifier;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * This node represents coalesce/value function which returns the first argument that is not null.
@@ -290,7 +288,8 @@ public class CoalesceFunctionNode extends ValueNode
 		//Following is for the second arg. This arg will be used to pass the return value.
 		//COALESCE method expects this to be initialized to NULL SQLxxx type object.
 		LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, receiverType);
-		acb.generateNull(mb, getTypeCompiler(), getTypeServices().getCollationType());
+		acb.generateNull(mb, getTypeCompiler(), getTypeServices().getCollationType(),
+				getTypeServices().getPrecision(),getTypeServices().getScale());
 		mb.upCast(ClassName.DataValueDescriptor);
 		mb.putField(field);
 

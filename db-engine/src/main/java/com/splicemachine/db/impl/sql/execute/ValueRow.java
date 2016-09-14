@@ -29,12 +29,22 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import scala.collection.Map;
+import scala.collection.Seq;
 import scala.util.hashing.MurmurHash3;
 
 /**
@@ -50,6 +60,7 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 
 	private DataValueDescriptor[] column;
 	private int ncols;
+	private String hmm = null;
 
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -358,4 +369,246 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
         return result;
     }
 
+	public org.apache.spark.sql.Row getSparkRow() {
+		return this;
+	}
+
+	public ExecRow fromSparkRow(org.apache.spark.sql.Row row) {
+		try {
+			int size = row.length() < ncols?row.length():ncols; // Fix for antijoin
+			for (int i = 0; i < size; i++) {
+				column[i].read(row,i);
+			}
+			return this;
+		}
+		catch (StandardException se) {
+				throw new RuntimeException(se);
+			}
+	}
+
+	@Override
+	public int size() {
+		return ncols;
+	}
+
+	@Override
+	public int length() {
+		return ncols;
+	}
+
+	@Override
+	public StructType schema() {
+		StructField[] fields = new StructField[ncols];
+		for (int i = 0; i < ncols;i++) {
+			fields[i] = column[i].getStructField(""+i);
+		}
+		return DataTypes.createStructType(fields);
+	}
+
+	@Override
+	public Object apply(int i) {
+		try {
+			return column[i].getObject();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public Object get(int i) {
+		try {
+			return column[i].getObject();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public boolean isNullAt(int i) {
+		return column[i].isNull();
+	}
+
+	@Override
+	public boolean getBoolean(int i) {
+		try {
+			return column[i].getBoolean();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public byte getByte(int i) {
+		try {
+			return column[i].getByte();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public short getShort(int i) {
+		try {
+			return column[i].getShort();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+
+	}
+
+	@Override
+	public int getInt(int i) {
+		try {
+			return column[i].getInt();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public long getLong(int i) {
+		try {
+			return column[i].getLong();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public float getFloat(int i) {
+		try {
+			return column[i].getFloat();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public double getDouble(int i) {
+		try {
+			return column[i].getDouble();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public String getString(int i) {
+		try {
+			return column[i].getString();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public BigDecimal getDecimal(int i) {
+		try {
+			return (BigDecimal) column[i].getObject();
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public Date getDate(int i) {
+		try {
+			return column[i].getDate(null);
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public Timestamp getTimestamp(int i) {
+		try {
+			return column[i].getTimestamp(null);
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public <T> Seq<T> getSeq(int i) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public <T> List<T> getList(int i) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public <K, V> Map<K, V> getMap(int i) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public <K, V> java.util.Map<K, V> getJavaMap(int i) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Row getStruct(int i) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public <T> T getAs(int i) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public <T> T getAs(String s) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public int fieldIndex(String s) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public <T> scala.collection.immutable.Map<String, T> getValuesMap(Seq<String> seq) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Row copy() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean anyNull() {
+		return false;
+	}
+
+	@Override
+	public Seq<Object> toSeq() {
+		return scala.collection.JavaConversions.asScalaBuffer(Arrays.asList(column));
+	}
+
+	@Override
+	public String mkString() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String mkString(String s) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String mkString(String s, String s1, String s2) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public StructType createStructType() {
+		StructField[] fields = new StructField[length()];
+		for (int i = 0; i < length(); i++) {
+			fields[i] = getColumn(i + 1).getStructField("" + i);
+		}
+		return DataTypes.createStructType(fields);
+	}
 }

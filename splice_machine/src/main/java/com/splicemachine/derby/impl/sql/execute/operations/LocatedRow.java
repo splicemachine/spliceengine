@@ -20,16 +20,24 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.StructType;
+import scala.collection.Map;
+import scala.collection.Seq;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.List;
 
 /**
  * Created by dgomezferro on 4/14/15.
  */
-public class LocatedRow implements KeyableRow, Externalizable {
+public class LocatedRow implements KeyableRow, Externalizable, Row {
     private RowLocation rowLocation;
     private ExecRow row;
 
@@ -117,5 +125,165 @@ public class LocatedRow implements KeyableRow, Externalizable {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         rowLocation = (RowLocation) in.readObject();
         row = (ExecRow) in.readObject();
+    }
+
+    @Override
+    public int size() {
+        return row.size();
+    }
+
+    @Override
+    public int length() {
+        return row.length();
+    }
+
+    @Override
+    public StructType schema() {
+        return row.schema();
+    }
+
+    @Override
+    public Object apply(int i) {
+        return row.apply(i);
+    }
+
+    @Override
+    public Object get(int i) {
+        return row.get(i);
+    }
+
+    @Override
+    public boolean isNullAt(int i) {
+        return row.isNullAt(i);
+    }
+
+    @Override
+    public boolean getBoolean(int i) {
+        return row.getBoolean(i);
+    }
+
+    @Override
+    public byte getByte(int i) {
+        return row.getByte(i);
+    }
+
+    @Override
+    public short getShort(int i) {
+        return row.getShort(i);
+    }
+
+    @Override
+    public int getInt(int i) {
+        return row.getInt(i);
+    }
+
+    @Override
+    public long getLong(int i) {
+        return row.getLong(i);
+    }
+
+    @Override
+    public float getFloat(int i) {
+        return row.getFloat(i);
+    }
+
+    @Override
+    public double getDouble(int i) {
+        return row.getDouble(i);
+    }
+
+    @Override
+    public String getString(int i) {
+        return row.getString(i);
+    }
+
+    @Override
+    public BigDecimal getDecimal(int i) {
+        return row.getDecimal(i);
+    }
+
+    @Override
+    public Date getDate(int i) {
+        return row.getDate(i);
+    }
+
+    @Override
+    public Timestamp getTimestamp(int i) {
+        return row.getTimestamp(i);
+    }
+
+    @Override
+    public <T> Seq<T> getSeq(int i) {
+        return row.getSeq(i);
+    }
+
+    @Override
+    public <T> List<T> getList(int i) {
+        return row.getList(i);
+    }
+
+    @Override
+    public <K, V> Map<K, V> getMap(int i) {
+        return row.getMap(i);
+    }
+
+    @Override
+    public <K, V> java.util.Map<K, V> getJavaMap(int i) {
+        return row.getJavaMap(i);
+    }
+
+    @Override
+    public Row getStruct(int i) {
+        return row.getStruct(i);
+    }
+
+    @Override
+    public <T> T getAs(int i) {
+        return row.getAs(i);
+    }
+
+    @Override
+    public <T> T getAs(String s) {
+        return row.getAs(s);
+    }
+
+    @Override
+    public int fieldIndex(String s) {
+        return row.fieldIndex(s);
+    }
+
+    @Override
+    public <T> scala.collection.immutable.Map<String, T> getValuesMap(Seq<String> seq) {
+        return row.getValuesMap(seq);
+    }
+
+    @Override
+    public Row copy() {
+        return this.getClone();
+    }
+
+    @Override
+    public boolean anyNull() {
+        return row.anyNull();
+    }
+
+    @Override
+    public Seq<Object> toSeq() {
+        return row.toSeq();
+    }
+
+    @Override
+    public String mkString() {
+        return row.mkString();
+    }
+
+    @Override
+    public String mkString(String s) {
+        return row.mkString(s);
+    }
+
+    @Override
+    public String mkString(String s, String s1, String s2) {
+        return row.mkString(s,s1,s2);
     }
 }

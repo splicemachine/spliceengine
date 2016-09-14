@@ -46,6 +46,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.types.StructField;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -643,4 +644,10 @@ public class IndexConglomerate extends SpliceConglomerate{
         format_ids=ConglomerateUtil.readFormatIdArray(this.nKeyFields,in);
         id=new ContainerKey(segmentid,containerid);
     }
+
+    @Override
+    public StructField getStructField(String columnName) {
+        throw new RuntimeException("Not Implemented");
+    }
+
 }

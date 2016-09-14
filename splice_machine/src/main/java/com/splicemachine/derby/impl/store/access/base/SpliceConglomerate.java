@@ -31,10 +31,12 @@ import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
@@ -227,6 +229,11 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
     @Override
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public void read(Row unsafeRow, int ordinal) throws StandardException {
         throw new RuntimeException("Not Implemented");
     }
 

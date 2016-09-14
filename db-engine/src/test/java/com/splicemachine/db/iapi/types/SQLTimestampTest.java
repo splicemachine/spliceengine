@@ -22,35 +22,35 @@ import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
-import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.GregorianCalendar;
 
 /**
  *
- * Test Class for SQLTime
+ * Test Class for SQLTimestamp
  *
  */
-public class SQLTimeTest {
+public class SQLTimestampTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                Time time = new Time(System.currentTimeMillis());
-                SQLTime value = new SQLTime(time);
-                SQLTime valueA = new SQLTime();
+                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+                SQLTimestamp value = new SQLTimestamp(timestamp);
+                SQLTimestamp valueA = new SQLTimestamp();
+                writer.reset();
                 value.write(writer, 0);
                 valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",time.toString(),valueA.getTime(new GregorianCalendar()).toString());
+                Assert.assertEquals("SerdeIncorrect",timestamp.toString(),valueA.getTimestamp(new GregorianCalendar()).toString());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                Time time = new Time(System.currentTimeMillis());
-                SQLTime value = new SQLTime(time);
-                SQLTime valueA = new SQLTime();
+                SQLTimestamp value = new SQLTimestamp();
+                SQLTimestamp valueA = new SQLTimestamp();
                 value.write(writer, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
@@ -59,10 +59,10 @@ public class SQLTimeTest {
         public void serdeKeyData() throws Exception {
                 GregorianCalendar gc = new GregorianCalendar();
                 long currentTimeMillis = System.currentTimeMillis();
-                SQLTime value1 = new SQLTime(new Time(currentTimeMillis));
-                SQLTime value2 = new SQLTime(new Time(currentTimeMillis+200));
-                SQLTime value1a = new SQLTime();
-                SQLTime value2a = new SQLTime();
+                SQLTimestamp value1 = new SQLTimestamp(new Timestamp(currentTimeMillis));
+                SQLTimestamp value2 = new SQLTimestamp(new Timestamp(currentTimeMillis+200));
+                SQLTimestamp value1a = new SQLTimestamp();
+                SQLTimestamp value2a = new SQLTimestamp();
                 PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
                 PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
                 value1.encodeIntoKey(range1, Order.ASCENDING);
@@ -71,7 +71,7 @@ public class SQLTimeTest {
                 range2.setPosition(0);
                 value1a.decodeFromKey(range1);
                 value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getTime(gc),value1a.getTime(gc));
-                Assert.assertEquals("2 incorrect",value2.getTime(gc),value2a.getTime(gc));
+                Assert.assertEquals("1 incorrect",value1.getTimestamp(gc),value1a.getTimestamp(gc));
+                Assert.assertEquals("2 incorrect",value2.getTimestamp(gc),value2a.getTimestamp(gc));
         }
 }
