@@ -34,7 +34,7 @@
 
 > **Instructions to compile protobufs**<br />
 1. Download the proper version of protocol buffers<br />
-`wget https://protobuf.googlecode.com/files/protobuf-2.5.0.tar.bz2`<br />
+`wget https://github.com/google/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.bz2`
 2. Untar the tar.bz2 file<br />
 `tar xfvj protobuf-2.5.0.tar.bz2`<br />
 3. Configure the protobuf.<br />
