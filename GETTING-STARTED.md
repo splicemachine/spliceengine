@@ -39,14 +39,17 @@ Note: JDK 1.8 is required for the master branch.
 
 > **Instructions to compile protobufs**<br />
 1. Download the proper version of protocol buffers<br />
-`wget https://github.com/google/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.bz2`
+`wget https://github.com/google/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.bz2`<br />
 2. Untar the tar.bz2 file<br />
 `tar xfvj protobuf-2.5.0.tar.bz2`<br />
 3. Configure the protobuf.<br />
 `cd protobuf-2.5.0`<br />
+On Linux:<br />
+`./configure`<br />
+On OS X/macOS:<br />
 `./configure CC=clang CXX=clang++ CXXFLAGS='-std=c++11 -stdlib=libc++ -O3 -g' LDFLAGS='-stdlib=libc++' LIBS="-lc++ -lc++abi"`<br />
-4. Make the source<br />
-`make -j 4`<br />
+4. Build the source<br />
+`make -j4`<br />
 5. Install the compiled binaries<br />
 `sudo make install`<br />
 
