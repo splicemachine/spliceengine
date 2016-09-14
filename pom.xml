@@ -786,6 +786,32 @@
             </modules>
         </profile>
         <profile>
+            <id>cdh5.4.11</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.4.11</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.4.11</cdh.parcel.version>
+                <envClassifier>cdh5.4.11</envClassifier>
+                <envHbase>hbase1.0.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.4.11</hadoop.version>
+                <hbase.version>1.0.0-cdh5.4.11</hbase.version>
+                <hive.version>1.1.0-cdh5.4.11</hive.version>
+                <zookeeper.version>3.4.5-cdh5.4.11</zookeeper.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.11</spark-assembly-id>
+                <spark.version>1.6.2</spark.version>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
             <id>cdh5.5.2</id>
             <activation>
                 <property>
@@ -803,6 +829,58 @@
                 <zookeeper.version>3.4.5-cdh5.5.2</zookeeper.version>
                 <spark.version>1.6.2</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.5.4</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.5.4</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.5.4</cdh.parcel.version>
+                <envClassifier>cdh5.5.4</envClassifier>
+                <envHbase>hbase1.0.0.x</envHbase>
+                <hadoop.version>2.6.0-cdh5.5.4</hadoop.version>
+                <hbase.version>1.0.0-cdh5.5.4</hbase.version>
+                <hive.version>1.1.0-cdh5.5.4</hive.version>
+                <zookeeper.version>3.4.5-cdh5.5.4</zookeeper.version>
+                <spark.version>1.6.2</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.4</spark-assembly-id>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.5.5</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.5.5</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.5.5</cdh.parcel.version>
+                <envClassifier>cdh5.5.5</envClassifier>
+                <envHbase>hbase1.0.0.x</envHbase>
+                <hadoop.version>2.6.0-cdh5.5.5</hadoop.version>
+                <hbase.version>1.0.0-cdh5.5.5</hbase.version>
+                <hive.version>1.1.0-cdh5.5.5</hive.version>
+                <zookeeper.version>3.4.5-cdh5.5.5</zookeeper.version>
+                <spark.version>1.6.2</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.5</spark-assembly-id>
                 <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
             </properties>
             <modules>
@@ -838,6 +916,84 @@
             </modules>
         </profile>
         <profile>
+            <id>cdh5.6.1</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.6.1</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.6.1</cdh.parcel.version>
+                <envClassifier>cdh5.6.1</envClassifier>
+                <envHbase>hbase1.0.0.x</envHbase>
+                <hadoop.version>2.6.0-cdh5.6.1</hadoop.version>
+                <hbase.version>1.0.0-cdh5.6.1</hbase.version>
+                <hive.version>1.1.0-cdh5.6.1</hive.version>
+                <zookeeper.version>3.4.5-cdh5.6.1</zookeeper.version>
+                <spark.version>1.6.2</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.6.1</spark-assembly-id>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.7.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.7.0</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.7.0</cdh.parcel.version>
+                <envClassifier>cdh5.7.0</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.7.0</hadoop.version>
+                <hbase.version>1.2.0-cdh5.7.0</hbase.version>
+                <hive.version>1.1.0-cdh5.7.0</hive.version>
+                <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
+                <spark.version>1.6.2</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.0</spark-assembly-id>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.7.1</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.7.1</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.7.1</cdh.parcel.version>
+                <envClassifier>cdh5.7.1</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.7.1</hadoop.version>
+                <hbase.version>1.2.0-cdh5.7.1</hbase.version>
+                <hive.version>1.1.0-cdh5.7.1</hive.version>
+                <zookeeper.version>3.4.5-cdh5.7.1</zookeeper.version>
+                <spark.version>1.6.2</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.1</spark-assembly-id>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
             <id>cdh5.7.2</id>
             <activation>
                 <property>
@@ -855,6 +1011,32 @@
                 <zookeeper.version>3.4.5-cdh5.7.2</zookeeper.version>
                 <spark.version>1.6.2</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.2</spark-assembly-id>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.7.3</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.7.3</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.7.3</cdh.parcel.version>
+                <envClassifier>cdh5.7.3</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.7.3</hadoop.version>
+                <hbase.version>1.2.0-cdh5.7.3</hbase.version>
+                <hive.version>1.1.0-cdh5.7.3</hive.version>
+                <zookeeper.version>3.4.5-cdh5.7.3</zookeeper.version>
+                <spark.version>1.6.2</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.3</spark-assembly-id>
                 <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
             </properties>
             <modules>
