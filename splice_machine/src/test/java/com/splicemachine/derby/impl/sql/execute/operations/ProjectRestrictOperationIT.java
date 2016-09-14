@@ -31,6 +31,7 @@ import org.junit.runner.Description;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 
@@ -46,12 +47,14 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
     protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher=new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa varchar(40),sc int)");
     protected static SpliceTableWatcher spliceTableWatcher2=new SpliceTableWatcher("B",CLASS_NAME,"(sc int,sd int,se decimal(7,2))");
+    protected static SpliceTableWatcher spliceTableWatcher3=new SpliceTableWatcher("C",CLASS_NAME,"(col1 TIMESTAMP,col3 TIMESTAMP)");
 
-    @ClassRule
+    @ClassRule 
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher)
             .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher,"test_data/employee.sql",CLASS_NAME))
             .around(new SpliceDataWatcher(){
                 @Override
@@ -65,13 +68,18 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
                             ps.executeUpdate();
                         }
 
-                        ps=spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?,?)",spliceTableWatcher2.toString()));
+                        ps=spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?,?)", spliceTableWatcher2.toString()));
                         for(int i=0;i<10;i++){
                             ps.setInt(1,i);
                             ps.setInt(2,i*2+1);
                             ps.setBigDecimal(3,new BigDecimal(i*3));
                             ps.executeUpdate();
                         }
+
+                        ps= spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)", spliceTableWatcher3.toString()));
+                        ps.setTimestamp(1,Timestamp.valueOf("2017-01-18 11:03:44.0"));
+                        ps.setTimestamp(2,Timestamp.valueOf("2018-11-19 11:03:45.0 "));
+                        ps.executeUpdate();
                     }catch(Exception e){
                         throw new RuntimeException(e);
                     }finally{
@@ -83,6 +91,8 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
 
     @Rule
     public SpliceWatcher methodWatcher=new SpliceWatcher(CLASS_NAME);
+
+
 
     @Test
     public void testCanDivideSafely() throws Exception{
@@ -316,5 +326,13 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
         List results=TestUtils.resultSetToArrays(rs);
 
         Assert.assertArrayEquals(expected,results.toArray());
+    }
+
+    @Test
+    public void testTimeStampDiff()  throws Exception{
+        ResultSet rs=methodWatcher.executeQuery("select TIMESTAMPDIFF(SQL_TSI_YEAR,COL1,COL3) from "+spliceTableWatcher3.toString());
+        while(rs.next()) {
+            Assert.assertEquals("Incorrect timestamp diff", 1, rs.getInt(1));
+        }
     }
 }

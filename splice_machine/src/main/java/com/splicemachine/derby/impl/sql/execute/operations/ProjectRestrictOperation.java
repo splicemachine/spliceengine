@@ -19,6 +19,10 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
+
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -171,6 +175,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		public ExecRow doProjection(ExecRow sourceRow) throws StandardException {
             source.setCurrentRow(sourceRow);
+			activation.setCurrentRow(sourceRow, cloneMapItem);
             ExecRow result;
 				if (projection != null) {
 						result = projection.invoke();
