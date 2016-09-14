@@ -38,8 +38,11 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
 
 import java.sql.Date;
@@ -79,6 +82,13 @@ public final class SQLDate extends DataType
 	 +     * The JodaTime has problems with all the years before 1884
 	 +     */
 
+	public static final ThreadLocal<GregorianCalendar> GREGORIAN_CALENDAR =
+			new ThreadLocal<GregorianCalendar>() {
+				@Override
+				protected GregorianCalendar initialValue() {
+					return new GregorianCalendar();
+				}
+			};
 
 	private int	encodedDate;	//year << 16 + month << 8 + day
 
@@ -143,7 +153,7 @@ public final class SQLDate extends DataType
      */
 	private long getTimeInMillis(Calendar cal) {
 		if (cal == null){
-			cal=new GregorianCalendar();
+			cal = GREGORIAN_CALENDAR.get();
 		}
 		cal.clear();
 		SQLDate.setDateInCalendar(cal,encodedDate);
@@ -339,7 +349,7 @@ public final class SQLDate extends DataType
 			/* O.K. have to do it the hard way and calculate the numeric value
 			 * from the value
 			 */
-			otherVal = SQLDate.computeEncodedDate(other.getDate(new GregorianCalendar()));
+			otherVal = SQLDate.computeEncodedDate(other.getDate(GREGORIAN_CALENDAR.get()));
 		}
 		if (encodedDate > otherVal)
 			comparison = 1;
@@ -1091,7 +1101,7 @@ public final class SQLDate extends DataType
 		int result;
 		
         if( currentCal == null){
-			currentCal=new GregorianCalendar();
+			currentCal=GREGORIAN_CALENDAR.get();
 		}
 		currentCal.setTime(value);
 		result = SQLDate.computeEncodedDate(currentCal);
@@ -1326,10 +1336,23 @@ public final class SQLDate extends DataType
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 				setToNull();
-		else
+		else {
 			encodedDate = unsafeRow.getInt(ordinal);
-			setIsNull(false);
+			isNull = false;
+		}
 	}
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			encodedDate = computeEncodedDate(row.getDate(ordinal));
+			isNull = false;
+		}
+	}
+
+
 
 	/**
 	 *
@@ -1378,4 +1401,11 @@ public final class SQLDate extends DataType
 			encodedDate = OrderedBytes.decodeInt32(src);
 			setIsNull(false);
 		}
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.DateType, true);
+	}
+
+
 }

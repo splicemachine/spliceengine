@@ -353,4 +353,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	public int[] getRightHashKeys() {
 		throw new UnsupportedOperationException();
 	}
+
+	public long getSequenceId() {
+		throw new UnsupportedOperationException("Not supported");
+	}
 }

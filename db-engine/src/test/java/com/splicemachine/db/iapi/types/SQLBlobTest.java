@@ -30,10 +30,11 @@ public class SQLBlobTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 SQLBlob value = new SQLBlob("1".getBytes());
                 SQLBlob valueA = new SQLBlob();
+                writer.reset();
                 value.write(writer, 0);
                 valueA.read(row,0);
                 Assert.assertTrue("SerdeIncorrect",Bytes.equals("1".getBytes(),valueA.getBytes()));
@@ -41,7 +42,7 @@ public class SQLBlobTest {
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 SQLBlob value = new SQLBlob();
                 SQLBlob valueA = new SQLBlob();

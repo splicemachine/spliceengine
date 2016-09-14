@@ -1146,7 +1146,7 @@ public class ResultColumn extends ValueNode
 		// generate expression of the form
 		// (DataValueDescriptor) columnSpace
 
-		acb.generateNull(mb, getTypeCompiler(), getTypeServices().getCollationType());
+		acb.generateNull(mb, getTypeCompiler(), getTypeServices().getCollationType(), getTypeServices().getPrecision(), getTypeServices().getScale());
 		mb.upCast(ClassName.DataValueDescriptor);
 	}
 

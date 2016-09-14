@@ -234,7 +234,8 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 										  int columnPosition,
 										  ExpressionClassBuilder acb,
 										  MethodBuilder mb) throws StandardException {
-		acb.generateNull(mb, operand.getTypeCompiler(),  operand.getTypeServices().getCollationType());
+		acb.generateNull(mb, operand.getTypeCompiler(),  operand.getTypeServices().getCollationType(),
+				operand.getTypeServices().getPrecision(),operand.getTypeServices().getScale());
 	}
 
 	/** @see RelationalOperator#getStartOperator */
@@ -269,7 +270,10 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		MethodBuilder qualMethod = acb.newUserExprFun();
 
 		/* Generate a method that returns that expression */
-		acb.generateNull(qualMethod, operand.getTypeCompiler(), operand.getTypeServices().getCollationType());
+		acb.generateNull(qualMethod, operand.getTypeCompiler(),
+				operand.getTypeServices().getCollationType(),
+				operand.getTypeServices().getPrecision(),
+				operand.getTypeServices().getScale());
 		qualMethod.methodReturn();
 		qualMethod.complete();
 

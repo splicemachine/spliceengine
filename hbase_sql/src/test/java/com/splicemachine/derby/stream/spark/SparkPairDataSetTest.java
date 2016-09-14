@@ -19,11 +19,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.AbstractPairDataSetTest;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import org.junit.Ignore;
 
 /**
  * Created by jleach on 4/15/15.
  */
-
+@Ignore
 public class SparkPairDataSetTest extends AbstractPairDataSetTest{
 
     @Override

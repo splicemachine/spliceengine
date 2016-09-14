@@ -50,8 +50,11 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * SQLDouble satisfies the DataValueDescriptor
@@ -885,7 +888,7 @@ public final class SQLDouble extends NumberDataType
 	 */
 	static final int DOUBLE_LENGTH		= 32; // must match the number of bytes written by DataOutput.writeDouble()
 
-    private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLDouble.class);
+    private static final int BASE_MEMORY_USAGE = 8;
 
     public int estimateMemoryUsage()
     {
@@ -940,9 +943,22 @@ public final class SQLDouble extends NumberDataType
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 				setToNull();
-		else
+		else {
+			isNull = false;
 			value = unsafeRow.getDouble(ordinal);
+		}
 	}
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = row.getDouble(ordinal);
+		}
+	}
+
 
 	/**
 	 *
@@ -990,4 +1006,11 @@ public final class SQLDouble extends NumberDataType
 		else
 			value = OrderedBytes.decodeFloat64(src);
 	}
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.DoubleType, true);
+	}
+
+
 }

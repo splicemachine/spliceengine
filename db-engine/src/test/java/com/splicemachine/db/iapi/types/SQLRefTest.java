@@ -30,10 +30,11 @@ public class SQLRefTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 SQLRef value = new SQLRef(new SQLRowId("1".getBytes()));
                 SQLRef valueA = new SQLRef();
+                writer.reset();
                 value.write(writer, 0);
                 valueA.read(row,0);
                 Assert.assertEquals("SerdeIncorrect",(Object) new SQLRowId("1".getBytes()),(Object) valueA.getObject());
@@ -41,7 +42,7 @@ public class SQLRefTest {
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 SQLRef value = new SQLRef();
                 SQLRef valueA = new SQLRef();

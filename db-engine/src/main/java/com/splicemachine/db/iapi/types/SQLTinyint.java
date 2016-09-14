@@ -49,8 +49,11 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * SQLTinyint satisfies the DataValueDescriptor
@@ -779,10 +782,21 @@ public final class SQLTinyint
 	    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 	        if (unsafeRow.isNullAt(ordinal))
 		            setToNull();
-	        else
-	            value = unsafeRow.getByte(ordinal);
+	        else {
+				isNull = false;
+				value = unsafeRow.getByte(ordinal);
+			}
 	    }
 
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = row.getByte(ordinal);
+		}
+	}
 	/**
 	 *
 	 * Get Encoded Key length.  if null then 1 else 2.
@@ -829,4 +843,10 @@ public final class SQLTinyint
 	        else
 	            value = OrderedBytes.decodeInt8(src);
 	    }
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.ByteType, true);
+	}
+
 }

@@ -14,57 +14,46 @@
  */
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.math.BigDecimal;
-
 /**
  *
- * Test Class for SQLDecimal
+ * Test Class for SQLChar
  *
  */
-public class SQLDecimalTest {
+public class SQLCharTest {
 
         @Test
-        public void addTwo() throws StandardException {
-            SQLDecimal decimal1 = new SQLDecimal(new BigDecimal(100.0d));
-            SQLDecimal decimal2 = new SQLDecimal(new BigDecimal(100.0d));
-            Assert.assertEquals("Integer Add Fails", new BigDecimal(200.0d), decimal1.plus(decimal1, decimal2, null).getBigDecimal());
-        }
-    
-        @Test
-        public void subtractTwo() throws StandardException {
-            SQLDecimal decimal1 = new SQLDecimal(new BigDecimal(200.0d));
-            SQLDecimal decimal2 = new SQLDecimal(new BigDecimal(100.0d));
-            Assert.assertEquals("Integer subtract Fails",new BigDecimal(100.0d),decimal1.minus(decimal1, decimal2, null).getBigDecimal());
-        }
-        @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLDecimal value = new SQLDecimal(new BigDecimal(100.0d));
-                SQLDecimal valueA = new SQLDecimal();
+                SQLChar value = new SQLChar("Splice Machine");
+                SQLChar valueA = new SQLChar();
+                writer.reset();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",new BigDecimal(100.0d),row.getDecimal(0,value.getDecimalValueScale(),value.getDecimalValuePrecision()).toJavaBigDecimal());
+                Assert.assertEquals("SerdeIncorrect","Splice Machine",row.getString(0));
                 valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",new BigDecimal(100.0d),valueA.getBigDecimal());
+                Assert.assertEquals("SerdeIncorrect","Splice Machine",valueA.getString());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLDecimal value = new SQLDecimal();
-                SQLDecimal valueA = new SQLDecimal();
+                SQLChar value = new SQLChar();
+                SQLChar valueA = new SQLChar();
                 value.write(writer, 0);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
@@ -73,14 +62,10 @@ public class SQLDecimalTest {
     
         @Test
         public void serdeKeyData() throws Exception {
-                SQLDecimal value1 = new SQLDecimal(new BigDecimal(100.0d));
-                SQLDecimal value2 = new SQLDecimal(new BigDecimal(200.0d));
-                SQLDecimal value1a = new SQLDecimal();
-                value1a.setPrecision(value1.getPrecision());
-                value1a.setScale(value1.getScale());
-                SQLDecimal value2a = new SQLDecimal();
-                value2a.setPrecision(value2.getPrecision());
-                value2a.setScale(value2.getScale());
+                SQLChar value1 = new SQLChar("Splice Machine");
+                SQLChar value2 = new SQLChar("Xplice Machine");
+                SQLChar value1a = new SQLChar();
+                SQLChar value2a = new SQLChar();
                 PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
                 PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
                 value1.encodeIntoKey(range1, Order.ASCENDING);
@@ -90,7 +75,24 @@ public class SQLDecimalTest {
                 range2.setPosition(0);
                 value1a.decodeFromKey(range1);
                 value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getBigDecimal(),value1a.getBigDecimal());
-                Assert.assertEquals("2 incorrect",value2.getBigDecimal(),value2a.getBigDecimal());
+                Assert.assertEquals("1 incorrect",value1.getString(),value1a.getString());
+                Assert.assertEquals("2 incorrect",value2.getString(),value2a.getString());
         }
+
+        @Test
+        public void rowValueToDVDValue() throws Exception {
+                SQLChar char1 = new SQLChar("foobar");
+                SQLChar char2 = new SQLChar();
+                ExecRow execRow = new ValueRow(2);
+                execRow.setColumn(1,char1);
+                execRow.setColumn(2,char2);
+                Assert.assertEquals("foobar",((Row)execRow).getString(0));
+                Assert.assertTrue(((Row)execRow).isNullAt(1));
+                Row sparkRow = execRow.getSparkRow();
+                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{"foobar",null}, execRow.schema());
+                Assert.assertEquals(row.getString(0),"foobar");
+                Assert.assertTrue(row.isNullAt(1));
+        }
+
+
 }
