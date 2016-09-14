@@ -17,6 +17,7 @@ package com.splicemachine.compactions;
 
 import com.splicemachine.hbase.ZkUtils;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -32,6 +33,7 @@ import java.util.concurrent.TimeUnit;
  * This function makes a Spark task block until notified to reserve this task
  */
 public class PlaceholderTask implements Function<Object, Object>, Watcher {
+    private static final Logger LOG = Logger.getLogger(PlaceholderTask.class);
     String path;
     int timeout;
     volatile CountDownLatch latch;
@@ -65,11 +67,10 @@ public class PlaceholderTask implements Function<Object, Object>, Watcher {
                 throw ke;
             else latch.countDown(); //just count down the latch, so that await() returns immediately
         }
-        if (latch.await(timeout * 2, TimeUnit.SECONDS)) {
-            throw new IgnoreThisException("Expected exception, ignore");
-        } else {
+        if (!latch.await(timeout * 2, TimeUnit.SECONDS)) {
             throw new IllegalStateException("Booking task timed out before notification");
         }
+        return null;
     }
 
     @Override
