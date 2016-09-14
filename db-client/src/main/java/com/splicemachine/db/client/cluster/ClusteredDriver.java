@@ -94,11 +94,12 @@ public class ClusteredDriver implements Driver{
 
             String user =ClientBaseDataSource.getUser(augmentedProperties);
             String password = ClientBaseDataSource.getPassword(augmentedProperties);
-            ClusteredDataSource ds = new ClusteredDataSource(serverList,database,user,password,pss,css,spf,heartbeat,serverCheckPeriod);
-            ds.performServiceDiscovery();
+//            ClusteredDataSource ds = new ClusteredDataSource(serverList,database,user,password,pss,css,spf,heartbeat,serverCheckPeriod);
+//            ds.performServiceDiscovery();
+//
+//            return new ClusteredConnection(ds,true,augmentedProperties);
 
-            return new ClusteredConnection(ds,true,augmentedProperties);
-
+            return null;
         }catch(SqlException se){
             throw se.getSQLException();
         }

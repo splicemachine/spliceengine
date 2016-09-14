@@ -37,7 +37,7 @@ import static org.mockito.Mockito.*;
 public class ServerPoolTest{
     private static final FailureDetector noFailDetector=new FailureDetector(){
         @Override public void success(){ }
-        @Override public boolean failed(){ return false; }
+        @Override public void failed(){ }
         @Override public boolean isAlive(){ return true; }
         @Override public void kill(){ }
     };
@@ -240,9 +240,8 @@ public class ServerPoolTest{
             }
 
             @Override
-            public boolean failed(){
+            public void failed(){
                 Assert.fail("Should not have marked failed!");
-                return false;
             }
 
             @Override
@@ -275,9 +274,8 @@ public class ServerPoolTest{
             }
 
             @Override
-            public boolean failed(){
+            public void failed(){
                 sawFailure = true;
-                return true;
             }
 
             @Override
@@ -313,9 +311,8 @@ public class ServerPoolTest{
             }
 
             @Override
-            public boolean failed(){
+            public void failed(){
                 sawFailure = true;
-                return true;
             }
 
             @Override
@@ -439,9 +436,8 @@ public class ServerPoolTest{
             @Override public void success(){ }
 
             @Override
-            public boolean failed(){
+            public void failed(){
                 Assert.fail("Should not have called failed())");
-                return false;
             }
 
             @Override public boolean isAlive(){ return true; }
@@ -498,9 +494,8 @@ public class ServerPoolTest{
             @Override public void success(){ }
 
             @Override
-            public boolean failed(){
+            public void failed(){
                 Assert.fail("Should not have called failed())");
-                return false;
             }
 
             @Override public boolean isAlive(){ return true; }
@@ -557,9 +552,8 @@ public class ServerPoolTest{
             @Override public void success(){ }
 
             @Override
-            public boolean failed(){
+            public void failed(){
                 Assert.fail("Should not have called failed())");
-                return false;
             }
 
             @Override public boolean isAlive(){ return true; }
@@ -584,10 +578,9 @@ public class ServerPoolTest{
             @Override public void kill(){ Assert.fail("Should not be calling kill"); }
 
             @Override
-            public boolean failed(){
+            public void failed(){
                 Assert.assertFalse("Received more than one failure!",gotFailure);
                 gotFailure = true;
-                return true;
             }
 
             @Override

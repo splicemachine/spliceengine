@@ -20,11 +20,11 @@ package com.splicemachine.db.client.cluster;
  * @author Scott Fines
  *         Date: 8/15/16
  */
-public interface FailureDetector{
+interface FailureDetector{
 
     void success();
 
-    boolean failed();
+    void failed();
 
     boolean isAlive();
 

@@ -40,7 +40,7 @@ import java.util.logging.Level;
  * @author Scott Fines
  *         Date: 8/15/16
  */
-class ServerPool{
+class ServerPool implements Comparable<ServerPool>{
     /*
      * We use java.util.logging here to avoid requiring a logging jar dependency on our applications (and therefore
      * causing all kinds of potential dependency problems).
@@ -103,6 +103,11 @@ class ServerPool{
         return serverName;
     }
 
+    @Override
+    public int compareTo(ServerPool o){
+        return serverName.compareTo(o.serverName);
+    }
+
     /* ****************************************************************************************************************/
     /*package-local methods*/
     Connection tryAcquireConnection(boolean validate) throws SQLException{
@@ -153,13 +158,15 @@ class ServerPool{
             }
         }catch(SQLException se){
             logError("heartbeat",se,Level.INFO);
-            return failureDetector.failed();
+            failureDetector.failed();
+            return false;
         }
     }
 
     boolean isDead(){
         return !failureDetector.isAlive();
     }
+
 
     /* ****************************************************************************************************************/
     /*private helper methods and classes*/

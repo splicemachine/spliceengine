@@ -40,8 +40,7 @@ class DeadlineFailureDetector implements FailureDetector{
 
 
     @Override
-    public boolean failed(){
-        return isAlive();
+    public void failed(){
     }
 
     @Override

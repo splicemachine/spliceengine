@@ -26,6 +26,5 @@ interface ServerPoolFactory{
                              String database,
                              String user,
                              String password,
-                             PoolSizingStrategy sizingStrategy,
-                             BlackList<ServerPool> blackList);
+                             PoolSizingStrategy sizingStrategy);
 }

@@ -49,7 +49,7 @@ public class ConfiguredServerPoolFactory implements ServerPoolFactory{
                                     String database,
                                     String user,
                                     String password,
-                                    PoolSizingStrategy sizingStrategy,BlackList<ServerPool> blacklist){
+                                    PoolSizingStrategy sizingStrategy){
         int singleServerPoolSize = sizingStrategy.singleServerPoolSize();
 
         DataSource delegateDataSource=newDataSource(serverId,database,user,password);
