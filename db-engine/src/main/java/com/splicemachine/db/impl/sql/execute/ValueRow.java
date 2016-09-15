@@ -530,61 +530,52 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 
 	@Override
 	public <T> Seq<T> getSeq(int i) {
-		System.out.println("getSeq" + i);
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public <T> List<T> getList(int i) {
-		System.out.println("getList" + i);
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public <K, V> Map<K, V> getMap(int i) {
-		System.out.println("getMap" + i);
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public <K, V> java.util.Map<K, V> getJavaMap(int i) {
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Row getStruct(int i) {
-		System.out.println("getStruct ->" + i);
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public <T> T getAs(int i) {
-		System.out.println("getAs ->" + i);
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public <T> T getAs(String s) {
-		System.out.println("getAs -->" + s);
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public int fieldIndex(String s) {
-		System.out.println("fieldIndex -->" + s);
-		return 0;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public <T> scala.collection.immutable.Map<String, T> getValuesMap(Seq<String> seq) {
-		System.out.println("getValuesMap -->" + seq);
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Row copy() {
-		System.out.println("copy -->");
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -594,26 +585,22 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 
 	@Override
 	public Seq<Object> toSeq() {
-		System.out.println("---toSeq");
 		return scala.collection.JavaConversions.asScalaBuffer(Arrays.asList(column));
 	}
 
 	@Override
 	public String mkString() {
-		System.out.println("---mkString");
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public String mkString(String s) {
-		System.out.println("---mkString");
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public String mkString(String s, String s1, String s2) {
-		System.out.println("---mkString");
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
