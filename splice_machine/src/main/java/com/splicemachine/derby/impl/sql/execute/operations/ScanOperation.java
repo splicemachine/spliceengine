@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import org.sparkproject.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -153,6 +154,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 		 * we are doing it ourselves).
 		 */
         DataScan s=getScan();
+
         if(oneRowScan){
             /*
              * Limit the cache and batch size for performance. The underlying architecture
@@ -160,9 +162,12 @@ public abstract class ScanOperation extends SpliceBaseOperation{
              * internal logic.
              */
             s = s.cacheRows(2).batchCells(-1);
-//            scan.setSmall(true);
-//            scan.setCaching(2); // Limit the batch size for performance
-//            // Setting caching to 2 instead of 1 removes an extra RPC during Single Row Result Scans
+        }
+        // Makes it a small scan for 100 rows of fewer
+        else if (this.getEstimatedRowCount()<100) {
+            s = s.cacheRows(100).batchCells(-1);
+        } else {
+            s.cacheRows(1000);
         }
         deSiify(s);
         return s;

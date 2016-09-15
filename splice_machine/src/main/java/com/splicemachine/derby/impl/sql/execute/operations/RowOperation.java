@@ -212,7 +212,6 @@ public class RowOperation extends SpliceBaseOperation{
      * @see CursorResultSet
      */
     public RowLocation getRowLocation(){
-        SpliceLogUtils.logAndThrow(LOG,"RowResultSet used in positioned update/delete",new RuntimeException());
         return null;
     }
 
@@ -224,7 +223,6 @@ public class RowOperation extends SpliceBaseOperation{
      * @see CursorResultSet
      */
     public ExecRow getCurrentRow(){
-        SpliceLogUtils.logAndThrow(LOG,"RowResultSet used in positioned update/delete",new RuntimeException());
         return null;
     }
 

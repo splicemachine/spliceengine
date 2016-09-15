@@ -106,7 +106,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                     if (oneRowRightSide)
                         return left.flatMap(new NLJOneRowInnerJoinFunction(operationContext), true);
                     else
-                        return left.flatMap(new NLJInnerJoinFunction(operationContext), true);
+                        return left.mapPartitions(new NLJInnerJoinFunction(operationContext), true);
                 }
             }
         } finally {
