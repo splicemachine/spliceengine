@@ -33,8 +33,11 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -286,8 +289,20 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
         if (unsafeRow.isNullAt(ordinal))
                 setToNull();
-        else
+        else {
+            isNull = false;
             bytes = unsafeRow.getBinary(ordinal);
+        }
+    }
+
+    @Override
+    public void read(Row row, int ordinal) throws StandardException {
+        if (row.isNullAt(ordinal))
+            setToNull();
+        else {
+            isNull = false;
+            bytes = (byte[]) row.get(ordinal);
+        }
     }
 
     /**
@@ -336,5 +351,11 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         else
             bytes = OrderedBytes.decodeBlobVar(src);
      }
-    
+
+    @Override
+    public StructField getStructField(String columnName) {
+        return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+    }
+
+
 }

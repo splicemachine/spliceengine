@@ -51,9 +51,12 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.types.CalendarInterval;
 import org.joda.time.DateTime;
@@ -1169,7 +1172,18 @@ public final class SQLTime extends DataType
 			int offset = (int)(offsetAndSize >> 32);
 			encodedTime = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset);
 			encodedTimeFraction = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 4L);
-			setIsNull(false);
+			isNull = false;
+		}
+	}
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			encodedTime = computeEncodedTime(row.getDate(ordinal));
+			encodedTimeFraction = 0;
 		}
 	}
 
@@ -1220,6 +1234,12 @@ public final class SQLTime extends DataType
 			setIsNull(false);
 		}
 	}
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.DateType, true);
+	}
+
 
 }
 

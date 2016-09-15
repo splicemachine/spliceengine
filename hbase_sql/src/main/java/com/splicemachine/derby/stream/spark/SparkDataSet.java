@@ -16,8 +16,10 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -40,12 +42,17 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.Column;
 import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
+import static org.apache.spark.sql.functions.*;
 
 /**
  *
@@ -113,10 +120,16 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
-            JavaRDD rdd1 = rdd.distinct();
-            rdd1.setName(name /* MapPartitionsRDD */);
-            RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */}, null);
+            final ValueRow rowDefinition = (ValueRow) context.getOperation().getExecRowDefinition();
+            JavaRDD rdd1 = SpliceSpark.getSession().createDataFrame(rdd.map(new LocatedRowToRowFunction()),
+                    context.getOperation().getExecRowDefinition().schema())
+                    .distinct().rdd().toJavaRDD().map(
+                            new RowToLocatedRowFunction(context));
             return new SparkDataSet(rdd1);
+        }
+         catch (Exception se){
+                throw new RuntimeException(se);
+
         } finally {
             if (pushScope) context.popScope();
         }
@@ -442,4 +455,40 @@ public class SparkDataSet<V> implements DataSet<V> {
         return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
     }
 
+    @Override
+    public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
+        try {
+            JoinOperation op = (JoinOperation) context.getOperation();
+            Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
+                    rdd.map(new LocatedRowToRowFunction()),
+                            context.getOperation().getLeftOperation().getExecRowDefinition().schema());
+            Dataset<Row> rightDF = SpliceSpark.getSession().createDataFrame(
+                    ((SparkDataSet)rightDataSet).rdd.map(new LocatedRowToRowFunction()),
+                    context.getOperation().getRightOperation().getExecRowDefinition().schema());
+                if (isBroadcast) {
+                    if (op.wasRightOuterJoin)
+                        leftDF = broadcast(leftDF);
+                    else
+                        rightDF = broadcast(rightDF);
+                }
+            Column expr = null;
+            int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
+            int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
+            assert rightJoinKeys!=null && leftJoinKeys!=null && rightJoinKeys.length == leftJoinKeys.length:"Join Keys Have Issues";
+            for (int i = 0; i< rightJoinKeys.length;i++) {
+                Column joinEquality = (leftDF.col(leftJoinKeys[i]+"").equalTo(rightDF.col(rightJoinKeys[i]+"")));
+                expr = i!=0?expr.and(joinEquality):joinEquality;
+            }
+            DataSet joinedSet;
+            if (op.wasRightOuterJoin)
+                joinedSet =  new SparkDataSet(rightDF.join(leftDF,expr,joinType.strategy()).rdd().toJavaRDD().map(
+                        new RowToLocatedRowFunction(context)));
+            else
+                joinedSet =  new SparkDataSet(leftDF.join(rightDF,expr,joinType.strategy()).rdd().toJavaRDD().map(
+                    new RowToLocatedRowFunction(context)));
+            return joinedSet;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

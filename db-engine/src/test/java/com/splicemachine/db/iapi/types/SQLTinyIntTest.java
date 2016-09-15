@@ -14,6 +14,7 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
@@ -22,55 +23,55 @@ import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
-import java.sql.Timestamp;
-import java.util.GregorianCalendar;
 
 /**
  *
- * Test Class for SQLTimestamp
+ * Test Class for SQLTinyint
  *
  */
-public class SQLTimestampTest {
+public class SQLTinyIntTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-                SQLTimestamp value = new SQLTimestamp(timestamp);
-                SQLTimestamp valueA = new SQLTimestamp();
+                SQLTinyint value = new SQLTinyint(Byte.valueOf("1"));
+                SQLTinyint valueA = new SQLTinyint();
                 value.write(writer, 0);
+                Assert.assertEquals("SerdeIncorrect",(Object) Byte.valueOf("1"),(Object) row.getByte(0));
                 valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",timestamp.toString(),valueA.getTimestamp(new GregorianCalendar()).toString());
+                Assert.assertEquals("SerdeIncorrect",(Object) Byte.valueOf("1"),(Object) valueA.getByte());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLTimestamp value = new SQLTimestamp();
-                SQLTimestamp valueA = new SQLTimestamp();
+                SQLTinyint value = new SQLTinyint();
+                SQLTinyint valueA = new SQLTinyint();
                 value.write(writer, 0);
+                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
+                value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
     
         @Test
         public void serdeKeyData() throws Exception {
-                GregorianCalendar gc = new GregorianCalendar();
-                long currentTimeMillis = System.currentTimeMillis();
-                SQLTimestamp value1 = new SQLTimestamp(new Timestamp(currentTimeMillis));
-                SQLTimestamp value2 = new SQLTimestamp(new Timestamp(currentTimeMillis+200));
-                SQLTimestamp value1a = new SQLTimestamp();
-                SQLTimestamp value2a = new SQLTimestamp();
+                SQLTinyint value1 = new SQLTinyint(Byte.valueOf("1"));
+                SQLTinyint value2 = new SQLTinyint(Byte.valueOf("2"));
+                SQLTinyint value1a = new SQLTinyint();
+                SQLTinyint value2a = new SQLTinyint();
                 PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
                 PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
                 value1.encodeIntoKey(range1, Order.ASCENDING);
                 value2.encodeIntoKey(range2, Order.ASCENDING);
+                Assert.assertTrue("Positioning is Incorrect", Bytes.compareTo(range1.getBytes(), 0, 9, range2.getBytes(), 0, 9) < 0);
                 range1.setPosition(0);
                 range2.setPosition(0);
                 value1a.decodeFromKey(range1);
                 value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getTimestamp(gc),value1a.getTimestamp(gc));
-                Assert.assertEquals("2 incorrect",value2.getTimestamp(gc),value2a.getTimestamp(gc));
+                Assert.assertEquals("1 incorrect",value1.getByte(),value1a.getByte());
+                Assert.assertEquals("2 incorrect",value2.getByte(),value2a.getByte());
         }
+    
 }

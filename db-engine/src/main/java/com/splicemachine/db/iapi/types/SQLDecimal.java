@@ -38,17 +38,19 @@ import java.lang.Math;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
+
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.sql.types.DecimalType;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * SQLDecimal satisfies the DataValueDescriptor
@@ -88,9 +90,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 */
 	private BigDecimal	value;
 
-	public int precision;
+	public int precision = -1;
 
-	public int scale;
+	public int scale = -1;
 
 	/**
 		See comments for value
@@ -122,8 +124,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	//
 	////////////////////////////////////////////////////////////////////
 	/** no-arg constructor, required by Formattable */
-	public SQLDecimal()
-	{
+	public SQLDecimal() {
+
 	}
 
 	public SQLDecimal(BigDecimal val)
@@ -131,15 +133,18 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		setValue(val);
 	}
 
-	public SQLDecimal(BigDecimal val, int nprecision, int scale)
-			throws StandardException
-	{
+	public SQLDecimal(BigDecimal val, int precision, int scale)
+			throws StandardException {
 
 		setValue(val);
-		if ((value != null) && (scale >= 0))
-		{
+		if ((value != null) && (scale >= 0)) {
 			setValue(value.setScale(scale, BigDecimal.ROUND_DOWN));
 		}
+		if (value ==null) {
+			this.precision = precision;
+			this.scale = scale;
+		}
+
 	}
 
 	public SQLDecimal(String val)
@@ -519,7 +524,11 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
      */
     public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
-		return new SQLDecimal(getBigDecimal());
+		try {
+			return new SQLDecimal(getBigDecimal(), precision, scale);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
@@ -1154,6 +1163,16 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			unsafeRowWriter.write(ordinal, Decimal.apply(value),value.precision(),value.scale());
 	}
 
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = row.getDecimal(ordinal);
+		}
+	}
+
 	/**
 	 *
 	 * Read from a Project Tungsten Format (UnsafeRow).
@@ -1168,8 +1187,10 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 				setToNull();
-		else
-			value = unsafeRow.getDecimal(ordinal,precision,scale).toJavaBigDecimal();
+		else {
+			isNull = false;
+			value = unsafeRow.getDecimal(ordinal, precision, scale).toJavaBigDecimal();
+		}
 	}
 
 	/**
@@ -1258,4 +1279,14 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void setScale(int scale) {
 		this.scale = scale;
 	}
+
+	@Override
+	public StructField getStructField(String columnName) {
+		if (precision == -1 || scale == -1) {
+			return DataTypes.createStructField(columnName,DataTypes.createDecimalType(),true);
+		} else {
+			return DataTypes.createStructField(columnName, DataTypes.createDecimalType(precision, scale), true);
+		}
+	}
+
 }

@@ -56,8 +56,12 @@ import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.DecimalType;
+import org.apache.spark.sql.types.StructField;
 
 
 /**
@@ -654,8 +658,20 @@ public class UserType extends DataType
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 			setToNull();
-		else
+		else {
+			isNull = false;
 			value = SerializationUtils.deserialize(unsafeRow.getBinary(ordinal));
+		}
+	}
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = row.get(ordinal);
+		}
 	}
 
 	/**
@@ -704,4 +720,11 @@ public class UserType extends DataType
 		else
 			value = SerializationUtils.deserialize(OrderedBytes.decodeBlobVar(src));
 	}
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+	}
+
+
 }

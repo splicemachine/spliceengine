@@ -23,73 +23,67 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import java.math.BigDecimal;
 
 /**
  *
- * Test Class for SQLDouble
+ * Test Class for SQLDecimal
  *
  */
-public class SQLRealTest {
+public class SQLDecimalTest {
 
         @Test
         public void addTwo() throws StandardException {
-            SQLReal float1 = new SQLReal(100.0f);
-            SQLReal float2 = new SQLReal(100.0f);
-            Assert.assertEquals("Integer Add Fails", 200.0f, float1.plus(float1, float2, null).getFloat(),0.0f);
+            SQLDecimal decimal1 = new SQLDecimal(new BigDecimal(100.0d));
+            SQLDecimal decimal2 = new SQLDecimal(new BigDecimal(100.0d));
+            Assert.assertEquals("Integer Add Fails", new BigDecimal(200.0d), decimal1.plus(decimal1, decimal2, null).getBigDecimal());
         }
     
         @Test
         public void subtractTwo() throws StandardException {
-            SQLReal float1 = new SQLReal(200.0f);
-            SQLReal float2 = new SQLReal(100.0f);
-            Assert.assertEquals("Integer subtract Fails",100.0f,float1.minus(float1, float2, null).getFloat(),0.0f);
+            SQLDecimal decimal1 = new SQLDecimal(new BigDecimal(200.0d));
+            SQLDecimal decimal2 = new SQLDecimal(new BigDecimal(100.0d));
+            Assert.assertEquals("Integer subtract Fails",new BigDecimal(100.0d),decimal1.minus(decimal1, decimal2, null).getBigDecimal());
         }
-
-        @Test(expected = StandardException.class)
-        public void testPositiveOverFlow() throws StandardException {
-                SQLReal float1 = new SQLReal(Float.MAX_VALUE);
-                SQLReal float2 = new SQLReal(1.0f);
-                float1.plus(float1,float2,null);
-        }
-
-        @Test(expected = StandardException.class)
-        public void testNegativeOverFlow() throws StandardException {
-                SQLReal float1 = new SQLReal(Float.MIN_VALUE);
-                SQLReal float2 = new SQLReal(1.0f);
-                float1.minus(float1, float2, null);
-        }
-    
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLReal value = new SQLReal(100.0f);
-                SQLReal valueA = new SQLReal();
+                SQLDecimal value = new SQLDecimal(new BigDecimal(100.0d));
+                SQLDecimal valueA = new SQLDecimal(null,value.precision,value.getScale());
+                writer.reset();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",100.0f,row.getFloat(0),0.0f);
+                Assert.assertEquals("SerdeIncorrect",new BigDecimal(100.0d),row.getDecimal(0,value.getDecimalValuePrecision(),value.getDecimalValueScale()).toJavaBigDecimal());
                 valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",100f,valueA.getFloat(),0.0d);
+                Assert.assertEquals("SerdeIncorrect",new BigDecimal(100.0d),valueA.getBigDecimal());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLReal value = new SQLReal();
-                SQLReal valueA = new SQLReal();
+                SQLDecimal value = new SQLDecimal();
+                SQLDecimal valueA = new SQLDecimal();
                 value.write(writer, 0);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
-    
+        // TODO
         @Test
+        @Ignore
         public void serdeKeyData() throws Exception {
-                SQLReal value1 = new SQLReal(100.0f);
-                SQLReal value2 = new SQLReal(200.0f);
-                SQLReal value1a = new SQLReal();
-                SQLReal value2a = new SQLReal();
+                SQLDecimal value1 = new SQLDecimal(new BigDecimal(100.0d));
+                SQLDecimal value2 = new SQLDecimal(new BigDecimal(200.0d));
+                SQLDecimal value1a = new SQLDecimal();
+                value1a.setPrecision(value1.getPrecision());
+                value1a.setScale(value1.getScale());
+                SQLDecimal value2a = new SQLDecimal();
+                value2a.setPrecision(value2.getPrecision());
+                value2a.setScale(value2.getScale());
                 PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
                 PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
                 value1.encodeIntoKey(range1, Order.ASCENDING);
@@ -99,8 +93,7 @@ public class SQLRealTest {
                 range2.setPosition(0);
                 value1a.decodeFromKey(range1);
                 value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getFloat(),value1a.getFloat(),0.0f);
-                Assert.assertEquals("2 incorrect",value2.getFloat(),value2a.getFloat(),0.0f);
-            }
-    
+                Assert.assertEquals("1 incorrect",value1.getBigDecimal(),value1a.getBigDecimal());
+                Assert.assertEquals("2 incorrect",value2.getBigDecimal(),value2a.getBigDecimal());
+        }
 }

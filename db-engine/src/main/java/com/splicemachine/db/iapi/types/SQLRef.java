@@ -49,8 +49,11 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 public class SQLRef extends DataType implements RefDataValue
 {
@@ -316,6 +319,13 @@ public class SQLRef extends DataType implements RefDataValue
 		value.read(unsafeRow,ordinal);
 	}
 
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			value = new SQLRowId();
+		value.read(row,ordinal);
+	}
+
 	/**
 	 *
 	 * This calls the references encodedKeyLength method.
@@ -359,6 +369,11 @@ public class SQLRef extends DataType implements RefDataValue
 		if (value==null)
 				value = new SQLRowId();
 		value.decodeFromKey(src);
+	}
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
 	}
 
 }

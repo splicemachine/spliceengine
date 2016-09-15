@@ -25,19 +25,19 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
-
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Objects;
-
 /**
  *
  */
@@ -254,6 +254,14 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     }
 
     @Override
+    public void read(Row row, int ordinal) throws StandardException {
+        if (row.isNullAt(ordinal))
+            setToNull();
+        else
+            slice = ByteSlice.wrap((byte[]) row.get(ordinal));
+    }
+
+    @Override
     public int encodedKeyLength() throws StandardException {
         return isNull()?1:9;
     }
@@ -273,4 +281,11 @@ public class HBaseRowLocation extends DataType implements RowLocation {
         else
             slice = ByteSlice.wrap(OrderedBytes.decodeBlobVar(src));
     }
+
+    @Override
+    public StructField getStructField(String columnName) {
+        return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+    }
+
+
 }

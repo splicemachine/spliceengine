@@ -23,17 +23,14 @@ import com.splicemachine.derby.stream.function.broadcast.SubtractByKeyBroadcastJ
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -180,42 +177,51 @@ public class BroadcastJoinOperation extends JoinOperation{
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-
         DataSet<LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp);
+        DataSet<LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp);
 
-        operationContext.pushScope();
+//        operationContext.pushScope();
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
-
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
         DataSet<LocatedRow> result;
-        if (isOuterJoin) { // Outer Join with and without restriction
-                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                            .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
-                            .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
+        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction ==null) {
+            if (isOuterJoin)
+                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
+            else if (notExistsRightSide)
+                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTANTI,true);
+            else
+                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true);
         }
         else {
-            if (this.notExistsRightSide) { // antijoin
-                if (restriction !=null) { // with restriction
-                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                            .flatMap(new AntiJoinRestrictionFlatMapFunction(operationContext));
-                } else { // No Restriction
-                    result = leftDataSet.mapPartitions(new SubtractByKeyBroadcastJoinFunction(operationContext))
-                            .map(new AntiJoinFunction(operationContext));
-                }
-            } else { // Inner Join
+            if (isOuterJoin) { // Outer Join with and without restriction
+                result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                        .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                        .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
+            } else {
+                leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
+                if (this.notExistsRightSide) { // antijoin
+                    if (restriction != null) { // with restriction
+                        result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                                .flatMap(new AntiJoinRestrictionFlatMapFunction(operationContext));
+                    } else { // No Restriction
+                        result = leftDataSet.mapPartitions(new SubtractByKeyBroadcastJoinFunction(operationContext))
+                                .map(new AntiJoinFunction(operationContext));
+                    }
+                } else { // Inner Join
 
-                if (isOneRowRightSide()) {
-                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                            .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
-                } else {
-                    result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
-                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));
+                    if (isOneRowRightSide()) {
+                        result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                                .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
+                    } else {
+                        result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
+                                .map(new InnerJoinFunction<SpliceOperation>(operationContext));
 
-                    if (restriction !=null) { // with restriction
-                        result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
+                        if (restriction != null) { // with restriction
+                            result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
+                        }
                     }
                 }
             }
@@ -223,7 +229,7 @@ public class BroadcastJoinOperation extends JoinOperation{
 
         result = result.map(new CountProducedFunction(operationContext), /*isLast=*/true);
 
-        operationContext.popScope();
+//        operationContext.popScope();
 
         return result;
     }

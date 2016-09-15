@@ -31,8 +31,18 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import scala.collection.Map;
+import scala.collection.Seq;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.List;
 
 /**
 	Mapper of ValueRow into ExecIndexRow. 
@@ -46,11 +56,151 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 		 this.valueRow = valueRow;
 	}
 
+	@Override
+	public int size() {
+		return valueRow.size();
+	}
+
+	@Override
+	public int length() {
+		return valueRow.length();
+	}
+
+	@Override
+	public StructType schema() {
+		return valueRow.schema();
+	}
+
+	@Override
+	public Object apply(int i) {
+		return valueRow.apply(i);
+	}
+
+	@Override
+	public Object get(int i) {
+		return valueRow.get(i);
+	}
+
+	@Override
+	public boolean isNullAt(int i) {
+		return valueRow.isNullAt(i);
+	}
+
+	@Override
+	public boolean getBoolean(int i) {
+		return valueRow.getBoolean(i);
+	}
+
+	@Override
+	public byte getByte(int i) {
+		return valueRow.getByte(i);
+	}
+
+	@Override
+	public short getShort(int i) {
+		return valueRow.getShort(i);
+	}
+
+	@Override
+	public int getInt(int i) {
+		return valueRow.getInt(i);
+	}
+
+	@Override
+	public long getLong(int i) {
+		return valueRow.getLong(i);
+	}
+
+	@Override
+	public float getFloat(int i) {
+		return valueRow.getFloat(i);
+	}
+
+	@Override
+	public double getDouble(int i) {
+		return valueRow.getDouble(i);
+	}
+
+	@Override
+	public String getString(int i) {
+		return valueRow.getString(i);
+	}
+
+	@Override
+	public BigDecimal getDecimal(int i) {
+		return valueRow.getDecimal(i);
+	}
+
+	@Override
+	public Date getDate(int i) {
+		return valueRow.getDate(i);
+	}
+
+	@Override
+	public Timestamp getTimestamp(int i) {
+		return valueRow.getTimestamp(i);
+	}
+
+	@Override
+	public <T> Seq<T> getSeq(int i) {
+		return getSeq(i);
+	}
+
+	@Override
+	public <T> List<T> getList(int i) {
+		return getList(i);
+	}
+
+	@Override
+	public <K, V> Map<K, V> getMap(int i) {
+		return getMap(i);
+	}
+
+	@Override
+	public <K, V> java.util.Map<K, V> getJavaMap(int i) {
+		return valueRow.getJavaMap(i);
+	}
+
+	@Override
+	public Row getStruct(int i) {
+		return valueRow.getStruct(i);
+	}
+
+	@Override
+	public <T> T getAs(int i) {
+		return valueRow.getAs(i);
+	}
+
+	@Override
+	public <T> T getAs(String s) {
+		return valueRow.getAs(s);
+	}
+
+	@Override
+	public int fieldIndex(String s) {
+		return valueRow.fieldIndex(s);
+	}
+
+	@Override
+	public <T> scala.collection.immutable.Map<String, T> getValuesMap(Seq<String> seq) {
+		return valueRow.getValuesMap(seq);
+	}
+
 	/*
-	 * class interface
-	 */
+         * class interface
+         */
 	public String toString() {
 		return valueRow.toString();
+	}
+
+	@Override
+	public Row copy() {
+		return null;
+	}
+
+	@Override
+	public boolean anyNull() {
+		return false;
 	}
 
 
@@ -159,7 +309,27 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
         return valueRow.hashCode();
     }
 
-    @Override
+	@Override
+	public Seq<Object> toSeq() {
+		return null;
+	}
+
+	@Override
+	public String mkString() {
+		return null;
+	}
+
+	@Override
+	public String mkString(String s) {
+		return null;
+	}
+
+	@Override
+	public String mkString(String s, String s1, String s2) {
+		return null;
+	}
+
+	@Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -202,4 +372,26 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
         return valueRow.compareTo(compareKeys,row);
     }
 
+	@Override
+	public StructType createStructType() {
+		try {
+			StructField[] fields = new StructField[length()];
+			for (int i = 0; i < length(); i++) {
+				fields[i] = getColumn(i + 1).getStructField("" + i);
+			}
+			return DataTypes.createStructType(fields);
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public Row getSparkRow() {
+		return valueRow.getSparkRow();
+	}
+
+	@Override
+	public ExecRow fromSparkRow(Row row) {
+		return valueRow.fromSparkRow(row);
+	}
 }

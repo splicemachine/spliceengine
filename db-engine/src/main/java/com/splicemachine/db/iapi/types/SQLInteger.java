@@ -49,8 +49,13 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.SortOrder;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * SQLInteger represents an INTEGER value.
@@ -157,24 +162,25 @@ public final class SQLInteger
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
-		out.writeInt(value);
+		out.writeBoolean(isNull());
+		if (!isNull())
+			out.writeInt(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public final void readExternal(ObjectInput in) 
         throws IOException {
-
-		setValue(in.readInt());
+		if (!in.readBoolean())
+			setValue(in.readInt());
+		else
+			setToNull();
 	}
 	public final void readExternalFromArray(ArrayInputStream in) 
         throws IOException {
-
-		setValue(in.readInt());
+		if (!in.readBoolean())
+			setValue(in.readInt());
+		else
+			setToNull();
 	}
 
 	/**
@@ -737,8 +743,20 @@ public final class SQLInteger
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 				setToNull();
-		else
+		else {
+			isNull =false;
 			value = unsafeRow.getInt(ordinal);
+		}
+	}
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull =false;
+			value = row.getInt(ordinal);
+		}
 	}
 
 	/**
@@ -787,5 +805,11 @@ public final class SQLInteger
 		else
 			value = OrderedBytes.decodeInt32(src);
 	}
-	
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.IntegerType, true);
+	}
+
+
 }

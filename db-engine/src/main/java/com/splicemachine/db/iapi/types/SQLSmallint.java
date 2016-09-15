@@ -45,12 +45,17 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * SQLSmallint satisfies the DataValueDescriptor
@@ -785,8 +790,20 @@ public final class SQLSmallint
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 				setToNull();
-		else
+		else {
+			isNull = false;
 			value = unsafeRow.getShort(ordinal);
+		}
+	}
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = row.getShort(ordinal);
+		}
 	}
 
 	/**
@@ -835,4 +852,11 @@ public final class SQLSmallint
 		else
 			value = OrderedBytes.decodeInt16(src);
 	}
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.ShortType, true);
+	}
+
+
 }

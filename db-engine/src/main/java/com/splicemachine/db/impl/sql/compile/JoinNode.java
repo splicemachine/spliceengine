@@ -1170,8 +1170,11 @@ public class JoinNode extends TableOperatorNode{
 		
 		
 		/* Put the predicates back into the tree */
+
         if(joinPredicates!=null){
-            joinClause=joinPredicates.restorePredicates();
+            // Pulling the equality predicate normal case from the restriction generation.
+            if (rightHashKeys ==null || rightHashKeys.length != joinPredicates.size())
+                joinClause=joinPredicates.restorePredicates();
   //          joinPredicates=null;
         }
 

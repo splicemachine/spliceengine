@@ -205,33 +205,33 @@ public class SortOperation extends SpliceBaseOperation{
             dataSet = dataSet.distinct(OperationContext.Scope.DISTINCT.displayName(),
                 false, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
             try {
-                operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
+                //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
                 dataSet = dataSet.map(new SetCurrentLocatedRowFunction(operationContext), true);
 
             } finally {
-                operationContext.popScope();
+               // operationContext.popScope();
             }
         }
 
-        operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
+        //operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
         KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
         PairDataSet pair=dataSet.keyBy(f);
-        operationContext.popScope();
+        //operationContext.popScope();
 
-        operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
+        //operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
         PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
             OperationContext.Scope.SORT.displayName());
-        operationContext.popScope();
+        //operationContext.popScope();
 
-        operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);
+        //operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);
         DataSet sortedValues=sortedByKey.values(OperationContext.Scope.READ_SORTED.displayName());
-        operationContext.popScope();
+        //operationContext.popScope();
 
         try{
-            operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
+            //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
             return sortedValues.map(new SetCurrentLocatedRowFunction(operationContext),true);
         }finally{
-            operationContext.popScope();
+          //  operationContext.popScope();
         }
     }
 
