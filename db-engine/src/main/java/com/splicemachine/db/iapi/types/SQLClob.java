@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.util.UTF8Util;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
@@ -783,6 +784,15 @@ public class SQLClob
             }
             byte[] header = new byte[MAX_STREAM_HEADER_LENGTH];
             int read = in.read(header);
+            // Try to read MAX_STREAM_HEADER_LENGTH bytes
+            while (read < MAX_STREAM_HEADER_LENGTH) {
+                int r = in.read(header, read, MAX_STREAM_HEADER_LENGTH - read);
+                if (r == -1) {
+                    // EOF, break loop with what we've already read
+                    break;
+                }
+                read += r;
+            }
             // Expect at least two header bytes.
             if (SanityManager.DEBUG) {
                 SanityManager.ASSERT(read > 1, "Too few header bytes: " + read);
