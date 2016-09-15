@@ -18,11 +18,9 @@ package com.splicemachine.db.client.cluster;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -32,14 +30,19 @@ import java.util.logging.Logger;
  * @author Scott Fines
  *         Date: 9/14/16
  */
-public class ConnectionServerDiscovery implements ServerDiscovery{
+class ConnectionServerDiscovery implements ServerDiscovery{
     private static final Logger LOGGER=Logger.getLogger(ClusteredDataSource.class.getName());
+    static final String DEFAULT_ACTIVE_SERVER_QUERY="call SYSCS_UTIL.GET_ACTIVE_SERVERS()";
     private final String[] initialServers;
     private final ServerList serverList;
+    private final ServerPoolFactory poolFactory;
 
-    public ConnectionServerDiscovery(String[] initialServers,ServerList serverList){
+    ConnectionServerDiscovery(String[] initialServers,
+                              ServerList serverList,
+                              ServerPoolFactory poolFactory){
         this.initialServers=initialServers;
         this.serverList=serverList;
+        this.poolFactory = poolFactory;
     }
 
     @Override
@@ -54,9 +57,10 @@ public class ConnectionServerDiscovery implements ServerDiscovery{
         return fetchActiveServers(conn);
     }
 
+    @SuppressWarnings("WeakerAccess") //designed for overridding
     protected List<String> fetchActiveServers(Connection conn){
-        try(CallableStatement cs=conn.prepareCall("call SYSCS_UTIL.GET_ACTIVE_SERVERS()")){
-            try(ResultSet rs=cs.executeQuery()){
+        try(Statement cs=conn.createStatement()){
+            try(ResultSet rs=cs.executeQuery(DEFAULT_ACTIVE_SERVER_QUERY)){
                 List<String> newPool=new ArrayList<>();
                 while(rs.next()){
                     String hostPort=rs.getString(1)+":"+rs.getString(2);
@@ -69,15 +73,86 @@ public class ConnectionServerDiscovery implements ServerDiscovery{
         }catch(SQLException se){
             logError("serviceDiscovery",se);
         }
+        return Collections.emptyList();
     }
 
     /* **********************************************************************************/
     /*private helper methods*/
-    private Connection getConnection(){
-        Connection conn = null;
+
+    private /*@Nullable*/ Connection getConnection(){
+        Connection conn;
         Iterator<ServerPool> serverIter = serverList.activeServers();
+        boolean[] visitedInitialServers = new boolean[initialServers.length];
+        while(serverIter.hasNext()){
+            ServerPool next=serverIter.next();
+            try{
+                conn=next.tryAcquireConnection(true);
+                if(conn!=null) return conn;
+            }catch(SQLException se){
+                logError("getConnection("+next.serverName+")",se);
+            }
+            for(int i=0;i<initialServers.length;i++){
+                String server = initialServers[i];
+                if(server.startsWith(next.serverName)){
+                    visitedInitialServers[i] = true;
+                    break;
+                }
+            }
+        }
 
+        //we couldn't acquire a connection from the pool, so try and force create one
+        serverIter = serverList.activeServers();
+        while(serverIter.hasNext()){
+            ServerPool next=serverIter.next();
+            try{
+                conn=next.newConnection();
+                if(conn!=null) return conn;
+            }catch(SQLException se){
+                logError("getConnection("+next.serverName+")",se);
+            }
+            for(int i=0;i<initialServers.length;i++){
+                String server = initialServers[i];
+                if(server.startsWith(next.serverName)){
+                    visitedInitialServers[i] = true;
+                    break;
+                }
+            }
+        }
 
+        /*
+         * Being here means that either
+         * A) there are no servers in the server list or
+         * B) all the servers broke when we tried to create a new connection
+         *
+         * We'll be gracious and assume that there were no servers, and choose a server
+         * from the initial list
+         */
+        for(int i=0;i<initialServers.length;i++){
+            if(!visitedInitialServers[i]){
+                ServerPool newPool = poolFactory.newServerPool(initialServers[i]);
+                try{
+                    conn=newPool.newConnection();
+                    if(conn!=null) {
+                        serverList.addServer(newPool); //this server is actually active, so we can re-use this
+                        return conn;
+                    }
+                }catch(SQLException se){
+                    logError("getConnection("+newPool.serverName+")",se);
+                }finally{
+                    try{
+                        newPool.close();
+                    }catch(SQLException e){
+                        logError("serverPool.close("+newPool.serverName+")",e);
+                    }
+                }
+            }
+        }
+
+        /*
+         * We got here which means that we weren't able to find anything on our initial
+         * server list either. Not much to do except return null
+         */
+        return null;
     }
 
     private void logError(String operation,Throwable t){

@@ -221,4 +221,43 @@ public class ServerListTest{
         Assert.assertEquals("Missing active server!",active,sps.get(0));
         Assert.assertEquals("Missing active2 server!",active2,sps.get(1));
     }
+
+    @Test
+    public void addServerAddsNewServers() throws Exception{
+        ServerPool dead = new ServerPool(mock(DataSource.class),
+                "deadServer",1,new DeadlineFailureDetector(1),mock(PoolSizingStrategy.class),Integer.MAX_VALUE);
+        ServerPool active = new ServerPool(mock(DataSource.class),
+                "activeServer",1,new DeadlineFailureDetector(Long.MAX_VALUE),
+                mock(PoolSizingStrategy.class),Integer.MAX_VALUE);
+
+        ServerList sl = new ServerList(new ConnectionSelectionStrategy(){
+            @Override
+            public int nextServer(int previous,int numServers){
+                return 1;
+            }
+        },new ServerPool[]{dead,active});
+
+        Iterator<ServerPool> spIter=sl.activeServers();
+        Assert.assertTrue("Did not see active servers!",spIter.hasNext());
+        ServerPool sp = spIter.next();
+        Assert.assertEquals("Incorrect server pool!","activeServer",sp.serverName);
+        Assert.assertFalse("Server reported as dead!",sp.isDead());
+        Assert.assertFalse("Has more than 1 server!",spIter.hasNext());
+
+        ServerPool active2 = new ServerPool(mock(DataSource.class),
+                "activeServer2",1,new DeadlineFailureDetector(Long.MAX_VALUE),
+                mock(PoolSizingStrategy.class),Integer.MAX_VALUE);
+
+        sl.addServer(active2);
+
+        List<ServerPool> sps = new ArrayList<>();
+        spIter=sl.activeServers();
+        while(spIter.hasNext()){
+            sps.add(spIter.next());
+        }
+        Assert.assertEquals("Incorrect size!",2,sps.size());
+        Collections.sort(sps);
+        Assert.assertEquals("Missing active server!",active,sps.get(0));
+        Assert.assertEquals("Missing active2 server!",active2,sps.get(1));
+    }
 }

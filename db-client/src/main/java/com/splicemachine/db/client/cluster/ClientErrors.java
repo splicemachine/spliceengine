@@ -38,7 +38,9 @@ class ClientErrors{
      * @return true if the error is something that can be considered retryable
      */
     static boolean isNetworkError(SQLException se){
-        switch(se.getSQLState()){
+        String sqlState=se.getSQLState();
+        if(sqlState==null) return false; //we don't really know
+        switch(sqlState){
             //the following are errors that allow connection retries
             case SQLState.DRDA_CONNECTION_TERMINATED:
             case SQLState.NO_CURRENT_CONNECTION:
@@ -47,6 +49,7 @@ class ClientErrors{
             case SQLState.SOCKET_EXCEPTION:
             case SQLState.CONNECT_UNABLE_TO_CONNECT_TO_SERVER:
             case SQLState.CONNECT_UNABLE_TO_OPEN_SOCKET_STREAM:
+            case SQLState.AUTH_DATABASE_CONNECTION_REFUSED:
                 return true;
             case "08001":
                 /*

@@ -44,6 +44,19 @@ class ServerList{
         this.activeServers=new ServerLoop(css,Arrays.copyOf(initialServers,initialServers.length));
     }
 
+    Set<String> liveServers() throws SQLException{
+        ServerPool[] sp = activeServers.array; //volatile read
+        Set<String> servers = new HashSet<>(sp.length);
+        for(ServerPool s:sp){
+            if(s.isDead())
+                serverDead(s);
+            else
+                servers.add(s.serverName);
+        }
+        return servers;
+    }
+
+
     /**
      * Get an iterator of the <em>known active</em> servers <em>at the time of the request</em>. This is
      * a "snapshot in time" kind of thing; a server may become available immediately after this method returns, or
@@ -81,6 +94,12 @@ class ServerList{
                     throw e;
                 else logError("serverDead",e);
             }
+        }
+    }
+
+    void addServer(ServerPool newPool){
+        if(activeServers.add(newPool)){
+            blacklist.remove(newPool.serverName);
         }
     }
 
@@ -176,6 +195,34 @@ class ServerList{
                 ServerPool[] sp = array;
                 array = null;
                 return sp;
+            }finally{
+                mutationLock.unlock();
+            }
+        }
+
+        public boolean add(ServerPool newPool){
+            mutationLock.lock();
+            try{
+                ServerPool[] sp = array; //volatile read
+                //the array is sorted, so use binary search to find its insertion point
+                int pos=Arrays.binarySearch(sp,newPool);
+                if(pos>=0 && sp[pos].serverName.equals(newPool.serverName)) return false; //we already have it
+
+                //we have to add it in
+                ServerPool[] newArray = new ServerPool[sp.length+1];
+                if(pos<0){
+                    newArray[0] = newPool; //it's inserted at the beginning
+                    System.arraycopy(sp,0,newArray,1,sp.length);
+                }else if(pos<sp.length){
+                    System.arraycopy(sp,0,newArray,0,pos);
+                    newArray[pos] = newPool;
+                    System.arraycopy(sp,pos+1,newArray,pos+1,sp.length-pos);
+                }else{
+                    System.arraycopy(sp,0,newArray,0,sp.length);
+                    newArray[sp.length] = newPool;
+                }
+                array = newArray;
+                return true;
             }finally{
                 mutationLock.unlock();
             }

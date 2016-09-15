@@ -20,8 +20,9 @@ import com.splicemachine.db.iapi.reference.SQLState;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
-import java.sql.*;
-import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
@@ -100,28 +101,28 @@ public class ClusteredDataSource implements DataSource{
 
     private final ServerList serverList;
     private final ServerPoolFactory poolFactory;
-    private final String[] initialServers;
     private final AtomicBoolean closed = new AtomicBoolean();
     private final boolean validateConnections;
 
     private final ScheduledExecutorService maintainer;
+    private final ServerDiscovery serverDiscovery;
     private final long discoveryWindow;
 
     private final AtomicReference<FutureTask<Void>> discoveryTask = new AtomicReference<>(null);
 
 
-    ClusteredDataSource(String[] initialServers,
-                        ServerList serverList,
+    ClusteredDataSource(ServerList serverList,
                         ServerPoolFactory poolFactory,
+                        ServerDiscovery serverDiscovery,
                         ScheduledExecutorService maintainer,
                         boolean validateConnections,
                         long discoveryWindow){
-        this.initialServers = initialServers;
         this.serverList = serverList;
         this.poolFactory = poolFactory;
         this.validateConnections = validateConnections;
         this.maintainer = maintainer;
         this.discoveryWindow=discoveryWindow;
+        this.serverDiscovery = serverDiscovery;
     }
 
     public void start(){
@@ -249,7 +250,14 @@ public class ClusteredDataSource implements DataSource{
 
         @Override
         public Void call() throws Exception{
-
+            List<String> newServers = serverDiscovery.detectServers();
+            ServerPool[] servers = new ServerPool[newServers.size()];
+            int i=0;
+            for(String server:newServers){
+                servers[i] = poolFactory.newServerPool(server);
+                i++;
+            }
+            serverList.setServerList(servers);
             return null;
         }
     }
