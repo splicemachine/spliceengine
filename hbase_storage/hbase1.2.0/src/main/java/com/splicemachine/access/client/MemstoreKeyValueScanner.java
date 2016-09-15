@@ -115,7 +115,6 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
         return seek(key);
     }
 
-    @Override
     public long getScannerOrder() {
         return Long.MAX_VALUE;
     }
