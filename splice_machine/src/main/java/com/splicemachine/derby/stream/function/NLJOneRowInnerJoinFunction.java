@@ -22,6 +22,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.collections.iterators.SingletonIterator;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -69,7 +71,7 @@ public class NLJOneRowInnerJoinFunction<Op extends SpliceOperation> extends Spli
 
                 LocatedRow populatedRow = new LocatedRow(from.getRowLocation(),mergedRow);
                 op.setCurrentLocatedRow(populatedRow);
-                return Collections.singletonList(populatedRow).iterator();
+                return new SingletonIterator(populatedRow);
             } else {
                 return Collections.EMPTY_LIST.iterator();
             }

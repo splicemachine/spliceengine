@@ -558,6 +558,16 @@ public class BulkWriteActionTest{
         }
 
         @Override
+        public void recordRead(long w) {
+            reads+=w;
+        }
+
+        @Override
+        public void recordFilter(long w) {
+            filter+=w;
+        }
+
+        @Override
         public void recordWrite() {
             ++writes;
         }

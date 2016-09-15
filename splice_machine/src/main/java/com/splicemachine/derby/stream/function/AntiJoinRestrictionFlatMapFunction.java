@@ -20,6 +20,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import scala.Tuple2;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Collections;
@@ -62,6 +63,6 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
                 op.getEmptyRow(), op.wasRightOuterJoin,
                 executionFactory.getValueRow(numberOfColumns)));
         op.setCurrentLocatedRow(returnRow);
-        return Collections.singletonList(returnRow).iterator();
+        return new SingletonIterator(returnRow);
     }
 }

@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.collections.iterators.EmptyListIterator;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -156,10 +158,9 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
             }
             SpliceLogUtils.trace(LOG, sb.toString());
         }
-
         return (paths == null || paths.isEmpty()) ?
-            Collections.EMPTY_LIST.iterator():
-            Collections.singletonList(paths.get(0).toString()).iterator();
+                EmptyListIterator.INSTANCE:
+            new SingletonIterator(paths.get(0).toString());
     }
 
 }

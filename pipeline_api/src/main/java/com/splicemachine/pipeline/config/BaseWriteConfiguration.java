@@ -56,6 +56,16 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
                 }
 
                 @Override
+                public void recordRead(long w) {
+                    // no-op
+                }
+
+                @Override
+                public void recordFilter(long w) {
+                    // no-op
+                }
+
+                @Override
                 public void recordWrite() {
                     // no-op
                 }

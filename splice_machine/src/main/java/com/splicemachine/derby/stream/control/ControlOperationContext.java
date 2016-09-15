@@ -145,6 +145,22 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
+    public void recordFilter() {
+        rowsFiltered++;
+    }
+
+    @Override
+    public void recordRead(long w) {
+        rowsRead+=w;
+    }
+
+    @Override
+    public void recordFilter(long w) {
+        rowsFiltered+=w;
+    }
+
+
+    @Override
     public void recordRetry(long w) {
         rowsRetried+=w;
     }
@@ -152,11 +168,6 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
     public void recordRegionTooBusy(long w) {
         tooBusy+=w;
-    }
-
-    @Override
-    public void recordFilter() {
-        rowsFiltered++;
     }
 
     @Override

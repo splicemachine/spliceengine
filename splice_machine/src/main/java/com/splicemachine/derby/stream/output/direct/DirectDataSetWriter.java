@@ -27,6 +27,8 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
+import org.apache.commons.collections.iterators.SingletonIterator;
+
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -54,7 +56,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
 
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(rows.count));
-            return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)).iterator());
+            return new ControlDataSet<>(new SingletonIterator(new LocatedRow(valueRow)));
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

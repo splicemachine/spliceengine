@@ -32,6 +32,7 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
@@ -90,7 +91,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         ValueRow valueRow = new ValueRow(2);
         valueRow.setColumn(1,new SQLLongint(count));
         valueRow.setColumn(2,new SQLInteger(0));
-        return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)).iterator());
+        return new ControlDataSet<>(new SingletonIterator(new LocatedRow(valueRow)));
     }
 
     @Override

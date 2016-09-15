@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Charsets;
 import scala.Tuple2;
@@ -141,7 +142,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value){
-        return new ControlDataSet<>(Collections.singletonList(value).iterator());
+        return new ControlDataSet<>(new SingletonIterator(value));
     }
 
     @Override
@@ -151,7 +152,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <K,V> PairDataSet<K, V> singleRowPairDataSet(K key,V value){
-        return new ControlPairDataSet<>(Collections.singletonList(new Tuple2<>(key,value)).iterator());
+        return new ControlPairDataSet<>(new SingletonIterator(new Tuple2<>(key,value)));
     }
 
     @Override

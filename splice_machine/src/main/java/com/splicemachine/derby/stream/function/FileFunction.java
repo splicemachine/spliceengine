@@ -19,6 +19,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.collections.iterators.SingletonIterator;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.*;
 import java.util.Collections;
@@ -69,7 +71,7 @@ public class FileFunction extends AbstractFileFunction<String> {
         try {
             tokenizer.setLine(s);
             LocatedRow lr =  call(tokenizer.read());
-            return lr==null?Collections.<LocatedRow>emptyList().iterator():Collections.singletonList(lr).iterator();
+            return lr==null?Collections.<LocatedRow>emptyList().iterator():new SingletonIterator(lr);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
                 operationContext.recordBadRecord(e.getLocalizedMessage(), e);
