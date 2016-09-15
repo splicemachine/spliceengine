@@ -24,6 +24,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -69,7 +70,7 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
             StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join");
             op.setCurrentRow(mergedRow);
             op.setCurrentRowLocation(from.getRowLocation());
-            return Collections.singletonList(new LocatedRow(from.getRowLocation(), mergedRow)).iterator();
+            return new SingletonIterator(new LocatedRow(from.getRowLocation(), mergedRow));
         } finally {
             if (op.getRightOperation()!= null)
                 op.getRightOperation().close();

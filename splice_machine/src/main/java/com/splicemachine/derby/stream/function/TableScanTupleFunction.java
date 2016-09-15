@@ -25,6 +25,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.Scans;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import scala.Tuple2;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -87,7 +88,7 @@ public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFl
             this.operationContext.recordRead();
             if (op!=null)
                 op.setCurrentLocatedRow(locatedRow);
-            return Collections.singletonList(locatedRow).iterator();
+            return new SingletonIterator(locatedRow);
         }
         this.operationContext.recordFilter();
         return Collections.<LocatedRow>emptyList().iterator();

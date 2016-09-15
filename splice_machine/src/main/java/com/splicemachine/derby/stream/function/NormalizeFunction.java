@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.collections.iterators.SingletonIterator;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -66,7 +68,7 @@ public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation,
                 throw e;
             }
             getActivation().setCurrentRow(normalized, normalize.getResultSetNumber());
-            return Collections.singletonList(new LocatedRow(sourceRow.getRowLocation(), normalized.getClone())).iterator();
+            return new SingletonIterator(new LocatedRow(sourceRow.getRowLocation(), normalized.getClone()));
         }else return Collections.<LocatedRow>emptyList().iterator();
     }
 

@@ -242,6 +242,16 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
+    public void recordRead(long w){
+        rowsRead.add(w);
+    }
+
+    @Override
+    public void recordFilter(long w){
+        rowsFiltered.add(w);
+    }
+
+    @Override
     public void recordWrite(){
         rowsWritten.add(1l);
     }

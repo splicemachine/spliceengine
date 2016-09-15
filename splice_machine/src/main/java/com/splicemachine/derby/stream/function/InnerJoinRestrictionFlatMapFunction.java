@@ -21,6 +21,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
+import org.apache.commons.collections.iterators.SingletonIterator;
 import scala.Tuple2;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -58,7 +59,7 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
                 LocatedRow lr = new LocatedRow(rightRow.getRowLocation(),mergedRow);
                 op.setCurrentLocatedRow(lr);
-                return Collections.singletonList(lr).iterator();
+                return new SingletonIterator(lr);
             }
             operationContext.recordFilter();
         }

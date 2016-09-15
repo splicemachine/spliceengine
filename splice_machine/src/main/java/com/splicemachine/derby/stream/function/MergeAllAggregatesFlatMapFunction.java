@@ -20,6 +20,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOpera
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -62,7 +63,7 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
     public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
         if (!locatedRows.hasNext()) {
             return returnDefault ?
-                Collections.singletonList(new LocatedRow(getOperation().getExecRowDefinition())).iterator() :
+                new SingletonIterator(new LocatedRow(getOperation().getExecRowDefinition())) :
                 Collections.EMPTY_LIST.iterator();
         }
         if (!initialized) {
@@ -96,6 +97,6 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
             }
         }
         op.finishAggregation(r1); // calls setCurrentRow
-        return Collections.singletonList(new LocatedRow(r1)).iterator();
+        return new SingletonIterator(new LocatedRow(r1));
     }
 }

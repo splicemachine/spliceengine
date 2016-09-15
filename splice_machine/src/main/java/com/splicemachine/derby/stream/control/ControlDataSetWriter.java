@@ -32,9 +32,9 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -95,7 +95,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                 }
             }
             txn.commit();
-            return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)).iterator());
+            return new ControlDataSet<>(new SingletonIterator(new LocatedRow(valueRow)));
         }catch(Exception e){
             if(txn!=null){
                 try{

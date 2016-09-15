@@ -20,9 +20,9 @@ package com.splicemachine.pipeline.api;
  */
 public interface RecordingContext {
     void recordRead();
-
+    void recordRead(long w);
     void recordFilter();
-
+    void recordFilter(long w);
     void recordWrite();
     void recordPipelineWrites(long w);
     void recordThrownErrorRows(long w);
