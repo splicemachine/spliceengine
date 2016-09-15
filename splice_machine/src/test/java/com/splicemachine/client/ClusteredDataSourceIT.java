@@ -21,6 +21,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
@@ -36,19 +37,14 @@ public class ClusteredDataSourceIT{
 
     @Test
     public void testCanGetConnection() throws Exception{
-        ConfiguredServerPoolFactory cspf = new ConfiguredServerPoolFactory(
-                new DeadlineFailureDetectorFactory(Long.MAX_VALUE));
-        ClusteredDataSource cds = new ClusteredDataSource(
-                new String[]{"localhost:1527"},
-                "splicedb",
-                "splice",
-                "admin",
-                new InfinitePoolSize(),
-                ConnectionStrategy.ROUND_ROBIN,
-                cspf,
-                1000L,
-                1000L
-                );
+        ConfiguredServerPoolFactory cspf = new ConfiguredServerPoolFactory("splicedb","splice","admin", new DeadlineFailureDetectorFactory(Long.MAX_VALUE),InfinitePoolSize.INSTANCE);
+        ClusteredDataSource cds = ClusteredDataSource.newBuilder()
+                .servers("localhost:1527")
+                .serverPoolFactory(cspf)
+                .connectionSelection(ConnectionStrategy.ROUND_ROBIN)
+                .heartbeatPeriod(1000L)
+                .discoveryWindow(10000L)
+                .build();
 
         try(Connection conn = cds.getConnection()){
             try(Statement s = conn.createStatement()){
@@ -64,10 +60,10 @@ public class ClusteredDataSourceIT{
 
     @Test
     public void testCanGetConnectionThroughDriver() throws Exception{
-        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin";
-//        Class.forName(ClusteredDriver.class.getCanonicalName());
+        String url = "jdbc:spliceClustered://localhost:1527/splicedb;user=splice;password=admin";
+        Class.forName(ClusteredDriver.class.getCanonicalName());
 
-        try(Connection conn = new ClusteredDriver().connect(url,null)){
+        try(Connection conn =DriverManager.getDriver(url).connect(url,null)){
             try(Statement s = conn.createStatement()){
                 try(ResultSet rs = s.executeQuery("values (1)")){
                     Assert.assertTrue("No rows returned!",rs.next());

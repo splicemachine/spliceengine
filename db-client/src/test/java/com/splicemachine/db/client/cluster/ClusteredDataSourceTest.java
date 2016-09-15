@@ -92,7 +92,7 @@ public class ClusteredDataSourceTest{
                 return Arrays.asList("testServer:1527");
             }
         };
-        ClusteredDataSource cds = new ClusteredDataSource(sl,spf,discovery, ses,false,0L);
+        ClusteredDataSource cds = new ClusteredDataSource(sl,spf,discovery, ses,false,0L,0);
         cds.start();
         Connection c = cds.getConnection();
         Assert.assertNotNull("Did not get a non-null connection!",c);
@@ -134,7 +134,7 @@ public class ClusteredDataSourceTest{
                 return Collections.emptyList();
             }
         };
-        ClusteredDataSource cds = new ClusteredDataSource(new ServerList(css,new ServerPool[]{}),spf,sd, ses,false,0L);
+        ClusteredDataSource cds = new ClusteredDataSource(new ServerList(css,new ServerPool[]{}),spf,sd, ses,false,0L,0);
         cds.start();
         try{
             cds.getConnection();
@@ -162,7 +162,7 @@ public class ClusteredDataSourceTest{
         ServerPoolFactory spf = new ConfiguredServerPoolFactory("test","tu","tp",failureDetectorFactory,pss);
         ServerList sl = new ServerList(css,new ServerPool[]{});
         ServerDiscovery sd = new ConnectionServerDiscovery(new String[]{"localhost:60000"},sl,spf);
-        ClusteredDataSource cds = new ClusteredDataSource(new ServerList(css,new ServerPool[]{}),spf,sd, ses,false,0L);
+        ClusteredDataSource cds = new ClusteredDataSource(new ServerList(css,new ServerPool[]{}),spf,sd, ses,false,0L,0);
         cds.detectServers();
         try{
             cds.getConnection();
@@ -226,7 +226,7 @@ public class ClusteredDataSourceTest{
         ServerDiscovery sd = new ServerDiscovery(){
             @Override public List<String> detectServers() throws SQLException{ return Arrays.asList("failServer","successServer"); }
         };
-        ClusteredDataSource cds = new ClusteredDataSource(sl,spf,sd,ses,false,100L);
+        ClusteredDataSource cds = new ClusteredDataSource(sl,spf,sd,ses,false,100L,0);
         cds.detectServers();
         Connection c=cds.getConnection();
         Assert.assertNotNull("Returned a null connection!",c);
@@ -285,7 +285,7 @@ public class ClusteredDataSourceTest{
         ServerList sl = new ServerList(css,new ServerPool[]{spf.newServerPool("oldServer")});
         ServerDiscovery d = new ConnectionServerDiscovery(new String[]{"oldServer"},sl,spf);
 
-        ClusteredDataSource cds = new ClusteredDataSource(sl,spf,d,ses,false,0);
+        ClusteredDataSource cds = new ClusteredDataSource(sl,spf,d,ses,false,0,0);
         Set<String> activeServers = sl.liveServers();
         Assert.assertEquals("Incorrect default size!",1,activeServers.size());
         Assert.assertTrue("Did not contain oldServer",activeServers.contains("oldServer"));
@@ -354,7 +354,7 @@ public class ClusteredDataSourceTest{
         };
         ServerList sl = new ServerList(css,new ServerPool[]{spf.newServerPool("oldServer"),spf.newServerPool("deadServer")});
         ServerDiscovery sd = new ConnectionServerDiscovery(new String[]{"oldServer","deadServer"},sl,spf);
-        ClusteredDataSource cds = new ClusteredDataSource(sl,spf,sd,ses,false,0L);
+        ClusteredDataSource cds = new ClusteredDataSource(sl,spf,sd,ses,false,0L,0);
         Set<String> activeServers = sl.liveServers();
         Assert.assertEquals("Incorrect size!",2,activeServers.size());
 

@@ -141,7 +141,7 @@ class ServerPool implements Comparable<ServerPool>{
     }
 
 
-    boolean heartbeat() throws SQLException{
+    boolean heartbeat(){
         try(Connection conn=acquireConnection(false)){ //don't validate, since we are going to do that ourselves
             /*
              * since Connection.isValid() ensures that we actually talk to the server, we can

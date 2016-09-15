@@ -107,22 +107,27 @@ public class ClusteredDataSource implements DataSource{
     private final ScheduledExecutorService maintainer;
     private final ServerDiscovery serverDiscovery;
     private final long discoveryWindow;
+    private final long heartbeatWindow;
 
     private final AtomicReference<FutureTask<Void>> discoveryTask = new AtomicReference<>(null);
 
+    public static ClusteredDataSourceBuilder newBuilder(){
+        return new ClusteredDataSourceBuilder();
+    }
 
     ClusteredDataSource(ServerList serverList,
                         ServerPoolFactory poolFactory,
                         ServerDiscovery serverDiscovery,
                         ScheduledExecutorService maintainer,
                         boolean validateConnections,
-                        long discoveryWindow){
+                        long discoveryWindow,long heartbeatWindow){
         this.serverList = serverList;
         this.poolFactory = poolFactory;
         this.validateConnections = validateConnections;
         this.maintainer = maintainer;
         this.discoveryWindow=discoveryWindow;
         this.serverDiscovery = serverDiscovery;
+        this.heartbeatWindow = heartbeatWindow;
     }
 
     public void start(){
@@ -220,14 +225,9 @@ public class ClusteredDataSource implements DataSource{
             throw se;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void detectServers() throws SQLException{
         performDiscovery(new Discovery());
-    }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private void logError(String operation,Throwable t){
-        logError(operation,t,Level.SEVERE);
     }
 
     private void logError(String operation,Throwable t,Level logLevel){
@@ -254,7 +254,10 @@ public class ClusteredDataSource implements DataSource{
             ServerPool[] servers = new ServerPool[newServers.size()];
             int i=0;
             for(String server:newServers){
-                servers[i] = poolFactory.newServerPool(server);
+                ServerPool serverPool=poolFactory.newServerPool(server);
+                servers[i] =serverPool;
+                if(heartbeatWindow>0)
+                    maintainer.schedule(new Heartbeat(serverPool),heartbeatWindow,TimeUnit.MILLISECONDS);
                 i++;
             }
             serverList.setServerList(servers);
@@ -311,5 +314,26 @@ public class ClusteredDataSource implements DataSource{
         maintainer.scheduleAtFixedRate(command,
                 0L,discoveryWindow,
                 TimeUnit.MILLISECONDS);
+    }
+
+    private class Heartbeat implements Runnable{
+        private ServerPool server;
+
+        Heartbeat(ServerPool server){
+            this.server=server;
+        }
+
+        @Override
+        public void run(){
+            server.heartbeat();
+            if(server.isDead()){
+                try{
+                    serverList.serverDead(server);
+                }catch(SQLException ignored){ } //ignore the exception cause we don't really care
+            }else{
+                maintainer.schedule(this,heartbeatWindow,TimeUnit.MILLISECONDS);
+            }
+
+        }
     }
 }

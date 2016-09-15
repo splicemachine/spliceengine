@@ -88,18 +88,24 @@ public class ClusteredDriver implements Driver{
             //TODO -sf- re-use shared DataSources
             PoolSizingStrategy pss = configurePoolSizing(augmentedProperties);
             ConnectionSelectionStrategy css = configureSelectionStrategy(augmentedProperties);
-            ServerPoolFactory spf = configureServerPool(url,augmentedProperties);
-            long heartbeat = getHeartbeat(url,augmentedProperties);
+            final long heartbeat = getHeartbeat(url,augmentedProperties);
             long serverCheckPeriod = getServerCheckPeriod(url,augmentedProperties);
 
             String user =ClientBaseDataSource.getUser(augmentedProperties);
             String password = ClientBaseDataSource.getPassword(augmentedProperties);
-//            ClusteredDataSource ds = new ClusteredDataSource(serverList,database,user,password,pss,css,spf,heartbeat,serverCheckPeriod);
-//            ds.performServiceDiscovery();
-//
-//            return new ClusteredConnection(ds,true,augmentedProperties);
+            FailureDetectorFactory fdf = new DeadlineFailureDetectorFactory(getFailureWindow(url,heartbeat,augmentedProperties));
+            ServerPoolFactory poolFactory = new ConfiguredServerPoolFactory(database,user,password,fdf,pss);
 
-            return null;
+            ClusteredDataSource cds = ClusteredDataSource.newBuilder()
+                    .servers(serverList)
+                    .connectionSelection(css)
+                    .serverPoolFactory(poolFactory)
+                    .heartbeatPeriod(heartbeat)
+                    .discoveryWindow(serverCheckPeriod)
+                    .build();
+
+            cds.detectServers(); //run a detection to fill out all the servers
+            return new ClusteredConnection(cds,true,augmentedProperties);
         }catch(SqlException se){
             throw se.getSQLException();
         }
@@ -282,8 +288,8 @@ public class ClusteredDriver implements Driver{
         return ConnectionStrategy.ROUND_ROBIN;
     }
 
-    private ServerPoolFactory configureServerPool(String url,Properties augmentedProperties) throws SqlException{
-        long failureTimeMillis = DEFAULT_FAILURE_TIMEOUT; //must respond within 10 second by default
+    private long getFailureWindow(String url,long heartbeatPeriod,Properties augmentedProperties) throws SqlException{
+        long failureTimeMillis = DEFAULT_HEARTBEAT_COUNT*heartbeatPeriod; //must respond within 10 second by default
         String failureTimeout = augmentedProperties.getProperty(FAILURE_TIMEOUT);
         if(failureTimeout!=null){
             try{
@@ -292,16 +298,14 @@ public class ClusteredDriver implements Driver{
                 throw new SqlException(null,new ClientMessageId(SQLState.MALFORMED_URL),url,nfe);
             }
         }
-        FailureDetectorFactory fdf = new DeadlineFailureDetectorFactory(failureTimeMillis);
-        //TODO -sf- configure loging timeout
-//        return new ConfiguredServerPoolFactory(fdf);
-        return null;
+        return failureTimeMillis;
     }
 
     private static final String HEARTBEAT = "heartbeat";
     private static final String SERVER_CHECK_PERIOD= "discoveryInterval";
     private static final long DEFAULT_SERVER_CHECK = 1000L;
     private static final long DEFAULT_HEARTBEAT = 1000L;
+    private static final int DEFAULT_HEARTBEAT_COUNT = 10;
 
     private long getHeartbeat(String url,Properties augmentedProperties) throws SqlException{
         String heartbeatStr = augmentedProperties.getProperty(HEARTBEAT);
