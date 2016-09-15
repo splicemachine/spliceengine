@@ -72,7 +72,7 @@ public class SQLDecimalTest {
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
-        // TODO
+        // TODO Fix Length Model for Decimal Types
         @Test
         @Ignore
         public void serdeKeyData() throws Exception {

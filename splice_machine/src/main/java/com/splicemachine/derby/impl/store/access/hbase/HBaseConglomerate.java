@@ -427,7 +427,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
 
     @Override
     public StructField getStructField(String columnName) {
-        throw new RuntimeException("Not Implemented");
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
 }

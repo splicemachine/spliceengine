@@ -141,12 +141,12 @@ public class SetOpOperation extends SpliceBaseOperation {
 
     @Override
     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-        throw new RuntimeException("Not Implemented");
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override
     public boolean isReferencingTable(long tableNumber) {
-        throw new RuntimeException("Not Implemented");
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override
@@ -164,7 +164,7 @@ public class SetOpOperation extends SpliceBaseOperation {
             return leftSource.getDataSet(dsp).subtract(
                     rightSource.getDataSet(dsp));
         } else {
-            throw new RuntimeException("Operation Type not Supported "+opType);
+            throw new UnsupportedOperationException("Operation Type not Supported "+opType);
         }
 
     }
