@@ -22,6 +22,7 @@ import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.pipeline.api.RecordingContext;
 import com.splicemachine.si.api.txn.TxnView;
 import java.io.Externalizable;
+import java.io.IOException;
 
 /**
  * Created by jleach on 4/17/15.
@@ -84,4 +85,5 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void popScope();
 
     TxnView getTxn();
+    OperationContext getClone() throws IOException, ClassNotFoundException;
 }

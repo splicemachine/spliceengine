@@ -116,6 +116,7 @@ public class ConfigurationBuilder {
     public String networkBindAddress;
     public String upgradeForcedFrom;
     public String storageFactoryHome;
+    public int nestedLoopJoinBatchSize;
 
     // PipelineConfiguration
     public int coreWriterThreads;

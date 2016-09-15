@@ -149,7 +149,7 @@ public class HScan implements DataScan{
          *
          * TODO -sf- is this exactly right? or should we expose this in the DataScan interface
          */
-        if(rowsToCache<10)
+        if(rowsToCache<=100)
             scan.setSmall(true);
         return this;
     }
