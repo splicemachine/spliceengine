@@ -1,5 +1,5 @@
---- hbase-env.sh.orig	2016-08-27 00:28:05.961885756 +0000
-+++ hbase-env.sh	2016-09-12 14:43:24.938232451 +0000
+--- hbase-env.sh.orig	2016-09-16 15:39:32.289175629 +0000
++++ hbase-env.sh	2016-09-16 15:45:00.194433830 +0000
 @@ -31,6 +31,10 @@
  # Extra Java CLASSPATH elements.  Optional.
  # export HBASE_CLASSPATH=
@@ -77,17 +77,16 @@
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.maxExecutors=11" # this is installation specific
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.local.dir=/tmp"
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.authenticate=true"
-+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dspark.authenticate=true"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.authenticate.enableSaslEncryption=true"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.akka.enabled=true"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.fs.enabled=true"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.keyPassword=mapr123"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.keyStore=/opt/mapr/conf/ssl_keystore"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.keyStorePassword=mapr123"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.trustStore=/opt/mapr/conf/ssl_truststore"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.trustStorePassword=mapr123"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.protocol=TLSv1.2"
-+#SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.enabledAlgorithms=TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.authenticate.enableSaslEncryption=true"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.akka.enabled=true"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.fs.enabled=true"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.keyPassword=mapr123"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.keyStore=/opt/mapr/conf/ssl_keystore"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.keyStorePassword=mapr123"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.trustStore=/opt/mapr/conf/ssl_truststore"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.trustStorePassword=mapr123"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.protocol=TLSv1.2"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.enabledAlgorithms=TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
 +# SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -enableassertions"
 +
 +### Java Configuration Options for HBase RegionServer
