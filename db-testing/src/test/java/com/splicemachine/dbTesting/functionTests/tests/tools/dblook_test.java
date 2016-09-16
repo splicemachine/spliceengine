@@ -563,8 +563,7 @@ public class dblook_test {
         String [] fullArgs = new String[args.length+2];
         fullArgs[0] = "-d";
         fullArgs[1] = sourceDBUrl;
-        for (int i = 2; i < fullArgs.length; i++)
-            fullArgs[i] = args[i-2];
+        System.arraycopy(args, 0, fullArgs, 2, fullArgs.length - 2);
 
         try {
             new dblook(fullArgs);

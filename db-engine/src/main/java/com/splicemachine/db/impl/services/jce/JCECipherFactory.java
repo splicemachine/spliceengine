@@ -343,11 +343,8 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 			iv[0] = (byte)(((secretKey[secretKey.length-1] << 2) | 0xF) ^ secretKey[0]);
 			for (int i = 1; i < BLOCK_LENGTH; i++)
 				iv[i] = (byte)(((secretKey[i-1] << (i%5)) | 0xF) ^ secretKey[i]);
-			
-			for(int i = BLOCK_LENGTH ; i < AES_IV_LENGTH ; i++)
-			{
-				iv[i]=iv[i-BLOCK_LENGTH];
-			}
+
+			System.arraycopy(iv, 0, iv, BLOCK_LENGTH, AES_IV_LENGTH - 8);
 			
 		}	
 		else

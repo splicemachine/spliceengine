@@ -116,10 +116,7 @@ public class FormatableArrayHolder implements Formatable
 		** going to do an element by element copy.
 		*/
 		//System.arraycopy(array, 0, outArray, 0, outArray.length);
-		for (int i = 0; i < outArray.length; i++)
-		{
-			outArray[i] = array[i];
-		}
+		System.arraycopy(array, 0, outArray, 0, outArray.length);
 
 		return outArray;
 	}

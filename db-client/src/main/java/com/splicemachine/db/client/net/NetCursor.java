@@ -473,9 +473,7 @@ public class NetCursor extends com.splicemachine.db.client.am.Cursor {
             dataBufferStream_.write(dataBuffer_, currentRowPosition_, length);
         }
 
-        for (int i = 0; i < length; i++) {
-            dataBuffer_[i] = dataBuffer_[currentRowPosition_ + i];
-        }
+        System.arraycopy(dataBuffer_, currentRowPosition_ + 0, dataBuffer_, 0, length);
 
         position_ = length - (lastValidBytePosition_ - position_);
         lastValidBytePosition_ = length;

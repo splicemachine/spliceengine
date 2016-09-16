@@ -405,8 +405,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     public int[] getAccessedNonPkColumns() throws StandardException{
         int[] baseColumnMap = operationInformation.getBaseColumnMap();
         int[] nonPkCols = new int[baseColumnMap.length];
-        for (int i = 0; i < nonPkCols.length; ++i)
-            nonPkCols[i] = baseColumnMap[i];
+        System.arraycopy(baseColumnMap, 0, nonPkCols, 0, nonPkCols.length);
         for (int col:getColumnOrdering()){
             if (col < nonPkCols.length) {
                 nonPkCols[col] = -1;
