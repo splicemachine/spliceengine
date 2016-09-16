@@ -14,6 +14,7 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -23,36 +24,59 @@ import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
-import java.sql.Date;
-import java.util.GregorianCalendar;
 
 /**
  *
- * Test Class for SQLDate
+ * Test Class for SQLLongint
  *
  */
-public class SQLDateTest {
+public class SQLLongIntTest {
 
         @Test
+        public void addTwo() throws StandardException {
+            SQLLongint long1 = new SQLLongint(100l);
+            SQLLongint long2 = new SQLLongint(100l);
+            Assert.assertEquals("Integer Add Fails", 200l, long1.plus(long1, long2, null).getLong(),0l);
+        }
+    
+        @Test
+        public void subtractTwo() throws StandardException {
+            SQLLongint long1 = new SQLLongint(200l);
+            SQLLongint long2 = new SQLLongint(100l);
+            Assert.assertEquals("Integer subtract Fails",100l,long1.minus(long1, long2, null).getLong(),0l);
+        }
+        @Test(expected = StandardException.class)
+        public void testPositiveOverFlow() throws StandardException {
+            SQLLongint long1 = new SQLLongint(Long.MAX_VALUE);
+            SQLLongint long2 = new SQLLongint(1);
+            long1.plus(long1,long2,null);
+        }
+
+        @Test(expected = StandardException.class)
+        public void testNegativeOverFlow() throws StandardException {
+                SQLLongint long1 = new SQLLongint(Long.MIN_VALUE);
+                SQLLongint long2 = new SQLLongint(1);
+                long1.minus(long1, long2, null);
+        }
+    
+        @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                Date date = new Date(System.currentTimeMillis());
-                int computeEncodedDate = SQLDate.computeEncodedDate(date);
-                SQLDate value = new SQLDate(date);
-                SQLDate valueA = new SQLDate();
+                SQLLongint value = new SQLLongint(100l);
+                SQLLongint valueA = new SQLLongint();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",computeEncodedDate,row.getInt(0));
+                Assert.assertEquals("SerdeIncorrect",100l,row.getLong(0),0l);
                 valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",date.toString(),valueA.getDate(new GregorianCalendar()).toString());
+                Assert.assertEquals("SerdeIncorrect",100l,valueA.getLong(),0l);
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLDate value = new SQLDate();
-                SQLDate valueA = new SQLDate();
+                SQLLongint value = new SQLLongint();
+                SQLLongint valueA = new SQLLongint();
                 value.write(writer, 0);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
@@ -61,11 +85,10 @@ public class SQLDateTest {
     
         @Test
         public void serdeKeyData() throws Exception {
-                GregorianCalendar gc = new GregorianCalendar();
-                SQLDate value1 = new SQLDate(new Date(97,9,7));
-                SQLDate value2 = new SQLDate(new Date(97,10,7));
-                SQLDate value1a = new SQLDate();
-                SQLDate value2a = new SQLDate();
+                SQLLongint value1 = new SQLLongint(100l);
+                SQLLongint value2 = new SQLLongint(200l);
+                SQLLongint value1a = new SQLLongint();
+                SQLLongint value2a = new SQLLongint();
                 PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
                 PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
                 value1.encodeIntoKey(range1, Order.ASCENDING);
@@ -75,7 +98,8 @@ public class SQLDateTest {
                 range2.setPosition(0);
                 value1a.decodeFromKey(range1);
                 value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getDate(gc),value1a.getDate(gc));
-                Assert.assertEquals("2 incorrect",value2.getDate(gc),value2a.getDate(gc));
+                Assert.assertEquals("1 incorrect",value1.getLong(),value1a.getLong(),0l);
+                Assert.assertEquals("2 incorrect",value2.getLong(),value2a.getLong(),0l);
         }
+    
 }

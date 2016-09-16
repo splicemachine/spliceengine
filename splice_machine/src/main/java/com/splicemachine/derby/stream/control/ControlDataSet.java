@@ -15,6 +15,9 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
+import com.splicemachine.derby.stream.function.broadcast.CogroupBroadcastJoinFunction;
+import com.splicemachine.derby.stream.function.broadcast.SubtractByKeyBroadcastJoinFunction;
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.*;
@@ -337,5 +340,10 @@ public class ControlDataSet<V> implements DataSet<V> {
         if (attributes ==null)
             return null;
         return attributes.get(name);
+    }
+
+    @Override
+    public DataSet<V> join(OperationContext operationContext, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
+        throw new UnsupportedOperationException("Not Implemented in Control Side");
     }
 }

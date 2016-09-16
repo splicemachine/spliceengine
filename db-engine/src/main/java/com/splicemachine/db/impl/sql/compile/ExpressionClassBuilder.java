@@ -859,10 +859,10 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 		Nothing is required on the stack, a SQL null data value
 		is pushed.
 	*/
-	void generateNull(MethodBuilder mb, TypeCompiler tc, int collationType) {
+	void generateNull(MethodBuilder mb, TypeCompiler tc, int collationType, int precision, int scale) {
 		pushDataValueFactory(mb);
 		mb.pushNull(tc.interfaceName());
-		tc.generateNull(mb, collationType);
+		tc.generateNull(mb, collationType, precision, scale);
 	}
 
 	/**
@@ -871,11 +871,11 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 		is pushed.
 	*/
 	void generateNullWithExpress(MethodBuilder mb, TypeCompiler tc, 
-			int collationType) {
+			int collationType, int precision, int scale) {
 		pushDataValueFactory(mb);
 		mb.swap(); // need the dvf as the instance
 		mb.cast(tc.interfaceName());
-		tc.generateNull(mb, collationType);
+		tc.generateNull(mb, collationType,precision,scale);
 	}
 
 	/**

@@ -44,6 +44,8 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -422,5 +424,10 @@ public class HBaseConglomerate extends SpliceConglomerate{
         return ClassSize.estimateBaseFromCatalog(ContainerKey.class);
     }
 
+
+    @Override
+    public StructField getStructField(String columnName) {
+        throw new RuntimeException("Not Implemented");
+    }
 
 }

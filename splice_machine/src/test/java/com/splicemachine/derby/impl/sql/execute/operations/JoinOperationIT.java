@@ -42,18 +42,22 @@ public class JoinOperationIT extends SpliceUnitTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
-        params.add(new Object[]{"NESTEDLOOP"});
-        params.add(new Object[]{"SORTMERGE"});
-        params.add(new Object[]{"BROADCAST"});
-//        params.add(new Object[]{"MERGE"});
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(6);
+        params.add(new Object[]{"NESTEDLOOP","true"});
+        params.add(new Object[]{"SORTMERGE","true"});
+        params.add(new Object[]{"BROADCAST","true"});
+        params.add(new Object[]{"NESTEDLOOP","false"});
+        params.add(new Object[]{"SORTMERGE","false"});
+        params.add(new Object[]{"BROADCAST","false"});
         return params;
     }
 
     private String joinStrategy;
+    private String useSparkString;
 
-    public JoinOperationIT(String joinStrategy) {
+    public JoinOperationIT(String joinStrategy, String useSparkString) {
         this.joinStrategy = joinStrategy;
+        this.useSparkString = useSparkString;
     }
 
     @ClassRule
@@ -100,8 +104,8 @@ public class JoinOperationIT extends SpliceUnitTest {
     public void testInnerJoinNoRestriction() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select count(*), max(foo.col1) from --Splice-properties joinOrder=FIXED\n " +
-                        "foo, foo2 --Splice-properties joinStrategy=%s\n" +
-                        "where foo.col1 = foo2.col1", this.joinStrategy
+                        "foo, foo2 --Splice-properties joinStrategy=%s, useSpark=%s\n" +
+                        "where foo.col1 = foo2.col1", this.joinStrategy,this.useSparkString
         ));
         rs.next();
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(1));
@@ -112,8 +116,8 @@ public class JoinOperationIT extends SpliceUnitTest {
     public void testInnerJoinRestriction() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select count(*), min(foo.col1) from --Splice-properties joinOrder=FIXED\n" +
-                        " foo inner join foo2 --Splice-properties joinStrategy=%s\n" +
-                        "on foo.col1 = foo2.col1 and foo.col1+foo2.col2>6", this.joinStrategy
+                        " foo inner join foo2 --Splice-properties joinStrategy=%s, useSpark=%s\n" +
+                        "on foo.col1 = foo2.col1 and foo.col1+foo2.col2>6", this.joinStrategy,this.useSparkString
         ));
         rs.next();
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 2, rs.getInt(1));
@@ -126,8 +130,8 @@ public class JoinOperationIT extends SpliceUnitTest {
         System.out.println(joinStrategy);
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select count(*) from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                        " foo where not exists (select * from foo2 --SPLICE-PROPERTIES joinStrategy=%s\n" +
-                        "where foo.col1 = foo2.col1)", this.joinStrategy
+                        " foo where not exists (select * from foo2 --SPLICE-PROPERTIES joinStrategy=%s, useSpark=%s\n" +
+                        "where foo.col1 = foo2.col1)", this.joinStrategy, this.useSparkString
         ));
         rs.next();
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 2, rs.getInt(1));
@@ -137,8 +141,8 @@ public class JoinOperationIT extends SpliceUnitTest {
     public void testInnerAntiJoinRestriction() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select count(*) from --Splice-properties joinOrder=FIXED\n" +
-                        " foo where not exists (select * from foo2 --Splice-properties joinStrategy=%s\n" +
-                        "where foo.col1 = foo2.col1 and foo.col1+foo2.col2>6)", this.joinStrategy
+                        " foo where not exists (select * from foo2 --Splice-properties joinStrategy=%s, useSpark=%s\n" +
+                        "where foo.col1 = foo2.col1 and foo.col1+foo2.col2>6)", this.joinStrategy,this.useSparkString
         ));
         rs.next();
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(1));
@@ -148,8 +152,8 @@ public class JoinOperationIT extends SpliceUnitTest {
     public void testOuterJoinNoRestriction() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select count(*), sum(CASE WHEN foo2.col1 is null THEN 0 ELSE 1 END) from --Splice-properties joinOrder=FIXED\n" +
-                        " foo left outer join foo2 --Splice-properties joinStrategy=%s\n" +
-                        "on foo.col1 = foo2.col1", this.joinStrategy
+                        " foo left outer join foo2 --Splice-properties joinStrategy=%s, useSpark=%s\n" +
+                        "on foo.col1 = foo2.col1", this.joinStrategy, this.useSparkString
         ));
         rs.next();
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 5, rs.getInt(1));
@@ -160,8 +164,8 @@ public class JoinOperationIT extends SpliceUnitTest {
     public void testOuterJoinRestriction() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select count(*), sum(CASE WHEN foo2.col2 is null THEN 0 ELSE 1 END) from --Splice-properties joinOrder=FIXED\n" +
-                        " foo left outer join foo2 --Splice-properties joinStrategy=%s\n" +
-                        "on foo.col1 = foo2.col1 and foo.col1+foo2.col2>6", this.joinStrategy
+                        " foo left outer join foo2 --Splice-properties joinStrategy=%s, useSpark=%s\n" +
+                        "on foo.col1 = foo2.col1 and foo.col1+foo2.col2>6", this.joinStrategy, this.useSparkString
         ));
         rs.next();
         Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 5, rs.getInt(1));
@@ -172,8 +176,8 @@ public class JoinOperationIT extends SpliceUnitTest {
     public void testTrimJoinFunctionCall() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select * from --Splice-properties joinOrder=FIXED\n" +
-                        " a, b --Splice-properties joinStrategy=%s\n" +
-                        "where rtrim(a.v) = b.v order by a.v", this.joinStrategy
+                        " a, b --Splice-properties joinStrategy=%s, useSpark=%s\n" +
+                        "where rtrim(a.v) = b.v order by a.v", this.joinStrategy, this.useSparkString
         ));
         Assert.assertTrue("First Row Not Returned", rs.next());
         Assert.assertEquals("1", rs.getString(1));

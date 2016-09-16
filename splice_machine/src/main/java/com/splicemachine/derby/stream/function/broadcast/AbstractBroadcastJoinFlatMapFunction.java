@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.stream.function.broadcast;
 
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
+import com.splicemachine.derby.stream.function.InnerJoinNullFilterFunction;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
 import com.splicemachine.EngineDriver;
@@ -23,7 +25,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinCache;
-import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -37,9 +38,9 @@ import java.util.concurrent.Callable;
 /**
  * Created by dgomezferro on 11/4/15.
  */
-public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends SpliceFlatMapFunction<BroadcastJoinOperation, Iterator<In>, Out> {
+public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends SpliceFlatMapFunction<JoinOperation, Iterator<In>, Out> {
     private static final BroadcastJoinCache broadcastJoinCache = new BroadcastJoinCache();
-    private BroadcastJoinOperation operation;
+    private JoinOperation operation;
 
     public AbstractBroadcastJoinFlatMapFunction() {
     }
@@ -61,7 +62,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                     @Override
                     public Iterator<LocatedRow> iterator(){
                         try{
-                            return operation.getRightOperation().getDataSet(dsp).toLocalIterator();
+                            return operation.getRightOperation().getDataSet(dsp).filter(new InnerJoinNullFilterFunction(operationContext,operation.getRightHashKeys())).toLocalIterator();
                         }catch(StandardException e){
                             throw new RuntimeException(e);
                         }

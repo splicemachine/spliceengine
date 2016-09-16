@@ -43,8 +43,11 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -1374,8 +1377,9 @@ abstract class SQLBinary
 	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
 		if (isNull())
 			unsafeRowWriter.setNullAt(ordinal);
-		else
-			unsafeRowWriter.write(ordinal,dataValue);
+		else {
+			unsafeRowWriter.write(ordinal, dataValue);
+		}
 	}
 	/**
 	 *
@@ -1389,9 +1393,22 @@ abstract class SQLBinary
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 			setToNull();
-		else
+		else {
+			isNull = false;
 			dataValue = unsafeRow.getBinary(ordinal);
+		}
 	}
+
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else
+			dataValue = (byte[])row.get(ordinal);
+	}
+
+
+
 	/**
 	 *
 	 * Gets the encoded key length
@@ -1439,5 +1456,11 @@ abstract class SQLBinary
 		else
 			dataValue = OrderedBytes.decodeBlobVar(src);
 	}
+
+	@Override
+	public StructField getStructField(String columnName) {
+		return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+	}
+
 
 }

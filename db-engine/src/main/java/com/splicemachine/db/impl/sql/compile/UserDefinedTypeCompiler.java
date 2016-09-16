@@ -28,17 +28,13 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
-
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
-
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
-
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
 import com.splicemachine.db.iapi.reference.ClassName;
 
 public class UserDefinedTypeCompiler extends BaseTypeCompiler
@@ -152,7 +148,7 @@ public class UserDefinedTypeCompiler extends BaseTypeCompiler
 	}
 
     @Override
-	public void generateNull(MethodBuilder mb, int collationType) {
+	public void generateNull(MethodBuilder mb, int collationType, int precision, int scale) {
 		int argCount;
         try {
             LanguageConnectionContext lcc = (LanguageConnectionContext)

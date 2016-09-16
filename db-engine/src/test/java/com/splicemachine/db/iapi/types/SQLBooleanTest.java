@@ -14,10 +14,14 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -26,41 +30,41 @@ import org.junit.Test;
 
 /**
  *
- * Test Class for SQLChar
+ * Test Class for SQLBoolean
  *
  */
-public class SQLCharTest {
+public class SQLBooleanTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLChar value = new SQLChar("Splice Machine");
-                SQLChar valueA = new SQLChar();
+                SQLBoolean value = new SQLBoolean(true);
+                SQLBoolean valueA = new SQLBoolean();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect","Splice Machine",row.getString(0));
+                Assert.assertEquals("SerdeIncorrect",true,row.getBoolean(0));
                 valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect","Splice Machine",valueA.getString());
+                Assert.assertEquals("SerdeIncorrect",true,valueA.getBoolean());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow();
+                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLChar value = new SQLChar();
-                SQLChar valueA = new SQLChar();
+                SQLBoolean value = new SQLBoolean();
+                SQLBoolean valueA = new SQLBoolean();
                 value.write(writer, 0);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
-    
+
         @Test
         public void serdeKeyData() throws Exception {
-                SQLChar value1 = new SQLChar("Splice Machine");
-                SQLChar value2 = new SQLChar("Xplice Machine");
-                SQLChar value1a = new SQLChar();
-                SQLChar value2a = new SQLChar();
+                SQLBoolean value1 = new SQLBoolean(false);
+                SQLBoolean value2 = new SQLBoolean(true);
+                SQLBoolean value1a = new SQLBoolean();
+                SQLBoolean value2a = new SQLBoolean();
                 PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
                 PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
                 value1.encodeIntoKey(range1, Order.ASCENDING);
@@ -70,7 +74,24 @@ public class SQLCharTest {
                 range2.setPosition(0);
                 value1a.decodeFromKey(range1);
                 value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getString(),value1a.getString());
-                Assert.assertEquals("2 incorrect",value2.getString(),value2a.getString());
+                Assert.assertEquals("1 incorrect",value1.getBoolean(),value1a.getBoolean());
+                Assert.assertEquals("2 incorrect",value2.getBoolean(),value2a.getBoolean());
         }
+
+        @Test
+        public void rowValueToDVDValue() throws Exception {
+                SQLBoolean bool1 = new SQLBoolean(true);
+                SQLBoolean bool2 = new SQLBoolean();
+                ExecRow execRow = new ValueRow(2);
+                execRow.setColumn(1,bool1);
+                execRow.setColumn(2,bool2);
+                Assert.assertEquals(true,((Row)execRow).getBoolean(0));
+                Assert.assertTrue(((Row)execRow).isNullAt(1));
+                Row sparkRow = execRow.getSparkRow();
+                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{true,null}, execRow.schema());
+                Assert.assertEquals(row.getBoolean(0),true);
+                Assert.assertTrue(row.isNullAt(1));
+        }
+
+
 }

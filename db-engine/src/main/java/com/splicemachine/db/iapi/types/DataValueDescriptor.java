@@ -30,8 +30,10 @@ import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
 import com.splicemachine.db.iapi.services.io.Storable;
 
@@ -1018,6 +1020,16 @@ public interface DataValueDescriptor extends Storable, Orderable
 	void read(UnsafeRow unsafeRow, int ordinal) throws StandardException;
 
 	/**
+	 * This allows one to read a DataValueDescriptor from a
+	 * Dataset Row (Row).
+	 *
+	 * @param row
+	 * @param ordinal
+	 */
+	void read(Row row, int ordinal) throws StandardException;
+
+
+	/**
 	*
 	* Length for generating buffer
 	*
@@ -1037,4 +1049,13 @@ public interface DataValueDescriptor extends Storable, Orderable
 	*
 	*/
 	void decodeFromKey(PositionedByteRange builder) throws StandardException;
+
+	/**
+	 *
+	 * Corresponding Spark Type for the DVD
+	 *
+	 * @param columnName
+	 * @return
+     */
+	StructField getStructField(String columnName);
 }

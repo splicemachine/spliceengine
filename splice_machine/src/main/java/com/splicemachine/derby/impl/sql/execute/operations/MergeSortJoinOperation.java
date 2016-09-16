@@ -22,7 +22,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -184,35 +183,44 @@ public class MergeSortJoinOperation extends JoinOperation {
 
         DataSet<LocatedRow> leftDataSet1 = leftResultSet.getDataSet(dsp);
 
-        operationContext.pushScopeForOp("Prepare Left Side");
+       // operationContext.pushScopeForOp("Prepare Left Side");
         DataSet<LocatedRow> leftDataSet2 =
             leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
-        PairDataSet<ExecRow,LocatedRow> leftDataSet =
-            leftDataSet2.keyBy(new KeyerFunction<LocatedRow,JoinOperation>(operationContext, leftHashKeys));
-        operationContext.popScope();
+        if (!isOuterJoin)
+            leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
 
         // Prepare Right
-
         DataSet<LocatedRow> rightDataSet1 = rightResultSet.getDataSet(dsp);
-
-        operationContext.pushScopeForOp("Prepare Right Side");
         DataSet<LocatedRow> rightDataSet2 =
             rightDataSet1.map(new CountJoinedRightFunction(operationContext));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet =
-            rightDataSet2.keyBy(new KeyerFunction(operationContext, rightHashKeys));
-        operationContext.popScope();
+//        if (!isOuterJoin) Remove all nulls from the right side...
+            rightDataSet2 = rightDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+                rightDataSet1.map(new CountJoinedRightFunction(operationContext));
+        DataSet<LocatedRow> joined;
+        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null) {
+            if (isOuterJoin)
+                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
+            else if (notExistsRightSide)
+                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTANTI,false);
+            else
+                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.INNER,false);
+        } else{
+            PairDataSet<ExecRow, LocatedRow> rightDataSet =
+                    rightDataSet2.keyBy(new KeyerFunction(operationContext, rightHashKeys));
+//            operationContext.popScope();
+            PairDataSet<ExecRow,LocatedRow> leftDataSet =
+                    leftDataSet2.keyBy(new KeyerFunction<LocatedRow,JoinOperation>(operationContext, leftHashKeys));
 
-        try {
-            operationContext.pushScopeForOp("Perform Join");
-            DataSet<LocatedRow> joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
-            return joined.map(new CountProducedFunction(operationContext), true);
-        } finally {
-            operationContext.popScope();
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
+                        isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+            joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
         }
+            return joined.map(new CountProducedFunction(operationContext), true);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

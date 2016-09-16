@@ -575,11 +575,20 @@ public interface DataValueFactory
 
         /**
          * Get a SQL Decimal/Numeric with  a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
         NumberDataValue getNullDecimal(NumberDataValue dataValue);
+
+
+    /**
+         * Get a SQL Decimal/Numeric with  a SQL null value. If the supplied value
+         * is null then get a new value, otherwise set it to null and return
+         * that value.
+         *
+         */
+        NumberDataValue getNullDecimal(NumberDataValue dataValue, int precision, int scale);
 
         /**
          * Get a SQL boolean with  a SQL null value. If the supplied value

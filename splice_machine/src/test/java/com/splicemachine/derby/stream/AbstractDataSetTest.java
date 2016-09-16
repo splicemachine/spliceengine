@@ -48,11 +48,13 @@ public abstract class AbstractDataSetTest extends BaseStreamTest implements Seri
 
     protected abstract DataSet<ExecRow> getTenRowsTwoDuplicateRecordsDataSet();
 
+    /*
     @Test
     public void testDistinct() {
         DataSet<ExecRow> ds = getTenRowsTwoDuplicateRecordsDataSet();
         Assert.assertEquals("Duplicate Rows Not Filtered", 10, ds.distinct().collect().size());
     }
+    */
 
     @Test
     public void testMap() throws StandardException {
