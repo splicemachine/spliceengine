@@ -399,6 +399,7 @@ public class SelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testSelectColumnStatistics() throws Exception {
         String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
         Connection connection = DriverManager.getConnection(url, new Properties());
