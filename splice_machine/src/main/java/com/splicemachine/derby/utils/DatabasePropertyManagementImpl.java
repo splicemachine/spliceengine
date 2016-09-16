@@ -17,14 +17,12 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.tools.EmbedConnectionMaker;
 
 import javax.management.*;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Properties;
 
 /**
  * Implementation of wrapper class for JMX management statistics of Database Properties.

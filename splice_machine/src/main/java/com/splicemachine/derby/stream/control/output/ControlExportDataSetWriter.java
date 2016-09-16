@@ -36,7 +36,6 @@ import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.zip.GZIPOutputStream;
 

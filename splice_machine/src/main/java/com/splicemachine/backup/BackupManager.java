@@ -16,7 +16,7 @@
 package com.splicemachine.backup;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import java.util.Iterator;
+
 import java.util.List;
 
 /**

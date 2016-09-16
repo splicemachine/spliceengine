@@ -17,7 +17,6 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.SyncFailedException;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 

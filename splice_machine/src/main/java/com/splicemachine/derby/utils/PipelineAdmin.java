@@ -16,10 +16,8 @@
 package com.splicemachine.derby.utils;
 
 import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -40,7 +38,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Scott Fines

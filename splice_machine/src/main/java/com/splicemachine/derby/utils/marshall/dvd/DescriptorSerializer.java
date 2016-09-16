@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 /**
  * @author Scott Fines

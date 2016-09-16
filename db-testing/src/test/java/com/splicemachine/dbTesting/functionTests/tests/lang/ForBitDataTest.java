@@ -39,7 +39,6 @@ import java.io.InputStream;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import junit.extensions.TestSetup;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
 import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;

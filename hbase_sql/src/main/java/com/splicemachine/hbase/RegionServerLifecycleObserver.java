@@ -18,10 +18,7 @@ package com.splicemachine.hbase;
 
 import java.io.IOException;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.lifecycle.ManagerLoader;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;

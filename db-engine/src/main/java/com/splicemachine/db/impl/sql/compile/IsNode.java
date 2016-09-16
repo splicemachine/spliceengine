@@ -33,7 +33,6 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
 import java.util.List;
-import java.util.Vector;
 
 public class IsNode extends BinaryLogicalOperatorNode {
 	private boolean		notMe;	// set to true if we're to negate the sense of this node

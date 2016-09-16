@@ -24,7 +24,6 @@ import java.util.Iterator;
 
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.stream.control.ControlDataSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;

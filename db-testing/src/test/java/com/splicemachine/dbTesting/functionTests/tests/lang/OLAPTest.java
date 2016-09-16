@@ -33,7 +33,6 @@ import java.sql.ResultSetMetaData;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.junit.Assert;
 
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.JDBC;

@@ -19,7 +19,6 @@ import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;

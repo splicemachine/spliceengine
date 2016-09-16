@@ -34,12 +34,10 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.sql.Types;
 
 import java.util.List;
-import java.util.Vector;
 
 /**
  * This node represents a unary XXX_length operator

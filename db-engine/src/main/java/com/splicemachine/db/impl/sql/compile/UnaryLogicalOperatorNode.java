@@ -31,7 +31,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import java.util.List;
-import java.util.Vector;
 
 public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode{
     /**

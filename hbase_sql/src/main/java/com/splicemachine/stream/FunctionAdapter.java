@@ -15,7 +15,6 @@
 
 package com.splicemachine.stream;
 
-import scala.Function1;
 import scala.collection.Iterator;
 import scala.reflect.ClassTag;
 import scala.runtime.AbstractFunction1;

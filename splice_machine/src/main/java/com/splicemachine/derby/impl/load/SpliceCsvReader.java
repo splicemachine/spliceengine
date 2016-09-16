@@ -18,7 +18,7 @@ package com.splicemachine.derby.impl.load;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
-import java.util.List;
+
 import org.supercsv.io.CsvListReader;
 import org.supercsv.io.ITokenizer;
 import org.supercsv.prefs.CsvPreference;

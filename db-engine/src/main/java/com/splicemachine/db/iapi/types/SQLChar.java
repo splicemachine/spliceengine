@@ -1651,7 +1651,7 @@ public class SQLChar
             else
             {
                 cal.setTime( theValue);
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 formatJDBCDate( cal, sb);
                 strValue= sb.toString();
             }
@@ -1670,7 +1670,7 @@ public class SQLChar
             else
             {
                 cal.setTime( theValue);
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 formatJDBCTime( cal, sb);
                 strValue= sb.toString();
             }
@@ -1692,7 +1692,7 @@ public class SQLChar
             else
             {
                 cal.setTime( theValue);
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 formatJDBCDate( cal, sb);
                 sb.append( ' ');
                 formatJDBCTime( cal, sb);
@@ -1733,7 +1733,7 @@ public class SQLChar
         setValue( strValue);
     }
 
-    private void formatJDBCDate( Calendar cal, StringBuffer sb)
+    private void formatJDBCDate( Calendar cal, StringBuilder sb)
     {
         SQLDate.dateToString( cal.get( Calendar.YEAR),
                               cal.get( Calendar.MONTH) - Calendar.JANUARY + 1,
@@ -1741,7 +1741,7 @@ public class SQLChar
                               sb);
     }
 
-    private void formatJDBCTime( Calendar cal, StringBuffer sb)
+    private void formatJDBCTime( Calendar cal, StringBuilder sb)
     {
         SQLTime.timeToString(
             cal.get(Calendar.HOUR_OF_DAY),
@@ -1955,9 +1955,9 @@ public class SQLChar
         {
             if (!(this instanceof SQLVarchar))
             {
-                StringBuffer    strbuf;
+                StringBuilder    strbuf;
 
-                strbuf = new StringBuffer(getString());
+                strbuf = new StringBuilder(getString());
     
                 for ( ; sourceWidth < desiredWidth; sourceWidth++)
                 {

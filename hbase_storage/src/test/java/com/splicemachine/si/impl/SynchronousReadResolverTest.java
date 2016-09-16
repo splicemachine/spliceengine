@@ -15,7 +15,6 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.impl.MockRegionUtils;

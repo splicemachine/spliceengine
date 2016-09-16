@@ -27,7 +27,6 @@ package com.splicemachine.dbTesting.functionTests.tests.store;
 import java.sql.SQLException;
 
 import junit.framework.Test;
-import junit.framework.TestSuite;
 
 import com.splicemachine.dbTesting.junit.SecurityManagerSetup;
 import com.splicemachine.dbTesting.junit.TestConfiguration;

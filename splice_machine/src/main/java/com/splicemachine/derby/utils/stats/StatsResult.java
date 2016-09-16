@@ -16,7 +16,6 @@
 package com.splicemachine.derby.utils.stats;
 
 import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
-import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 
 import java.util.List;

@@ -29,7 +29,6 @@ import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 import com.splicemachine.dbTesting.junit.JDBC;
 
-import org.junit.Assert;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 

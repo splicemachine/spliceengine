@@ -31,13 +31,9 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
-import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 
 import com.splicemachine.db.iapi.store.access.Qualifier;
-
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 
 import com.splicemachine.db.iapi.util.JBitSet;
 

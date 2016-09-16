@@ -15,9 +15,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.error.StandardException;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

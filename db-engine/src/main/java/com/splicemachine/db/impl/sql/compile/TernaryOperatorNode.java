@@ -46,7 +46,7 @@ import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
+
 /**
  * A TernaryOperatorNode represents a built-in ternary operators.
  * This covers  built-in functions like substr().

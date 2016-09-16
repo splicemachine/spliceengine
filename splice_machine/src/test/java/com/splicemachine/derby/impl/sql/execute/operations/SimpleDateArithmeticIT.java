@@ -21,10 +21,7 @@ import static org.junit.Assert.fail;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;

@@ -31,7 +31,6 @@ import java.util.Properties;
 
 import javax.sql.ConnectionPoolDataSource;
 
-import org.junit.Assert;
 import junit.framework.AssertionFailedError;
 
 /**

@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.test.framework;
 
-import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.spark_project.guava.collect.Lists;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;

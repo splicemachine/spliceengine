@@ -24,7 +24,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.UserDataValue;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.UserDefinedAggregator;
-import org.apache.log4j.Logger;
 
 import java.io.Serializable;
 

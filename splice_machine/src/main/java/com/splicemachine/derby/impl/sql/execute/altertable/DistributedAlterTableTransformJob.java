@@ -1,12 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.altertable;
 
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.txn.TxnView;

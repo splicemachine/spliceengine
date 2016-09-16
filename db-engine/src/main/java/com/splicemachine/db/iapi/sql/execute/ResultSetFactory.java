@@ -25,8 +25,6 @@
 
 package com.splicemachine.db.iapi.sql.execute;
 
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;

@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * This node represents coalesce/value function which returns the first argument that is not null.

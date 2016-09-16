@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
-import com.splicemachine.stats.estimate.EmptyDistribution;
 
 import java.io.Externalizable;
 

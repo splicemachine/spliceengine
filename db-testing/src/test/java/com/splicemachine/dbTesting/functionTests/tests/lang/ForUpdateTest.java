@@ -38,7 +38,6 @@ import com.splicemachine.dbTesting.junit.RuntimeStatisticsParser;
 import com.splicemachine.dbTesting.junit.SQLUtilities;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
 
-import org.junit.Assert;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 

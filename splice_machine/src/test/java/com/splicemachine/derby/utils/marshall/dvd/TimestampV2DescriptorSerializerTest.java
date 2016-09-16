@@ -19,7 +19,6 @@ package com.splicemachine.derby.utils.marshall.dvd;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 

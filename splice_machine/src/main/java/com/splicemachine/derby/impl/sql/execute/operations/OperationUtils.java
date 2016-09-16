@@ -17,7 +17,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import java.util.LinkedList;
+
 import java.util.List;
 
 public class OperationUtils {

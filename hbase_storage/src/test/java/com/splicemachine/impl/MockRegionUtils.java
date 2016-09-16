@@ -35,7 +35,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 /**

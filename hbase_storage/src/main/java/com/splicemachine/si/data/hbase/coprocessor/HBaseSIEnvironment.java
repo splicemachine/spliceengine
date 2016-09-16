@@ -23,7 +23,6 @@ import com.splicemachine.access.util.ByteComparisons;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DistributedFileSystem;

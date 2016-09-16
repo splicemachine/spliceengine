@@ -44,7 +44,7 @@ import org.spark_project.guava.collect.*;
 import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.stream.Stream;
+
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIterator;
 import static org.spark_project.guava.collect.Maps.*;

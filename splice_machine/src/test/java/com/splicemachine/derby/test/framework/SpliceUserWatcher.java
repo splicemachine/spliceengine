@@ -17,7 +17,6 @@ package com.splicemachine.derby.test.framework;
 
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 

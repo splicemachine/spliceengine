@@ -18,7 +18,6 @@ package com.splicemachine.derby.impl.sql.execute.sequence;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.storage.Partition;
 import com.splicemachine.tools.ResourcePool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 

@@ -16,8 +16,6 @@
 package com.splicemachine.derby.utils;
 
 import org.spark_project.guava.base.Function;
-import com.splicemachine.derby.iapi.sql.olap.OlapResult;
-import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.utils.stats.DistributedStatsCollection;
 import com.splicemachine.derby.utils.stats.StatsResult;
 import org.spark_project.guava.collect.FluentIterable;

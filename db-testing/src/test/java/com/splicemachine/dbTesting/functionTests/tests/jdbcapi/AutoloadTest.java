@@ -38,7 +38,6 @@ import junit.extensions.TestSetup;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.Derby;
 import com.splicemachine.dbTesting.junit.JDBC;

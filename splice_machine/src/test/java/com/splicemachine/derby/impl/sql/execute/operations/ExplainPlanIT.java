@@ -24,11 +24,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Properties;
-
-import static java.lang.String.format;
 
 /**
  * Created by jyuan on 10/7/14.

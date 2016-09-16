@@ -15,8 +15,6 @@
 
 package com.splicemachine.access.configuration;
 
-import javax.annotation.Resource;
-
 /**
  * @author Scott Fines
  *         Date: 1/11/16

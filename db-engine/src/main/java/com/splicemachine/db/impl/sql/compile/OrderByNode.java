@@ -34,9 +34,6 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.SortCostController;
-
-import java.util.Collection;
 
 public class OrderByNode extends SingleChildResultSetNode {
     OrderByList		orderByList;

@@ -18,7 +18,6 @@ package com.splicemachine.test_dao;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.util.List;
 
 /**
  * Manipulate schemas.

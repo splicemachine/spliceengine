@@ -15,20 +15,13 @@
 
 package com.splicemachine.derby.windows;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 //import com.splicemachine.db.client.sql.execute.RankFunction;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
 import com.splicemachine.derby.impl.services.reflect.SpliceReflectClasses;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 
