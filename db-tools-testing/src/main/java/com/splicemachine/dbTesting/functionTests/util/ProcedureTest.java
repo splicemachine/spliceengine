@@ -656,7 +656,7 @@ public abstract class ProcedureTest extends SimpleProcedureTest implements Resul
 		p2[0] = ">" + s + "<";
 	}
 	public static void literalTest(String p1, String[] p2) {
-		String s = p1 == null ? "NULL" : p1.toString();
+		String s = p1 == null ? "NULL" : p1;
 		p2[0] = ">" + s + "<";
 	}
 	public static void literalTest(java.sql.Date p1, String[] p2) {
