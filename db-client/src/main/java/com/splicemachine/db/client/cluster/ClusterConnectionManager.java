@@ -155,6 +155,11 @@ class ClusterConnectionManager{
         return cps;
     }
 
+    public DatabaseMetaData getMetaData() throws SQLException{
+        reopenConnectionIfNecessary();
+        return currentConn.element().getMetaData();
+    }
+
     TxnIsolation getTxnIsolation(){
         return isolationLevel;
     }

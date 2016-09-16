@@ -106,7 +106,7 @@ class ClusteredConnection implements Connection{
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return connectionManager.getMetaData();
     }
 
     @Override
@@ -263,12 +263,11 @@ class ClusteredConnection implements Connection{
 
     @Override
     public SQLWarning getWarnings() throws SQLException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return null; //TODO -sf- implement
     }
 
     @Override
     public void clearWarnings() throws SQLException{
-        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override

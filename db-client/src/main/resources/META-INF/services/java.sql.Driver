@@ -23,4 +23,5 @@
 #
 #
 
-com.splicemachine.db.jdbc.ClientDriver
+#com.splicemachine.db.jdbc.ClientDriver
+com.splicemachine.db.client.cluster.ClusteredDriver
