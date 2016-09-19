@@ -1958,16 +1958,16 @@ public class SQLChar
         {
             if (!(this instanceof SQLVarchar))
             {
-                StringBuffer    strbuf;
+                StringBuilder    strBuilder;
 
-                strbuf = new StringBuffer(getString());
+                strBuilder = new StringBuilder(getString());
     
-                for ( ; sourceWidth < desiredWidth; sourceWidth++)
+                for ( ; sourceWidth < desiredWidth-1; sourceWidth++)
                 {
-                    strbuf.append(' ');
+                    strBuilder.append(' ');
                 }
     
-                setValue(new String(strbuf));
+                setValue(new String(strBuilder));
             }
         }
         else if (sourceWidth > desiredWidth && desiredWidth > 0)

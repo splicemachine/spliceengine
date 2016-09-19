@@ -79,6 +79,16 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                 .withCreate("create table c (d double, j int)")
                 .withInsert("insert into c values(?,?)")
                 .withRows(rows(row(1.1, 1), row(2.2, 2), row(-3.3, 3), row(-4.4, 4))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("create table d (i int)")
+                .withInsert("insert into d values(?)")
+                .withRows(rows(row(1), row(2), row(3), row(4))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("create table e (c char(10))")
+                .withInsert("insert into e values(?)")
+                .withRows(rows(row("1"), row("2"), row("3"), row("4"))).create();
     }
 
     @Test
@@ -174,6 +184,25 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                 "----------------\n" +
                 " 1 | 1 | 2 | 2 |\n" +
                 " 2 | 2 |-4 | 4 |";
+        assertEquals(s, expected, s);
+    }
+
+    @Test
+    public void testCharFunction()  throws Exception {
+        String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "d\n" +
+                ", e --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                " where CHAR(d.i) = e.c", joinStrategy);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+        String expected =
+                "I | C |\n" +
+                        "--------\n" +
+                        " 1 | 1 |\n" +
+                        " 2 | 2 |\n" +
+                        " 3 | 3 |\n" +
+                        " 4 | 4 |";
         assertEquals(s, expected, s);
     }
 }
