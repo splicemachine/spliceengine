@@ -20,6 +20,7 @@ import com.splicemachine.stats.estimate.LongDistribution;
 import com.splicemachine.stats.random.Generators;
 import com.splicemachine.stats.random.LongEmpiricalRejectionGenerator;
 import com.splicemachine.stats.random.RandomGenerator;
+import com.splicemachine.stats.random.UniformGenerator;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.distribution.UniformRealDistribution;
 import org.apache.commons.math3.exception.NumberIsTooLargeException;
@@ -29,7 +30,9 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.experimental.theories.DataPoint;
+import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 
 import java.util.Random;
 

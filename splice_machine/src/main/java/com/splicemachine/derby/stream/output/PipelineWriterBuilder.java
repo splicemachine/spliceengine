@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.SimplePipelineWriter;
+import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;

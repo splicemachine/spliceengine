@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.impl.sql.compile.*;
 
+import java.util.Arrays;
 import java.util.BitSet;
 
 public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {

@@ -28,6 +28,7 @@ package com.splicemachine.dbTesting.functionTests.tests.jdbc4;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestSetup;
 
 import junit.framework.Test;
+import junit.extensions.TestSetup;
 
 import java.sql.*;
 

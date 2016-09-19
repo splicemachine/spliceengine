@@ -16,6 +16,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**

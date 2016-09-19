@@ -1009,7 +1009,7 @@ public final class SQLDate extends DataType
      * @param day
      * @param sb The string representation is appended to this StringBuffer
      */
-    static void dateToString( int year, int month, int day, StringBuilder sb)
+    static void dateToString( int year, int month, int day, StringBuffer sb)
     {
         String yearStr = Integer.toString( year);
         for( int i = yearStr.length(); i < 4; i++)
@@ -1035,7 +1035,7 @@ public final class SQLDate extends DataType
 	 */
 	static String encodedDateToString(int encodedDate)
 	{
-		StringBuilder vstr = new StringBuilder();
+		StringBuffer vstr = new StringBuffer();
         dateToString( getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate), vstr);
 		return vstr.toString();
 	}

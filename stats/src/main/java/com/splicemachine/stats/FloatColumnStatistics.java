@@ -15,11 +15,13 @@
 
 package com.splicemachine.stats;
 
+import org.spark_project.guava.io.ByteArrayDataOutput;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.stats.cardinality.CardinalityEstimator;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.cardinality.FloatCardinalityEstimator;
 import com.splicemachine.stats.estimate.Distribution;
+import com.splicemachine.stats.estimate.BaseDistribution;
 import com.splicemachine.stats.estimate.UniformFloatDistribution;
 import com.splicemachine.stats.frequency.FloatFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyCounters;

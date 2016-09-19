@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;

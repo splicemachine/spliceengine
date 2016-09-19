@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.shared.common.reference.MessageId;
 
 /**
  *	This class  describes actions that are ALWAYS performed for a

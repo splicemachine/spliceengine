@@ -41,6 +41,7 @@ import java.lang.reflect.Modifier;
 import java.sql.Types;
 
 import java.util.List;
+import java.util.Vector;
 
 /**
  * This node represents a unary DB2 compatible length operator

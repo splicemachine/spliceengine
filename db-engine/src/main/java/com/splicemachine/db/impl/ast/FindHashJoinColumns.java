@@ -34,12 +34,14 @@ import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.Predicate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
 import org.spark_project.guava.primitives.Ints;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 

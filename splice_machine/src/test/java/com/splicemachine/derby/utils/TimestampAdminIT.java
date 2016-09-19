@@ -18,6 +18,7 @@ package com.splicemachine.derby.utils;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 
+import com.splicemachine.test.SerialTest;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;

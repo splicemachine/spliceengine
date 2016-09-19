@@ -16,6 +16,7 @@
 package com.splicemachine.pipeline.client;
 
 import com.splicemachine.metrics.*;
+import com.splicemachine.metrics.util.Folders;
 import com.splicemachine.pipeline.api.WriteStats;
 
 /**

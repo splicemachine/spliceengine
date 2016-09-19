@@ -17,9 +17,11 @@ package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.ComparableColumnStatistics;
+import com.splicemachine.stats.DoubleColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.collector.DoubleColumnStatsCollector;
 import com.splicemachine.stats.frequency.FrequencyCounter;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -30,6 +32,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
 
 /**

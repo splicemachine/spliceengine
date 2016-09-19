@@ -15,6 +15,9 @@
 
 package com.splicemachine.test_dao;
 
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.utils.EngineUtils;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;

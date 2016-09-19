@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.services.monitor.PersistentService;
 import com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.PropertyManagerService;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;

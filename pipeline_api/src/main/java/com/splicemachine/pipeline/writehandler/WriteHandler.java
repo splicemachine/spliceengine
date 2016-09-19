@@ -19,6 +19,7 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Simple Interface for Handling Writes for a giving write pipeline (WriteContext).

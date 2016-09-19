@@ -19,6 +19,7 @@ import org.spark_project.guava.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;

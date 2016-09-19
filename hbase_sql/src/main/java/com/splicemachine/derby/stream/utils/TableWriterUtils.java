@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.TableWriter.Type;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;

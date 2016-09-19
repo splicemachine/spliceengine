@@ -15,8 +15,10 @@
 
 package com.splicemachine.storage;
 
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Set;
 
 /**
  * @author Scott Fines

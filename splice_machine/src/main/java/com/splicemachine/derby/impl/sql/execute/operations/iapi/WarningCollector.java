@@ -17,6 +17,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.sql.SQLWarning;
+
 /**
  * @author Scott Fines
  *         Created on: 11/1/13

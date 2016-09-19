@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import java.sql.Types;
 
 import java.util.List;
+import java.util.Vector;
 
 /**
  * This node represents a unary upper or lower operator

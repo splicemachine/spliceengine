@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.linalg.DenseVector;
 import org.apache.spark.mllib.linalg.Vector;

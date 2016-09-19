@@ -17,6 +17,7 @@ package com.splicemachine.client.workday;
 
 import com.splicemachine.derby.impl.sql.actions.index.CsvUtil;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import org.junit.Test;
 
 /**
  * @author Jeff Cunningham

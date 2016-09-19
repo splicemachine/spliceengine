@@ -17,12 +17,16 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.Path;
 
 /**
  * @author Scott Fines

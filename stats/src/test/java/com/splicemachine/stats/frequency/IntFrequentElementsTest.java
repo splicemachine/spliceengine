@@ -15,6 +15,7 @@
 
 package com.splicemachine.stats.frequency;
 
+import org.spark_project.guava.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 

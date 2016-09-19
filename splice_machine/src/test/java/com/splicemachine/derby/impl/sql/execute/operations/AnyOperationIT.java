@@ -16,6 +16,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import org.spark_project.guava.collect.Sets;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;

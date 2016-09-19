@@ -26,6 +26,7 @@
 package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.ArrayList;
 

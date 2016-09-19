@@ -27,6 +27,7 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.storage.*;
+import org.spark_project.guava.collect.Maps;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.WriteContext;

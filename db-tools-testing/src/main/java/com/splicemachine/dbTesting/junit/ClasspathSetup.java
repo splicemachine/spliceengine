@@ -30,6 +30,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 
 import junit.extensions.TestSetup;
+import org.junit.Assert;
 import junit.framework.Test;
 
 /**

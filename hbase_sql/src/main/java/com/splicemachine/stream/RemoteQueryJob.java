@@ -18,6 +18,7 @@ package com.splicemachine.stream;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.ActivationHolder;
 
 import java.util.UUID;

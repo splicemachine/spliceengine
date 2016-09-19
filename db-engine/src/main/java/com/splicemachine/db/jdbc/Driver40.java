@@ -33,6 +33,11 @@ import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.jdbc.*;
+import com.splicemachine.db.impl.jdbc.EmbedConnection30;
+import com.splicemachine.db.impl.jdbc.EmbedPreparedStatement40;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet;
+import com.splicemachine.db.impl.jdbc.EmbedStatement40;
+import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData40;
 import com.splicemachine.db.iapi.jdbc.ResourceAdapter;
 
 import java.sql.Connection;

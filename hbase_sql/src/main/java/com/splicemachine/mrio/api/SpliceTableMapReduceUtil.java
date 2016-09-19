@@ -46,6 +46,7 @@ import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.util.StringUtils;

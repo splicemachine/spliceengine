@@ -55,8 +55,10 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.util.List;
+import java.util.Vector;
 import java.lang.reflect.Modifier;
 
 /**

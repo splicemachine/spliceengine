@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;

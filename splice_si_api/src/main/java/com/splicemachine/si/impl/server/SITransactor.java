@@ -47,6 +47,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
+import static com.splicemachine.si.constants.SIConstants.*;
 
 /**
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic

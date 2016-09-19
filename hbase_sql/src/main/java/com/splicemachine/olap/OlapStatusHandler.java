@@ -16,8 +16,12 @@
 package com.splicemachine.olap;
 
 import com.splicemachine.olap.OlapMessage;
+import com.splicemachine.derby.iapi.sql.olap.OlapResult;
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines

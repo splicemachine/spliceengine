@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;

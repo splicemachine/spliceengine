@@ -16,6 +16,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;

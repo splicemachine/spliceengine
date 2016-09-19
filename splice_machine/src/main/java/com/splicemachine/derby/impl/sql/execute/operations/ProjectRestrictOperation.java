@@ -40,6 +40,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.pipeline.Exceptions;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private static Logger LOG = Logger.getLogger(ProjectRestrictOperation.class);

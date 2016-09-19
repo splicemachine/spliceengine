@@ -17,6 +17,8 @@ package com.splicemachine.stats.frequency;
 
 import com.splicemachine.stats.Updateable;
 
+import java.util.Set;
+
 /**
  * Represents an algorithm for computing a frequency distribution
  * of data (e.g. finding all elements in the set which occur

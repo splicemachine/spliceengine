@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.compiler.JavaFactory;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.cache.CacheManager;
 
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;

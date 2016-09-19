@@ -34,10 +34,14 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.ByteArray;
 
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 
 /**
  * A StatementNode represents a single statement in the language.  It is

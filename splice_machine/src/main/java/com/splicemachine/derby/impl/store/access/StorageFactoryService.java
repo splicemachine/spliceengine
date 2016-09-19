@@ -16,6 +16,7 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.io.StorageFactory;
+import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
 
 import java.util.Iterator;
 import java.util.ServiceLoader;

@@ -16,6 +16,9 @@
 package com.splicemachine.pipeline.api;
 
 
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
+
 /**
  * @author Scott Fines
  *         Date: 2/5/14

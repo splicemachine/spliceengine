@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;

@@ -1,14 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.altertable;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
+import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.function.RowTransformFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.kvpair.KVPair;
 
 import java.util.concurrent.Callable;

@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 import java.sql.Types;
 
 /**

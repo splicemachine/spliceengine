@@ -18,11 +18,13 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.Constraint;
 import com.splicemachine.test_dao.ConstraintDAO;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.spark_project.guava.collect.Iterables;
 

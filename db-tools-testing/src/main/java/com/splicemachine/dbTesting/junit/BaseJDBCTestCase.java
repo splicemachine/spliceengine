@@ -27,6 +27,7 @@ package com.splicemachine.dbTesting.junit;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -43,6 +44,7 @@ import java.util.Iterator;
 import java.util.List;
 import junit.framework.AssertionFailedError;
 import com.splicemachine.dbTesting.functionTests.util.PrivilegedFileOpsForTests;
+import com.splicemachine.dbTesting.functionTests.util.TestNullOutputStream;
 
 
 /**

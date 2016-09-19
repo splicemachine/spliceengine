@@ -15,20 +15,25 @@
 
 package com.splicemachine.derby.jdbc;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 

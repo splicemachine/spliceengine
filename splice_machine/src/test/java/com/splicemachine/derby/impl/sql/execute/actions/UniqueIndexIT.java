@@ -19,8 +19,10 @@ import org.spark_project.guava.collect.Lists;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 

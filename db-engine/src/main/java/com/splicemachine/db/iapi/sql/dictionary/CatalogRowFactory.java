@@ -29,10 +29,12 @@ import java.util.Properties;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 
 /**

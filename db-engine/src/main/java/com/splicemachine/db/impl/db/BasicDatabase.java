@@ -27,6 +27,7 @@ package com.splicemachine.db.impl.db;
 
 import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.reference.EngineType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.util.DoubleProperties;

@@ -35,10 +35,12 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.sql.Types;
 
 import java.util.List;
+import java.util.Vector;
 
 /**
  * The TimestampOperatorNode class implements the timestamp( date, time) function.

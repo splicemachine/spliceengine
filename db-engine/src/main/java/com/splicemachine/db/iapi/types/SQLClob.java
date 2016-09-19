@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.util.UTF8Util;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;

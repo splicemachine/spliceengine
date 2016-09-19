@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.impl.sql.execute;
 
+import java.util.List;
+
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;

@@ -24,6 +24,8 @@ import java.util.Map;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.StatsConfiguration;
+import com.splicemachine.access.configuration.StorageConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.Partition;

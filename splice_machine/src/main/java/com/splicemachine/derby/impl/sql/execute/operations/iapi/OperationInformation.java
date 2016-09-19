@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
  * @author Scott Fines

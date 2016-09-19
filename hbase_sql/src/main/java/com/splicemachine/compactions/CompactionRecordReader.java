@@ -15,6 +15,8 @@
 
 package com.splicemachine.compactions;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.mrio.MRConstants;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;

@@ -170,11 +170,11 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         }
         // Makes it a small scan for 100 rows of fewer
         // Bug where splits return 1 extra row
-        else if (this.getEstimatedRowCount()<100) {
-            s = s.cacheRows(100).batchCells(-1);
-        } else {
+//        else if (this.getEstimatedRowCount()<100) {
+//            s = s.cacheRows(100).batchCells(-1);
+//        } else {
             s.cacheRows(1000).batchCells(-1);
-        }
+//        }
         deSiify(s);
         return s;
     }

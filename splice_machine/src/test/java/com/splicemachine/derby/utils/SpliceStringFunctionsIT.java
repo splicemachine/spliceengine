@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;

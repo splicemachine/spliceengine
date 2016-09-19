@@ -24,7 +24,17 @@
  */
 package com.splicemachine.db.client.am;
 
+import java.io.InputStream;
+import java.io.Reader;
+
+import java.sql.NClob;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLXML;
+
 import com.splicemachine.db.client.am.stmtcache.StatementKey;
+
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
  * JDBC 4 specific wrapper class for a Derby physical prepared statement.

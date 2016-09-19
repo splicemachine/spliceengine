@@ -52,6 +52,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import java.lang.reflect.Modifier;
 
 import java.util.List;
+import java.util.Vector;
 
 /**
  * This abstract node class represents a data value in the Java domain.

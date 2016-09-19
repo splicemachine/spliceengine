@@ -18,6 +18,7 @@ package com.splicemachine.derby.utils.marshall.dvd;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.sql.Timestamp;
 

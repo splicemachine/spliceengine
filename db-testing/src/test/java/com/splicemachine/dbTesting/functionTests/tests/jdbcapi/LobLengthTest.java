@@ -29,6 +29,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 
 import junit.framework.Test;
+import junit.framework.TestSuite;
 import com.splicemachine.dbTesting.functionTests.util.streams.LoopingAlphabetStream;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.TestConfiguration;

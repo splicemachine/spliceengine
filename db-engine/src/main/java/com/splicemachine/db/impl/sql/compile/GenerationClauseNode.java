@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.util.LinkedList;
 import java.util.List;

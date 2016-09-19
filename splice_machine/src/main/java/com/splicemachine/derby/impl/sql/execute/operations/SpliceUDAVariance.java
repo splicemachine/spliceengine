@@ -16,6 +16,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.agg.Aggregator;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.io.Externalizable;
 import java.io.IOException;

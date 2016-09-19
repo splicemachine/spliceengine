@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
 import java.util.List;
+import java.util.Vector;
 
 /**
  * A TestConstraintNode is used to determine when a constraint

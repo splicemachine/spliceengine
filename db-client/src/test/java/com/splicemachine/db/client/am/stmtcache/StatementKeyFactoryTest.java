@@ -27,8 +27,9 @@ package com.splicemachine.db.client.am.stmtcache;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-
+import junit.framework.Test;
 import com.splicemachine.dbTesting.junit.BaseTestCase;
+import com.splicemachine.dbTesting.junit.TestConfiguration;
 
 /**
  * Test that statement key equality is correct, and that the factory produces

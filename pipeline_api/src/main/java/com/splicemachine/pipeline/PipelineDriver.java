@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.PipelineConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;

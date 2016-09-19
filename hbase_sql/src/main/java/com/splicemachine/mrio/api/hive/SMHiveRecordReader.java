@@ -16,6 +16,7 @@
 package com.splicemachine.mrio.api.hive;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.log4j.Logger;

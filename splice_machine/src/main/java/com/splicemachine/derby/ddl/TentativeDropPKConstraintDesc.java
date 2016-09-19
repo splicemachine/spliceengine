@@ -15,11 +15,13 @@
 
 package com.splicemachine.derby.ddl;
 
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import org.spark_project.guava.primitives.Ints;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
 
 import com.splicemachine.db.iapi.error.StandardException;
