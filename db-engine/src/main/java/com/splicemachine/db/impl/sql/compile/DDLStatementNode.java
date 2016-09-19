@@ -72,7 +72,7 @@ abstract class DDLStatementNode extends StatementNode
 	//
 	/////////////////////////////////////////////////////////////////////////
 
-	private TableName	objectName;
+	protected TableName	objectName;
 	private boolean		initOk;
 
 	/**

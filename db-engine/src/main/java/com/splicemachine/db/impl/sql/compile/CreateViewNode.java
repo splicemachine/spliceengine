@@ -26,33 +26,23 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.Visitor;
-
 import com.splicemachine.db.iapi.services.context.ContextManager;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-
 import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
-
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
-
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.catalog.UUID;
 
@@ -442,5 +432,64 @@ public class CreateViewNode extends DDLStatementNode
     }
     
     public boolean hasJDBClimitClause() { return hasJDBClimitClause; }
+
+	public TableDescriptor createDynamicView() throws StandardException {
+		DataDictionary dd = this.getDataDictionary();
+		SchemaDescriptor sd  = this.getSchemaDescriptor();
+		LanguageConnectionContext lcc = this.getLanguageConnectionContext();
+		TransactionController tc = lcc.getTransactionExecute();
+		TableDescriptor existingDescriptor = dd.getTableDescriptor(getRelativeName(), sd, tc);
+		if (existingDescriptor != null) {
+			throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+					existingDescriptor.getDescriptorType(),
+					existingDescriptor.getDescriptorName(),
+					sd.getDescriptorType(),
+					sd.getDescriptorName());
+		}
+
+		/* Create a new table descriptor.
+		 * (Pass in row locking, even though meaningless for views.)
+		 */
+		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+		TableDescriptor td = ddg.newTableDescriptor(getRelativeName(),sd,TableDescriptor.WITH_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
+		UUID toid = td.getUUID();
+
+		// No Need to add since this will be dynamic!!!
+//		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+//		toid = td.getUUID();
+
+		// for each column, stuff system.column
+		ColumnDescriptor[] cdlArray = new ColumnDescriptor[colInfos.length];
+		int index = 1;
+		for (int ix = 0; ix < colInfos.length; ix++) {
+			index++;
+			ColumnDescriptor columnDescriptor = new ColumnDescriptor(
+					colInfos[ix].name,
+					index,
+					index,
+					colInfos[ix].dataType,
+					colInfos[ix].defaultValue,
+					colInfos[ix].defaultInfo,
+					td,
+					(UUID) null,
+					colInfos[ix].autoincStart,
+					colInfos[ix].autoincInc,
+					index
+			);
+			cdlArray[ix] = columnDescriptor;
+		}
+		// Do not add to dictionary since it is dynamic!!
+//		dd.addDescriptorArray(cdlArray, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+
+		// add columns to the column descriptor list.
+		ColumnDescriptorList cdl = td.getColumnDescriptorList();
+		for (int i = 0; i < cdlArray.length; i++)
+			cdl.add(cdlArray[i]);
+
+		ViewDescriptor vd = ddg.newViewDescriptor(toid, getRelativeName(), "create view " + getRelativeName() + " " + qeText, checkOption, sd.getUUID());
+		td.setViewDescriptor(vd);
+		return td;
+	}
+
 
 }

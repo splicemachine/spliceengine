@@ -1296,4 +1296,29 @@ public interface LanguageConnectionContext extends Context {
 
     CompilerContext.DataSetProcessorType getDataSetProcessorType();
 
+	/**
+	 *
+	 * Setting the dynamic withDescriptors
+	 *
+	 * @param withDescriptors
+     */
+	void setWithStack(Map<String,TableDescriptor> withDescriptors);
+
+	/**
+	 *
+	 * Checking for with clause handling
+	 *
+	 * @param name
+	 * @return
+     */
+	TableDescriptor getWithDescriptor(String name);
+
+	/**
+	 *
+	 * Null out the with stack.
+	 *
+	 */
+	void popWithStack();
+
+
 }

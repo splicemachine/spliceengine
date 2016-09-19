@@ -100,6 +100,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     public static final int GLOBAL_TEMPORARY_TABLE_TYPE=3;
     public static final int SYNONYM_TYPE=4;
     public static final int VTI_TYPE=5;
+    /* Supports with clauses for TPCDS*/
+    public static final int WITH_TYPE=6;
+
 
     public static final char ROW_LOCK_GRANULARITY='R';
     public static final char TABLE_LOCK_GRANULARITY='T';
