@@ -3428,6 +3428,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 		statementNode = execStatement() |
 		statementNode = explainStatement() |
 		statementNode = exportStatement()
+		//statementNode = withStatement()
         // statementNode = SQLTransactionStatement()
     )
     {
@@ -3926,6 +3927,7 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 {
 	ResultSetNode	  queryExpression;
 	Vector  updateColumns = new Vector();
+	Vector parameterList = new Vector();
 	int               forUpdateState = CursorNode.UNSPECIFIED;
 	int				  isolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
 	CursorNode		  retval;
@@ -3935,7 +3937,8 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
     boolean     hasJDBClimitClause = false;
 }
 {
-	queryExpression = queryExpression(null, NO_SET_OP, topNOut)
+    [ <WITH> withClauseList(parameterList) ]
+    queryExpression = queryExpression(null, NO_SET_OP, topNOut)
 		[ orderCols = orderByClause(queryExpression) ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 		[ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
@@ -3966,7 +3969,7 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 		{
 			setUpAndLinkParameters();
 		}
-
+        retval.setWithVector(parameterList.size()>0?parameterList:null);
 		/* Set the isolation levels for the scans if specified */
 		if (isolationLevel != ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL)
 		{
@@ -8609,6 +8612,7 @@ void methodCallParameterList(Vector parameterList) throws StandardException :
 	<RIGHT_PAREN>
 }
 
+
 /*
  * <A NAME="routineInvocation">routineInvocation</A>
  */
@@ -12247,6 +12251,76 @@ aggregateDefinition() throws StandardException :
                 AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR
             );
 		}
+}
+
+/**
+ * WITH... with_query_1 [(col_name[,...])]AS (SELECT ...),
+ *  ... with_query_2 [(col_name[,...])]AS (SELECT ...[with_query_1]),
+ *  .
+ *  .
+ *  .
+ *  ... with_query_n [(col_name[,...])]AS (SELECT ...[with_query1, with_query_2, with_query_n [,...]])
+ *  SELECT
+ *
+ * <A NAME="methodCallParameterList">methodCallParameterList</A>
+*/
+
+void withClauseList(Vector parameterList) throws StandardException :
+{
+}
+{
+[ withClause(parameterList)
+			( <COMMA> withClause(parameterList) )* ]
+}
+
+void withClause(Vector parameterList) throws StandardException :
+{
+    	int					checkOptionType;
+    	ResultColumnList	resultColumns = null;
+    	ResultSetNode		queryExpression;
+    	TableName			tableName;
+        Token beginToken = null;
+       	Token				checkTok = null;
+    	Token				endToken;
+    	OrderByList         orderCols = null;
+        ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
+        ValueNode[] topNOut = new ValueNode[ 1 ];
+        boolean     hasJDBClimitClause = false;
+    }
+    {
+    	tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    		beginToken = <AS>
+    		queryExpression = queryExpression(null, NO_SET_OP, topNOut)
+    		[ orderCols = orderByClause(queryExpression) ]
+            hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
+    	{
+    		checkOptionType = ViewDescriptor.NO_CHECK_OPTION;
+    		endToken = getToken(0);
+    		/* Parameters not allowed in create view */
+    		HasNodeVisitor visitor = new HasNodeVisitor(ParameterNode.class);
+    		queryExpression.accept(visitor);
+    		if (visitor.hasNode()) {
+    			throw StandardException.newException(SQLState.LANG_NO_PARAMS_IN_VIEWS);
+    		}
+    	    if (topNOut[0] != null) {
+    	        hasJDBClimitClause = true;
+                offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
+    	    }
+    		parameterList.add(nodeFactory.getNode(
+    								C_NodeTypes.CREATE_VIEW_NODE,
+    								tableName,
+    								resultColumns,
+    								queryExpression,
+    								ReuseFactory.getInteger(checkOptionType),
+    								StringUtil.slice(statementSQLText,
+    												beginToken.beginOffset,
+    												endToken.endOffset,false),
+    								orderCols,
+                                    offsetClauses[ OFFSET_CLAUSE ],
+                                    offsetClauses[ FETCH_FIRST_CLAUSE ],
+                                    Boolean.valueOf( hasJDBClimitClause ),
+    								getContextManager()));
+    }
 }
 
 StatementNode
