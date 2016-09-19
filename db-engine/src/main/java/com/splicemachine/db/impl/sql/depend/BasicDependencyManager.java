@@ -929,7 +929,8 @@ public class BasicDependencyManager implements DependencyManager {
 			UUID depKey = dy.getDependent().getObjectID();
 
             for (Dependency curDY : deps) {
-                if (curDY.getProvider().getObjectID().equals(provKey) && curDY.getDependent().getObjectID().equals(depKey)) {
+				// Check for dupes and dynamic with clauses
+                if (curDY.getProvider().getObjectID() == null || (curDY.getProvider().getObjectID().equals(provKey) && curDY.getDependent().getObjectID().equals(depKey))) {
                     return false;
                 }
             }

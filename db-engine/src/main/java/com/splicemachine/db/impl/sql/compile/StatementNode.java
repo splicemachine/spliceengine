@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.util.ByteArray;
 
 import java.lang.reflect.Modifier;
 import java.util.Collection;
+import java.util.Vector;
 
 /**
  * A StatementNode represents a single statement in the language.  It is
@@ -338,5 +339,10 @@ public abstract class StatementNode extends QueryTreeNode{
 
     abstract int activationKind();
 
+    protected Vector withParameterList;
+
+    public void setWithVector(Vector withParameterList) {
+        this.withParameterList = withParameterList;
+    }
 
 }

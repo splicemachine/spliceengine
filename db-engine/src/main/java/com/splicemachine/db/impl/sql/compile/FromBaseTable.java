@@ -974,7 +974,7 @@ public class FromBaseTable extends FromTable {
         templateColumns=resultColumns;
 
 		/* Resolve the view, if this is a view */
-        if(tableDescriptor.getTableType()==TableDescriptor.VIEW_TYPE){
+        if(tableDescriptor.getTableType()==TableDescriptor.VIEW_TYPE || tableDescriptor.getTableType()==TableDescriptor.WITH_TYPE){
             FromSubquery fsq;
             ResultSetNode rsn;
             ViewDescriptor vd;
@@ -1290,6 +1290,12 @@ public class FromBaseTable extends FromTable {
         SchemaDescriptor sd=getSchemaDescriptor(schemaName);
 
         tableDescriptor=getTableDescriptor(tableName.getTableName(),sd);
+
+        // Find With Descriptors
+        if (tableDescriptor==null && getLanguageConnectionContext().getWithDescriptor(tableName.tableName) !=null) {
+            tableDescriptor = getLanguageConnectionContext().getWithDescriptor(tableName.tableName);
+        }
+
         if(tableDescriptor==null){
             // Check if the reference is for a synonym.
             TableName synonymTab=resolveTableToSynonym(tableName);
