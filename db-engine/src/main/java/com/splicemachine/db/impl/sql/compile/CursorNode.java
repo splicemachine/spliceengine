@@ -39,9 +39,8 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.CursorInfo;
 import com.splicemachine.db.impl.sql.CursorTableReference;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Vector;
+
+import java.util.*;
 
 /**
  * A CursorNode represents a result set that can be returned to a client.
@@ -208,6 +207,19 @@ public class CursorNode extends DMLStatementNode{
 
 			/* Check for ? parameters directly under the ResultColums */
             resultSet.rejectParameters();
+
+            // Bind and Optimize Real Time Views (OK, That is a made up name).
+            if (this.withParameterList != null) {
+                Map<String,TableDescriptor> withMap = new HashMap<>(withParameterList.size());
+                for (int i = 0; i<withParameterList.size(); i++) {
+                    CreateViewNode createViewNode = (CreateViewNode) withParameterList.get(i);
+                    createViewNode.bindStatement();
+                    createViewNode.optimizeStatement();
+                    withMap.put(createViewNode.getRelativeName(),createViewNode.createDynamicView());
+                    this.getLanguageConnectionContext().setWithStack(withMap);
+                }
+            }
+
 
             super.bind(dataDictionary);
 
@@ -446,6 +458,7 @@ public class CursorNode extends DMLStatementNode{
             acb.rememberCursor(mb);
             acb.addCursorPositionCode();
         }
+        getLanguageConnectionContext().popWithStack();
     }
 
     public String getUpdateBaseTableName(){
