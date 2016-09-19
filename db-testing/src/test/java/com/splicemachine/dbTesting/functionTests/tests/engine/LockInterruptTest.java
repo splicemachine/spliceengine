@@ -31,6 +31,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 import junit.framework.Test;
+import junit.framework.TestSuite;
 
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;

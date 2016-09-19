@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.stream.output.update;
 
+import org.spark_project.guava.io.Closeables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;

@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.List;
+import java.util.Vector;
 
 public class OrNode extends BinaryLogicalOperatorNode {
 	/* Is this the 1st OR in the OR chain? */

@@ -20,6 +20,8 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;

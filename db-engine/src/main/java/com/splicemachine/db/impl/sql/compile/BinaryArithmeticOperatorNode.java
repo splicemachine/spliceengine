@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 
 import java.util.List;
+import java.util.Vector;
 
 /**
  * This node represents a binary arithmetic operator, like + or *.

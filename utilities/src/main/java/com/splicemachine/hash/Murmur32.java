@@ -15,6 +15,7 @@
 
 package com.splicemachine.hash;
 
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.primitives.LittleEndianBits;
 
 import java.nio.ByteBuffer;

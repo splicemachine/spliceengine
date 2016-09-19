@@ -18,6 +18,7 @@ package com.splicemachine.derby.ddl;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
+import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 
 /**
  * Created by dgomezferro on 11/24/15.

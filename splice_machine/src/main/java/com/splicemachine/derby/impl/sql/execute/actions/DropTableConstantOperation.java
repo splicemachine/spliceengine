@@ -33,6 +33,8 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.protobuf.ProtoUtil;
 
+import java.util.List;
+
 
 /**
  * This class describes actions that are ALWAYS performed for a DROP TABLE Statement at Execution time.

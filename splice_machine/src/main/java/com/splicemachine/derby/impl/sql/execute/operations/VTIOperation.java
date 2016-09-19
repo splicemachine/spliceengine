@@ -33,7 +33,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
-
+import com.splicemachine.pipeline.Exceptions;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

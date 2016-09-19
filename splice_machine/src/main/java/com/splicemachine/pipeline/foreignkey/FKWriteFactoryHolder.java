@@ -16,11 +16,15 @@
 package com.splicemachine.pipeline.foreignkey;
 
 import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import org.spark_project.guava.collect.ImmutableList;
 import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Maps;
+import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;

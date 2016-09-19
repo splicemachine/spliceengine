@@ -23,6 +23,7 @@ import org.junit.rules.TestRule;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.Callable;
 
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;

@@ -18,6 +18,7 @@ package com.splicemachine.derby.lifecycle;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import java.io.IOException;
 import java.sql.Connection;
 import java.util.Properties;
 

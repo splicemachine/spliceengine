@@ -16,9 +16,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import org.spark_project.guava.collect.Sets;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.ConcurrentTicker;
+import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.concurrent.TickingClock;
 import com.splicemachine.derby.test.framework.*;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;

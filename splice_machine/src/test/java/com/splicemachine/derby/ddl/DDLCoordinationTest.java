@@ -32,6 +32,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.ConfigurationBuilder;
 import com.splicemachine.access.configuration.ConfigurationDefault;
 import com.splicemachine.access.configuration.ConfigurationSource;
+import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SingleInstanceLockFactory;

@@ -15,10 +15,12 @@
 
 package com.splicemachine.stats.estimate;
 
+import com.carrotsearch.hppc.FloatArrayList;
 import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.stats.LongColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.collector.FloatColumnStatsCollector;
 import com.splicemachine.stats.collector.LongColumnStatsCollector;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.LongFrequencyCounter;

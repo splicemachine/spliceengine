@@ -22,6 +22,9 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
+import javax.management.relation.RoleUnresolved;
+import java.lang.reflect.InvocationTargetException;
+
 /**
  * @author Scott Fines
  * Created on: 10/10/13

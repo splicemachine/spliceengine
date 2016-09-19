@@ -15,13 +15,23 @@
 
 package com.splicemachine.stats.cardinality;
 
+import org.spark_project.guava.hash.HashFunction;
+import org.spark_project.guava.hash.Hasher;
+import org.spark_project.guava.primitives.Longs;
 import com.splicemachine.hash.Hash64;
 import com.splicemachine.hash.HashFunctions;
+import com.splicemachine.primitives.BigEndianBits;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.*;
 

@@ -17,6 +17,7 @@ package com.splicemachine.test_dao;
 
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.concurrent.Threads;
+import org.apache.commons.dbutils.DbUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

@@ -15,6 +15,8 @@
 
 package com.splicemachine.pipeline.client;
 
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.api.WriteStats;
 
 /**

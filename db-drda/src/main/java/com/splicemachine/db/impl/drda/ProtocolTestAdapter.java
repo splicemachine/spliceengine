@@ -27,6 +27,8 @@ package com.splicemachine.db.impl.drda;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Adapter written to allow for protocol testing from the test package.

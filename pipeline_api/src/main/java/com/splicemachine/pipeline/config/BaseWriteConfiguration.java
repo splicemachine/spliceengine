@@ -28,6 +28,7 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 public abstract class BaseWriteConfiguration implements WriteConfiguration {

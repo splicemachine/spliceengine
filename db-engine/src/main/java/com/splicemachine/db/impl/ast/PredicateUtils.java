@@ -27,6 +27,8 @@ package com.splicemachine.db.impl.ast;
 
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.OperatorToString;
+import com.splicemachine.db.impl.sql.compile.Predicate;
 import org.spark_project.guava.base.Function;
 import java.util.ArrayList;
 import java.util.List;

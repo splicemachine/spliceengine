@@ -16,6 +16,7 @@
 package com.splicemachine.derby.utils.stats;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;

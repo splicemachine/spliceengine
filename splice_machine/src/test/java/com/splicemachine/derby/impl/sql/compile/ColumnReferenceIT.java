@@ -16,6 +16,7 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import junit.framework.Assert;
 import org.junit.ClassRule;

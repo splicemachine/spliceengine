@@ -33,10 +33,12 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 /**
  * The CurrentDatetimeOperator operator is for the builtin CURRENT_DATE,

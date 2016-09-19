@@ -18,12 +18,15 @@ package com.splicemachine.derby.impl.sql.catalog;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 
+import com.splicemachine.test.SerialTest;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 

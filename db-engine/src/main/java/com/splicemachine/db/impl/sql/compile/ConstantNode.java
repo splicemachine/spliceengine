@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 /**
  * ConstantNode holds literal constants as well as nulls.

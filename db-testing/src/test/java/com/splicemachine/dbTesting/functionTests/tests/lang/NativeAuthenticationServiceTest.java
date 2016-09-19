@@ -34,6 +34,7 @@ import java.sql.SQLWarning;
 import java.util.Properties;
 import javax.sql.DataSource;
 
+import junit.extensions.TestSetup;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import com.splicemachine.dbTesting.junit.ClasspathSetup;

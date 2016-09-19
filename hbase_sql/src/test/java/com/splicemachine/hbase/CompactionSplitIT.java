@@ -37,6 +37,7 @@ import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.access.HConfiguration;

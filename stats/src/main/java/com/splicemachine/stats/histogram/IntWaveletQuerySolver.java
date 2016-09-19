@@ -16,6 +16,8 @@
 package com.splicemachine.stats.histogram;
 
 import com.carrotsearch.hppc.IntDoubleOpenHashMap;
+import com.carrotsearch.hppc.LongDoubleOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntDoubleCursor;
 
 /**
  * @author Scott Fines

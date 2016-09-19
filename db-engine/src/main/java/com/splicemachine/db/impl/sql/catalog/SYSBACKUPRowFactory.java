@@ -38,6 +38,10 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 import org.joda.time.DateTime;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.Types;
 
 public class SYSBACKUPRowFactory extends CatalogRowFactory {

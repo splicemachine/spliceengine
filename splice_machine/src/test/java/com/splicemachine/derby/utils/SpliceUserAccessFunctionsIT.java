@@ -30,8 +30,10 @@ import org.junit.runner.Description;
 import java.sql.ResultSet;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author alex_stybaev

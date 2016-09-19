@@ -15,10 +15,14 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.test.HBaseTestUtils;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.hbase.TableName;

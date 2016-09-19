@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.derby.impl.db.SpliceDatabase;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.api.SConfiguration;

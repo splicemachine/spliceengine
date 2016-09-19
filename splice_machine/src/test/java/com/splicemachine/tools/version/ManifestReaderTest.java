@@ -17,6 +17,7 @@ package com.splicemachine.tools.version;
 
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
+import com.splicemachine.si.testenv.ArchitectureSpecific;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 

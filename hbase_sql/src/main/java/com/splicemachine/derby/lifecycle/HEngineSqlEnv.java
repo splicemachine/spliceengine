@@ -22,6 +22,7 @@ import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.backup.BackupManager;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;

@@ -25,8 +25,11 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import java.util.List;
+
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
+import com.splicemachine.db.catalog.Statistics;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;

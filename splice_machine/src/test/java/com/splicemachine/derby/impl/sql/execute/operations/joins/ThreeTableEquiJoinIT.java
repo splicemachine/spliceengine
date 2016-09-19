@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -29,6 +30,8 @@ import org.junit.runners.Parameterized;
 
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 
 /**

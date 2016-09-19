@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 /**
      SpecialFunctionNode handles system SQL functions.

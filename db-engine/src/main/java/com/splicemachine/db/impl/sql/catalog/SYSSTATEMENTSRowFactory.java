@@ -27,9 +27,18 @@ package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.iapi.reference.Property;
 
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
 
 import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
+
+import com.splicemachine.db.iapi.types.DataValueFactory;
 
 import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
 import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;

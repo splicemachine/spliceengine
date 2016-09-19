@@ -27,7 +27,19 @@ package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.iapi.sql.ResultSet;
 
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+
+import com.splicemachine.db.iapi.reference.SQLState;
 
 /**
  * JDBC 4 specific methods that cannot be implemented in superclasses and

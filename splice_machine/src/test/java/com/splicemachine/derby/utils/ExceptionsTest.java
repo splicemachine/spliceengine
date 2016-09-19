@@ -21,6 +21,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.testsetup.PipelineTestDataEnv;
 import com.splicemachine.pipeline.testsetup.PipelineTestEnvironment;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import org.junit.Assert;
 import org.junit.Before;

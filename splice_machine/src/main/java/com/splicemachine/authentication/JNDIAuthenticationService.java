@@ -25,6 +25,7 @@
 
 package com.splicemachine.authentication;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;

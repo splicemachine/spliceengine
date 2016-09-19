@@ -21,6 +21,7 @@ import java.util.Arrays;
 import org.spark_project.guava.base.Throwables;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;

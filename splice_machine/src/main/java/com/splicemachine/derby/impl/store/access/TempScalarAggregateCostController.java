@@ -17,9 +17,12 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**

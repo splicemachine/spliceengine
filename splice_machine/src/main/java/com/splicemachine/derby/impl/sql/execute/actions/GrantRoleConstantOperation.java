@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class GrantRoleConstantOperation extends DDLConstantOperation {
     private List roleNames;

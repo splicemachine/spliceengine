@@ -18,6 +18,7 @@ package com.splicemachine.stats.histogram;
 
 import com.splicemachine.hash.BooleanHash;
 import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.Hash64;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.MoreArrays;
 

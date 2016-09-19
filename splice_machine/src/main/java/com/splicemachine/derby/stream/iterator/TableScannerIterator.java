@@ -18,7 +18,6 @@ package com.splicemachine.derby.stream.iterator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
@@ -26,7 +25,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanne
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.derby.utils.Scans;
-
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -48,7 +46,6 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
     protected Qualifier[][] qualifiers;
     protected int[] baseColumnMap;
     protected boolean rowIdKey; // HACK Row ID Qualifiers point to the projection above them ?  TODO JL
-    protected RowLocation rowLocation;
 
     public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceOperation operation) throws StandardException {
         this.siTableBuilder = siTableBuilder;
@@ -112,14 +109,6 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
     public LocatedRow next() {
         slotted = false;
         rows++;
-        try {
-            if (rowLocation != null && rowLocation.compare(tableScanner.getCurrentRowLocation()) >=0) {
-                throw new RuntimeException("Why am I Here?" + org.apache.hadoop.hbase.util.Bytes.toStringBinary(rowLocation.getBytes()).toString() + " : " +org.apache.hadoop.hbase.util.Bytes.toStringBinary(tableScanner.getCurrentRowLocation().getBytes()) + " : "+ (rowLocation.compare(tableScanner.getCurrentRowLocation())));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        rowLocation = tableScanner.getCurrentRowLocation();
         LocatedRow locatedRow = new LocatedRow(tableScanner.getCurrentRowLocation(),execRow.getClone());
         if (operation != null) {
             StreamLogUtils.logOperationRecord(locatedRow, operation);

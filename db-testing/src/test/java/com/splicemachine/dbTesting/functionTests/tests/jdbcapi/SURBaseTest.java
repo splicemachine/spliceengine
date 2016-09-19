@@ -25,6 +25,7 @@
 package com.splicemachine.dbTesting.functionTests.tests.jdbcapi;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 
+import junit.framework.*;
 import java.sql.*;
 
 /**
