@@ -360,6 +360,9 @@ public class BasicDependencyManager implements DependencyManager {
 					continue;
 				Dependency dependency = list.get(ei);
 				Dependent dep = dependency.getDependent();
+				if (dep == null) {
+					continue;
+				}
 
 				if (affectedCols != null)
 				{
@@ -542,6 +545,10 @@ public class BasicDependencyManager implements DependencyManager {
 	 * StatementContext.)
 	 */
     public synchronized void clearInMemoryDependency(Dependency dy) {
+        if (dy.getDependent() == null) {
+            // nothing to clear
+            return;
+        }
         final UUID deptId = dy.getDependent().getObjectID();
         final UUID provId = dy.getProviderKey();
         List<Dependency> deps = dependents.get(deptId);
@@ -919,7 +926,7 @@ public class BasicDependencyManager implements DependencyManager {
 
 		List<Dependency> deps = table.get(key);
 		if (deps == null) {
-            deps = new ArrayList<Dependency>();
+			deps = new ArrayList<Dependency>();
 			deps.add(dy);
 			table.put(key, deps);
 		}
@@ -928,11 +935,16 @@ public class BasicDependencyManager implements DependencyManager {
 			UUID provKey = dy.getProvider().getObjectID();
 			UUID depKey = dy.getDependent().getObjectID();
 
-            for (Dependency curDY : deps) {
-                if (curDY.getProvider().getObjectID().equals(provKey) && curDY.getDependent().getObjectID().equals(depKey)) {
-                    return false;
-                }
-            }
+			Iterator<Dependency> it = deps.iterator();
+			while (it.hasNext()) {
+				Dependency curDY = it.next();
+				Dependent curDependent = curDY.getDependent();
+				if (curDependent == null) {
+					it.remove();
+				} else if (curDY.getProvider().getObjectID().equals(provKey) && curDependent.getObjectID().equals(depKey)) {
+					return false;
+				}
+			}
 
 			deps.add(dy);
 		}
