@@ -174,8 +174,7 @@ class DecryptionManager
     //we will just trim off the first byte (0) and get the rest of 32 bytes.
     if (aPubKey.length == 33 && aPubKey[0]==0) {
       byte[] newKey = new byte[32];
-      for (int i=0; i < newKey.length; i++)
-		newKey[i] = aPubKey[i+1];
+      System.arraycopy(aPubKey, 1, newKey, 0, newKey.length);
       return newKey;
     }
 
@@ -189,8 +188,7 @@ class DecryptionManager
       for (i=0; i < 32-aPubKey.length; i++) {
 		newKey[i] = 0;
       }
-      for (int j=i; j<newKey.length; j++)
-		newKey[j] = aPubKey[j-i];
+      System.arraycopy(aPubKey, i - i, newKey, i, newKey.length - i);
       return newKey;
     }
     return aPubKey;
@@ -227,9 +225,7 @@ class DecryptionManager
     //EUSRIDPWD - The middle 8 bytes of the server's connection key is used as
     //the token.
     else if (securityMechanism == 9) {
-      for (int i = 0; i < 8; i++) {
-		token[i] = initVector[i + 12];
-      }
+      System.arraycopy(initVector, 12, token, 0, 8);
     }
     return token;
   }
@@ -278,15 +274,13 @@ class DecryptionManager
       //we trim off the frist byte. If the length of secret key is less than 32, we will
       //pad 0 to the beginning of the byte array tho make the secret key 32 bytes.
       if (sharedSecret.length == 33 && sharedSecret[0] == 0) {
-		for (int i=0; i<newKey.length; i++)
-		  newKey[i] = sharedSecret[i+1];
+        System.arraycopy(sharedSecret, 1, newKey, 0, newKey.length);
       }
       if (sharedSecret.length < 32) {
 		int i;
 		for (i=0; i<(32 - sharedSecret.length); i++)
 	 		newKey[i] = 0;
-		for (int j=i; j<sharedSecret.length; j++)
-	 		 newKey[j] = sharedSecret[j-i];
+          System.arraycopy(sharedSecret, i - i, newKey, i, sharedSecret.length - i);
       }
 
       //The Data Encryption Standard (DES) is going to be used to encrypt userid
@@ -300,12 +294,10 @@ class DecryptionManager
 
       //if secret key is not 32, we will use the adjust length secret key
       if (sharedSecret.length==32) {
-		for (int i=0; i< 8;i++)
-		  key[i] = sharedSecret[i+12];
+          System.arraycopy(sharedSecret, 12, key, 0, 8);
       }
       else if (sharedSecret.length==33 || sharedSecret.length < 32) {
-		for (int i=0; i< 8;i++)
-		  key[i] = newKey[i+12];
+          System.arraycopy(newKey, 12, key, 0, 8);
       }
       else
 		throw new SQLException ("sharedSecret key length error " + sharedSecret.length);

@@ -105,8 +105,7 @@ public class T_AccessRow
 	protected void realloc(int ncols)
 	{
 		DataValueDescriptor newcol[] = new DataValueDescriptor[ncols];
-		for (int i = 0; i < column.length; i++)
-			newcol[i] = column[i];
+		System.arraycopy(column, 0, newcol, 0, column.length);
 		column = newcol;
 	}
 

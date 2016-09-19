@@ -162,9 +162,7 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         for (int i = 0; i < maxLength; i++) maxArray[i] = -1;
 
         //First simply copy the first array into superset
-        for (int i = 0; i < columnsArray1.length; i++) {
-            maxArray[i] = columnsArray1[i];
-        }
+        System.arraycopy(columnsArray1, 0, maxArray, 0, columnsArray1.length);
 
         //Now copy only new values from second array into superset
         int validColsPosition = columnsArray1.length;

@@ -93,7 +93,7 @@ public class Version implements Comparable
         }
 
         _legs = new int[ count ];
-        for ( int i = 0; i < count; i++ ) { _legs[ i ] = legs[ i ]; }
+        System.arraycopy(legs, 0, _legs, 0, count);
 
         makeKey();
     }
@@ -265,7 +265,7 @@ public class Version implements Comparable
             int count = versions .length;
             _versions = new Version[ count ];
 
-            for ( int i = 0; i < count; i++ ) { _versions[ i ] = versions[ i ]; }
+            System.arraycopy(versions, 0, _versions, 0, count);
         }
 
         /**
