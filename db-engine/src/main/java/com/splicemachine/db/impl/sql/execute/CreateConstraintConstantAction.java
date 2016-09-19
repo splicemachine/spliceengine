@@ -540,7 +540,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 		{
 			for (int ix=0; ix < columnNames.length; ix++)
 			{
-				strbuf.append("\n\tcol["+ix+"]"+columnNames[ix].toString());
+				strbuf.append("\n\tcol["+ix+"]"+ columnNames[ix]);
 			}
 		}
 		
