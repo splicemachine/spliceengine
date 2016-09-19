@@ -998,7 +998,10 @@ public class FromBaseTable extends FromTable {
 
             try{
 				/* This represents a view - query is dependent on the ViewDescriptor */
-                compilerContext.createDependency(vd);
+                // Removes with clause dependency creation.
+                // No reason to create dependency.
+                if (vd.getUUID() != null)
+                    compilerContext.createDependency(vd);
 
                 if(SanityManager.DEBUG){
                     //noinspection ConstantConditions

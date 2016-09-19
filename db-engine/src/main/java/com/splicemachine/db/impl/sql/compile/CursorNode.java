@@ -216,8 +216,8 @@ public class CursorNode extends DMLStatementNode{
                     createViewNode.bindStatement();
                     createViewNode.optimizeStatement();
                     withMap.put(createViewNode.getRelativeName(),createViewNode.createDynamicView());
+                    this.getLanguageConnectionContext().setWithStack(withMap);
                 }
-                this.getLanguageConnectionContext().setWithStack(withMap);
             }
 
 

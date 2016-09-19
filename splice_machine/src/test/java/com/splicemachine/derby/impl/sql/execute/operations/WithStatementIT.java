@@ -1,3 +1,17 @@
+/*
+ * Copyright 2012 - 2016 Splice Machine, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
+ * License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -94,6 +108,34 @@ public class WithStatementIT extends SpliceUnitTest {
         Assert.assertEquals("Wrong Count" , 5, rs.getInt(2));
         Assert.assertEquals("Wrong Sum" , 15, rs.getInt(3));
         Assert.assertFalse("with join algebra incorrect",rs.next());
+    }
+
+    @Test
+    public void testMultipleDependentWithStatementsWithAggregates() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("with footest as " +
+                "(select count(*) as count, col2, max(col1) as col1 from foo group by col2), " +
+                "footest1 as (select sum(count) as count, sum(col1) as " +
+                "sum_col1, col2 from footest group by col2)" +
+                "select foo2.col1, count, sum_col1 from foo2 " +
+                "inner join footest1 on foo2.col1 = footest1.col2"
+        );
+        Assert.assertTrue("with join algebra incorrect",rs.next());
+        Assert.assertEquals("Wrong Join Column", 1, rs.getInt(1));
+        Assert.assertEquals("Wrong Count" , 5, rs.getInt(2));
+        Assert.assertEquals("Wrong Sum" , 5, rs.getInt(3));
+        Assert.assertFalse("with join algebra incorrect",rs.next());
+    }
+
+    @Test
+    public void testMultipleDependentWithStatementsWithAggregatesExplain() throws Exception {
+        String query = "explain with footest as " +
+                "(select count(*) as count, col2, max(col1) as col1 from foo group by col2), " +
+                "footest1 as (select sum(count) as count, sum(col1) as " +
+                "sum_col1, col2 from footest group by col2)" +
+                "select foo2.col1, count, sum_col1 from foo2 " +
+                "inner join footest1 on foo2.col1 = footest1.col2";
+        ResultSet rs = methodWatcher.executeQuery(query);
+        Assert.assertEquals("explain plan incorrect",12,this.resultSetSize(rs));
     }
 
     @Test
