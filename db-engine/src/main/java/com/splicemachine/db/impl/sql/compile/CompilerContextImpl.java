@@ -760,7 +760,7 @@ public class CompilerContextImpl extends ContextImpl
 			return;
 
 		if (td.getTableType() ==
-				TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
+				TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE || td.getTableType() == TableDescriptor.WITH_TYPE) {
 			return; // no priv needed, it is per session anyway
 		}
 
