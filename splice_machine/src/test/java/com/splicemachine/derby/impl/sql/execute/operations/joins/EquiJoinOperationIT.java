@@ -15,9 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.db.client.am.SqlException;

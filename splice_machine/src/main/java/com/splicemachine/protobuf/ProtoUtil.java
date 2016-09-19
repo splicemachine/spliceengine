@@ -17,7 +17,6 @@ package com.splicemachine.protobuf;
 
 import org.spark_project.guava.base.Function;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
-import com.splicemachine.ddl.DDLMessage;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.Lists;
 import com.google.protobuf.ByteString;

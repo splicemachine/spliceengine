@@ -28,7 +28,6 @@ import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 
 import java.sql.*;
 import junit.framework.Test;
-import junit.framework.TestSuite;
 import com.splicemachine.dbTesting.junit.JDBC;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
 

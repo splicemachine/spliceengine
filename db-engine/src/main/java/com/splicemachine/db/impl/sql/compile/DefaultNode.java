@@ -37,11 +37,9 @@ import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
-import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * DefaultNode represents a column/parameter default.

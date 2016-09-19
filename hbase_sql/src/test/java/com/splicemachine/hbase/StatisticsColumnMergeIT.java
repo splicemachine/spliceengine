@@ -39,8 +39,6 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.List;
 
-import static com.splicemachine.test_tools.Rows.rows;
-
 /**
  * Created by jyuan on 4/19/16.
  */

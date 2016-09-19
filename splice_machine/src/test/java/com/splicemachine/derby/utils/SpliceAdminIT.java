@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.*;

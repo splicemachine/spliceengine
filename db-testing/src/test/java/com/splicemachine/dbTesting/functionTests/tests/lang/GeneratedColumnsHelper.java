@@ -33,8 +33,7 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
-import junit.framework.Test;
-import junit.framework.TestSuite;
+
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;

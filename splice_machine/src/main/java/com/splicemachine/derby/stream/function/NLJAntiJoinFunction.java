@@ -23,7 +23,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.io.IOException;

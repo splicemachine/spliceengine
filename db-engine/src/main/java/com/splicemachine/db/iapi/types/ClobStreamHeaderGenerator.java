@@ -27,9 +27,7 @@ package com.splicemachine.db.iapi.types;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import com.splicemachine.db.iapi.db.DatabaseContext;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 /**
  * Generates stream headers for Clob data values.

@@ -38,7 +38,6 @@ import java.util.TimeZone;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import com.splicemachine.db.iapi.types.SQLDate;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 import com.splicemachine.dbTesting.junit.JDBC;

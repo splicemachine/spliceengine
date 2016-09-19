@@ -16,13 +16,11 @@
 package com.splicemachine.compactions;
 
 import com.splicemachine.hbase.ZkUtils;
-import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.data.Stat;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;

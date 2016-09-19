@@ -15,7 +15,6 @@
 
 package com.splicemachine.triggers;
 
-import com.splicemachine.db.client.am.ResultSet;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;

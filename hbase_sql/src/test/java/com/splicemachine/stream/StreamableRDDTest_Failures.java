@@ -20,11 +20,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.BaseStreamTest;
-import org.apache.commons.collections.IteratorUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFunction;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -32,13 +29,10 @@ import org.junit.Test;
 import scala.Tuple2;
 
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.*;
 

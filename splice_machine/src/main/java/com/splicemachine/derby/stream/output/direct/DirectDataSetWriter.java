@@ -29,7 +29,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
-import java.util.Collections;
 import java.util.Iterator;
 
 /**

@@ -58,7 +58,6 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.Platform;
-import org.apache.spark.unsafe.types.CalendarInterval;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 /**
@@ -963,7 +962,7 @@ public final class SQLTime extends DataType
      * @param second
      * @param sb The resulting string is appended to this StringBuffer
      */
-    static void timeToString( int hour, int minute, int second, StringBuffer sb)
+    static void timeToString( int hour, int minute, int second, StringBuilder sb)
     {
 		String hourStr = Integer.toString( hour);
 		String minStr = Integer.toString( minute);
@@ -988,7 +987,7 @@ public final class SQLTime extends DataType
 	 */
 	protected static String encodedTimeToString(int encodedTime)
 	{
-		StringBuffer vstr = new StringBuffer();
+		StringBuilder vstr = new StringBuilder();
         timeToString( SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime), vstr);
 		return vstr.toString();
 	}

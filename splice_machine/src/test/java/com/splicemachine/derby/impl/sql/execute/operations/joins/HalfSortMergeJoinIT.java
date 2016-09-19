@@ -15,8 +15,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
@@ -26,14 +24,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Arrays;
 import java.util.List;
 
-import static com.splicemachine.homeless.TestUtils.o;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.fail;

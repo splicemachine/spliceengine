@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.tester;
 
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;

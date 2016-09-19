@@ -25,8 +25,6 @@
 package com.splicemachine.db.agg;
 
 import java.io.Serializable;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
  * <p>

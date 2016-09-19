@@ -16,7 +16,6 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.concurrent.Clock;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;

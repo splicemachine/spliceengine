@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 /**
  * @author Scott Fines

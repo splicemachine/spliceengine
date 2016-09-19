@@ -26,7 +26,6 @@
 package com.splicemachine.db.iapi.sql.dictionary;
 
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**

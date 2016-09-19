@@ -27,8 +27,6 @@ package com.splicemachine.dbTesting.functionTests.tests.junitTests.compatibility
 
 import com.splicemachine.dbTesting.junit.BaseTestCase;
 
-import com.splicemachine.db.drda.NetworkServerControl;
-
 import java.io.*;
 import java.util.*;
 

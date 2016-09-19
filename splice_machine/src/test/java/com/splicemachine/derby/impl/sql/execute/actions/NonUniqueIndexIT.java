@@ -18,9 +18,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
-import com.splicemachine.test_tools.TableCreator;
 
 import com.splicemachine.utils.Pair;
 import org.junit.*;
@@ -35,8 +33,6 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.util.List;
 
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

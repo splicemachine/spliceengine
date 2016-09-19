@@ -16,7 +16,6 @@
 package com.splicemachine.si.testenv;
 
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.ManualKeepAliveScheduler;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.server.Transactor;

@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.stream.iapi;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.control.BadRecordsRecorder;

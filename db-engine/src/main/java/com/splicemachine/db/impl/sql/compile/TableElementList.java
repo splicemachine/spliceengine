@@ -55,7 +55,6 @@ import com.splicemachine.db.iapi.sql.depend.ProviderList;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 
-import com.splicemachine.db.impl.sql.catalog.Aggregate;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ConstraintInfo;
 

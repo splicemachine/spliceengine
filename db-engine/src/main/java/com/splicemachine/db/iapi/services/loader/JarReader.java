@@ -26,10 +26,7 @@
 package com.splicemachine.db.iapi.services.loader;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.io.StorageFile;
-
-import java.io.InputStream;
 
 /**
 	Abstract out the loading of JarFiles.

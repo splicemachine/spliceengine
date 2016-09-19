@@ -19,9 +19,7 @@ import org.spark_project.guava.collect.Lists;
 import com.splicemachine.concurrent.Threads;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.SerialTest;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 
 import java.sql.*;
 import java.util.List;

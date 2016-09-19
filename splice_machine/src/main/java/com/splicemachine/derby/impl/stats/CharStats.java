@@ -19,7 +19,6 @@ import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 
 /**

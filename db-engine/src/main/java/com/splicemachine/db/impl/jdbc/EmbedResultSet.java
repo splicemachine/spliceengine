@@ -45,12 +45,6 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RawToBinaryFormatStream;
-import com.splicemachine.db.iapi.types.ReaderToUTF8Stream;
-import com.splicemachine.db.iapi.types.UserDataValue;
-import com.splicemachine.db.iapi.types.VariableSizeDataValue;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 
 import com.splicemachine.db.iapi.services.io.LimitInputStream;

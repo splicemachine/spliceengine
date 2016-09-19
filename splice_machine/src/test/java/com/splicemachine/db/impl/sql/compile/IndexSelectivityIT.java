@@ -25,7 +25,6 @@ import org.junit.rules.TestRule;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.Timestamp;
 
 import static com.splicemachine.test_tools.Rows.row;

@@ -17,7 +17,6 @@ package com.splicemachine.derby.hbase;
 
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

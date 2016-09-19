@@ -16,7 +16,6 @@
 package com.splicemachine.pipeline.traffic;
 
 import com.splicemachine.access.util.ByteComparisons;
-import com.splicemachine.primitives.Bytes;
 
 /**
  * @author Scott Fines

@@ -21,7 +21,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
 
 public class SingleThreadedTokenBucketTest {
 

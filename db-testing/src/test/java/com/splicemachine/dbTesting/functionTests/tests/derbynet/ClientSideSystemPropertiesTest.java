@@ -30,7 +30,6 @@ import java.security.AccessController;
 import java.util.Properties;
 
 import junit.framework.Test;
-import junit.framework.TestSuite;
 
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.SystemPropertyTestSetup;

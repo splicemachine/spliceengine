@@ -28,7 +28,6 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.primitives.ByteComparator;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.BeforeClass;

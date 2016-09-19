@@ -16,7 +16,6 @@
 package com.splicemachine.hash;
 
 import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.hash.HashFunction;
 import com.splicemachine.primitives.Bytes;
 import org.junit.Assert;
 import org.junit.Test;

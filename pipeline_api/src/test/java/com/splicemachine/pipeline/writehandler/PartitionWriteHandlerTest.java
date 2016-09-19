@@ -62,7 +62,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 /**

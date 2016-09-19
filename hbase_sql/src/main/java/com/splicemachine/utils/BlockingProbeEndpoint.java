@@ -22,7 +22,6 @@ import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 
 import com.splicemachine.coprocessor.SpliceMessage;
 import org.apache.hadoop.hbase.coprocessor.SingletonCoprocessorService;

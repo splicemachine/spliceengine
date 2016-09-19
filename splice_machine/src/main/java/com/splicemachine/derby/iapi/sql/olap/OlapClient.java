@@ -19,7 +19,6 @@ import org.spark_project.guava.util.concurrent.ListenableFuture;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
 /**

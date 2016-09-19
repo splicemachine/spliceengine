@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.access.HBaseConfigurationSource;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;

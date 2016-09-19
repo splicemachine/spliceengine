@@ -17,7 +17,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 

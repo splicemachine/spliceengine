@@ -34,7 +34,6 @@ import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.JDBC;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
 import junit.framework.Test;
-import junit.framework.TestSuite;
 
 /**
  * Tests concerning the system catalogs.
