@@ -207,6 +207,9 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
         private final int[] nonDistinctInputCols;
         private final int[] nonDistinctAggCols;
         private final SpliceGenericAggregator[] nonDistinctAggs;
+        private final int[] distinctInputCols;
+        private final int[] distinctAggCols;
+        private final SpliceGenericAggregator[] distinctAggs;
         private final boolean dontAggregateDistinct;
         private final boolean dontAggregateNonDistinct;
 
@@ -223,11 +226,23 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
             nonDistinctAggCols = new int[nonDistinctBuffer.getAggregates().length];
             nonDistinctAggs = nonDistinctBuffer.getAggregates();
 
+            distinctInputCols = new int[distinctBuffer.getAggregates().length];
+            distinctAggCols = new int[distinctBuffer.getAggregates().length];
+            distinctAggs = distinctBuffer.getAggregates();
+
             for (int i = 0; i < nonDistinctInputCols.length; i++){
                 nonDistinctInputCols[i] = nonDistinctBuffer.getAggregates()[i].getAggregatorInfo().getInputColNum();
             }
             for (int i = 0; i < nonDistinctInputCols.length; i++){
                 nonDistinctAggCols[i] = nonDistinctBuffer.getAggregates()[i].getAggregatorInfo().getAggregatorColNum();
+            }
+
+            for (int i = 0; i < distinctInputCols.length; i++){
+                distinctInputCols[i] =distinctBuffer.getAggregates()[i].getAggregatorInfo().getInputColNum();
+            }
+
+            for (int i = 0; i < distinctInputCols.length; i++){
+                distinctAggCols[i] = distinctBuffer.getAggregates()[i].getAggregatorInfo().getAggregatorColNum();
             }
 
             this.nonDistinctBuffer = new SingleBuffer(nonDistinctBuffer, groupKeyEncoder, dontAggregateNonDistinct);
@@ -251,6 +266,21 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
             return row;
         }
 
+
+        private ExecRow maskedNondistinctRow(ExecRow row) throws StandardException {
+            // Clear values for distinct aggregation, to avoid accidentally involved in distinct aggregation calculation
+            // for 2nd phase
+            DataValueDescriptor[] cols = row.getRowArray();
+            for (int idx : distinctInputCols) {
+                row.getColumn(idx+1).setToNull();
+            }
+            // initialize aggregator objects for distinct aggs
+            for (int idx = 0; idx < distinctAggCols.length; idx++) {
+                cols[distinctAggCols[idx]]
+                        .setValue(distinctAggs[idx].getAggregatorInstance());
+            }
+            return row;
+        }
         @Override
         public GroupedRow buffer(ExecRow row) throws StandardException {
             GroupedRow firstEvicted = nonDistinctBuffer.buffer(row);
@@ -281,8 +311,11 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 
         @Override
         public GroupedRow getFinalizedRow() throws StandardException {
-            if (nonDistinctBuffer.size() > 0)
-                return nonDistinctBuffer.getFinalizedRow();
+            if (nonDistinctBuffer.size() > 0) {
+                GroupedRow groupedRow = nonDistinctBuffer.getFinalizedRow();
+                maskedNondistinctRow(groupedRow.getRow());
+                return groupedRow;
+            }
             if (distinctBuffer.size() > 0) {
                 GroupedRow finalizedRow = distinctBuffer.getFinalizedRow();
                 finalizedRow.setDistinct(true);
