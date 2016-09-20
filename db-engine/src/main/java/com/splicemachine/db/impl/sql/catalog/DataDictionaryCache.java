@@ -29,7 +29,11 @@ import com.google.common.base.Optional;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
@@ -38,6 +42,8 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.cache.Cache;
 import org.sparkproject.guava.cache.CacheBuilder;
+import org.sparkproject.guava.cache.RemovalListener;
+import org.sparkproject.guava.cache.RemovalNotification;
 
 import javax.management.MXBean;
 import java.util.List;
@@ -84,16 +90,28 @@ public class DataDictionaryCache {
         permissionsCacheSize=PropertyUtil.intPropertyValue(Property.LANG_PERMISSIONS_CACHE_SIZE, value,
                 0, Integer.MAX_VALUE, Property.LANG_PERMISSIONS_CACHE_SIZE_DEFAULT);
 
+        RemovalListener<Object,Dependent> dependentInvalidator = new RemovalListener<Object, Dependent>() {
+            @Override
+            public void onRemoval(RemovalNotification<Object, Dependent> removalNotification) {
+                LanguageConnectionContext lcc=(LanguageConnectionContext)
+                        ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+                try {
+                    removalNotification.getValue().makeInvalid(DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+                } catch (StandardException e) {
+                    LOG.error("Failed to invalidate " + removalNotification.getValue(), e);
+                }
+            }
+        };
         oidTdCache = CacheBuilder.newBuilder().maximumSize(tdCacheSize).build();
         nameTdCache = CacheBuilder.newBuilder().maximumSize(tdCacheSize).build();
         if(stmtCacheSize>0){
-            spsNameCache = CacheBuilder.newBuilder().maximumSize(stmtCacheSize).build();
-            storedPreparedStatementCache = CacheBuilder.newBuilder().maximumSize(stmtCacheSize).build();
+            spsNameCache = CacheBuilder.newBuilder().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build();
+            storedPreparedStatementCache = CacheBuilder.newBuilder().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build();
         }
         sequenceGeneratorCache=CacheBuilder.newBuilder().maximumSize(seqgenCacheSize).build();
         partitionStatisticsCache = CacheBuilder.newBuilder().maximumSize(8092).build();
         conglomerateCache = CacheBuilder.newBuilder().maximumSize(1024).build();
-        statementCache = CacheBuilder.newBuilder().maximumSize(1024).build();
+        statementCache = CacheBuilder.newBuilder().maximumSize(1024).removalListener(dependentInvalidator).build();
         schemaCache = CacheBuilder.newBuilder().maximumSize(1024).build();
         roleCache = CacheBuilder.newBuilder().maximumSize(100).build();
         permissionsCache=CacheBuilder.newBuilder().maximumSize(permissionsCacheSize).build();

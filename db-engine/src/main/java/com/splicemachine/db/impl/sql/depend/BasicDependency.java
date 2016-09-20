@@ -31,6 +31,8 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 
 import com.splicemachine.db.catalog.UUID;
 
+import java.lang.ref.WeakReference;
+
 /**
 	A dependency represents a reliance of the dependent on
 	the provider for some information the dependent contains
@@ -66,14 +68,14 @@ class BasicDependency implements Dependency {
 		@return the dependent for this dependency
 	 */
 	public Dependent getDependent() {
-		return dependent;
+		return dependent.get();
 	}
 
 	//
 	// class interface
 	//
 	BasicDependency(Dependent d, Provider p) {
-		dependent = d;
+		dependent = new WeakReference<Dependent>(d);
 		provider = p;
 	}
 
@@ -81,5 +83,5 @@ class BasicDependency implements Dependency {
 	// class implementation
 	//
 	private final Provider	provider;
-	private final Dependent	dependent;
+	private final WeakReference<Dependent>	dependent;
 }
