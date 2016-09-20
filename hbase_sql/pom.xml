@@ -451,6 +451,7 @@
                     <artifactSet>
                         <includes>
                             <include>io.netty:netty-all</include>
+                            <include>com.typesafe.akka:akka-remote_2.11</include>
                         </includes>
                     </artifactSet>
             <filters>
@@ -469,6 +470,13 @@
                     <shadedPattern>splice.io.netty</shadedPattern>
                     <includes>
                         <include>io.netty.**</include>
+                    </includes>
+                </relocation>
+                <relocation>
+                    <pattern>akka.remote</pattern>
+                    <shadedPattern>splice.akka.remote</shadedPattern>
+                    <includes>
+                        <include>akka.remote.**</include>
                     </includes>
                 </relocation>
             </relocations>
