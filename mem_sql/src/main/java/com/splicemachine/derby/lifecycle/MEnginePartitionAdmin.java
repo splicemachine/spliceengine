@@ -85,4 +85,9 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public void move(String partition, String server) throws IOException {
         admin.move(partition, server);
     }
+
+    @Override
+    public TableDescriptor getTableDescriptor(String table) throws IOException{
+        return admin.getTableDescriptor(table);
+    }
 }

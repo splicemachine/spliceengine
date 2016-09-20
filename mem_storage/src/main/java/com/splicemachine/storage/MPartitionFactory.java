@@ -153,5 +153,10 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         public void move(String partition, String server) throws IOException {
             throw new UnsupportedOperationException("Cannot move partitions in an in-memory storage engine!");
         }
+
+        @Override
+        public TableDescriptor getTableDescriptor(String table) throws IOException{
+            throw new UnsupportedOperationException("Cannot get table descriptors in an in-memory storage engine!");
+        }
     }
 }
