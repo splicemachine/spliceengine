@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -39,6 +40,8 @@ import com.splicemachine.db.iapi.sql.Activation;
 
 public class StatementSchemaPermission extends StatementPermission
 {
+
+	protected UUID schemaUUID;
 	/**
 	 * The schema name 
 	 */
@@ -46,12 +49,19 @@ public class StatementSchemaPermission extends StatementPermission
 	/**
 	 * Authorization id
 	 */
-	private String aid;  
+	private String aid;
 	/**	 
 	 * One of Authorizer.CREATE_SCHEMA_PRIV, MODIFY_SCHEMA_PRIV,  
 	 * DROP_SCHEMA_PRIV, etc.
-	 */ 
-	private int privType;  
+	 */
+	protected int privType;
+
+
+	public StatementSchemaPermission(UUID schemaUUID ,   int privType)
+	{
+		this.schemaUUID = schemaUUID;
+		this.privType	= privType;
+	}
 
 	public StatementSchemaPermission(String schemaName, String aid, int privType)
 	{
@@ -111,6 +121,41 @@ public class StatementSchemaPermission extends StatementPermission
 				break;
 		}
 	}
+
+	protected int oneAuthHasPermissionOnSchema(DataDictionary dd, String authorizationId, boolean forGrant)
+			throws StandardException
+	{
+		SchemaPermsDescriptor perms = dd.getSchemaPermissions( schemaUUID, authorizationId);
+		if( perms == null)
+			return NONE;
+
+		String priv = null;
+
+		switch( privType)
+		{
+			case Authorizer.SELECT_PRIV:
+			case Authorizer.MIN_SELECT_PRIV:
+				priv = perms.getSelectPriv();
+				break;
+			case Authorizer.UPDATE_PRIV:
+				priv = perms.getUpdatePriv();
+				break;
+			case Authorizer.REFERENCES_PRIV:
+				priv = perms.getReferencesPriv();
+				break;
+			case Authorizer.INSERT_PRIV:
+				priv = perms.getInsertPriv();
+				break;
+			case Authorizer.DELETE_PRIV:
+				priv = perms.getDeletePriv();
+				break;
+			case Authorizer.TRIGGER_PRIV:
+				priv = perms.getTriggerPriv();
+				break;
+		}
+
+		return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ?  AUTHORIZED : UNAUTHORIZED;
+	} // end of hasPermissionOnTable
 
 	/**
 	 * Schema level permission is never required as list of privileges required

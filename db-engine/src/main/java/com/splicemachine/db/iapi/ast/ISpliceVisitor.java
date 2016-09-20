@@ -175,7 +175,7 @@ public interface ISpliceVisitor {
     public Visitable visit(TableElementList node) throws StandardException;
     public Visitable visit(TableElementNode node) throws StandardException;
     public Visitable visit(TableName node) throws StandardException;
-    public Visitable visit(TablePrivilegesNode node) throws StandardException;
+    public Visitable visit(BasicPrivilegesNode node) throws StandardException;
     public Visitable visit(TernaryOperatorNode node) throws StandardException;
     public Visitable visit(TestConstraintNode node) throws StandardException;
     public Visitable visit(TimestampOperatorNode node) throws StandardException;

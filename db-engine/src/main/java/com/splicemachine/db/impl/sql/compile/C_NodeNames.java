@@ -272,7 +272,7 @@ public interface C_NodeNames
 
 	static final String TABLE_NAME_NAME = "com.splicemachine.db.impl.sql.compile.TableName";
 
-	static final String TABLE_PRIVILEGES_NAME = "com.splicemachine.db.impl.sql.compile.TablePrivilegesNode";
+	static final String TABLE_PRIVILEGES_NAME = "com.splicemachine.db.impl.sql.compile.BasicPrivilegesNode";
 
 	static final String TERNARY_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TernaryOperatorNode";
 

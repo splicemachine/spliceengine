@@ -342,6 +342,12 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 463);
 
     /**
+     class com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo
+     */
+    static public final int SCHEMA_PERMISSION_FINDER_V01_ID =
+            (MIN_ID_2 + 464);
+
+    /**
     class com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo
      */
     static public final int ROLE_GRANT_FINDER_V01_ID =

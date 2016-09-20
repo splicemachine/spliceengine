@@ -53,9 +53,9 @@ public class StatementColumnPermission extends StatementTablePermission
 	 * @param columns	List of columns
 	 *
 	 */
-	public StatementColumnPermission(UUID tableUUID, int privType, FormatableBitSet columns)
+	public StatementColumnPermission(UUID schemaUUID, UUID tableUUID, int privType, FormatableBitSet columns)
 	{
-		super( tableUUID, privType);
+		super(schemaUUID, tableUUID, privType);
 		this.columns = columns;
 	}
 
@@ -314,11 +314,17 @@ public class StatementColumnPermission extends StatementTablePermission
 	throws StandardException
 	{
 		//If table permission found for authorizationid, then simply return that
-		if (oneAuthHasPermissionOnTable( dd, authid, false))
+		if (oneAuthHasPermissionOnTable( dd, authid, false) == AUTHORIZED)
 			return dd.getTablePermissions(tableUUID, authid);
 		//If table permission found for PUBLIC, then simply return that
-		if (oneAuthHasPermissionOnTable( dd, Authorizer.PUBLIC_AUTHORIZATION_ID, false))
+		if (oneAuthHasPermissionOnTable( dd, Authorizer.PUBLIC_AUTHORIZATION_ID, false) == AUTHORIZED)
 			return dd.getTablePermissions(tableUUID, Authorizer.PUBLIC_AUTHORIZATION_ID);
+
+		if (oneAuthHasPermissionOnSchema( dd, authid, false) == AUTHORIZED)
+			return dd.getSchemaPermissions(schemaUUID, authid);
+
+		if (oneAuthHasPermissionOnSchema( dd, Authorizer.PUBLIC_AUTHORIZATION_ID, false) == AUTHORIZED)
+			return dd.getSchemaPermissions(schemaUUID, authid);
 		
 		//If table level permission not found, then we have to find permissions 
 		//at column level. Look for column level permission for the passed 

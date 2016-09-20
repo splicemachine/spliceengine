@@ -765,6 +765,7 @@ public class CompilerContextImpl extends ContextImpl
 		}
 
 		UUID tableUUID = td.getUUID();
+		UUID schemaUUID = td.getSchemaDescriptor().getUUID();
 
 		//DERBY-4191
 		if( currPrivType == Authorizer.MIN_SELECT_PRIV){
@@ -774,8 +775,8 @@ public class CompilerContextImpl extends ContextImpl
 			//MIN_SELECT_PRIV requirement for the table because that 
 			//requirement is already getting satisfied with the already
 			//existing SELECT privilege requirement
-			StatementTablePermission key = new StatementTablePermission( 
-					tableUUID, Authorizer.SELECT_PRIV);
+			StatementTablePermission key = new StatementTablePermission(
+					schemaUUID, tableUUID, Authorizer.SELECT_PRIV);
 			StatementColumnPermission tableColumnPrivileges
 			  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
 			if( tableColumnPrivileges != null)
@@ -787,20 +788,21 @@ public class CompilerContextImpl extends ContextImpl
 			//on this table. If yes, then that requirement will be fulfilled
 			//by the SELECT_PRIV requirement we are adding now. Because of
 			//that, remove the MIN_SELECT_PRIV privilege requirement
-			StatementTablePermission key = new StatementTablePermission( 
-					tableUUID, Authorizer.MIN_SELECT_PRIV);
+			StatementTablePermission key = new StatementTablePermission(
+					schemaUUID, tableUUID, Authorizer.MIN_SELECT_PRIV);
 			StatementColumnPermission tableColumnPrivileges
 			  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
 			if( tableColumnPrivileges != null)
 				requiredColumnPrivileges.remove(key);
 		}
 		
-		StatementTablePermission key = new StatementTablePermission( tableUUID, currPrivType);
+		StatementTablePermission key = new StatementTablePermission( schemaUUID, tableUUID, currPrivType);
 		StatementColumnPermission tableColumnPrivileges
 		  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
 		if( tableColumnPrivileges == null)
 		{
-			tableColumnPrivileges = new StatementColumnPermission( tableUUID,
+			tableColumnPrivileges = new StatementColumnPermission( schemaUUID,
+																   tableUUID,
 																   currPrivType,
 																   new FormatableBitSet( td.getMaxColumnID()));
 			requiredColumnPrivileges.put(key, tableColumnPrivileges);
@@ -829,15 +831,20 @@ public class CompilerContextImpl extends ContextImpl
 			//on this table. If yes, then that requirement will be fulfilled
 			//by the SELECT_PRIV requirement we are adding now. Because of
 			//that, remove the MIN_SELECT_PRIV privilege requirement
-			StatementTablePermission key = new StatementTablePermission( 
-					table.getUUID(), Authorizer.MIN_SELECT_PRIV);
+			UUID tableUUID 	= table.getUUID();
+			UUID schemaUUID = table.getSchemaDescriptor().getUUID();
+
+			StatementTablePermission key = new StatementTablePermission(
+					schemaUUID, tableUUID, Authorizer.MIN_SELECT_PRIV);
 			StatementColumnPermission tableColumnPrivileges
 			  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
 			if( tableColumnPrivileges != null)
 				requiredColumnPrivileges.remove(key);
 		}
+		UUID tableUUID 	= table.getUUID();
+		UUID schemaUUID = table.getSchemaDescriptor().getUUID();
 
-		StatementTablePermission key = new StatementTablePermission( table.getUUID(), currPrivType);
+		StatementTablePermission key = new StatementTablePermission(  schemaUUID, tableUUID, currPrivType);
 		requiredTablePrivileges.put(key, key);
 	}
 

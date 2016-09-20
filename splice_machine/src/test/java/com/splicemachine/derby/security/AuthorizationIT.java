@@ -25,6 +25,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.assertFailed;
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -142,15 +143,6 @@ public class AuthorizationIT {
 
     /*****************************************************************************************************************/
 
-    public static void assertFailed(Connection connection, String sql, String errorState) {
-        try {
-            connection.createStatement().execute(sql);
-            fail("Did not fail");
-        } catch (Exception e) {
-            assertTrue("Incorrect error type!", e instanceof SQLException);
-            SQLException se = (SQLException) e;
-            assertEquals("Incorrect error state!", errorState, se.getSQLState());
-        }
-    }
+
 
 }

@@ -482,6 +482,45 @@ public class DataDescriptorGenerator
                                          triggerPerm);
     }
 
+	/**
+	 *  Manufacture a new SchemaPermsDescriptor.
+	 * @param sd
+	 * @param selectPerm
+	 * @param deletePerm
+	 * @param insertPerm
+	 * @param updatePerm
+	 * @param referencesPerm
+	 * @param triggerPerm
+	 * @param grantor
+	 * @return
+	 * @throws StandardException
+	 */
+	public SchemaPermsDescriptor newSchemaPermsDescriptor( SchemaDescriptor sd,
+														 String selectPerm,
+														 String deletePerm,
+														 String insertPerm,
+														 String updatePerm,
+														 String referencesPerm,
+														 String triggerPerm,
+														 String grantor)
+			throws StandardException
+	{
+		if( "N".equals( selectPerm) && "N".equals( deletePerm) && "N".equals( insertPerm)
+				&& "N".equals( updatePerm) && "N".equals( referencesPerm) && "N".equals( triggerPerm))
+			return null;
+
+		return new SchemaPermsDescriptor( dataDictionary,
+				(String) null,
+				grantor,
+				sd.getUUID(),
+				selectPerm,
+				deletePerm,
+				insertPerm,
+				updatePerm,
+				referencesPerm,
+				triggerPerm);
+	}
+
     /**
      * Manufacture a new ColPermsDescriptor.
      *

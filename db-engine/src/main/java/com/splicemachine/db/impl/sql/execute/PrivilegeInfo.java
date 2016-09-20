@@ -26,7 +26,6 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -59,25 +58,19 @@ public abstract class PrivilegeInfo
 	 * database objects without needing to be their owner
 	 *
 	 * @param user					authorizationId of current user
-	 * @param objectDescriptor		object being checked against
 	 * @param sd					SchemaDescriptor
 	 * @param dd					DataDictionary
 	 *
 	 * @exception StandardException if user does not own the object
 	 */
 	protected void checkOwnership( String user,
-								   TupleDescriptor objectDescriptor,
 								   SchemaDescriptor sd,
 								   DataDictionary dd)
 		throws StandardException
 	{
 		if (!user.equals(sd.getAuthorizationId()) &&
 				!user.equals(dd.getAuthorizationDatabaseOwner()))
-			throw StandardException.newException(SQLState.AUTH_NOT_OWNER,
-									  user,
-									  objectDescriptor.getDescriptorType(),
-									  sd.getSchemaName(),
-									  objectDescriptor.getDescriptorName());
+			throw StandardException.newException(SQLState.AUTH_NOT_OWNER, user,sd.getSchemaName());
 	}
 	
 	/**

@@ -1997,6 +1997,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
+     * Drop all the schemas descriptors for a specific schema.
+     * Useful for DROP SCHEMA
+     * @param schemaUUID
+     * @param tc
+     * @throws StandardException
+     */
+
+    @Override
+    public void dropAllSchemaPermDescriptors(UUID schemaUUID,TransactionController tc) throws StandardException{
+        DataValueDescriptor schemaIdOrderable;
+
+        // In Derby authorization mode, permission catalogs may not be present
+        if(!usesSqlAuthorization)
+            return;
+
+		/* Use schemaIDOrderable in both start and stop position for scan. */
+        schemaIdOrderable=getIDValueAsCHAR(schemaUUID);
+
+		/* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,schemaIdOrderable);
+
+        dropSchemaPermDescriptor(tc,keyRow);
+
+    }
+
+
+    /**
      * Need to update SYSCOLPERMS for a given table because a new column has
      * been added to that table. SYSCOLPERMS has a column called "COLUMNS"
      * which is a bit map for all the columns in a given user table. Since
@@ -2411,6 +2439,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         dropPermsByGrantee(
                 authId,
                 tc,
+                SYSSCHEMAPERMS_CATALOG_NUM,
+                SYSSCHEMAPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_SCHEMA_GRANTOR_INDEX,
+                SYSSCHEMAPERMSRowFactory.
+                        GRANTEE_COL_NUM_IN_GRANTEE_SCHEMA_GRANTOR_INDEX);
+
+        dropPermsByGrantee(
+                authId,
+                tc,
                 SYSTABLEPERMS_CATALOG_NUM,
                 SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
                 SYSTABLEPERMSRowFactory.
@@ -2587,6 +2623,32 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ti.deleteRow(tc,keyRow,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID);
     }
+
+    /**
+     * Drop Schema descriptor
+     * Useful for DROP SCHEMA
+     * @param tc
+     * @param keyRow
+     * @throws StandardException
+     */
+
+    private void dropSchemaPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
+        ExecRow curRow;
+        PermissionsDescriptor perm;
+        TabInfoImpl ti=getNonCoreTI(SYSSCHEMAPERMS_CATALOG_NUM);
+        SYSSCHEMAPERMSRowFactory rf=(SYSSCHEMAPERMSRowFactory)ti.getCatalogRowFactory();
+
+        while((curRow=ti.getRow(tc,keyRow,SYSSCHEMAPERMSRowFactory.SCHEMAID_INDEX_NUM))!=null){
+            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this);
+            removePermEntryInCache(perm);
+
+            // Build key on UUID and drop the entry as we want to drop only this row
+            ExecIndexRow uuidKey;
+            uuidKey=rf.buildIndexKeyRow(SYSSCHEMAPERMSRowFactory.SCHEMAID_INDEX_NUM,perm);
+            ti.deleteRow(tc,uuidKey,SYSSCHEMAPERMSRowFactory.SCHEMAID_INDEX_NUM);
+        }
+    }
+
 
     /**
      * Delete the appropriate rows from systableperms when
@@ -7276,6 +7338,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSTRIGGERS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTRIGGERSRowFactory(luuidFactory,exFactory,dvf));
                     break;
+                case SYSSCHEMAPERMS_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSSCHEMAPERMSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
                 case SYSTABLEPERMS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTABLEPERMSRowFactory(luuidFactory,exFactory,dvf));
                     break;
@@ -9095,6 +9160,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getUncachedTablePermsDescriptor(key);
     }
 
+    /**
+     * GEt Schema Permission for a specific authorizationId
+     * @param schemaPermsUUID
+     * @param authorizationId The user name
+     * @return
+     * @throws StandardException
+     */
+
+    @Override
+    public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID, String authorizationId) throws StandardException{
+        SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,authorizationId,null,schemaPermsUUID);
+        return getUncachedSchemaPermsDescriptor(key);
+    }
+
     public Object getPermissions(PermissionsDescriptor key) throws StandardException{
 
         PermissionsDescriptor permissions = dataDictionaryCache.permissionCacheFind(key);
@@ -9131,14 +9210,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                             Authorizer.SYSTEM_AUTHORIZATION_ID,
                             tablePermsKey.getTableUUID(),
                             "Y", "Y", "Y", "Y", "Y", "Y");
-                }
-                else
-                {
-                    permissions = new TablePermsDescriptor( this,
-                            tablePermsKey.getGrantee(),
-                            (String) null,
-                            tablePermsKey.getTableUUID(),
-                            "N", "N", "N", "N", "N", "N");
                 }
             }
         }
@@ -9422,6 +9493,31 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     } // end of getUncachedTablePermsDescriptor
 
+    /**
+     * Get a schema permissions descriptor from the system tables, without going through the cache.
+     * This method is called to fill the permissions cache.
+     *
+     * @param key
+     * @return SchemaPermsDescriptor that describes the table permissions granted to the grantee, null
+     * if no schema-table permissions have been granted to him on the schema
+     * @throws StandardException
+     */
+    SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key) throws StandardException{
+        if(key.getObjectID()==null){
+            //the SCHEMAPERMSID for SYSTABLEPERMS is not known, so use
+            //table id, grantor and granteee to find SchemaPermsDescriptor
+            return (SchemaPermsDescriptor)
+                    getUncachedPermissionsDescriptor(SYSSCHEMAPERMS_CATALOG_NUM,
+                            SYSSCHEMAPERMSRowFactory.GRANTEE_SCHEMA_GRANTOR_INDEX_NUM,
+                            key);
+        }else{
+            //we know the SCHEMAPERMSID for SYSTABLEPERMS, so use that to
+            //find SchemaPermsDescriptor from the sytem table
+            return (SchemaPermsDescriptor)
+                    getUncachedPermissionsDescriptor(SYSSCHEMAPERMS_CATALOG_NUM,
+                            SYSSCHEMAPERMSRowFactory.SCHEMAPERMSID_INDEX_NUM,key);
+        }
+    } // end of getUncachedSchemaPermsDescriptor
 
     /**
      * Get a column permissions descriptor from the system tables, without going through the cache.

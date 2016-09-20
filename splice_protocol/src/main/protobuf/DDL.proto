@@ -95,6 +95,19 @@ message TruncateTable {
         optional UUID tableId = 1;
 }
 
+message RevokeSchemaPrivilege {
+        required UUID schemaId = 1;
+        required string selectPerm = 2;
+        required string deletePerm = 3;
+        required string insertPerm = 4;
+        required string updatePerm = 5;
+        required string referencesPerm = 6;
+        required string triggerPerm = 7;
+        required string grantor = 8;
+        required string grantee = 9;
+        required UUID permObjectId = 10;
+}
+
 message RevokeTablePrivilege {
         required UUID tableId = 1;
         required string selectPerm = 2;
@@ -141,12 +154,14 @@ message RevokePrivilege {
             REVOKE_COLUMN_PRIVILEGE = 1;
             REVOKE_ROUTINE_PRIVILEGE = 2;
             REVOKE_GENERIC_PRIVILEGE = 3;
+            REVOKE_SCHEMA_PRIVILEGE = 4;
         }
         required Type type = 1;
-        optional RevokeTablePrivilege revokeTablePrivilege = 2;
-        optional RevokeColumnPrivilege revokeColumnPrivilege = 3;
+        optional RevokeTablePrivilege   revokeTablePrivilege = 2;
+        optional RevokeColumnPrivilege  revokeColumnPrivilege = 3;
         optional RevokeRoutinePrivilege revokeRoutinePrivilege = 4;
         optional RevokeGenericPrivilege revokeGenericPrivilege = 5;
+        optional RevokeSchemaPrivilege  revokeSchemaPrivilege = 6;
 }
 
 message TentativeFK {

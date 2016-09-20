@@ -32,33 +32,15 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.reference.SQLState;
 import org.spark_project.guava.collect.Lists;
 import java.util.List;
 import java.util.Iterator;
 
-public class TablePrivilegeInfo extends PrivilegeInfo
+public class TablePrivilegeInfo extends BasicPrivilegeInfo
 {
-	// Action types
-	public static final int SELECT_ACTION = 0;
-	public static final int DELETE_ACTION = 1;
-	public static final int INSERT_ACTION = 2;
-	public static final int UPDATE_ACTION = 3;
-	public static final int REFERENCES_ACTION = 4;
-	public static final int TRIGGER_ACTION = 5;
-	public static final int ACTION_COUNT = 6;
-
-	private static final String YES_WITH_GRANT_OPTION = "Y";
-	private static final String YES_WITHOUT_GRANT_OPTION = "y";
-	private static final String NO = "N";
-
-	private static final String[][] actionString =
-	{{"s", "S"}, {"d", "D"}, {"i", "I"}, {"u", "U"}, {"r", "R"}, {"t", "T"}};
 
 	private TableDescriptor td;
-	private boolean[] actionAllowed;
-	private FormatableBitSet[] columnBitSets;
-	private List descriptorList;
+	protected SchemaDescriptor sd;
 	
 	/**
 	 * @param actionAllowed actionAllowed[action] is true if action is in the privilege set.
@@ -74,108 +56,9 @@ public class TablePrivilegeInfo extends PrivilegeInfo
 		this.descriptorList = descriptorList;
 	}
 	
-	/**
-	 * Determines whether a user is the owner of an object
-	 * (table, function, or procedure). Note that the database 
-	 * creator can access database objects without needing to be 
-	 * their owner.
-	 *
-	 * @param user					authorizationId of current user
-	 * @param td       		        table descriptor being checked against
-	 * @param sd					SchemaDescriptor
-	 * @param dd					DataDictionary
-	 * @param lcc                   LanguageConnectionContext
-	 * @param grant                 grant if true; revoke if false
-	 *
-	 * @exception StandardException if user does not own the object
-	 */
-	protected void checkOwnership( String user,
-								   TableDescriptor td,
-								   SchemaDescriptor sd,
-								   DataDictionary dd,
-								   LanguageConnectionContext lcc,
-								   boolean grant)
-		throws StandardException
-	{
-		super.checkOwnership(user, td, sd, dd);
-		
-		// additional check specific to this subclass
-		if (grant)
-		{
-			checkPrivileges(user, td, sd, dd, lcc);
-		}
-	}
-	
-	/**
-	 * Determines if the privilege is grantable by this grantor
-	 * for the given view.
-	 * 
-	 * Note that the database owner can access database objects 
-	 * without needing to be their owner.  This method should only 
-	 * be called if it is a GRANT.
-	 * 
-	 * @param user					authorizationId of current user
-	 * @param td		            TableDescriptor to be checked against
-	 * @param sd					SchemaDescriptor
-	 * @param dd					DataDictionary
-	 * @param lcc                   LanguageConnectionContext
-	 *
-	 * @exception StandardException if user does not have permission to grant
-	 */
-	private void checkPrivileges( String user,
-								   TableDescriptor td,
-								   SchemaDescriptor sd,
-								   DataDictionary dd,
-								   LanguageConnectionContext lcc)
-		throws StandardException
-	{
-		if (user.equals(dd.getAuthorizationDatabaseOwner())) return;
-		
-		//  check view specific
-		if (td.getTableType() == TableDescriptor.VIEW_TYPE) 
-		{
-			if (descriptorList != null )
-			{			    		   
-				TransactionController tc = lcc.getTransactionExecute();
-				int siz = descriptorList.size();
-				for (int i=0; i < siz; i++)
-				{
-					TupleDescriptor p;
-					SchemaDescriptor s = null;
 
-					p = (TupleDescriptor)descriptorList.get(i);
-					if (p instanceof TableDescriptor)
-					{
-						TableDescriptor t = (TableDescriptor)p;
-						s = t.getSchemaDescriptor();
-			    	}
-					else if (p instanceof ViewDescriptor)
-					{
-						ViewDescriptor v = (ViewDescriptor)p;	
-						s = dd.getSchemaDescriptor(v.getCompSchemaId(), tc);
-					}
-			    	else if (p instanceof AliasDescriptor)
-			    	{
-			    		AliasDescriptor a = (AliasDescriptor)p;
-						s = dd.getSchemaDescriptor( a.getSchemaUUID(), tc);
-			    	}
-								
-					if (s != null && !user.equals(s.getAuthorizationId()) ) 
-					{
-						throw StandardException.newException(
-				    			   SQLState.AUTH_NO_OBJECT_PERMISSION,
-				    			   user,
-				    			   "grant",
-				    			   sd.getSchemaName(),
-								   td.getName());		  
-					}
-			    			   
-			    	// FUTURE: if object is not own by grantor then check if 
-			    	//         the grantor have grant option.
-				}
-			}
-		}
-	}
+	
+
 	
 	/**
 	 *	This is the guts of the Execution-time logic for GRANT/REVOKE of a table privilege
@@ -306,18 +189,7 @@ public class TablePrivilegeInfo extends PrivilegeInfo
         return result;
 	} // end of executeConstantAction
 
-	private String getPermString( int action, boolean forGrantOption)
-	{
-		if( actionAllowed[ action] && columnBitSets[action] == null)
-			return forGrantOption ? YES_WITH_GRANT_OPTION : YES_WITHOUT_GRANT_OPTION;
-		else
-			return NO;
-	} // end of getPermString
 
-	private String getActionString( int action, boolean forGrantOption)
-	{
-		return actionString[action][forGrantOption ? 1 : 0];
-	}
 
 	private boolean hasColumnPermissions( int action)
 	{

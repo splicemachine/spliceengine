@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.test_dao.SchemaDAO;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -26,27 +27,29 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import static java.lang.String.format;
 
-public class SpliceUserWatcher extends TestWatcher{
-    private static final Logger LOG=Logger.getLogger(SpliceUserWatcher.class);
+
+public class SpliceUserWatcher extends TestWatcher {
+    private static final Logger LOG = Logger.getLogger(SpliceUserWatcher.class);
     public String userName;
     public String password;
 
-    public SpliceUserWatcher(String userName,String password){
-        this.userName=userName;
-        this.password=password;
+    public SpliceUserWatcher(String userName, String password) {
+        this.userName = userName;
+        this.password = password;
     }
 
     @Override
-    protected void starting(Description description){
-        Connection connection=null;
-        Statement statement=null;
-        ResultSet rs=null;
-        try{
-            dropAndCreateUser(userName,password);
-        }catch(Exception e){
+    protected void starting(Description description) {
+        Connection connection = null;
+        Statement statement = null;
+        ResultSet rs = null;
+        try {
+            dropAndCreateUser(userName, password);
+        } catch (Exception e) {
             throw new RuntimeException(e);
-        }finally{
+        } finally {
             DbUtils.closeQuietly(rs);
             DbUtils.closeQuietly(statement);
             DbUtils.commitAndCloseQuietly(connection);
@@ -55,56 +58,77 @@ public class SpliceUserWatcher extends TestWatcher{
     }
 
     @Override
-    protected void finished(Description description){
+    protected void finished(Description description) {
         LOG.trace("Finished");
     }
 
-    public void createUser(String userName,String password){
+    public void createUser(String userName, String password) {
 
-        Connection connection=null;
-        PreparedStatement statement=null;
-        try{
-            connection=SpliceNetConnection.getConnection();
-            statement=connection.prepareStatement("call syscs_util.syscs_create_user(?,?)");
-            statement.setString(1,userName);
-            statement.setString(2,password);
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = SpliceNetConnection.getConnection();
+            statement = connection.prepareStatement("call syscs_util.syscs_create_user(?,?)");
+            statement.setString(1, userName);
+            statement.setString(2, password);
             statement.execute();
-        }catch(Exception e){
-            LOG.error("error Creating "+e.getMessage());
+        } catch (Exception e) {
+            LOG.error("error Creating " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException(e);
-        }finally{
+        } finally {
             DbUtils.closeQuietly(statement);
             DbUtils.commitAndCloseQuietly(connection);
         }
     }
 
-    public void dropUser(String userName){
-        Connection connection=null;
-        PreparedStatement statement=null;
-        try{
-            connection=SpliceNetConnection.getConnection();
-            statement=connection.prepareStatement("select username from sys.sysusers where username = ?");
-            statement.setString(1,userName.toUpperCase());
-            ResultSet rs=statement.executeQuery();
-            if(rs.next()){
-                statement=connection.prepareStatement("call syscs_util.syscs_drop_user(?)");
-                statement.setString(1,userName);
+    public void dropUser(String userName) {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = SpliceNetConnection.getConnection();
+            statement = connection.prepareStatement("select username from sys.sysusers where username = ?");
+            statement.setString(1, userName.toUpperCase());
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                statement = connection.prepareStatement("call syscs_util.syscs_drop_user(?)");
+                statement.setString(1, userName);
                 statement.execute();
             }
-        }catch(Exception e){
-            LOG.error("error Creating "+e.getMessage());
+        } catch (Exception e) {
+            LOG.error("error Creating " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException(e);
-        }finally{
+        } finally {
             DbUtils.closeQuietly(statement);
             DbUtils.commitAndCloseQuietly(connection);
         }
     }
 
-    public void dropAndCreateUser(String userName,String password){
+    public void dropAndCreateUser(String userName, String password) {
         dropUser(userName);
-        createUser(userName,password);
+        createUser(userName, password);
+        dropSchema(userName);
     }
 
+    public void dropSchema(String userName) {
+        try (Connection connection = SpliceNetConnection.getConnection()) {
+//            connection.setAutoCommit(false);
+
+            SchemaDAO schemaDAO = new SchemaDAO(connection);
+            try (ResultSet rs = connection.getMetaData().getSchemas(null, userName)) {
+                if (rs.next()) {
+                    schemaDAO.drop(rs.getString("TABLE_SCHEM"));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                connection.rollback();
+                throw e;
+            }
+            connection.commit();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
 }

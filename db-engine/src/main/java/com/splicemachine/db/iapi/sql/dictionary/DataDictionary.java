@@ -231,7 +231,7 @@ public interface DataDictionary{
     int SYSPHYSICALSTATS_CATALOG_NUM=27;
     int SYSTABLESTATS_CATALOG_NUM=28;
     int SYSDUMMY1_CATALOG_NUM=29;
-
+    int SYSSCHEMAPERMS_CATALOG_NUM=30;
 
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
@@ -656,6 +656,15 @@ public interface DataDictionary{
      * @throws StandardException Thrown on failure
      */
     void dropAllTableAndColPermDescriptors(UUID tableID,TransactionController tc) throws StandardException;
+
+    /**
+     * Drop all schema descriptors from the the given schema
+     * Useful for DROP SCHEMA
+     * @param schemaUUID
+     * @param tc
+     * @throws StandardException
+     */
+    void dropAllSchemaPermDescriptors(UUID schemaUUID,TransactionController tc) throws  StandardException;
 
     /**
      * Need to update SYSCOLPERMS for a given table because a new column has
@@ -1767,6 +1776,16 @@ public interface DataDictionary{
      * @throws StandardException
      */
     TablePermsDescriptor getTablePermissions(UUID tableUUID,String authorizationId) throws StandardException;
+
+    /**
+     * Get one user's privileges on a schema using schemaUUID and authorizationid
+     *
+     * @param schemaUUID       the uuid of the table permissions to fetch
+     * @param authorizationId The user name
+     * @return a SchemaPermsDescriptor or null if the user has no permissions on the table.
+     * @throws StandardException
+     */
+    SchemaPermsDescriptor getSchemaPermissions(UUID schemaUUID,String authorizationId) throws StandardException;
 
     /**
      * Get one user's privileges on a table using tablePermsUUID
