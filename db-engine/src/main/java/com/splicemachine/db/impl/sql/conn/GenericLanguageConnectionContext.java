@@ -3483,4 +3483,23 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     public void materialize() throws StandardException {}
+
+    protected Map<String,TableDescriptor> withDescriptors;
+
+    @Override
+    public void setWithStack(Map<String,TableDescriptor> withDescriptors) {
+        this.withDescriptors = withDescriptors;
+    }
+
+    @Override
+    public TableDescriptor getWithDescriptor(String name) {
+        if (withDescriptors==null)
+            return null;
+        return withDescriptors.get(name);
+    }
+
+    @Override
+    public void popWithStack() {
+        withDescriptors = null;
+    }
 }

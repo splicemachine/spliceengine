@@ -189,7 +189,8 @@ public class BasicDependencyManager implements DependencyManager {
         }
 
         // Dependency should have been added to both or neither.
-        if (SanityManager.DEBUG) {
+		// No Longer the case due to with clauses
+/*        if (SanityManager.DEBUG) {
             if (addedToDeps != addedToProvs) {
                 SanityManager.THROWASSERT(
                     "addedToDeps (" + addedToDeps +
@@ -197,7 +198,7 @@ public class BasicDependencyManager implements DependencyManager {
                     addedToProvs + ") are expected to agree");
             }
         }
-
+*/
         // Add the dependency to the StatementContext, so that
         // it can be cleared on a pre-execution error.
         StatementContext sc = (StatementContext) cm.getContext(
@@ -941,7 +942,8 @@ public class BasicDependencyManager implements DependencyManager {
 				Dependent curDependent = curDY.getDependent();
 				if (curDependent == null) {
 					it.remove();
-				} else if (curDY.getProvider().getObjectID().equals(provKey) && curDependent.getObjectID().equals(depKey)) {
+				} else if (curDY.getProvider().getObjectID() == null || (curDY.getProvider().getObjectID().equals(provKey) && curDependent.getObjectID().equals(depKey))) {
+					// Check for dupes and dynamic with clauses
 					return false;
 				}
 			}
