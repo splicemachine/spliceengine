@@ -166,4 +166,10 @@ public class H10PartitionAdmin implements PartitionAdmin{
     public void move(String partition, String server) throws IOException {
         admin.move(partition.getBytes(), server!=null && server.length()>0?server.getBytes():null);
     }
+
+    @Override
+    public TableDescriptor getTableDescriptor(String table) throws IOException{
+        HTableDescriptor hTableDescriptor = admin.getTableDescriptor(TableName.valueOf(table));
+        return new HBaseTableDescriptor(hTableDescriptor);
+    }
 }
