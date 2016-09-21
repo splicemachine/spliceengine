@@ -79,6 +79,7 @@
                         </goals>
                         <configuration>
                             <includeArtifactIds><!-- third party libs -->
+                                akka-remote_${scala.binary.version},
                                 concurrentlinkedhashmap-lru,
                                 disruptor,
                                 ehcache-core,

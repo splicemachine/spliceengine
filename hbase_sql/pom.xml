@@ -48,23 +48,23 @@
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-remote_2.11</artifactId>
+            <artifactId>akka-remote_${scala.binary.version}</artifactId>
             <version>2.4.8</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_2.11</artifactId>
+            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-yarn_2.11</artifactId>
+            <artifactId>spark-network-yarn_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-yarn_2.11</artifactId>
+            <artifactId>spark-yarn_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <exclusions>
                 <exclusion>
@@ -85,12 +85,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mllib_2.11</artifactId>
+            <artifactId>spark-mllib_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.11</artifactId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
 
@@ -222,14 +222,14 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_${scala.binary.version}</artifactId>
             <version>${kafka.version}</version>
             <classifier>test</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_${scala.binary.version}</artifactId>
             <version>${kafka.version}</version>
         </dependency>
 
@@ -441,6 +441,54 @@
     </dependencies>
     <build>
         <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+                    <artifactSet>
+                        <includes>
+                            <include>io.netty:netty-all</include>
+                            <!-- <include>com.typesafe.akka:akka-remote_${scala.binary.version}</include> -->
+                        </includes>
+                    </artifactSet>
+            <filters>
+                <filter>
+                    <artifact>*:*</artifact>
+                    <excludes>
+                        <exclude>META-INF/*.SF</exclude>
+                        <exclude>META-INF/*.DSA</exclude>
+                        <exclude>META-INF/*.RSA</exclude>
+                    </excludes>
+                </filter>
+            </filters>
+            <relocations>
+                <relocation>
+                    <pattern>io.netty</pattern>
+                    <shadedPattern>splice.io.netty</shadedPattern>
+                    <includes>
+                        <include>io.netty.**</include>
+                    </includes>
+                </relocation>
+                <!-- <relocation>
+                    <pattern>akka.remote</pattern>
+                    <shadedPattern>splice.akka.remote</shadedPattern>
+                    <includes>
+                        <include>akka.remote.**</include>
+                    </includes>
+                </relocation> -->
+            </relocations>
+        </configuration>
+        <executions>
+            <execution>
+                <phase>package</phase>
+                <goals>
+                    <goal>shade</goal>
+                </goals>
+            </execution>
+        </executions>
+    </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
