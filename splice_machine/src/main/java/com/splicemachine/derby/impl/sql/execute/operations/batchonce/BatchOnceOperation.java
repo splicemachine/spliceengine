@@ -228,7 +228,7 @@ public class BatchOnceOperation extends SpliceBaseOperation {
 
         ExecRow sourceRow;
         ExecRow newRow;
-        while ((sourceRow = source.nextRow(spliceRuntimeContext)) != null && rowQueue.size() < BATCH_SIZE) {
+        while (rowQueue.size() < BATCH_SIZE && (sourceRow = source.nextRow(spliceRuntimeContext)) != null) {
             sourceRow = sourceRow.getClone();
             DataValueDescriptor sourceKey = sourceRow.getColumn(sourceCorrelatedColumnPosition);
             DataValueDescriptor sourceOldValue = sourceRow.getColumn(sourceCorrelatedColumnPosition == 1 ? 2 : 1);
