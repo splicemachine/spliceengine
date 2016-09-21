@@ -5645,37 +5645,40 @@ nonJoinQueryTerm(ResultSetNode leftSide, int operatorType, ValueNode[] topNOut) 
                 getContextManager());
 
         case EXCEPT_ALL_OP:
-            return (ResultSetNode) nodeFactory.getNode(
-                C_NodeTypes.INTERSECT_OR_EXCEPT_NODE,
-                ReuseFactory.getInteger( IntersectOrExceptNode.EXCEPT_OP),
-                leftSide,
-                term,
-                Boolean.TRUE,
-                null,
-                getContextManager());
+                    StandardException e = StandardException.newException("0A000 Feature not implemented: EXCEPT ALL");
+                    e.setSqlState("0A000");
+                    throw e;
+//            return (ResultSetNode) nodeFactory.getNode(
+//                C_NodeTypes.INTERSECT_OR_EXCEPT_NODE,
+//                ReuseFactory.getInteger( IntersectOrExceptNode.EXCEPT_OP),
+//                leftSide,
+//                term,
+//                Boolean.TRUE,
+//                null,
+//                getContextManager());
 
         case INTERSECT_OP:
-            StandardException e = StandardException.newException("0A000 Feature not implemented: INTERSECT");
-            e.setSqlState("0A000");
-            throw e;
-            //return (ResultSetNode) nodeFactory.getNode(
-            //    C_NodeTypes.INTERSECT_OR_EXCEPT_NODE,
-            //    ReuseFactory.getInteger( IntersectOrExceptNode.INTERSECT_OP),
-            //    leftSide,
-            //    term,
-            //    Boolean.FALSE,
-            //    null,
-            //    getContextManager());
-
-        case INTERSECT_ALL_OP:
             return (ResultSetNode) nodeFactory.getNode(
                 C_NodeTypes.INTERSECT_OR_EXCEPT_NODE,
                 ReuseFactory.getInteger( IntersectOrExceptNode.INTERSECT_OP),
                 leftSide,
                 term,
-                Boolean.TRUE,
+                Boolean.FALSE,
                 null,
                 getContextManager());
+
+        case INTERSECT_ALL_OP:
+                    StandardException ie = StandardException.newException("0A000 Feature not implemented: INTERSECT ALL");
+                    ie.setSqlState("0A000");
+                    throw ie;
+//            return (ResultSetNode) nodeFactory.getNode(
+//                C_NodeTypes.INTERSECT_OR_EXCEPT_NODE,
+//                ReuseFactory.getInteger( IntersectOrExceptNode.INTERSECT_OP),
+//                leftSide,
+//                term,
+//                Boolean.TRUE,
+//                null,
+//                getContextManager());
 
 
         default:
