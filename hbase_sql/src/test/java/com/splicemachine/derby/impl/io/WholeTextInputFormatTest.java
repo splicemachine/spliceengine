@@ -13,9 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.splicemachine.derby.impl.spark;
+package com.splicemachine.derby.impl.io;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -61,17 +62,21 @@ public class WholeTextInputFormatTest{
         int i=0;
         Set<String> files = readFileNames(dirPath);
 
+        Assert.assertEquals("We didn't get a split per file", files.size(), splits.size());
+
         Set<String> readFiles = new HashSet<>();
+        long totalRecords = 0;
+
         for(InputSplit is:splits){
             TaskAttemptContext tac = new TaskAttemptContextImpl(configuration,new TaskAttemptID("test",1,true,i,1));
             RecordReader<String, InputStream> recordReader=wtif.createRecordReader(is,tac);
             CombineFileSplit cfs = (CombineFileSplit)is;
             System.out.println(cfs);
 
-            long c = collectRecords(readFiles,recordReader);
-            Assert.assertEquals("did not read all data!",28,c);
+            totalRecords += collectRecords(readFiles,recordReader);
             i++;
         }
+        Assert.assertEquals("did not read all data!",28,totalRecords);
 
         Assert.assertEquals("Did not read all files!",files.size(),readFiles.size());
         for(String expectedFile:files){
