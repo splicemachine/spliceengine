@@ -46,6 +46,7 @@ public class WholeTextInputFormat extends CombineFileInputFormat<String, InputSt
     @Override
     public void setConf(Configuration configuration) {
         conf = configuration;
+        setMaxSplitSize(1); // make sure we create a split per file, rather than merging files into a single split
     }
 
     @Override
