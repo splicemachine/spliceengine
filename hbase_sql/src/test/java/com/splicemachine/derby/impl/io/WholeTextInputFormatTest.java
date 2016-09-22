@@ -80,7 +80,7 @@ public class WholeTextInputFormatTest{
 
         Assert.assertEquals("Did not read all files!",files.size(),readFiles.size());
         for(String expectedFile:files){
-            Assert.assertTrue("Did not read file <"+expectedFile+">",readFiles.contains(expectedFile));
+            Assert.assertTrue("Did not read file <"+expectedFile+"> read =" + readFiles + " exp",readFiles.contains(expectedFile));
         }
     }
 
@@ -105,6 +105,7 @@ public class WholeTextInputFormatTest{
         long count = 0L;
         while(recordReader.nextKeyValue()){
             String key = recordReader.getCurrentKey();
+            key = key.replaceAll("/+", "/"); // some platforms add more "/" at the beginning, coalesce them for equality check
             Assert.assertTrue("Seen the same file twice!",fileNames.add(key));
 
             InputStream is = recordReader.getCurrentValue();
