@@ -30,6 +30,7 @@ import org.spark_project.guava.collect.Lists;
 import java.sql.*;
 import java.util.Collection;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.System.currentTimeMillis;
 import static org.junit.Assert.*;
@@ -284,8 +285,9 @@ public class Trigger_Row_IT {
             Timestamp ts3=StatementUtils.onlyTimestamp(s,"select t from cascade3");
 
             assertTrue(ts2.before(ts3));
-            assertTrue("ts should be close to current time",Math.abs(currentTimeMillis()-ts2.getTime())<3000);
-            assertTrue("ts should be close to current time",Math.abs(currentTimeMillis()-ts3.getTime())<3000);
+            final long timeDelta = TimeUnit.SECONDS.toMillis(15); // enough for a GC to get in between
+            assertTrue("ts should be close to current time",Math.abs(currentTimeMillis()-ts2.getTime())<timeDelta);
+            assertTrue("ts should be close to current time",Math.abs(currentTimeMillis()-ts3.getTime())<timeDelta);
         }
     }
 
