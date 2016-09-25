@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 
@@ -47,6 +48,8 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.StringUtil;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * A ResultColumn represents a result column in a SELECT, INSERT, or UPDATE
@@ -1990,6 +1993,21 @@ public class ResultColumn extends ValueNode
 
     public void setColumnDescriptor(ColumnDescriptor columnDescriptor) {
         this.columnDescriptor = columnDescriptor;
+    }
+
+    /**
+     * Returns a Spark Type for the column. This StructField
+     * will not represent an actual value, it will only represent the Spark type
+     * that all values in the column will have.
+     *
+     * @return	A StructField describing the type of the column.
+     */
+    public StructField getStructField() {
+        try {
+            return getType().getNull().getStructField(getName());
+        } catch (StandardException e) {
+            return null;
+        }
     }
 }
 
