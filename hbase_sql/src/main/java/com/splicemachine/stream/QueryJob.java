@@ -18,7 +18,10 @@ package com.splicemachine.stream;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -77,20 +80,23 @@ public class QueryJob implements Callable<Void>{
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
             context = dsp.createOperationContext(root);
+            SparkDataSet<LocatedRow> sparkDataSet = (SparkDataSet<LocatedRow>) dataset;
+            String clientHost = queryRequest.host;
+            int clientPort = queryRequest.port;
+            UUID uuid = queryRequest.uuid;
+            int numPartitions = sparkDataSet.rdd.getNumPartitions();
+
+            StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, context, uuid, clientHost, clientPort,
+                    queryRequest.streamingBatches, queryRequest.streamingBatchSize);
+            streamableRDD.submit();
+
+            status.markCompleted(new QueryResult(numPartitions));
         } finally {
+            EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();
+            internalConnection.getContextManager().popContext();
+            ah.getActivation().getLanguageConnectionContext().popMe();
             ah.close();
         }
-        SparkDataSet<LocatedRow> sparkDataSet = (SparkDataSet<LocatedRow>) dataset;
-        String clientHost = queryRequest.host;
-        int clientPort = queryRequest.port;
-        UUID uuid = queryRequest.uuid;
-        int numPartitions = sparkDataSet.rdd.getNumPartitions();
-
-        StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, context, uuid, clientHost, clientPort,
-                queryRequest.streamingBatches, queryRequest.streamingBatchSize);
-        streamableRDD.submit();
-
-        status.markCompleted(new QueryResult(numPartitions));
 
         return null;
     }

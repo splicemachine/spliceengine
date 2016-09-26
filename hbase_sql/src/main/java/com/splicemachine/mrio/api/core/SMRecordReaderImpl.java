@@ -34,6 +34,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -81,10 +83,15 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "init");
 		String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
+		String operationContextAsString = config.get(MRConstants.SPLICE_OPERATION_CONTEXT);
         if (tableScannerAsString == null)
 			throw new IOException("splice scan info was not serialized to task, failing");
 		try {
 			builder = TableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
+			SparkOperationContext operationContext = null;
+			if (operationContextAsString != null) {
+				operationContext = (SparkOperationContext) SerializationUtils.deserialize(Base64.decodeBase64(operationContextAsString));
+			}
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
 			TableSplit tSplit = ((SMSplit)split).getSplit();
@@ -102,7 +109,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
             this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
 	    restart(scan.getStartKey());
 
-            SparkOperationContext operationContext = (SparkOperationContext)builder.getOperationContext();
             if (operationContext != null) {
                 activationHolder = operationContext.getActivationHolder();
                 if (activationHolder != null)
