@@ -62,7 +62,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.*;
@@ -451,24 +450,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(MultiProbeDerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MultiProbeTableScanOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DistinctGroupedAggregateOperation.class,EXTERNALIZABLE_SERIALIZER);
-
-
-
-        instance.register(ContainerKey.class,new Serializer<ContainerKey>() {
-            @Override
-            public void write(Kryo kryo, Output output, ContainerKey object) {
-                output.writeLong(object.getContainerId());
-                output.writeLong(object.getSegmentId());
-            }
-
-            @Override
-            public ContainerKey read(Kryo kryo, Input input, Class<ContainerKey> type) {
-                long containerId = input.readLong();
-                long segmentId = input.readLong();
-                return new ContainerKey(segmentId,containerId);
-            }
-        });
-
         instance.register(SQLClob.class,new DataValueDescriptorSerializer<SQLClob>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLClob object) throws StandardException {

@@ -389,7 +389,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         if(scannerInitialized) return;
         try{
             if(table==null)
-                table=partitionFactory.getTable(Long.toString(spliceConglomerate.getConglomerate().getContainerid()));
+                table = partitionFactory.getTable(Long.toString(spliceConglomerate.getConglomerate().getContainerid()));
             scanner=table.openResultScanner(scan);
             this.scannerInitialized=true;
         }catch(IOException e){

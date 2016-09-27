@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;
@@ -28,7 +27,6 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.util.Properties;
 
 
@@ -67,7 +65,6 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
      **/
     public Conglomerate createConglomerate(
             TransactionManager xact_mgr,
-            int segment,
             long input_containerid,
             DataValueDescriptor[] template,
             ColumnOrdering[] columnOrder,
@@ -80,7 +77,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
         SIDriver driver=SIDriver.driver();
         hbase.create(
                 xact_mgr.getRawStoreXact(),
-                segment,input_containerid,
+                input_containerid,
                 template,
                 columnOrder,
                 collationIds,
@@ -108,13 +105,13 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
      * need not perform this operation.
      *
      * @param xact_mgr      transaction to perform the create in.
-     * @param container_key The unique id of the existing conglomerate.
+     * @param containerId The unique id of the existing conglomerate.
      * @return An instance of the conglomerate.
      * @throws StandardException Standard exception policy.
      **/
-    public Conglomerate readConglomerate(TransactionManager xact_mgr,ContainerKey container_key) throws StandardException{
-        SpliceLogUtils.trace(LOG,"readConglomerate container_key %d",container_key.getContainerId());
-        return ConglomerateUtils.readConglomerate(container_key.getContainerId(),HBaseConglomerate.class,((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
+    public Conglomerate readConglomerate(TransactionManager xact_mgr,long containerId) throws StandardException{
+        SpliceLogUtils.trace(LOG,"readConglomerate container_key %d",containerId);
+        return ConglomerateUtils.readConglomerate(containerId,HBaseConglomerate.class,((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
     }
 }
 

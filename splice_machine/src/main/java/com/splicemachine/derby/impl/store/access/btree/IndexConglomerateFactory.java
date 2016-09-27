@@ -16,7 +16,6 @@
 package com.splicemachine.derby.impl.store.access.btree;
 
 import java.util.Properties;
-
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -24,7 +23,6 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
 
@@ -60,7 +58,6 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 	**/
 	public Conglomerate createConglomerate(	
     TransactionManager      xact_mgr,
-    int                     segment,
     long                    input_containerid,
     DataValueDescriptor[]   template,
 	ColumnOrdering[]        columnOrder,
@@ -69,7 +66,7 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 	int                     temporaryFlag) throws StandardException {
 		IndexConglomerate index = new IndexConglomerate();
 		index.create(
-            xact_mgr.getRawStoreXact(), segment, input_containerid, 
+            xact_mgr.getRawStoreXact(), input_containerid,
             template, columnOrder, collationIds, properties, 
             index.getTypeFormatId(), 
             temporaryFlag,operationFactory,partitionFactory);
@@ -92,7 +89,7 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
      * need not perform this operation.
      *
      * @param xact_mgr      transaction to perform the create in.
-     * @param container_key The unique id of the existing conglomerate.
+     * @param containerId The unique id of the existing conglomerate.
      *
 	 * @return An instance of the conglomerate.
      *
@@ -100,8 +97,8 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 	 * 
 	 * FIXME: need to 
      **/
-    public Conglomerate readConglomerate(TransactionManager xact_mgr,ContainerKey container_key) throws StandardException {
-    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), IndexConglomerate.class, ((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
+    public Conglomerate readConglomerate(TransactionManager xact_mgr,long containerId) throws StandardException {
+    	return ConglomerateUtils.readConglomerate(containerId, IndexConglomerate.class, ((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
     }
 	
 }

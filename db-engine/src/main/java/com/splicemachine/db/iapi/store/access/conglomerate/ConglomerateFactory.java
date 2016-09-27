@@ -26,13 +26,8 @@
 package com.splicemachine.db.iapi.store.access.conglomerate;
 
 import java.util.Properties;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
-
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
@@ -70,8 +65,7 @@ public interface ConglomerateFactory extends MethodFactory
     the resulting object in the conglomerate directory.
 
     @param xact_mgr             transaction to perform the create in.
-    @param segment              segment to create the conglomerate in.
-    @param input_containerid    containerid to assign the container, or 
+    @param input_containerid    containerid to assign the container, or
                                 ContainerHandle.DEFAULT_ASSIGN_ID if you want
                                 raw store to assign an id.
     @param template             Template of row in the conglomerate.
@@ -85,7 +79,6 @@ public interface ConglomerateFactory extends MethodFactory
 	**/
 	Conglomerate createConglomerate(
     TransactionManager      xact_mgr,
-    int                     segment,
     long                    input_containerid,
     DataValueDescriptor[]   template,
 	ColumnOrdering[]		columnOrder,
@@ -108,7 +101,7 @@ public interface ConglomerateFactory extends MethodFactory
      * need not perform this operation.
      *
      * @param xact_mgr      transaction to perform the create in.
-     * @param container_key The unique id of the existing conglomerate.
+     * @param containerID The unique id of the existing conglomerate.
      *
 	 * @return An instance of the conglomerate.
      *
@@ -116,6 +109,6 @@ public interface ConglomerateFactory extends MethodFactory
      **/
     Conglomerate readConglomerate(
     TransactionManager      xact_mgr,
-    ContainerKey            container_key)
+    long            containerID)
 		throws StandardException;
 }

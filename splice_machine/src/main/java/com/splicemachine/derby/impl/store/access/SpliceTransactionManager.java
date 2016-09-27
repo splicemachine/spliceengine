@@ -514,20 +514,17 @@ public class SpliceTransactionManager implements XATransactionController,
         // Create the conglomerate
         // RESOLVE (mikem) - eventually segmentid's will be passed into here
         // in the properties. For now just use 0.]
-        int segment;
         long conglomid;
         if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
-            segment = 0; // RESOLVE - only using segment 0
             conglomid = accessmanager.getNextConglomId(cfactory
                     .getConglomerateFactoryId());
         } else {
-            segment = 0; // RESOLVE - only using segment 0
             conglomid = accessmanager.getNextConglomId(cfactory
                     .getConglomerateFactoryId());
         }
 
         // call the factory to actually create the conglomerate.
-        Conglomerate conglom = cfactory.createConglomerate(this, segment,
+        Conglomerate conglom = cfactory.createConglomerate(this,
                 conglomid, template, columnOrder, collationIds, properties,
                 temporaryFlag);
         long conglomId = conglom.getContainerid();
