@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ~ Copyright 2012 - 2016 Splice Machine, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+  ~ this file except in compliance with the License. You may obtain a copy of the
+  ~ License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software distributed
+  ~ under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  ~ CONDITIONS OF ANY KIND, either express or implied. See the License for the
+  ~ specific language governing permissions and limitations under the License.
+  -->
+
+<configuration>
+<property><name>hbase.rootdir</name><value>maprfs:///splice-hbase</value></property>
+<property><name>zookeeper.znode.parent</name><value>/splice-hbase</value></property>
+<property><name>hbase.master.port</name><value>60001</value></property>
+<property><name>hbase.master.info.port</name><value>60011</value></property>
+<property><name>hbase.regionserver.port</name><value>60021</value></property>
+<property><name>hbase.regionserver.info.port</name><value>60031</value></property>
+<property><name>hbase.status.multicast.address.port</name><value>60101</value></property>
+<property><name>hbase.cluster.distributed</name><value>true</value></property>
+<property><name>hbase.zookeeper.quorum</name><value>localhost:5181</value></property>
+<property><name>hbase.zookeeper.property.clientPort</name><value>5181</value></property>
+<property><name>dfs.support.append</name><value>true</value></property>
+<property><name>hbase.fsutil.maprfs.impl</name><value>org.apache.hadoop.hbase.util.FSMapRUtils</value></property>
+<property><name>hbase.regionserver.handler.count</name><value>150</value></property>
+<property><name>fs.mapr.threads</name><value>64</value></property>
+<property><name>hbase.coprocessor.region.classes</name><value>com.splicemachine.derby.hbase.SpliceOperationRegionObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceDerbyCoprocessor,com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler,com.splicemachine.si.coprocessors.SIObserver,com.splicemachine.si.coprocessors.TxnLifecycleEndpoint</value><description>These are the coprocessors used to run the Splice Machine.</description></property>
+<property><name>hbase.coprocessor.master.classes</name><value>com.splicemachine.derby.hbase.SpliceMasterObserver,com.splicemachine.si.coprocessors.TimestampMasterObserver</value><description>Master coprocessors for the Splice Machine.</description></property>
+<property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.derby.hbase.ShutdownRegionServerObserver</value></property>
+<property><name>dfs.client.read.shortcircuit.buffer.size</name><value>131072</value></property>
+<property><name>hbase.balancer.period</name><value>60000</value></property>
+<property><name>hbase.client.retries.number</name><value>40</value></property>
+<property><name>hbase.client.scanner.caching</name><value>1000</value></property>
+<property><name>hbase.hregion.memstore.block.multiplier</name><value>4</value></property>
+<property><name>hbase.hstore.blockingStoreFiles</name><value>1000</value></property>
+<property><name>hbase.hstore.compaction.max</name><value>10</value></property>
+<property><name>hbase.hstore.compaction.min</name><value>3</value></property>
+<property><name>hbase.hstore.compactionThreshold</name><value>3</value></property>
+<property><name>hbase.hstore.flusher.count</name><value>1</value></property>
+<property><name>hbase.htable.threads.max</name><value>20</value></property>
+<property><name>hbase.ipc.warn.response.time</name><value>100000000</value></property>
+<property><name>hbase.master.loadbalance.bytable</name><value>true</value></property>
+<property><name>hbase.regionserver.thread.compaction.large</name><value>2</value></property>
+<property><name>hbase.regionserver.thread.compaction.small</name><value>2</value></property>
+<property><name>hbase.regions.slop</name><value>0.01</value></property>
+<property><name>hbase.rpc.timeout</name><value>300000</value></property>
+<property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>
+<property><name>ipc.client.connect.timeout</name><value>300000</value></property>
+<property><name>splice.authentication</name><value>NATIVE</value> </property>
+<property><name>splice.authentication.native.algorithm</name><value>SHA-512</value></property>
+<property><name>splice.authentication.native.create.credentials.database</name><value>true</value></property>
+<property><name>splice.client.write.maxDependentWrites</name><value>250000</value></property>
+<property><name>splice.client.write.maxIndependentWrites</name><value>250000</value></property>
+<property><name>splice.compression</name><value>snappy</value></property>
+<property><name>splice.import.maxProcessingThreads</name><value>1</value></property>
+<property><name>splice.marshal.kryoPoolSize</name><value>1100</value></property>
+<property><name>splice.ring.bufferSize</name><value>100000</value></property>
+<property><name>splice.table.pool.coresize</name><value>100</value></property>
+<property><name>splice.timestamp_server.clientWaitTime</name><value>120000</value></property>
+<property><name>splice.writer.maxThreads</name><value>24</value></property>
+<property><name>zookeeper.session.timeout</name><value>120000</value></property>
+<!-- <property><name>hbase.hregion.majorcompaction</name><value>0</value></property> -->
+</configuration>
