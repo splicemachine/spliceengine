@@ -27,7 +27,6 @@ import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -69,9 +68,7 @@ public class IndexConglomerate extends SpliceConglomerate{
     protected static final String PROPERTY_NKEYFIELDS="nKeyFields";
     protected static final String PROPERTY_NUNIQUECOLUMNS="nUniqueColumns";
     protected static final String PROPERTY_PARENTLINKS="maintainParentLinks";
-
     protected static int BASE_MEMORY_USAGE=ClassSize.estimateBaseFromCatalog(IndexConglomerate.class);
-    protected static int CONTAINER_KEY_MEMORY_USAGE=ClassSize.estimateBaseFromCatalog(ContainerKey.class);
 
     public long baseConglomerateId;
     protected int rowLocationColumn;
@@ -89,7 +86,6 @@ public class IndexConglomerate extends SpliceConglomerate{
 
     @Override
     protected void create(Transaction rawtran,
-                          int segmentId,
                           long input_containerid,
                           DataValueDescriptor[] template,
                           ColumnOrdering[] columnOrder,
@@ -100,7 +96,6 @@ public class IndexConglomerate extends SpliceConglomerate{
                           TxnOperationFactory opFactory,
                           PartitionFactory partitionFactory) throws StandardException{
         super.create(rawtran,
-                segmentId,
                 input_containerid,
                 template,
                 columnOrder,
@@ -292,7 +287,7 @@ public class IndexConglomerate extends SpliceConglomerate{
             int lock_level,
             StaticCompiledOpenConglomInfo static_info,
             DynamicCompiledOpenConglomInfo dynamic_info) throws StandardException{
-        SpliceLogUtils.trace(LOG,"open conglomerate id: %s",id);
+        SpliceLogUtils.trace(LOG,"open conglomerate id: %s",containerId);
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
         return new IndexController(open_conglom,rawtran,partitionFactory,opFactory,nUniqueColumns);
     }
@@ -347,13 +342,13 @@ public class IndexConglomerate extends SpliceConglomerate{
     public void purgeConglomerate(
             TransactionManager xact_manager,
             Transaction rawtran) throws StandardException{
-        SpliceLogUtils.trace(LOG,"purgeConglomerate: %s",id);
+        SpliceLogUtils.trace(LOG,"purgeConglomerate: %s",containerId);
     }
 
     public void compressConglomerate(
             TransactionManager xact_manager,
             Transaction rawtran) throws StandardException{
-        SpliceLogUtils.trace(LOG,"compressConglomerate: %s",id);
+        SpliceLogUtils.trace(LOG,"compressConglomerate: %s",containerId);
     }
 
     /**
@@ -393,7 +388,7 @@ public class IndexConglomerate extends SpliceConglomerate{
      * Print this hbase.
      **/
     public String toString(){
-        return String.format("IndexConglomerate {id=%s, baseConglomerateId=%d}",id==null?"null":id.toString(),baseConglomerateId);
+        return String.format("IndexConglomerate {id=%s, baseConglomerateId=%d}",containerId==-1l?"null":""+containerId,baseConglomerateId);
     }
 
     /**************************************************************************
@@ -411,7 +406,7 @@ public class IndexConglomerate extends SpliceConglomerate{
      * @return this
      **/
     public DataValueDescriptor getConglom(){
-        SpliceLogUtils.trace(LOG,"getConglom: %s",id);
+        SpliceLogUtils.trace(LOG,"getConglom: %s",containerId);
         return (this);
     }
 
@@ -601,11 +596,6 @@ public class IndexConglomerate extends SpliceConglomerate{
     }
 
     @Override
-    public int getContainerKeyMemoryUsage(){
-        return ClassSize.estimateBaseFromCatalog(ContainerKey.class);
-    }
-
-    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         if(LOG.isTraceEnabled())
             LOG.trace("readExternal");
@@ -622,8 +612,7 @@ public class IndexConglomerate extends SpliceConglomerate{
     public void btreeWriteExternal(ObjectOutput out) throws IOException{
         FormatIdUtil.writeFormatIdInteger(out,conglom_format_id);
         FormatIdUtil.writeFormatIdInteger(out,tmpFlag);
-        out.writeLong(id.getContainerId());
-        out.writeInt((int)id.getSegmentId());
+        out.writeLong(containerId);
         out.writeInt((nKeyFields));
         out.writeInt((nUniqueColumns));
         out.writeBoolean((allowDuplicates));
@@ -634,15 +623,13 @@ public class IndexConglomerate extends SpliceConglomerate{
     public void btreeReadExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         conglom_format_id=FormatIdUtil.readFormatIdInteger(in);
         tmpFlag=FormatIdUtil.readFormatIdInteger(in);
-        long containerid=in.readLong();
-        int segmentid=in.readInt();
+        containerId=in.readLong();
         nKeyFields=in.readInt();
         nUniqueColumns=in.readInt();
         allowDuplicates=in.readBoolean();
         maintainParentLinks=in.readBoolean();
         // read in the array of format id's
         format_ids=ConglomerateUtil.readFormatIdArray(this.nKeyFields,in);
-        id=new ContainerKey(segmentid,containerid);
     }
 
     @Override

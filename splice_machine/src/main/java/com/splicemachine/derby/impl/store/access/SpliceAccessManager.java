@@ -47,7 +47,6 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.shared.common.reference.Attribute;
 import com.splicemachine.si.api.txn.TxnView;
@@ -163,7 +162,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         }
         if (conglomerate != null)
             return conglomerate;
-        conglomerate = getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, new ContainerKey(0, conglomid));
+        conglomerate = getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, conglomid);
         if (conglomerate!=null && database!=null && database.getDataDictionary() !=null)
             database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid,conglomerate,xact_mgr);
         return conglomerate;

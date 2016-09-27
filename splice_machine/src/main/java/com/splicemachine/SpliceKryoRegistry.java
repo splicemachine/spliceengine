@@ -57,7 +57,6 @@ import com.splicemachine.db.iapi.services.io.FormatableLongHolder;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLBit;
 import com.splicemachine.db.iapi.types.SQLBlob;
@@ -607,23 +606,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(MultiProbeDerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER,127);
         instance.register(MultiProbeTableScanOperation.class,EXTERNALIZABLE_SERIALIZER,128);
         instance.register(DistinctGroupedAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,129);
-
-
-        instance.register(ContainerKey.class,new Serializer<ContainerKey>(){
-            @Override
-            public void write(Kryo kryo,Output output,ContainerKey object){
-                output.writeLong(object.getContainerId());
-                output.writeLong(object.getSegmentId());
-            }
-
-            @Override
-            public ContainerKey read(Kryo kryo,Input input,Class<ContainerKey> type){
-                long containerId=input.readLong();
-                long segmentId=input.readLong();
-                return new ContainerKey(segmentId,containerId);
-            }
-        },130);
-
         instance.register(SQLClob.class,new DataValueDescriptorSerializer<SQLClob>(){
             @Override
             protected void writeValue(Kryo kryo,Output output,SQLClob object) throws StandardException{

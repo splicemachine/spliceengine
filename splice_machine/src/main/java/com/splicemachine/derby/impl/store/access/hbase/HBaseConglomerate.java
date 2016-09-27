@@ -26,7 +26,6 @@ import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
@@ -66,7 +65,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
 
     protected void create(
             Transaction rawtran,
-            int segmentId,
             long input_containerid,
             DataValueDescriptor[] template,
             ColumnOrdering[] columnOrder,
@@ -77,7 +75,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
             TxnOperationFactory operationFactory,
             PartitionFactory partitionFactory) throws StandardException{
         super.create(rawtran,
-                segmentId,
                 input_containerid,
                 template,
                 columnOrder,
@@ -166,7 +163,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
     public void drop(TransactionManager xact_manager) throws StandardException{
         SpliceLogUtils.trace(LOG,"drop with account manager %s",xact_manager);
         try(PartitionAdmin pa=partitionFactory.getAdmin()){
-            pa.deleteTable(Long.toString(id.getContainerId()));
+            pa.deleteTable(Long.toString(containerId));
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
@@ -248,7 +245,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                                        int lock_level,
                                        StaticCompiledOpenConglomInfo static_info,
                                        DynamicCompiledOpenConglomInfo dynamic_info) throws StandardException{
-        SpliceLogUtils.trace(LOG,"open conglomerate id: %d",id.getContainerId());
+        SpliceLogUtils.trace(LOG,"open conglomerate id: %d",containerId);
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
         return new HBaseController(open_conglom,rawtran,partitionFactory,opFactory);
     }
@@ -276,7 +273,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
             StaticCompiledOpenConglomInfo static_info,
             DynamicCompiledOpenConglomInfo dynamic_info)
             throws StandardException{
-        SpliceLogUtils.trace(LOG,"open scan: %s",id);
+        SpliceLogUtils.trace(LOG,"open scan: %s",containerId);
         if(!RowUtil.isRowEmpty(startKeyValue) || !RowUtil.isRowEmpty(stopKeyValue))
             throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
@@ -285,11 +282,11 @@ public class HBaseConglomerate extends SpliceConglomerate{
     }
 
     public void purgeConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException{
-        SpliceLogUtils.trace(LOG,"purgeConglomerate: %s",id);
+        SpliceLogUtils.trace(LOG,"purgeConglomerate: %s",containerId);
     }
 
     public void compressConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException{
-        SpliceLogUtils.trace(LOG,"compressConglomerate: %s",id);
+        SpliceLogUtils.trace(LOG,"compressConglomerate: %s",containerId);
     }
 
     /**
@@ -330,7 +327,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * @return this
      **/
     public DataValueDescriptor getConglom(){
-        SpliceLogUtils.trace(LOG,"getConglom: %s",id);
+        SpliceLogUtils.trace(LOG,"getConglom: %s",containerId);
         return (this);
     }
 
@@ -361,8 +358,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
     public void writeExternal(ObjectOutput out) throws IOException{
         FormatIdUtil.writeFormatIdInteger(out,conglom_format_id);
         FormatIdUtil.writeFormatIdInteger(out,tmpFlag);
-        out.writeInt((int)id.getSegmentId());
-        out.writeLong(id.getContainerId());
+        out.writeLong(containerId);
         out.writeInt(format_ids.length);
         ConglomerateUtil.writeFormatIdArray(format_ids,out);
         out.writeInt(collation_ids.length);
@@ -386,9 +382,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
         // read the format id of this conglomerate.
         conglom_format_id=FormatIdUtil.readFormatIdInteger(in);
         tmpFlag=FormatIdUtil.readFormatIdInteger(in);
-        int segmentid=in.readInt();
-        long containerid=in.readLong();
-        id=new ContainerKey(segmentid,containerid);
+        containerId=in.readLong();
         // read the number of columns in the heap.
         int num_columns=in.readInt();
         // read the array of format ids.
@@ -418,12 +412,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
     public int getBaseMemoryUsage(){
         return ClassSize.estimateBaseFromCatalog(HBaseConglomerate.class);
     }
-
-    @Override
-    public int getContainerKeyMemoryUsage(){
-        return ClassSize.estimateBaseFromCatalog(ContainerKey.class);
-    }
-
 
     @Override
     public StructField getStructField(String columnName) {

@@ -23,7 +23,6 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -31,7 +30,6 @@ import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -51,13 +49,12 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     private static final Logger LOG=Logger.getLogger(SpliceConglomerate.class);
     protected int conglom_format_id;
     protected int tmpFlag;
-    protected ContainerKey id;
     protected int[] format_ids;
     protected int[] collation_ids;
     protected int[] columnOrdering; // Primary Key Information
     protected boolean hasCollatedTypes;
     protected long nextContainerId=System.currentTimeMillis();
-    protected long containerId;
+    protected long containerId = -1l;
 
     protected TxnOperationFactory opFactory;
     protected PartitionFactory partitionFactory;
@@ -67,7 +64,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
     protected void create(
             Transaction rawtran,
-            int segmentId,
             long input_containerid,
             DataValueDescriptor[] template,
             ColumnOrdering[] columnOrder,
@@ -95,7 +91,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
             columnOrdering=new int[0];
         }
         containerId=input_containerid;
-        id=new ContainerKey(segmentId,containerId);
         if((template==null) || (template.length==0)){
             throw StandardException.newException(SQLState.HEAP_COULD_NOT_CREATE_CONGLOMERATE);
         }
@@ -114,7 +109,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     }
 
     public void boot_create(long containerid,DataValueDescriptor[] template){
-        id=new ContainerKey(0,containerid);
+        this.containerId = containerid;
         this.format_ids=ConglomerateUtil.createFormatIds(template);
     }
 
@@ -128,19 +123,16 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         if(LOG.isTraceEnabled())
             LOG.trace("estimate Memory Usage");
         int sz=getBaseMemoryUsage();
-
-        if(null!=id)
-            sz+=getContainerKeyMemoryUsage();
         if(null!=format_ids)
             sz+=format_ids.length*ClassSize.getIntSize();
         return sz;
     }
 
 
-    public final ContainerKey getId(){
+    public final long getId(){
         if(LOG.isTraceEnabled())
             LOG.trace("getId ");
-        return (id);
+        return containerId;
     }
 
     public boolean[] getAscDescInfo(){
@@ -148,7 +140,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     }
 
     public final long getContainerid(){
-        return (id.getContainerId());
+        return containerId;
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
@@ -162,7 +154,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     }
 
     public boolean isNull(){
-        return id==null;
+        return containerId == -1l;
     }
 
     /**
@@ -178,11 +170,11 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     }
 
     public void restoreToNull(){
-        id=null;
+        containerId=-1l;
     }
 
     public String toString(){
-        return (id==null)?"null":id.toString();
+        return (containerId==-1l)?"null":""+containerId;
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
@@ -196,8 +188,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     }
 
     public abstract int getBaseMemoryUsage();
-
-    public abstract int getContainerKeyMemoryUsage();
 
     public abstract void writeExternal(ObjectOutput out) throws IOException;
 

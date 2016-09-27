@@ -28,12 +28,8 @@ package com.splicemachine.db.iapi.store.access;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.store.raw.FetchDescriptor;
-
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
-
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
@@ -111,24 +107,6 @@ public class RowUtil
 	*/
 	public static final FormatableBitSet EMPTY_ROW_BITSET  = 
         new FormatableBitSet(0);
-
-	/**
-		An object that can be used on a fetch as a FormatableBitSet to indicate no fields
-		need to be fetched.
-	*/
-	public static final FetchDescriptor EMPTY_ROW_FETCH_DESCRIPTOR  = 
-        new FetchDescriptor(0);
-
-	private static final FetchDescriptor[] ROWUTIL_FETCH_DESCRIPTOR_CONSTANTS  =
-        {EMPTY_ROW_FETCH_DESCRIPTOR,
-         new FetchDescriptor(1, 1),
-         new FetchDescriptor(2, 2),
-         new FetchDescriptor(3, 3),
-         new FetchDescriptor(4, 4),
-         new FetchDescriptor(5, 5),
-         new FetchDescriptor(6, 6),
-         new FetchDescriptor(7, 7)};
-
 
 	/**
 		Get the object for a column identifer (0 based) from a complete or 
@@ -314,27 +292,6 @@ public class RowUtil
 
 		return startColumn < row.length ? startColumn : -1;
 	}
-
-    /**
-     * Return a FetchDescriptor which describes a single column set.
-     * <p>
-     * This routine returns one of a set of constant FetchDescriptor's, and
-     * should not be altered by the caller.
-     **/
-    public static final FetchDescriptor getFetchDescriptorConstant(
-    int     single_column_number)
-    {
-        if (single_column_number < ROWUTIL_FETCH_DESCRIPTOR_CONSTANTS.length)
-        {
-            return(ROWUTIL_FETCH_DESCRIPTOR_CONSTANTS[single_column_number]);
-        }
-        else
-        {
-            return(
-                new FetchDescriptor(
-                    single_column_number, single_column_number));
-        }
-    }
 
     /**************************************************************************
      * Public Methods dealing with cloning and row copying util functions

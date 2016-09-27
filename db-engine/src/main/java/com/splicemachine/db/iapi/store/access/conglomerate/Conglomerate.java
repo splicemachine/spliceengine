@@ -34,7 +34,6 @@ import com.splicemachine.db.iapi.store.access.RowLocationRetRowSource;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.services.io.Storable;
@@ -140,7 +139,7 @@ public interface Conglomerate extends Storable, DataValueDescriptor
      *
      * @exception  StandardException  Standard exception policy.
      **/
-    ContainerKey getId();
+    long getId();
 
     /**
      * Return static information about the conglomerate to be included in a
