@@ -8,7 +8,7 @@
 	<parent>
 		<artifactId>spliceengine-mapr0.98.4</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.5.6-SNAPSHOT</version>
+		<version>1.5.6</version>
 	</parent>
 	<properties>
 		<sparkMasterIP>localhost</sparkMasterIP>
@@ -21,7 +21,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_machine_adapter_98-mapr0.98.4</artifactId>
-			<version>1.5.6-SNAPSHOT</version>
+			<version>1.5.6</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>xercesImpl</artifactId>
@@ -44,7 +44,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_machine_adapter_98-mapr0.98.4</artifactId>
-			<version>1.5.6-SNAPSHOT</version>
+			<version>1.5.6</version>
 			<classifier>tests</classifier>
 		</dependency>
 		<dependency>

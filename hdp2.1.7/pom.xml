@@ -9,7 +9,7 @@
 		<envClassifier>hdp2.1.7</envClassifier>
 		<!-- platform component versions -->
 		<hadoop.version>2.4.0.2.1.7.0-784</hadoop.version>
-		<hbase.version>0.98.0-hdp2.1.7-splice1.5.1-SNAPSHOT</hbase.version>
+		<hbase.version>0.98.0-hdp2.1.7-splice1.5.0</hbase.version>
 		<hive.version>0.13.0.2.1.7.0-784</hive.version>
 		<zookeeper.version>3.4.5.2.1.7.0-784</zookeeper.version>
 		<spark-assembly-id>spark-assembly-hadoop2.4.0.2.1.7.0-784</spark-assembly-id>
@@ -17,7 +17,7 @@
 	<parent>
 		<artifactId>spliceengine-parent</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.5.6-SNAPSHOT</version>
+		<version>1.5.6</version>
 	</parent>
 	<modules>
 		<module>splice_constants</module>

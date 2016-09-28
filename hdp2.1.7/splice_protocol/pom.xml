@@ -8,13 +8,13 @@
 	<parent>
 		<artifactId>spliceengine-hdp2.1.7</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.5.6-SNAPSHOT</version>
+		<version>1.5.6</version>
 	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_constants-hdp2.1.7</artifactId>
-			<version>1.5.6-SNAPSHOT</version>
+			<version>1.5.6</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>async</artifactId>

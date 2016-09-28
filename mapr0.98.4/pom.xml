@@ -9,7 +9,7 @@
 		<envClassifier>mapr0.98.4</envClassifier>
 		<!-- platform component versions -->
 		<hadoop.version>2.4.1-mapr-1408</hadoop.version>
-		<hbase.version>0.98.4-mapr-1408-splice1.5.1-SNAPSHOT</hbase.version>
+		<hbase.version>0.98.4-mapr-1408-splice1.5.0</hbase.version>
 		<hive.version>0.13.0-mapr-1405</hive.version>
 		<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
 		<maprfs.version>4.0.1-mapr</maprfs.version>
@@ -18,7 +18,7 @@
 	<parent>
 		<artifactId>spliceengine-parent</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.5.6-SNAPSHOT</version>
+		<version>1.5.6</version>
 	</parent>
 	<modules>
 		<module>splice_constants</module>
