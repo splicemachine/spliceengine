@@ -365,4 +365,34 @@ public abstract class ArrayUtil
 			a[i] = in.readBoolean();
 		return a;
 	}
+
+	/**
+	 * Write a byte array to an ObjectOutput. This writes the array in a format readBytesArray understands.
+	 *
+	 * @param out the ObjectOutput
+	 * @param a a byte array
+	 * @throws IOException
+	 */
+	public static void writeByteArray(ObjectOutput out, byte[] a) throws IOException {
+		if (a==null)
+			out.writeInt(0);
+		else {
+			out.writeInt(a.length);
+			out.write(a);
+		}
+	}
+
+	/**
+	 *  Read a byte array from an ObjectInput. This allocates the array.
+	 *
+	 * @param in the ObjectInput.
+	 * @return a byte array
+	 * @throws IOException
+	 */
+	public static byte[] readByteArray(ObjectInput in) throws IOException {
+		int size = in.readInt();
+		byte[] b = new byte[size];
+		in.read(b);
+		return b;
+	}
 }
