@@ -120,12 +120,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
-            final ValueRow rowDefinition = (ValueRow) context.getOperation().getExecRowDefinition();
-            JavaRDD rdd1 = SpliceSpark.getSession().createDataFrame(rdd.map(new LocatedRowToRowFunction()),
-                    context.getOperation().getExecRowDefinition().schema())
-                    .distinct().rdd().toJavaRDD().map(
-                            new RowToLocatedRowFunction(context));
-            return new SparkDataSet(rdd1);
+            Dataset<Row> result = toSparkRow(this,context)
+                           .distinct();
+
+            return toSpliceLocatedRow(result,context);
+
         }
          catch (Exception se){
                 throw new RuntimeException(se);
@@ -243,15 +242,80 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet< V> intersect(DataSet< V> dataSet) {
-        return new SparkDataSet<>(rdd.intersection(((SparkDataSet<V>) dataSet).rdd));
+        return intersect(dataSet,"Intersect Operator",null,false,null);
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet< V> subtract(DataSet< V> dataSet) {
-        return new SparkDataSet<>(rdd.subtract( ((SparkDataSet<V>) dataSet).rdd));
+    public DataSet< V> intersect(DataSet< V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(context, pushScope, scopeDetail);
+        try {
+            //Convert this rdd backed iterator to a Spark untyped dataset
+            Dataset<Row> left = SpliceSpark.getSession()
+                    .createDataFrame(
+                        rdd.map(
+                            new LocatedRowToRowFunction()),
+                        context.getOperation()
+                               .getExecRowDefinition()
+                               .schema());
+
+            //Convert the left operand to a untyped dataset
+            Dataset<Row> right = SpliceSpark.getSession()
+                    .createDataFrame(
+                            ((SparkDataSet)dataSet).rdd
+                                   .map(new LocatedRowToRowFunction()),
+                            context.getOperation()
+                                   .getExecRowDefinition()
+                                   .schema());
+
+            //Do the intesect
+            Dataset<Row> result = left.intersect(right);
+
+            //Convert back to RDD<LocatedRow>
+            return toSpliceLocatedRow(result,context);
+
+        }
+        catch (Exception se){
+            throw new RuntimeException(se);
+        }finally {
+            if (pushScope) context.popScope();
+        }
     }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public DataSet<V> subtract(DataSet<V> dataSet){
+        return subtract(dataSet,"Substract/Except Operator",null,false,null);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public DataSet< V> subtract(DataSet< V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(context, pushScope, scopeDetail);
+        try {
+            //Convert this rdd backed iterator to a Spark untyped dataset
+            Dataset<Row> left = toSparkRow(this,context);
+
+            //Convert the right operand to a untyped dataset
+            Dataset<Row> right = toSparkRow(dataSet,context);
+
+            //Do the subtract
+            Dataset<Row> result = left.except(right);
+
+            //Convert back to RDD<LocatedRow>
+            return toSpliceLocatedRow(result, context);
+        }
+        catch (Exception se){
+            throw new RuntimeException(se);
+        }finally {
+            if (pushScope) context.popScope();
+        }
+    }
+
+
 
     @Override
     public boolean isEmpty() {
@@ -455,6 +519,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
         try {
@@ -491,4 +556,39 @@ public class SparkDataSet<V> implements DataSet<V> {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     * Take a Splice DataSet and  convert to a Spark Dataset
+     * doing a map
+     * @param dataSet
+     * @param context
+     * @return
+     * @throws Exception
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    Dataset<Row> toSparkRow(DataSet< V> dataSet, OperationContext context) throws Exception{
+        Dataset<Row> result =  SpliceSpark.getSession()
+                .createDataFrame(
+                        ((SparkDataSet)dataSet).rdd
+                                .map(new LocatedRowToRowFunction()),
+                        context.getOperation()
+                                .getExecRowDefinition()
+                                .schema());
+        return result;
+    }
+
+    /**
+     * Take a spark dataset and translate that to Splice format
+     * @param dataSet
+     * @param context
+     * @return
+     */
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    DataSet<V> toSpliceLocatedRow(Dataset<Row> dataSet, OperationContext context){
+       return new SparkDataSet(dataSet.javaRDD()
+                .map(new RowToLocatedRowFunction(context)));
+    }
+
+
 }

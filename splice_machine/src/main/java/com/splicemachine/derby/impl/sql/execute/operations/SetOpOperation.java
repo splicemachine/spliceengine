@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -25,7 +26,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -156,13 +156,22 @@ public class SetOpOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        OperationContext operationContext = dsp.createOperationContext(this);
         if (this.opType==IntersectOrExceptNode.INTERSECT_OP) {
             return leftSource.getDataSet(dsp).intersect(
-                    rightSource.getDataSet(dsp));
+                    rightSource.getDataSet(dsp),
+                    OperationContext.Scope.INTERSECT.displayName(),
+                    operationContext,
+                    true,
+                    OperationContext.Scope.INTERSECT.displayName());
         }
         else if (this.opType==IntersectOrExceptNode.EXCEPT_OP) {
             return leftSource.getDataSet(dsp).subtract(
-                    rightSource.getDataSet(dsp));
+                    rightSource.getDataSet(dsp),
+                    OperationContext.Scope.SUBTRACT.displayName(),
+                    operationContext,
+                    true,
+                    OperationContext.Scope.SUBTRACT.displayName());
         } else {
             throw new RuntimeException("Operation Type not Supported "+opType);
         }

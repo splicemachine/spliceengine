@@ -15,9 +15,7 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
-import com.splicemachine.derby.stream.function.broadcast.CogroupBroadcastJoinFunction;
-import com.splicemachine.derby.stream.function.broadcast.SubtractByKeyBroadcastJoinFunction;
+
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.*;
@@ -191,12 +189,24 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public DataSet<V> intersect(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail){
+        return intersect(dataSet);
+    }
+
+    @Override
     public DataSet< V> intersect(DataSet< V> dataSet) {
         Set<V> left=Sets.newHashSet(iterator);
         Set<V> right=Sets.newHashSet(((ControlDataSet<V>)dataSet).iterator);
         Sets.SetView<V> intersection=Sets.intersection(left,right);
         return new ControlDataSet<>(intersection.iterator());
     }
+
+
+    @Override
+    public DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail){
+        return subtract(dataSet);
+    }
+
 
     @Override
     public DataSet< V> subtract(DataSet< V> dataSet) {
