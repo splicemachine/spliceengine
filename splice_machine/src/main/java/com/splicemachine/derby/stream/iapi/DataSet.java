@@ -197,7 +197,11 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     DataSet<V> intersect(DataSet<V> dataSet);
 
+    DataSet<V> intersect(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail);
+
     DataSet<V> subtract(DataSet<V> dataSet);
+
+    DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail);
 
     boolean isEmpty();
 

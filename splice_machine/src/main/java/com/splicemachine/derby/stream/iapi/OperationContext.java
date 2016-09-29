@@ -63,6 +63,8 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
         EXECUTE("Execute"),
         FINALIZE("Finalize"),
         DISTINCT("Find Distinct Values"),
+        SUBTRACT("Subtract/Except Values"),
+        INTERSECT("Intersect Values"),
         SHUFFLE("Shuffle/Sort Data"),
         LOCATE("Locate Rows"),
         COLLECT_STATS("Collect Statistics (Table %s)");

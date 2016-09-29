@@ -20,8 +20,14 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.spark_project.guava.collect.Lists;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
+
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
@@ -40,11 +46,27 @@ import static com.splicemachine.test_tools.Rows.rows;
  *
  *
  */
+@RunWith(Parameterized.class)
 public class SetOpOperationIT extends SpliceUnitTest {
         private static final String SCHEMA = SetOpOperationIT.class.getSimpleName().toUpperCase();
         private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+        private Boolean useSpark;
 
-        @ClassRule
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
+        params.add(new Object[]{true});
+        params.add(new Object[]{false});
+        return params;
+    }
+
+    public SetOpOperationIT(Boolean useSpark) {
+        this.useSpark = useSpark;
+    }
+
+
+
+    @ClassRule
         public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
         @Rule
@@ -67,9 +89,10 @@ public class SetOpOperationIT extends SpliceUnitTest {
 
     @Test
     public void testIntercept() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select count(*), max(col1), min(col1) from (" +
-                "select col1 from foo intersect select col1 from foo2) argh"
-        );
+        ResultSet rs = methodWatcher.executeQuery(format("select count(*), max(col1), min(col1) " +
+                " from  (select col1 from foo --SPLICE-PROPERTIES useSpark = %s  \n" +
+                "intersect select col1 from foo2) argh",useSpark));
+
         Assert.assertTrue("intersect incorrect",rs.next());
         Assert.assertEquals("Wrong Count", 3, rs.getInt(1));
         Assert.assertEquals("Wrong Max", 5, rs.getInt(2));
@@ -78,16 +101,17 @@ public class SetOpOperationIT extends SpliceUnitTest {
 
     @Test(expected = SQLException.class)
     public void testInterceptAll() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select count(*), max(col1), min(col1) from (" +
-                "select col1 from foo intersect all select col1 from foo2) argh"
-        );
+        ResultSet rs = methodWatcher.executeQuery(
+                format("select count(*), max(col1), min(col1) from (" +
+                "select col1 from foo --SPLICE-PROPERTIES useSpark = %s  \n intersect all select col1 from foo2) argh",
+                    useSpark));
     }
 
     @Test
     public void testExcept() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select count(*), max(col1), min(col1) from (" +
-                "select col1 from foo except select col1 from foo2) argh"
-        );
+        ResultSet rs = methodWatcher.executeQuery(
+                format("select count(*), max(col1), min(col1) from (" +
+                "select col1 from foo  --SPLICE-PROPERTIES useSpark = %s  \n except select col1 from foo2) argh",useSpark));
         Assert.assertTrue("intersect incorrect",rs.next());
         Assert.assertEquals("Wrong Count", 2, rs.getInt(1));
         Assert.assertEquals("Wrong Max", 4, rs.getInt(2));
@@ -96,9 +120,9 @@ public class SetOpOperationIT extends SpliceUnitTest {
 
     @Test(expected = SQLException.class)
     public void testExceptAll() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select count(*), max(col1), min(col1) from (" +
-                "select col1 from foo except all select col1 from foo2) argh"
-        );
+        ResultSet rs = methodWatcher.executeQuery(
+                format("select count(*), max(col1), min(col1) from (" +
+                "select col1 from foo --SPLICE-PROPERTIES useSpark = %s except all select col1 from foo2) argh",useSpark));
     }
 
 }
