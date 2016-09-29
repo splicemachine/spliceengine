@@ -20,13 +20,13 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.7-SNAPSHOT</version>
+        <version>3.0.0.8-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
-            <version>3.0.0.7-SNAPSHOT</version>
+            <version>3.0.0.8-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -105,7 +105,7 @@
         <dependency>
             <groupId>org.splicetest.sqlj</groupId>
             <artifactId>sqlj-it-procs</artifactId>
-            <version>3.0.0.7-SNAPSHOT</version>
+            <version>3.0.0.8-SNAPSHOT</version>
             <type>jar</type>
             <scope>test</scope>
         </dependency>
