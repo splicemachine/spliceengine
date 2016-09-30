@@ -46,7 +46,7 @@ import com.splicemachine.pipeline.utils.PipelineCompressor;
  */
 public class PipelineDriver{
     private static final int ipcReserved=10;
-    private static PipelineDriver INSTANCE;
+    private static volatile PipelineDriver INSTANCE;
 
     private final SpliceWriteControl writeControl;
     private final WritePipelineFactory writePipelineFactory;
