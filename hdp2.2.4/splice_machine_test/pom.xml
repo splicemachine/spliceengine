@@ -8,7 +8,7 @@
 	<parent>
 		<artifactId>spliceengine-hdp2.2.4</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.5.6</version>
+		<version>1.5.7-SNAPSHOT</version>
 	</parent>
 	<properties>
 		<sparkMasterIP>localhost</sparkMasterIP>
@@ -21,7 +21,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_machine_adapter_98-hdp2.2.4</artifactId>
-			<version>1.5.6</version>
+			<version>1.5.7-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>xercesImpl</artifactId>
@@ -44,7 +44,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_machine_adapter_98-hdp2.2.4</artifactId>
-			<version>1.5.6</version>
+			<version>1.5.7-SNAPSHOT</version>
 			<classifier>tests</classifier>
 		</dependency>
 		<dependency>

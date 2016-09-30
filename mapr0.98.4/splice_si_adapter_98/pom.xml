@@ -8,19 +8,19 @@
 	<parent>
 		<artifactId>spliceengine-mapr0.98.4</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.5.6</version>
+		<version>1.5.7-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_si-mapr0.98.4</artifactId>
-			<version>1.5.6</version>
+			<version>1.5.7-SNAPSHOT</version>
 			<classifier>${obfuscate.si}</classifier>
 		</dependency>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_protocol-mapr0.98.4</artifactId>
-			<version>1.5.6</version>
+			<version>1.5.7-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.stumbleupon</groupId>
