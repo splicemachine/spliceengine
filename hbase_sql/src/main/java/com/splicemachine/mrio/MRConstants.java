@@ -26,7 +26,8 @@ public class MRConstants {
 	final public static String SPLICE_WRITE_BUFFER_SIZE = "splice.write.buffer.size";
 	final public static String SPLICE_JDBC_STR = "splice.jdbc";
 	final public static String ONE_SPLIT_PER_REGION = "one.split.per.region";
-	final public static String SPLICE_SCAN_INFO = "splice.scan.info";
+    final public static String SPLICE_SCAN_INFO = "splice.scan.info";
+    final public static String SPLICE_OPERATION_CONTEXT = "splice.operation.context";
     final public static String SPLICE_TXN_MIN_TIMESTAMP = "splice.txn.timestamp.min";
     final public static String SPLICE_TXN_MAX_TIMESTAMP = "splice.txn.timestamp.max";
     final public static String SPLICE_TXN_DEST_TABLE = "splice.txn.destination.table";

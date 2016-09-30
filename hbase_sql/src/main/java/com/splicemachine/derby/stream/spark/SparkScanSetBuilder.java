@@ -18,6 +18,8 @@ package com.splicemachine.derby.stream.spark;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
+import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -72,7 +74,8 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         }
         try {
-            conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO,getTableScannerBuilderBase64String());
+             conf.set(MRConstants.SPLICE_SCAN_INFO,getTableScannerBuilderBase64String());
+             conf.set(MRConstants.SPLICE_OPERATION_CONTEXT,  Base64.encodeBase64String(org.apache.commons.lang3.SerializationUtils.serialize(operationContext)));
         } catch (IOException ioe) {
             throw StandardException.unexpectedUserException(ioe);
         }
@@ -95,12 +98,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
-        if (operationContext == null) {
-            if (op != null)
-                operationContext = dsp.createOperationContext(op);
-            else if (activation != null)
-                operationContext = dsp.createOperationContext(activation);
-        }
         super.writeExternal(out);
         out.writeUTF(tableName);
         out.writeObject(dsp);

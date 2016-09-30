@@ -439,9 +439,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             out.writeBoolean(tableVersion!=null);
             if(tableVersion!=null)
                 out.writeUTF(tableVersion);
-            out.writeBoolean(operationContext!=null);
-            if(operationContext!=null)
-                out.writeObject(operationContext);
 
             out.writeBoolean(fieldLengths!=null);
             if(fieldLengths!=null){
@@ -521,8 +518,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 indexName=in.readUTF();
             if(in.readBoolean())
                 tableVersion=in.readUTF();
-            if(in.readBoolean())
-                operationContext=(OperationContext)in.readObject();
 
             if(in.readBoolean()){
                 int n=in.readInt();

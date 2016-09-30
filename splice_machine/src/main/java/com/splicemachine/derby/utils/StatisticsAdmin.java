@@ -342,7 +342,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         Activation activation = conn.getLanguageConnection().getLastActivation();
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
 
-        ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId)).activation(activation);
+        ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
         ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
         String scope = getScopeName(table);
 
