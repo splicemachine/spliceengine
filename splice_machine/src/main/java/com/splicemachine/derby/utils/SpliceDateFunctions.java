@@ -64,14 +64,25 @@ public class SpliceDateFunctions {
      * Implements the TO_TIMESTAMP(source, pattern) function.
      */
     public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
+
         if (source == null) return null;
-        if (format != null) {
-            String microTest = format.toUpperCase();
-            if ( (microTest.endsWith("SSSS") || microTest.endsWith("NNNN") || microTest.endsWith("FFFF"))) {
-                // If timestamp format is in microsecond precision, do not parse using Joda DateTimeFormatter
-                return Timestamp.valueOf(source);
+        try {
+            if (format != null) {
+                String microTest = format.toUpperCase();
+                if ((microTest.endsWith("SSSS") || microTest.endsWith("NNNN") || microTest.endsWith("FFFF"))) {
+                    // If timestamp format is in microsecond precision, do not parse using Joda DateTimeFormatter
+                    return Timestamp.valueOf(source);
+                }
             }
         }
+        catch (IllegalArgumentException e) {
+            // If format contains nanoseconds, but is not a valid SQL timestamp format
+            int nanos = getNanoseconds(source);
+            Timestamp ts =  new Timestamp(parseDateTime(source, format));
+            ts.setNanos(nanos);
+            return ts;
+        }
+
         return new Timestamp(parseDateTime(source, format));
     }
 
@@ -289,5 +300,16 @@ public class SpliceDateFunctions {
         } else {
             throw new SQLException(String.format("invalid time unit '%s'", field));
         }
+    }
+
+    /**
+     *
+     * @param source      a timestamp with nanoseconds
+     * @return  nanoseconds
+     */
+    private static int getNanoseconds(String source) {
+        int index = source.lastIndexOf(".");
+        String ns = source.substring(index+1);
+        return Integer.parseInt(ns)*1000;
     }
 }
