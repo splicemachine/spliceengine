@@ -64,14 +64,22 @@ public class SpliceDateFunctions {
      * Implements the TO_TIMESTAMP(source, pattern) function.
      */
     public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
+
         if (source == null) return null;
-        if (format != null) {
-            String microTest = format.toUpperCase();
-            if ( (microTest.endsWith("SSSS") || microTest.endsWith("NNNN") || microTest.endsWith("FFFF"))) {
-                // If timestamp format is in microsecond precision, do not parse using Joda DateTimeFormatter
-                return Timestamp.valueOf(source);
+        try {
+            if (format != null) {
+                String microTest = format.toUpperCase();
+                if ((microTest.endsWith("SSSS") || microTest.endsWith("NNNN") || microTest.endsWith("FFFF"))) {
+                    // If timestamp format is in microsecond precision, do not parse using Joda DateTimeFormatter
+                    return Timestamp.valueOf(source);
+                }
             }
         }
+        catch (IllegalArgumentException e) {
+            // If format is not a valid SQL timestamp format
+            return new Timestamp(parseDateTime(source, format));
+        }
+
         return new Timestamp(parseDateTime(source, format));
     }
 
