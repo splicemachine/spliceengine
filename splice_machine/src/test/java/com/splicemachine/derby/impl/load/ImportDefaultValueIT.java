@@ -133,9 +133,9 @@ public class ImportDefaultValueIT {
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac").expected("1", "ac")
-                                                                   .toFileRow("2", "NULL").expected("2", "NULL")
+                                                                   .toFileRow("2", "NULL").expected("2", "abc")
                                                                    .toFileRow("3", "ab").expected("3", "ab")
-                                                                   .toFileRow("4", "NULL").expected("4", "NULL")
+                                                                   .toFileRow("4", "NULL").expected("4", "abc")
                                                                    .fill(writer);
 
         writer.close();
@@ -191,9 +191,9 @@ public class ImportDefaultValueIT {
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac").expected("1", "ac")
-                                                                   .toFileRow("2", "").expected("2", "NULL")
+                                                                   .toFileRow("2", "").expected("2", "abc")
                                                                    .toFileRow("3", "ab").expected("3", "ab")
-                                                                   .toFileRow("4", "").expected("4", "NULL")
+                                                                   .toFileRow("4", "").expected("4", "abc")
                                                                    .fill(writer);
         writer.close();
 
@@ -270,9 +270,9 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
-                                                                   .toFileRow("1", "", "ac").expected("1", "NULL", "ac")
+                                                                   .toFileRow("1", "", "ac").expected("1", "2011-03-17 15:52:25.0", "ac")
                                                                    .toFileRow("2", "2016-01-29 15:38:45", "").expected("2", "2016-01-29 15:38:45.0", "NULL")
-                                                                   .toFileRow("3", "", "ab").expected("3", "NULL", "ab")
+                                                                   .toFileRow("3", "", "ab").expected("3", "2011-03-17 15:52:25.0", "ab")
                                                                    .toFileRow("4", "2016-01-29 15:38:45", "ca").expected("4", "2016-01-29 15:38:45.0", "ca")
                                                                    .fill(writer);
         writer.close();
@@ -311,10 +311,10 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
-                                                                   .toFileRow("1", "", "ac").expected("1", "NULL", "ac")
-                                                                   .toFileRow("2", "", "").expected("2", "NULL", "NULL")
-                                                                   .toFileRow("3", "", "ab").expected("3", "NULL", "ab")
-                                                                   .toFileRow("4", "", "ca").expected("4", "NULL", "ca")
+                                                                   .toFileRow("1", "", "ac").expected("1", "2011-03-17 15:52:25.0", "ac")
+                                                                   .toFileRow("2", "", "").expected("2", "2011-03-17 15:52:25.0", "NULL")
+                                                                   .toFileRow("3", "", "ab").expected("3", "2011-03-17 15:52:25.0", "ab")
+                                                                   .toFileRow("4", "", "ca").expected("4", "2011-03-17 15:52:25.0", "ca")
                                                                    .fill(writer);
         writer.close();
 

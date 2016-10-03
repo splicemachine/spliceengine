@@ -25,9 +25,18 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
+import com.splicemachine.db.catalog.DefaultInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
@@ -52,6 +61,8 @@ import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import javax.annotation.Nullable;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -371,7 +382,9 @@ public class HdfsImport {
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                 "--splice-properties insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
                 badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n" +
-                " SELECT * from " +
+                " SELECT "+
+                    generateColumnList(((EmbedConnection)conn).getLanguageConnection(),schemaName,tableName,insertColumnList) +
+                    " from " +
                 importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
 
             //prepare the import statement to hit any errors before locking the table
@@ -405,6 +418,65 @@ public class HdfsImport {
                 conn.close();
             }
         }
+    }
+
+    private static String generateColumnList(LanguageConnectionContext lcc,
+                                             String schemaName,
+                                             String tableName,
+                                             List<String> insertColumnList) throws SQLException{
+        DataDictionary dd = lcc.getDataDictionary();
+        StringBuilder colListStr = new StringBuilder();
+        try{
+            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName,lcc.getTransactionExecute(),true);
+            assert sd!=null: "Programmer error: schema is not found!";
+            TableDescriptor td = dd.getTableDescriptor(tableName,sd,lcc.getTransactionExecute());
+            assert td!=null: "Programmer error: table is not found!";
+
+            ColumnDescriptorList columnDescriptorList=td.getColumnDescriptorList();
+            if(insertColumnList!=null){
+                boolean isFirst = true;
+                for(String col:insertColumnList){
+                    if(isFirst) isFirst = false;
+                    else colListStr = colListStr.append(",");
+                    ColumnDescriptor cd = columnDescriptorList.getColumnDescriptor(td.getUUID(),col);
+                    if(cd==null)
+                        throw StandardException.newException(SQLState.COLUMN_NOT_FOUND,tableName+"."+col); //shouldn't happen, but just in case
+                    colListStr = writeColumn(cd,colListStr);
+                }
+            }else{
+                boolean isFirst = true;
+                for(ColumnDescriptor cd: columnDescriptorList){
+                    if(isFirst) isFirst = false;
+                    else colListStr = colListStr.append(",");
+                    colListStr = writeColumn(cd,colListStr);
+                }
+            }
+
+            return colListStr.toString();
+        }catch(StandardException e){
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
+
+    private static StringBuilder writeColumn(ColumnDescriptor cd,StringBuilder text) throws StandardException{
+        String colName = sqlFormat(cd.getColumnName());
+        DefaultInfo di = cd.getDefaultInfo();
+        if(di!=null){
+            text = text.append("CASE WHEN (")
+                    .append(colName)
+                    .append(" IS NULL) THEN ")
+                    .append(di.getDefaultText())
+                    .append(" ELSE ")
+                    .append(colName)
+                    .append(" END");
+        }else text = text.append(colName);
+        return text;
+    }
+
+    private static String sqlFormat(String columnName){
+        if(columnName.toUpperCase().equals(columnName) || columnName.toLowerCase().equals(columnName))
+            return columnName;
+        else return "\""+columnName+"\"";
     }
 
     static List<String> normalizeIdentifierList(String insertColumnListStr) {
