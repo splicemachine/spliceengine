@@ -77,18 +77,6 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
     }
 
     /**
-     * @see JoinStrategy#resultSetMethodName
-     */
-    public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
-        if (bulkFetch)
-            return "getBulkTableScanResultSet";
-        else if (multiprobe)
-            return "getMultiProbeTableScanResultSet";
-        else
-            return "getTableScanResultSet";
-    }
-
-    /**
      * @see JoinStrategy#joinResultSetMethodName
      */
     public String joinResultSetMethodName() {

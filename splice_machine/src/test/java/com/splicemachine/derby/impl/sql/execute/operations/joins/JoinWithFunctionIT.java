@@ -192,7 +192,7 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
         String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
                 "d\n" +
                 ", e --SPLICE-PROPERTIES joinStrategy=%s\n" +
-                " where CHAR(d.i) = e.c", joinStrategy);
+                " where CHAR(d.i) = e.c order by I", joinStrategy);
         ResultSet rs = methodWatcher.executeQuery(sql);
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         rs.close();

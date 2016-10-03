@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
 import com.splicemachine.derby.stream.function.broadcast.CogroupBroadcastJoinFunction;
 import com.splicemachine.derby.stream.function.broadcast.SubtractByKeyBroadcastJoinFunction;
@@ -345,5 +347,25 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> join(OperationContext operationContext, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
         throw new UnsupportedOperationException("Not Implemented in Control Side");
+    }
+
+    @Override
+    public void saveAsParquet(ExecRow execRow, long conglomID) {
+        throw new UnsupportedOperationException("Cannot write parquet files with in-memory representation");
+    }
+
+    @Override
+    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, OperationContext context) {
+        throw new UnsupportedOperationException("Cannot write parquet files");
+    }
+
+    @Override
+    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, OperationContext context) {
+        throw new UnsupportedOperationException("Cannot write orc files");
+    }
+
+    @Override
+    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) {
+        throw new UnsupportedOperationException("Cannot write text files");
     }
 }

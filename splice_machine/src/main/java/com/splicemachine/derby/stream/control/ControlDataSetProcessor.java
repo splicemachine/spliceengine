@@ -309,4 +309,24 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         }
         return value;
     }
+
+    @Override
+    public <V> DataSet<V> readParquetFile(long conglomerateID,int[] baseColumnMap, OperationContext context) {
+        throw new UnsupportedOperationException("readParquetFile Not Supported");
+    }
+
+    @Override
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context) {
+        throw new UnsupportedOperationException("readParquetFile Not Supported");
+    }
+
+    @Override
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context) {
+        throw new UnsupportedOperationException("readORCFile Not Supported");
+    }
+
+    @Override
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) {
+        throw new UnsupportedOperationException("readTextFile Not Supported");
+    }
 }

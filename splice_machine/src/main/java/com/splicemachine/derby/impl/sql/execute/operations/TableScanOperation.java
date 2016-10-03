@@ -25,9 +25,10 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.TableScanQualifierFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
@@ -55,6 +56,12 @@ public class TableScanOperation extends ScanOperation{
     protected int[] baseColumnMap;
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
+    protected boolean pin;
+    protected String delimited;
+    protected String escaped;
+    protected String lines;
+    protected String storedAs;
+    protected String location;
 
     /**
      *
@@ -139,7 +146,13 @@ public class TableScanOperation extends ScanOperation{
                               boolean oneRowScan,
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
-                              String tableVersion) throws StandardException{
+                              String tableVersion,
+                              boolean pin,
+                              String delimited,
+                              String escaped,
+                              String lines,
+                              String storedAs,
+                              String location) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
@@ -153,6 +166,12 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
+        this.pin = pin;
+        this.delimited = delimited;
+        this.escaped = escaped;
+        this.lines = lines;
+        this.storedAs = storedAs;
+        this.location = location;
         init();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
@@ -171,12 +190,19 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
+        pin = in.readBoolean();
         tableName=in.readUTF();
         tableDisplayName=in.readUTF();
         tableNameBytes=Bytes.toBytes(tableName);
         indexColItem=in.readInt();
         if(in.readBoolean())
             indexName=in.readUTF();
+        pin = in.readBoolean();
+        delimited = in.readBoolean()?in.readUTF():null;
+        escaped = in.readBoolean()?in.readUTF():null;
+        lines = in.readBoolean()?in.readUTF():null;
+        storedAs = in.readBoolean()?in.readUTF():null;
+        location = in.readBoolean()?in.readUTF():null;
     }
     /**
      *
@@ -190,12 +216,29 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
+        out.writeBoolean(pin);
         out.writeUTF(tableName);
         out.writeUTF(tableDisplayName);
         out.writeInt(indexColItem);
         out.writeBoolean(indexName!=null);
         if(indexName!=null)
             out.writeUTF(indexName);
+        out.writeBoolean(pin);
+        out.writeBoolean(delimited!=null);
+        if (delimited!=null)
+            out.writeUTF(delimited);
+        out.writeBoolean(escaped!=null);
+        if (escaped!=null)
+            out.writeUTF(escaped);
+        out.writeBoolean(lines!=null);
+        if (lines!=null)
+            out.writeUTF(lines);
+        out.writeBoolean(storedAs!=null);
+        if (storedAs!=null)
+            out.writeUTF(storedAs);
+        out.writeBoolean(location!=null);
+        if (location!=null)
+            out.writeUTF(location);
     }
 
     /**
@@ -317,6 +360,26 @@ public class TableScanOperation extends ScanOperation{
      */
     public DataSet<LocatedRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
+        OperationContext context = dsp.createOperationContext(this);
+        if (pin) {
+            return dsp.
+                    readParquetFile(scanInformation.getConglomerateId(),
+                            baseColumnMap,context)
+                    .flatMap(new TableScanQualifierFunction(context,null));
+        }
+        if (storedAs!= null) {
+            if (storedAs.equals("T"))
+                return dsp.readTextFile(this,location,delimited,null,baseColumnMap,context);
+            if (storedAs.equals("P"))
+                return dsp.readParquetFile(baseColumnMap,location,context);
+            if (storedAs.equals("O"))
+                return dsp.readORCFile(baseColumnMap,location,context);
+            else {
+                throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
+            }
+        }
+
+        else
         return dsp.<TableScanOperation,LocatedRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)
@@ -329,7 +392,6 @@ public class TableScanOperation extends ScanOperation{
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                 .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                 .keyColumnTypes(getKeyFormatIds())
-                .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(getRowDecodingMap())

@@ -145,5 +145,25 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         return delegate.getPartitioner(dataSet, template, keyDecodingMap, keyOrder,rightHashKeys);
     }
+
+    @Override
+    public <V> DataSet<V> readParquetFile(long conglomerateID, int[] baseColumnMap, OperationContext context) {
+        return delegate.readParquetFile(conglomerateID,baseColumnMap,context);
+    }
+
+    @Override
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context) {
+        return delegate.readParquetFile(baseColumnMap, location, context);
+    }
+
+    @Override
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context) {
+        return delegate.readORCFile(baseColumnMap, location, context);
+    }
+
+    @Override
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) {
+        return delegate.readTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context);
+    }
 }
 
