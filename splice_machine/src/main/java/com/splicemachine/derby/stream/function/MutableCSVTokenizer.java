@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.derby.stream.utils.BooleanList;
 import org.supercsv.io.Tokenizer;
 import org.supercsv.prefs.CsvPreference;
 
@@ -31,10 +32,11 @@ import java.util.List;
  * to bypass the synchronized lineNumber implementation in SuperCSV.
  *
  */
-public class MutableCSVTokenizer extends Tokenizer {
+public class MutableCSVTokenizer extends QuoteTrackingTokenizer {
 
     private String line;
-    private final List<String> columns = new ArrayList<String>();
+    private final List<String> columns =new ArrayList<>();
+    private final BooleanList quotedColumns = new BooleanList();
     public MutableCSVTokenizer(Reader reader, CsvPreference preferences) {
         super(reader, preferences);
     }
@@ -75,9 +77,13 @@ public class MutableCSVTokenizer extends Tokenizer {
      */
     public List<String> read() throws IOException {
         if( readRow() ) {
-            return new ArrayList<String>(getColumns()); // Do we need to array copy here?
+            return new ArrayList<>(getColumns()); // Do we need to array copy here?
         }
         return null; // EOF
+    }
+
+    public BooleanList getQuotedColumns(){
+        return new BooleanList(quotedColumns); //do we need this array copy?
     }
 
     /**
@@ -87,7 +93,7 @@ public class MutableCSVTokenizer extends Tokenizer {
      * @throws IOException
      */
     protected boolean readRow() throws IOException {
-        if( readColumns(columns) ) {
+        if( readColumns(columns,quotedColumns) ) {
             return true;
         }
         return false;

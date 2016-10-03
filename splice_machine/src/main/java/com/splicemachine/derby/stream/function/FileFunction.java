@@ -19,12 +19,14 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.*;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  *
@@ -70,7 +72,9 @@ public class FileFunction extends AbstractFileFunction<String> {
         }
         try {
             tokenizer.setLine(s);
-            LocatedRow lr =  call(tokenizer.read());
+            List<String> read=tokenizer.read();
+            BooleanList quotedColumns=tokenizer.getQuotedColumns();
+            LocatedRow lr =  call(read,quotedColumns);
             return lr==null?Collections.<LocatedRow>emptyList().iterator():new SingletonIterator(lr);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {

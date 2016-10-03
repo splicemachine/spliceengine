@@ -19,8 +19,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 import java.util.List;
-import org.supercsv.io.CsvListReader;
-import org.supercsv.io.ITokenizer;
+
+import com.splicemachine.derby.stream.function.QuoteTrackingTokenizer;
+import com.splicemachine.derby.stream.utils.BooleanList;
 import org.supercsv.prefs.CsvPreference;
 
 /**
@@ -28,8 +29,13 @@ import org.supercsv.prefs.CsvPreference;
  *
  * @author dwinters
  */
-public class SpliceCsvReader extends CsvListReader implements Iterator<List<String>> {
+public class SpliceCsvReader implements Iterator<List<String>> {
 
+	private QuoteTrackingTokenizer tokenizer;
+	private List<String> columns = new ArrayList<>();
+	private BooleanList quotedColumns= new BooleanList();
+
+	private boolean firstRead = true;
 	/**
 	 * Constructs a new <tt>SpliceCsvReader</tt> with the supplied Reader and CSV preferences. Note that the
 	 * <tt>reader</tt> will be wrapped in a <tt>BufferedReader</tt> before accessed.
@@ -42,28 +48,19 @@ public class SpliceCsvReader extends CsvListReader implements Iterator<List<Stri
 	 *             if reader or preferences are null
 	 */
 	public SpliceCsvReader(Reader reader, CsvPreference preferences) {
-		super(reader, preferences);
-	}
-
-	/**
-	 * Constructs a new <tt>SpliceCsvReader</tt> with the supplied (custom) Tokenizer and CSV preferences. The tokenizer
-	 * should be set up with the Reader (CSV input) and CsvPreference beforehand.
-	 * 
-	 * @param tokenizer
-	 *            the tokenizer
-	 * @param preferences
-	 *            the CSV preferences
-	 * @throws NullPointerException
-	 *             if tokenizer or preferences are null
-	 */
-	public SpliceCsvReader(ITokenizer tokenizer, CsvPreference preferences) {
-		super(tokenizer, preferences);
+		this.tokenizer = new QuoteTrackingTokenizer(reader,preferences);
 	}
 
     @Override
     public boolean hasNext() {
         try {
-            return readRow();
+			boolean read = tokenizer.readColumns(columns,quotedColumns);
+			if(firstRead){
+				((ArrayList)columns).trimToSize();
+				quotedColumns.trimToSize();
+				firstRead =false;
+			}
+            return read;
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         }
@@ -71,12 +68,16 @@ public class SpliceCsvReader extends CsvListReader implements Iterator<List<Stri
 
     @Override
     public List<String> next() {
-        return getColumns();
+		return columns;
     }
+
+	public BooleanList nextQuotedColumns(){
+		return quotedColumns;
+	}
 
     @Override
     public void remove() {
-        throw new RuntimeException("Not Supported");
+        throw new UnsupportedOperationException();
     }
 
 }

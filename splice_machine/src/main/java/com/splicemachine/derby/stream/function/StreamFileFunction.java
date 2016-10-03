@@ -20,9 +20,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.BooleanList;
+
 import java.io.*;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
@@ -85,7 +88,9 @@ import java.util.NoSuchElementException;
                                             hasNext = false;
                                             return false;
                                         }
-                                        nextRow = call(spliceCsvReader.next());
+                                        List<String> next=spliceCsvReader.next();
+                                        BooleanList quotedColumns = spliceCsvReader.nextQuotedColumns();
+                                        nextRow = call(next,quotedColumns);
                                         if (nextRow != null) {
                                             stale = true;
                                             hasNext = true;
