@@ -934,11 +934,11 @@ public class SQLChar
       @see java.io.DataInputStream
 
     */
-    public void writeExternal(ObjectOutput out) throws IOException
-    {
-        // never called when value is null
-        if (SanityManager.DEBUG)
-            SanityManager.ASSERT(!isNull());
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull);
+        if (isNull()) {
+            return;
+        }
 
         //
         // This handles the case that a CHAR or VARCHAR value was populated from
@@ -1175,8 +1175,12 @@ public class SQLChar
 		isNull = evaluateNull();
     }
 
-    public void readExternal(ObjectInput in) throws IOException
-    {
+    public void readExternal(ObjectInput in) throws IOException {
+        isNull = in.readBoolean();
+        if (isNull()) {
+            return;
+        }
+
         // Read the stored length in the stream header.
         int utflen = in.readUnsignedShort();
         readExternal(in, utflen, 0);

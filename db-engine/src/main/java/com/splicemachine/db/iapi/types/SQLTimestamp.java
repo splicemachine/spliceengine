@@ -240,9 +240,7 @@ public final class SQLTimestamp extends DataType
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
-
+		out.writeBoolean(isNull);
 		/*
 		** Timestamp is written out 3 ints, encoded date, encoded time, and
 		** nanoseconds
@@ -261,7 +259,7 @@ public final class SQLTimestamp extends DataType
 	{
 		int date;
 		int time;
-
+		isNull = in.readBoolean();
 		date = in.readInt();
 		time = in.readInt();
 		setValue(date, time);
@@ -271,7 +269,7 @@ public final class SQLTimestamp extends DataType
 		int date;
 		int time;
 		int nanos;
-
+		isNull = in.readBoolean();
 		date = in.readInt();
 		time = in.readInt();
 		setValue(date, time);

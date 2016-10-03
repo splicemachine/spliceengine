@@ -961,6 +961,7 @@
                                 <argument>
                                     -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator
                                 </argument>
+                                <argument>-Dsplice.spark.kryo.registrationRequired=true</argument>
                                 <argument>-Dsplice.spark.kryoserializer.buffer.max=512m</argument>
                                 <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
                                 <argument>-Dsplice.spark.locality.wait=60s</argument>

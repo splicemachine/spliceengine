@@ -727,7 +727,9 @@ public final class InsertNode extends DMLModStatementNode {
         }
 
 
-    }
+
+
+	}
 
 	/**
 	 * Do the bind time checks to see if bulkInsert is allowed on
@@ -928,6 +930,9 @@ public final class InsertNode extends DMLModStatementNode {
 			** source or the normalize result set, the constant action,
 			** and "this".
 			*/
+			if (targetTableDescriptor.getStoredAs()!=null) {
+				acb.setDataSetProcessorType(CompilerContext.DataSetProcessorType.FORCED_SPARK);
+			}
 
 			acb.pushGetResultSetFactoryExpression(mb);
 
@@ -949,8 +954,12 @@ public final class InsertNode extends DMLModStatementNode {
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
             mb.push(targetTableDescriptor.getVersion());
             mb.push(this.printExplainInformationForActivation());
-
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 10);
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getDelimited());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getEscaped());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLines());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getStoredAs());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLocation());
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 15);
 		}
 		else
 		{

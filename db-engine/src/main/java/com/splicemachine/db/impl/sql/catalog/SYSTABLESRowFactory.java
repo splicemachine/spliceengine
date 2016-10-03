@@ -64,7 +64,13 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_VERSION = 6;
     /* Sequence for understanding coding/decoding with altering tables*/
     protected static final int		SYSTABLES_COLUMN_SEQUENCE = 7;
-
+	/* External Tables Columns	*/
+	protected static final int		SYSTABLES_DELIMITED_BY = 8;
+	protected static final int		SYSTABLES_ESCAPED_BY = 9;
+	protected static final int		SYSTABLES_LINES_BY = 10;
+	protected static final int		SYSTABLES_STORED_AS = 11;
+	protected static final int		SYSTABLES_LOCATION = 12;
+	/* End External Tables Columns	*/
 	protected static final int		SYSTABLES_INDEX1_ID = 0;
 	protected static final int		SYSTABLES_INDEX1_TABLENAME = 1;
 	protected static final int		SYSTABLES_INDEX1_SCHEMAID = 2;
@@ -135,6 +141,11 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String					schemaID = null;
 		String					tableName = null;
         int                     columnSequence = 0;
+		String 					delimited = null;
+		String 					escaped = null;
+		String 					lines = null;
+		String 					storedAs = null;
+		String 					location = null;
 
 		if (td != null)
 		{
@@ -191,6 +202,10 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			    case TableDescriptor.SYNONYM_TYPE:
 					tabSType = "A";
 					break;
+				case TableDescriptor.EXTERNAL_TYPE:
+					tabSType = "E";
+					break;
+
 
 			    default:
 					if (SanityManager.DEBUG)
@@ -199,6 +214,11 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			char[] lockGChar = new char[1];
 			lockGChar[0] = descriptor.getLockGranularity();
 			lockGranularity = new String(lockGChar);
+			delimited = descriptor.getDelimited();
+			escaped = descriptor.getEscaped();
+			lines = descriptor.getLines();
+			storedAs = descriptor.getStoredAs();
+			location = descriptor.getLocation();
 		}
 
 		/* Insert info into systables */
@@ -229,6 +249,12 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		row.setColumn(SYSTABLES_VERSION,new SQLVarchar(CURRENT_TABLE_VERSION));
 
         row.setColumn(SYSTABLES_COLUMN_SEQUENCE,new SQLInteger(columnSequence));
+
+		row.setColumn(SYSTABLES_DELIMITED_BY,new SQLVarchar(delimited));
+		row.setColumn(SYSTABLES_ESCAPED_BY,new SQLVarchar(escaped));
+		row.setColumn(SYSTABLES_LINES_BY,new SQLVarchar(lines));
+		row.setColumn(SYSTABLES_STORED_AS,new SQLVarchar(storedAs));
+		row.setColumn(SYSTABLES_LOCATION,new SQLVarchar(location));
 
 		return row;
 	}
@@ -351,6 +377,12 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		UUID		schemaUUID;
 		SchemaDescriptor	schema;
 		TableDescriptor		tabDesc;
+		String delimited;
+		String escaped;
+		String lines;
+		String storedAs;
+		String location;
+
 
 		/* 1st column is TABLEID (UUID - char(36)) */
 		col = row.getColumn(SYSTABLES_TABLEID);
@@ -386,6 +418,9 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			case 'X' :
 				tableTypeEnum = TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE;
 				break;
+			case 'E' :
+				tableTypeEnum = TableDescriptor.EXTERNAL_TYPE;
+				break;
 			default:
 				if (SanityManager.DEBUG)
 				SanityManager.THROWASSERT("Fourth column value invalid");
@@ -415,8 +450,23 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		//TODO -sf- place version into tuple descriptor
 		DataValueDescriptor versionDescriptor = row.getColumn(SYSTABLES_VERSION);
 
+		DataValueDescriptor delimitedDVD = row.getColumn(SYSTABLES_DELIMITED_BY);
+		DataValueDescriptor escapedDVD = row.getColumn(SYSTABLES_ESCAPED_BY);
+		DataValueDescriptor linesDVD = row.getColumn(SYSTABLES_LINES_BY);
+		DataValueDescriptor storedDVD = row.getColumn(SYSTABLES_STORED_AS);
+		DataValueDescriptor locationDVD = row.getColumn(SYSTABLES_LOCATION);
+
+
+
 		// RESOLVE - Deal with lock granularity
-		tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0),row.getColumn(SYSTABLES_COLUMN_SEQUENCE).getInt());
+		tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0),
+				row.getColumn(SYSTABLES_COLUMN_SEQUENCE).getInt(),
+				delimitedDVD!=null?delimitedDVD.getString():null,
+				escapedDVD!=null?escapedDVD.getString():null,
+				linesDVD!=null?linesDVD.getString():null,
+				storedDVD!=null?storedDVD.getString():null,
+				locationDVD!=null?locationDVD.getString():null
+				);
 		tabDesc.setUUID(tableUUID);
 
 		if(versionDescriptor!=null){
@@ -461,7 +511,12 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
             SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
             SystemColumnImpl.getIndicatorColumn("LOCKGRANULARITY"),
             SystemColumnImpl.getIdentifierColumn("VERSION",true),
-            SystemColumnImpl.getColumn("COLSEQUENCE", Types.INTEGER, false)
+			SystemColumnImpl.getColumn("COLSEQUENCE", Types.INTEGER, false),
+            SystemColumnImpl.getColumn("DELIMITED", Types.VARCHAR,  true),
+			SystemColumnImpl.getColumn("ESCAPED", Types.VARCHAR, true),
+			SystemColumnImpl.getColumn("LINES", Types.VARCHAR, true),
+			SystemColumnImpl.getColumn("STORED", Types.VARCHAR, true),
+			SystemColumnImpl.getColumn("LOCATION", Types.VARCHAR, true)
         };
 	}
 

@@ -224,26 +224,18 @@ public final class SQLReal
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
+		out.writeBoolean(isNull);
 		out.writeFloat(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-        // setValue(in.readFloat()); // can throw StandardException which we can't pass on
-        // assume we wrote the value, so we can read it without problem, for now.
+		isNull = in.readBoolean();
         value = in.readFloat();
-        isNull = false;
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-        // setValue(in.readFloat()); // can throw StandardException which we can't pass on
-        // assume we wrote the value, so we can read it without problem, for now.
+		isNull = in.readBoolean();
         value = in.readFloat();
-        isNull = false;
 	}
 
 	/**

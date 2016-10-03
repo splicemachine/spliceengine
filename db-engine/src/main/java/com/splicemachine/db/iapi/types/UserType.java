@@ -294,8 +294,6 @@ public class UserType extends DataType
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull());
 		if (!isNull())
-//		if (SanityManager.DEBUG)
-//			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values. " + this.getClass());
 			out.writeObject(value);
 	}
 

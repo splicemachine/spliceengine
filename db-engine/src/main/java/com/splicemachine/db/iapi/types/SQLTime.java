@@ -195,10 +195,7 @@ public final class SQLTime extends DataType
 
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
-
+		out.writeBoolean(isNull);
 		out.writeInt(encodedTime);
 		out.writeInt(encodedTimeFraction);
 	}
@@ -208,12 +205,12 @@ public final class SQLTime extends DataType
 	 *
 	 * @exception IOException	Thrown on error reading the object
 	 */
-	public void readExternal(ObjectInput in) throws IOException
-	{
+	public void readExternal(ObjectInput in) throws IOException {
+		isNull = in.readBoolean();
 		setValue(in.readInt(), in.readInt());
 	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException
-	{
+	public void readExternalFromArray(ArrayInputStream in) throws IOException {
+		isNull = in.readBoolean();
 		setValue(in.readInt(), in.readInt());
 	}
 

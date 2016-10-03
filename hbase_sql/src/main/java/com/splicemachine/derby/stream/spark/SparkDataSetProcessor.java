@@ -18,10 +18,11 @@ package com.splicemachine.derby.stream.spark;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.*;
+
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
+import com.splicemachine.derby.vti.SpliceFileVTI;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -29,6 +30,8 @@ import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -283,5 +286,53 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder, rightHashKeys);
     }
 
+    @Override
+    public <V> DataSet<V> readParquetFile(long conglomerateID,int[] baseColumnMap,
+                                          OperationContext context) {
+        List<Column> cols = new ArrayList();
+        for (int i = 0; i< baseColumnMap.length; i++) {
+            if (baseColumnMap[i] != -1)
+                cols.add(new Column(i+""));
+        }
+       return new SparkDataSet(SpliceSpark.getSession().read().parquet(""+conglomerateID)
+                .select(cols.toArray(new Column[cols.size()])).rdd().toJavaRDD()
+        .map(
+                new RowToLocatedRowFunction(context)));
+    }
+
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
+                                          OperationContext context) {
+        String[] allCols  = SpliceSpark.getSession().read().parquet(location).columns();
+        List<Column> cols = new ArrayList();
+        for (int i = 0; i< baseColumnMap.length; i++) {
+            if (baseColumnMap[i] != -1)
+                cols.add(new Column(allCols[i]));
+        }
+        return new SparkDataSet(SpliceSpark.getSession().read().parquet(location)
+                .select(cols.toArray(new Column[cols.size()])).rdd().toJavaRDD()
+                .map(new RowToLocatedRowFunction(context)));
+    }
+
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
+                                          OperationContext context) {
+        String[] allCols  = SpliceSpark.getSession().read().orc(location).columns();
+        List<Column> cols = new ArrayList();
+        for (int i = 0; i< baseColumnMap.length; i++) {
+            if (baseColumnMap[i] != -1)
+                cols.add(new Column(allCols[i]));
+        }
+        return new SparkDataSet(SpliceSpark.getSession().read().orc(location)
+                .select(cols.toArray(new Column[cols.size()])).rdd().toJavaRDD()
+                .map(new RowToLocatedRowFunction(context)));
+    }
+
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+                                      OperationContext context) {
+        try {
+            return SpliceFileVTI.getSpliceFileVTI(location, characterDelimiter, columnDelimiter, baseColumnMap).getDataSet(op, this, op.getExecRowDefinition());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }

@@ -100,6 +100,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     public static final int GLOBAL_TEMPORARY_TABLE_TYPE=3;
     public static final int SYNONYM_TYPE=4;
     public static final int VTI_TYPE=5;
+    public static final int EXTERNAL_TYPE=6;
 
     public static final char ROW_LOCK_GRANULARITY='R';
     public static final char TABLE_LOCK_GRANULARITY='T';
@@ -146,6 +147,14 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     int tableType;
     String tableVersion;
     private int columnSequence;
+    private String delimited;
+    private String escaped;
+    private String lines;
+    private String storedAs;
+    private String location;
+
+
+
 
     /**
      * <p>
@@ -217,7 +226,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -237,7 +246,13 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String tableName,
                            SchemaDescriptor schema,
                            int tableType,
-                           char lockGranularity, int numberOfColumns){
+                           char lockGranularity, int numberOfColumns,
+                           String delimited,
+                           String escaped,
+                           String lines,
+                           String storedAs,
+                           String location
+    ){
         super(dataDictionary);
 
         this.schemaDesctiptor=schema;
@@ -249,6 +264,11 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.columnDescriptorList=new ColumnDescriptorList();
         this.constraintDescriptorList=new ConstraintDescriptorList();
         this.triggerDescriptorList=new GenericDescriptorList();
+        this.delimited = delimited;
+        this.escaped = escaped;
+        this.lines = lines;
+        this.storedAs = storedAs;
+        this.location = location;
     }
 
     //
@@ -271,6 +291,56 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
     public void setColumnSequence(int columnSequence) {
         this.columnSequence = columnSequence;
+    }
+
+    /**
+     *
+     * Location for an external table
+     *
+     * @return
+     */
+    public String getLocation() {
+        return location;
+    }
+
+    /**
+     *
+     * Storage Format
+     *
+     * @return
+     */
+    public String getStoredAs() {
+        return storedAs;
+    }
+
+    /**
+     *
+     * Lines Terminator
+     *
+     * @return
+     */
+    public String getLines() {
+        return lines;
+    }
+
+    /**
+     *
+     * Escape string
+     *
+     * @return
+     */
+    public String getEscaped() {
+        return escaped;
+    }
+
+    /**
+     *
+     * Delimitter string
+     *
+     * @return
+     */
+    public String getDelimited() {
+        return delimited;
     }
 
     /**

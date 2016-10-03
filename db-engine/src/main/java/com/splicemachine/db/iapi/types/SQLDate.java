@@ -214,10 +214,7 @@ public final class SQLDate extends DataType
 
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
-
+		out.writeBoolean(isNull);
 		out.writeInt(encodedDate);
 	}
 
@@ -226,8 +223,8 @@ public final class SQLDate extends DataType
 	 *
 	 * @exception IOException	Thrown on error reading the object
 	 */
-	public void readExternal(ObjectInput in) throws IOException
-	{
+	public void readExternal(ObjectInput in) throws IOException {
+		isNull = in.readBoolean();
 		setValue(in.readInt());
 	}
 

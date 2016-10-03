@@ -1342,7 +1342,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(
                 sd.getSchemaName())){
-            TableDescriptor td=new TableDescriptor(this,tableName,sd,TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1);
+            TableDescriptor td=new TableDescriptor(this,tableName,sd,TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
+                    null,null,null,null,null);
 
             // ensure a vti class exists
             if(getVTIClass(td,false)!=null)
@@ -6677,7 +6678,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // add table to the data dictionary
 
         columnCount=columnList.length;
-        td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
+        td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,
+                null,null,null,null,null);
         td.setUUID(crf.getCanonicalTableUUID());
         addDescriptor(td,sd,SYSTABLES_CATALOG_NUM,false,tc);
         toid=td.getUUID();

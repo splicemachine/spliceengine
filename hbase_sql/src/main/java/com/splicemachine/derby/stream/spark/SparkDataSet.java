@@ -16,6 +16,8 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -28,6 +30,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -42,10 +45,10 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.Column;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -491,4 +494,70 @@ public class SparkDataSet<V> implements DataSet<V> {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public void saveAsParquet(ExecRow execRow, long conglomID) {
+        SpliceSpark.getSession().createDataFrame(
+                rdd.map(new LocatedRowToRowFunction()),execRow.schema())
+                .write()
+                .option("compression","none")
+                .mode("overwrite")
+                .parquet(conglomID+"");
+
+    }
+
+    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,
+                                          OperationContext context) {
+        try {
+            Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
+                    rdd.map(new LocatedRowToRowFunction()),
+                    context.getOperation().getExecRowDefinition().schema());
+            List<Column> cols = new ArrayList();
+            for (int i = 0; i < baseColumnMap.length; i++) {
+                    cols.add(new Column(baseColumnMap[i]+""));
+            }
+            List<Column> partitionByCols = new ArrayList();
+            for (int i = 0; i < partitionBy.length; i++) {
+                partitionByCols.add(new Column(partitionBy[i]+""));
+            }
+            insertDF.write().option("compression","none").partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                    .mode(SaveMode.Append).parquet(location);
+            ValueRow valueRow=new ValueRow(1);
+            valueRow.setColumn(1,new SQLLongint(0));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,
+                                                    OperationContext context) {
+        try {
+            Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
+                    rdd.map(new LocatedRowToRowFunction()),
+                    context.getOperation().getExecRowDefinition().schema());
+            List<Column> cols = new ArrayList();
+            for (int i = 0; i < baseColumnMap.length; i++) {
+                cols.add(new Column(baseColumnMap[i]+""));
+            }
+            List<Column> partitionByCols = new ArrayList();
+            for (int i = 0; i < partitionBy.length; i++) {
+                partitionByCols.add(new Column(partitionBy[i]+""));
+            }
+            insertDF.write().partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                    .mode(SaveMode.Append).orc(location);
+            ValueRow valueRow=new ValueRow(1);
+            valueRow.setColumn(1,new SQLLongint(0));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+                                                OperationContext context) {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+
 }
