@@ -164,6 +164,8 @@ public class BooleanList extends AbstractList<Boolean>{
             return nextBoolean();
         }
 
+        @Override public void remove(){ throw new UnsupportedOperationException("remove"); }
+
         public boolean nextBoolean(){
             if(!hasNext()) throw new NoSuchElementException();
             boolean b = list[pos];
