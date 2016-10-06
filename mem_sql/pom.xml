@@ -20,13 +20,13 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.8-SNAPSHOT</version>
+        <version>3.0.0.9-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -35,27 +35,27 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
         </dependency>
         <!--Test jars -->
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_si_api</artifactId>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_storage</artifactId>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -68,17 +68,17 @@
             <artifactId>pipeline_api</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -116,12 +116,12 @@
                     <dependency>
                         <groupId>org.splicetest.txn</groupId>
                         <artifactId>txn-it-procs</artifactId>
-                        <version>3.0.0.8-SNAPSHOT</version>
+                        <version>3.0.0.9-SNAPSHOT</version>
                     </dependency>
                     <dependency>
                         <groupId>org.splicetest.sqlj</groupId>
                         <artifactId>sqlj-it-procs</artifactId>
-                        <version>3.0.0.8-SNAPSHOT</version>
+                        <version>3.0.0.9-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -146,7 +146,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.txn</groupId>
                                     <artifactId>txn-it-procs</artifactId>
-                                    <version>3.0.0.8-SNAPSHOT</version>
+                                    <version>3.0.0.9-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/txn-it</outputDirectory>
@@ -155,7 +155,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.sqlj</groupId>
                                     <artifactId>sqlj-it-procs</artifactId>
-                                    <version>3.0.0.8-SNAPSHOT</version>
+                                    <version>3.0.0.9-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sql-it</outputDirectory>

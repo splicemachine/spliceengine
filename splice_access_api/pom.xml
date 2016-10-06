@@ -20,13 +20,13 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.8-SNAPSHOT</version>
+        <version>3.0.0.9-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_encoding</artifactId>
-            <version>3.0.0.8-SNAPSHOT</version>
+            <version>3.0.0.9-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <artifactId>guava</artifactId>
