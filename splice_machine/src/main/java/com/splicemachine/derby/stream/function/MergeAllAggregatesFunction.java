@@ -34,6 +34,9 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
     protected SpliceGenericAggregator[] aggregates;
     protected boolean initialized;
     protected GenericAggregateOperation op;
+    protected boolean row1IsGood = false;
+    protected boolean row2IsGood = false;
+
     public MergeAllAggregatesFunction() {
     }
 
@@ -63,14 +66,19 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
         if (locatedRow2 == null) return locatedRow1;
         ExecRow r1 = locatedRow1.getRow();
         ExecRow r2 = locatedRow2.getRow();
+        row1IsGood = false;
+        row2IsGood = false;
 
         for(SpliceGenericAggregator aggregator:aggregates) {
-            if (!aggregator.isInitialized(r1)) {
+            if (!row1IsGood && !aggregator.isInitialized(r1)) {
                 aggregator.initializeAndAccumulateIfNeeded(r1, r1);
+            } else {
+                row1IsGood = true;
             }
-            if (!aggregator.isInitialized(r2)) {
+            if (!row2IsGood && !aggregator.isInitialized(r2)) {
                 aggregator.accumulate(r2, r1);
             } else {
+                row2IsGood = true;
                 aggregator.merge(r2, r1);
             }
         }
