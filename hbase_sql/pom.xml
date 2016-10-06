@@ -988,8 +988,7 @@
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
                                 <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
-                               <argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer
-                                </argument>
+                                <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer</argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     -Dhbase.rootdir=${project.build.directory}/hbase
