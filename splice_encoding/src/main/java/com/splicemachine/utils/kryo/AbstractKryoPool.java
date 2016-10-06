@@ -19,7 +19,6 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.spark.serializer.KryoSerializer;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -29,19 +28,49 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * available for re-use, while requiring only a single thread access to a Kryo instance
  * at a time. If the pool is exhausted, then this will create new Kryo objects.
  *
+ * It is abstract so we can re-use the structure for a custom Spark Serializer
+ *
  * @author Scott Fines
  * Created on: 8/15/13
  */
-public class KryoPool extends AbstractKryoPool {
-    public KryoPool(int poolSize) {
-        super(poolSize);
+public abstract class AbstractKryoPool {
+    protected final Queue<Kryo> instances;
+    protected volatile KryoRegistry kryoRegistry;
+    protected int poolSize;
+
+    public AbstractKryoPool(int poolSize) {
+        this.poolSize = poolSize;
+        this.instances =new ConcurrentLinkedQueue<>();
     }
 
-    @Override
-    public Kryo newInstance() {
-        Kryo next = new Kryo(new DefaultClassResolver(),new MapReferenceResolver());
-        if(kryoRegistry!=null)
-            kryoRegistry.register(next);
+    public void setKryoRegistry(KryoRegistry kryoRegistry){
+        this.kryoRegistry = kryoRegistry;
+    }
+
+    public Kryo get(){
+        //try getting an instance that already exists
+        Kryo next = instances.poll();
+        if(next==null){
+            next = newInstance();
+        }
         return next;
+    }
+
+    public abstract Kryo newInstance();
+
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",justification = "Intentional")
+    public void returnInstance(Kryo kryo){
+        /*
+         * If the pool is full, then we will allow kryo to run out of scope,
+         * which will allow the GC to collect it. Thus, we can suppress
+         * the findbugs warning
+         */
+        if(instances.size()< this.poolSize){
+            instances.offer(kryo);
+        }
+
+    }
+    public interface KryoRegistry{
+        void register(Kryo instance);
     }
 }
