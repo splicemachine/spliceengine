@@ -1,24 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
+import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
- * Created by jleach on 9/30/16.
+ *
+ * IT's for external table functionality
+ *
  */
-public class ExternalTableIT {
+public class ExternalTableIT extends SpliceUnitTest{
 
     private static final String SCHEMA_NAME = ExternalTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -30,6 +30,12 @@ public class ExternalTableIT {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
+
+    @BeforeClass
+    public static void cleanoutDirectory() {
+
+    }
+
 
     @Test
     public void testInvalidSyntaxParquet() throws Exception {
@@ -72,7 +78,6 @@ public class ExternalTableIT {
     @Test
     public void testLocationRequired() throws Exception {
         try {
-            // Location Required For Parquet
             methodWatcher.executeUpdate("create external table foo (col1 int, col2 int) STORED AS PARQUET");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -84,7 +89,6 @@ public class ExternalTableIT {
     @Test
     public void testNoPrimaryKeysOnExternalTables() throws Exception {
         try {
-            // Location Required For Parquet
             methodWatcher.executeUpdate("create external table foo (col1 int, col2 int, primary key (col1)) STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -95,7 +99,6 @@ public class ExternalTableIT {
     @Test
     public void testNoCheckConstraintsOnExternalTables() throws Exception {
         try {
-            // Location Required For Parquet
             methodWatcher.executeUpdate("create external table foo (col1 int, col2 int, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000)) STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -106,7 +109,6 @@ public class ExternalTableIT {
     @Test
     public void testNoReferenceConstraintsOnExternalTables() throws Exception {
         try {
-            // Location Required For Parquet
             methodWatcher.executeUpdate("create table Cities (col1 int, col2 int, primary key (col1))");
             methodWatcher.executeUpdate("create external table foo (col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key\n" +
                     " REFERENCES Cities) STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
@@ -119,7 +121,6 @@ public class ExternalTableIT {
         @Test
         public void testNoUniqueConstraintsOnExternalTables() throws Exception {
             try {
-                // Location Required For Parquet
                 methodWatcher.executeUpdate("create external table foo (col1 int, col2 int unique)" +
                         " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
                 Assert.fail("Exception not thrown");
@@ -131,7 +132,6 @@ public class ExternalTableIT {
     @Test
     public void testNoGenerationClausesOnExternalTables() throws Exception {
         try {
-            // Location Required For Parquet
             methodWatcher.executeUpdate("create external table foo (col1 int, col2 varchar(24), col3 GENERATED ALWAYS AS ( UPPER(col2) ))" +
                     " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
             Assert.fail("Exception not thrown");
@@ -145,7 +145,8 @@ public class ExternalTableIT {
         try {
             methodWatcher.executeUpdate("create external table update_foo (col1 int, col2 varchar(24))" +
                     " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
-            methodWatcher.executeQuery("update table update_foo set col1 = 4");
+            methodWatcher.executeUpdate("update update_foo set col1 = 4");
+            Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT05",e.getSQLState());
         }
@@ -154,17 +155,37 @@ public class ExternalTableIT {
     @Test
     public void testCannotDeleteExternalTable() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external table update_foo (col1 int, col2 varchar(24))" +
+            methodWatcher.executeUpdate("create external table delete_foo (col1 int, col2 varchar(24))" +
                     " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
-            methodWatcher.executeQuery("delete from update_foo where col1 = 4");
+            methodWatcher.executeUpdate("delete from delete_foo where col1 = 4");
+            Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT05",e.getSQLState());
         }
     }
 
     @Test
-    public void testFileNotFoundORC() {
+    public void testFileNotFoundParquet() throws Exception {
+        try {
+            methodWatcher.executeUpdate("create external table file_not_found_p (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            methodWatcher.executeQuery("select * from file_not_found_p");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT11",e.getSQLState());
+        }
+    }
 
+    @Test
+    public void testFileNotFoundORC() throws Exception {
+        try {
+            methodWatcher.executeUpdate("create external table file_not_found_o (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            methodWatcher.executeQuery("select * from file_not_found_o");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT11",e.getSQLState());
+        }
     }
 
     @Test
@@ -172,112 +193,128 @@ public class ExternalTableIT {
 
     }
 
-    @Test
-    public void testWriteToWrongExistingPartitionsParquet() {
-
-    }
 
     @Test
-    public void testWriteToWrongExistingPartitionsORC() {
-
-    }
-
-    @Test
-    public void testWriteToExistingParquetWithPartition() {
-
-    }
-
-    @Test
-    public void testWriteToExistingParquetWithoutPartition() {
-
+    public void testWriteReadFromSimpleParquetExternalTable() throws Exception {
+            methodWatcher.executeUpdate(String.format("create external table simple_parquet (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'",getExternalResourceDrirectory()+"simple_parquet"));
+            methodWatcher.executeUpdate(String.format("insert into simple_parquet values (1,'XXXX')," +
+                    "(2,'YYYY')," +
+                    "(3,'ZZZZ')"));
+            ResultSet rs = methodWatcher.executeQuery("select * from simple_parquet");
+            Assert.assertEquals("COL1 |COL2 |\n" +
+                    "------------\n" +
+                    "  1  |XXXX |\n" +
+                    "  2  |YYYY |\n" +
+                    "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
-    public void testWriteToExistingORCWithPartition() {
+    public void testWriteReadFromPartitionedParquetExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table partitioned_parquet (col1 int, col2 varchar(24))" +
+                "partitioned by (col2) STORED AS PARQUET LOCATION '%s'",getExternalResourceDrirectory()+"partitioned_parquet"));
+        methodWatcher.executeUpdate(String.format("insert into partitioned_parquet values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        ResultSet rs = methodWatcher.executeQuery("select * from partitioned_parquet");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testWriteReadFromSimpleORCExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table simple_orc (col1 int, col2 varchar(24))" +
+                " STORED AS ORC LOCATION '%s'",getExternalResourceDrirectory()+"simple_orc"));
+        methodWatcher.executeUpdate(String.format("insert into simple_orc values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        ResultSet rs = methodWatcher.executeQuery("select * from simple_orc");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testWriteReadFromPartitionedORCExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table partitioned_orc (col1 int, col2 varchar(24))" +
+                "partitioned by (col2) STORED AS ORC LOCATION '%s'",getExternalResourceDrirectory()+"partitioned_orc"));
+        methodWatcher.executeUpdate(String.format("insert into partitioned_orc values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        ResultSet rs = methodWatcher.executeQuery("select * from partitioned_orc");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testWriteReadFromSimpleTextExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table simple_text (col1 int, col2 varchar(24))" +
+                " STORED AS TEXTFILE LOCATION '%s'",getExternalResourceDrirectory()+"simple_text"));
+        methodWatcher.executeUpdate(String.format("insert into simple_text values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        ResultSet rs = methodWatcher.executeQuery("select * from simple_text");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testCannotAlterExternalTable() throws Exception {
+        try {
+            methodWatcher.executeUpdate("create external table alter_foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            methodWatcher.executeUpdate("alter table alter_foo add column col3 int");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT12",e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCannotAddIndexToExternalTable() throws Exception {
+        try {
+            methodWatcher.executeUpdate("create external table add_index_foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            methodWatcher.executeUpdate("create index add_index_foo_ix on add_index_foo (col2)");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT13",e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCannotAddStatsToExternalTable() throws Exception {
+        try {
+            methodWatcher.executeUpdate("create external table add_stats_foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            methodWatcher.executeUpdate("analyze table add_stats_foo");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT15",e.getSQLState());
+        }
 
     }
 
     @Test
-    public void testWriteToExistingORCWithoutPartition() {
+    public void testCannotAddTriggerToExternalTable() throws Exception {
+        methodWatcher.executeUpdate("create external table add_trigger_foo (col1 int, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
 
+        verifyTriggerCreateFails(tb.on("add_trigger_foo").named("trig").before().delete().row().then("select * from sys.systables"),
+                "Cannot add triggers to external table 'ADD_TRIGGER_FOO'.");
     }
 
-    @Test
-    public void testWriteToExistingTextfile() {
 
-    }
-
-    @Test
-    public void testAttemptToDeleteFromExternalTable() {
-
-    }
-
-    @Test
-    public void testAttemptToUpdateFromExternalTable() {
-
-    }
-
-    @Test
-    public void testAttemptToIndexExternalTable() {
-
-    }
-
-    @Test
-    public void testAttemptToPlaceTriggersOnExternalTable() {
-
-    }
-
-    @Test
-    public void testAttemptToPlaceForeignKeysOnExternalTable() {
-
-    }
-
-    @Test
-    public void testCanDropExternalTable() {
-
-    }
-
-    @Test
-    public void testCreateStatsOnParquetTable() {
-
-    }
-
-    @Test
-    public void testCreateStatsOnORCTable() {
-
-    }
-
-    @Test
-    public void testCreateStatsOnTextFile() {
-
-    }
-
-    @Test
-    public void testAlterExternalTableAddColumn() {
-
-    }
-
-    @Test
-    public void testAlterExternalTableDropColumn() {
-
-    }
-
-    @Test
-    public void testExternalTableInDictionary() {
-
-    }
-
-    @Test
-    public void testExternalTableCannotHavePrimaryKey() {
-
-    }
-
-//    @Test
-    public void create_illegal_triggersNotAllowedOnSystemTables() throws Exception {
-        // Cannot create triggers on external tables.
-        verifyTriggerCreateFails(tb.on("SYS.SYSTABLES").named("trig").before().delete().row().then("select * from sys.systables"),
-                "'CREATE TRIGGER' is not allowed on the System table '\"SYS\".\"SYSTABLES\"'.");
-    }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -295,6 +332,31 @@ public class ExternalTableIT {
             assertEquals(expectedError, e.getMessage());
         }
 
+    }
+
+    public String getExternalResourceDrirectory() {
+        return getHBaseDirectory()+"/target/external/";
+    }
+
+
+    @Test
+    @Ignore
+    public void testWriteToWrongPartitionedParquetExternalTable() throws Exception {
+        try {
+            methodWatcher.executeUpdate(String.format("create external table w_partitioned_parquet (col1 int, col2 varchar(24))" +
+                    "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getExternalResourceDrirectory() + "w_partitioned_parquet"));
+            methodWatcher.executeUpdate(String.format("insert into w_partitioned_parquet values (1,'XXXX')," +
+                    "(2,'YYYY')," +
+                    "(3,'ZZZZ')"));
+            methodWatcher.executeUpdate(String.format("create external table w_partitioned_parquet_2 (col1 int, col2 varchar(24))" +
+                    "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDrirectory() + "w_partitioned_parquet"));
+            methodWatcher.executeUpdate(String.format("insert into w_partitioned_parquet_2 values (1,'XXXX')," +
+                    "(2,'YYYY')," +
+                    "(3,'ZZZZ')"));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }

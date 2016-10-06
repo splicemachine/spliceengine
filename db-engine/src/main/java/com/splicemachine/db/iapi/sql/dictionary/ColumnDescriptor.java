@@ -72,7 +72,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     private long				autoincInc;
     private long				autoincValue;
     private boolean collectStatistics;
-    private int partitionPosition;
+    private int partitionPosition = -1;
     /* Used for Serde */
     //Following variable is used to see if the user is adding an autoincrement
     //column, or if user is altering the existing autoincrement column to change
@@ -112,11 +112,12 @@ public final class ColumnDescriptor extends TupleDescriptor
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
                             UUID defaultUUID, long autoincStart, long autoincInc,
-                            long userChangedWhat)
+                            long userChangedWhat,
+                            int partitionPosition)
     {
         this(columnName, columnPosition, storagePosition, columnType, columnDefault,
                 columnDefaultInfo, table, defaultUUID, autoincStart,
-                autoincInc);
+                autoincInc,partitionPosition);
         autoinc_create_or_modify_Start_Increment = userChangedWhat;
     }
 
@@ -143,7 +144,7 @@ public final class ColumnDescriptor extends TupleDescriptor
                             DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
-                            UUID defaultUUID, long autoincStart, long autoincInc)
+                            UUID defaultUUID, long autoincStart, long autoincInc, int partitionPosition)
     {
         this.columnName = columnName;
         this.columnPosition = columnPosition;
@@ -166,6 +167,7 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincValue = autoincStart;
         this.autoincInc = autoincInc;
         this.collectStatistics = allowsStatistics(columnType);
+        this.partitionPosition = partitionPosition;
     }
 
     /**

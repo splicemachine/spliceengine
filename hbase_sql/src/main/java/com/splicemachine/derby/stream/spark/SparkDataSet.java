@@ -479,7 +479,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
             assert rightJoinKeys!=null && leftJoinKeys!=null && rightJoinKeys.length == leftJoinKeys.length:"Join Keys Have Issues";
             for (int i = 0; i< rightJoinKeys.length;i++) {
-                Column joinEquality = (leftDF.col(leftJoinKeys[i]+"").equalTo(rightDF.col(rightJoinKeys[i]+"")));
+                Column joinEquality = (leftDF.col("col"+leftJoinKeys[i]).equalTo(rightDF.col("col"+rightJoinKeys[i])));
                 expr = i!=0?expr.and(joinEquality):joinEquality;
             }
             DataSet joinedSet;
@@ -514,11 +514,11 @@ public class SparkDataSet<V> implements DataSet<V> {
                     context.getOperation().getExecRowDefinition().schema());
             List<Column> cols = new ArrayList();
             for (int i = 0; i < baseColumnMap.length; i++) {
-                    cols.add(new Column(baseColumnMap[i]+""));
+                    cols.add(new Column("col"+baseColumnMap[i]));
             }
-            List<Column> partitionByCols = new ArrayList();
+            List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(new Column(partitionBy[i]+""));
+                partitionByCols.add(new String("col"+partitionBy[i]));
             }
             insertDF.write().option("compression","none").partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                     .mode(SaveMode.Append).parquet(location);
@@ -538,13 +538,14 @@ public class SparkDataSet<V> implements DataSet<V> {
                     context.getOperation().getExecRowDefinition().schema());
             List<Column> cols = new ArrayList();
             for (int i = 0; i < baseColumnMap.length; i++) {
-                cols.add(new Column(baseColumnMap[i]+""));
+                cols.add(new Column("col"+baseColumnMap[i]));
             }
             List<Column> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(new Column(partitionBy[i]+""));
+                partitionByCols.add(new Column("col"+partitionBy[i]));
             }
-            insertDF.write().partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+            insertDF.write().option("compression","none")
+                    .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                     .mode(SaveMode.Append).orc(location);
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(0));
@@ -556,7 +557,23 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
                                                 OperationContext context) {
-        throw new UnsupportedOperationException("Not Supported");
+
+        try {
+            Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
+                    rdd.map(new LocatedRowToRowFunction()),
+                    context.getOperation().getExecRowDefinition().schema());
+            List<Column> cols = new ArrayList();
+            for (int i = 0; i < baseColumnMap.length; i++) {
+                cols.add(new Column("col"+baseColumnMap[i]));
+            }
+            insertDF.write()
+                    .mode(SaveMode.Append).csv(location);
+            ValueRow valueRow=new ValueRow(1);
+            valueRow.setColumn(1,new SQLLongint(0));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

@@ -25,7 +25,9 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.TreeMap;
 
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -49,6 +51,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import org.spark_project.guava.primitives.Ints;
 
 /**
  * This class represents a table descriptor. The external interface to this
@@ -101,7 +104,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     public static final int SYNONYM_TYPE=4;
     public static final int VTI_TYPE=5;
     public static final int EXTERNAL_TYPE=6;
-
+    public static final int[] EMPTY_PARTITON_ARRAY = new int[0];
     public static final char ROW_LOCK_GRANULARITY='R';
     public static final char TABLE_LOCK_GRANULARITY='T';
     public static final char DEFAULT_LOCK_GRANULARITY=ROW_LOCK_GRANULARITY;
@@ -1453,9 +1456,26 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                             0,
                             desc.getAutoincStart(),
                             desc.getAutoincInc(),
-                            desc.getAutoinc_create_or_modify_Start_Increment());
+                            desc.getAutoinc_create_or_modify_Start_Increment(),
+                            desc.getPartitionPosition());
         }
         return columnInfo;
+    }
+
+    public int[] getPartitionBy() {
+        int length = columnDescriptorList.size();
+        TreeMap<Integer,Integer> map = null;
+        for (int i =0; i< length;i++) {
+            ColumnDescriptor desc = columnDescriptorList.get(i);
+            if (desc.getPartitionPosition() !=-1) {
+                if (map==null)
+                    map = new TreeMap<>();
+                map.put(desc.getPartitionPosition(),i);
+            }
+        }
+        if (map==null)
+            return EMPTY_PARTITON_ARRAY;
+        return Ints.toArray(map.values());
     }
 
 }

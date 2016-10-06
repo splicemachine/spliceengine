@@ -129,7 +129,8 @@ public interface ResultSetFactory {
 								 String escaped,
 								 String lines,
 								 String storedAs,
-								 String location)
+								 String location,
+								 int partitionBy)
         throws StandardException;
 
 	/**

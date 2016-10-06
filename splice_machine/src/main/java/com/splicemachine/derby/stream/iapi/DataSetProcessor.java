@@ -17,6 +17,8 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -135,12 +137,12 @@ public interface DataSetProcessor {
     Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys);
 
     public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
-                                          OperationContext context);
+                                          OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue) throws StandardException ;
 
     public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
-                                      OperationContext context);
+                                      OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue) throws StandardException;
 
     public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                                OperationContext context);
+                                                OperationContext context) throws StandardException;
 
 }

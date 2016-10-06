@@ -369,16 +369,15 @@ public class TableScanOperation extends ScanOperation{
         }
         if (storedAs!= null) {
             if (storedAs.equals("T"))
-                return dsp.readTextFile(this,location,delimited,null,baseColumnMap,context);
+                return dsp.readTextFile(this,location,delimited,null,baseColumnMap,context).flatMap(new TableScanQualifierFunction(context,null));
             if (storedAs.equals("P"))
-                return dsp.readParquetFile(baseColumnMap,location,context);
+                return dsp.readParquetFile(baseColumnMap,location,context,getScanInformation().getScanQualifiers(),null).flatMap(new TableScanQualifierFunction(context,null));
             if (storedAs.equals("O"))
-                return dsp.readORCFile(baseColumnMap,location,context);
+                return dsp.readORCFile(baseColumnMap,location,context,getScanInformation().getScanQualifiers(),null).flatMap(new TableScanQualifierFunction(context,null));
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
         }
-
         else
         return dsp.<TableScanOperation,LocatedRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)

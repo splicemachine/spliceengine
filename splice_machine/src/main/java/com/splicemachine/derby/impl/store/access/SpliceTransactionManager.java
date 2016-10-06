@@ -989,7 +989,6 @@ public class SpliceTransactionManager implements XATransactionController,
     public StoreCostController openStoreCost(ConglomerateDescriptor cd) throws StandardException {
         // Find the conglomerate.
         Conglomerate conglom = findExistingConglomerate(cd.getConglomerateNumber());
-
         // Get a scan controller.
         return conglom.openStoreCost(cd,this, rawtran);
     }

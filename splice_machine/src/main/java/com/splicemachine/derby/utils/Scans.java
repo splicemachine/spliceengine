@@ -383,6 +383,9 @@ public class Scans extends SpliceUtils {
         return(row_qualifies);
     }
 
+
+
+
     private static boolean filterNull(int operator, DataValueDescriptor columnValue, DataValueDescriptor orderable, int variantType) {
         if (orderable==null||orderable.isNull()) {
             switch (operator) {

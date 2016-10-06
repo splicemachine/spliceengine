@@ -28,9 +28,15 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
+
+import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.stream.iapi.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader;
 import org.spark_project.guava.base.Charsets;
 import scala.Tuple2;
 import com.splicemachine.access.api.DistributedFileSystem;
@@ -41,11 +47,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -312,21 +313,25 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <V> DataSet<V> readParquetFile(long conglomerateID,int[] baseColumnMap, OperationContext context) {
-        throw new UnsupportedOperationException("readParquetFile Not Supported");
+        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+        return new ControlDataSet(proc.readParquetFile(conglomerateID,baseColumnMap,context).toLocalIterator());
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context) {
-        throw new UnsupportedOperationException("readParquetFile Not Supported");
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue) throws StandardException {
+            DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+            return new ControlDataSet(proc.readParquetFile(baseColumnMap, location, context, qualifiers, probeValue).toLocalIterator());
+   }
+
+    @Override
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue) throws StandardException {
+        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+        return new ControlDataSet(proc.readORCFile(baseColumnMap,location,context,qualifiers,probeValue).toLocalIterator());
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context) {
-        throw new UnsupportedOperationException("readORCFile Not Supported");
-    }
-
-    @Override
-    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) {
-        throw new UnsupportedOperationException("readTextFile Not Supported");
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) throws StandardException{
+        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+        return new ControlDataSet(proc.readTextFile(op,location,characterDelimiter,columnDelimiter,baseColumnMap,context).toLocalIterator());
     }
 }

@@ -19,6 +19,10 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.utils.IntArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -76,6 +80,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected String lines;
     protected String storedAs;
     protected String location;
+    protected int partitionByRefItem;
+    protected int[] partitionBy;
 
 
 
@@ -102,17 +108,19 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String escaped,
                            String lines,
                            String storedAs,
-                           String location) throws StandardException{
+                           String location,
+                            int partitionByRefItem) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
         this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
-        init();
         this.delimited = delimited;
         this.escaped = escaped;
         this.lines = lines;
         this.storedAs = storedAs;
         this.location = location;
+        this.partitionByRefItem = partitionByRefItem;
+        init();
     }
 
     @Override
@@ -122,6 +130,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             super.init(context);
             source.init(context);
             writeInfo.initialize(context);
+
+            GenericStorablePreparedStatement statement = context.getPreparedStatement();
+            if (this.storedAs == null || partitionByRefItem ==-1)
+                this.partitionBy = TableDescriptor.EMPTY_PARTITON_ARRAY;
+            else
+                this.partitionBy = ((ReferencedColumnsDescriptorImpl) statement.getSavedObject(partitionByRefItem)).getReferencedColumnPositions();
             heapConglom=writeInfo.getConglomerateId();
             pkCols=writeInfo.getPkColumnMap();
             autoIncrementRowLocationArray=writeInfo. getConstantAction()!=null &&
@@ -236,6 +250,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         lines = in.readBoolean()?in.readUTF():null;
         storedAs = in.readBoolean()?in.readUTF():null;
         location = in.readBoolean()?in.readUTF():null;
+        this.partitionByRefItem = in.readInt();
     }
 
     @Override
@@ -266,6 +281,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeBoolean(location!=null);
         if (location!=null)
             out.writeUTF(location);
+        out.writeInt(partitionByRefItem);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -289,11 +305,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p"))
-                    return set.writeParquetFile(IntArrays.count(execRowTypeFormatIds.length),new int[0],location,operationContext);
+                    return set.writeParquetFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location,operationContext);
                 if (storedAs.toLowerCase().equals("o"))
-                    return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),new int[0],location,operationContext);
-
-
+                    return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location,operationContext);
+                if (storedAs.toLowerCase().equals("t"))
+                    return set.writeTextFile(this,location,delimited,lines,IntArrays.count(execRowTypeFormatIds.length),operationContext);
+                new RuntimeException("storedAs type not supported -> " + storedAs);
             }
 
 

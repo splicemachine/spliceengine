@@ -530,7 +530,7 @@ public class CreateTableNode extends DDLStatementNode
 		// for each column, stuff system.column
 		ColumnInfo[] colInfos = new ColumnInfo[coldefs.countNumberOfColumns()];
 
-	    int numConstraints = coldefs.genColumnInfos(colInfos);
+	    int numConstraints = coldefs.genColumnInfos(colInfos, this.partitionedResultColumns);
 
 		/* If we've seen a constraint, then build a constraint list */
 		ConstantAction[] conActions = null;

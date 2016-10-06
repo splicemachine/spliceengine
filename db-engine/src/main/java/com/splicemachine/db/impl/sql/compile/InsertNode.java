@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -922,6 +923,14 @@ public final class InsertNode extends DMLModStatementNode {
 
 		/* generate the parameters */
 		generateParameterValueSet(acb);
+
+		/* Generate Partitions if Applicable */
+		int partitionReferenceItem = -1;
+		int[] partitionBy = targetTableDescriptor.getPartitionBy();
+		if (partitionBy.length != 0)
+			partitionReferenceItem=acb.addItem(new ReferencedColumnsDescriptorImpl(partitionBy));
+
+
 		// Base table
 		if (targetTableDescriptor != null)
 		{
@@ -959,7 +968,8 @@ public final class InsertNode extends DMLModStatementNode {
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLines());
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getStoredAs());
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLocation());
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 15);
+			mb.push(partitionReferenceItem);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 16);
 		}
 		else
 		{

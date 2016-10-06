@@ -18,6 +18,8 @@ package com.splicemachine.derby.stream.utils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
@@ -152,17 +154,17 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context) {
-        return delegate.readParquetFile(baseColumnMap, location, context);
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue) throws StandardException {
+        return delegate.readParquetFile(baseColumnMap, location, context,qualifiers,probeValue);
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context) {
-        return delegate.readORCFile(baseColumnMap, location, context);
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue) throws StandardException {
+        return delegate.readORCFile(baseColumnMap, location, context,qualifiers,probeValue);
     }
 
     @Override
-    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) {
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) throws StandardException {
         return delegate.readTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context);
     }
 }

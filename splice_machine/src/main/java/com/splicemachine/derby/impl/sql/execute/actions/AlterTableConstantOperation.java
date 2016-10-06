@@ -205,6 +205,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // older version (or at target) has to get td first, potential deadlock
         TableDescriptor td = getTableDescriptor(lcc);
 
+        if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
+            throw StandardException.newException(
+                    SQLState.EXTERNAL_TABLES_NO_ALTER,td.getName());
+        }
+
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
 

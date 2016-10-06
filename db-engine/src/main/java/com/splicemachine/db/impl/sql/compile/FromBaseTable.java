@@ -525,6 +525,9 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public void verifyProperties(DataDictionary dDictionary) throws StandardException{
+        if (tableDescriptor.getStoredAs()!=null) {
+            dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+        }
         if(tableProperties==null){
             return;
         }
@@ -625,10 +628,6 @@ public class FromBaseTable extends FromTable {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
                         "index, constraint, joinStrategy, useSpark, pin");
-            }
-
-            if (tableDescriptor.getStoredAs()!=null) {
-                dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
             }
 
 

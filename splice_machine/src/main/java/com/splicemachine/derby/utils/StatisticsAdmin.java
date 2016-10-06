@@ -118,6 +118,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn, schema, table);
+            if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
+                throw StandardException.newException(
+                        com.splicemachine.db.iapi.reference.SQLState.EXTERNAL_TABLES_NO_STATS,td.getName());
+            }
             //verify that that column exists
             ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
             for (ColumnDescriptor descriptor : columnDescriptorList) {
@@ -188,6 +192,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
             List<Future<StatsResult>> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
+                if (td.getStoredAs() != null)
+                    continue; // Cannot run stats currently on external tables.
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
                 futures.add(collectTableStatistics(td, txn, conn));
             }
@@ -247,6 +253,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             schema = EngineUtils.validateSchema(schema);
             table = EngineUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
+            if (tableDesc!=null && tableDesc.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
+                throw StandardException.newException(
+                        com.splicemachine.db.iapi.reference.SQLState.EXTERNAL_TABLES_NO_STATS,tableDesc.getName());
+            }
             List<TableDescriptor> tds = Collections.singletonList(tableDesc);
             authorize(tds);
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
