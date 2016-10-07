@@ -673,8 +673,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             Predicate[] preds=new Predicate[size];
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
-                if(!isHashableJoin && isQualifier(pred,optTable,pushPreds) ||
-                        isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
+                if(isQualifier(pred,optTable,pushPreds) ||
+                        (isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds))
+                        ) {
                     pred.markQualifier();
                     if(SanityManager.DEBUG){
                         if(pred.isInListProbePredicate()){

@@ -395,53 +395,6 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             System.out.println("shutting down");
         }
     }
-    
-    /*
-     * Regression test for DB-3812
-     * 
-     * Make sure the explain plan for hinted and unhinted versions of a certain query are the same.
-     * Previously, unhinted plan had wrong join order due to costing problem.
-     */
-    @Test
-    public void testNestedLoopJoinWithAndWithoutJoinOrderHint() throws Exception {
-        methodWatcher.executeUpdate("CREATE TABLE NLJ3812A (i bigint NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), j bigint)");
-        methodWatcher.executeUpdate("CREATE TABLE NLJ3812B (i bigint NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), j bigint)");
-        methodWatcher.executeUpdate("create table NLJ3812C1 (i bigint, j bigint, k bigint, l bigint)");
-        methodWatcher.executeUpdate("create table NLJ3812C2 (i bigint, j bigint, k bigint, l bigint)");
-
-        System.out.println("insert data");
-        methodWatcher.executeUpdate("insert into NLJ3812A (j) values 1,2,3,4,5,6,7,8,9,10");
-        System.out.println("insert select");
-        methodWatcher.executeUpdate("insert into NLJ3812A (j) select j from NLJ3812A");
-    	for (int i = 0; i < 8; i++) {
-            System.out.println("insert select["+i+"]");
-            methodWatcher.executeUpdate("insert into NLJ3812A (j) select j from NLJ3812A");
-		}
-        System.out.println("insert values 1");
-        methodWatcher.executeUpdate("insert into NLJ3812B (j) values 1");
-
-        System.out.println("insert select join");
-		String query = "%s insert into %s (i, j, k, l) " +
-            "select a.i, a.j, b.i, b.j " +
-            "from %s " +
-            "NLJ3812B b, NLJ3812A a " +
-            "where b.i = a.j and b.i = 1";
-
-        String explainHinted = format(query, "explain", "NLJ3812C1", "--SPLICE-PROPERTIES joinOrder=FIXED\n");
-        String explainUnhinted = format(query, "explain", "NLJ3812C2", "");
-
-        rowContainsQuery(
-                new int[] {3, 5, 6},
-                explainHinted,
-                methodWatcher,
-                "BroadcastJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
-
-        rowContainsQuery(
-                new int[] {3, 5, 6},
-                explainUnhinted,
-                methodWatcher,
-                "BroadcastJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
-    }
 
     //DB-3865
     @Test
