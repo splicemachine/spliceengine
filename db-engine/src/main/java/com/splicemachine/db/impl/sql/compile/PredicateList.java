@@ -676,8 +676,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 if(isQualifier(pred,optTable,pushPreds) ||
                         (isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds))
                         ) {
-//                if(!isHashableJoin && isQualifier(pred,optTable,pushPreds) ||
-//                        isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
                     pred.markQualifier();
                     if(SanityManager.DEBUG){
                         if(pred.isInListProbePredicate()){
