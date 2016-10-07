@@ -832,8 +832,7 @@ public final class SQLDate extends DataType
 	{
         if (isNull())
             return null;
-        
-        return new Date(getTimeInMillis(cal));
+		return Date.valueOf(java.time.LocalDate.of(getYear(encodedDate),getMonth(encodedDate),getDay(encodedDate)));
 	}
 	
 	
@@ -1342,7 +1341,8 @@ public final class SQLDate extends DataType
 		if (row.isNullAt(ordinal))
 			setToNull();
 		else {
-			encodedDate = computeEncodedDate(row.getDate(ordinal));
+			java.time.LocalDate localeDate = row.getDate(ordinal).toLocalDate();
+			encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
 			isNull = false;
 		}
 	}
