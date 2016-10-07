@@ -601,20 +601,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             }
         }
 
-        // If we're doing a hash join with _this_ PRN (as opposed to
-        // with this PRN's child) then we don't attempt to push
-        // predicates down.  There are two reasons for this: 1)
-        // we don't want to push the equijoin predicate that is
-        // required for the hash join, and 2) if we're doing a
-        // hash join then we're going to materialize this node,
-        // but if we push predicates before materialization, we
-        // can end up with incorrect results (esp. missing rows).
-        // So don't push anything in this case.
-        boolean hashJoinWithThisPRN=hasTrulyTheBestAccessPath &&
-                (trulyTheBestAccessPath.getJoinStrategy()!=null) &&
-                trulyTheBestAccessPath.getJoinStrategy().isHashJoin();
-
-        if((restrictionList!=null) && !alreadyPushed && !hashJoinWithThisPRN){
+        if((restrictionList!=null) && !alreadyPushed){
             restrictionList.pushUsefulPredicates((Optimizable)childResult);
         }
 

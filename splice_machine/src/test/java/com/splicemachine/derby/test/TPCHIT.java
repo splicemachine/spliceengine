@@ -34,7 +34,7 @@ import static com.splicemachine.subquery.SubqueryITUtil.*;
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 
-public class TPCHIT {
+public class TPCHIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = "TPCH1X";
     private static final String LINEITEM = "LINEITEM";
@@ -239,6 +239,13 @@ public class TPCHIT {
         String sql = getContent("22.sql");
         executeQuery(sql, getContent("22.expected.txt"), true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
+    }
+
+    @Test
+    public void testPredicatePushdownOnRightSideOfJoin() throws Exception {
+        rowContainsQuery(7,"explain select count(*) from --splice-properties joinOrder=fixed\n" +
+                " ORDERS, LINEITEM --splice-properties joinStrategy=BROADCAST\n" +
+                " where l_orderkey = o_orderkey and l_shipdate > date('1995-03-15') and o_orderdate > date('1995-03-15')","preds=[(L_SHIPDATE[2:2] > 1995-03-15)]",methodWatcher);
     }
 
     @Test(expected = SQLException.class)
