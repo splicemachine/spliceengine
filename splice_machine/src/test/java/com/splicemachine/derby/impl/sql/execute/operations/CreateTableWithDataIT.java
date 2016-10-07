@@ -160,6 +160,27 @@ public class CreateTableWithDataIT{
         }
     }
 
+    @Test
+    public void testCreateTableWithoutWithDataClause() throws Exception{
+        try(PreparedStatement ps=conn.prepareStatement(String.format("create table %s.t10 as select t1.a, t2.c from %s t1, %s t2 where t1.b = t2.b",spliceSchemaWatcher.schemaName,baseTable,rightTable))){
+            int numRows=ps.executeUpdate();
+            Assert.assertEquals("It claims to have updated rows!",10,numRows);
+
+        }
+        try(Statement s= conn.createStatement()){
+            try(ResultSet rs=s.executeQuery("select * from "+spliceSchemaWatcher.schemaName+".t10")){
+                int count=0;
+                while(rs.next()){
+                    int first=rs.getInt(1);
+                    int second=rs.getInt(2);
+                    Assert.assertEquals("Incorrect row: ("+first+","+second+")",first,second);
+                    count++;
+                }
+                Assert.assertEquals("Incorrect row count",10,count);
+            }
+        }
+    }
+
     // DB-1170
     @Test
     public void testCreateTableWithNoDataDerivedDecimal() throws Exception{

@@ -11583,7 +11583,7 @@ tableDefinition() throws StandardException :
             [ orderCols = orderByClause(null) ]
                hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 
-			<WITH> [ <NO> { withData = false; } ] <DATA>
+			[<WITH> [ <NO> { withData = false; } ] <DATA>]
 			{
                 if (withData) {
                     if (! (queryExpression instanceof SelectNode)) {
