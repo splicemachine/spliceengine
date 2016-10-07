@@ -30,9 +30,7 @@ import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
-import org.apache.spark.Accumulator;
-import org.apache.spark.AccumulatorParam;
-
+import org.apache.spark.util.LongAccumulator;
 import java.io.*;
 import java.sql.SQLException;
 import java.util.List;
@@ -50,26 +48,26 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public Activation activation;
     public SpliceOperationContext context;
     public Op op;
-    public Accumulator<Long> rowsRead;
-    public Accumulator<Long> rowsJoinedLeft;
-    public Accumulator<Long> rowsJoinedRight;
-    public Accumulator<Long> rowsProduced;
-    public Accumulator<Long> rowsFiltered;
-    public Accumulator<Long> rowsWritten;
-    public Accumulator<Long> retryAttempts;
-    public Accumulator<Long> regionTooBusyExceptions;
+    public LongAccumulator rowsRead;
+    public LongAccumulator rowsJoinedLeft;
+    public LongAccumulator rowsJoinedRight;
+    public LongAccumulator rowsProduced;
+    public LongAccumulator rowsFiltered;
+    public LongAccumulator rowsWritten;
+    public LongAccumulator retryAttempts;
+    public LongAccumulator regionTooBusyExceptions;
 
-    public Accumulator<Long> pipelineRowsWritten;
-    public Accumulator<Long> thrownErrorsRows;
-    public Accumulator<Long> retriedRows;
-    public Accumulator<Long> partialRows;
-    public Accumulator<Long> partialThrownErrorRows;
-    public Accumulator<Long> partialRetriedRows;
-    public Accumulator<Long> partialIgnoredRows;
-    public Accumulator<Long> partialWrite;
-    public Accumulator<Long> ignoredRows;
-    public Accumulator<Long> catchThrownRows;
-    public Accumulator<Long> catchRetriedRows;
+    public LongAccumulator pipelineRowsWritten;
+    public LongAccumulator thrownErrorsRows;
+    public LongAccumulator retriedRows;
+    public LongAccumulator partialRows;
+    public LongAccumulator partialThrownErrorRows;
+    public LongAccumulator partialRetriedRows;
+    public LongAccumulator partialIgnoredRows;
+    public LongAccumulator partialWrite;
+    public LongAccumulator ignoredRows;
+    public LongAccumulator catchThrownRows;
+    public LongAccumulator catchRetriedRows;
 
     public boolean permissive;
     public long badRecordsSeen;
@@ -86,28 +84,13 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.op=spliceOperation;
         this.activation=op.getActivation();
         String baseName="("+op.resultSetNumber()+") "+op.getName();
-        AccumulatorParam param=AccumulatorParam.LongAccumulatorParam$.MODULE$;
-
-        this.rowsRead=SpliceSpark.getContext().accumulator(0L,baseName+" rows read",param);
-        this.rowsFiltered=SpliceSpark.getContext().accumulator(0l,baseName+" rows filtered",param);
-        this.rowsWritten=SpliceSpark.getContext().accumulator(0l,baseName+" rows written",param);
-        this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined left",param);
-        this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,baseName+" rows joined right",param);
-        this.rowsProduced=SpliceSpark.getContext().accumulator(0l,baseName+" rows produced",param);
-
-        this.retryAttempts =SpliceSpark.getContext().accumulator(0L, "(WritePipeline) retry attempts", param);
-        this.regionTooBusyExceptions =SpliceSpark.getContext().accumulator(0L, "(WritePipeline) region too busy exceptions", param);
-        this.pipelineRowsWritten=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows written",param);
-        this.thrownErrorsRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows thrown errors",param);
-        this.retriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows retried",param);
-        this.partialRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) total rows partial error",param);
-        this.partialThrownErrorRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial thrown error",param);
-        this.partialRetriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial retried",param);
-        this.partialIgnoredRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial ignored",param);
-        this.partialWrite=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) partial write",param);
-        this.ignoredRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows ignored error",param);
-        this.catchThrownRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows catch error rethrown",param);
-        this.catchRetriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows catch error retried",param);
+        this.rowsRead=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows read");
+        this.rowsFiltered=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows filtered");
+        this.rowsWritten=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows written");
+        this.rowsJoinedLeft=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows joined left");
+        this.rowsJoinedRight=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows joined right");
+        this.rowsProduced=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows produced");
+        initWritePipeline();
     }
 
     @SuppressWarnings("unchecked")
@@ -115,28 +98,29 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.op=null;
         this.activation=activation;
         this.broadcastedActivation = broadcastedActivation;
-        AccumulatorParam param=AccumulatorParam.LongAccumulatorParam$.MODULE$;
+        this.rowsRead=SpliceSpark.getContext().sc().longAccumulator("rows read");
+        this.rowsFiltered=SpliceSpark.getContext().sc().longAccumulator("rows filtered");
+        this.rowsWritten=SpliceSpark.getContext().sc().longAccumulator("rows written");
+        this.rowsJoinedLeft=SpliceSpark.getContext().sc().longAccumulator("rows joined left");
+        this.rowsJoinedRight=SpliceSpark.getContext().sc().longAccumulator("rows joined right");
+        this.rowsProduced=SpliceSpark.getContext().sc().longAccumulator("rows produced");
+        initWritePipeline();
+    }
 
-        this.rowsRead=SpliceSpark.getContext().accumulator(0L,"rows read",param);
-        this.rowsFiltered=SpliceSpark.getContext().accumulator(0l,"rows filtered",param);
-        this.rowsWritten=SpliceSpark.getContext().accumulator(0l,"rows written",param);
-        this.rowsJoinedLeft=SpliceSpark.getContext().accumulator(0l,"rows joined left",param);
-        this.rowsJoinedRight=SpliceSpark.getContext().accumulator(0l,"rows joined right",param);
-        this.rowsProduced=SpliceSpark.getContext().accumulator(0l,"rows produced",param);
-
-        this.retryAttempts =SpliceSpark.getContext().accumulator(0L, "(WritePipeline) retry attempts", param);
-        this.regionTooBusyExceptions =SpliceSpark.getContext().accumulator(0L, "(WritePipeline) region too busy exceptions", param);
-        this.pipelineRowsWritten=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows written",param);;
-        this.thrownErrorsRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows thrown errors",param);
-        this.retriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows retried",param);
-        this.partialRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) total rows partial error",param);
-        this.partialThrownErrorRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial thrown error",param);
-        this.partialRetriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial retried",param);
-        this.partialIgnoredRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows partial ignored",param);
-        this.partialWrite=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) partial write",param);
-        this.ignoredRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows ignored error",param);
-        this.catchThrownRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows catch error rethrown",param);
-        this.catchRetriedRows=SpliceSpark.getContext().accumulator(0l,"(WritePipeline) rows catch error retried",param);
+    private void initWritePipeline() {
+        this.retryAttempts =SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) retry attempts");
+        this.regionTooBusyExceptions =SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) region too busy exceptions");
+        this.pipelineRowsWritten=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows written");
+        this.thrownErrorsRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows thrown errors");
+        this.retriedRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows retried");
+        this.partialRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) total rows partial error");
+        this.partialThrownErrorRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows partial thrown error");
+        this.partialRetriedRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows partial retried");
+        this.partialIgnoredRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows partial ignored");
+        this.partialWrite=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) partial write");
+        this.ignoredRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows ignored error");
+        this.catchThrownRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows catch error rethrown");
+        this.catchRetriedRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows catch error retried");
     }
 
     public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException{
@@ -187,27 +171,27 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             op=(Op)broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
             activation=broadcastedActivation.getActivationHolder().getActivation();
         }
-        rowsRead=(Accumulator)in.readObject();
-        rowsFiltered=(Accumulator)in.readObject();
-        rowsWritten=(Accumulator)in.readObject();
-        retryAttempts =(Accumulator)in.readObject();
-        regionTooBusyExceptions =(Accumulator)in.readObject();
-        rowsJoinedLeft=(Accumulator<Long>)in.readObject();
-        rowsJoinedRight=(Accumulator<Long>)in.readObject();
-        rowsProduced=(Accumulator<Long>)in.readObject();
+        rowsRead=(LongAccumulator)in.readObject();
+        rowsFiltered=(LongAccumulator)in.readObject();
+        rowsWritten=(LongAccumulator)in.readObject();
+        retryAttempts =(LongAccumulator)in.readObject();
+        regionTooBusyExceptions =(LongAccumulator)in.readObject();
+        rowsJoinedLeft=(LongAccumulator)in.readObject();
+        rowsJoinedRight=(LongAccumulator)in.readObject();
+        rowsProduced=(LongAccumulator)in.readObject();
         badRecordsAccumulator = (Accumulable<BadRecordsRecorder,String>) in.readObject();
 
-        thrownErrorsRows=(Accumulator<Long>)in.readObject();
-        retriedRows=(Accumulator<Long>)in.readObject();
-        partialRows=(Accumulator<Long>)in.readObject();
-        partialThrownErrorRows=(Accumulator<Long>)in.readObject();
-        partialRetriedRows=(Accumulator<Long>)in.readObject();
-        partialIgnoredRows=(Accumulator<Long>)in.readObject();
-        partialWrite=(Accumulator<Long>)in.readObject();
-        ignoredRows=(Accumulator<Long>)in.readObject();
-        catchThrownRows=(Accumulator<Long>)in.readObject();
-        catchRetriedRows=(Accumulator<Long>)in.readObject();
-        pipelineRowsWritten=(Accumulator<Long>)in.readObject();
+        thrownErrorsRows=(LongAccumulator)in.readObject();
+        retriedRows=(LongAccumulator)in.readObject();
+        partialRows=(LongAccumulator)in.readObject();
+        partialThrownErrorRows=(LongAccumulator)in.readObject();
+        partialRetriedRows=(LongAccumulator)in.readObject();
+        partialIgnoredRows=(LongAccumulator)in.readObject();
+        partialWrite=(LongAccumulator)in.readObject();
+        ignoredRows=(LongAccumulator)in.readObject();
+        catchThrownRows=(LongAccumulator)in.readObject();
+        catchRetriedRows=(LongAccumulator)in.readObject();
+        pipelineRowsWritten=(LongAccumulator)in.readObject();
     }
 
     @Override
