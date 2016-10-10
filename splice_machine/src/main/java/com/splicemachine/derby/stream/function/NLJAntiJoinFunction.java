@@ -15,27 +15,21 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.utils.StreamLogUtils;
-import com.splicemachine.derby.stream.utils.StreamUtils;
-import org.apache.commons.collections.iterators.SingletonIterator;
+import com.splicemachine.derby.stream.iterator.NestedLoopJoinIterator;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Collections;
 import java.util.Iterator;
 
 /**
  * Created by jleach on 4/24/15.
  */
-public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, LocatedRow, LocatedRow> {
+public class NLJAntiJoinFunction<Op extends SpliceOperation> extends NLJoinFunction<Op, Iterator<LocatedRow>, LocatedRow> {
 
 
     public NLJAntiJoinFunction() {}
@@ -55,26 +49,17 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
-        checkInit();
-        DataSet dataSet = null;
-        try {
-            op.getRightOperation().openCore(EngineDriver.driver().processorFactory().localProcessor(null,op));
-            Iterator<LocatedRow> rightSideNLJ = op.getRightOperation().getLocatedRowIterator();
-            if (rightSideNLJ.hasNext()) {
-                StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join filtered");
-                return Collections.<LocatedRow>emptyList().iterator();
-            }
-            ExecRow mergedRow = JoinUtils.getMergedRow(from.getRow(), op.getEmptyRow(),
-                    op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns));
-            StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join");
-            op.setCurrentRow(mergedRow);
-            op.setCurrentRowLocation(from.getRowLocation());
-            return new SingletonIterator(new LocatedRow(from.getRowLocation(), mergedRow));
-        } finally {
-            if (op.getRightOperation()!= null)
-                op.getRightOperation().close();
+    public Iterator<LocatedRow> call(Iterator<LocatedRow> from) throws Exception {
+        if (!initialized) {
+            init(from);
+            initialized = true;
         }
 
+        return new NestedLoopJoinIterator<>(this);
+    }
+
+    protected void init(Iterator<LocatedRow> from) throws StandardException {
+        joinType = JoinType.ANTI;
+        super.init(from);
     }
 }

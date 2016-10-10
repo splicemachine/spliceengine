@@ -15,28 +15,21 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.commons.collections.iterators.SingletonIterator;
+import com.splicemachine.derby.stream.iterator.NestedLoopJoinIterator;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Collections;
 import java.util.Iterator;
 
 /**
- * Created by jleach on 4/24/15.
+ * Created by jyuan on 10/10/16.
  */
-public class NLJOneRowInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, LocatedRow, LocatedRow>  {
-
-    public Iterator<LocatedRow> rightSideNLJIterator;
-    public LocatedRow leftRow;
+public class NLJOneRowInnerJoinFunction <Op extends SpliceOperation> extends NLJoinFunction<Op, Iterator<LocatedRow>, LocatedRow> {
 
     public NLJOneRowInnerJoinFunction() {}
 
@@ -55,30 +48,18 @@ public class NLJOneRowInnerJoinFunction<Op extends SpliceOperation> extends Spli
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
-        checkInit();
-        leftRow = from;
-        DataSet dataSet = null;
-        try {
-            op.getRightOperation().openCore(EngineDriver.driver().processorFactory().localProcessor(null,op));
-            rightSideNLJIterator = op.getRightOperation().getLocatedRowIterator();
-
-            if (rightSideNLJIterator.hasNext()) {
-                LocatedRow rightRow = rightSideNLJIterator.next();
-                ExecRow mergedRow = JoinUtils.getMergedRow(from.getRow(),
-                        rightRow.getRow(), op.wasRightOuterJoin
-                        , executionFactory.getValueRow(numberOfColumns));
-
-                LocatedRow populatedRow = new LocatedRow(from.getRowLocation(),mergedRow);
-                op.setCurrentLocatedRow(populatedRow);
-                return new SingletonIterator(populatedRow);
-            } else {
-                return Collections.EMPTY_LIST.iterator();
-            }
-        } finally {
-            if (op.getRightOperation()!= null)
-                op.getRightOperation().close();
+    public Iterator<LocatedRow> call(Iterator<LocatedRow> from) throws Exception {
+        if (!initialized) {
+            init(from);
+            initialized = true;
         }
 
+        return new NestedLoopJoinIterator<>(this);
+    }
+
+    @Override
+    protected void init(Iterator<LocatedRow> from) throws StandardException {
+        joinType = JoinType.ONE_ROW_INNER;
+        super.init(from);
     }
 }
