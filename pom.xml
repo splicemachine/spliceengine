@@ -733,6 +733,33 @@
             </modules>
         </profile>
         <profile>
+            <id>hdp2.5.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>hdp2.5.0</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>hdp2.5.0</envClassifier>
+                <envHbase>hbase1.1.2</envHbase>
+                <hadoop.version>2.7.3.2.5.0.0-1245</hadoop.version>
+                <!-- <hadoop.tools.version>1.2.0.23</hadoop.tools.version> -->
+                <hbase.version>1.1.2.2.5.0.0-1245</hbase.version>
+                <hive.version>1.2.1000.2.5.0.0-1245</hive.version>
+                <zookeeper.version>3.4.6.2.5.0.0-1245</zookeeper.version>
+                <spark-assembly-id>spark-assembly-hadoop2.7.3.2.5.0.0-1245</spark-assembly-id>
+                <spark.version>1.6.2</spark.version>
+                <kafka.version>0.8.2.1</kafka.version>
+                <!-- kafka.version>0.10.0.2.5.0.0-1245</kafka.version -->
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
             <id>cdh5.4.10</id>
             <activation>
                 <property>
