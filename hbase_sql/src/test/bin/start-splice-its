@@ -26,7 +26,7 @@ usage() {
     echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
     echo "        grep 'task fail' splice_machine/splice.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
-    echo "  cdh5.4.10, cdh5.5.2, cdh5.6.0, cdh5.7.0, hdp2.3.0, hdp2.4.2, mapr5.1.0"
+    echo "  cdh5.4.10, cdh5.5.2, cdh5.6.0, cdh5.7.0, hdp2.4.2, mapr5.1.0"
     echo "  Default is cdh5.5.2."
     echo "  -h => print this message"
 }
