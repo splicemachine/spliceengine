@@ -96,7 +96,7 @@ HBase is further separated into subprofiles, indicating the specific hbase distr
 >   *  `cdh5.6.0`
 >   *  `cdh5.7.0`
 >   *  `mapr5.1.0`
->   *  `hdp2.3.4`
+>   *  `mapr5.2.0`
 >   *  `hdp2.4.2`
 
 * build core modules (only needs done once as mentioned above)
