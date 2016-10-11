@@ -17,8 +17,6 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.frequency.FrequentElements;
 
 /**
  * @author Scott Fines
@@ -26,6 +24,7 @@ import com.splicemachine.stats.frequency.FrequentElements;
  */
 public class StatisticsFunctions {
 
+    /*
     public static int STATS_COL_WIDTH(ColumnStatistics columnStatistics){
         if(columnStatistics==null) return 0;
         return columnStatistics.avgColumnWidth();
@@ -73,4 +72,5 @@ public class StatisticsFunctions {
         return dvd.getString();
     }
 
+    */
 }

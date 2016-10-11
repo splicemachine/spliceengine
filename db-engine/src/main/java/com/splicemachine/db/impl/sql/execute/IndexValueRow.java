@@ -37,7 +37,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.Map;
 import scala.collection.Seq;
-
 import java.io.*;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -393,5 +392,19 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	@Override
 	public ExecRow fromSparkRow(Row row) {
 		return valueRow.fromSparkRow(row);
+	}
+
+	public int compareTo(ExecRow o) {
+		return valueRow.compareTo(o);
+	}
+
+	@Override
+	public int compare(ExecRow o1, ExecRow o2) {
+		return o1.compareTo(o2);
+	}
+
+	@Override
+	public long getRowSize() {
+		return valueRow.getRowSize();
 	}
 }

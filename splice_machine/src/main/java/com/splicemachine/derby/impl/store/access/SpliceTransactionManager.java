@@ -24,12 +24,14 @@ import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.stats.StoreCostControllerImpl;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -984,11 +986,8 @@ public class SpliceTransactionManager implements XATransactionController,
      **/
     @Override
     public StoreCostController openStoreCost(ConglomerateDescriptor cd) throws StandardException {
-        // Find the conglomerate.
-        Conglomerate conglom = findExistingConglomerate(cd.getConglomerateNumber());
-
-        // Get a scan controller.
-        return conglom.openStoreCost(cd,this, rawtran);
+        List<PartitionStatisticsDescriptor> partitionStatistics = cd.getDataDictionary().getPartitionStatistics(cd.getConglomerateNumber(),this);
+        return new StoreCostControllerImpl(cd.getConglomerateNumber(),partitionStatistics);
     }
      /**
      * @see TransactionController#getProperty

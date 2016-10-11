@@ -31,11 +31,16 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import java.sql.Types;
 
 /**
+ *
+ * Row Factory for column level statistics.  Column 0 represents
+ * the key (ExecRow) and Column 1 - N represent the columns in the table (DataValueDescriptor).
+ *
  * @author Scott Fines
  *         Date: 2/25/15
  */
@@ -78,7 +83,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
 
     @Override
     public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
-        ColumnStatsDescriptor cd = (ColumnStatsDescriptor) td;
+        ColumnStatisticsDescriptor cd = (ColumnStatisticsDescriptor) td;
         ExecRow row = new ValueRow(SYSCOLUMNSTATISTICS_COLUMN_COUNT);
         if (cd != null) {
             row.setColumn(CONGLOMID, new SQLLongint(cd.getConglomerateId()));
@@ -103,9 +108,9 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
         col = row.getColumn(COLUMNID);
         int colNum = col.getInt();
         col = row.getColumn(DATA);
-        Object colStats = (Object)col.getObject();
+        ItemStatistics colStats = (ItemStatistics)col.getObject();
 
-        return new ColumnStatsDescriptor(conglomId,
+        return new ColumnStatisticsDescriptor(conglomId,
                 partitionId,
                 colNum,
                 colStats);
@@ -118,7 +123,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("PARTITION_ID",Types.VARCHAR,false),
                 SystemColumnImpl.getColumn("COLUMN_ID",Types.INTEGER,false),
                 SystemColumnImpl.getJavaColumn("DATA",
-                        "com.splicemachine.stats.ColumnStatistics",false)
+                        "com.splicemachine.db.iapi.stats.ItemStatistics",false)
         };
     }
 

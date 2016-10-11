@@ -1244,10 +1244,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 null,
                 partitionStatisticsDescriptors,
                 false);
-        List<ColumnStatsDescriptor> columnStats = getColumnStatistics(conglomerate, tc);
-        ImmutableListMultimap columnStatsMap = Multimaps.index(columnStats, new Function<ColumnStatsDescriptor, String>() {
+        List<ColumnStatisticsDescriptor> columnStats = getColumnStatistics(conglomerate, tc);
+        ImmutableListMultimap columnStatsMap = Multimaps.index(columnStats, new Function<ColumnStatisticsDescriptor, String>() {
             @Override
-            public String apply(@Nullable ColumnStatsDescriptor input) {
+            public String apply(@Nullable ColumnStatisticsDescriptor input) {
                 return input.getPartitionId();
             }
         });
@@ -1259,14 +1259,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public List<ColumnStatsDescriptor> getColumnStatistics(long conglomerate, TransactionController tc) throws StandardException {
+    public List<ColumnStatisticsDescriptor> getColumnStatistics(long conglomerate, TransactionController tc) throws StandardException {
         TabInfoImpl ti=getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
         DataValueDescriptor startStop =new SQLLongint(conglomerate);
 		/* Set up the start/stop position for the scan */
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1, startStop);
-        List<ColumnStatsDescriptor> columnStatisticsDescriptors = new ArrayList();
-        ColumnStatsDescriptor cd=(ColumnStatsDescriptor)getDescriptorViaIndex(
+        List<ColumnStatisticsDescriptor> columnStatisticsDescriptors = new ArrayList();
+        ColumnStatisticsDescriptor cd=(ColumnStatisticsDescriptor)getDescriptorViaIndex(
                 SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_INDEX1_ID,
                 keyRow,
                 null,

@@ -1411,6 +1411,7 @@ public class ColumnReference extends ValueNode {
 			return 0.0;
 		ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
 		int leftPosition = getSource().getColumnPosition();
+
 		return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
 	}
 

@@ -16,6 +16,9 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -33,7 +36,7 @@ import org.junit.Test;
  * Test Class for SQLBoolean
  *
  */
-public class SQLBooleanTest {
+public class SQLBooleanTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
@@ -83,14 +86,41 @@ public class SQLBooleanTest {
                 SQLBoolean bool1 = new SQLBoolean(true);
                 SQLBoolean bool2 = new SQLBoolean();
                 ExecRow execRow = new ValueRow(2);
-                execRow.setColumn(1,bool1);
-                execRow.setColumn(2,bool2);
-                Assert.assertEquals(true,((Row)execRow).getBoolean(0));
-                Assert.assertTrue(((Row)execRow).isNullAt(1));
+                execRow.setColumn(1, bool1);
+                execRow.setColumn(2, bool2);
+                Assert.assertEquals(true, ((Row) execRow).getBoolean(0));
+                Assert.assertTrue(((Row) execRow).isNullAt(1));
                 Row sparkRow = execRow.getSparkRow();
-                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{true,null}, execRow.schema());
-                Assert.assertEquals(row.getBoolean(0),true);
+                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{true, null}, execRow.schema());
+                Assert.assertEquals(row.getBoolean(0), true);
                 Assert.assertTrue(row.isNullAt(1));
+        }
+        public void testColumnStatistics() throws Exception {
+                SQLBoolean value1 = new SQLBoolean();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLBoolean sqlBoolean;
+                for (int i = 1; i<= 10000; i++) {
+                        if (i>=5000 && i < 6000)
+                                sqlBoolean = new SQLBoolean();
+                        else if (i>=1000 && i< 2000)
+                                sqlBoolean = new SQLBoolean(false);
+                        else
+                                sqlBoolean = new SQLBoolean(i%2==0?true:false);
+                        stats.update(sqlBoolean);
+                }
+                stats = serde(stats);
+                Assert.assertEquals(1000,stats.nullCount());
+                Assert.assertEquals(9000,stats.notNullCount());
+                Assert.assertEquals(10000,stats.totalCount());
+                Assert.assertEquals(new SQLBoolean(true),stats.maxValue());
+                Assert.assertEquals(new SQLBoolean(false),stats.minValue());
+                Assert.assertEquals(1000,stats.selectivity(null));
+                Assert.assertEquals(1000,stats.selectivity(new SQLBoolean()));
+                Assert.assertEquals(4000,stats.selectivity(new SQLBoolean(true)));
+                Assert.assertEquals(5000,stats.selectivity(new SQLBoolean(false)));
+                Assert.assertEquals(5000.0d,(double) stats.rangeSelectivity(new SQLBoolean(false),new SQLBoolean(true),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(5000.0d,(double) stats.rangeSelectivity(new SQLBoolean(),new SQLBoolean(true),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(9000.0d,(double) stats.rangeSelectivity(new SQLBoolean(false),new SQLBoolean(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
 

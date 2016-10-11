@@ -31,10 +31,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -44,7 +44,6 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
-
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.PreparedStatement;
@@ -214,10 +213,7 @@ public final class SQLDate extends DataType
 
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
-
+		out.writeBoolean(isNull);
 		out.writeInt(encodedDate);
 	}
 
@@ -226,8 +222,8 @@ public final class SQLDate extends DataType
 	 *
 	 * @exception IOException	Thrown on error reading the object
 	 */
-	public void readExternal(ObjectInput in) throws IOException
-	{
+	public void readExternal(ObjectInput in) throws IOException {
+		isNull = in.readBoolean();
 		setValue(in.readInt());
 	}
 
@@ -837,8 +833,7 @@ public final class SQLDate extends DataType
 	{
         if (isNull())
             return null;
-        
-        return new Date(getTimeInMillis(cal));
+		return Date.valueOf(java.time.LocalDate.of(getYear(encodedDate),getMonth(encodedDate),getDay(encodedDate)));
 	}
 	
 	
@@ -1347,7 +1342,8 @@ public final class SQLDate extends DataType
 		if (row.isNullAt(ordinal))
 			setToNull();
 		else {
-			encodedDate = computeEncodedDate(row.getDate(ordinal));
+			java.time.LocalDate localeDate = row.getDate(ordinal).toLocalDate();
+			encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
 			isNull = false;
 		}
 	}
@@ -1408,4 +1404,7 @@ public final class SQLDate extends DataType
 	}
 
 
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		updateSketch.update(encodedDate);
+	}
 }

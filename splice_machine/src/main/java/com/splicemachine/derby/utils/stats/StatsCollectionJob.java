@@ -16,9 +16,9 @@
 package com.splicemachine.derby.utils.stats;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import org.apache.log4j.Logger;
 
@@ -49,7 +49,9 @@ public class StatsCollectionJob implements Callable<Void> {
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.jobGroup, "");
         try {
-            List<LocatedRow> result = request.scanSetBuilder.buildDataSet(request.scope).collect();
+            List<LocatedRow> result = request.scanSetBuilder.buildDataSet(request.scope)
+                    .mapPartitions(
+                    new StatisticsFlatMapFunction(request.scanSetBuilder.getBaseTableConglomId(),request.scanSetBuilder.getColumnPositionMap())).collect();
             jobStatus.markCompleted(new StatsResult(result));
             return null;
         } catch (Exception e) {

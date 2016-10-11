@@ -316,17 +316,7 @@ public interface OptimizablePredicateList {
 	 * @exception StandardException		Thrown on error
 	 */
 	boolean sameStartStopPosition() throws StandardException;
-	
-	/**
-	 * calculate the selectivity for a set of predicates. 
-	 * If statistics exist for the predicates this method uses the
-	 * statistics. If statistics do not exist, then simply call 
-	 * selectivity for each of the predicates and return the result.
-	 *
-	 * @param optTable	the Optimizable that the predicate list restricts.
-	 */
-	double selectivity(Optimizable optTable) throws StandardException;
-	
+
 	/**
 	 * Walk through the predicates in this list and make any adjustments
 	 * that are required to allow for proper handling of an ORDER BY

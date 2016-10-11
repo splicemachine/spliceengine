@@ -30,7 +30,7 @@ import java.util.GregorianCalendar;
  * Test Class for SQLTimestamp
  *
  */
-public class SQLTimestampTest {
+public class SQLTimestampTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {

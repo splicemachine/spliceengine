@@ -289,28 +289,4 @@ public interface Conglomerate extends Storable, DataValueDescriptor
             Transaction                     rawtran)
             throws StandardException;
 
-    /**
-     * Return an open StoreCostController for the conglomerate.
-     * <p>
-     * Return an open StoreCostController which can be used to ask about 
-     * the estimated row counts and costs of ScanController and 
-     * ConglomerateController operations, on the given conglomerate.
-     * <p>
-     *
-     * @param descriptor a Descriptor for this Conglomerate, or null if one is not
-     *                   available
-     * @param xact_manager The TransactionController under which this
-     *                      operation takes place.
-     * @param rawtran  raw transaction context in which scan is managed.
-     *
-     * @return The open StoreCostController.
-     *
-     * @exception  StandardException  Standard exception policy.
-     *
-     * @see StoreCostController
-     **/
-    StoreCostController openStoreCost(ConglomerateDescriptor descriptor,
-                                      TransactionManager xact_manager,
-                                      Transaction rawtran) throws StandardException;
-
 }

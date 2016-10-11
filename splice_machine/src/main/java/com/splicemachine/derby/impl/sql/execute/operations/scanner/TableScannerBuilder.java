@@ -28,7 +28,6 @@ import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.stats.StatisticsScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.server.TransactionalRegion;
@@ -39,7 +38,6 @@ import com.splicemachine.storage.DataScanner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -339,27 +337,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     public SITableScanner build(){
-        if(fieldLengths!=null){
-            return new StatisticsScanner(
-                    baseTableConglomId,
-                    scanner,
-                    region,
-                    template,
-                    scan,
-                    rowColumnMap,
-                    txn,
-                    keyColumnEncodingOrder,
-                    keyColumnSortOrder,
-                    keyColumnTypes,
-                    keyDecodingMap,
-                    accessedKeys,
-                    reuseRowLocation,
-                    indexName,
-                    tableVersion,
-                    filterFactory,
-                    fieldLengths,
-                    columnPositionMap);
-        }else{
             return new SITableScanner(
                     scanner,
                     region,
@@ -378,7 +355,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     filterFactory,
                     demarcationPoint,
                     optionalProbeValue);
-        }
     }
 
     @Override
@@ -606,5 +582,19 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
     public DataValueDescriptor getOptionalProbeValue() {
         return this.optionalProbeValue;
+    }
+
+    public int[] getBaseColumnMap() {
+        return baseColumnMap;
+    }
+
+    public long getBaseTableConglomId() {
+        return baseTableConglomId;
+    }
+
+
+    @Override
+    public int[] getColumnPositionMap() {
+        return columnPositionMap;
     }
 }

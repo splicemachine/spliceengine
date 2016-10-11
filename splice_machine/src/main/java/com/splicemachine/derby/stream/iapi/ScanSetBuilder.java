@@ -95,4 +95,10 @@ public interface ScanSetBuilder<V>{
     TxnView getTxn();
 
     OperationContext getOperationContext();
+
+    int[] getBaseColumnMap();
+
+    int[] getColumnPositionMap();
+
+    long getBaseTableConglomId();
 }

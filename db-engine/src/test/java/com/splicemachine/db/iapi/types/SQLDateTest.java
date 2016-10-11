@@ -14,6 +14,10 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
+import org.apache.commons.lang.math.RandomUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -31,7 +35,7 @@ import java.util.GregorianCalendar;
  * Test Class for SQLDate
  *
  */
-public class SQLDateTest {
+public class SQLDateTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
@@ -78,4 +82,7 @@ public class SQLDateTest {
                 Assert.assertEquals("1 incorrect",value1.getDate(gc),value1a.getDate(gc));
                 Assert.assertEquals("2 incorrect",value2.getDate(gc),value2a.getDate(gc));
         }
+
+
+
 }

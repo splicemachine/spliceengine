@@ -55,6 +55,7 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.stats.PartitionStatistics;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -442,6 +443,8 @@ public class CompilerContextImpl extends ContextImpl
 		** Try to find the given conglomerate number in the array of
 		** conglom ids.
 		*/
+
+
       for (int i = 0; i < storeCostConglomIds.size(); i++) {
           Long conglomId = (Long) storeCostConglomIds.get(i);
           if (conglomId.longValue() == conglomerateNumber)
@@ -451,7 +454,7 @@ public class CompilerContextImpl extends ContextImpl
 		/*
 		** Not found, so get a StoreCostController from the store.
 		*/
-      StoreCostController retval = lcc.getTransactionCompile().openStoreCost(cd);
+      StoreCostController retval = 		lcc.getTransactionCompile().openStoreCost(cd);
 
 		/* Put it in the array */
       storeCostControllers.add(storeCostControllers.size(), retval);

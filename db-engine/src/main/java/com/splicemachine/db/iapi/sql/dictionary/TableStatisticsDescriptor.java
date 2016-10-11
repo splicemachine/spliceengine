@@ -42,7 +42,7 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
     private long partitionSize;
     private long rowCount;
     private boolean inProgress;
-    private List<ColumnStatsDescriptor> columnStatsDescriptors;
+    private List<ColumnStatisticsDescriptor> columnStatsDescriptors;
 
     public TableStatisticsDescriptor(long conglomerateId,
                                      String partitionId,
@@ -71,11 +71,11 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
     public long getRowCount() { return rowCount; }
     public boolean isInProgress() { return inProgress; }
 
-    public List<ColumnStatsDescriptor> getColumnStatsDescriptors() {
+    public List<ColumnStatisticsDescriptor> getColumnStatsDescriptors() {
         return columnStatsDescriptors;
     }
 
-    public void setColumnStatsDescriptors(List<ColumnStatsDescriptor> columnStatsDescriptors) {
+    public void setColumnStatsDescriptors(List<ColumnStatisticsDescriptor> columnStatsDescriptors) {
         this.columnStatsDescriptors = columnStatsDescriptors;
     }
 

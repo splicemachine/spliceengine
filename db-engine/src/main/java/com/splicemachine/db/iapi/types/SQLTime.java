@@ -48,6 +48,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -195,10 +196,7 @@ public final class SQLTime extends DataType
 
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
-
+		out.writeBoolean(isNull);
 		out.writeInt(encodedTime);
 		out.writeInt(encodedTimeFraction);
 	}
@@ -208,12 +206,12 @@ public final class SQLTime extends DataType
 	 *
 	 * @exception IOException	Thrown on error reading the object
 	 */
-	public void readExternal(ObjectInput in) throws IOException
-	{
+	public void readExternal(ObjectInput in) throws IOException {
+		isNull = in.readBoolean();
 		setValue(in.readInt(), in.readInt());
 	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException
-	{
+	public void readExternalFromArray(ArrayInputStream in) throws IOException {
+		isNull = in.readBoolean();
 		setValue(in.readInt(), in.readInt());
 	}
 
@@ -1240,6 +1238,10 @@ public final class SQLTime extends DataType
 		return DataTypes.createStructField(columnName, DataTypes.DateType, true);
 	}
 
+
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		updateSketch.update(new int[]{encodedTime,encodedTimeFraction});
+	}
 
 }
 

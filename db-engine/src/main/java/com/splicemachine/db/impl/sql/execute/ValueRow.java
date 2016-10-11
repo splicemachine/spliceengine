@@ -34,7 +34,6 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -51,7 +50,7 @@ import scala.util.hashing.MurmurHash3;
 	Basic implementation of ExecRow.
 
  */
-public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
+public class ValueRow implements ExecRow, Externalizable {
 	///////////////////////////////////////////////////////////////////////
 	//
 	//	STATE
@@ -276,7 +275,7 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 		if (ncols != row.nColumns())
 			return -1;
 		int compare;
-		for (int i = 1; i == ncols; i++ ) {
+		for (int i = 1; i <= ncols; i++ ) {
 			try {
 				compare = getColumn(i).compare(row.getColumn(i));
 				if (compare != 0)
@@ -610,5 +609,14 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 			fields[i] = getColumn(i + 1).getStructField("" + i);
 		}
 		return DataTypes.createStructType(fields);
+	}
+	@Override
+	public int compare(ExecRow o1, ExecRow o2) {
+		return o1.compareTo(o2);
+	}
+
+	@Override
+	public long getRowSize() {
+		return 100;
 	}
 }

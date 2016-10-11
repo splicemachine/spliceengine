@@ -15,6 +15,8 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -30,7 +32,7 @@ import org.junit.Test;
  * Test Class for SQLDouble
  *
  */
-public class SQLRealTest {
+public class SQLRealTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void addTwo() throws StandardException {
@@ -102,5 +104,35 @@ public class SQLRealTest {
                 Assert.assertEquals("1 incorrect",value1.getFloat(),value1a.getFloat(),0.0f);
                 Assert.assertEquals("2 incorrect",value2.getFloat(),value2a.getFloat(),0.0f);
             }
+
+        @Test
+        public void testColumnStatistics() throws Exception {
+
+                SQLReal value1 = new SQLReal();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLReal SQLReal;
+                for (int i = 1; i<= 10000; i++) {
+                        if (i>=5000 && i < 6000)
+                                SQLReal = new SQLReal();
+                        else if (i>=1000 && i< 2000)
+                                SQLReal = new SQLReal(1000+i%20);
+                        else
+                                SQLReal = new SQLReal(i);
+                        stats.update(SQLReal);
+                }
+                stats = serde(stats);
+                Assert.assertEquals(1000,stats.nullCount());
+                Assert.assertEquals(9000,stats.notNullCount());
+                Assert.assertEquals(10000,stats.totalCount());
+                Assert.assertEquals(new SQLReal(10000),stats.maxValue());
+                Assert.assertEquals(new SQLReal(1),stats.minValue());
+                Assert.assertEquals(1000,stats.selectivity(null));
+                Assert.assertEquals(1000,stats.selectivity(new SQLReal()));
+                Assert.assertEquals(51,stats.selectivity(new SQLReal(1010)));
+                Assert.assertEquals(1,stats.selectivity(new SQLReal(9000)));
+                Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLReal(1000),new SQLReal(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLReal(),new SQLReal(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLReal(5000),new SQLReal(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+        }
     
 }

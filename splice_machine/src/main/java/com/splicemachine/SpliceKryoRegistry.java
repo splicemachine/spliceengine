@@ -33,6 +33,7 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.AggregateAliasInfo;
@@ -128,20 +129,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
-import com.splicemachine.derby.impl.stats.BigintStats;
-import com.splicemachine.derby.impl.stats.BooleanStats;
-import com.splicemachine.derby.impl.stats.CharStats;
-import com.splicemachine.derby.impl.stats.DateStatistics;
-import com.splicemachine.derby.impl.stats.DoubleStats;
-import com.splicemachine.derby.impl.stats.IntStats;
-import com.splicemachine.derby.impl.stats.NumericStats;
-import com.splicemachine.derby.impl.stats.RealStats;
-import com.splicemachine.derby.impl.stats.SmallintStats;
-import com.splicemachine.derby.impl.stats.StringStatistics;
-import com.splicemachine.derby.impl.stats.TimeStats;
-import com.splicemachine.derby.impl.stats.TimestampStatistics;
-import com.splicemachine.derby.impl.stats.TinyintStats;
-import com.splicemachine.derby.impl.stats.VarcharStats;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -862,22 +849,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TentativeAddColumnDesc.class,EXTERNALIZABLE_SERIALIZER,233);
 
         //statistics
-        instance.register(BooleanStats.class,EXTERNALIZABLE_SERIALIZER,236);
-        instance.register(TinyintStats.class,EXTERNALIZABLE_SERIALIZER,237);
-        instance.register(SmallintStats.class,EXTERNALIZABLE_SERIALIZER,238);
-        instance.register(IntStats.class,EXTERNALIZABLE_SERIALIZER,239);
-        instance.register(BigintStats.class,EXTERNALIZABLE_SERIALIZER,240);
-        instance.register(RealStats.class,EXTERNALIZABLE_SERIALIZER,241);
-        instance.register(DoubleStats.class,EXTERNALIZABLE_SERIALIZER,242);
-        instance.register(NumericStats.class,EXTERNALIZABLE_SERIALIZER,243);
-        instance.register(StringStatistics.class,EXTERNALIZABLE_SERIALIZER,244);
-        instance.register(CharStats.class,EXTERNALIZABLE_SERIALIZER,245);
-        instance.register(VarcharStats.class,EXTERNALIZABLE_SERIALIZER,246);
-        instance.register(TimestampStatistics.class,EXTERNALIZABLE_SERIALIZER,247);
-        instance.register(TimeStats.class,EXTERNALIZABLE_SERIALIZER,248);
-        instance.register(DateStatistics.class,EXTERNALIZABLE_SERIALIZER,249);
-        instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,250);
-//        instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,251);
 
         instance.register(TriggerInfo.class,EXTERNALIZABLE_SERIALIZER,253);
         instance.register(TriggerDescriptor.class,EXTERNALIZABLE_SERIALIZER,254);
@@ -892,5 +863,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(UDTBase.class,EXTERNALIZABLE_SERIALIZER,272);
         instance.register(HalfMergeSortJoinOperation.class,EXTERNALIZABLE_SERIALIZER,274);
         instance.register(HalfMergeSortLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,275);
+        instance.register(ColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER,276);
     }
 }
