@@ -98,17 +98,18 @@ public class NestedLoopJoinOperation extends JoinOperation {
         operationContext.pushScope();
         try {
             if (isOuterJoin)
-                return left.flatMap(new NLJOuterJoinFunction(operationContext), true);
+                return left.mapPartitions(new NLJOuterJoinFunction(operationContext), true);
             else {
                 if (notExistsRightSide)
-                    return left.flatMap(new NLJAntiJoinFunction(operationContext), true);
-                else {
-                    if (oneRowRightSide)
-                        return left.flatMap(new NLJOneRowInnerJoinFunction(operationContext), true);
-                    else
-                        return left.mapPartitions(new NLJInnerJoinFunction(operationContext), true);
-                }
-            }
+					return left.mapPartitions(new NLJAntiJoinFunction(operationContext), true);
+				else {
+					if (oneRowRightSide)
+						return left.mapPartitions(new NLJOneRowInnerJoinFunction(operationContext), true);
+					else
+						return left.mapPartitions(new NLJInnerJoinFunction(operationContext), true);
+				}
+
+			}
         } finally {
             operationContext.popScope();
         }

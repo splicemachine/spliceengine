@@ -29,13 +29,13 @@ import java.io.IOException;
 import java.util.Iterator;
 
 @NotThreadSafe
-public class NestedLoopInnerIterator<Op extends SpliceOperation> implements Iterator<LocatedRow>, Iterable<LocatedRow> {
-    private static Logger LOG = Logger.getLogger(NestedLoopInnerIterator.class);
+public class NestedLoopJoinIterator<Op extends SpliceOperation> implements Iterator<LocatedRow>, Iterable<LocatedRow> {
+    private static Logger LOG = Logger.getLogger(NestedLoopJoinIterator.class);
     private boolean populated;
     protected LocatedRow populatedRow;
     protected IterableJoinFunction iterableJoinFunction;
 
-    public NestedLoopInnerIterator(IterableJoinFunction iterableJoinFunction) throws StandardException, IOException {
+    public NestedLoopJoinIterator(IterableJoinFunction iterableJoinFunction) throws StandardException, IOException {
         this.iterableJoinFunction = iterableJoinFunction;
     }
 
