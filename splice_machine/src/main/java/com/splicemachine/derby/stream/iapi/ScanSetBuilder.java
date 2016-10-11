@@ -42,8 +42,6 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> scan(DataScan scan);
 
-    ScanSetBuilder<V> execRowTypeFormatIds(int[] execRowTypeFormatIds);
-
     ScanSetBuilder<V> transaction(TxnView txn);
 
     ScanSetBuilder<V> optionalProbeValue(DataValueDescriptor optionalProbeValue);
@@ -103,4 +101,5 @@ public interface ScanSetBuilder<V>{
     long getBaseTableConglomId();
 
     ExecRow getTemplate();
+
 }

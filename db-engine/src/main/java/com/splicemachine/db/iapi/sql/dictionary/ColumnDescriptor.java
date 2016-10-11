@@ -73,6 +73,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     private long				autoincInc;
     private long				autoincValue;
     private boolean collectStatistics;
+    private int partitionPosition = -1;
     /* Used for Serde */
     //Following variable is used to see if the user is adding an autoincrement
     //column, or if user is altering the existing autoincrement column to change
@@ -112,11 +113,12 @@ public final class ColumnDescriptor extends TupleDescriptor
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
                             UUID defaultUUID, long autoincStart, long autoincInc,
-                            long userChangedWhat)
+                            long userChangedWhat,
+                            int partitionPosition)
     {
         this(columnName, columnPosition, storagePosition, columnType, columnDefault,
                 columnDefaultInfo, table, defaultUUID, autoincStart,
-                autoincInc);
+                autoincInc,partitionPosition);
         autoinc_create_or_modify_Start_Increment = userChangedWhat;
     }
 
@@ -143,7 +145,7 @@ public final class ColumnDescriptor extends TupleDescriptor
                             DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
-                            UUID defaultUUID, long autoincStart, long autoincInc)
+                            UUID defaultUUID, long autoincStart, long autoincInc, int partitionPosition)
     {
         this.columnName = columnName;
         this.columnPosition = columnPosition;
@@ -166,6 +168,7 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincValue = autoincStart;
         this.autoincInc = autoincInc;
         this.collectStatistics = allowsStatistics(columnType);
+        this.partitionPosition = partitionPosition;
     }
 
     /**
@@ -206,7 +209,8 @@ public final class ColumnDescriptor extends TupleDescriptor
                     autoincStart,
                     autoincInc,
                     autoincValue,
-                    allowsStatistics(columnType));
+                    allowsStatistics(columnType),
+                    -1);
     }
 
     public ColumnDescriptor(String columnName,
@@ -220,7 +224,8 @@ public final class ColumnDescriptor extends TupleDescriptor
                             long autoincStart,
                             long autoincInc,
                             long autoincValue,
-                            boolean collectStats){
+                            boolean collectStats,
+                            int partitionPosition){
         this.columnName = columnName;
         this.columnPosition = columnPosition;
         this.storagePosition = storagePosition;
@@ -234,6 +239,7 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincStart = autoincStart;
         this.autoincValue = autoincValue;
         this.autoincInc = autoincInc;
+        this.partitionPosition = partitionPosition;
     }
 
     public boolean collectStatistics(){
@@ -427,6 +433,16 @@ public final class ColumnDescriptor extends TupleDescriptor
      */
     public boolean isAutoincAlways(){
         return (columnDefaultInfo == null) && isAutoincrement();
+    }
+
+    /**
+     *
+     * Position in external table partition logic.
+     *
+     * @return
+     */
+    public int getPartitionPosition() {
+        return partitionPosition;
     }
 
     /**

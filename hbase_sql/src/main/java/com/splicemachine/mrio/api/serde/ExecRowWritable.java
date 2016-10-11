@@ -18,15 +18,10 @@ package com.splicemachine.mrio.api.serde;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-
 import org.apache.hadoop.io.Writable;
-
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -41,11 +36,9 @@ public class ExecRowWritable implements Writable{
 	ExecRow value = null;
 	byte[] bytes = null;
 	int length = 0;
-	private int[] colTypes;
-	
-	public ExecRowWritable(int[] colTypes)
-	{
-		this.colTypes = colTypes;
+	private ExecRow row;
+
+	public ExecRowWritable(ExecRow row) {
 	}
 	
 	public byte[] translate2byte(ExecRow row) throws StandardException
@@ -71,12 +64,8 @@ public class ExecRowWritable implements Writable{
 		return encoder.build();
 	}
 	
-	private ExecRow constructEmptyExecRow() throws StandardException
-	{
-		ExecRow row = new ValueRow(colTypes.length);
-		DataValueDescriptor[] data = createDVD();
-		row.setRowArray(data);
-		return row;
+	private ExecRow constructEmptyExecRow() throws StandardException {
+		return row.getClone();
 	}
 	
 	public ExecRow translateFromBytes(byte[] row) throws StandardException
@@ -171,15 +160,6 @@ public class ExecRowWritable implements Writable{
 			out.writeInt(bytes.length);
 			out.write(bytes, 0, bytes.length);
 		}
-	}
-
-	private DataValueDescriptor[] createDVD() throws StandardException {
-		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.length];
-		for(int pos = 0; pos < colTypes.length; pos++)
-		{
-			dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes[pos]).getNull();
-		}
-		return dvds;
 	}
 
 	@Override

@@ -2133,9 +2133,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		// parameter to the metadata statement and handle it here.
 		
 		// Array for type parameters
-		final int numberOfTableTypesInDerby = 4;
+		final int numberOfTableTypesInDerby = 5;
 		if (types == null)  {// null means all types 
-			types = new String[] {"TABLE","VIEW","SYNONYM","SYSTEM TABLE"};
+			types = new String[] {"TABLE","VIEW","SYNONYM","SYSTEM TABLE","EXTERNAL TABLE"};
 		}
 		String[] typeParams = new String[numberOfTableTypesInDerby];
 		for (int i=0; i < numberOfTableTypesInDerby;i++)
@@ -2151,6 +2151,10 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 			else if ("SYSTEM TABLE".equals(types[i]) ||
 					"SYSTEM_TABLE".equals(types[i])) // Keep SYSTEM_TABLE since this is how we have been testing
 					typeParams[3] = "S";
+			else if ("EXTERNAL TABLE".equals(types[i]) ||
+					"EXTERNAL_TABLE".equals(types[i])) // Keep EXTERNAL_TABLE since this is how we have been testing
+				typeParams[4] = "E";
+
 			// If user puts in other types we simply ignore.
 			}
 		

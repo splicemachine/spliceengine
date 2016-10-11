@@ -124,7 +124,13 @@ public interface ResultSetFactory {
                                  double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost,
                                  String tableVersion,
-                                 String explainPlan)
+                                 String explainPlan,
+								 String delimited,
+								 String escaped,
+								 String lines,
+								 String storedAs,
+								 String location,
+								 int partitionBy)
         throws StandardException;
 
 	/**
@@ -751,100 +757,6 @@ public interface ResultSetFactory {
 			String explainPlan
 			)
 					throws StandardException;
-
-	/**
-		A hash result set forms a result set on a hash table built on a scan
-		of a table.
-		The rows are put into the hash table on the 1st open.
-		<p>
-
-		@param activation the activation for this result set,
-			which provides the context for the row allocation operation.
-		@param conglomId the conglomerate of the table to be scanned.
-		@param scociItem The saved item for the static conglomerate info.
-		@param resultRowAllocator a reference to a method in the activation
-			that creates a holder for the rows from the scan.
-			<verbatim>
-				ExecRow rowAllocator() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param startKeyGetter a reference to a method in the activation
-			that gets the start key indexable row for the scan.  Null
-			means there is no start key.
-			<verbatim>
-				ExecIndexRow startKeyGetter() throws StandardException;
-			</verbatim>
-		@param startSearchOperator The start search operator for opening
-			the scan
-		@param stopKeyGetter	a reference to a method in the activation
-			that gets the stop key indexable row for the scan.  Null means
-			there is no stop key.
-			<verbatim>
-				ExecIndexRow stopKeyGetter() throws StandardException;
-			</verbatim>
-		@param stopSearchOperator	The stop search operator for opening
-			the scan
-		@param sameStartStopPosition	Re-use the startKeyGetter for the stopKeyGetter
-										(Exact match search.)
-		@param scanQualifiers the array of Qualifiers for the scan.
-			Null or an array length of zero means there are no qualifiers.
-		@param nextQualifiers the array of Qualifiers for the look up into the hash table.
-		@param initialCapacity	The initialCapacity for the HashTable.
-		@param loadFactor		The loadFactor for the HashTable.
-		@param maxCapacity		The maximum size for the HashTable.
-		@param hashKeyColumn	The 0-based column # for the hash key.
-		@param tableName		The full name of the table 
-		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
-		@param indexName		The name of the index, if one used to access table.
-		@param isConstraint		If index, if used, is a backing index for a constraint.
-		@param forUpdate		True means open for update
-		@param colRefItem		An saved item for a bitSet of columns that
-								are referenced in the underlying table.  -1 if
-								no item.
-		@param lockMode			The lock granularity to use (see
-								TransactionController in access)
-		@param tableLocked		Whether or not the table is marked as using table locking
-								(in sys.systables)
-		@param isolationLevel	Isolation level (specified or not) to use on scans
-		@param optimizerEstimatedRowCount	Estimated total # of rows by
-											optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@return the table scan operation as a result set.
-		@exception StandardException thrown when unable to create the
-			result set
-	 */
-	NoPutResultSet getHashScanResultSet(
-			                    Activation activation,
-								long conglomId,
-								int scociItem,						
-								GeneratedMethod resultRowAllocator,
-								int resultSetNumber,
-								GeneratedMethod startKeyGetter,
-								int startSearchOperator,
-								GeneratedMethod stopKeyGetter,
-								int stopSearchOperator,
-								boolean sameStartStopPosition,
-                                boolean rowIdKey,
-								String scanQualifiersField,
-								String nextQualifierField,
-								int initialCapacity,
-								float loadFactor,
-								int maxCapacity,
-								int hashKeyColumn,
-								String tableName,
-								String userSuppliedOptimizerOverrides,
-								String indexName,
-								boolean isConstraint,
-								boolean forUpdate,
-								int colRefItem,
-								int indexColItem,
-								int lockMode,
-								boolean tableLocked,
-								int isolationLevel,
-								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
-			throws StandardException;
-
 	/**
 		A distinct scan result set pushes duplicate elimination into
 		the scan.
@@ -898,7 +810,13 @@ public interface ResultSetFactory {
 								double optimizerEstimatedRowCount,
 								double optimizerEstimatedCost,
                                 String tableVersion,
-								String explainPlan)
+								String explainPlan,
+								boolean pin,
+								String delimited,
+								String escaped,
+								String lines,
+								String storedAs,
+								String location)
 			throws StandardException;
 
 	/**
@@ -991,105 +909,14 @@ public interface ResultSetFactory {
 								double optimizerEstimatedRowCount,
 								double optimizerEstimatedCost,
                                 String tableVersion,
-                                String explainPlan)
-			throws StandardException;
-
-	/**
-		A table scan result set forms a result set on a scan
-		of a table.
-		The rows can be constructed as they are requested from the
-		result set.
-		<p>
-		This form of the table scan operation is simple, and is
-		to be used when there are no predicates to be passed down
-		to the scan to limit its scope on the target table.
-
-		@param conglomId the conglomerate of the table to be scanned.
-		@param scociItem The saved item for the static conglomerate info.
-		@param activation the activation for this result set,
-			which provides the context for the row allocation operation.
-		@param resultRowAllocator a reference to a method in the activation
-			that creates a holder for the result row of the scan.  May
-			be a partial row.
-			<verbatim>
-				ExecRow rowAllocator() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param startKeyGetter a reference to a method in the activation
-			that gets the start key indexable row for the scan.  Null
-			means there is no start key.
-			<verbatim>
-				ExecIndexRow startKeyGetter() throws StandardException;
-			</verbatim>
-		@param startSearchOperator The start search operator for opening
-			the scan
-		@param stopKeyGetter	a reference to a method in the activation
-			that gets the stop key indexable row for the scan.  Null means
-			there is no stop key.
-			<verbatim>
-				ExecIndexRow stopKeyGetter() throws StandardException;
-			</verbatim>
-		@param stopSearchOperator	The stop search operator for opening
-			the scan
-		@param sameStartStopPosition	Re-use the startKeyGetter for the stopKeyGetter
-										(Exact match search.)
-		@param qualifiers the array of Qualifiers for the scan.
-			Null or an array length of zero means there are no qualifiers.
-		@param tableName		The full name of the table
-		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
-		@param indexName		The name of the index, if one used to access table.
-		@param isConstraint		If index, if used, is a backing index for a constraint.
-		@param forUpdate		True means open for update
-		@param colRefItem		An saved item for a bitSet of columns that
-								are referenced in the underlying table.  -1 if
-								no item.
-		@param lockMode			The lock granularity to use (see
-								TransactionController in access)
-		@param tableLocked		Whether or not the table is marked as using table locking
-								(in sys.systables)
-		@param isolationLevel	Isolation level (specified or not) to use on scans
-		@param rowsPerRead		The number of rows to read per fetch.
-        @param disableForHoldable Whether or not bulk fetch should be disabled
-                                  at runtime if the cursor is holdable.
-		@param oneRowScan		Whether or not this is a 1 row scan.
-		@param optimizerEstimatedRowCount	Estimated total # of rows by
-											optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-
-		@return the table scan operation as a result set.
-		@exception StandardException thrown when unable to create the
-			result set
-	 */
-	NoPutResultSet getBulkTableScanResultSet(
-			                    Activation activation,
-			                    long conglomId,
-								int scociItem,
-								GeneratedMethod resultRowAllocator,
-								int resultSetNumber,
-								GeneratedMethod startKeyGetter,
-								int startSearchOperator,
-								GeneratedMethod stopKeyGetter,
-								int stopSearchOperator,
-								boolean sameStartStopPosition,
-                                boolean rowIdKey,
-								String qualifiersField,
-								String tableName,
-								String userSuppliedOptimizerOverrides,
-								String indexName,
-								boolean isConstraint,
-								boolean forUpdate,
-								int colRefItem,
-								int indexColItem,
-								int lockMode,
-								boolean tableLocked,
-								int isolationLevel,
-								int rowsPerRead,
-                                boolean disableForHoldable,
-								boolean oneRowScan,
-								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost,
-								String tableVersion,
-                                String explainPlan)
+                                String explainPlan,
+								boolean pin,
+								String delimited,
+								String escaped,
+								String lines,
+								String storedAs,
+								String location
+								)
 			throws StandardException;
 
     /**
@@ -1136,7 +963,14 @@ public interface ResultSetFactory {
 								double optimizerEstimatedRowCount,
 								double optimizerEstimatedCost,
                                 String tableVersion,
-                                String explainPlan)
+                                String explainPlan,
+								boolean pin,
+								String delimited,
+								String escaped,
+								String lines,
+								String storedAs,
+								String location
+								)
 			throws StandardException;
     /**
 		An index row to base row result set gets an index row from its source
@@ -1341,50 +1175,6 @@ public interface ResultSetFactory {
 			   String userSuppliedOptimizerOverrides,
 			   String explainPlan)
 			           throws StandardException;
-
-	/**
-		A hash join.
-
-		@param leftResultSet	Outer ResultSet for join.
-		@param leftNumCols		Number of columns in the leftResultSet
-		@param rightResultSet	Inner ResultSet for join.
-		@param rightNumCols		Number of columns in the rightResultSet
-		@param joinClause a reference to a method in the activation
-			that is applied to the activation's "current row" field
-			to determine whether the joinClause is satisfied or not.
-			The signature of this method is
-			<verbatim>
-				Boolean joinClause() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param oneRowRightSide	boolean, whether or not the right side returns
-								a single row.  (No need to do 2nd next() if it does.)
-		@param notExistsRightSide	boolean, whether or not the right side resides a
-									NOT EXISTS base table
-		@param optimizerEstimatedRowCount	Estimated total # of rows by
-											optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
-		@return the nested loop join operation as a result set.
-		@exception StandardException thrown when unable to create the
-			result set
-	 */
-    public NoPutResultSet getHashJoinResultSet(NoPutResultSet leftResultSet,
-								   int leftNumCols,
-								   NoPutResultSet rightResultSet,
-								   int rightNumCols,
-                                   int leftHashKeyitem,
-                                   int rightHashKeyItem,
-								   GeneratedMethod joinClause,
-								   int resultSetNumber,
-								   boolean oneRowRightSide,
-								   boolean notExistsRightSide,
-								   double optimizerEstimatedRowCount,
-								   double optimizerEstimatedCost,
-								   String userSuppliedOptimizerOverrides,
-					               String explainPlan)
-			throws StandardException;
-
 
 	/**
 		A nested loop join result set forms a result set on top of

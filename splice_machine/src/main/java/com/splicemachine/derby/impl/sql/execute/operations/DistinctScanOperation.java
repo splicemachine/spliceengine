@@ -66,6 +66,12 @@ public class DistinctScanOperation extends ScanOperation {
     private String tableName;
     private String indexName;
     private int[] keyColumns;
+    private boolean pin;
+    private String delimited;
+    private String escaped;
+    private String lines;
+    private String storedAs;
+    private String location;
 
     /**
      *
@@ -106,7 +112,13 @@ public class DistinctScanOperation extends ScanOperation {
                                  int isolationLevel,
                                  double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost,
-                                 String tableVersion) throws StandardException {
+                                 String tableVersion,
+                                 boolean pin,
+                                 String delimited,
+                                 String escaped,
+                                 String lines,
+                                 String storedAs,
+                                 String location) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -131,6 +143,12 @@ public class DistinctScanOperation extends ScanOperation {
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
         this.indexName = indexName;
+        this.pin = pin;
+        this.delimited = delimited;
+        this.escaped = escaped;
+        this.lines = lines;
+        this.storedAs = storedAs;
+        this.location = location;
         init();
     }
 
@@ -262,7 +280,6 @@ public class DistinctScanOperation extends ScanOperation {
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                 .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                 .keyColumnTypes(getKeyFormatIds())
-                .execRowTypeFormatIds(execRowTypeFormatIds)
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(colMap)

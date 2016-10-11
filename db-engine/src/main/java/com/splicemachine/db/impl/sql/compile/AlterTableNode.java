@@ -497,7 +497,7 @@ public String statementToString()
             // Generate the ColumnInfo argument for the constant action. Keep the number of constraints.
             colInfos = new ColumnInfo[tableElementList.countNumberOfColumns()];
 
-            numConstraints = tableElementList.genColumnInfos(colInfos);
+            numConstraints = tableElementList.genColumnInfos(colInfos,null);
         }
 
 		/* If we've seen a constraint, then build a constraint list */

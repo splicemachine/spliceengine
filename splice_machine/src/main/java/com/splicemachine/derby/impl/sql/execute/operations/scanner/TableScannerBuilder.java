@@ -18,13 +18,9 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.shared.common.udt.UDTBase;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -68,7 +64,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected SIFilterFactory filterFactory;
     protected boolean[] keyColumnSortOrder;
     protected TransactionalRegion region;
-    protected int[] execRowTypeFormatIds;
     protected OperationContext operationContext;
     protected int[] fieldLengths;
     protected int[] columnPositionMap;
@@ -122,14 +117,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public ScanSetBuilder<V> scan(DataScan scan){
         assert scan!=null:"Null scans are not allowed!";
         this.scan=scan;
-        return this;
-    }
-
-    @Override
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public ScanSetBuilder<V> execRowTypeFormatIds(int[] execRowTypeFormatIds){
-        assert execRowTypeFormatIds!=null:"Null ExecRow formatIDs are not allowed!";
-        this.execRowTypeFormatIds=execRowTypeFormatIds;
         return this;
     }
 
@@ -359,30 +346,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
-        try{
-            out.writeBoolean(execRowTypeFormatIds!=null);
-            if(execRowTypeFormatIds!=null){
-                out.writeInt(execRowTypeFormatIds.length);
-                for(int i=0;i<execRowTypeFormatIds.length;++i){
-                    out.writeInt(execRowTypeFormatIds[i]);
-                    if(execRowTypeFormatIds[i]==StoredFormatIds.SQL_USERTYPE_ID_V3){
-                        DataValueDescriptor dvd=template.getColumn(i+1);
-                        Object o=null;
-                        if(dvd!=null){
-                            o=dvd.getObject();
-                        }
-                        if(o!=null && o instanceof UDTBase){
-                            // Serialize this UDT or UDA
-                            out.writeBoolean(true);
-                            out.writeObject(o);
-                        }else{
-                            out.writeBoolean(false);
-                        }
-                    }
-                }
-            }
+            out.writeObject(template);
             writeScan(out);
-//            out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
             out.writeBoolean(rowColumnMap!=null);
             if(rowColumnMap!=null){
                 out.writeInt(rowColumnMap.length);
@@ -434,9 +399,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             out.writeBoolean(optionalProbeValue !=null);
             if (optionalProbeValue!=null)
                 out.writeObject(optionalProbeValue);
-        }catch(StandardException e){
-            throw new IOException(e.getCause());
-        }
     }
 
     protected void writeTxn(ObjectOutput out) throws IOException{
@@ -450,24 +412,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException{
-        try{
-            if(in.readBoolean()){
-                int n=in.readInt();
-                execRowTypeFormatIds=new int[n];
-                template=new ValueRow(n);
-                DataValueDescriptor[] rowArray=template.getRowArray();
-                for(int i=0;i<n;++i){
-                    execRowTypeFormatIds[i]=in.readInt();
-                    rowArray[i]=LazyDataValueFactory.getLazyNull(execRowTypeFormatIds[i]);
-
-                    if(execRowTypeFormatIds[i]==StoredFormatIds.SQL_USERTYPE_ID_V3){
-                        if(in.readBoolean()){
-                            Object o=in.readObject();
-                            rowArray[i].setValue(o);
-                        }
-                    }
-                }
-            }
+            template = (ExecRow)in.readObject();
             scan=readScan(in);
             if(in.readBoolean()){
                 rowColumnMap=new int[in.readInt()];
@@ -511,9 +456,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             demarcationPoint=in.readLong();
             if (in.readBoolean())
                 optionalProbeValue = (DataValueDescriptor) in.readObject();
-        }catch(StandardException e){
-            throw new IOException(e.getCause());
-        }
     }
 
     protected TxnView readTxn(ObjectInput in) throws IOException{
@@ -560,11 +502,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 keyColumnTypes!=null?Arrays.toString(keyColumnTypes):"NULL",
                 keyDecodingMap!=null?Arrays.toString(keyDecodingMap):"NULL",
                 accessedKeys,indexName,tableVersion);
-    }
-
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
-    public int[] getExecRowTypeFormatIds(){
-        return execRowTypeFormatIds;
     }
 
     public DataSet<V> buildDataSet(Object caller) throws StandardException {

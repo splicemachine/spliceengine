@@ -17,6 +17,8 @@ package com.splicemachine.derby.stream.control;
 
 
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.*;
@@ -384,5 +386,24 @@ public class ControlDataSet<V> implements DataSet<V> {
         } finally {
             operationContext.popScope();
         }
+    }
+    @Override
+    public void saveAsParquet(ExecRow execRow, long conglomID) {
+        throw new UnsupportedOperationException("Cannot write parquet files with in-memory representation");
+    }
+
+    @Override
+    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, OperationContext context) {
+        throw new UnsupportedOperationException("Cannot write parquet files");
+    }
+
+    @Override
+    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, OperationContext context) {
+        throw new UnsupportedOperationException("Cannot write orc files");
+    }
+
+    @Override
+    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) {
+        throw new UnsupportedOperationException("Cannot write text files");
     }
 }

@@ -18,8 +18,8 @@ package com.splicemachine.mrio.api.hive;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
@@ -28,7 +28,6 @@ import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
-import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
@@ -280,7 +279,7 @@ public class SMSerDe implements SerDe {
             // TODO Auto-generated catch block
             throw new RuntimeException("Serialized Object To Java Type Error");
         }
-        ExecRowWritable rowWritable = new ExecRowWritable(execRowFormatIds);
+        ExecRowWritable rowWritable = new ExecRowWritable(WriteReadUtils.getExecRowFromTypeFormatIds(execRowFormatIds));
         rowWritable.set(row);
         return rowWritable;
     }

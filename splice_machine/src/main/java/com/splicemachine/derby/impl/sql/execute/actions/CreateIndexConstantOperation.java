@@ -347,6 +347,14 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         if (td == null) {
             td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, userTransaction);
         }
+
+        if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
+            throw StandardException.newException(
+                    SQLState.EXTERNAL_TABLES_NO_INDEX,td.getName());
+        }
+
+
+
         DDLUtils.validateTableDescriptor(td, indexName, tableName);
         try {
             // invalidate any prepared statements that

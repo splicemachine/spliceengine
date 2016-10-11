@@ -130,7 +130,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     }
 
     private static final int defaultBytesPerRow = 100;
-    protected int getBytesPerRow() {
+    public static int getBytesPerRow() {
         // Imprecise assumption of a fixed number of bytes per row,
         // but better than assuming fixed default row count.
         // Future improvements might include:

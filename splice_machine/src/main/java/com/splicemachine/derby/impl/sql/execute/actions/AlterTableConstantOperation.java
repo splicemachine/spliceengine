@@ -205,6 +205,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // older version (or at target) has to get td first, potential deadlock
         TableDescriptor td = getTableDescriptor(lcc);
 
+        if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
+            throw StandardException.newException(
+                    SQLState.EXTERNAL_TABLES_NO_ALTER,td.getName());
+        }
+
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
 
@@ -249,6 +254,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                */
                 switch (constraintType) {
                     case DataDictionary.PRIMARYKEY_CONSTRAINT:
+                        if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+                            throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_PRIMARY_KEYS,td.getName());
+
                         // Check to see if a constraint of the same type
                         // already exists
                         ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
@@ -261,15 +269,21 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
                         break;
                     case DataDictionary.UNIQUE_CONSTRAINT:
+                        if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+                            throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_UNIQUE_CONSTRAINTS,td.getName());
                         // create the unique constraint
                         createUniqueConstraint(activation, cca);
 
                         break;
                     case DataDictionary.FOREIGNKEY_CONSTRAINT:
+                        if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+                            throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS,td.getName());
                         // Do everything but FK constraints first, then FK constraints on 2nd pass.
                         fkConstraints.add(cca);
                         break;
                     case DataDictionary.CHECK_CONSTRAINT:
+                        if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+                            throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_CHECK_CONSTRAINTS,td.getName());
                         // create the check constraint
                         createCheckConstraint(activation, cca);
                         // Validate the constraint
