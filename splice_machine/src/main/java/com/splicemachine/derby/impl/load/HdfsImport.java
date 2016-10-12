@@ -474,9 +474,9 @@ public class HdfsImport {
     }
 
     private static String sqlFormat(String columnName){
-        if(columnName.toUpperCase().equals(columnName) || columnName.toLowerCase().equals(columnName))
-            return columnName;
-        else return "\""+columnName+"\"";
+//        if(columnName.toUpperCase().equals(columnName) || columnName.toLowerCase().equals(columnName))
+//            return columnName;
+        return "\""+columnName+"\"";
     }
 
     static List<String> normalizeIdentifierList(String insertColumnListStr) {

@@ -129,6 +129,46 @@ public class CaseSensitiveImportIT {
     }
 
     @Test
+    public void testCaseSensitiveColumnsNoColumnList() throws Exception {
+        /*
+         * This doesn't really test the import procedure itself so much as it tests the setup
+         * of the import (that we properly find all the mixed-case columns, etc.). It mainly
+         * validated SPLICE-1049 is not still a problem.
+         */
+        String tableName = "\"MixedCaseCols2\"";
+
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate(String.format("create table %s ",SCHEMA_NAME+"."+tableName)+
+                    "(\"ColOne\" int primary key, \"ColTwo\" varchar(10),\"colthree\" varchar(10))");
+        }
+
+        String importString = String.format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "0," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",   // char set
+                SCHEMA_NAME, tableName,
+                SpliceUnitTest.getResourceDirectory() + "import/valuesThree.txt",
+                BADDIR.getCanonicalPath());
+
+        try(PreparedStatement ps = conn.prepareStatement(importString)){
+            ps.execute();
+        }
+
+        List<String> results=dumpTable(tableName);
+        Assert.assertEquals("Bad row count.",10,results.size());
+    }
+
+    @Test
     public void testCaseSensitiveInsertColumnListWithCommasQuoted() throws Exception {
         String tableName = "\"InCase\"";
 
