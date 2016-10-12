@@ -16,6 +16,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
@@ -24,53 +25,38 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  */
 public class StatisticsFunctions {
 
-    /*
-    public static int STATS_COL_WIDTH(ColumnStatistics columnStatistics){
+    public static int STATS_COL_WIDTH(ColumnStatisticsImpl columnStatistics){
         if(columnStatistics==null) return 0;
-        return columnStatistics.avgColumnWidth();
+        return 10; // TODO JL
     }
 
-    public static long STATS_CARDINALITY(ColumnStatistics columnStatistics){
+    public static long STATS_CARDINALITY(ColumnStatisticsImpl columnStatistics){
         if(columnStatistics==null) return 0;
         return columnStatistics.cardinality();
     }
 
-    public static long STATS_NULL_COUNT(ColumnStatistics columnStatistics){
+    public static long STATS_NULL_COUNT(ColumnStatisticsImpl columnStatistics){
         if(columnStatistics==null) return 0;
         return columnStatistics.nullCount();
     }
 
-    public static float STATS_NULL_FRACTION(ColumnStatistics columnStatistics){
+    public static float STATS_NULL_FRACTION(ColumnStatisticsImpl columnStatistics){
         if(columnStatistics==null) return 0;
-        return columnStatistics.nullFraction();
+        return columnStatistics.nullCount()/columnStatistics.notNullCount();
     }
 
-    public static String STATS_TOP_K(ColumnStatistics columnStatistics){
-        if(columnStatistics==null) return null;
-        FrequentElements frequentElements = columnStatistics.topK();
-        StringBuilder string = new StringBuilder();
-        boolean isFirst = true;
-        for(Object estimate:frequentElements.allFrequentElements()){
-            if(!isFirst) string = string.append(",");
-            else isFirst = false;
-            string = string.append(estimate);
-        }
-        return string.toString();
-    }
-
-    public static String STATS_MAX(ColumnStatistics columnStatistics) throws StandardException {
+    public static String STATS_MAX(ColumnStatisticsImpl columnStatistics) throws StandardException {
         if(columnStatistics==null) return null;
         DataValueDescriptor dvd = (DataValueDescriptor)columnStatistics.maxValue();
         if(dvd==null || dvd.isNull()) return null;
         return dvd.getString();
     }
 
-    public static String STATS_MIN(ColumnStatistics columnStatistics) throws StandardException {
+    public static String STATS_MIN(ColumnStatisticsImpl columnStatistics) throws StandardException {
         if(columnStatistics==null) return null;
         DataValueDescriptor dvd = (DataValueDescriptor)columnStatistics.minValue();
         if(dvd==null || dvd.isNull()) return null;
         return dvd.getString();
     }
 
-    */
 }

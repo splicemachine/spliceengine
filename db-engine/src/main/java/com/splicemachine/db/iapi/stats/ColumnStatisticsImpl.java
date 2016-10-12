@@ -65,7 +65,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         out.writeObject(dvd);
         byte[] quantilesSketchBytes = quantilesSketch.toByteArray(new DVDArrayOfItemsSerDe(dvd,0));
         out.writeInt(quantilesSketchBytes.length);
-        out.write(Arrays.copyOf(quantilesSketchBytes,quantilesSketchBytes.length));
+        out.write(quantilesSketchBytes);
         byte[] frequenciesSketchBytes = frequenciesSketch.toByteArray(new DVDArrayOfItemsSerDe(dvd,0));
         out.writeInt(frequenciesSketchBytes.length);
         out.write(frequenciesSketchBytes);
