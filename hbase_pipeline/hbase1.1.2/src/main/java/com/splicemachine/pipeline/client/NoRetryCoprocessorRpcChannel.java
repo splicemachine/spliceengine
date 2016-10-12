@@ -58,7 +58,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 	public void callMethod(Descriptors.MethodDescriptor method, RpcController controller, Message request, Message responsePrototype, RpcCallback<Message> callback) {
 		Message response = null;
 		try {
-			response = callExecService(controller, method, request, responsePrototype);
+			response = callExecService(method, request, responsePrototype);
 		} catch (IOException ioe) {
 			if(controller instanceof SpliceRpcController){
 				((SpliceRpcController)controller).setFailed(ioe);
@@ -71,7 +71,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 	}
 
 	@Override
-	protected Message callExecService(RpcController controller, Descriptors.MethodDescriptor method, Message request, Message responsePrototype) throws IOException {
+	protected Message callExecService(Descriptors.MethodDescriptor method, Message request, Message responsePrototype) throws IOException {
 		if (LOG.isTraceEnabled()) {
 			LOG.trace("Call: "+method.getName()+", "+request.toString());
 		}
@@ -79,7 +79,6 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 		if (row == null) {
 			throw new IllegalArgumentException("Missing row property for remote region location");
 		}
-		final RpcController rpcController = controller;
 		final ClientProtos.CoprocessorServiceCall call =
 				ClientProtos.CoprocessorServiceCall.newBuilder()
 						.setRow(ZeroCopyLiteralByteString.wrap(row))
@@ -94,7 +93,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 
 					public ClientProtos.CoprocessorServiceResponse call() throws Exception {
 						byte[] regionName = getLocation().getRegionInfo().getRegionName();
-						return ProtobufUtil.execService(rpcController, getStub(), call, regionName);
+						return ProtobufUtil.execService(getStub(), call, regionName);
 					}
 				};
 		SpliceRetryingCall<ClientProtos.CoprocessorServiceResponse> wrapperCall = new SpliceRetryingCaller<>(callable);
