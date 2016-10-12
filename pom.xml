@@ -742,7 +742,7 @@
             </activation>
             <properties>
                 <envClassifier>hdp2.5.0</envClassifier>
-                <envHbase>hbase1.1.2</envHbase>
+                <envHbase>hbase1.1.2.2.5</envHbase>
                 <hadoop.version>2.7.3.2.5.0.0-1245</hadoop.version>
                 <!-- <hadoop.tools.version>1.2.0.23</hadoop.tools.version> -->
                 <hbase.version>1.1.2.2.5.0.0-1245</hbase.version>
