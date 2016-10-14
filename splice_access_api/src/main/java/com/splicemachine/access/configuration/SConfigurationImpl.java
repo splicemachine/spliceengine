@@ -97,6 +97,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int sparkResultStreamingBatches;
     private final int sparkResultStreamingBatchSize;
     private final int compactionReservedSlots;
+    private final int olapCompactionMaximumWait;
     private final int reservedSlotsTimeout;
 
     // SIConfigurations
@@ -673,6 +674,7 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;
+        olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
         nestedLoopJoinBatchSize = builder.nestedLoopJoinBatchSize;
@@ -710,6 +712,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getCompactionReservedSlots() {
         return compactionReservedSlots;
+    }
+
+    @Override
+    public int getOlapCompactionMaximumWait() {
+        return olapCompactionMaximumWait;
     }
 
     @Override

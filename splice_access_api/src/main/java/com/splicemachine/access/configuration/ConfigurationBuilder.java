@@ -137,6 +137,7 @@ public class ConfigurationBuilder {
     public int sparkResultStreamingBatches;
     public int compactionReservedSlots;
     public int reservedSlotsTimeout;
+    public int olapCompactionMaximumWait;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

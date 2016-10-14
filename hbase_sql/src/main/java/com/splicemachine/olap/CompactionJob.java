@@ -33,11 +33,14 @@ import org.apache.spark.api.java.JavaFutureAction;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.ui.jobs.UIData;
+import scala.Option;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -101,6 +104,7 @@ public class CompactionJob implements Callable<Void>{
             //the client timed out during our setup, so it's time to stop
             return null;
         }
+        long startTime = clock.currentTimeMillis();
         JavaFutureAction<List<String>> collectFuture=rdd2.collectAsync();
         while(!collectFuture.isDone()){
             try{
@@ -119,6 +123,16 @@ public class CompactionJob implements Callable<Void>{
                 context.cancelJobGroup(compactionRequest.jobGroup);
                 return null;
             }
+            if (clock.currentTimeMillis() - startTime > compactionRequest.maxWait) {
+                // Make sure compaction is scheduled in Spark and running, otherwise cancel it and fallback to in-HBase compaction
+                if (!compactionRunning(collectFuture.jobIds())) {
+                    collectFuture.cancel(true);
+                    context.cancelJobGroup(compactionRequest.jobGroup);
+                    status.markCompleted(new FailedOlapResult(
+                            new RejectedExecutionException("No resources available for running compaction in Spark")));
+                    return null;
+                }
+            }
         }
         //the compaction completed
         List<String> sPaths = collectFuture.get();
@@ -128,6 +142,25 @@ public class CompactionJob implements Callable<Void>{
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"Paths Returned: %s",sPaths);
         return null;
+    }
+
+    private boolean compactionRunning(List<Integer> jobIds) {
+        if (jobIds.size() == 0) {
+            return false;
+        }
+        Integer jobId = jobIds.get(0);
+        Option<UIData.JobUIData> op = SpliceSpark.getContext().sc().jobProgressListener().jobIdToData().get(jobId);
+        if (op.isEmpty()) {
+            return false;
+        }
+        UIData.JobUIData jobData = op.get();
+        if (jobData.numActiveTasks() > 0) {
+            return true;
+        }
+        if (jobData.numCompletedTasks() > 0) {
+            return true;
+        }
+        return false;
     }
 
     protected void initializeJob() {
