@@ -90,7 +90,7 @@ public interface TableStatistics {
      * @param element the element to match
      * @return the number of entries which are <em>equal</em> to the specified element.
      */
-    <T extends Comparator<T>> long selectivity(T element,int positionNumber);
+    <T extends Comparator<T>> double selectivity(T element,int positionNumber);
 
     /**
      * @param start the start of the range to estimate. If {@code null}, then scan everything before {@code stop}.
@@ -104,7 +104,7 @@ public interface TableStatistics {
      * @return the number of rows which fall in the range {@code start},{@code stop}, with
      * inclusion determined by {@code includeStart} and {@code includeStop}
      */
-    <T extends Comparator<T>> long rangeSelectivity(T start,T stop, boolean includeStart,boolean includeStop,int positionNumber);
+    <T extends Comparator<T>> double rangeSelectivity(T start,T stop, boolean includeStart,boolean includeStop,int positionNumber);
 
     double columnSizeFactor(BitSet validColumns);
 

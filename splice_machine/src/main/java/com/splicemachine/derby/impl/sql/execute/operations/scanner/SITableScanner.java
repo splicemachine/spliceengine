@@ -114,7 +114,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.keyColumnSortOrder = keyColumnSortOrder;
         this.indexName = indexName;
         this.reuseRowLocation = reuseRowLocation;
-        MetricFactory metricFactory = Metrics.basicMetricFactory();
+        MetricFactory metricFactory = Metrics.noOpMetricFactory();
         this.filterCounter = metricFactory.newCounter();
         this.outputBytesCounter = metricFactory.newCounter();
         this.regionScanner = scanner;
