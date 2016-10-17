@@ -154,7 +154,7 @@ public class TableStatisticsImpl implements TableStatistics {
             selectivity =+ partitionStatistic.rangeSelectivity(start,stop,includeStart,includeStop,positionNumber);
             rowCount =+ partitionStatistic.rowCount();
         }
-        return selectivity/rowCount;
+        return (double) ((double)selectivity/(double)rowCount);
     }
 
     @Override

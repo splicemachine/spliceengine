@@ -113,11 +113,11 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
 
     @Override
     public <T extends Comparator<T>> long selectivity(T element, int positionNumber) {
-        return 0;
+        return 1;
     }
 
     @Override
     public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
-        return 0;
+        return (long) (0.9d * (double) rowCount());
     }
 }
