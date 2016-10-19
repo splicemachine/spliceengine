@@ -180,7 +180,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     String.class,
                     InputStream.class,
                     HConfiguration.unwrapDelegate());
-            // RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkPairDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
@@ -218,7 +217,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                             return o.toString();
                         }
                     });
-            RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
+            SparkUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);

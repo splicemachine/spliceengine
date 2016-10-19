@@ -37,6 +37,8 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import org.spark_project.guava.collect.Lists;
 
+import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromString;
+
 /**
  * @author Jeff Cunningham
  *         Date: 10/2/14
@@ -54,6 +56,7 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         super.init(arg1, null);
         aggregateFunction = (AggregateNode) arg2;
         this.aggregateName = aggregateFunction.aggregateName;
+        this.type = fromString(aggregateFunction.aggregateName);
         this.operator = aggregateFunction.operator;
     }
 
