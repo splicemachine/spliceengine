@@ -82,10 +82,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     @Override
-    public List<Path> compact(CompactionRequest request, CompactionThroughputController compactionThroughputController, User user) throws IOException {
+    public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController, User user) throws IOException {
         EngineDriver driver = EngineDriver.driver();
         if(!allowSpark || store.getRegionInfo().isSystemTable()|| driver==null)
-            return super.compact(request,compactionThroughputController,user);
+            return super.compact(request, throughputController,user);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
 
