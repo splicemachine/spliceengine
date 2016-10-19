@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.iapi.sql.execute;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -106,6 +107,6 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 
 	public ExecRow fromSparkRow(org.apache.spark.sql.Row row);
 
-	public long getRowSize();
+	public long getRowSize() throws StandardException;
 
 }

@@ -404,7 +404,7 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	}
 
 	@Override
-	public long getRowSize() {
+	public long getRowSize() throws StandardException {
 		return valueRow.getRowSize();
 	}
 }

@@ -98,12 +98,12 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
 
     @Override
     public long nullCount(int positionNumber) {
-        return 0;
+        return (long) (0.1d * (double) rowCount());
     }
 
     @Override
     public long notNullCount(int positionNumber) {
-        return rowCount();
+        return (long) (0.9d * (double) rowCount());
     }
 
     @Override

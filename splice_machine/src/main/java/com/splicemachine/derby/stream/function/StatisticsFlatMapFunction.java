@@ -22,7 +22,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.utils.StatisticsAdmin;
-import org.apache.spark.TaskContext;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

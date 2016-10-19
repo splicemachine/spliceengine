@@ -151,8 +151,8 @@ public class TableStatisticsImpl implements TableStatistics {
         long selectivity = 0l;
         long rowCount = 0l;
         for (PartitionStatistics partitionStatistic :partitionStatistics) {
-            selectivity =+ partitionStatistic.rangeSelectivity(start,stop,includeStart,includeStop,positionNumber);
-            rowCount =+ partitionStatistic.rowCount();
+            selectivity += partitionStatistic.rangeSelectivity(start,stop,includeStart,includeStop,positionNumber);
+            rowCount += partitionStatistic.rowCount();
         }
         return (double) ((double)selectivity/(double)rowCount);
     }

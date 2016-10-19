@@ -16,17 +16,13 @@ package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.yahoo.memory.AllocMemory;
 import com.yahoo.memory.NativeMemory;
 import com.yahoo.sketches.theta.Sketch;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.spark.unsafe.memory.MemoryAllocator;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 
 /**
  *
@@ -129,14 +125,20 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         if (count>0)
             return count;
         // Return Cardinality Based Estimate
-        return (long) (quantilesSketch.getN()/thetaSketch.getEstimate()); // Should we remove frequent items?
+        return (long) ( ((double) quantilesSketch.getN())/thetaSketch.getEstimate()); // Should we remove frequent items?
     }
 
     @Override
     public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+        if (!includeStart && start!=null&& !start.isNull())
+            start = new StatsExcludeStartDVD(start);
         double startSelectivity = start==null||start.isNull()?0.0d:quantilesSketch.getCDF(new DataValueDescriptor[]{start})[0];
+        if (includeStop && stop !=null && !stop.isNull())
+            stop = new StatsIncludeEndDVD(stop);
         double stopSelectivity = stop==null||stop.isNull()?1.0d:quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
-        return (long) ((stopSelectivity-startSelectivity)*quantilesSketch.getN());
+        double totalSelectivity = stopSelectivity-startSelectivity;
+        double count = (double)quantilesSketch.getN();
+        return (long) Math.round(totalSelectivity * count);
     }
     @Override
     public void update(DataValueDescriptor dvd) {

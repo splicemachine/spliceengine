@@ -114,10 +114,12 @@ public class StoreCostControllerImpl implements StoreCostController {
          * we have no table information either, so just return an empty list and let the caller figure out
          * what to do
          */
-        tableStatistics = (partitionStats.size() <= 0)?
-            RegionLoadStatistics.getTableStatistics(tableId,partitions)
-            :new TableStatisticsImpl(tableId,partitionStats);
-
+        if (missingPartitions == 1 && partitionStats.size() == 0) {
+            missingPartitions--;
+            tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions);
+        } else {
+            tableStatistics = new TableStatisticsImpl(tableId, partitionStats);
+        }
     }
 
     @Override
@@ -184,7 +186,8 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @Override
     public double nullSelectivity(int columnNumber) {
-            return (tableStatistics.rowCount() - tableStatistics.notNullCount(columnNumber-1))/tableStatistics.rowCount();
+        return  ((double) (tableStatistics.rowCount() - tableStatistics.notNullCount(columnNumber-1)))
+                / ((double)tableStatistics.rowCount());
     }
 
     @Override

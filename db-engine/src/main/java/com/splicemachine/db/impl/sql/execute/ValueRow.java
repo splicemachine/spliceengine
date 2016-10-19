@@ -616,7 +616,11 @@ public class ValueRow implements ExecRow, Externalizable {
 	}
 
 	@Override
-	public long getRowSize() {
-		return 100;
+	public long getRowSize() throws StandardException {
+		long rowSize = 0l;
+		for (DataValueDescriptor dvd: column) {
+			rowSize += (long) dvd.getLength();
+		}
+		return rowSize;
 	}
 }
