@@ -15,7 +15,7 @@ public class StatsIncludeEndDVD extends StatsBoundaryDataValueDescriptor {
     @Override
     public int compare(DataValueDescriptor other) throws StandardException {
         int compare = dvd.compare(other);
-        return compare == 0? -1: compare;
+        return compare == 0? +1: compare;
     }
 
     @Override
