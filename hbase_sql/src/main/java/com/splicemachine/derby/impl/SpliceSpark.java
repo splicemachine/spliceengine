@@ -138,6 +138,14 @@ public class SpliceSpark {
         conf.set("executor.source.splice-machine.class", "com.splicemachine.derby.stream.spark.SpliceMachineSource");
         conf.set("driver.source.splice-machine.class", "com.splicemachine.derby.stream.spark.SpliceMachineSource");
 
+        // pull out Kerberos and set Yarn properties
+        if(HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal") != null){
+            conf.set("spark.yarn.principal", HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal"));
+        }
+
+        if(HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file") != null){
+            conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
+        }
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
             String spsPropertyName = (String) sysPropertyKey;
