@@ -16,9 +16,7 @@
 package com.splicemachine.olap;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.compactions.PoolSlotBooker;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -75,11 +73,6 @@ public class OlapServer {
 
         SpliceLogUtils.info(LOG, "Olap Server started.");
 
-
-        int compactionReservedSlots = HConfiguration.getConfiguration().getCompactionReservedSlots();
-        int reservedSlotsTimeout = HConfiguration.getConfiguration().getReservedSlotsTimeout();
-        Runnable task = new PoolSlotBooker("BookingService", "compaction", compactionReservedSlots, reservedSlotsTimeout);
-        executor.scheduleWithFixedDelay(task, 0, reservedSlotsTimeout, TimeUnit.SECONDS);
     }
 
     private int getPortNumber() {

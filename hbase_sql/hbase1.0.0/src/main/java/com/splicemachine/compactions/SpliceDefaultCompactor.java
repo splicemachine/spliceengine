@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -99,6 +100,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             files.add(sf.getPath().toString());
         }
         String regionLocation = getRegionLocation(store);
+        SConfiguration config = HConfiguration.getConfiguration();
         DistributedCompaction jobRequest=new DistributedCompaction(
                 getCompactionFunction(),
                 files,
@@ -107,11 +109,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 getJobDescription(request),
                 getPoolName(),
                 getScope(request),
-                regionLocation);
+                regionLocation,
+                config.getOlapCompactionMaximumWait());
         CompactionResult result = null;
         OlapClient olapClient = getOlapClient();
         Future<CompactionResult> futureResult = olapClient.submit(jobRequest);
-        SConfiguration config = HConfiguration.getConfiguration();
         while(result == null) {
             try {
                 result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
@@ -120,6 +122,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 Thread.currentThread().interrupt();
                 throw new IOException(e);
             } catch (ExecutionException e) {
+                if (e.getCause() instanceof RejectedExecutionException) {
+                    LOG.warn("Spark compaction execution rejected, falling back to RegionServer execution", e.getCause());
+                    return super.compact(request);
+                }
                 throw Exceptions.rawIOException(e.getCause());
             } catch (TimeoutException e) {
                 // check region write status

@@ -42,6 +42,10 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String SPARK_COMPACTION_RESERVED_SLOTS = "spark.compaction.reserved.slots";
     public static final int DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS = 1;
 
+    // Timeout in milliseconds
+    public static final String SPARK_COMPACTION_MAXIMUM_WAIT = "spark.compaction.maximum.wait";
+    public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT = 60000;
+
     // Timeout in seconds
     public static final String SPARK_RESERVED_SLOTS_TIMEOUT = "spark.reserved.slots.timeout";
     public static final int DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT = 60;
@@ -174,6 +178,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
         builder.compactionReservedSlots = configurationSource.getInt(SPARK_COMPACTION_RESERVED_SLOTS, DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS);
+        builder.olapCompactionMaximumWait = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_WAIT, DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT);
         builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);
     }
 }

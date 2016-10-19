@@ -44,6 +44,7 @@ public class DistributedCompaction extends DistributedJob{
     String poolName;
     String scope;
     String regionLocation;
+    long maxWait;
 
     /*Used for Serialization*/
     @SuppressWarnings("unused")
@@ -56,7 +57,8 @@ public class DistributedCompaction extends DistributedJob{
                                  String jobDescription,
                                  String poolName,
                                  String scope,
-                                 String regionLocation){
+                                 String regionLocation,
+                                 long maxWait){
         this.compactionFunction=compactionFunction;
         this.files=files;
         this.jobDetails=jobDetails;
@@ -65,6 +67,7 @@ public class DistributedCompaction extends DistributedJob{
         this.poolName=poolName;
         this.scope=scope;
         this.regionLocation=regionLocation;
+        this.maxWait = maxWait;
     }
 
     public String base64EncodedFileList(){
