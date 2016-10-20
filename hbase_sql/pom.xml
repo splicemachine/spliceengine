@@ -447,6 +447,26 @@
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
+		    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
+                    <execution>
+                        <id>integration-tests-backup</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <groups>com.splicemachine.test.BackupTest</groups>
+                            <argLine>-Xmx3g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>**/*RestoreIT.java</include>
+                            </includes>
+                            <excludes>
+                                <!-- Skip all unit tests -->
+                                <exclude>**/*Test.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
