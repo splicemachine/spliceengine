@@ -134,6 +134,7 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(BatchOnceVisitor.class);
         afterOptVisitors.add(LimitOffsetVisitor.class);
         afterOptVisitors.add(PlanPrinter.class);
+        afterOptVisitors.add(WindowFunctionVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);

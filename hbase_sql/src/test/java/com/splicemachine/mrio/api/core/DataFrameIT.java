@@ -29,7 +29,7 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
-import com.splicemachine.derby.stream.spark.RDDUtils;
+import com.splicemachine.derby.stream.spark.SparkUtils;
 import com.splicemachine.derby.test.framework.*;
 
 import org.apache.log4j.Logger;
@@ -259,7 +259,7 @@ public class DataFrameIT extends SpliceUnitTest {
         PreparedStatement pstmt = conn.prepareStatement("select * from " + table.toUpperCase());
         ResultSet res = pstmt.executeQuery();
         // Convert result set to Dataframe
-        Dataset<Row> resultSetDF = RDDUtils.resultSetToDF(res);
+        Dataset<Row> resultSetDF = SparkUtils.resultSetToDF(res);
         resultSets[0] = res;
 
         // Construct Stored Procedure Result

@@ -16,13 +16,14 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -42,11 +43,12 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.Column;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.storage.StorageLevel;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -248,6 +250,52 @@ public class SparkDataSet<V> implements DataSet<V> {
         return intersect(dataSet,"Intersect Operator",null,false,null);
     }
 
+    /**
+     * Spark implementation of Window function,
+     * We convert the derby specification using SparkWindow helper
+     * Most of the specifications is identical to Spark except the one position index
+     * and some specific functions. Look at SparkWindow for more
+     * @param windowContext
+     * @param context
+     * @param pushScope
+     * @param scopeDetail
+     * @return
+     */
+    public DataSet<V> windows(WindowContext windowContext, OperationContext context,  boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(context, pushScope, scopeDetail);
+        try {
+            Dataset<Row> dataset = toSparkRow(this,context);
+
+            for(WindowAggregator aggregator : windowContext.getWindowFunctions()) {
+                // we need to remove to convert resultColumnId from a 1 position index to a 0position index
+                DataType resultDataType = dataset.schema().fields()[aggregator.getResultColumnId()-1].dataType();
+                // We define the window specification and we get a back a spark.
+                // Simply provide all the information and spark window will build it for you
+                Column col = SparkWindow.partitionBy(aggregator.getPartitions())
+                        .function(aggregator.getType())
+                        .inputs(aggregator.getInputColumnIds())
+                        .orderBy(aggregator.getOrderings())
+                        .frameBoundary(aggregator.getFrameDefinition())
+                        .specificArgs(aggregator.getFunctionSpecificArgs())
+                        .resultColumn(aggregator.getResultColumnId())
+                        .resultDataType(resultDataType)
+                        .toColumn();
+
+                // Now we replace the result column by the spark specification.
+                // the result column is already define by derby. We need to replace it
+                dataset = dataset.withColumn(String.valueOf(aggregator.getResultColumnId()-1),col);
+            }
+            //Convert back to Splice Row
+           return  toSpliceLocatedRow(dataset, context);
+
+        } catch (Exception se){
+            throw new RuntimeException(se);
+        }finally {
+            if (pushScope) context.popScope();
+        }
+
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet< V> intersect(DataSet< V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) {
@@ -347,7 +395,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
         JavaRDD<V> rdd2 = rdd1.coalesce(1, false);
         rdd2.setName("Coalesce 1 partition");
-        RDDUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
+        SparkUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
 
         JavaRDD<V> rdd3 = rdd2.mapPartitions(new SparkFlatMapFunction<>(takeFunction));
         rdd3.setName(takeFunction.getSparkName());
@@ -452,7 +500,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
         JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
         rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
-        RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
+        SparkUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
         return new SparkDataSet<>(rdd1);
     }
 
@@ -463,7 +511,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         try {
             JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
             rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
-            RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
+            SparkUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
             return new SparkDataSet<V>(rdd1);
         } finally {
             if (pushScope) context.popScope();
