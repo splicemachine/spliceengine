@@ -133,7 +133,7 @@ public class FromBaseTable extends FromTable {
     private FormatableBitSet referencedCols;
     private ResultColumnList templateColumns;
 
-    protected CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+
     /* A 0-based array of column names for this table used
      * for optimizer trace.
      */

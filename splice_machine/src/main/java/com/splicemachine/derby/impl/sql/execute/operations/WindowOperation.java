@@ -124,20 +124,12 @@ public class WindowOperation extends SpliceBaseOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<WindowOperation> operationContext = dsp.createOperationContext(this);
+        operationContext.pushScopeForOp(OperationContext.Scope.WINDOW);
         DataSet dataSet = source.getDataSet(dsp);
-        
-        operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
-        KeyerFunction f = new KeyerFunction(operationContext, windowContext.getPartitionColumns());
-        PairDataSet pair = dataSet.keyBy(f);
         operationContext.popScope();
-        
-        operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
-        pair = pair.groupByKey("Group Values For Each Key");
-        operationContext.popScope();
-        
-        operationContext.pushScopeForOp(OperationContext.Scope.EXECUTE);
+
         try {
-            return pair.flatmap(new MergeWindowFunction(operationContext, windowContext.getWindowFunctions()), true);
+            return  dataSet.windows(windowContext,operationContext,true, OperationContext.Scope.EXECUTE.displayName());
         } finally {
             operationContext.popScope();
         }

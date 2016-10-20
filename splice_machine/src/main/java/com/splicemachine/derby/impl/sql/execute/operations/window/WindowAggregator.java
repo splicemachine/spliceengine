@@ -16,8 +16,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
+import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.*;
 
 /**
  * @author Jeff Cunningham
@@ -46,5 +49,17 @@ public interface WindowAggregator {
 
     String getName();
 
+    FunctionType getType();
+
     SpliceGenericWindowFunction getCachedAggregator();
+
+    int[] getInputColumnIds();
+
+    String getFunctionName();
+
+    ColumnOrdering[] getOrderings();
+
+    ColumnOrdering[] getPartitions();
+
+    FormatableHashtable getFunctionSpecificArgs();
 }
