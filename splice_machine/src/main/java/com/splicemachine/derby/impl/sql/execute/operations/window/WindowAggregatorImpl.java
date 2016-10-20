@@ -20,7 +20,6 @@ import java.util.Arrays;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
-import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
@@ -31,8 +30,6 @@ import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.*;
-
 
 /**
  * Container and caching mechanism for window functions and their information container.
@@ -55,9 +52,6 @@ public class WindowAggregatorImpl implements WindowAggregator {
     private int[] sortColumns;
     private int[] keyColumns;
     private boolean[] keyOrders;
-    private ColumnOrdering[] orderings;
-    private ColumnOrdering[] partition;
-    private FunctionType type;
 
     public WindowAggregatorImpl(WindowFunctionInfo windowInfo, ClassFactory cf) {
 		this.cf = cf;
@@ -66,7 +60,6 @@ public class WindowAggregatorImpl implements WindowAggregator {
 		this.inputColumnIds = windowInfo.getInputColNums();
 		this.resultColumnId = windowInfo.getOutputColNum();
         this.functionName = windowInfo.getFunctionName();
-        this.type = windowInfo.getType();
         this.functionSpecificArgs = windowInfo.getFunctionSpecificArgs();
         this.functionClassName = windowInfo.getWindowFunctionClassName();
         this.resultColumnDesc = windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
@@ -74,7 +67,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
         // create the frame from passed in frame info
         frameDefinition = FrameDefinition.create(windowInfo.getFrameInfo());
 
-        partition = windowInfo.getPartitionInfo();
+        ColumnOrdering[] partition = windowInfo.getPartitionInfo();
         partitionColumns = new int[partition.length];
         int index=0;
         for(ColumnOrdering partCol : partition){
@@ -83,7 +76,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
             partitionColumns[index++] = partCol.getColumnId() -1;
         }
 
-        orderings = windowInfo.getOrderByInfo();
+        ColumnOrdering[] orderings = windowInfo.getOrderByInfo();
         sortColumns = new int[orderings.length];
         index = 0;
         for(ColumnOrdering order : orderings){
@@ -220,11 +213,6 @@ public class WindowAggregatorImpl implements WindowAggregator {
     }
 
     @Override
-    public FunctionType getType(){
-        return type;
-    }
-
-    @Override
     public SpliceGenericWindowFunction getCachedAggregator() {
         return this.cachedAggregator;
     }
@@ -271,25 +259,5 @@ public class WindowAggregatorImpl implements WindowAggregator {
             newCols[i++] = cols[colID -1]; // colIDs are 1-based; convert to 0-based
         }
         return newCols;
-    }
-
-    public int[] getInputColumnIds() {
-        return inputColumnIds;
-    }
-
-    public String getFunctionName() {
-        return functionName;
-    }
-
-    public ColumnOrdering[] getOrderings() {
-        return orderings;
-    }
-
-    public ColumnOrdering[] getPartitions() {
-        return partition;
-    }
-
-    public FormatableHashtable getFunctionSpecificArgs() {
-        return functionSpecificArgs;
     }
 }

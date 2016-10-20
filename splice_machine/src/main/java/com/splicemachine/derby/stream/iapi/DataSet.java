@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import java.io.Serializable;
@@ -243,15 +242,4 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     DataSet<V> join(OperationContext operationContext, DataSet<V> rightDataSet,JoinType joinType, boolean isBroadcast);
 
-    /**
-     *  Window Function abstraction. Take a window context that defines the the partition, the sorting , the frame boundary
-     *  and the differents functions
-     * @param windowContext
-     * @param context
-     * @param pushScope
-     * @param scopeDetail
-     * @return
-     */
-
-    DataSet<V> windows(WindowContext windowContext, OperationContext context, boolean pushScope, String scopeDetail);
 }

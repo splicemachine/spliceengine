@@ -69,8 +69,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     protected String userSpecifiedJoinStrategy;
 
-    protected CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
-
     protected CostEstimate bestCostEstimate;
 
     private double perRowUsage=-1;
@@ -340,9 +338,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             switch(key){
                 case "joinStrategy":
                     userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
-                    break;
-                case "useSpark":
-                    dataSetProcessorType = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))? CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
                     break;
                 default:
                     // No other "legal" values at this time
@@ -1128,13 +1123,5 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     public ResultColumn getRowIdColumn(){
         return null;
-    }
-
-    public CompilerContext.DataSetProcessorType getDataSetProcessorType() {
-        return dataSetProcessorType;
-    }
-
-    public void setDataSetProcessorType(CompilerContext.DataSetProcessorType dataSetProcessorType) {
-        this.dataSetProcessorType = dataSetProcessorType;
     }
 }

@@ -34,9 +34,8 @@ import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.*;
+
 /**
  * This is a simple class used to store the run time information
  * needed to invoke a window function.  This class is serializable
@@ -78,7 +77,6 @@ public class WindowFunctionInfo implements Formatable
     FormatableArrayHolder keyInfo;
     FormatableHashtable frameInfo;
     FormatableHashtable functionSpecificArgs;
-	FunctionType type;
 
     /**
 	 * Niladic constructor for Formattable
@@ -102,7 +100,6 @@ public class WindowFunctionInfo implements Formatable
 	 *
 	 */
 	public WindowFunctionInfo(String functionName,
-							  FunctionType type,
                               String functionClassName,
                               int[] operandColNumns,
                               int outputColNum,
@@ -114,7 +111,6 @@ public class WindowFunctionInfo implements Formatable
                               FormatableHashtable frameInfo,
                               FormatableHashtable functionSpecificArgs) {
 		this.functionName	= functionName;
-		this.type = type;
 		this.functionClassName = functionClassName;
 		this.operandColNums = operandColNumns;
 		this.outputColumn	= outputColNum;
@@ -301,7 +297,6 @@ public class WindowFunctionInfo implements Formatable
 		out.writeInt(outputColumn);
 		out.writeInt(aggregatorColumn);
 		out.writeObject(functionClassName);
-		out.writeObject(type);
 		out.writeObject(resultDescription);
         out.writeObject(partitionInfo);
         out.writeObject(orderByInfo);
@@ -329,7 +324,6 @@ public class WindowFunctionInfo implements Formatable
         outputColumn = in.readInt();
 		aggregatorColumn = in.readInt();
 		functionClassName = (String)in.readObject();
-		type = (FunctionType) in.readObject();
 		resultDescription = (ResultDescription)in.readObject();
         partitionInfo = (FormatableArrayHolder) in.readObject();
         orderByInfo = (FormatableArrayHolder) in.readObject();
@@ -344,8 +338,4 @@ public class WindowFunctionInfo implements Formatable
 	 *	@return	the formatID of this class
 	 */
 	public int	getTypeFormatId()	{ return StoredFormatIds.WINDOW_FUNCTION_INFO_V01_ID; }
-
-	public FunctionType getType() {
-		return type;
-	}
 }

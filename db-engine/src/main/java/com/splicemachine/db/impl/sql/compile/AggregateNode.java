@@ -25,7 +25,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Arrays;
 import java.util.List;
 
 import com.splicemachine.db.catalog.AliasInfo;
@@ -42,7 +41,7 @@ import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.*;
+
 /**
  * An Aggregate Node is a node that reprsents a set function/aggregate.
  * It used for all system aggregates as well as user defined aggregates.
@@ -60,7 +59,6 @@ public class AggregateNode extends UnaryOperatorNode
 	private Class					aggregateDefinitionClass;
     protected ClassInspector			classInspector;
 	protected String					aggregateName;
-	protected FunctionType				type;
 
 	/*
 	** We wind up pushing all aggregates into a different
@@ -97,9 +95,6 @@ public class AggregateNode extends UnaryOperatorNode
 	{
 		super.init(operand);
 		this.aggregateName = (String) aggregateName;
-
-
-		this.type = fromString((String) aggregateName);
 
 		if ( uadClass instanceof UserAggregateDefinition )
 		{
@@ -747,8 +742,4 @@ public class AggregateNode extends UnaryOperatorNode
     public boolean isWindowFunction() {
         return this.isWindowFunction;
     }
-
-    public FunctionType getType(){
-		return  this.type;
-	}
 }

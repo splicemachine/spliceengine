@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
 
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -43,31 +42,13 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
 
 /**
  *
  * Created by jyuan on 7/30/14.
  */
 @SuppressWarnings("unchecked")
-@RunWith(Parameterized.class)
 public class WindowFunctionIT extends SpliceUnitTest {
-    private Boolean useSpark;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
-        params.add(new Object[]{true});
-        params.add(new Object[]{false});
-        return params;
-    }
-    public WindowFunctionIT(Boolean useSpark) {
-        this.useSpark = useSpark;
-    }
-
-
     private static final String SCHEMA = WindowFunctionIT.class.getSimpleName().toUpperCase();
 
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -315,31 +296,6 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "2005,12,1,21,10032.64"
     };
 
-//    // DB-3920
-//    private static String emp5Table = "emp5";
-//    private static String emp5TableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
-//    private static SpliceTableWatcher emp5TableWatcher = new SpliceTableWatcher(emp5Table, SCHEMA, emp5TableDef);
-//    private static String[] EMP5_ROWS = {
-//            "10,'Bill',12000,5",
-//            "11, 'Solomon', 10000, 5",
-//            "12, 'Susan', 10000, 5",
-//            "13, 'Wendy', 9000, 1",
-//            "14, 'Benjamin', 7500, 1",
-//            "15, 'Tom', 7600, 1",
-//            "16, 'Henry', 8500, 2",
-//            "17, 'Robert', 9500, 2",
-//            "18, 'Paul', 7700, 2",
-//            "19, 'Dora', 8500, 3",
-//            "20, 'Samuel', 6900, 3",
-//            "21, 'Mary', 7500, 3",
-//            "22, 'Daniel', 6500, 4",
-//            "23, 'Ricardo', 7800, 4",
-//            "24, 'Mark', 7200, 4"
-//    };
-
-
-
-
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
@@ -553,8 +509,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum,dept,salary," +
                               "min(salary) over (Partition by dept ORDER BY salary ROWS 2 preceding) as minsal " +
-                              "from %s --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "from %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -586,8 +542,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum,dept,salary," +
                               "max(salary) over (Partition by dept ORDER BY salary, empnum ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING ) as maxsal " +
-                              "from %s --SPLICE-PROPERTIES useSpark = %s \n  order by empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "from %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -618,8 +574,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "max(salary) over (Partition by dept ORDER BY salary, empnum rows between unbounded preceding and unbounded following) as maxsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "from %s order by dept",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -649,8 +605,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "max(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) as maxsal " +
-                              "from %s --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "from %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -679,8 +635,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "min(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and current row) as minsal " +
-                              "from %s --SPLICE-PROPERTIES useSpark = %s \n  order by empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -709,8 +665,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testSum() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary) as sumsal " +
-                              "from %s --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -740,8 +696,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
-                              "from %s --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -771,8 +727,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) as sumsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -802,8 +758,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between 1 preceding " +
-                              "and 1 following) as sumsal from %s --SPLICE-PROPERTIES useSpark = %s \n ORDER BY empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "and 1 following) as sumsal from %s ORDER BY empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -834,8 +790,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "avg(salary) over (Partition by dept ORDER BY salary) as avgsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -865,8 +821,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
-                              "count(*) over (Partition by dept ORDER BY salary) as count from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "count(*) over (Partition by dept ORDER BY salary) as count from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -896,8 +852,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "count(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) as countsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -928,8 +884,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "count(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by salary, dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by salary, dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -958,8 +914,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testCount() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
-                              "count(salary) over (Partition by dept) as c from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "count(salary) over (Partition by dept) as c from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -989,8 +945,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary range between current row and unbounded following) " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1020,8 +976,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and current row) as sumsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1051,8 +1007,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and unbounded following) as sumsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1083,8 +1039,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between current row " +
-                              "and unbounded following) from %s  --SPLICE-PROPERTIES useSpark = %s \n  ORDER BY empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "and unbounded following) from %s ORDER BY empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -1115,8 +1071,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between unbounded preceding and current row) as sumsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1145,8 +1101,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n  order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1178,8 +1134,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String sqlText =
                 String.format("SELECT empnum,dept,salary," +
                                   "min(salary) over (Partition by dept ORDER BY salary desc RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING ) as minsal " +
-                                  "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                              this.getTableReference(EMPTAB), useSpark);
+                                  "from %s order by dept, empnum",
+                              this.getTableReference(EMPTAB));
 
             ResultSet rs = methodWatcher.executeQuery(sqlText);
             String expected =
@@ -1209,8 +1165,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String sqlText =
                 String.format("SELECT empnum, dept, salary, " +
                                   "sum(salary) over (Partition by dept ORDER BY salary desc) as sumsal " +
-                                  "from %s  --SPLICE-PROPERTIES useSpark = %s \n  order by dept, empnum",
-                              this.getTableReference(EMPTAB), useSpark);
+                                  "from %s order by dept, empnum",
+                              this.getTableReference(EMPTAB));
 
             ResultSet rs = methodWatcher.executeQuery(sqlText);
             String expected =
@@ -1241,8 +1197,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String sqlText =
                 String.format("SELECT empnum, dept, salary, " +
                                   "sum(salary) over (Partition by dept ORDER BY salary range between current row and current row) as sumsal " +
-                                  "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                              this.getTableReference(EMPTAB), useSpark);
+                                  "from %s order by dept, empnum",
+                              this.getTableReference(EMPTAB));
 
             ResultSet rs = methodWatcher.executeQuery(sqlText);
             String expected =
@@ -1271,8 +1227,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String sqlText =
                 String.format("SELECT empnum, dept, salary, " +
                                   "sum(salary) over (Partition by dept ORDER BY salary rows between current row and current row) as sumsal " +
-                                  "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                              this.getTableReference(EMPTAB), useSpark);
+                                  "from %s order by dept, empnum",
+                              this.getTableReference(EMPTAB));
 
             ResultSet rs = methodWatcher.executeQuery(sqlText);
             String expected =
@@ -1303,8 +1259,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "ROW_NUMBER() OVER (partition by dept ORDER BY dept, empnum, salary desc) AS RowNumber " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n  ORDER BY empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "FROM %s ORDER BY empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -1334,8 +1290,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testRowNumberWithoutPartiion() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept, empnum, salary desc) AS RowNumber " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "FROM %s",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1364,8 +1320,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testRankWithinPartition() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, " +
-                              "salary desc) AS Rank FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ORDER BY empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "salary desc) AS Rank FROM %s ORDER BY empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -1394,8 +1350,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testRankWithoutPartiion() throws Exception {
         String sqlText =
-            String.format("SELECT empnum, dept, salary, RANK() OVER (ORDER BY salary desc) AS Rank FROM %s   --SPLICE-PROPERTIES useSpark = %s \n  order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+            String.format("SELECT empnum, dept, salary, RANK() OVER (ORDER BY salary desc) AS Rank FROM %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1424,8 +1380,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDenseRankWithinPartition() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS denseank " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n  order by dept, empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "FROM %s order by dept, empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1454,8 +1410,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDenseRankWithoutPartition() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS denseank " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum" ,
-                          this.getTableReference(EMPTAB), useSpark);
+                              "FROM %s order by dept, empnum" ,
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1484,8 +1440,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testRowNumber3OrderByCols() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept, salary desc, empnum) AS rownum " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "FROM %s",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1514,8 +1470,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testRank2OrderByCols() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, RANK() OVER (ORDER BY dept, salary desc) AS Rank " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n  order by empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "FROM %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1544,8 +1500,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDenseRank2OrderByCols() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY dept, salary desc) AS denserank " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "FROM %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1573,8 +1529,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testDenseRankWithPartition3OrderByCols_duplicateKey() throws Exception {
         String sqlText =
-            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s  --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -1604,8 +1560,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDenseRankWithPartition2OrderByCols_duplicateKey() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, salary desc) AS DenseRank " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n  order by empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "FROM %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1634,8 +1590,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDenseRankWithPartition3OrderByCols_KeyColMissingFromSelect() throws Exception {
         String sqlText =
             String.format("SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, " +
-                              "salary desc) AS DenseRank FROM %s --SPLICE-PROPERTIES useSpark = %s \n  order by empnum",
-                          this.getTableReference(EMPTAB),useSpark);
+                              "salary desc) AS DenseRank FROM %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -1665,8 +1621,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDenseRankWithoutPartitionOrderby() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "FROM %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1696,8 +1652,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // DB-1683
         String sqlText =
             String.format("select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number, dob " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by PersonID",
-                          this.getTableReference(PEOPLE), useSpark);
+                              "from %s order by PersonID",
+                          this.getTableReference(PEOPLE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1723,8 +1679,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // DB-1683
         String sqlText =
             String.format("select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by PersonID",
-                          this.getTableReference(PEOPLE), useSpark);
+                              "from %s order by PersonID",
+                          this.getTableReference(PEOPLE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1749,8 +1705,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testScalarAggWithOrderBy() throws Exception {
         // DB-1775
         String sqlText =
-            String.format("SELECT sum(price) over (Partition by item ORDER BY date) as  sumprice from %s  --SPLICE-PROPERTIES useSpark = %s \n order by sumprice",
-                        this.getTableReference(PURCHASED), useSpark);
+            String.format("SELECT sum(price) over (Partition by item ORDER BY date) as  sumprice from %s order by sumprice",
+                        this.getTableReference(PURCHASED));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1780,8 +1736,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // DB-1774
         String sqlText =
                 String.format("SELECT item, price, sum(price) over (Partition by item ORDER BY date) as sumsal, date " +
-                                "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by item",
-                        this.getTableReference(PURCHASED), useSpark);
+                                "from %s order by item",
+                        this.getTableReference(PURCHASED));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Validated with PostgreSQL app
@@ -1813,11 +1769,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             "select empnum, dept, sum(salary)," +
                 "rank() over(partition by dept order by salary desc) rank " +
-                "from %s  --SPLICE-PROPERTIES useSpark = %s \n " +
+                "from %s " +
                 "group by empnum, dept order by empnum";
 
         ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(EMPTAB), useSpark));
+            String.format(sqlText, this.getTableReference(EMPTAB)));
 
         String expected =
             "EMPNUM |DEPT |  3   |RANK |\n" +
@@ -1847,8 +1803,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "max(salary) over (Partition by dept) as maxsal " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1879,8 +1835,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "rank() over (Partition by dept order by salary) as salrank " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                          this.getTableReference(EMPTAB), useSpark);
+                              "from %s order by empnum",
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1911,9 +1867,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // have to order by ename here because it's the only col with unique values and forces repeatable results
         String sqlText =
             String.format("select sum(sal), " +
-                              "rank() over ( order by sum(sal) ) empsal, ename from %s  --SPLICE-PROPERTIES useSpark = %s \n " +
+                              "rank() over ( order by sum(sal) ) empsal, ename from %s " +
                               "group by ename order by ename",
-                          this.getTableReference(EMP), useSpark);
+                          this.getTableReference(EMP));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1943,10 +1899,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // expecting an exception here because there's an aggregate with no
         // group by specified for ename column
         String sqlText =
-            "select sal, rank() over ( order by sum(sal) ) empsal, ename from %s  --SPLICE-PROPERTIES useSpark = %s \n ";
+            "select sal, rank() over ( order by sum(sal) ) empsal, ename from %s";
 
         methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(EMP), useSpark));
+            String.format(sqlText, this.getTableReference(EMP)));
     }
 
     @Test
@@ -1955,8 +1911,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("select sum(sal) as sum_sal, avg(sal) as avg_sal, " +
                               "rank() over ( order by sum(sal), avg(sal) ) empsal, ename " +
-                              "from %s  --SPLICE-PROPERTIES useSpark = %s \n  group by ename order by ename",
-                          this.getTableReference(EMP), useSpark);
+                              "from %s group by ename order by ename",
+                          this.getTableReference(EMP));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1981,7 +1937,6 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-
     @Test
     public void testMediaForDept() throws Exception {
         // DB-1650, DB-2020
@@ -1992,7 +1947,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                            "INNER" +
                                            " JOIN %1$s ON %2$s.ID_Dep = %1$s.ID group by %1$s.Nome_Dep," +
                                            "%2$s.Nome, %2$s.Salario ORDER BY 3 DESC, 1",
-                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS), useSpark);
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -2001,12 +1956,12 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "----------------------------------------------------------------------------------------\n" +
                 "Recursos Humanos |   Luciano   |23500.00 |      14166.3333       |       0.0000        |\n" +
                 "Recursos Humanos |  Zavaschi   |13999.00 |      14166.3333       |       0.0000        |\n" +
-                "       IT        |   Nogare    |11999.00 |       5499.6667       |       0.0000        |\n" +
+                "       IT        |   Nogare    |11999.00 |       5499.6666       |       0.0000        |\n" +
                 "     Vendas      |    Diego    | 9000.00 |       4500.0000       |       0.0000        |\n" +
                 "Recursos Humanos |   Laerte    | 5000.00 |      14166.3333       |       0.0000        |\n" +
-                "       IT        |  Ferreira   | 2500.00 |       5499.6667       |       0.0000        |\n" +
+                "       IT        |  Ferreira   | 2500.00 |       5499.6666       |       0.0000        |\n" +
                 "     Vendas      |   Amorim    | 2500.00 |       4500.0000       |       0.0000        |\n" +
-                "       IT        |   Felipe    | 2000.00 |       5499.6667       |       0.0000        |\n" +
+                "       IT        |   Felipe    | 2000.00 |       5499.6666       |       0.0000        |\n" +
                 "     Vendas      |   Fabiano   | 2000.00 |       4500.0000       |       0.0000        |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -2022,9 +1977,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
          */
         String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM " +
-                                           "%1$s   --SPLICE-PROPERTIES useSpark = %3$s \n INNER JOIN %2$s " +
+                                           "%1$s INNER JOIN %2$s " +
                                            "ON %2$s.ID_Dep = %1$s.ID order by 1",
-                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS), useSpark);
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
 
@@ -2032,18 +1987,17 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "Diferença de Salário |\n" +
                     "----------------------\n" +
                     "     -9166.3333      |\n" +
-                    "     -3499.6667      |\n" +
-                    "     -2999.6667      |\n" +
+                    "     -3499.6666      |\n" +
+                    "     -2999.6666      |\n" +
                     "     -2500.0000      |\n" +
                     "     -2000.0000      |\n" +
                     "      -167.3333      |\n" +
                     "      4500.0000      |\n" +
                     "      6499.3333      |\n" +
-                    "      9333.6667      |" ;
+                    "      9333.6666      |" ;
             assertEquals("\n"+sqlText+"\n",expected,TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
-
     @Test
     public void testConstMinusAvg1() throws Exception {
         // DB-2124
@@ -2057,9 +2011,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
          */
         String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM " +
-                                           "%2$s --SPLICE-PROPERTIES useSpark = %3$s \n  INNER JOIN %1$s " +
+                                           "%2$s INNER JOIN %1$s " +
                                            "ON %2$s.ID_Dep = %1$s.ID order by 1",
-                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS), useSpark);
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
 
@@ -2067,14 +2021,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
                     "Diferença de Salário |\n" +
                         "----------------------\n" +
                         "     -9166.3333      |\n" +
-                        "     -3499.6667      |\n" +
-                        "     -2999.6667      |\n" +
+                        "     -3499.6666      |\n" +
+                        "     -2999.6666      |\n" +
                         "     -2500.0000      |\n" +
                         "     -2000.0000      |\n" +
                         "      -167.3333      |\n" +
                         "      4500.0000      |\n" +
                         "      6499.3333      |\n" +
-                        "      9333.6667      |" ;
+                        "      9333.6666      |" ;
             assertEquals("\n"+sqlText+"\n",expected,TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -2091,21 +2045,21 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM %2$s " +
                                            "INNER JOIN %1$s " +
                                            "ON %2$s.ID_Dep = %1$s.ID ORDER BY 5 DESC",
-                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS), useSpark);
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // validated with PostgreSQL app
         String expected =
             "NOME_DEP     | FUNCIONARIO | SALARIO |Média por Departamento |Diferença de Salário |\n" +
                 "----------------------------------------------------------------------------------------\n" +
-                "Recursos Humanos |   Luciano   |23500.00 |      14166.3333       |      9333.6667      |\n" +
-                "       IT        |   Nogare    |11999.00 |       5499.6667       |      6499.3333      |\n" +
+                "Recursos Humanos |   Luciano   |23500.00 |      14166.3333       |      9333.6666      |\n" +
+                "       IT        |   Nogare    |11999.00 |       5499.6666       |      6499.3333      |\n" +
                 "     Vendas      |    Diego    | 9000.00 |       4500.0000       |      4500.0000      |\n" +
                 "Recursos Humanos |  Zavaschi   |13999.00 |      14166.3333       |      -167.3333      |\n" +
                 "     Vendas      |   Amorim    | 2500.00 |       4500.0000       |     -2000.0000      |\n" +
                 "     Vendas      |   Fabiano   | 2000.00 |       4500.0000       |     -2500.0000      |\n" +
-                "       IT        |  Ferreira   | 2500.00 |       5499.6667       |     -2999.6667      |\n" +
-                "       IT        |   Felipe    | 2000.00 |       5499.6667       |     -3499.6667      |\n" +
+                "       IT        |  Ferreira   | 2500.00 |       5499.6666       |     -2999.6666      |\n" +
+                "       IT        |   Felipe    | 2000.00 |       5499.6666       |     -3499.6666      |\n" +
                 "Recursos Humanos |   Laerte    | 5000.00 |      14166.3333       |     -9166.3333      |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -2117,8 +2071,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText = String.format("SELECT %1$s.Nome_Dep, SUM(%2$s.Salario) * 100 / " +
                                            "SUM(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) " +
                                            "\"Média por Departamento\" " +
-                                           "FROM %2$s, %1$s  --SPLICE-PROPERTIES useSpark = %3$s \n GROUP BY %1$s.Nome_Dep, %2$s.Salario ORDER BY %1$s.Nome_Dep, %2$s.Salario ",
-                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS), useSpark);
+                                           "FROM %2$s, %1$s GROUP BY %1$s.Nome_Dep, %2$s.Salario ORDER BY %1$s.Nome_Dep, %2$s.Salario",
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -2155,7 +2109,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDB2170RankOverView() throws Exception {
         String sqlText =
             String.format("select yr, rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
-                              "hiredate from %s   --SPLICE-PROPERTIES useSpark = %s \n  order by yr, EMPRANK, ename", this.getTableReference(YEAR_VIEW), useSpark);
+                              "hiredate from %s order by yr, EMPRANK, ename", this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "YR | EMPRANK | ENAME | HIREDATE  |\n" +
@@ -2183,7 +2137,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDB2170RankOverViewMissingKey() throws Exception {
         String sqlText =
             String.format("select rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
-                              "hiredate from %s  --SPLICE-PROPERTIES useSpark = %s \n ", this.getTableReference(YEAR_VIEW), useSpark);
+                              "hiredate from %s", this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "EMPRANK | ENAME | HIREDATE  |\n" +
@@ -2209,8 +2163,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testDB2170MaxOverView() throws Exception {
         String sqlText =
-            String.format("select max(hiredate)   over () as maxhiredate, ename," +
-                              "hiredate from %s --SPLICE-PROPERTIES useSpark = %s \n order by ename", this.getTableReference(YEAR_VIEW), useSpark);
+            String.format("select max(hiredate) over () as maxhiredate, ename," +
+                              "hiredate from %s order by ename", this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "MAXHIREDATE | ENAME | HIREDATE  |\n" +
@@ -2236,8 +2190,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testDB2170MaxOverTable() throws Exception {
         String sqlText =
-            String.format("select max(hiredate) over () as maxhiredate, ename, hiredate from %s   --SPLICE-PROPERTIES useSpark = %s \n order by ename",
-                          this.getTableReference(EMP), useSpark);
+            String.format("select max(hiredate) over () as maxhiredate, ename, hiredate from %s order by ename",
+                          this.getTableReference(EMP));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -2265,8 +2219,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testDB2170WithAggOverView() throws Exception {
         String sqlText =
-            String.format("select max(hiredate) as maxhiredate, ename,hiredate from %s   --SPLICE-PROPERTIES useSpark = %s \n group by ename, hiredate order by ename",
-                          this.getTableReference(YEAR_VIEW), useSpark);
+            String.format("select max(hiredate) as maxhiredate, ename,hiredate from %s group by ename, hiredate order by ename",
+                          this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "MAXHIREDATE | ENAME | HIREDATE  |\n" +
@@ -2302,9 +2256,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "RANK() OVER  (PARTITION BY BIP.Individual_ID " +
                               "ORDER BY  BIP.rSourceRecord_sum ASC, BIP.Source_Date DESC, BIP.Record_ID desc, " +
                               "BIP.Individual_ID ASC ) " +
-                              "AS rowrnk FROM  %1$s BAF  --SPLICE-PROPERTIES useSpark = %3$s \n  INNER JOIN %2$s BIP ON BAF.individual_id=BIP.individual_id " +
+                              "AS rowrnk FROM  %s BAF  INNER JOIN %s BIP ON BAF.individual_id=BIP.individual_id " +
                               "WHERE BAF.rwrnk = 1",
-                          this.getTableReference(best_addr_freq_NAME), this.getTableReference(best_ids_pool_NAME), useSpark);
+                          this.getTableReference(best_addr_freq_NAME), this.getTableReference(best_ids_pool_NAME));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
         // Results too large to compare
@@ -2333,7 +2287,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         String sqlText = format("SELECT employee_id, rank() over(order by salary), CASE WHEN (commission is not null)" +
                                     " THEN min(salary) over(PARTITION BY department) ELSE -1 END as  minimum_sal" +
-                                    " FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by minimum_sal, employee_id", tableRef, useSpark);
+                                    " FROM %s order by minimum_sal, employee_id", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2354,7 +2308,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLastValueFunction() throws Exception {
         // DB-3920
-        String tableName = "EMP2";
+        String tableName = "emp2";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2372,8 +2326,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         .create();
 
         String sqlText = format("select empno, salary, deptno, last_value(empno) over(partition by deptno order by " +
-                                    "salary asc range between current row and unbounded following) as last_val from  \n " +
-                                    "%s  --SPLICE-PROPERTIES useSpark = %s \n order by empno asc", tableRef, useSpark);
+                                    "salary asc range between current row and unbounded following) as last_val from " +
+                                    "%s order by empno asc", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2419,8 +2373,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         .create();
 
         String sqlText = format("select empno, salary, deptno, first_value(empno) over(partition by deptno order by " +
-                                    "salary asc, empno rows unbounded preceding) as first_value from  " +
-                                    "%s --SPLICE-PROPERTIES useSpark = %s \n order by empno asc", tableRef, useSpark);
+                                    "salary asc, empno rows unbounded preceding) as first_value from " +
+                                    "%s order by empno asc", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2448,7 +2402,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLastValueWithAggregateArgument() throws Exception {
         // DB-3920
-        String tableName = "ALL_SALES2";
+        String tableName = "all_sales2";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(yr INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount decimal(8, 2))";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2473,7 +2427,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         String sqlText = format("SELECT month, SUM(amount) AS month_amount, " +
                                     "LAST_VALUE(SUM(amount)) OVER (ORDER BY month ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) " +
-                                    "AS next_month_amount FROM %s  --SPLICE-PROPERTIES useSpark = %s \n GROUP BY month ORDER BY month", tableRef, useSpark);
+                                    "AS next_month_amount FROM %s GROUP BY month ORDER BY month", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2498,7 +2452,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLeadWithAlias() throws Exception {
         // DB-4757
-        String tableName = "PRODUCT_RATING";
+        String tableName = "ProductRating";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(productId decimal(10,0), ratingAgencyCode varchar(20), ratingEffDate timestamp, rating varchar(20))";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2566,7 +2520,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // to find the column reference of the underlying table column
         String sqlText = format("select a.productId, a.ratingAgencyCode, a.ratingEffDate as effDate, a.rating, LEAD(ratingeffDate)" +
                                     " OVER (PARTITION BY productId, ratingAgencyCode ORDER BY ratingeffDate) \"endDate\" " +
-                                    "from %s a --SPLICE-PROPERTIES useSpark = %s \n  order by productId, ratingAgencyCode", tableRef, useSpark);
+                                    "from %s a order by productId, ratingAgencyCode", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2629,7 +2583,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test @Ignore("DB-3927: found possible frame processing problem while implementing first_value()")
     public void testFirstValueWithAggregateArgument() throws Exception {
         // DB-3927
-        String tableName = "ALLSALES3";
+        String tableName = "all_sales3";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(yr INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount decimal(8, 2))";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2654,7 +2608,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         String sqlText = format("SELECT month, SUM(amount) AS month_amount, " +
                                     "FIRST_VALUE(SUM(amount)) OVER (ORDER BY month ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) " +
-                                    "AS prev_month_amount FROM %s   --SPLICE-PROPERTIES useSpark = %s \n GROUP BY month ORDER BY month", tableRef, useSpark);
+                                    "AS prev_month_amount FROM %s GROUP BY month ORDER BY month", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2679,7 +2633,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLeadFunction() throws Exception {
         // DB-3920
-        String tableName = "EMP3";
+        String tableName = "emp3";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2697,8 +2651,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .create();
 
         String sqlText = format("select empno, salary, deptno, " +
-                                    "LEAD(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC, EMPNO) NEXT_LOWER_SAL from  " +
-                                    "%s   --SPLICE-PROPERTIES useSpark = %s \n  order by deptno, SALARY DESC", tableRef, useSpark);
+                                    "LEAD(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC, EMPNO) NEXT_LOWER_SAL from " +
+                                    "%s order by deptno, SALARY DESC", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2745,7 +2699,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         String sqlText = format("select empno, salary, deptno, " +
                                     "LAG(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC, empno) NEXT_LOWER_SAL from " +
-                                    "%s   --SPLICE-PROPERTIES useSpark = %s \n order by deptno, SALARY DESC, empno", tableRef, useSpark);
+                                    "%s order by deptno, SALARY DESC, empno", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2773,7 +2727,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLastValueFunctionWithCaseArgument() throws Exception {
         // DB-3920
-        String tableName = "EMP4";
+        String tableName = "emp4";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2793,7 +2747,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText = format("select empno, salary, deptno, " +
                                 "last_value((CASE WHEN empno < 17 THEN 0 WHEN empno >= 17 THEN 1 END)) " +
                                 "over(partition by deptno order by salary asc range between current row and unbounded following) as last_val from " +
-                                "%s   --SPLICE-PROPERTIES useSpark = %s \n  order by empno asc", tableRef, useSpark);
+                                "%s order by empno asc", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2821,7 +2775,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testFirstValueFunctionWithCaseArgument() throws Exception {
         // DB-3920
-        String tableName = "EMP5";
+        String tableName = "emp5";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2841,7 +2795,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText = format("select empno, salary, deptno, " +
                                 "first_value((CASE WHEN empno < 17 THEN 1 WHEN empno >= 17 THEN 0 END)) " +
                                 "over(partition by deptno order by salary asc rows unbounded preceding) as first_val from " +
-                                "%s --SPLICE-PROPERTIES useSpark = %s \n order by empno asc", tableRef, useSpark);
+                                "%s order by empno asc", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2869,7 +2823,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLastValueFunctionWithIgnoreNulls() throws Exception {
         // DB-3920
-        String tableName = "EMPLOYEES";
+        String tableName = "employees";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(employee_id int, employee_name varchar(10), salary int, department varchar(10), commission int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2897,7 +2851,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                     "                   ORDER BY employee_id DESC\n" +
                                     "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
                                     "Minimum_Commission\n" +
-                                    "FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by employee_id", tableRef, useSpark);
+                                    "FROM %s order by employee_id", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
         // DB-4600 - added order by to result to make comparison deterministic
@@ -2922,7 +2876,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                     "                   ORDER BY employee_id DESC\n" +
                                     "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
                                     "Minimum_Commission\n" +
-                             "FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by employee_id", tableRef, useSpark);
+                             "FROM %s order by employee_id", tableRef);
         rs = methodWatcher.executeQuery(sqlText);
         // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
         // DB-4600 - added order by to result to make comparison deterministic
@@ -2957,7 +2911,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             ))
             .create();
 
-        String sqlText = format("SELECT a, Lead(b,0) OVER(partition by a order by b) FROM %s   --SPLICE-PROPERTIES useSpark = %s \n ", tableRef, useSpark);
+        String sqlText = format("SELECT a, Lead(b,0) OVER(partition by a order by b) FROM %s", tableRef);
         try {
             methodWatcher.executeQuery(sqlText);
             fail("Expected exception because lead(b,0) - offset < 1");
@@ -2966,7 +2920,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             assertEquals("2201Y", e.getSQLState());
         }
 
-        sqlText = format("SELECT a, Lead(b,%s) OVER(partition by a order by b) FROM %s   --SPLICE-PROPERTIES useSpark = %s \n ", Integer.MAX_VALUE, tableRef, useSpark);
+        sqlText = format("SELECT a, Lead(b,%s) OVER(partition by a order by b) FROM %s", Integer.MAX_VALUE, tableRef);
         try {
             methodWatcher.executeQuery(sqlText);
             fail("Expected exception because lead(b,0) - offset >= Integer.MAX_VALUE");
@@ -2992,10 +2946,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             ))
             .create();
 
-        String sqlText = format("SELECT a, first_value(b) OVER(partition by a) FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ", tableRef, useSpark);
+        String sqlText = format("SELECT a, first_value(b) OVER(partition by a) FROM %s", tableRef);
         methodWatcher.executeQuery(sqlText);
 
-        sqlText = format("SELECT a, lag(b) OVER(partition by a) FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ", tableRef, useSpark);
+        sqlText = format("SELECT a, lag(b) OVER(partition by a) FROM %s", tableRef);
         methodWatcher.executeQuery(sqlText);
 
         // since it row are returned in arbitrary order when no ORDER BY is specified, the best we can do
@@ -3015,7 +2969,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testLeadLagDefaultValue() throws Exception {
         // DB-3982 - default not implemented
-        String tableName = "TWOINTS";
+        String tableName = "twoints";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(a int, b int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -3028,7 +2982,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             ))
             .create();
 
-        String sqlText = format("SELECT a, lag(b, 2, 13) OVER(partition by a order by b) FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ", tableRef, useSpark);
+        String sqlText = format("SELECT a, lag(b, 2, 13) OVER(partition by a order by b) FROM %s", tableRef);
         try {
             methodWatcher.executeQuery(sqlText);
             fail("Expected exception \"default\" value not implemented.");
@@ -3069,9 +3023,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                     "                PD.PRSN_KEY, " +
                                     "                 -1  as STAGE_NUM, " +
                                     "                pd.MOST_RECENT_STAGING_DATE " +
-                                    "                FROM %s PD   --SPLICE-PROPERTIES useSpark = %s \n " +
+                                    "                FROM %s PD " +
                                     "        ) A  " +
-                                    ")B where ROWNUM = 1", tableRef, useSpark);
+                                    ")B where ROWNUM = 1", tableRef);
         methodWatcher.executeQuery(sqlText);
     }
 
@@ -3083,8 +3037,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testRankDate() throws Exception {
         String sqlText =
             String.format("SELECT hiredate, dept, rank() OVER (partition by dept ORDER BY hiredate) AS rankhire " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ORDER BY hiredate, dept",
-                          this.getTableReference(EMPTAB_HIRE_DATE), useSpark);
+                              "FROM %s ORDER BY hiredate, dept",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -3113,9 +3067,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testNullsRankDate() throws Exception {
         String sqlText =
             String.format("SELECT hiredate, dept, " +
-                              "rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s  --SPLICE-PROPERTIES useSpark = %s \n  " +
+                              "rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s " +
                               "ORDER BY hiredate, dept",
-                          this.getTableReference(EMPTAB_NULLS), useSpark);
+                          this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -3150,8 +3104,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
                               "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
-                              "FROM  %s  --SPLICE-PROPERTIES useSpark = %s \n  ORDER BY EMPNUM",
-                          this.getTableReference(EMPTAB_HIRE_DATE), useSpark);
+                              "FROM %s ORDER BY EMPNUM",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -3177,16 +3131,15 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    //TODO : next version of Spark will support it
-    @Test @Ignore
+    @Test
     public void testNullsMultiFunctionSameOverClause() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
-//                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank " +
-//                              "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
+                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
+                              "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ORDER BY dept, salary, EMPNUM",
-                          this.getTableReference(EMPTAB_NULLS), useSpark);
+                              "FROM %s ORDER BY EMPNUM",
+                          this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // DB-4600 - added order by to result to make comparison deterministic
@@ -3222,8 +3175,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, hiredate) AS DenseRank, " +
                               "dept, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY hiredate desc) AS RowNumber " +
-                              "FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by hiredate desc, empnum",
-                          this.getTableReference(EMPTAB_HIRE_DATE), useSpark);
+                              "FROM %s order by hiredate desc, empnum",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -3256,8 +3209,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY hiredate, salary) AS DR_Hire_Sal_By_Dept, " +
                               "dept, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY hiredate, dept) AS RN_Hire_Sal_By_Dept " +
-                              "FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by dept, hiredate",
-                          this.getTableReference(EMPTAB_NULLS), useSpark);
+                              "FROM %s order by dept, hiredate",
+                          this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -3291,8 +3244,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT hiredate, dept, " +
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY hiredate, salary) AS DenseRank_HireDate_Salary_By_Dept, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY hiredate, dept) AS RowNumber_HireDate_Salary_By_Dept " +
-                              "FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by hiredate, RowNumber_HireDate_Salary_By_Dept",
-                          this.getTableReference(EMPTAB_HIRE_DATE), useSpark);
+                              "FROM %s order by hiredate, RowNumber_HireDate_Salary_By_Dept",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -3322,9 +3275,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText = String.format("SELECT empnum, salary, " +
                                            "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, " +
                                            "dept, " +
-                                           "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept, empnum) AS RowNumber FROM %s " +
-                                           "  --SPLICE-PROPERTIES useSpark = %s \n  order by empnum",
-                                       this.getTableReference(EMPTAB_HIRE_DATE),useSpark);
+                                           "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept, empnum) AS RowNumber FROM %s order by empnum",
+                                       this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -3358,8 +3310,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, salary, " +
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary, empnum) AS DenseRank, " +
                               "dept, " +
-                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept, empnum) AS RowNumber FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by dept, empnum",
-                          this.getTableReference(EMPTAB_NULLS), useSpark);
+                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept, empnum) AS RowNumber FROM %s order by dept, empnum",
+                          this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -3393,8 +3345,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, salary, " +
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept, empnum) AS RowNumber " +
-                              "FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by salary, empnum",
-                          this.getTableReference(EMPTAB_HIRE_DATE), useSpark);
+                              "FROM %s order by salary, empnum",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
 //        System.out.println(sqlText);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -3426,8 +3378,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "ROW_NUMBER() OVER (ORDER BY salary desc, dept) AS RowNumber, " +
                               "RANK() OVER (ORDER BY salary desc, dept) AS Rank, " +
                               "DENSE_RANK() OVER (ORDER BY salary desc, dept) AS DenseRank " +
-                              "FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by salary desc, dept",
-                          this.getTableReference(EMPTAB_HIRE_DATE), useSpark);
+                              "FROM %s order by salary desc, dept",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Validated with PostgreSQL app
@@ -3453,16 +3405,15 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    // TODO : Spark will support that next version
-    @Test @Ignore
+    @Test
     public void testNullsMultiFunctionInQueryDiffAndSameOverClause() throws Exception {
         String sqlText =
             String.format("SELECT salary, dept, " +
                               "ROW_NUMBER() OVER (ORDER BY salary desc, dept) AS RowNumber, " +
                               "RANK() OVER (ORDER BY salary desc, dept) AS Rank, " +
                               "DENSE_RANK() OVER (ORDER BY salary desc, dept) AS DenseRank " +
-                              "FROM %s   --SPLICE-PROPERTIES useSpark = %s \n  order by salary desc, dept",
-                          this.getTableReference(EMPTAB_NULLS), useSpark);
+                              "FROM %s order by salary desc, dept",
+                          this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Validated in PostgreSQL app
@@ -3497,10 +3448,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("select Transaction_Detail5.SOURCE_SALES_INSTANCE_ID C0, " +
                               "min(Transaction_Detail5.TRANSACTION_DT) over (partition by Transaction_Detail5.ORIGINAL_SKU_CATEGORY_ID) C1, " +
                               "sum(Transaction_Detail5.SALES_AMT) over (partition by Transaction_Detail5.TRANSACTION_DT) C10 " +
-                              "from %s AS Transaction_Detail5   --SPLICE-PROPERTIES useSpark = %s \n  " +
+                              "from %s AS Transaction_Detail5 " +
                               "where Transaction_Detail5.TRANSACTION_DT between DATE('2010-01-21') " +
                               "and DATE('2013-11-21') and Transaction_Detail5.CUSTOMER_MASTER_ID=74065939",
-                          this.getTableReference(TXN_DETAIL), useSpark);
+                          this.getTableReference(TXN_DETAIL));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -3526,10 +3477,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "prd_type_id, SUM(amount),\n" +
                               "RANK() OVER (ORDER BY SUM(amount) DESC) AS rank,\n" +
                               "DENSE_RANK() OVER (ORDER BY SUM(amount) DESC) AS dense_rank\n" +
-                              "FROM %s\n   --SPLICE-PROPERTIES useSpark = %s \n " +
+                              "FROM %s\n" +
                               "WHERE amount IS NOT NULL\n" +
                               "GROUP BY prd_type_id\n" +
-                              "ORDER BY prd_type_id", this.getTableReference(ALL_SALES), useSpark);
+                              "ORDER BY prd_type_id", this.getTableReference(ALL_SALES));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =

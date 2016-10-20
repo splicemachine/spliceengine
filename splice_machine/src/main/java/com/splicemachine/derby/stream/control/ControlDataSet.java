@@ -16,7 +16,6 @@
 package com.splicemachine.derby.stream.control;
 
 
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.*;
@@ -355,20 +354,6 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> join(OperationContext operationContext, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
-        throw new UnsupportedOperationException("Not Implemented in Control Side");
-    }
-
-    /**
-     * Window Function. Take a WindowContext that define the partition, the order, and the frame boundary.
-     * Currently only run on top of Spark.
-     * @param windowContext
-     * @param context
-     * @param pushScope
-     * @param scopeDetail
-     * @return
-     */
-    @Override
-    public DataSet<V> windows(WindowContext windowContext, OperationContext context, boolean pushScope, String scopeDetail) {
         throw new UnsupportedOperationException("Not Implemented in Control Side");
     }
 }

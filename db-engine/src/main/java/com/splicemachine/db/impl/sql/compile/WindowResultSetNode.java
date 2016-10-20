@@ -30,8 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import com.splicemachine.db.iapi.sql.compile.*;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -42,6 +40,14 @@ import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -759,7 +765,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             FormatableArrayHolder keyCols = createColumnOrdering(wdn.getKeyColumns(), "Key");
             windowInfoList.addElement(new WindowFunctionInfo(
                 windowFunctionNode.getAggregateName(),
-                windowFunctionNode.getType(),
                 windowFunctionNode.getAggregatorClassName(),
                 inputVIDs,       // windowFunctionNode input columns
                 fnResultVID,    // the windowFunctionNode result column

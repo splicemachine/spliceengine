@@ -58,7 +58,6 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
         REDUCE("Reduce"),
         READ("Read Values"),
         SORT("Sort Records"),
-        WINDOW("Window Function"),
         READ_SORTED("Read Sorted Values"),
         ROLLUP("Rollup"),
         EXECUTE("Execute"),
