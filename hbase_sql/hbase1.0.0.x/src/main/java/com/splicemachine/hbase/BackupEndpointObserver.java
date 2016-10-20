@@ -206,11 +206,13 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
     private void waitForBackupToComplete() throws IOException{
         int i = 0;
+        long maxWaitTime = 60*1000;
         while (regionIsBeingBackup()) {
             try {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "wait for backup to complete");
-                Thread.sleep(100 * (long) Math.pow(2, i));
+                long waitTime = Math.min(100 * (long) Math.pow(2, i), maxWaitTime);
+                Thread.sleep(waitTime);
                 i++;
             }
             catch (InterruptedException e) {
