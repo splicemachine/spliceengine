@@ -28,6 +28,8 @@ package com.splicemachine.db.iapi.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
+import static java.lang.String.format;
+
 /**
  * An AggregateDefinition defines an aggregate.
  * 
@@ -48,7 +50,56 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
  *
  * @see com.splicemachine.db.catalog.TypeDescriptor
  */
+
+
+
 public interface AggregateDefinition {
+
+	/**
+	 * Take the parser token for the window function and return a Enum type
+	 * @param function
+	 * @return
+	 */
+	static FunctionType fromString(String function) {
+			for (FunctionType type : FunctionType.values()) {
+				if (type.getName().equals(function)) {
+					return type;
+				}
+			}
+			throw new UnsupportedOperationException(format("%s aggregation function not implemented",function));
+	}
+
+	/**
+	 * Every possible window functions
+	 */
+	 enum FunctionType {
+
+		MAX_FUNCTION("MAX"),
+		MIN_FUNCTION("MIN"),
+		SUM_FUNCTION("SUM"),
+		LAST_VALUE_FUNCTION("LAST_VALUE"),
+		AVG_FUNCTION("AVG"),
+		COUNT_FUNCTION("COUNT"),
+		//no need to over complicate with sub type functions, treat count as count star
+		COUNT_STAR_FUNCTION("COUNT(*)"),
+		DENSE_RANK_FUNCTION("DENSE_RANK"),
+		RANK_FUNCTION("RANK"),
+		FIRST_VALUE_FUNCTION("FIRST_VALUE"),
+		LAG_FUNCTION("LAG"),
+		LEAD_FUNCTION("LEAD"),
+		ROW_NUMBER_FUNCTION("ROW_NUMBER");
+
+		private final String name;
+
+		FunctionType(String name) {
+			this.name = name;
+		}
+
+		public String getName() {
+			return name;
+		}
+	}
+
 	/**
 	 * Get the aggregator that performs the aggregation on the
 	 * input datatype at execution time.  If the input type can be handled, 

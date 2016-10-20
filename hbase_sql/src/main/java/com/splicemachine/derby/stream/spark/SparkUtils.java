@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
@@ -30,7 +31,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 
 import org.apache.log4j.Logger;
-import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
@@ -39,15 +39,22 @@ import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.collection.JavaConversions;
 
 import java.sql.ResultSet;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class RDDUtils {
-    public static final Logger LOG = Logger.getLogger(RDDUtils.class);
+import static org.apache.spark.sql.functions.asc;
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.desc;
+
+public class SparkUtils {
+    public static final Logger LOG = Logger.getLogger(SparkUtils.class);
 
     public static JavaPairRDD<ExecRow, LocatedRow> getKeyedRDD(JavaRDD<LocatedRow> rdd, final int[] keyColumns)
             throws StandardException {
@@ -197,7 +204,7 @@ public class RDDUtils {
 
         @Override
         public ExecRow call(LocatedRow row) throws Exception {
-            return RDDUtils.getKey(row.getRow(), keyColumns);
+            return SparkUtils.getKey(row.getRow(), keyColumns);
         }
     }
 
@@ -278,5 +285,33 @@ public class RDDUtils {
             default:
                 return DataTypes.NullType;
         }
+    }
+
+    /**
+     * Convert Sort Columns, convert to 0-based index
+     * @param sortColumns
+     * @return
+     */
+
+
+    public static scala.collection.mutable.Buffer<Column> convertSortColumns(ColumnOrdering[] sortColumns){
+        return Arrays
+                .stream(sortColumns)
+                .map(column -> column.getIsAscending() ? asc(String.valueOf(column.getColumnId()-1)) : desc(String.valueOf(column.getColumnId()-1)))
+                .collect(Collectors.collectingAndThen(Collectors.toList(), JavaConversions::asScalaBuffer));
+    }
+
+    /**
+     * Convert partition to Spark dataset columns
+     * Ignoring partition
+     * @param sortColumns
+     * @return
+     */
+
+    public static scala.collection.mutable.Buffer<Column> convertPartitions(ColumnOrdering[] sortColumns){
+        return Arrays
+                .stream(sortColumns)
+                .map(column -> col(String.valueOf(column.getColumnId()-1)))
+                .collect(Collectors.collectingAndThen(Collectors.toList(), JavaConversions::asScalaBuffer));
     }
 }
