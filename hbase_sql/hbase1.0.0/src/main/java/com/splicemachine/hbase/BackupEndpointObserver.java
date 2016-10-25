@@ -17,23 +17,25 @@ package com.splicemachine.hbase;
 
 import com.google.protobuf.Service;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.backup.BackupRestoreConstants;
+import com.splicemachine.backup.BackupUtils;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.util.List;
 
 /**
@@ -48,10 +50,15 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     private String tableName;
     private String regionName;
     private String path;
+    private Path backupDir;
+    private Configuration conf;
+    private FileSystem fs;
+    Path rootDir;
+    private volatile boolean preparing;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
-        region =((RegionCoprocessorEnvironment) e).getRegion();
+        region = ((RegionCoprocessorEnvironment) e).getRegion();
         String[] name = region.getTableDesc().getNameAsString().split(":");
         if (name.length == 2) {
             namespace = name[0];
@@ -63,6 +70,11 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         regionName = region.getRegionInfo().getEncodedName();
 
         path = HConfiguration.getConfiguration().getBackupPath() + "/" + tableName + "/" + regionName;
+        conf = HConfiguration.unwrapDelegate();
+        rootDir = FSUtils.getRootDir(conf);
+        fs = FSUtils.getCurrentFileSystem(conf);
+        backupDir = new Path(rootDir, BackupRestoreConstants.BACKUP_DIR + "/data/splice/" + tableName + "/" + regionName);
+        preparing = false;
     }
 
     @Override
@@ -76,42 +88,11 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
             com.google.protobuf.RpcController controller,
             SpliceMessage.PrepareBackupRequest request,
             com.google.protobuf.RpcCallback<SpliceMessage.PrepareBackupResponse> done) {
-
         try {
-            SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
-            if (isSplitting) {
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "%s:%s is being split before trying to prepare for backup", tableName, regionName);
-                }
-                // return false to client if the region is being split
-                responseBuilder.setReadyForBackup(false);
-            } else {
-                // A region might have been in backup
-                if (!regionIsBeingBackup()) {
-                    HBasePlatformUtils.flush(region);
-                    // Create a ZNode to indicate that the region is being copied
-                    ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                }
-                // check again if the region is being split. If so, return an error
-                if (isSplitting) {
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "%s:%s is being split when trying to prepare for backup", tableName, regionName);
-                    }
-                    responseBuilder.setReadyForBackup(false);
-                    //delete the ZNode
-                    ZkUtils.recursiveDelete(path);
-                } else {
-                    //wait for all compaction and flush to complete
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "%s:%s waits for flush and compaction to complete", tableName, regionName);
-                    }
-                    region.waitForFlushesAndCompactions();
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "%s:%s is ready for backup", tableName, regionName);
-                    }
-                    responseBuilder.setReadyForBackup(true);
-                }
-            }
+            preparing = true;
+            SpliceMessage.PrepareBackupResponse.Builder responseBuilder =
+                    BackupUtils.prepare(region, isSplitting, tableName, regionName, path);
+            preparing = false;
             done.run(responseBuilder.build());
         } catch (Exception e) {
             controller.setFailed(e.getMessage());
@@ -123,7 +104,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preSplit()");
 
-        waitForBackupToComplete();
+        BackupUtils.waitForBackupToComplete(tableName, regionName, path);
         isSplitting = true;
         super.preSplit(e);
     }
@@ -140,7 +121,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<StoreFile> candidates) throws IOException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preCompactSelection()");
-        waitForBackupToComplete();
+        BackupUtils.waitForBackupToComplete(tableName, regionName, path);
         super.preCompactSelection(c, store, candidates);
     }
 
@@ -149,7 +130,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preCompact()");
 
-        waitForBackupToComplete();
+        BackupUtils.waitForBackupToComplete(tableName, regionName, path);
         return super.preCompact(e, store, scanner, scanType);
     }
 
@@ -157,56 +138,21 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush()");
-        waitForBackupToComplete();
+        BackupUtils.waitForBackupToComplete(tableName, regionName, path);
         super.preFlush(e);
     }
 
     @Override
     public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) throws IOException {
-        //TODO: register HFiles for incremental backup
-    }
-
-    private void waitForBackupToComplete() throws IOException{
-        int i = 0;
+        // Register HFiles for incremental backup
+        SpliceLogUtils.info(LOG, "Flushing region %s.%s", tableName, regionName);
         try {
-            while(regionIsBeingBackup()){
-                if(LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG,"wait for backup to complete");
-                Thread.sleep(100*(long)Math.pow(2,i));
-                i++;
-            }
-        }catch(InterruptedException e){
-            throw new InterruptedIOException();
+            if (namespace.compareTo("splice") != 0)
+                return;
+            BackupUtils.captureIncrementalChanges(conf, region, path, fs, rootDir, backupDir,
+                    tableName, resultFile.getPath().getName(), preparing);
+        } catch (Exception ex) {
+            throw new IOException(ex);
         }
     }
-
-    private boolean regionIsBeingBackup() throws IOException, InterruptedException{
-        boolean isBackup;
-        RecoverableZooKeeper zooKeeper=ZkUtils.getRecoverableZooKeeper();
-        try{
-            if(zooKeeper.exists(path,false)==null){
-                if(LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG,"Table %s region %s is not in backup",tableName,regionName);
-                isBackup=false;
-            }else{
-                byte[] status=ZkUtils.getData(path);
-                if(Bytes.compareTo(status,HConfiguration.BACKUP_IN_PROGRESS)==0){
-                    if(LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG,"Table %s region %s is in backup",tableName,regionName);
-                    isBackup=true;
-                }else if(Bytes.compareTo(status,HConfiguration.BACKUP_DONE)==0){
-                    if(LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG,"Table %s region %s is done with backup",tableName,regionName);
-                    isBackup=false;
-                }else{
-                    throw new RuntimeException("Unexpected data in node:"+path);
-                }
-            }
-        }catch(KeeperException ke){
-            throw new IOException(ke);
-        }
-
-        return isBackup;
-    }
-
 }
