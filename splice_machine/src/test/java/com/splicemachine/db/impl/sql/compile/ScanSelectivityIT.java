@@ -121,6 +121,21 @@ public class ScanSelectivityIT extends SpliceUnitTest {
                         row(null, null, null)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table ts_numeric (f float, d double, n numeric(10, 1), r real, c decimal(4, 3))")
+                .withInsert("insert into ts_numeric values(?, ?, ?, ?, ?)")
+                .withRows(rows(
+                        row(1, 1, 1, 1, 1),
+                        row(2, 2, 2, 2, 2),
+                        row(3, 3, 3, 3, 3),
+                        row(4, 4, 4, 4, 4),
+                        row(5, 5, 5, 5, 5)))
+                .create();
+
+        for (int i = 0; i < 10; ++i) {
+            spliceClassWatcher.executeUpdate("insert into ts_numeric select * from ts_numeric");
+        }
+
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 schemaName));
@@ -197,6 +212,20 @@ public class ScanSelectivityIT extends SpliceUnitTest {
                         row(null, null, null)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table tns_numeric (f float, d double, n numeric(10, 1), r real, c decimal(4, 3))")
+                .withInsert("insert into tns_numeric values(?, ?, ?, ?, ?)")
+                .withRows(rows(
+                        row(1, 1, 1, 1, 1),
+                        row(2, 2, 2, 2, 2),
+                        row(3, 3, 3, 3, 3),
+                        row(4, 4, 4, 4, 4),
+                        row(5, 5, 5, 5, 5)))
+                .create();
+
+        for (int i = 0; i < 10; ++i) {
+            spliceClassWatcher.executeUpdate("insert into tns_numeric select * from tns_numeric");
+        }
         conn.commit();
     }
 
@@ -378,6 +407,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_float where n>1.0 and n<5.0","rows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_float where n is not null and n>1.0","rows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_float where n<>1.0","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_numeric where n=1","rows=1024",methodWatcher);
 
         // no statistics
         firstRowContainsQuery("explain select * from tns_float where n=1.0","rows=18",methodWatcher);
@@ -729,6 +759,4 @@ public class ScanSelectivityIT extends SpliceUnitTest {
                 query, "outputRows=2", 3, actualString);
         Assert.assertTrue(failMessage, actualString.contains("outputRows=2"));
     }
-
-
 }
