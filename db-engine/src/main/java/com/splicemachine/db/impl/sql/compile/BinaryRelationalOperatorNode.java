@@ -1012,6 +1012,8 @@ public class BinaryRelationalOperatorNode
     public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
         ValueNode node;
         node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
+        if (node instanceof CastNode)
+            node = ((CastNode) node).castOperand;
 
         if(considerParameters){
             return (node instanceof ConstantNode) ||
@@ -1031,6 +1033,8 @@ public class BinaryRelationalOperatorNode
 		** the key column.
 		*/
         node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
+        if (node instanceof CastNode)
+            node = ((CastNode) node).castOperand;
 
         if(node instanceof ConstantNode){
             return ((ConstantNode)node).getValue();
