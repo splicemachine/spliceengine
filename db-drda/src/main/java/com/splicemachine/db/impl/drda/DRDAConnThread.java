@@ -229,6 +229,26 @@ class DRDAConnThread extends Thread {
      */
     private boolean deferredReset = false;
 
+    private final static String SPLICE_ODBC_NAME = "Splice Enhanced ODBC Driver";
+
+    public boolean canCompress() {
+        return session.canCompress();
+    }
+
+    private void parsePRDDTA() throws DRDAProtocolException
+    {
+    	if (reader.getDdmLength() > CodePoint.MAX_NAME)
+    		tooBig(CodePoint.PRDDTA);
+    	byte[] prd = reader.readBytes();
+
+    	if(prd.length == 0) 
+    		badObjectLength(CodePoint.PRDDTA);			      
+
+    	String prdDTA = reader.convertBytes(prd);
+    	if(prdDTA.compareTo(SPLICE_ODBC_NAME) == 0) 
+    		session.enableCompress(true);
+    }
+
 	// constructor
 	/**
 	 * Create a new Thread for processing session requests
@@ -3464,10 +3484,8 @@ class DRDAConnThread extends Thread {
 					break;
 				//optional, ignorable
 				case CodePoint.PRDDTA:
-					// check that it fits in maximum but otherwise ignore for now
-					if (reader.getDdmLength() > CodePoint.MAX_NAME)
-						tooBig(CodePoint.PRDDTA);
-					reader.skipBytes();
+					// for compression test
+                                        parsePRDDTA();
 					break;
 				case CodePoint.TRGDFTRT:
 					byte b = reader.readByte();
@@ -9222,4 +9240,5 @@ class DRDAConnThread extends Thread {
             }
         }
     }
+
 }
