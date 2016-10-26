@@ -22,7 +22,9 @@ import java.io.*;
 
 
 /**
- * Created by jleach on 10/11/16.
+ *
+ * Implementation to serialize and deserialize items from the corresponding sketching algorithms.
+ *
  */
 public class DVDArrayOfItemsSerDe extends ArrayOfItemsSerDe<DataValueDescriptor> {
     DataValueDescriptor dvd;
@@ -32,14 +34,19 @@ public class DVDArrayOfItemsSerDe extends ArrayOfItemsSerDe<DataValueDescriptor>
         this.byteArrayLength = byteArrayLength;
     }
 
-
+    /**
+     *
+     * Returns a byte[] representing the array of Data Value Descriptors
+     *
+     * @param dataValueDescriptors
+     * @return
+     */
     @Override
     public byte[] serializeToByteArray(DataValueDescriptor[] dataValueDescriptors) {
         ObjectOutputStream outputStream = null;
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(4096);
             outputStream = new ObjectOutputStream(byteArrayOutputStream);
-//            outputStream.writeInt(dataValueDescriptors.length);
             for (DataValueDescriptor dvd: dataValueDescriptors) {
                 dvd.writeExternal(outputStream);
             }
@@ -57,6 +64,14 @@ public class DVDArrayOfItemsSerDe extends ArrayOfItemsSerDe<DataValueDescriptor>
         }
     }
 
+    /**
+     *
+     * Transforms byte[] in memory to an actual array.
+     *
+     * @param memory
+     * @param length
+     * @return
+     */
     @Override
     public DataValueDescriptor[] deserializeFromMemory(Memory memory, int length) {
         ObjectInputStream inputStream = null;

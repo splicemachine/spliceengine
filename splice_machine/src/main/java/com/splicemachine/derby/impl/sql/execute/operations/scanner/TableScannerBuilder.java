@@ -592,9 +592,13 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return baseTableConglomId;
     }
 
-
     @Override
     public int[] getColumnPositionMap() {
         return columnPositionMap;
+    }
+
+    @Override
+    public ExecRow getTemplate() {
+        return template;
     }
 }

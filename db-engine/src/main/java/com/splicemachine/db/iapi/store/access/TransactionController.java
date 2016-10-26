@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
@@ -1226,7 +1227,7 @@ public interface TransactionController
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.

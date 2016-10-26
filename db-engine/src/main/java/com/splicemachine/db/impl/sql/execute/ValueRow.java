@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -621,6 +622,17 @@ public class ValueRow implements ExecRow, Externalizable {
 		for (DataValueDescriptor dvd: column) {
 			rowSize += (long) dvd.getLength();
 		}
+		return rowSize;
+	}
+
+	@Override
+	public long getRowSize(BitSet validColumns) throws StandardException {
+		if (validColumns ==null)
+				return getRowSize();
+		long rowSize = 0l;
+		int nextSetBit = 0;
+		while ( (nextSetBit = validColumns.nextSetBit(nextSetBit)) != -1)
+			rowSize += (long) column[nextSetBit].getLength();
 		return rowSize;
 	}
 }

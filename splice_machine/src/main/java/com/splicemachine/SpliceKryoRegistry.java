@@ -34,7 +34,10 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
+import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.AggregateAliasInfo;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
@@ -93,26 +96,6 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
 import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
-import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
-import com.splicemachine.db.impl.sql.execute.AggregatorInfoList;
-import com.splicemachine.db.impl.sql.execute.AvgAggregator;
-import com.splicemachine.db.impl.sql.execute.ColumnInfo;
-import com.splicemachine.db.impl.sql.execute.CountAggregator;
-import com.splicemachine.db.impl.sql.execute.DecimalBufferedSumAggregator;
-import com.splicemachine.db.impl.sql.execute.DoubleBufferedSumAggregator;
-import com.splicemachine.db.impl.sql.execute.FKInfo;
-import com.splicemachine.db.impl.sql.execute.FloatBufferedSumAggregator;
-import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-import com.splicemachine.db.impl.sql.execute.LongBufferedSumAggregator;
-import com.splicemachine.db.impl.sql.execute.MaxMinAggregator;
-import com.splicemachine.db.impl.sql.execute.SumAggregator;
-import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
-import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
-import com.splicemachine.db.impl.sql.execute.TriggerInfo;
-import com.splicemachine.db.impl.sql.execute.UserDefinedAggregator;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
-import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.ddl.DDLChangeType;
@@ -864,5 +847,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(HalfMergeSortJoinOperation.class,EXTERNALIZABLE_SERIALIZER,274);
         instance.register(HalfMergeSortLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,275);
         instance.register(ColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER,276);
+        instance.register(StatisticsFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,277);
+        instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,278);
+
     }
 }

@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -985,9 +986,9 @@ public class SpliceTransactionManager implements XATransactionController,
      * @see StoreCostController
      **/
     @Override
-    public StoreCostController openStoreCost(ConglomerateDescriptor cd) throws StandardException {
-        List<PartitionStatisticsDescriptor> partitionStatistics = cd.getDataDictionary().getPartitionStatistics(cd.getConglomerateNumber(),this);
-        return new StoreCostControllerImpl(cd.getConglomerateNumber(),partitionStatistics);
+    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd) throws StandardException {
+        List<PartitionStatisticsDescriptor> partitionStatistics = cd.getDataDictionary().getPartitionStatistics(td.getBaseConglomerateDescriptor().getConglomerateNumber(),this);
+        return new StoreCostControllerImpl(td,cd,partitionStatistics);
     }
      /**
      * @see TransactionController#getProperty

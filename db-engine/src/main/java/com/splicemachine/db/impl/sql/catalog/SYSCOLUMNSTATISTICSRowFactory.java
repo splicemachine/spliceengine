@@ -26,11 +26,13 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -123,7 +125,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("PARTITION_ID",Types.VARCHAR,false),
                 SystemColumnImpl.getColumn("COLUMN_ID",Types.INTEGER,false),
                 SystemColumnImpl.getJavaColumn("DATA",
-                        "com.splicemachine.db.iapi.stats.ItemStatistics",false)
+                        ColumnStatisticsImpl.class.getCanonicalName(),false)
         };
     }
 
@@ -140,7 +142,10 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
                 new ColumnDescriptor("NULL_FRACTION",6,6,floatType,null,null,view,viewId,0,0,5),
                 new ColumnDescriptor("MIN_VALUE"    ,7,7,varcharType,null,null,view,viewId,0,0,6),
                 new ColumnDescriptor("MAX_VALUE"    ,8,8,varcharType,null,null,view,viewId,0,0,7),
-                new ColumnDescriptor("TOP_K"        ,9,9,varcharType,null,null,view,viewId,0,0,8),
+                new ColumnDescriptor("QUANTILES"        ,9,9,varcharType,null,null,view,viewId,0,0,8),
+                new ColumnDescriptor("FREQUENCIES"        ,9,9,varcharType,null,null,view,viewId,0,0,8),
+                new ColumnDescriptor("THETA"        ,9,9,varcharType,null,null,view,viewId,0,0,8),
+
         };
     }
 
@@ -153,7 +158,9 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
             ",STATS_NULL_FRACTION(STATS_MERGE(data)) as NULL_FRACTION" +
             ",STATS_MIN(STATS_MERGE(data)) as MIN_VALUE" +
             ",STATS_MAX(STATS_MERGE(data)) as MAX_VALUE" +
-            ",STATS_TOP_K(STATS_MERGE(data)) as TOP_K " +
+            ",STATS_QUANTILES(STATS_MERGE(data)) as QUANTILES " +
+            ",STATS_FREQUENCIES(STATS_MERGE(data)) as FREQUENCIES " +
+            ",STATS_THETA(STATS_MERGE(data)) as THETA " +
             "from " +
             "sys.syscolumnstats cs" +
             ",sys.sysschemas s " +

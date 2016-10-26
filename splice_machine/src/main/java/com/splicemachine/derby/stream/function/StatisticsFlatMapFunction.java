@@ -16,6 +16,8 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.StatisticsRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -26,7 +28,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -37,21 +38,23 @@ public class StatisticsFlatMapFunction
     protected StatisticsRow statisticsRow;
     protected long conglomId;
     protected int[] columnPositionMap;
+    protected ExecRow template;
 
     public StatisticsFlatMapFunction() {
     }
 
-    public StatisticsFlatMapFunction(long conglomId, int[] columnPositionMap) {
+    public StatisticsFlatMapFunction(long conglomId, int[] columnPositionMap, ExecRow template) {
         assert columnPositionMap != null:"columnPositionMap is null";
         this.conglomId = conglomId;
         this.columnPositionMap = columnPositionMap;
-
+        this.template = template;
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(conglomId);
         ArrayUtil.writeIntArray(out,columnPositionMap);
+        out.writeObject(template);
     }
 
     @Override
@@ -59,6 +62,7 @@ public class StatisticsFlatMapFunction
         throws IOException, ClassNotFoundException {
         conglomId = in.readLong();
         columnPositionMap = ArrayUtil.readIntArray(in);
+        template = (ExecRow) in.readObject();
     }
 
     @SuppressWarnings("unchecked")
@@ -66,18 +70,19 @@ public class StatisticsFlatMapFunction
     public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
         List<LocatedRow> rows;
         long rowCount = 0l;
-        long meanRowWidth = 0l;
+        long rowWidth = 0l;
         while (locatedRows.hasNext()) {
             LocatedRow locatedRow = locatedRows.next();
             if (!initialized) {
                 statisticsRow = new StatisticsRow(locatedRow.getRow());
                 initialized = true;
-                meanRowWidth = locatedRow.getRow().getRowSize();
             }
+            rowWidth += locatedRow.getRow().getRowSize();
             rowCount++;
             statisticsRow.setExecRow(locatedRow.getRow());
         }
         if (statisticsRow!=null) {
+            int meanRowWidth = (int) ( ((double) rowWidth)/ ((double) rowCount));
             ItemStatistics[] itemStatistics = statisticsRow.getItemStatistics();
             rows = new ArrayList<>(itemStatistics.length+1);
             for(int i=0;i<itemStatistics.length;i++){
@@ -85,10 +90,17 @@ public class StatisticsFlatMapFunction
                     continue;
                 rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),columnPositionMap[i],itemStatistics[i])));
             }
-            rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*meanRowWidth,(int)meanRowWidth)));
+            rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*((long)meanRowWidth),meanRowWidth)));
             return rows.iterator();
         } else {
-            return Collections.emptyListIterator();
+            rows = new ArrayList<>(columnPositionMap.length);
+            for (int i = 0; i<columnPositionMap.length;i++) {
+                if (columnPositionMap[i] != -1 && template.getColumn(columnPositionMap[i]) !=null)
+                rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(columnPositionMap[i])) )));
+            }
+            rows.add(new LocatedRow(
+                    StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0)));
+            return rows.iterator();
         }
     }
 }

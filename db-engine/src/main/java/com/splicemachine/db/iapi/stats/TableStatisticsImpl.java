@@ -1,8 +1,9 @@
-
 /*
- * Apache Derby is a subproject of the Apache DB project, and is licensed under
- * the Apache License, Version 2.0 (the "License"); you may not use these files
- * except in compliance with the License. You may obtain a copy of the License at:
+ * Copyright 2012 - 2016 Splice Machine, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
+ * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -10,25 +11,13 @@
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
- *
- * Splice Machine, Inc. has modified this file.
- *
- * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
- * and are licensed to you under the License; you may not use this file except in
- * compliance with the License.
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
  */
 package com.splicemachine.db.iapi.stats;
-import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 
 /**
+ *
  *
  *
  */
@@ -62,16 +51,6 @@ public class TableStatisticsImpl implements TableStatistics {
     }
 
     @Override
-    public long totalSize() {
-        return getEffectivePartitionStatistics().totalSize();
-    }
-
-    @Override
-    public long avgPartitionSize() {
-        return -1; // Do we need this?
-    }
-
-    @Override
     public int avgRowWidth() {
         return getEffectivePartitionStatistics().avgRowWidth();
     }
@@ -84,22 +63,22 @@ public class TableStatisticsImpl implements TableStatistics {
     @Override
     public PartitionStatistics getEffectivePartitionStatistics()  {
         try {
-            ItemStatisticsBuilder[] itemStatisticsBuilder = null;
+            ColumnStatisticsMerge[] itemStatisticsBuilder = null;
             boolean fake = false;
             if (effectivePartitionStatistics == null) {
                 for (PartitionStatistics partStats : partitionStatistics) {
                     List<? extends ItemStatistics> itemStatisticsList = partStats.getAllColumnStatistics();
-                    rowCount = partStats.rowCount();
-                    totalSize = partStats.totalSize();
-                    avgRowWidth = partStats.avgRowWidth(); // todo fix
+                    rowCount += partStats.rowCount();
+                    totalSize += partStats.totalSize();
+                    avgRowWidth += partStats.avgRowWidth(); // todo fix
                     if (itemStatisticsList.size() ==0)
                         fake = true;
                     if (itemStatisticsBuilder == null)
-                        itemStatisticsBuilder = new ItemStatisticsBuilder[itemStatisticsList.size()];
+                        itemStatisticsBuilder = new ColumnStatisticsMerge[itemStatisticsList.size()];
                     for (int i = 0; i < itemStatisticsList.size(); i++) {
                         if (itemStatisticsBuilder[i] == null)
-                            itemStatisticsBuilder[i] = ItemStatisticsBuilder.instance();
-                        itemStatisticsBuilder[i] = itemStatisticsList.get(0).mergeInto(itemStatisticsBuilder[i]);
+                            itemStatisticsBuilder[i] = ColumnStatisticsMerge.instance();
+                        itemStatisticsBuilder[i].accumulate((ColumnStatisticsImpl)itemStatisticsList.get(i));
                     }
                 }
                     if (fake)
@@ -138,7 +117,10 @@ public class TableStatisticsImpl implements TableStatistics {
 
     @Override
     public long cardinality(int positionNumber) {
-        return getEffectivePartitionStatistics().cardinality(positionNumber);
+        long cardinality = getEffectivePartitionStatistics().cardinality(positionNumber);
+        return cardinality >= rowCount()?
+                rowCount():
+                getEffectivePartitionStatistics().cardinality(positionNumber);
     }
 
     @Override
@@ -154,7 +136,7 @@ public class TableStatisticsImpl implements TableStatistics {
             selectivity += partitionStatistic.rangeSelectivity(start,stop,includeStart,includeStop,positionNumber);
             rowCount += partitionStatistic.rowCount();
         }
-        return (double) ((double)selectivity/(double)rowCount);
+        return ((double)selectivity/(double)rowCount);
     }
 
     @Override
@@ -162,8 +144,5 @@ public class TableStatisticsImpl implements TableStatistics {
         return partitionStatistics.size();
     }
 
-    @Override
-    public double columnSizeFactor(BitSet validColumns) {
-        return 0.5;
-    }
+
 }

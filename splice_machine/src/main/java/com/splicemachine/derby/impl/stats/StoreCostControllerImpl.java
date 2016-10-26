@@ -20,8 +20,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.PartitionStatistics;
 import com.splicemachine.db.iapi.stats.PartitionStatisticsImpl;
 import com.splicemachine.db.iapi.stats.TableStatistics;
@@ -72,9 +74,12 @@ public class StoreCostControllerImpl implements StoreCostController {
     private TableStatistics tableStatistics;
     private final double fallbackLocalLatency;
     private final double fallbackRemoteLatencyRatio;
+    private final ExecRow baseTableRow;
+    private final int conglomerateColumns;
+    private boolean noStats;
 
 
-    public StoreCostControllerImpl(long conglomerateId, List<PartitionStatisticsDescriptor> partitionStatistics) throws StandardException {
+    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics) throws StandardException {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         openLatency = config.getFallbackOpencloseLatency();
         closeLatency = config.getFallbackOpencloseLatency();
@@ -82,13 +87,14 @@ public class StoreCostControllerImpl implements StoreCostController {
         extraQualifierMultiplier = config.getOptimizerExtraQualifierMultiplier();
         fallbackLocalLatency =EngineDriver.driver().getConfiguration().getFallbackLocalLatency();
         fallbackRemoteLatencyRatio =EngineDriver.driver().getConfiguration().getFallbackRemoteLatencyRatio();
-
-        byte[] table = Bytes.toBytes(Long.toString(conglomerateId));
+        String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
+        baseTableRow = td.getEmptyExecRow();
+        conglomerateColumns = (conglomerateDescriptor.getColumnNames() == null)? 2 :conglomerateDescriptor.getColumnNames().length;
+        byte[] table = Bytes.toBytes(tableId);
         List<Partition> partitions = new ArrayList<>();
         getPartitions(table, partitions, false);
         List<String> partitionNames = Lists.transform(partitions,partitionNameTransform);
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
-        DataDictionary dd = lcc.getDataDictionary();
         Map<String,PartitionStatisticsDescriptor> partitionMap = Maps.uniqueIndex(partitionStatistics,partitionStatisticsTransform);
         if (partitions.size() < partitionStatistics.size()) {
             // reload if partition cache contains outdated data for this table
@@ -96,7 +102,6 @@ public class StoreCostControllerImpl implements StoreCostController {
             getPartitions(table, partitions, true);
         }
         List<PartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
-        String tableId = Long.toString(conglomerateId);
         PartitionStatisticsDescriptor tStats;
 
 
@@ -116,6 +121,7 @@ public class StoreCostControllerImpl implements StoreCostController {
          */
         if (missingPartitions == 1 && partitionStats.size() == 0) {
             missingPartitions--;
+            noStats = true;
             tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions);
         } else {
             tableStatistics = new TableStatisticsImpl(tableId, partitionStats);
@@ -142,7 +148,7 @@ public class StoreCostControllerImpl implements StoreCostController {
          * The first scenario uses this method, but the second scenario actually uses getScanCost(), so we're safe
          * assuming just a single row here
          */
-        double columnSizeFactor = tableStatistics.columnSizeFactor(validColumns);
+        double columnSizeFactor = conglomerateColumnSizeFactor(validColumns);
 
         cost.setRemoteCost(getRemoteLatency()*columnSizeFactor*tableStatistics.avgRowWidth());
         cost.setLocalCost(fallbackLocalLatency);
@@ -195,17 +201,30 @@ public class StoreCostControllerImpl implements StoreCostController {
         if (missingPartitions > 0)
             return tableStatistics.notNullCount(columnNumber-1) + tableStatistics.notNullCount(columnNumber-1)*(missingPartitions/tableStatistics.numPartitions());
         else
-            return tableStatistics.notNullCount(columnNumber-1);
+            return tableStatistics.cardinality(columnNumber-1);
     }
 
     @Override
     public long getConglomerateAvgRowWidth() {
-        return tableStatistics.avgRowWidth();
+        return
+                (long) (((double) tableStatistics.avgRowWidth())
+                        *
+                        ( (double) conglomerateColumns / ((double) baseTableRow.nColumns())));
     }
 
     @Override
     public long getBaseTableAvgRowWidth() {
-        return tableStatistics.avgRowWidth();
+        return noStats?baseTableRow.length():tableStatistics.avgRowWidth();
+    }
+
+    @Override
+    public double conglomerateColumnSizeFactor(BitSet validColumns) {
+        return ( (double) validColumns.cardinality())/ ((double) conglomerateColumns);
+    }
+
+    @Override
+    public double baseTableColumnSizeFactor(BitSet validColumns) {
+        return ( (double) validColumns.cardinality())/ ((double) baseTableRow.nColumns());
     }
 
     @Override
@@ -233,15 +252,6 @@ public class StoreCostControllerImpl implements StoreCostController {
         return missingPartitions+tableStatistics.numPartitions();
     }
 
-    @Override
-    public double conglomerateColumnSizeFactor(BitSet validColumns) {
-        return 1.0;
-    }
-
-    @Override
-    public double baseTableColumnSizeFactor(BitSet validColumns) {
-        return 1.0;
-    }
 
     @Override
     public double baseRowCount() {

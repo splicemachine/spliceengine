@@ -41,6 +41,7 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -406,5 +407,10 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	@Override
 	public long getRowSize() throws StandardException {
 		return valueRow.getRowSize();
+	}
+
+	@Override
+	public long getRowSize(BitSet validColumns) throws StandardException {
+		return valueRow.getRowSize(validColumns);
 	}
 }

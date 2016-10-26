@@ -51,7 +51,7 @@ public class StatsCollectionJob implements Callable<Void> {
         try {
             List<LocatedRow> result = request.scanSetBuilder.buildDataSet(request.scope)
                     .mapPartitions(
-                    new StatisticsFlatMapFunction(request.scanSetBuilder.getBaseTableConglomId(),request.scanSetBuilder.getColumnPositionMap())).collect();
+                    new StatisticsFlatMapFunction(request.scanSetBuilder.getBaseTableConglomId(),request.scanSetBuilder.getColumnPositionMap(), request.scanSetBuilder.getTemplate())).collect();
             jobStatus.markCompleted(new StatsResult(result));
             return null;
         } catch (Exception e) {

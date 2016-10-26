@@ -14,29 +14,74 @@
  */
 package com.splicemachine.db.iapi.stats;
 
-import com.splicemachine.db.iapi.error.StandardException;
-
 import java.io.Externalizable;
 import java.io.Serializable;
 import java.util.Comparator;
 
 /**
  *
- * Statistics Container for an item.
+ * Interface for a statistical item.
  *
  */
 public interface ItemStatistics<T extends Comparator<T>> extends Serializable, Externalizable {
+    /**
+     *
+     * Enumeration of statistical types.  NONUNIQUEKEY,UNIQUEKEY,PRIMARYKEY todo.
+     *
+     * @return
+     */
+    public enum Type {
+        COLUMN,NONUNIQUEKEY,UNIQUEKEY,PRIMARYKEY
+    }
 
+    /**
+     *
+     * Statistical type.
+     *
+     * @return
+     */
+    Type getType();
+    /**
+     *
+     * Retrieve typed minimum value
+     *
+     * @return
+     */
     T minValue();
-
+    /**
+     *
+     * Retrieve typed maximum value
+     *
+     * @return
+     */
     T maxValue();
-
+    /**
+     *
+     * Return total count
+     *
+     * @return
+     */
     long totalCount();
-
+    /**
+     *
+     * Return null count
+     *
+     * @return
+     */
     long nullCount();
-
+    /**
+     *
+     * Return not null count
+     *
+     * @return
+     */
     long notNullCount();
-
+    /**
+     *
+     * Return cardinality (number of unique values)
+     *
+     * @return
+     */
     long cardinality();
 
     /**
@@ -59,8 +104,19 @@ public interface ItemStatistics<T extends Comparator<T>> extends Serializable, E
      */
     long rangeSelectivity(T start,T stop, boolean includeStart,boolean includeStop);
 
-    public void update(T item);
-
-    public ItemStatisticsBuilder<T> mergeInto(ItemStatisticsBuilder<T> itemStatisticsBuilder) throws StandardException;
+    /**
+     *
+     * Update the statistics by applying the typed item.
+     *
+     * @param item
+     */
+    void update(T item);
+    /**
+     *
+     * Clone the statistics
+     *
+     * @return
+     */
+    ItemStatistics<T> getClone();
 
 }

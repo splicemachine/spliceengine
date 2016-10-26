@@ -1,7 +1,9 @@
 /*
- * Apache Derby is a subproject of the Apache DB project, and is licensed under
- * the Apache License, Version 2.0 (the "License"); you may not use these files
- * except in compliance with the License. You may obtain a copy of the License at:
+ * Copyright 2012 - 2016 Splice Machine, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
+ * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -9,27 +11,18 @@
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
- *
- * Splice Machine, Inc. has modified this file.
- *
- * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
- * and are licensed to you under the License; you may not use this file except in
- * compliance with the License.
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
  */
 
 package com.splicemachine.db.iapi.stats;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import java.util.Comparator;
 import java.util.List;
 
 /**
+ *
+ * This class unions the existing partition statistics to create a single
+ * effective partition.  The rationale for this is to not merge the stats together
+ * continually nor apply them in a linear fashion to each partition.
  *
  */
 public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
@@ -42,7 +35,7 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
 
     }
 
-    public EffectivePartitionStatisticsImpl(ItemStatisticsBuilder[] itemStatisticsBuilder,
+    public EffectivePartitionStatisticsImpl(ColumnStatisticsMerge[] itemStatisticsBuilder,
                                             long rowCount, long totalSize,
                                             int avgRowWidth) {
         this.rowCount = rowCount;
@@ -50,13 +43,7 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
         this.avgRowWidth = avgRowWidth;
        itemStatistics = new ItemStatistics[itemStatisticsBuilder.length];
        for (int i =0; i<itemStatisticsBuilder.length;i++) {
-            itemStatistics[i] = new ColumnStatisticsImpl( null,
-                    itemStatisticsBuilder[i].buildQuantilesSketch(),
-                    itemStatisticsBuilder[i].frequenciesSketch,
-                    itemStatisticsBuilder[i].buildThetaSketch(),
-                    itemStatisticsBuilder[i].nullCount
-                    );
-
+            itemStatistics[i] = itemStatisticsBuilder[i].terminate();
        }
     }
 
@@ -75,6 +62,12 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
         return avgRowWidth;
     }
 
+    /**
+     *
+     * No Partition associated with an effective partition.
+     *
+     * @return
+     */
     @Override
     public String partitionId() {
         return null;
@@ -98,7 +91,7 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
     }
 /*
     @Override
-    public void mergeItemStatistics(ItemStatisticsBuilder[] itemStatisticsBuilders) throws StandardException {
+    public void mergeItemStatistics(ColumnStatisticsMerge[] itemStatisticsBuilders) throws StandardException {
         for (int i = 0; i<itemStatistics.size();i++) {
             itemStatisticsBuilders[i] = itemStatistics.get(i).mergeInto(itemStatisticsBuilders[i]);
         }

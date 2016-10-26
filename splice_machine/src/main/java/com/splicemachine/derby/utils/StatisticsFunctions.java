@@ -25,38 +25,58 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  */
 public class StatisticsFunctions {
 
-    public static int STATS_COL_WIDTH(ColumnStatisticsImpl columnStatistics){
-        if(columnStatistics==null) return 0;
-        return 10; // TODO JL
+    public static int STATS_COL_WIDTH(ColumnStatisticsImpl itemStatistics) throws StandardException {
+            if (itemStatistics == null) return 0;
+            return itemStatistics.getColumnDescriptor().getLength(); // TODO JL
     }
 
-    public static long STATS_CARDINALITY(ColumnStatisticsImpl columnStatistics){
-        if(columnStatistics==null) return 0;
-        return columnStatistics.cardinality();
+    public static long STATS_CARDINALITY(ColumnStatisticsImpl itemStatistics){
+        if(itemStatistics==null) return 0;
+        return itemStatistics.cardinality();
     }
 
-    public static long STATS_NULL_COUNT(ColumnStatisticsImpl columnStatistics){
-        if(columnStatistics==null) return 0;
-        return columnStatistics.nullCount();
+    public static long STATS_NULL_COUNT(ColumnStatisticsImpl itemStatistics){
+        if(itemStatistics==null) return 0;
+        return itemStatistics.nullCount();
     }
 
-    public static float STATS_NULL_FRACTION(ColumnStatisticsImpl columnStatistics){
-        if(columnStatistics==null) return 0;
-        return columnStatistics.nullCount()/columnStatistics.notNullCount();
+    public static float STATS_NULL_FRACTION(ColumnStatisticsImpl itemStatistics){
+        if(itemStatistics==null) return 0;
+        if (itemStatistics.notNullCount() == 0)
+            return 0;
+        return itemStatistics.nullCount()/itemStatistics.notNullCount();
     }
 
-    public static String STATS_MAX(ColumnStatisticsImpl columnStatistics) throws StandardException {
-        if(columnStatistics==null) return null;
-        DataValueDescriptor dvd = (DataValueDescriptor)columnStatistics.maxValue();
+    public static String STATS_MAX(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null) return null;
+        DataValueDescriptor dvd = (DataValueDescriptor)itemStatistics.maxValue();
         if(dvd==null || dvd.isNull()) return null;
         return dvd.getString();
     }
 
-    public static String STATS_MIN(ColumnStatisticsImpl columnStatistics) throws StandardException {
-        if(columnStatistics==null) return null;
-        DataValueDescriptor dvd = (DataValueDescriptor)columnStatistics.minValue();
+    public static String STATS_MIN(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null) return null;
+        DataValueDescriptor dvd = (DataValueDescriptor)itemStatistics.minValue();
         if(dvd==null || dvd.isNull()) return null;
         return dvd.getString();
+    }
+
+    public static String STATS_QUANTILES(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null)
+            return null;
+        return itemStatistics.getQuantilesSketch().toString(true,true);
+    }
+
+    public static String STATS_FREQUENCIES(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null)
+            return null;
+        return itemStatistics.getFrequenciesSketch().toString();
+    }
+
+    public static String STATS_THETA(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null)
+            return null;
+        return itemStatistics.getThetaSketch().toString();
     }
 
 }

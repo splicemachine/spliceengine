@@ -101,4 +101,6 @@ public interface ScanSetBuilder<V>{
     int[] getColumnPositionMap();
 
     long getBaseTableConglomId();
+
+    ExecRow getTemplate();
 }
