@@ -15,6 +15,11 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -28,9 +33,13 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -38,10 +47,14 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+@RunWith(Parameterized.class)
 public class RowCountOperationIT {
 
     private static final String SCHEMA = RowCountOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static final int ROW_COUNT = 18;
     private static final long MIN_VALUE = 10;
@@ -49,6 +62,35 @@ public class RowCountOperationIT {
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+
+
+    private TestConnection conn;
+    private String connectionString;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        return params;
+    }
+
+    public RowCountOperationIT(String connectionString) throws Exception {
+        this.connectionString = connectionString;
+    }
+
+    @Before
+    public void setUp() throws Exception{
+        conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
+        conn.setAutoCommit(false);
+        conn.setSchema(SCHEMA);
+    }
+
+    @After
+    public void tearDown() throws Exception{
+        conn.rollback();
+        conn.reset();
+    }
 
     @BeforeClass
     public static void createdSharedTables() throws Exception {
@@ -82,9 +124,6 @@ public class RowCountOperationIT {
         conn.collectStats(spliceSchemaWatcher.schemaName,"A");
 
     }
-
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -557,14 +596,25 @@ public class RowCountOperationIT {
 
     @Test
     public void createTableAsTopN() throws Exception {
-        int updates = methodWatcher.executeUpdate("create table topn as select top 10 a from A with data");
+        int updates = conn.createStatement().executeUpdate("create table topn as select top 10 a from A with data");
         assertEquals("Row count does not match expectation", 10, updates);
     }
 
     @Test
     public void createTableAsLimit() throws Exception {
-        int updates = methodWatcher.executeUpdate("create table tablelim as select a from A {limit 10} with data");
+        int updates = conn.createStatement().executeUpdate("create table tablelim as select a from A {limit 10} with data");
         assertEquals("Row count does not match expectation", 10, updates);
+    }
+
+    @Test
+    public void exportWithLimit() throws Exception {
+        final int limit = 10;
+        String exportPath = temporaryFolder.getRoot().getAbsolutePath();
+        String exportQuery = String.format("EXPORT('%s', false,null,null,null,null) select * from A {limit %d}", exportPath, limit);
+        ResultSet rs = conn.createStatement().executeQuery(exportQuery);
+        assertTrue(rs.next());
+        long exportedRowCount = rs.getLong(1);
+        assertEquals("Exported rows don't match limit", limit, exportedRowCount);
     }
 
 
@@ -575,7 +625,8 @@ public class RowCountOperationIT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void validateUnOrdered(int expectedRowCount, String query) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
+        Statement statement = conn.createStatement();
+        ResultSet resultSet = statement.executeQuery(query);
 
         Set<Long> uniqueValues = Sets.newHashSet();
         long rowCount = 0;
@@ -590,7 +641,8 @@ public class RowCountOperationIT {
     }
 
     private void validateOrdered(String expectedResult, String query) throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(query);
+        Statement statement = conn.createStatement();
+        ResultSet rs = statement.executeQuery(query);
         String queryResultAsString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals(expectedResult, queryResultAsString);
     }
