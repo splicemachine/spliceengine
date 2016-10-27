@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -1371,9 +1372,7 @@ public class ColumnReference extends ValueNode {
 	public long cardinality() throws StandardException {
 		if (source == null || source.getTableColumnDescriptor() ==null)
 			return 0;
-		ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-		int leftPosition = getSource().getColumnPosition();
-		return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
+		return getStoreCostController().cardinality(getSource().getColumnPosition());
 	}
 
 	/**
@@ -1409,17 +1408,16 @@ public class ColumnReference extends ValueNode {
 		// Check for not null in declaration
 		if (!getSource().getType().isNullable())
 			return 0.0;
-		ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-		int leftPosition = getSource().getColumnPosition();
-		return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
+		return getStoreCostController().nullSelectivity(getSource().getColumnPosition());
 	}
 
 	public StoreCostController getStoreCostController() throws StandardException{
 		StoreCostController storeCostController = null;
 		ColumnDescriptor cd = getSource().getTableColumnDescriptor();
+		// TODO THROW EXCEPTION HERE JL
 		if (cd != null) {
 			ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-			storeCostController = getCompilerContext().getStoreCostController(outercCD);
+			storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(),outercCD);
 		}
 		return storeCostController;
 	}
@@ -1427,8 +1425,7 @@ public class ColumnReference extends ValueNode {
 	 * Get the row count estimate from the statistics for this column reference.
 	 */
 	public double rowCountEstimate() throws StandardException {
-		ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-		return getCompilerContext().getStoreCostController(cd).rowCount();
+		return getStoreCostController().rowCount();
 	}
 
 	public ConglomerateDescriptor getBaseConglomerateDescriptor() {
@@ -1443,4 +1440,5 @@ public class ColumnReference extends ValueNode {
 	public boolean isRowIdColumn() {
         return columnName.compareToIgnoreCase("ROWID")==0;
 	}
+
 }

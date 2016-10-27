@@ -17,6 +17,8 @@ package com.splicemachine.db.iapi.types;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -34,7 +36,7 @@ import org.junit.Test;
  * Test Class for SQLInteger
  *
  */
-public class SQLIntegerTest {
+public class SQLIntegerTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void addTwo() throws StandardException {
@@ -111,14 +113,42 @@ public class SQLIntegerTest {
                 SQLInteger int1 = new SQLInteger(10);
                 SQLInteger int2 = new SQLInteger();
                 ExecRow execRow = new ValueRow(2);
-                execRow.setColumn(1,int1);
-                execRow.setColumn(2,int2);
-                Assert.assertEquals(10,((Row)execRow).getInt(0));
-                Assert.assertTrue(((Row)execRow).isNullAt(1));
+                execRow.setColumn(1, int1);
+                execRow.setColumn(2, int2);
+                Assert.assertEquals(10, ((Row) execRow).getInt(0));
+                Assert.assertTrue(((Row) execRow).isNullAt(1));
                 Row sparkRow = execRow.getSparkRow();
-                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{10,null}, execRow.schema());
-                Assert.assertEquals(row.getInt(0),10);
+                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{10, null}, execRow.schema());
+                Assert.assertEquals(row.getInt(0), 10);
                 Assert.assertTrue(row.isNullAt(1));
+        }
+        @Test
+        public void testColumnStatistics() throws Exception {
+                SQLInteger value1 = new SQLInteger();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLInteger sqlInteger;
+                for (int i = 1; i<= 10000; i++) {
+                        if (i>=5000 && i < 6000)
+                                sqlInteger = new SQLInteger();
+                        else if (i>=1000 && i< 2000)
+                                sqlInteger = new SQLInteger(1000+i%20);
+                        else
+                                sqlInteger = new SQLInteger(i);
+                        stats.update(sqlInteger);
+                }
+                stats = serde(stats);
+                Assert.assertEquals(1000,stats.nullCount());
+                Assert.assertEquals(9000,stats.notNullCount());
+                Assert.assertEquals(10000,stats.totalCount());
+                Assert.assertEquals(new SQLInteger(10000),stats.maxValue());
+                Assert.assertEquals(new SQLInteger(1),stats.minValue());
+                Assert.assertEquals(1000,stats.selectivity(null));
+                Assert.assertEquals(1000,stats.selectivity(new SQLInteger()));
+                Assert.assertEquals(51,stats.selectivity(new SQLInteger(1010)));
+                Assert.assertEquals(1,stats.selectivity(new SQLInteger(9000)));
+                Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLInteger(1000),new SQLInteger(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLInteger(),new SQLInteger(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLInteger(5000),new SQLInteger(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
 

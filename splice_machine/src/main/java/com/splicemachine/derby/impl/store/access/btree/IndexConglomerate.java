@@ -22,7 +22,6 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
@@ -32,9 +31,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
-import com.splicemachine.derby.impl.stats.IndexStatsCostController;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
@@ -46,7 +43,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -350,39 +346,6 @@ public class IndexConglomerate extends SpliceConglomerate{
             Transaction rawtran) throws StandardException{
         SpliceLogUtils.trace(LOG,"compressConglomerate: %s",containerId);
     }
-
-    /**
-     * Return an open StoreCostController for the conglomerate.
-     * <p/>
-     * Return an open StoreCostController which can be used to ask about
-     * the estimated row counts and costs of ScanController and
-     * ConglomerateController operations, on the given conglomerate.
-     * <p/>
-     *
-     * @param xact_manager The TransactionController under which this
-     *                     operation takes place.
-     * @param rawtran      raw transaction context in which scan is managed.
-     * @return The open StoreCostController.
-     * @throws StandardException Standard exception policy.
-     * @see StoreCostController
-     **/
-    @Override
-    public StoreCostController openStoreCost(ConglomerateDescriptor cd,
-                                             TransactionManager xact_manager,
-                                             Transaction rawtran) throws StandardException{
-        OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,
-                rawtran,
-                false,
-                null,null,this);
-        //get the heap conglomerate also
-
-
-        Conglomerate baseTableConglomerate=((SpliceTransactionManager)xact_manager)
-                .findConglomerate(open_conglom.getIndexConglomerate());
-
-        return new IndexStatsCostController(cd,open_conglom,baseTableConglomerate);
-    }
-
 
     /**
      * Print this hbase.

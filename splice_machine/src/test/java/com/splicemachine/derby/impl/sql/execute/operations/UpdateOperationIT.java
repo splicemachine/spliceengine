@@ -20,15 +20,12 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-
 import org.junit.Assert;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import java.math.BigDecimal;
 import java.sql.*;
-
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
@@ -424,7 +421,7 @@ public class UpdateOperationIT {
         assertEquals(4L, (long)methodWatcher.query("select count(*) from nt"));
         assertEquals(4L, (long)methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx"));
         assertEquals(3L, (long)methodWatcher.query("select count(*) from nt where a is null"));
-        assertEquals(3L,(long) methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx\n where a is null"));
+        assertEquals(3L, (long)methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx\n where a is null"));
     }
 
     // If you change one of the following 'update over join' tests,

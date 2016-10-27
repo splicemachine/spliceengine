@@ -15,9 +15,8 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.spark_project.guava.base.Function;
-import com.splicemachine.derby.iapi.sql.olap.OlapResult;
-import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.utils.stats.DistributedStatsCollection;
 import com.splicemachine.derby.utils.stats.StatsResult;
 import org.spark_project.guava.collect.FluentIterable;
@@ -46,7 +45,6 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -59,7 +57,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -589,20 +586,20 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
-    public static ExecRow generateRowFromStats(long conglomId, String partitionId,SimpleOverheadManagedPartitionStatistics statistics) throws StandardException {
+    public static ExecRow generateRowFromStats(long conglomId, String partitionId, long rowCount, long partitionSize, int meanRowWidth) throws StandardException {
         ExecRow row = new ValueRow(SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_COLUMN_COUNT);
         row.setColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
         row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID,new SQLVarchar(partitionId));
         row.setColumn(SYSTABLESTATISTICSRowFactory.TIMESTAMP,new SQLTimestamp(new Timestamp(System.currentTimeMillis())));
         row.setColumn(SYSTABLESTATISTICSRowFactory.STALENESS,new SQLBoolean(false));
         row.setColumn(SYSTABLESTATISTICSRowFactory.INPROGRESS,new SQLBoolean(false));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT,new SQLLongint(statistics.rowCount()));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE,new SQLLongint(statistics.totalSize()));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH,new SQLInteger(statistics.avgRowWidth()));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT,new SQLLongint(rowCount));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE,new SQLLongint(partitionSize));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH,new SQLInteger(meanRowWidth));
         return row;
     }
 
-    public static ExecRow generateRowFromStats(long conglomId, String regionId, int columnId, ColumnStatistics columnStatistics) throws StandardException {
+    public static ExecRow generateRowFromStats(long conglomId, String regionId, int columnId, ItemStatistics columnStatistics) throws StandardException {
         ExecRow row = new ValueRow(SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT);
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.PARTITIONID,new SQLVarchar(regionId));

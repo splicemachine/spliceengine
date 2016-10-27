@@ -30,6 +30,7 @@ import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -239,6 +240,11 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
     @Override
     public void decodeFromKey(PositionedByteRange builder) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public void updateThetaSketch(UpdateSketch updateSketch) {
         throw new RuntimeException("Not Implemented");
     }
 }

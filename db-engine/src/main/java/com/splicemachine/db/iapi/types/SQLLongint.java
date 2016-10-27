@@ -46,6 +46,7 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -74,9 +75,7 @@ import org.apache.spark.sql.types.StructField;
  * possible for this implementation -- it new's Long
  * more than it probably wants to.
  */
-public final class SQLLongint
-	extends NumberDataType
-{
+public final class SQLLongint extends NumberDataType {
 	/*
 	 * DataValueDescriptor interface
 	 * (mostly implemented in DataType)
@@ -182,17 +181,13 @@ public final class SQLLongint
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
+		out.writeBoolean(isNull);
 		out.writeLong(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-
+		setIsNull(in.readBoolean());
 		setValue(in.readLong());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
@@ -861,7 +856,6 @@ public final class SQLLongint
      *
      * @return  A boolean.  if this.value is negative, return true.
      *
-     * @exception StandException       Thrown on error
      */
     
     protected boolean isNegative()
@@ -966,5 +960,9 @@ public final class SQLLongint
 		return DataTypes.createStructField(columnName, DataTypes.LongType, true);
 	}
 
+
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		updateSketch.update(value);
+	}
 
 }

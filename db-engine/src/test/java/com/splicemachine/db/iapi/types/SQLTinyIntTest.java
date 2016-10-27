@@ -14,6 +14,9 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -29,7 +32,7 @@ import org.junit.Test;
  * Test Class for SQLTinyint
  *
  */
-public class SQLTinyIntTest {
+public class SQLTinyIntTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
@@ -73,5 +76,35 @@ public class SQLTinyIntTest {
                 Assert.assertEquals("1 incorrect",value1.getByte(),value1a.getByte());
                 Assert.assertEquals("2 incorrect",value2.getByte(),value2a.getByte());
         }
-    
+
+        @Test
+        public void testColumnStatistics() throws Exception {
+
+                SQLTinyint value1 = new SQLTinyint();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLTinyint sqlTinyint;
+
+                for (int i = 0; i < 10000; i++) {
+                        if (i>=5000 && i < 6000)
+                                sqlTinyint = new SQLTinyint();
+                        else
+                                sqlTinyint = new SQLTinyint((byte) ('A' + (i%26)));
+                        stats.update(sqlTinyint);
+                }
+                stats = serde(stats);
+                Assert.assertEquals(1000,stats.nullCount());
+                Assert.assertEquals(9000,stats.notNullCount());
+                Assert.assertEquals(10000,stats.totalCount());
+                Assert.assertEquals(new SQLTinyint((byte)'Z'),stats.maxValue());
+                Assert.assertEquals(new SQLTinyint((byte)'A'),stats.minValue());
+                Assert.assertEquals(1000,stats.selectivity(null));
+                Assert.assertEquals(1000,stats.selectivity(new SQLTinyint()));
+                Assert.assertEquals(347,stats.selectivity(new SQLTinyint((byte)'A')));
+                Assert.assertEquals(347,stats.selectivity(new SQLTinyint((byte)'F')));
+                Assert.assertEquals(1404.0d,(double) stats.rangeSelectivity(new SQLTinyint((byte)'C'),new SQLTinyint((byte)'G'),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(700.0d,(double) stats.rangeSelectivity(new SQLTinyint(),new SQLTinyint((byte)'C'),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLTinyint((byte)'T'),new SQLTinyint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+        }
+
+
 }

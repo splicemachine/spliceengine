@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
@@ -1213,8 +1214,8 @@ public interface TransactionController
     /**
      * Return an open StoreCostController for the given conglomid.
      * <p>
-     * Return an open StoreCostController which can be used to ask about 
-     * the estimated row counts and costs of ScanController and 
+     * Return an open StoreCostController which can be used to ask about
+     * the estimated row counts and costs of ScanController and
      * ConglomerateController operations, on the given conglomerate.
      * <p>
      *
@@ -1226,54 +1227,7 @@ public interface TransactionController
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
-
-
-    /**
-     * Report on the number of open conglomerates in the transaction.
-     * <p>
-     * There are 4 types of open "conglomerates" that can be tracked, those
-     * opened by each of the following: openConglomerate(), openScan(), 
-     * createSort(),  and openSort().  Scans opened by openSortScan() are 
-     * tracked the same as those opened by openScan().  This routine can be
-     * used to either report on the number of all opens, or may be used to
-     * track one particular type of open.
-     * <p>
-     * This routine is expected to be used for debugging only.  An 
-     * implementation may only track this info under SanityManager.DEBUG mode.
-     * If the implementation does not track the info it will return -1 (so
-     * code using this call to verify that no congloms are open should check
-     * for return <= 0 rather than == 0).
-     * <p>
-     * The return value depends on the "which_to_count" parameter as follows:
-     * <UL>
-     * <LI>
-     * OPEN_CONGLOMERATE  - return # of openConglomerate() calls not close()'d.
-     * <LI>
-     * OPEN_SCAN          - return # of openScan() + openSortScan() calls not
-     *                      close()'d.
-     * <LI>
-     * OPEN_CREATED_SORTS - return # of sorts created (createSort()) in 
-     *                      current xact.  There is currently no way to get
-     *                      rid of these sorts before end of transaction.
-     * <LI>
-     * OPEN_SORT          - return # of openSort() calls not close()'d.
-     * <LI>
-     * OPEN_TOTAL         - return total # of all above calls not close()'d.
-     * </UL>
-     *     - note an implementation may return -1 if it does not track the
-     *       above information.
-     * <p>
-	 * @return The nunber of open's of a type indicated by "which_to_count"
-     *         parameter.
-     *
-     * @param which_to_count Which kind of open to report on.
-     *
-	 * @exception  StandardException  Standard exception policy.
-     **/
-    public int countOpens(int which_to_count)
-		throws StandardException;
-
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.

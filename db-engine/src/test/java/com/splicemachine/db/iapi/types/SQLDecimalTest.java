@@ -15,6 +15,8 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -22,6 +24,7 @@ import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.Decimal;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -33,7 +36,7 @@ import java.math.BigDecimal;
  * Test Class for SQLDecimal
  *
  */
-public class SQLDecimalTest {
+public class SQLDecimalTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void addTwo() throws StandardException {
@@ -56,9 +59,12 @@ public class SQLDecimalTest {
                 SQLDecimal valueA = new SQLDecimal(null,value.precision,value.getScale());
                 writer.reset();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",new BigDecimal(100.0d),row.getDecimal(0,value.getDecimalValuePrecision(),value.getDecimalValueScale()).toJavaBigDecimal());
+                Decimal sparkDecimal = row.getDecimal(0,value.getDecimalValuePrecision(),value.getDecimalValueScale());
+                scala.math.BigDecimal foo = sparkDecimal.toBigDecimal();
+                BigDecimal decimal = sparkDecimal.toBigDecimal().bigDecimal();
+                Assert.assertEquals("SerdeIncorrect",new BigDecimal("100"),sparkDecimal.toBigDecimal().bigDecimal());
                 valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",new BigDecimal(100.0d),valueA.getBigDecimal());
+                Assert.assertEquals("SerdeIncorrect",new BigDecimal("100"),valueA.getBigDecimal());
             }
 
         @Test
@@ -93,7 +99,38 @@ public class SQLDecimalTest {
                 range2.setPosition(0);
                 value1a.decodeFromKey(range1);
                 value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getBigDecimal(),value1a.getBigDecimal());
-                Assert.assertEquals("2 incorrect",value2.getBigDecimal(),value2a.getBigDecimal());
+                Assert.assertEquals("1 incorrect",value1.getBigDecimal().doubleValue(),value1a.getBigDecimal().doubleValue(),0.1d);
+                Assert.assertEquals("2 incorrect",value2.getBigDecimal().doubleValue(),value2a.getBigDecimal().doubleValue(),0.1d);
         }
+
+        @Test
+        public void testColumnStatistics() throws Exception {
+                SQLDecimal value1 = new SQLDecimal();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLDecimal SQLDecimal;
+                for (int i = 1; i<= 10000; i++) {
+                        if (i>=5000 && i < 6000)
+                                SQLDecimal = new SQLDecimal();
+                        else if (i>=1000 && i< 2000)
+                                SQLDecimal = new SQLDecimal(""+(1000+i%20));
+                        else
+                                SQLDecimal = new SQLDecimal(""+i);
+                        stats.update(SQLDecimal);
+                }
+                stats = serde(stats);
+                Assert.assertEquals(1000,stats.nullCount());
+                Assert.assertEquals(9000,stats.notNullCount());
+                Assert.assertEquals(10000,stats.totalCount());
+                Assert.assertEquals(new SQLDecimal(""+10000),stats.maxValue());
+                Assert.assertEquals(new SQLDecimal(""+1),stats.minValue());
+                Assert.assertEquals(1000,stats.selectivity(null));
+                Assert.assertEquals(1000,stats.selectivity(new SQLDecimal()));
+                Assert.assertEquals(51,stats.selectivity(new SQLDecimal(""+1010)));
+                Assert.assertEquals(1,stats.selectivity(new SQLDecimal(""+9000)));
+                Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLDecimal(""+1000),new SQLDecimal(""+2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLDecimal(),new SQLDecimal(""+500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLDecimal(""+5000),new SQLDecimal(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+        }
+
+
 }
