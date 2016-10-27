@@ -18,7 +18,6 @@ package com.splicemachine.hbase;
 import com.google.protobuf.Service;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.backup.BackupRestoreConstants;
-import com.splicemachine.backup.BackupUtils;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -32,8 +31,6 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
 import java.util.List;

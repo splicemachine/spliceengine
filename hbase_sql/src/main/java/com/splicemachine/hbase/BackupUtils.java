@@ -1,10 +1,10 @@
-package com.splicemachine.backup;
+package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.BackupDescriptor;
-import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
