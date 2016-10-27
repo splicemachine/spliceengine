@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.TakeFunction;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -25,19 +24,16 @@ import com.splicemachine.derby.stream.function.OffsetFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.spark_project.guava.collect.Iterators;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -65,6 +61,7 @@ public class RowCountOperation extends SpliceBaseOperation {
     private SpliceOperation source;
     private long offset;
     private long fetchLimit;
+    private boolean bypass = false; // set to true if we implement the limit/offset on the streaming connection
 
 
     protected static final String NAME = RowCountOperation.class.getSimpleName().replaceAll("Operation","");
@@ -167,6 +164,10 @@ public class RowCountOperation extends SpliceBaseOperation {
         return source;
     }
 
+    public void setBypass() {
+        bypass = true;
+    }
+
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
@@ -174,6 +175,7 @@ public class RowCountOperation extends SpliceBaseOperation {
         offsetMethodName = readNullableString(in);
         fetchFirstMethodName = readNullableString(in);
         hasJDBCLimitClause = in.readBoolean();
+        bypass = in.readBoolean();
     }
 
     @Override
@@ -183,12 +185,13 @@ public class RowCountOperation extends SpliceBaseOperation {
         writeNullableString(offsetMethodName, out);
         writeNullableString(fetchFirstMethodName, out);
         out.writeBoolean(hasJDBCLimitClause);
+        out.writeBoolean(bypass);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        if (dsp.getType() == DataSetProcessor.Type.SPARK) {
+        if (bypass) {
             return source.getDataSet(dsp);
         }
         final long fetchLimit = getFetchLimit();

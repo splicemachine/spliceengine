@@ -126,6 +126,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             if (this.offset == -1) {
                 offset = 0;
             }
+            rco.setBypass(); // bypass this RowCountOperation
         }
     }
 

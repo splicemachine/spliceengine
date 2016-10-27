@@ -393,14 +393,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         JavaRDD<V> rdd1 = rdd.mapPartitions(new SparkFlatMapFunction<>(takeFunction));
         rdd1.setName(takeFunction.getSparkName());
 
-        JavaRDD<V> rdd2 = rdd1.coalesce(1, false);
-        rdd2.setName("Coalesce 1 partition");
-        SparkUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
-
-        JavaRDD<V> rdd3 = rdd2.mapPartitions(new SparkFlatMapFunction<>(takeFunction));
-        rdd3.setName(takeFunction.getSparkName());
-
-        return new SparkDataSet<>(rdd3);
+        return new SparkDataSet<>(rdd1);
     }
 
     @Override
