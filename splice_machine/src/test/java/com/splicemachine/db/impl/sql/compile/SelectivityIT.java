@@ -328,10 +328,11 @@ public class SelectivityIT extends SpliceUnitTest {
         rowContainsQuery(3,"explain select * from ts_notnulls where c1 <= 3","outputRows=3,",methodWatcher);
         rowContainsQuery(3,"explain select * from ts_singlepk where c1 <= 3","outputRows=3,",methodWatcher);
         rowContainsQuery(3,"explain select * from ts_multiplepk where c1 <= 3","outputRows=3,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 500","outputRows=501,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 1000","outputRows=1001,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 2000","outputRows=2001,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 8000","outputRows=8001,",methodWatcher);
+        Assert.assertEquals(500.0d,parseOutputRows(getExplainMessage(3,"explain select * from ts_high_cardinality where c1 <= 500",methodWatcher)),100.0d);
+        Assert.assertEquals(1000.0d,parseOutputRows(getExplainMessage(3,"explain select * from ts_high_cardinality where c1 <= 1000",methodWatcher)),100.0d);
+        Assert.assertEquals(2000.0d,parseOutputRows(getExplainMessage(3,"explain select * from ts_high_cardinality where c1 <= 2000",methodWatcher)),100.0d);
+        Assert.assertEquals(8000.0d,parseOutputRows(getExplainMessage(3,"explain select * from ts_high_cardinality where c1 <= 8000",methodWatcher)),100.0d);
+
 
         // without stats
 /*        firstRowContainsQuery("explain select * from tns_nulls where c1 <= 3","outputRows=10",methodWatcher);
@@ -355,10 +356,11 @@ public class SelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testBetweenSelectivity() throws Exception {
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 500 and c1 >= 0","outputRows=501,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 1000 and c1 >= 500","outputRows=501,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 2000 and c1 >= 500","outputRows=1501,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 8000 and c1 >= 1000","outputRows=7001,",methodWatcher);
+        Assert.assertEquals(500.0d,parseOutputRows(getExplainMessage(3,"explain select * from ts_high_cardinality where c1 <= 500 and c1 >= 0",methodWatcher)),100.0d);
+        Assert.assertEquals(500.0d,parseOutputRows(getExplainMessage(3,"explain select * from ts_high_cardinality where c1 <= 1000 and c1 >= 500",methodWatcher)),100.0d);
+        Assert.assertEquals(1501.0d,parseOutputRows(getExplainMessage(3,"explain select * from ts_high_cardinality where c1 <= 2000 and c1 >= 500",methodWatcher)),100.0d);
+        Assert.assertEquals(7001.0d,parseOutputRows(getExplainMessage(3,"explain select * from ts_high_cardinality where c1 <= 8000 and c1 >= 1000",methodWatcher)),100.0d);
+
     }
 
 

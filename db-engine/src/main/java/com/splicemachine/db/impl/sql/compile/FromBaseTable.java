@@ -704,7 +704,7 @@ public class FromBaseTable extends FromTable {
 
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
 		/* RESOLVE: Need to figure out how to cache the StoreCostController */
-        StoreCostController scc=getStoreCostController(cd);
+        StoreCostController scc=getStoreCostController(tableDescriptor,cd);
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
         costEstimate.setPredicateList(baseTableRestrictionList);
@@ -3099,12 +3099,12 @@ public class FromBaseTable extends FromTable {
     ** RESOLVE: This whole thing should probably be moved somewhere else,
     ** like the optimizer or the data dictionary.
     */
-    private StoreCostController getStoreCostController(ConglomerateDescriptor cd) throws StandardException{
-        return getCompilerContext().getStoreCostController(cd);
+    private StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd) throws StandardException{
+        return getCompilerContext().getStoreCostController(td,cd);
     }
 
     private StoreCostController getBaseCostController() throws StandardException{
-        return getStoreCostController(baseConglomerateDescriptor);
+        return getStoreCostController(this.tableDescriptor,baseConglomerateDescriptor);
     }
 
     private boolean gotRowCount=false;

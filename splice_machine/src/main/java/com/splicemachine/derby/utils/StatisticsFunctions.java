@@ -16,9 +16,8 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.frequency.FrequentElements;
 
 /**
  * @author Scott Fines
@@ -26,51 +25,58 @@ import com.splicemachine.stats.frequency.FrequentElements;
  */
 public class StatisticsFunctions {
 
-    public static int STATS_COL_WIDTH(ColumnStatistics columnStatistics){
-        if(columnStatistics==null) return 0;
-        return columnStatistics.avgColumnWidth();
+    public static int STATS_COL_WIDTH(ColumnStatisticsImpl itemStatistics) throws StandardException {
+            if (itemStatistics == null) return 0;
+            return itemStatistics.getColumnDescriptor().getLength(); // TODO JL
     }
 
-    public static long STATS_CARDINALITY(ColumnStatistics columnStatistics){
-        if(columnStatistics==null) return 0;
-        return columnStatistics.cardinality();
+    public static long STATS_CARDINALITY(ColumnStatisticsImpl itemStatistics){
+        if(itemStatistics==null) return 0;
+        return itemStatistics.cardinality();
     }
 
-    public static long STATS_NULL_COUNT(ColumnStatistics columnStatistics){
-        if(columnStatistics==null) return 0;
-        return columnStatistics.nullCount();
+    public static long STATS_NULL_COUNT(ColumnStatisticsImpl itemStatistics){
+        if(itemStatistics==null) return 0;
+        return itemStatistics.nullCount();
     }
 
-    public static float STATS_NULL_FRACTION(ColumnStatistics columnStatistics){
-        if(columnStatistics==null) return 0;
-        return columnStatistics.nullFraction();
+    public static float STATS_NULL_FRACTION(ColumnStatisticsImpl itemStatistics){
+        if(itemStatistics==null) return 0;
+        if (itemStatistics.notNullCount() == 0)
+            return 0;
+        return itemStatistics.nullCount()/itemStatistics.notNullCount();
     }
 
-    public static String STATS_TOP_K(ColumnStatistics columnStatistics){
-        if(columnStatistics==null) return null;
-        FrequentElements frequentElements = columnStatistics.topK();
-        StringBuilder string = new StringBuilder();
-        boolean isFirst = true;
-        for(Object estimate:frequentElements.allFrequentElements()){
-            if(!isFirst) string = string.append(",");
-            else isFirst = false;
-            string = string.append(estimate);
-        }
-        return string.toString();
-    }
-
-    public static String STATS_MAX(ColumnStatistics columnStatistics) throws StandardException {
-        if(columnStatistics==null) return null;
-        DataValueDescriptor dvd = (DataValueDescriptor)columnStatistics.maxValue();
+    public static String STATS_MAX(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null) return null;
+        DataValueDescriptor dvd = (DataValueDescriptor)itemStatistics.maxValue();
         if(dvd==null || dvd.isNull()) return null;
         return dvd.getString();
     }
 
-    public static String STATS_MIN(ColumnStatistics columnStatistics) throws StandardException {
-        if(columnStatistics==null) return null;
-        DataValueDescriptor dvd = (DataValueDescriptor)columnStatistics.minValue();
+    public static String STATS_MIN(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null) return null;
+        DataValueDescriptor dvd = (DataValueDescriptor)itemStatistics.minValue();
         if(dvd==null || dvd.isNull()) return null;
         return dvd.getString();
+    }
+
+    public static String STATS_QUANTILES(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null)
+            return null;
+        return itemStatistics.getQuantilesSketch().toString(true,true);
+    }
+
+    public static String STATS_FREQUENCIES(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null)
+            return null;
+        return itemStatistics.getFrequenciesSketch().toString();
+    }
+
+    public static String STATS_THETA(ColumnStatisticsImpl itemStatistics) throws StandardException {
+        if(itemStatistics==null)
+            return null;
+        return itemStatistics.getThetaSketch().toString();
     }
 
 }

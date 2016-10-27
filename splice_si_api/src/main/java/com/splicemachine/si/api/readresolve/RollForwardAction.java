@@ -16,11 +16,10 @@
 package com.splicemachine.si.api.readresolve;
 
 import com.splicemachine.storage.Partition;
-import com.splicemachine.si.impl.readresolve.RegionSegmentContext;
 
 /**
  * Created by jleach on 12/11/15.
  */
 public interface RollForwardAction {
-    void submitAction(Partition region,byte[] startKey,byte[] stopKey,RegionSegmentContext context);
+    void submitAction(Partition region,byte[] startKey,byte[] stopKey);
 }

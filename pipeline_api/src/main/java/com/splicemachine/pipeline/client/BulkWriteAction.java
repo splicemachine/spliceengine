@@ -35,8 +35,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
-
-import java.io.IOException;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.Callable;

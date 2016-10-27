@@ -37,6 +37,7 @@ import static org.junit.Assert.*;
 public class SpliceUnitTest {
 
     private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
+    private static Pattern outputRowsP = Pattern.compile("outputRows=[0-9]+\\.?[0-9]*");
 
 	public String getSchemaName() {
 		Class<?> enclosingClass = getClass().getEnclosingClass();
@@ -218,6 +219,40 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void rowContainsCount(int[] levels, String query,SpliceWatcher methodWatcher,double[] counts, double[] deltas ) throws Exception {
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                i++;
+                for(int level : levels){
+                    if(level==i){
+                        Assert.assertEquals("failed query at level ("+level+"): \n"+query+"\nExpected: "+counts[k]+"\nWas: "
+                                        +resultSet.getString(1),
+                                counts[k],parseOutputRows(resultSet.getString(1)),deltas[k]);
+                        k++;
+                    }
+                }
+            }
+        }
+    }
+
+    protected String getExplainMessage(int level, String query,SpliceWatcher methodWatcher) throws Exception {
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                i++;
+                if(level==i){
+                    return resultSet.getString(1);
+                }
+            }
+        }
+        Assert.fail("Missing level: " + level);
+        return null;
+    }
+
+
     protected void rowContainsQuery(int level, String query, String contains, SpliceWatcher methodWatcher) throws Exception {
         try(ResultSet resultSet = methodWatcher.executeQuery(query)){
             for(int i=0;i<level;i++){
@@ -229,6 +264,7 @@ public class SpliceUnitTest {
             Assert.assertTrue(failMessage,actualString.contains(contains));
         }
     }
+
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
         ResultSet resultSet = methodWatcher.executeQuery(query);
@@ -251,6 +287,12 @@ public class SpliceUnitTest {
         Matcher m1 = overallCostP.matcher(planMessage);
         Assert.assertTrue("No Overall cost found!", m1.find());
         return Double.parseDouble(m1.group().substring("totalCost=".length()));
+    }
+
+    public static double parseOutputRows(String planMessage) {
+        Matcher m1 = outputRowsP.matcher(planMessage);
+        Assert.assertTrue("No OutputRows found!", m1.find());
+        return Double.parseDouble(m1.group().substring("outputRows=".length()));
     }
 
     public static class Contains {
