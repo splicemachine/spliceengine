@@ -504,6 +504,9 @@ public class FromSubquery extends FromTable
 		/* Set up the PRN's referencedTableMap */
 		newJBS = new JBitSet(numTables);
 		newJBS.set(tableNumber);
+		if (referencedTableMap != null) {
+			newJBS.or(referencedTableMap);
+		}
 		newPRN.setReferencedTableMap(newJBS);
 		((FromTable) newPRN).setTableNumber(tableNumber);
 
