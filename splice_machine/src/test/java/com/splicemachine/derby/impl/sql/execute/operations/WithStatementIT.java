@@ -182,5 +182,15 @@ public class WithStatementIT extends SpliceUnitTest {
                 " 1 |";
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
-    
+
+    @Test
+    //    @Ignore("SPLICE-980")
+    public void testWithContainingLimit() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("with abc as (select i from t10 where i<4 order by i OFFSET 2 rows fetch first row only ) select * from abc");
+        String expectedResult = "I |\n" +
+                "----\n" +
+                " 3 |";
+        assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
 }
