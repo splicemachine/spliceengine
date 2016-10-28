@@ -173,5 +173,14 @@ public class WithStatementIT extends SpliceUnitTest {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-
+    @Test
+    //    @Ignore("SPLICE-979")
+    public void testWithContainingTop() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("with abc as (select TOP i from t10 where i<3 order by i) select * from abc");
+        String expectedResult = "I |\n" +
+                "----\n" +
+                " 1 |";
+        assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+    
 }
