@@ -58,6 +58,16 @@ public class JoinIT extends SpliceUnitTest {
             "(d1 int not null, d2 int, d3 int not null, d4 int, d5 int, d6 int)");
     protected static final SpliceTableWatcher B_PRIME_TABLE = new SpliceTableWatcher("B_PRIME",schemaWatcher.schemaName,
             "(b1 int, b2 int, b3 int, b4 int, b5 int, b6 int, c1 int not null, c2 int, c3 int not null, c4 int, c5 int, c6 int)");
+    protected static final SpliceTableWatcher T1_TABLE = new SpliceTableWatcher("T1",schemaWatcher.schemaName,
+            "(c1 char(10), c2 char(19), c3 char(14), c4 char(1), c5 char(4), c6 char(6), c7 char(11), primary key (c1, c2, c3))");
+    protected static final SpliceTableWatcher T2_TABLE = new SpliceTableWatcher("T2",schemaWatcher.schemaName,
+            "(c1 char(1) primary key)");
+    protected static final SpliceTableWatcher T3_TABLE = new SpliceTableWatcher("T3",schemaWatcher.schemaName,
+            "(c1 char(6) primary key)");
+    protected static final SpliceTableWatcher T4_TABLE = new SpliceTableWatcher("T4",schemaWatcher.schemaName,
+            "(c1 numeric(10,0) primary key)");
+    protected static final SpliceTableWatcher T5_TABLE = new SpliceTableWatcher("T5",schemaWatcher.schemaName,
+            "(c1 char(3) primary key)");
 
     private static final String A_VALS =
             "INSERT INTO A VALUES (1,1,3,6,NULL,2),(2,3,2,4,2,2),(3,4,2,NULL,NULL,NULL),(4,NULL,4,2,5,2),(5,2,3,5,7,4),(7,1,4,2,3,4),(8,8,8,8,8,8),(6,7,3,2,3,4)";
@@ -70,6 +80,12 @@ public class JoinIT extends SpliceUnitTest {
     private static final String B_PRIME_VALS =
             "INSERT INTO B_PRIME VALUES (6,7,2,3,NULL,1,3,7,7,3,NULL,1),(4,5,9,6,3,2,8,3,9,1,3,2),(1,4,2,NULL,NULL,NULL,1,4,1,NULL,NULL,NULL),"+
                     "(5,NULL,2,2,5,2,3,NULL,1,2,4,2),(3,2,3,3,1,4,2,2,5,3,2,4),(7,3,3,3,3,3,1,7,2,3,1,1),(9,3,3,3,3,3,3,8,4,2,4,6)";
+    private static final String T1_VALS =
+            "INSERT INTO T1 VALUES ('2016-03-17','4271782685317057','C11C0C23352586','0','1234','123456','           ')";
+    private static final String T2_VALS = "INSERT INTO T2 VALUES ('0')";
+    private static final String T3_VALS = "INSERT INTO T3 VALUES ('123456')";
+    private static final String T4_VALS = "INSERT INTO T4 VALUES (123456)";
+    private static final String T5_VALS = "INSERT INTO T5 VALUES ('   ')";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -79,6 +95,11 @@ public class JoinIT extends SpliceUnitTest {
             .around(C_TABLE)
             .around(D_TABLE)
             .around(B_PRIME_TABLE)
+            .around(T1_TABLE)
+            .around(T2_TABLE)
+            .around(T3_TABLE)
+            .around(T4_TABLE)
+            .around(T5_TABLE)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -88,6 +109,11 @@ public class JoinIT extends SpliceUnitTest {
                         spliceClassWatcher.getStatement().executeUpdate(C_VALS);
                         spliceClassWatcher.getStatement().executeUpdate(D_VALS);
                         spliceClassWatcher.getStatement().executeUpdate(B_PRIME_VALS);
+                        spliceClassWatcher.getStatement().executeUpdate(T1_VALS);
+                        spliceClassWatcher.getStatement().executeUpdate(T2_VALS);
+                        spliceClassWatcher.getStatement().executeUpdate(T3_VALS);
+                        spliceClassWatcher.getStatement().executeUpdate(T4_VALS);
+                        spliceClassWatcher.getStatement().executeUpdate(T5_VALS);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -107,7 +133,7 @@ public class JoinIT extends SpliceUnitTest {
             });
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     /**
      * Tests bug 887 - NPE and ConcurrentModificationException
@@ -295,5 +321,23 @@ public class JoinIT extends SpliceUnitTest {
 
     }
 
+    //SPLICE-1072
+    @Test
+    public void testSubqueryAndHashableJoin() throws Exception {
 
+        String sqlText = "select t3.c1 ||  '; ' \n" +
+                "from    t1 \n" +
+                "        left outer join (Select c1 FROM t2)   a13\n" +
+                "          on    (t1.c4 = a13.c1)\n" +
+                "        left outer join joinit.t3\n" +
+                "          on    (t1.c5 = t3.c1)\n" +
+                "        left outer join joinit.t4\n" +
+                "          on    (t1.c6 = CAST(t4.c1 as CHAR(6)))\n" +
+                "        left outer join joinit.t5\n" +
+                "          on    (SUBSTR(t1.c7,1, 3) = t5.c1)" ;
+
+        ResultSet rs = methodWatcher.prepareStatement(sqlText).executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertNull(rs.getObject(1));
+    }
 }
