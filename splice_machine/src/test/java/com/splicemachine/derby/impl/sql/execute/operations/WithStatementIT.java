@@ -24,6 +24,7 @@ import org.junit.*;
 import java.sql.ResultSet;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -67,6 +68,11 @@ public class WithStatementIT extends SpliceUnitTest {
                     .withCreate("create table FOO3 (col1 int primary key, col2 int)")
                     .withInsert("insert into FOO3 values(?,?)")
                     .withRows(rows(row(1, 5), row(3, 7))).create();
+
+            new TableCreator(connection)
+                    .withCreate("create table t10 (i int)")
+                    .withInsert("insert into t10 values (?)")
+                    .withRows(rows(row(1),row(2),row(3),row(4),row(5))).create();
 
         }
 
@@ -155,5 +161,17 @@ public class WithStatementIT extends SpliceUnitTest {
         Assert.assertEquals("Wrong Sum" , 4, rs.getInt(3));
         Assert.assertFalse("with join algebra incorrect",rs.next());
     }
+
+    @Test
+//    @Ignore("SPLICE-966")
+    public void testWithContainingOrderBy() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("with abc as (select i, i+20 as i_2 from t10 where i<3 order by i) select * from abc");
+        String expectedResult = "I | I_2 |\n" +
+                "----------\n" +
+                " 1 | 21  |\n" +
+                " 2 | 22  |";
+        assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
 
 }
