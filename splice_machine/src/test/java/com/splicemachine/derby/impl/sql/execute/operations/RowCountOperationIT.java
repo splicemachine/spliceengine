@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.test.SerialTest;
+import org.junit.experimental.categories.Category;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.rules.TemporaryFolder;
@@ -47,6 +49,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class RowCountOperationIT {
 
