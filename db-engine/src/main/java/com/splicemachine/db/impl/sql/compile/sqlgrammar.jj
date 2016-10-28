@@ -12285,9 +12285,11 @@ void withClause(Vector parameterList) throws StandardException :
     {
     	tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     		beginToken = <AS>
+    		[<LEFT_PAREN>]
     		queryExpression = queryExpression(null, NO_SET_OP, topNOut)
     		[ orderCols = orderByClause(queryExpression) ]
             hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
+            [<RIGHT_PAREN>]
     	{
     		checkOptionType = ViewDescriptor.NO_CHECK_OPTION;
     		endToken = getToken(0);
@@ -12335,9 +12337,12 @@ viewDefinition(Token beginToken) throws StandardException :
 {
 	<VIEW> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
 		[ <LEFT_PAREN> resultColumns = viewColumnList() <RIGHT_PAREN> ]
-		<AS> queryExpression = queryExpression(null, NO_SET_OP, topNOut)
+		<AS>
+		    		[<LEFT_PAREN>]
+		queryExpression = queryExpression(null, NO_SET_OP, topNOut)
 		[ orderCols = orderByClause(queryExpression) ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
+            		[<RIGHT_PAREN>]
 	{
 		checkOptionType = ViewDescriptor.NO_CHECK_OPTION;
 		endToken = getToken(0);
