@@ -272,6 +272,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Splice-1097")
     public void testCountChoosesNarrowTable() throws Exception {
         rowContainsQuery(6,"explain select count(*) from narrow_table","TableScan[NARROW_TABLE",methodWatcher);
     }
@@ -287,6 +288,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Splice-1097")
     public void testCountChoosesWideTablePK() throws Exception {
         rowContainsQuery(6,"explain select count(*) from wide_table_pk","TableScan[WIDE_TABLE_PK",methodWatcher);
     }

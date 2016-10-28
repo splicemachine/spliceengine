@@ -731,6 +731,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("SPLICE-1097")
     public void testPreparedStatementSelectivityLeftOperand() throws Exception {
         String query = "explain select * from tns_int where i = ?";
         PreparedStatement ps = methodWatcher.prepareStatement(query);
@@ -746,6 +747,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("SPLICE-1097")
     public void testPreparedStatementSelectivityRightOperand() throws Exception {
         String query = "explain select * from tns_int where ? = i";
         PreparedStatement ps = methodWatcher.prepareStatement(query);
