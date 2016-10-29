@@ -50,6 +50,7 @@ public class TableStatisticsImpl implements TableStatistics {
                                double extraQualifierMultiplier) {
         this.tableId = tableId;
         this.partitionStatistics = partitionStatistics;
+        assert partitionStatistics.size() > 0:"Partition statistics are 0";
         this.fallbackNullFraction = fallbackNullFraction;
         this.extraQualifierMultiplier = extraQualifierMultiplier;
     }

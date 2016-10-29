@@ -180,7 +180,9 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     	
     	String index = "TS_HIGH_CARDINALITY_IX_1";
     	String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where c1 > 1 and c1 < %d";
-        
+
+        double variation = 10000.0d*.02;
+
     	// 10/10000
         rowContainsQuery(new int[]{3, 4},
         	format(query, index, 10),
@@ -192,7 +194,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index, 10),
                 methodWatcher,
                 new double[]{8.0d,8.0d},
-                new double[]{10.0d,10.0d});
+                new double[]{variation,variation});
 
 
         // 100/10000
@@ -206,7 +208,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index, 100),
                 methodWatcher,
                 new double[]{98.0d,98.0d},
-                new double[]{10.0d,10.0d});
+                new double[]{variation,variation});
 
 
         // 200/10000
@@ -220,7 +222,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index, 200),
                 methodWatcher,
                 new double[]{198.0d,198.0d},
-                new double[]{10.0d,10.0d});
+                new double[]{variation,variation});
 
         // 1000/10000
         rowContainsQuery(new int[]{3, 4},
@@ -233,7 +235,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index, 1000),
                 methodWatcher,
                 new double[]{998.0d,998.0d},
-                new double[]{10.0d,10.0d});
+                new double[]{variation,variation});
 
         // 2000/10000
         rowContainsQuery(new int[]{3, 4},
@@ -246,7 +248,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index, 1999),
                 methodWatcher,
                 new double[]{1998.0d,1998},
-                new double[]{10.0d,10.0d});
+                new double[]{variation,variation});
 
 
         // 5000/10000
@@ -260,7 +262,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index, 5000),
                 methodWatcher,
                 new double[]{4998.0d,4998.0d},
-                new double[]{10.0d,10.0d});
+                new double[]{variation,variation});
 
     }
 
@@ -273,8 +275,9 @@ public class IndexSelectivityIT extends SpliceUnitTest {
 
     	String index2 = "TS_HIGH_CARDINALITY_IX_2";
     	String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where c1 > 1 and c1 < %d";
-        
-    	// 10/10000
+        double variation = 10000.0d*.02;
+
+        // 10/10000
         rowContainsQuery(new int[]{3},
         	format(query, index2, 10),
             methodWatcher,
@@ -284,7 +287,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index2, 10),
                 methodWatcher,
                 new double[]{8.0d},
-                new double[]{10.0d});
+                new double[]{variation});
 
         // 100/10000
         rowContainsQuery(new int[]{3},
@@ -295,7 +298,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index2, 100),
                 methodWatcher,
                 new double[]{98.0d},
-                new double[]{10.0d});
+                new double[]{variation});
 
 
         // 200/10000
@@ -308,7 +311,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index2, 200),
                 methodWatcher,
                 new double[]{198.0d},
-                new double[]{10.0d});
+                new double[]{variation});
 
         // 1000/10000
         rowContainsQuery(new int[]{3},
@@ -320,7 +323,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index2, 1000),
                 methodWatcher,
                 new double[]{998.0d},
-                new double[]{10.0d});
+                new double[]{variation});
 
         // 2000/10000
         rowContainsQuery(new int[]{3},
@@ -331,7 +334,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index2, 2000),
                 methodWatcher,
                 new double[]{1998.0d},
-                new double[]{10.0d});
+                new double[]{variation});
 
 
         // 5000/10000
@@ -344,7 +347,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 format(query, index2, 5000),
                 methodWatcher,
                 new double[]{4998},
-                new double[]{10.0d});
+                new double[]{variation});
 
     }
 

@@ -407,8 +407,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_float where n>1.0 and n<5.0","rows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_float where n is not null and n>1.0","rows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_float where n<>1.0","rows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_numeric where n=1","rows=1024",methodWatcher);
-
+        rowContainsCount(new int[]{2}, "explain select * from ts_numeric where n=1",methodWatcher,new double[]{1024.0d},new double[]{2560.0d*.02d});
         // no statistics
         firstRowContainsQuery("explain select * from tns_float where n=1.0","rows=18",methodWatcher);
         firstRowContainsQuery("explain select * from tns_float where n is null","rows=2",methodWatcher);

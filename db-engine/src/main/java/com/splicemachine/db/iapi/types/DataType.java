@@ -1308,9 +1308,16 @@ public abstract class DataType extends NullValueData
 		}
 	}
 
+	/**
+	 *
+	 * 256 gives < 1% normalized rank error
+	 *
+	 * @return
+	 * @throws StandardException
+     */
 	@Override
 	public com.yahoo.sketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException {
-		return com.yahoo.sketches.quantiles.ItemsSketch.getInstance(4096,this);
+		return com.yahoo.sketches.quantiles.ItemsSketch.getInstance(256,this);
 	}
 
 	@Override

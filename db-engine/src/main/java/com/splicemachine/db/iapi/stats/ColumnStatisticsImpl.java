@@ -93,17 +93,33 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        nullCount = in.readLong();
-        dvd = (DataValueDescriptor) in.readObject();
-        byte[] quantiles = new byte[in.readInt()];
-        in.readFully(quantiles);
-        quantilesSketch = com.yahoo.sketches.quantiles.ItemsSketch.getInstance(new NativeMemory(quantiles), dvd ,new DVDArrayOfItemsSerDe(dvd));
-        byte[] frequencies = new byte[in.readInt()];
-        in.readFully(frequencies);
-        frequenciesSketch = com.yahoo.sketches.frequencies.ItemsSketch.getInstance(new NativeMemory(frequencies), new DVDArrayOfItemsSerDe(dvd));
-        byte[] thetaSketchBytes = new byte[in.readInt()];
-        in.readFully(thetaSketchBytes);
-        thetaSketch = Sketch.heapify(new NativeMemory(thetaSketchBytes));
+        NativeMemory quantMem = null;
+        NativeMemory freqMem = null;
+        NativeMemory thetaMem = null;
+        try {
+            nullCount = in.readLong();
+            dvd = (DataValueDescriptor) in.readObject();
+            byte[] quantiles = new byte[in.readInt()];
+            in.readFully(quantiles);
+            quantMem = new NativeMemory(quantiles);
+            quantilesSketch = com.yahoo.sketches.quantiles.ItemsSketch.getInstance(quantMem, dvd, new DVDArrayOfItemsSerDe(dvd));
+            byte[] frequencies = new byte[in.readInt()];
+            in.readFully(frequencies);
+            freqMem = new NativeMemory(frequencies);
+            frequenciesSketch = com.yahoo.sketches.frequencies.ItemsSketch.getInstance(freqMem, new DVDArrayOfItemsSerDe(dvd));
+            byte[] thetaSketchBytes = new byte[in.readInt()];
+            in.readFully(thetaSketchBytes);
+            thetaMem = new NativeMemory(thetaSketchBytes);
+            thetaSketch = Sketch.heapify(thetaMem);
+        } finally {
+            if (quantMem!=null)
+                quantMem.freeMemory();
+            if (freqMem!=null)
+                freqMem.freeMemory();
+            if (thetaMem!=null)
+                thetaMem.freeMemory();
+
+        }
     }
 
     /**

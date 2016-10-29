@@ -97,6 +97,7 @@ public class StoreCostControllerImpl implements StoreCostController {
         byte[] table = Bytes.toBytes(tableId);
         List<Partition> partitions = new ArrayList<>();
         getPartitions(table, partitions, false);
+        assert partitions !=null && !partitions.isEmpty():"No Partitions returned";
         List<String> partitionNames = Lists.transform(partitions,partitionNameTransform);
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
         Map<String,PartitionStatisticsDescriptor> partitionMap = Maps.uniqueIndex(partitionStatistics,partitionStatisticsTransform);
@@ -123,8 +124,8 @@ public class StoreCostControllerImpl implements StoreCostController {
          * we have no table information either, so just return an empty list and let the caller figure out
          * what to do
          */
-        if (missingPartitions == 1 && partitionStats.size() == 0) {
-            missingPartitions--;
+        if (partitionStats.size() == 0) {
+            missingPartitions = 0;
             noStats = true;
             tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier);
         } else {
@@ -181,7 +182,7 @@ public class StoreCostControllerImpl implements StoreCostController {
     @Override
     public double rowCount() {
         if (missingPartitions > 0) {
-            assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0";
+            assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0 ";
             return tableStatistics.rowCount() + tableStatistics.rowCount() * (missingPartitions / tableStatistics.numPartitions());
         }
         else
