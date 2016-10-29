@@ -209,17 +209,7 @@ public class CursorNode extends DMLStatementNode{
             resultSet.rejectParameters();
 
             // Bind and Optimize Real Time Views (OK, That is a made up name).
-            if (this.withParameterList != null) {
-                Map<String,TableDescriptor> withMap = new HashMap<>(withParameterList.size());
-                for (int i = 0; i<withParameterList.size(); i++) {
-                    CreateViewNode createViewNode = (CreateViewNode) withParameterList.get(i);
-                    createViewNode.bindStatement();
-                    createViewNode.optimizeStatement();
-                    withMap.put(createViewNode.getRelativeName(),createViewNode.createDynamicView());
-                    this.getLanguageConnectionContext().setWithStack(withMap);
-                }
-            }
-
+            bindAndOptimizeRealTimeViews();
 
             super.bind(dataDictionary);
 

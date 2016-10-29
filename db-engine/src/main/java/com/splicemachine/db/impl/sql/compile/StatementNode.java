@@ -42,6 +42,8 @@ import com.splicemachine.db.iapi.util.ByteArray;
 
 import java.lang.reflect.Modifier;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 /**
@@ -343,6 +345,23 @@ public abstract class StatementNode extends QueryTreeNode{
 
     public void setWithVector(Vector withParameterList) {
         this.withParameterList = withParameterList;
+    }
+
+    /**
+     *
+     * Bind and Optimize Real Time Views (OK, That is a made up name).
+     */
+    public void bindAndOptimizeRealTimeViews() throws StandardException {
+        if (this.withParameterList != null) {
+            Map<String,TableDescriptor> withMap = new HashMap<>(withParameterList.size());
+            for (int i = 0; i<withParameterList.size(); i++) {
+                CreateViewNode createViewNode = (CreateViewNode) withParameterList.get(i);
+                createViewNode.bindStatement();
+                createViewNode.optimizeStatement();
+                withMap.put(createViewNode.getRelativeName(),createViewNode.createDynamicView());
+                this.getLanguageConnectionContext().setWithStack(withMap);
+            }
+        }
     }
 
 }

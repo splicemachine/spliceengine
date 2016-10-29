@@ -51,6 +51,8 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 
 import java.sql.Types;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
@@ -238,6 +240,9 @@ public final class InsertNode extends DMLModStatementNode {
 									getNodeFactory().doJoinOrderOptimization(),
 									getContextManager());
 
+		// Bind and Optimize Real Time Views (OK, That is a made up name).
+		bindAndOptimizeRealTimeViews();
+		
 		/* If any underlying ResultSetNode is a SelectNode, then we
 		 * need to do a full bind(), including the expressions
 		 * (since the fromList may include a FromSubquery).
