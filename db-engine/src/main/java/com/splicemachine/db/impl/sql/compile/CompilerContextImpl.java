@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 import java.util.Stack;
 import java.util.Vector;
 import com.splicemachine.db.catalog.UUID;
@@ -436,12 +435,15 @@ public class CompilerContextImpl extends ContextImpl
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public StoreCostController getStoreCostController(ConglomerateDescriptor cd) throws StandardException {
+	@Override
+	public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd) throws StandardException {
       long conglomerateNumber = cd.getConglomerateNumber();
 		/*
 		** Try to find the given conglomerate number in the array of
 		** conglom ids.
 		*/
+
+
       for (int i = 0; i < storeCostConglomIds.size(); i++) {
           Long conglomId = (Long) storeCostConglomIds.get(i);
           if (conglomId.longValue() == conglomerateNumber)
@@ -451,7 +453,7 @@ public class CompilerContextImpl extends ContextImpl
 		/*
 		** Not found, so get a StoreCostController from the store.
 		*/
-      StoreCostController retval = lcc.getTransactionCompile().openStoreCost(cd);
+      StoreCostController retval = 		lcc.getTransactionCompile().openStoreCost(td,cd);
 
 		/* Put it in the array */
       storeCostControllers.add(storeCostControllers.size(), retval);

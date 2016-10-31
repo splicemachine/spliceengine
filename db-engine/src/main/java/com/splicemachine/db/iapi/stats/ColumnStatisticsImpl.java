@@ -238,6 +238,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         double stopSelectivity = stop==null||stop.isNull()?1.0d:quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
         double totalSelectivity = stopSelectivity-startSelectivity;
         double count = (double)quantilesSketch.getN();
+        if (totalSelectivity==Double.NaN || count == 0)
+            return 0;
         return Math.round(totalSelectivity * count);
     }
 

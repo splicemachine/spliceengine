@@ -29,11 +29,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
-import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Comparator;
 
 /**
  * Execution sees this extension of Row that provides connectivity
@@ -41,7 +40,7 @@ import java.util.ArrayList;
  * Rows in execution's ResultSets.
  *
  */
-public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row {
+public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comparable<ExecRow>, Comparator<ExecRow> {
 
 	/**
 	 * Clone the Row and its contents.
@@ -109,5 +108,9 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row {
 	public org.apache.spark.sql.Row getSparkRow();
 
 	public ExecRow fromSparkRow(org.apache.spark.sql.Row row);
+
+	public long getRowSize() throws StandardException;
+
+	public long getRowSize(BitSet validColumns) throws StandardException;
 
 }
