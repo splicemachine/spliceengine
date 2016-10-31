@@ -9386,6 +9386,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
     ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
+    Vector parameterList = new Vector();
 }
 {
 	[
@@ -9398,6 +9399,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
 		<LEFT_PAREN> columnList = insertColumnList() <RIGHT_PAREN>
 	]
 	[ targetProperties = propertyList(false) <CHECK_PROPERTIES>]
+	[ <WITH> withClauseList(parameterList) ]
 	queryExpression = queryExpression(null, NO_SET_OP, topNOut)
 	[ orderCols = orderByClause(queryExpression) ]
     hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
@@ -9429,7 +9431,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
         }
 
-		return (StatementNode) nodeFactory.getNode(
+		StatementNode insertNode =  (StatementNode) nodeFactory.getNode(
 							C_NodeTypes.INSERT_NODE,
 							targetTable,
 							columnList,
@@ -9440,6 +9442,8 @@ insertColumnsAndSource(QueryTreeNode targetTable)
                             offsetClauses[ FETCH_FIRST_CLAUSE ],
                             Boolean.valueOf( hasJDBClimitClause ),
 							getContextManager());
+		insertNode.setWithVector(parameterList.size()>0?parameterList:null);
+        return insertNode;
 	}
 	/* RESOLVE: Ignoring default values for now
 |

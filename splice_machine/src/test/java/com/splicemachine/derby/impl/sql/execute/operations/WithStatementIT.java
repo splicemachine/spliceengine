@@ -73,6 +73,8 @@ public class WithStatementIT extends SpliceUnitTest {
                     .withCreate("create table t10 (i int)")
                     .withInsert("insert into t10 values (?)")
                     .withRows(rows(row(1),row(2),row(3),row(4),row(5))).create();
+            new TableCreator(connection)
+                    .withCreate("create table t11 (i int)").create();
 
         }
 
@@ -192,5 +194,21 @@ public class WithStatementIT extends SpliceUnitTest {
                 " 3 |";
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
+
+    @Test
+    //    @Ignore("SPLICE-1026")
+    public void testInsertContainingWith() throws Exception {
+        methodWatcher.executeUpdate("insert into t11 with abc as (select * from t10 order by i) select * from abc");
+        ResultSet rs = methodWatcher.executeQuery("select * from t11");
+        String expectedResult = "I |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 2 |\n" +
+                " 3 |\n" +
+                " 4 |\n" +
+                " 5 |";
+        assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
 
 }
