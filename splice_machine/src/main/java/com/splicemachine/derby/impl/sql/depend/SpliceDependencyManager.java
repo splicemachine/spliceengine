@@ -15,23 +15,19 @@
 
 package com.splicemachine.derby.impl.sql.depend;
 
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
-import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
-import com.splicemachine.db.iapi.sql.depend.ProviderList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.depend.BasicDependencyManager;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.primitives.Bytes;
-import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 public class SpliceDependencyManager extends BasicDependencyManager {
     private static final Logger LOG = Logger.getLogger(SpliceDependencyManager.class);
@@ -40,66 +36,6 @@ public class SpliceDependencyManager extends BasicDependencyManager {
 		super(dd);
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "initialize dependencyManager");
-	}
-
-	@Override
-	public void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "addDependency dependent=%s,provider=%s,contextManager=%s",d,p,cm);
-		super.addDependency(d, p, cm);
-	}
-
-	@Override
-	public void invalidateFor(Provider p, int action, LanguageConnectionContext lcc) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "invalidateFor provider=%s,action=%d,lcc=%s",p,action,lcc);
-		super.invalidateFor(p, action, lcc);
-	}
-
-	@Override
-	public void clearDependencies(LanguageConnectionContext lcc, Dependent d) throws StandardException {
-        // Passed on to next method...
-		super.clearDependencies(lcc, d);
-	}
-
-	@Override
-	public void clearDependencies(LanguageConnectionContext lcc,Dependent d,TransactionController tc) throws StandardException{
-		super.clearDependencies(lcc,d,tc);
-	}
-
-	@Override
-	public synchronized void clearInMemoryDependency(Dependency dy) {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "clearInMemoryDependency dependency=%s",dy);
-		super.clearInMemoryDependency(dy);
-	}
-
-	@Override
-	public ProviderInfo[] getPersistentProviderInfos(Dependent dependent) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "getPersistentProviderInfos dependent=%s",dependent);
-		return super.getPersistentProviderInfos(dependent);
-	}
-
-	@Override
-	public ProviderInfo[] getPersistentProviderInfos(ProviderList pl) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "getPersistentProviderInfos providerList=%s",pl);
-		return super.getPersistentProviderInfos(pl);
-	}
-
-	@Override
-	public void clearColumnInfoInProviders(ProviderList pl) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "clearColumnInfoInProviders providerList=%s",pl);
-		super.clearColumnInfoInProviders(pl);
-	}
-
-	@Override
-	public void copyDependencies(Dependent copyFrom, Dependent copyTo, boolean persistentOnly, ContextManager cm) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "copyDependencies copyFrom=%s,copyTo=%s,persistentOnly=%s, contextManager=%s",copyFrom,copyTo,persistentOnly,cm);
-		super.copyDependencies(copyFrom, copyTo, persistentOnly, cm);
 	}
 
 	@Override

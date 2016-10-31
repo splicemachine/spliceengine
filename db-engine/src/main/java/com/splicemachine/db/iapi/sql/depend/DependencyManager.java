@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.iapi.sql.depend;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -32,6 +33,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.store.access.TransactionController;
+
+import java.util.Collection;
 
 /**
 	Dependency Manager Interface
@@ -393,6 +396,14 @@ public interface DependencyManager {
 	void invalidateFor(Provider p, int action, LanguageConnectionContext lcc) 
 		throws StandardException;
 
+	/**
+	 *
+	 * @param dependencyUUID the UUID of the dependency to find. Cannot be {@code null}
+	 * @return the dependency tagged by this UUID, or {@code null} if that dependency
+	 * does not exist.
+	 * @throws StandardException if something goes wrong
+     */
+	Collection<Dependency> find(UUID dependencyUUID) throws StandardException;
 
 
 	/**

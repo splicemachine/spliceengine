@@ -16,9 +16,9 @@
 package com.splicemachine.derby.impl.load;
 
 import java.io.File;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 
+import com.google.common.io.Files;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -129,6 +129,67 @@ public class ImportErrorIT extends SpliceUnitTest {
                         badRecordsDir+">, Error: <"+retval+">",retval.contains(badRecordsDir));
             }
         });
+    }
+
+    @Test
+    public void testCanReimportFileAfterTableDrop() throws Exception{
+        /*
+         * Regression test for DB-1082. This is bizarrely complicated, but it should work:
+         *
+         * 1. create a new table
+         * 2. move file "db1082bad.csv" to file "db1082.csv"
+         * 3. import "db1082.csv" --test for expected error
+         * 4. drop the table
+         * 5. move file "db1082good.csv" to file "db1082.csv"
+         * 6. import "db1082.csv" --test should succeed
+         * 7. Select * from table --should contain rows
+         */
+        File badFile = new File(getResourceDirectory()+"db1082bad.csv");
+        File destFile = new File(getResourceDirectory()+"test_data/bad_import/db1082.csv");
+        if(destFile.exists())
+            destFile.delete();
+        Files.copy(badFile,destFile);
+        Connection conn = methodWatcher.getOrCreateConnection();
+        conn.setSchema(schema.schemaName);
+        try(Statement s = conn.createStatement()){
+            s.execute("drop table if exists DB1082");
+            s.execute("create table DB1082(a int, b int)");
+        }
+        runImportTest(destFile.getName(),new ErrorCheck(){
+            @Override
+            public void check(String table,String location,SQLException se) throws Exception{
+                Assert.assertEquals("SE009",se.getSQLState());
+            }
+        });
+
+        destFile.delete();
+        File goodFile = new File(getResourceDirectory()+"db1082good.csv");
+        Files.copy(goodFile,destFile);
+        try(Statement s = conn.createStatement()){
+            s.execute("drop table DB1082");
+            s.execute("create table DB1082(a int, b int)");
+            String inputFilePath = getResourceDirectory()+"test_data/bad_import/"+destFile.getName();
+            s.execute(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                            "'%s'," +  // schema name
+                            "'%s'," +  // table name
+                            "null," +  // insert column list
+                            "'%s'," +  // file path
+                            "','," +   // column delimiter
+                            "null," +  // character delimiter
+                            "null," +  // timestamp format
+                            "null," +  // date format
+                            "null," +  // time format
+                            "%d," +    // max bad records
+                            "'%s'," +  // bad record dir
+                            "null," +  // has one line records
+                            "null)",   // char set
+                    schema.schemaName, "DB1082", inputFilePath,
+                    0, BADDIR.getCanonicalPath()));
+
+            try(ResultSet rs = s.executeQuery("select * from DB1082")){
+                Assert.assertTrue("no rows found!",rs.next());
+            }
+        }
     }
 
     @Test
