@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
@@ -51,6 +52,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.util.Collection;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
@@ -335,8 +337,31 @@ public class GenericStatement implements Statement{
                 }
 
                 // did it get updated while we waited for the lock on it?
+
                 if(preparedStmt.upToDate()){
-                    return preparedStmt;
+                    /*
+                     * -sf- DB-1082 regression note:
+                     *
+                     * The Statement Cache and the DependencyManager are separated, which leads to the possibility
+                     * that they become out of date with one another. Specifically, when a statement fails it
+                     * may be removed from the DependencyManager but *not* removed from the StatementCache. This
+                     * makes sense in some ways--you want to indicate that something bad happened, but you don't
+                     * necessarily want to recompile a statement because of (say) a unique constraint violation.
+                     * Unfortunately, if you do that, then dropping a table won't cause this statement to
+                     * recompile, because it won't be in the dependency manager, but it WILL be in the statement
+                     * cache. To protect against this case, we recompile it in the event that we are missing
+                     * from the DependencyManager, but are still considered up to date. This does not happen in the
+                     * event of an insert statement, only for imports(as far as I can tell, anyway).
+                     */
+                    Collection<Dependency> selfDep = lcc.getDataDictionary().getDependencyManager().find(preparedStmt.getObjectID());
+                    if(selfDep!=null){
+                        for(Dependency dep:selfDep){
+                            if(dep.getDependent().equals(preparedStmt))
+                                return preparedStmt;
+                        }
+                    }
+                    //we actually aren't valid, because the dependency is missing.
+                    preparedStmt.isValid = false;
                 }
 
                 if(!preparedStmt.compilingStatement){
