@@ -169,7 +169,8 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         if (fileOut == null) {
             try {
                 DistributedFileSystem dfs = SIDriver.driver().fileSystem();
-                fileOut = dfs.newOutputStream(badRecordMasterPath.toString(), StandardOpenOption.CREATE);
+                String filePath = badRecordMasterPath.toString() + "_" + this.hashCode();
+                fileOut = dfs.newOutputStream(filePath, StandardOpenOption.CREATE);
             } catch (Exception e) {
                 close();
                 throw new RuntimeException(e);
