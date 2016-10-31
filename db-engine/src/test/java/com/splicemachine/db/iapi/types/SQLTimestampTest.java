@@ -14,9 +14,15 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.yahoo.sketches.quantiles.ItemsSketch;
+import com.yahoo.sketches.quantiles.ItemsUnion;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
+import org.apache.hadoop.yarn.util.Times;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -30,7 +36,7 @@ import java.util.GregorianCalendar;
  * Test Class for SQLTimestamp
  *
  */
-public class SQLTimestampTest {
+public class SQLTimestampTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
@@ -74,4 +80,46 @@ public class SQLTimestampTest {
                 Assert.assertEquals("1 incorrect",value1.getTimestamp(gc),value1a.getTimestamp(gc));
                 Assert.assertEquals("2 incorrect",value2.getTimestamp(gc),value2a.getTimestamp(gc));
         }
+
+        @Test
+        public void testColumnStatistics() throws Exception {
+
+                SQLTimestamp value1 = new SQLTimestamp();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLTimestamp sqlTimestamp;
+
+                for (int i = 10; i < 30; i++) {
+                        sqlTimestamp = new SQLTimestamp();
+                        if (i<20 || i >= 25) {
+                                stats.update(new SQLTimestamp(Timestamp.valueOf("1962-09-" + i +" 03:23:34.234")));
+                        } else {
+                                stats.update(sqlTimestamp);
+                        }
+                }
+                stats = serde(stats);
+                Assert.assertEquals(5,stats.nullCount());
+                Assert.assertEquals(15,stats.notNullCount());
+                Assert.assertEquals(20,stats.totalCount());
+                Assert.assertEquals(new SQLTimestamp(Timestamp.valueOf("1962-09-29 03:23:34.234")),stats.maxValue());
+                Assert.assertEquals(new SQLTimestamp(Timestamp.valueOf("1962-09-10 03:23:34.234")),stats.minValue());
+                Assert.assertEquals(5,stats.selectivity(null));
+                Assert.assertEquals(5,stats.selectivity(new SQLTimestamp()));
+                Assert.assertEquals(1,stats.selectivity(new SQLTimestamp(Timestamp.valueOf("1962-09-29 03:23:34.234"))));
+                Assert.assertEquals(1,stats.selectivity(new SQLTimestamp(Timestamp.valueOf("1962-09-10 03:23:34.234"))));
+                Assert.assertEquals(9.0d,(double) stats.rangeSelectivity(new SQLTimestamp(Timestamp.valueOf("1962-09-13 03:23:34.234")),new SQLTimestamp(Timestamp.valueOf("1962-09-27 03:23:34.234")),true,false),2);
+                Assert.assertEquals(3.0d,(double) stats.rangeSelectivity(new SQLTimestamp(),new SQLTimestamp(Timestamp.valueOf("1962-09-13 03:23:34.234")),true,false),2);
+                Assert.assertEquals(12.0d,(double) stats.rangeSelectivity(new SQLTimestamp(Timestamp.valueOf("1962-09-13 03:23:34.234")),new SQLTimestamp(),true,false),2);
+        }
+
+
+        @Test
+        public void testUnion() throws StandardException {
+                SQLInteger integer = new SQLInteger(2);
+                ItemsUnion quantilesSketchUnion = ItemsUnion.getInstance(integer);
+                 SQLInteger integer2 = new SQLInteger(2);
+                ItemsSketch itemsSketch = integer.getQuantilesSketch();
+                itemsSketch.update(integer2);
+                quantilesSketchUnion.update(itemsSketch);
+        }
+
 }

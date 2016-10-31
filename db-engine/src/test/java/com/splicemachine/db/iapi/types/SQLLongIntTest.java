@@ -15,6 +15,8 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -30,7 +32,7 @@ import org.junit.Test;
  * Test Class for SQLLongint
  *
  */
-public class SQLLongIntTest {
+public class SQLLongIntTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void addTwo() throws StandardException {
@@ -100,6 +102,35 @@ public class SQLLongIntTest {
                 value2a.decodeFromKey(range2);
                 Assert.assertEquals("1 incorrect",value1.getLong(),value1a.getLong(),0l);
                 Assert.assertEquals("2 incorrect",value2.getLong(),value2a.getLong(),0l);
+        }
+
+        @Test
+        public void testColumnStatistics() throws Exception {
+                SQLLongint value1 = new SQLLongint();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLLongint SQLLongint;
+                for (int i = 1; i<= 10000; i++) {
+                        if (i>=5000 && i < 6000)
+                                SQLLongint = new SQLLongint();
+                        else if (i>=1000 && i< 2000)
+                                SQLLongint = new SQLLongint(1000+i%20);
+                        else
+                                SQLLongint = new SQLLongint(i);
+                        stats.update(SQLLongint);
+                }
+                stats = serde(stats);
+                Assert.assertEquals(1000,stats.nullCount());
+                Assert.assertEquals(9000,stats.notNullCount());
+                Assert.assertEquals(10000,stats.totalCount());
+                Assert.assertEquals(new SQLLongint(10000),stats.maxValue());
+                Assert.assertEquals(new SQLLongint(1),stats.minValue());
+                Assert.assertEquals(1000,stats.selectivity(null));
+                Assert.assertEquals(1000,stats.selectivity(new SQLLongint()));
+                Assert.assertEquals(51,stats.selectivity(new SQLLongint(1010)));
+                Assert.assertEquals(1,stats.selectivity(new SQLLongint(9000)));
+                Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLLongint(1000),new SQLLongint(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLLongint(),new SQLLongint(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLLongint(5000),new SQLLongint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
     
 }

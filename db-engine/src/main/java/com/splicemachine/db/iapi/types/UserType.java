@@ -26,32 +26,24 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-
 import java.io.Serializable;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
@@ -60,7 +52,6 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
 
 
@@ -294,8 +285,6 @@ public class UserType extends DataType
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull());
 		if (!isNull())
-//		if (SanityManager.DEBUG)
-//			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values. " + this.getClass());
 			out.writeObject(value);
 	}
 
@@ -726,5 +715,10 @@ public class UserType extends DataType
 		return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
 	}
 
+
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		if (!isNull())
+		updateSketch.update(SerializationUtils.serialize(SerializationUtils.serialize((Serializable)value)));
+	}
 
 }

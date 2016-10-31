@@ -26,7 +26,7 @@ import org.junit.Test;
  * Test Class for SQLTinyint
  *
  */
-public class SQLRefTest {
+public class SQLRefTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
