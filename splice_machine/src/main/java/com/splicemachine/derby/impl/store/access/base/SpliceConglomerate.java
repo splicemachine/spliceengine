@@ -247,4 +247,5 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     public void updateThetaSketch(UpdateSketch updateSketch) {
         throw new UnsupportedOperationException("Not Implemented");
     }
+
 }

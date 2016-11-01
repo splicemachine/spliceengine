@@ -55,6 +55,12 @@ import java.util.List;
  * Date: 4/4/14
  */
 public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoCloseable{
+    public static ThreadLocal<String> regionId = new ThreadLocal<String>(){
+        @Override
+        protected String initialValue(){
+            return "--";
+        }
+    };
     private static Logger LOG = Logger.getLogger(SITableScanner.class);
     private final Counter filterCounter;
     private DataScanner regionScanner;
@@ -101,13 +107,14 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              SIFilterFactory filterFactory) {
         assert template!=null:"Template cannot be null into a scanner";
         this.region = region;
+        regionId.set(region.getRegionName());
         this.scan = scan;
         this.template = template;
         this.rowDecodingMap = rowDecodingMap;
         this.keyColumnSortOrder = keyColumnSortOrder;
         this.indexName = indexName;
         this.reuseRowLocation = reuseRowLocation;
-        MetricFactory metricFactory = Metrics.basicMetricFactory();
+        MetricFactory metricFactory = Metrics.noOpMetricFactory();
         this.filterCounter = metricFactory.newCounter();
         this.outputBytesCounter = metricFactory.newCounter();
         this.regionScanner = scanner;

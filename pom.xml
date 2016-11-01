@@ -695,7 +695,6 @@
                 <module>sqlj-it-procs</module>
                 <module>txn-it-procs</module>
                 <module>utilities</module>
-                <module>stats</module>
                 <module>db-build</module>
                 <module>db-shared</module>
                 <module>db-engine</module>

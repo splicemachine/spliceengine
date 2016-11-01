@@ -835,8 +835,8 @@ public interface DataDictionary{
      * @param tc
      * @throws StandardException
      */
-    public List<ColumnStatsDescriptor> getColumnStatistics(long conglomerate,
-                                       TransactionController tc) throws StandardException;
+    public List<ColumnStatisticsDescriptor> getColumnStatistics(long conglomerate,
+                                                                TransactionController tc) throws StandardException;
 
     /**
      * Add Column Statistics to SYS.SYSCOLUMNSTATS

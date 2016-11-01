@@ -48,10 +48,6 @@
             <artifactId>utilities</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>stats</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
             <artifactId>concurrentlinkedhashmap-lru</artifactId>
         </dependency>

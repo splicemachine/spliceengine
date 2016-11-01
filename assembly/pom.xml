@@ -110,7 +110,6 @@
                                 splice_protocol,
                                 splice_si_api,
                                 splice_timestamp_api,
-                                stats,
                                 utilities,
                                 <!-- spliceengine platform libs -->
                                 hbase_pipeline-${envClassifier},

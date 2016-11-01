@@ -180,48 +180,90 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     	
     	String index = "TS_HIGH_CARDINALITY_IX_1";
     	String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where c1 > 1 and c1 < %d";
-        
+
+        double variation = 10000.0d*.02;
+
     	// 10/10000
-        rowContainsQuery(new int[]{3, 3, 4, 4},
+        rowContainsQuery(new int[]{3, 4},
         	format(query, index, 10),
             methodWatcher,
-            "IndexLookup","outputRows=8",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=8");
-        
+            "IndexLookup",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
+
+        rowContainsCount(new int[]{3, 4},
+                format(query, index, 10),
+                methodWatcher,
+                new double[]{8.0d,8.0d},
+                new double[]{variation,variation});
+
+
         // 100/10000
-        rowContainsQuery(new int[]{3, 3, 4, 4},
+        rowContainsQuery(new int[]{3, 4},
         	format(query, index, 100),
             methodWatcher,
-            "IndexLookup","outputRows=98",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=98");
-        
+            "IndexLookup",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
+
+        rowContainsCount(new int[]{3, 4},
+                format(query, index, 100),
+                methodWatcher,
+                new double[]{98.0d,98.0d},
+                new double[]{variation,variation});
+
+
         // 200/10000
-        rowContainsQuery(new int[]{3, 3, 4, 4},
+        rowContainsQuery(new int[]{3, 4},
         	format(query, index, 200),
             methodWatcher,
-            "IndexLookup","outputRows=198",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=198");
-        
+            "IndexLookup",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
+
+        rowContainsCount(new int[]{3, 4},
+                format(query, index, 200),
+                methodWatcher,
+                new double[]{198.0d,198.0d},
+                new double[]{variation,variation});
+
         // 1000/10000
-        rowContainsQuery(new int[]{3, 3, 4, 4},
+        rowContainsQuery(new int[]{3, 4},
         	format(query, index, 1000),
             methodWatcher,
-            "IndexLookup","outputRows=998",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=998");
-        
+            "IndexLookup",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
+
+        rowContainsCount(new int[]{3, 4},
+                format(query, index, 1000),
+                methodWatcher,
+                new double[]{998.0d,998.0d},
+                new double[]{variation,variation});
+
         // 2000/10000
-        rowContainsQuery(new int[]{3, 3, 4, 4},
-        	format(query, index, 2000),
+        rowContainsQuery(new int[]{3, 4},
+        	format(query, index, 1999),
             methodWatcher,
-            "IndexLookup","outputRows=1998",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=1998");
-        
+            "IndexLookup",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
+
+        rowContainsCount(new int[]{3, 4},
+                format(query, index, 1999),
+                methodWatcher,
+                new double[]{1998.0d,1998},
+                new double[]{variation,variation});
+
+
         // 5000/10000
-        rowContainsQuery(new int[]{3, 3, 4, 4},
+        rowContainsQuery(new int[]{3, 4},
         	format(query, index, 5000),
             methodWatcher,
-            "IndexLookup","outputRows=4998",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=4998");
+            "IndexLookup",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
+
+        rowContainsCount(new int[]{3, 4},
+                format(query, index, 5000),
+                methodWatcher,
+                new double[]{4998.0d,4998.0d},
+                new double[]{variation,variation});
+
     }
 
     @Test
@@ -233,45 +275,84 @@ public class IndexSelectivityIT extends SpliceUnitTest {
 
     	String index2 = "TS_HIGH_CARDINALITY_IX_2";
     	String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where c1 > 1 and c1 < %d";
-        
-    	// 10/10000
-        rowContainsQuery(new int[]{3, 3},
+        double variation = 10000.0d*.02;
+
+        // 10/10000
+        rowContainsQuery(new int[]{3},
         	format(query, index2, 10),
             methodWatcher,
-            "ProjectRestrict", "outputRows=8");
-        
+            "ProjectRestrict");
+
+        rowContainsCount(new int[]{3},
+                format(query, index2, 10),
+                methodWatcher,
+                new double[]{8.0d},
+                new double[]{variation});
+
         // 100/10000
-        rowContainsQuery(new int[]{3, 3},
+        rowContainsQuery(new int[]{3},
         	format(query, index2, 100),
             methodWatcher,
-            "ProjectRestrict", "outputRows=98");
-        
+            "ProjectRestrict");
+        rowContainsCount(new int[]{3},
+                format(query, index2, 100),
+                methodWatcher,
+                new double[]{98.0d},
+                new double[]{variation});
+
+
         // 200/10000
-        rowContainsQuery(new int[]{3, 3},
+        rowContainsQuery(new int[]{3},
         	format(query, index2, 200),
             methodWatcher,
-            "ProjectRestrict", "outputRows=198");
-        
+            "ProjectRestrict");
+
+        rowContainsCount(new int[]{3},
+                format(query, index2, 200),
+                methodWatcher,
+                new double[]{198.0d},
+                new double[]{variation});
+
         // 1000/10000
-        rowContainsQuery(new int[]{3, 3},
+        rowContainsQuery(new int[]{3},
         	format(query, index2, 1000),
             methodWatcher,
-            "ProjectRestrict", "outputRows=998");
-        
+            "ProjectRestrict");
+
+        rowContainsCount(new int[]{3},
+                format(query, index2, 1000),
+                methodWatcher,
+                new double[]{998.0d},
+                new double[]{variation});
+
         // 2000/10000
-        rowContainsQuery(new int[]{3, 3},
+        rowContainsQuery(new int[]{3},
         	format(query, index2, 2000),
-            methodWatcher,
-            "ProjectRestrict", "outputRows=1998");
-        
+            methodWatcher, "ProjectRestrict");
+
+        rowContainsCount(new int[]{3},
+                format(query, index2, 2000),
+                methodWatcher,
+                new double[]{1998.0d},
+                new double[]{variation});
+
+
         // 5000/10000
-        rowContainsQuery(new int[]{3, 3},
+        rowContainsQuery(new int[]{3},
         	format(query, index2, 5000),
             methodWatcher,
-            "ProjectRestrict", "outputRows=4998");
+            "ProjectRestrict");
+
+        rowContainsCount(new int[]{3},
+                format(query, index2, 5000),
+                methodWatcher,
+                new double[]{4998},
+                new double[]{variation});
+
     }
 
     @Test
+    @Ignore("Splice-1097")
     public void testCountChoosesNarrowTable() throws Exception {
         rowContainsQuery(6,"explain select count(*) from narrow_table","TableScan[NARROW_TABLE",methodWatcher);
     }
@@ -287,6 +368,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Splice-1097")
     public void testCountChoosesWideTablePK() throws Exception {
         rowContainsQuery(6,"explain select count(*) from wide_table_pk","TableScan[WIDE_TABLE_PK",methodWatcher);
     }

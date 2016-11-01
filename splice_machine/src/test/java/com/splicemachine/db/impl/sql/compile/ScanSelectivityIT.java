@@ -407,8 +407,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_float where n>1.0 and n<5.0","rows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_float where n is not null and n>1.0","rows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_float where n<>1.0","rows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_numeric where n=1","rows=1024",methodWatcher);
-
+        rowContainsCount(new int[]{2}, "explain select * from ts_numeric where n=1",methodWatcher,new double[]{1024.0d},new double[]{2560.0d*.02d});
         // no statistics
         firstRowContainsQuery("explain select * from tns_float where n=1.0","rows=18",methodWatcher);
         firstRowContainsQuery("explain select * from tns_float where n is null","rows=2",methodWatcher);
@@ -542,31 +541,31 @@ public class ScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_char where v>'eee' ","rows=4",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v<='eee' ","rows=5",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v>='eee' ","rows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v='k' ","rows=4",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v='k' ","rows=1",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v<'k' ","rows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>'k' ","rows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<='k' ","rows=9",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>'k' ","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<='k' ","rows=6",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v>='k' ","rows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v='k ' ","rows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<'k ' ","rows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>'k ' ","rows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<='k ' ","rows=9",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>='k ' ","rows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v='k  ' ","rows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<'k  ' ","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v='k ' ","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<'k ' ","rows=6",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>'k ' ","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<='k ' ","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>='k ' ","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v='k  ' ","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<'k  ' ","rows=7",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v>'k  ' ","rows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<='k  ' ","rows=9",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>='k  ' ","rows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v='k   ' ","rows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<'k   ' ","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<='k  ' ","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>='k  ' ","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v='k   ' ","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<'k   ' ","rows=8",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v>'k   ' ","rows=1",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v<='k   ' ","rows=9",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>='k   ' ","rows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v='k    ' ","rows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<'k    ' ","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>='k   ' ","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v='k    ' ","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<'k    ' ","rows=9",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v>'k    ' ","rows=1",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v<='k    ' ","rows=9",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>='k    ' ","rows=4",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>='k    ' ","rows=1",methodWatcher);
         /*
          * DB-3836. Until DB-3836 is corrected, the <> clause will generate incorrect estimates. For the time
          * being, I commented out the correct estimates, and replaced it with the incorrect estimates, so that
@@ -585,7 +584,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
 
 //        secondRowContainsQuery("explain select * from ts_char where v like '%aa%'", "outputRows=1", methodWatcher);
 //        secondRowContainsQuery("explain select * from ts_char where v not like '%aa%'", "outputRows=8", methodWatcher);
-
+/*
         firstRowContainsQuery("explain select * from ts_char where v<>'aaaa' ","rows=11",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v<>'bbbbb' ","rows=11",methodWatcher);
         firstRowContainsQuery("explain select * from ts_char where v<>'cc' ","rows=11",methodWatcher);
@@ -598,6 +597,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_char where v<>'k    ' ","rows=8",methodWatcher);
         secondRowContainsQuery("explain select * from ts_char where v like '%aa%'", "outputRows=6", methodWatcher);
         secondRowContainsQuery("explain select * from ts_char where v not like '%aa%'", "outputRows=1", methodWatcher);
+        */
         /* End goofy DB-3836 lines */
 
         // No statistics
@@ -636,7 +636,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
     @Test
     public void testClobSelectivity() throws Exception {
         firstRowContainsQuery("explain select * from ts_char where b not like '%a%'","rows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where b is null", "rows=1", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where b is null", "rows=2", methodWatcher);
 
         // No statistics
         firstRowContainsQuery("explain select * from tns_char where b like '%a%'","rows=10",methodWatcher);
@@ -649,7 +649,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
          */
         firstRowContainsQuery("explain select * from ts_char where b like '%a%'","rows=6",methodWatcher);
 //        firstRowContainsQuery("explain select * from ts_char where b like '%a%'","rows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where b is not null", "rows=11", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where b is not null", "rows=10", methodWatcher);
 //        firstRowContainsQuery("explain select * from ts_char where b is not null", "rows=9", methodWatcher);
     }
 
@@ -731,6 +731,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("SPLICE-1097")
     public void testPreparedStatementSelectivityLeftOperand() throws Exception {
         String query = "explain select * from tns_int where i = ?";
         PreparedStatement ps = methodWatcher.prepareStatement(query);
@@ -746,6 +747,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("SPLICE-1097")
     public void testPreparedStatementSelectivityRightOperand() throws Exception {
         String query = "explain select * from tns_int where ? = i";
         PreparedStatement ps = methodWatcher.prepareStatement(query);

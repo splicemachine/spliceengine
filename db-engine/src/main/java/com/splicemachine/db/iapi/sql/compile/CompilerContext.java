@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
+import org.apache.spark.sql.catalyst.catalog.InMemoryCatalog;
 
 import java.util.List;
 import java.util.Vector;
@@ -457,7 +458,7 @@ public interface CompilerContext extends Context
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public StoreCostController getStoreCostController(ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
+	public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
 
 	/**
 	 * Get a SortCostController.

@@ -25,6 +25,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanne
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -41,6 +42,7 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.Snowflake;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.invocation.InvocationOnMock;
@@ -60,6 +62,7 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  *         Date: 4/9/14
  */
+@Ignore
 @Category(ArchitectureSpecific.class)
 public class FixedSITableScannerTest{
 
