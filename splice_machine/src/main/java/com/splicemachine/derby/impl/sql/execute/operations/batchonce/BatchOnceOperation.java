@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.batchonce;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -65,9 +67,11 @@ public class BatchOnceOperation extends SpliceBaseOperation {
     private String updateResultSetFieldName;
 
     /* 1-based column positions for columns in the source we will need.  Will be -1 if not available. */
-    private int sourceRowLocationColumnPosition;
-    private int sourceCorrelatedColumnPosition;
-    private int subqueryCorrelatedColumnPosition;
+    private int[] sourceCorrelatedColumnPositions;
+    private int[] subqueryCorrelatedColumnPositions;
+
+    private int sourceCorrelatedColumnItem;
+    private int subqueryCorrelatedColumnItem;
 
     public BatchOnceOperation() {
     }
@@ -77,16 +81,14 @@ public class BatchOnceOperation extends SpliceBaseOperation {
                               int rsNumber,
                               SpliceOperation subquerySource,
                               String updateResultSetFieldName,
-                              int sourceRowLocationColumnPosition,
-                              int sourceCorrelatedColumnPosition,
-                              int subqueryCorrelatedColumnPosition) throws StandardException {
+                              int sourceCorrelatedColumnItem,
+                              int subqueryCorrelatedColumnItem) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
         this.source = source;
         this.subquerySource = subquerySource.getLeftOperation();
         this.updateResultSetFieldName = updateResultSetFieldName;
-        this.sourceRowLocationColumnPosition = sourceRowLocationColumnPosition;
-        this.sourceCorrelatedColumnPosition = sourceCorrelatedColumnPosition;
-        this.subqueryCorrelatedColumnPosition = subqueryCorrelatedColumnPosition;
+        this.sourceCorrelatedColumnItem = sourceCorrelatedColumnItem;
+        this.subqueryCorrelatedColumnItem = subqueryCorrelatedColumnItem;
     }
 
     @Override
@@ -94,6 +96,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         super.init(context);
         source.init(context);
         subquerySource.init(context);
+        sourceCorrelatedColumnPositions = generateColumnPositions(sourceCorrelatedColumnItem);
+        subqueryCorrelatedColumnPositions = generateColumnPositions(subqueryCorrelatedColumnItem);
     }
 
     @Override
@@ -153,9 +157,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         this.source = (SpliceOperation) in.readObject();
         this.subquerySource = (SpliceOperation) in.readObject();
         this.updateResultSetFieldName = in.readUTF();
-        this.sourceRowLocationColumnPosition = in.readInt();
-        this.sourceCorrelatedColumnPosition = in.readInt();
-        this.subqueryCorrelatedColumnPosition = in.readInt();
+        this.sourceCorrelatedColumnPositions = ArrayUtil.readIntArray(in);
+        this.subqueryCorrelatedColumnPositions = ArrayUtil.readIntArray(in);
     }
 
     @Override
@@ -164,21 +167,20 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         out.writeObject(this.source);
         out.writeObject(this.subquerySource);
         out.writeUTF(this.updateResultSetFieldName);
-        out.writeInt(this.sourceRowLocationColumnPosition);
-        out.writeInt(this.sourceCorrelatedColumnPosition);
-        out.writeInt(this.subqueryCorrelatedColumnPosition);
+        ArrayUtil.writeIntArray(out, this.sourceCorrelatedColumnPositions);
+        ArrayUtil.writeIntArray(out, this.subqueryCorrelatedColumnPositions);
     }
 
     public SpliceOperation getSubquerySource() {
         return subquerySource;
     }
 
-    public int getSourceCorrelatedColumnPosition() {
-        return sourceCorrelatedColumnPosition;
+    public int[] getSourceCorrelatedColumnPositions() {
+        return sourceCorrelatedColumnPositions;
     }
 
-    public int getSubqueryCorrelatedColumnPosition() {
-        return subqueryCorrelatedColumnPosition;
+    public int[] getSubqueryCorrelatedColumnPositions() {
+        return subqueryCorrelatedColumnPositions;
     }
 
     public SpliceOperation getSource() {
@@ -192,4 +194,12 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         return set.mapPartitions(new BatchOnceFunction(operationContext));
     }
 
+    protected int[] generateColumnPositions(int columnItem) {
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) activation.getPreparedStatement().getSavedObject(columnItem);
+        int[] cols = new int[fihArray.length];
+        for (int i = 0, s = fihArray.length; i < s; i++){
+            cols[i] = fihArray[i].getInt();
+        }
+        return cols;
+    }
 }

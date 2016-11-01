@@ -24,6 +24,11 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.Set;
 
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.primitives.Bytes;
 import org.spark_project.guava.collect.ArrayListMultimap;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Multimap;
@@ -51,8 +56,14 @@ public class BatchOnceFunction<Op extends SpliceOperation>
     private boolean initialized;
     private BatchOnceOperation op;
     private SpliceOperation subquerySource;
-    private int sourceCorrelatedColumnPosition;
-    private int subqueryCorrelatedColumnPosition;
+    private int[] sourceCorrelatedColumnPositions;
+    private int[] subqueryCorrelatedColumnPositions;
+    private ExecRow sourceExecRow;
+    private ExecRow subqueryExecRow;
+    private KeyEncoder sourceKeyEncoder;
+    private KeyEncoder subqueryKeyEncoder;
+    private int sourceColumnPosition;
+    private int subqueryColumnPosition;
 
     /* Collection of ExecRows we have read from the source and updated with results from the subquery but
      * not yet returned to the operation above us. */
@@ -98,15 +109,21 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         return rowQueue.iterator();
     }
 
-    private void init() {
+    private void init() throws StandardException {
         this.op = (BatchOnceOperation)getOperation();
         this.subquerySource = op.getSubquerySource();
-        this.sourceCorrelatedColumnPosition = op.getSourceCorrelatedColumnPosition();
-        this.subqueryCorrelatedColumnPosition = op.getSubqueryCorrelatedColumnPosition();
+        this.sourceCorrelatedColumnPositions = op.getSourceCorrelatedColumnPositions();
+        this.subqueryCorrelatedColumnPositions = op.getSubqueryCorrelatedColumnPositions();
         this.rowQueue = Lists.newLinkedList();
+        this.sourceExecRow = op.getSource().getExecRowDefinition();
+        this.subqueryExecRow = subquerySource.getExecRowDefinition();
+        this.sourceKeyEncoder = getKeyEncoder(sourceCorrelatedColumnPositions, sourceExecRow);
+        this.subqueryKeyEncoder = getKeyEncoder(subqueryCorrelatedColumnPositions, subqueryExecRow);
+        this.sourceColumnPosition = getColumnPosition(sourceExecRow, sourceCorrelatedColumnPositions);
+        this.subqueryColumnPosition = getColumnPosition(subqueryExecRow, subqueryCorrelatedColumnPositions);
     }
 
-    private void loadNextBatch(Iterator<LocatedRow> locatedRows) throws StandardException{
+    private void loadNextBatch(Iterator<LocatedRow> locatedRows) throws StandardException, IOException {
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         //
         // STEP 1: Read batchSize rows from the source
@@ -114,17 +131,17 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
         // for quickly finding source rows with a given key
-        Multimap<DataValueDescriptor, LocatedRow> sourceRowsMap = ArrayListMultimap.create(batchSize, 1);
+        Multimap<String, LocatedRow> sourceRowsMap = ArrayListMultimap.create(batchSize, 1);
         DataValueDescriptor nullValue = op.getSource().getExecRowDefinition().cloneColumn(1).getNewNull();
 
         LocatedRow sourceRow;
         ExecRow newRow;
         while (locatedRows.hasNext() && rowQueue.size() <batchSize) {
             sourceRow = locatedRows.next();
-            DataValueDescriptor sourceKey = sourceRow.getRow().getColumn(sourceCorrelatedColumnPosition);
-            DataValueDescriptor sourceOldValue = sourceRow.getRow().getColumn(sourceCorrelatedColumnPosition == 1 ? 2 : 1);
+            byte[] sourceKey = sourceKeyEncoder.getKey(sourceRow.getRow());
 
             newRow = new ValueRow(3);
+            DataValueDescriptor sourceOldValue = sourceRow.getRow().getColumn(sourceColumnPosition);
             //
             // old value from source
             //
@@ -133,13 +150,14 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             // new value will (possibly) come from subquery (subquery could return null, or return no row)
             //
             newRow.setColumn(NEW_COL, nullValue);
+
             //
             // row location
             //
             newRow.setColumn(ROW_LOC_COL, new SQLRef(sourceRow.getRowLocation()));
 
             LocatedRow newLocatedRow = new LocatedRow(sourceRow.getRowLocation(), newRow);
-            sourceRowsMap.put(sourceKey, newLocatedRow);
+            sourceRowsMap.put(Bytes.toHex(sourceKey), newLocatedRow);
         }
 
         /* Don't execute the subquery again if there were no more source rows. */
@@ -159,21 +177,51 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             subquerySource.openCore();
             Iterator<LocatedRow> subqueryIterator = subquerySource.getLocatedRowIterator();
             ExecRow nextRowCore;
-            Set<DataValueDescriptor> uniqueKeySet = Sets.newHashSetWithExpectedSize(batchSize);
+            Set<String> uniqueKeySet = Sets.newHashSetWithExpectedSize(batchSize);
             while (subqueryIterator.hasNext()) {
                 nextRowCore = subqueryIterator.next().getRow();
-                DataValueDescriptor keyColumn = nextRowCore.getColumn(subqueryCorrelatedColumnPosition);
-                Collection<LocatedRow> correspondingSourceRows = sourceRowsMap.get(keyColumn);
+                byte[] keyColumn = subqueryKeyEncoder.getKey(nextRowCore);
+                Collection<LocatedRow> correspondingSourceRows = sourceRowsMap.get(Bytes.toHex(keyColumn));
                 for (LocatedRow correspondingSourceRow : correspondingSourceRows) {
-                    correspondingSourceRow.getRow().setColumn(NEW_COL, nextRowCore.getColumn(subqueryCorrelatedColumnPosition == 1 ? 2 : 1));
+                    correspondingSourceRow.getRow().setColumn(NEW_COL, nextRowCore.getColumn(subqueryColumnPosition));
                     rowQueue.add(correspondingSourceRow);
                 }
-                if (!uniqueKeySet.add(keyColumn)) {
+                if (!uniqueKeySet.add(Bytes.toHex(keyColumn))) {
                     throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
                 }
             }
         } finally {
             subquerySource.close();
         }
+    }
+
+    private KeyEncoder getKeyEncoder(int[] pkCols, ExecRow execRowDefinition) throws StandardException {
+        DataHash dataHash;
+        int[] keyColumns = new int[pkCols.length];
+        for(int i=0;i<keyColumns.length;i++){
+            keyColumns[i] = pkCols[i] -1;
+        }
+        DescriptorSerializer[] serializers = VersionedSerializers.forVersion("2.0", true).getSerializers(execRowDefinition);
+        dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
+        return new KeyEncoder(NoOpPrefix.INSTANCE,dataHash,NoOpPostfix.INSTANCE);
+    }
+
+    private int getColumnPosition(ExecRow execRow, int[] columnPositions) {
+        int[] p = new int[execRow.size()];
+        for(int i = 0; i < p.length; ++i) {
+            p[i] = 0;
+        }
+
+        for (int position : columnPositions) {
+            p[position-1] = 1;
+        }
+
+        for (int i = 0; i < p.length; ++i) {
+            if (p[i] == 0) {
+                return i+1;
+            }
+        }
+        assert false;
+        return -1;
     }
 }

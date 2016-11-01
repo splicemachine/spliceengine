@@ -1423,9 +1423,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int resultSetNumber,
                                                 NoPutResultSet subqueryResultSet,
                                                 String updateResultSetFieldName,
-                                                int sourceRowLocationColumnPosition,
-                                                int sourceCorrelatedColumnPosition,
-                                                int subqueryCorrelatedColumnPosition) throws StandardException {
+                                                int sourceCorrelatedColumnItem,
+                                                int subqueryCorrelatedColumnItem) throws StandardException {
 
         ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
         ConvertedResultSet convertedSubqueryResultSet = (ConvertedResultSet) subqueryResultSet;
@@ -1436,10 +1435,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 resultSetNumber,
                 convertedSubqueryResultSet.getOperation(),
                 updateResultSetFieldName,
-                sourceRowLocationColumnPosition,
-                sourceCorrelatedColumnPosition,
-                subqueryCorrelatedColumnPosition
-        );
+                sourceCorrelatedColumnItem,
+                subqueryCorrelatedColumnItem);
 
         return batchOnceOperation;
     }

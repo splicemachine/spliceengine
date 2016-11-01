@@ -1950,8 +1950,7 @@ public interface ResultSetFactory {
                                                 int resultSetNumber,
                                                 NoPutResultSet subqueryResultSet,
                                                 String updateResultSetFieldName,
-                                                int sourceRowLocationColumnPosition,
-                                                int sourceCorrelatedColumnPosition,
-                                                int subqueryCorrelatedColumnPosition) throws StandardException;
+                                                int sourceCorrelatedColumnItem,
+                                                int subqueryCorrelatedColumnItem) throws StandardException;
 
 }
