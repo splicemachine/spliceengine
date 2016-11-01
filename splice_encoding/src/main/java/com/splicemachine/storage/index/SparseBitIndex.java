@@ -275,8 +275,14 @@ class SparseBitIndex implements BitIndex {
         BitSet doubleFields = new BitSet();
 
         //there are no entries
-        if(limit ==0 || data[position]==0x00)
+        if(limit ==0){
+            /*
+             * It turns out it's possible for a Sparse BitIndex to lead off with a 0x00 byte, so
+             * we can't use that as a condition for early termination. However, we can defer it to the
+             * caller to ensure that limit is non-zero (for a non-empty index).
+             */
             return new SparseBitIndex(bitSet,scalarFields,floatFields,doubleFields);
+        }
 
         //check if the zero-bit is set
         int startBitPos=6;

@@ -71,6 +71,16 @@ public class EntryDecoder implements Supplier<MultiFieldDecoder> {
     private void rebuildBitIndex() {
         //find separator byte
         dataOffset = currentData.find((byte) 0x00, 0);
+        if(dataOffset==0){
+            /*
+             * It turns out that it is possible, in limited circumstances, for a Sparse BitIndex to start with
+             * a leading 0. When that happens, we are assuming that everything is actually okay, and looking
+             * for the *next* zero (we know that we can't have a trailing zero, nor zeros in the middle of
+             * the index, since we use continuation bits to ensure non-zero elements in the middle of the index).
+             */
+            dataOffset=currentData.find((byte)0x00,dataOffset+1)+1;
+        }
+
 
         if (lastIndexData.equals(currentData, dataOffset)) {
             dataOffset++;
