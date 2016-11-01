@@ -14,6 +14,9 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -29,7 +32,7 @@ import org.junit.Test;
  * Test Class for SQLChar
  *
  */
-public class SQLVarcharTest {
+public class SQLVarcharTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
@@ -75,4 +78,35 @@ public class SQLVarcharTest {
                 Assert.assertEquals("1 incorrect",value1.getString(),value1a.getString());
                 Assert.assertEquals("2 incorrect",value2.getString(),value2a.getString());
         }
+
+        @Test
+        public void testColumnStatistics() throws Exception {
+
+                SQLVarchar value1 = new SQLVarchar();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLVarchar sqlVarchar;
+
+                for (int i = 0; i < 10000; i++) {
+                        if (i>=5000 && i < 6000)
+                                sqlVarchar = new SQLVarchar();
+                        else
+                                sqlVarchar = new SQLVarchar(new char[]{(char) ('A' + (i%26))});
+                        stats.update(sqlVarchar);
+                }
+                stats = serde(stats);
+                Assert.assertEquals(1000,stats.nullCount());
+                Assert.assertEquals(9000,stats.notNullCount());
+                Assert.assertEquals(10000,stats.totalCount());
+                Assert.assertEquals(new SQLVarchar(new char[]{'Z'}),stats.maxValue());
+                Assert.assertEquals(new SQLVarchar(new char[]{'A'}),stats.minValue());
+                Assert.assertEquals(1000,stats.selectivity(null));
+                Assert.assertEquals(1000,stats.selectivity(new SQLVarchar()));
+                Assert.assertEquals(347,stats.selectivity(new SQLVarchar(new char[]{'A'})));
+                Assert.assertEquals(347,stats.selectivity(new SQLVarchar(new char[]{'F'})));
+                Assert.assertEquals(1404.0d,(double) stats.rangeSelectivity(new SQLVarchar(new char[]{'C'}),new SQLVarchar(new char[]{'G'}),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(700.0d,(double) stats.rangeSelectivity(new SQLVarchar(),new SQLVarchar(new char[]{'C'}),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLVarchar(new char[]{'T'}),new SQLVarchar(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+        }
+
+
 }

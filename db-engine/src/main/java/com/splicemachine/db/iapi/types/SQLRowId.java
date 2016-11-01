@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -38,7 +39,6 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -355,5 +355,9 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
     }
 
+
+    public void updateThetaSketch(UpdateSketch updateSketch) {
+        updateSketch.update(bytes);
+    }
 
 }

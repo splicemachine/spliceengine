@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -288,4 +289,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     }
 
 
+    public void updateThetaSketch(UpdateSketch updateSketch) {
+        updateSketch.update(slice.getByteCopy());
+    }
 }

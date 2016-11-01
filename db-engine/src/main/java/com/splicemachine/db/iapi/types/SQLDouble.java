@@ -26,27 +26,20 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Storable;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.services.cache.ClassSize;
-
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -225,25 +218,20 @@ public final class SQLDouble extends NumberDataType
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
+		out.writeBoolean(isNull);
 		out.writeDouble(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-
+		isNull = in.readBoolean();
 		value = in.readDouble();
-		isNull = false;
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-
+		isNull = in.readBoolean();
 		value = in.readDouble();
-		isNull = false;
 	}
 
 	/**
@@ -1013,4 +1001,7 @@ public final class SQLDouble extends NumberDataType
 	}
 
 
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		updateSketch.update(value);
+	}
 }

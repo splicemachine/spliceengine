@@ -26,7 +26,7 @@ import org.junit.Test;
  * Test Class for SQLBlob
  *
  */
-public class SQLBlobTest {
+public class SQLBlobTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
