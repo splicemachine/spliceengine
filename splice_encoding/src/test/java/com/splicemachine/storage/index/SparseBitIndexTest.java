@@ -22,10 +22,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -37,6 +34,64 @@ public class SparseBitIndexTest {
     @Parameterized.Parameters
     public static Collection<Object[]> parameters(){
         List<Object[]> ds = new ArrayList<>();
+        ds.add(splice816Data());
+        ds.add(db5669Data());
+        ds.add(new Object[]{new BitSet(),new BitSet(),new BitSet(),new BitSet()});
+
+        BitSet nnCols = new BitSet();
+        BitSet allP2 = new BitSet();
+        BitSet p2Threes = new BitSet();
+        BitSet threeFive = new BitSet();
+        BitSet randoms = new BitSet();
+        Random random = new Random(0L);
+        BitSet others = new BitSet();
+        int s = 1<<16;
+        for(int i=1;i<s;i<<=1){
+            nnCols.clear();
+            nnCols.set(i);
+            allP2.set(i);
+            p2Threes.set(i*3);
+            threeFive.set(i*3+i*5);
+
+            int p;
+            do{
+                p = random.nextInt(i);
+            }while(randoms.get(p));
+            randoms.set(p);
+            //powers of 2
+            ds.add(new Object[]{nnCols,others,others,others});
+            //all powers of 2
+            ds.add(new Object[]{allP2,others,others,others});
+            //divide p2 by 3
+            ds.add(new Object[]{p2Threes,others,others,others});
+            ds.add(new Object[]{threeFive,others,others,others});
+        }
+
+        return ds;
+    }
+
+
+    private BitSet nnCols;
+    private BitSet scalars;
+    private BitSet doubles;
+    private BitSet floats;
+
+    public SparseBitIndexTest(BitSet nnCols,BitSet scalars,BitSet doubles,BitSet floats){
+        this.nnCols=nnCols;
+        this.scalars=scalars;
+        this.doubles=doubles;
+        this.floats=floats;
+    }
+
+    @Test
+    public void testSparseEncodesAndDecodesProperly() throws Exception{
+        BitIndex bi = SparseBitIndex.create(nnCols,scalars,doubles,floats);
+        byte[] d = bi.encode();
+        BitIndex nbi = SparseBitIndex.wrap(d,0,d.length);
+        Assert.assertEquals("Incorrect serialization/deserialization!",bi,nbi);
+    }
+
+    private static Object[] splice816Data(){
         /*
          * Regression data for SPLICE-816
          */
@@ -66,92 +121,17 @@ public class SparseBitIndexTest {
         scalars.set(90);
         scalars.intersect(nnCols);
 
-        ds.add(new Object[]{nnCols,scalars,new BitSet(),new BitSet()});
-
-        return ds;
-    }
-    private BitSet nnCols;
-    private BitSet scalars;
-    private BitSet doubles;
-    private BitSet floats;
-
-    public SparseBitIndexTest(BitSet nnCols,BitSet scalars,BitSet doubles,BitSet floats){
-        this.nnCols=nnCols;
-        this.scalars=scalars;
-        this.doubles=doubles;
-        this.floats=floats;
+        return new Object[]{nnCols,scalars,new BitSet(),new BitSet()};
     }
 
-    @Test
-    public void testSparseBitIndexHasNoZeros() throws Exception{
+    private static Object[] db5669Data(){
+        /*
+         * Regression setting for db5669
+         */
+        BitSet nnCols = new BitSet();
+        nnCols.set(128);
 
-        BitIndex bi = SparseBitIndex.create(nnCols,scalars,doubles,floats);
-        byte[] d = bi.encode();
-        for(int i=0;i<d.length;i++){
-            Assert.assertNotEquals("Contained a 0 at pos <"+i+">!",0x00,d[i]);
-        }
-        BitIndex nbi = SparseBitIndex.wrap(d,0,d.length);
-        Assert.assertEquals("Incorrect deserialization!",bi,nbi);
+        return new Object[]{nnCols,new BitSet(),new BitSet(),new BitSet()};
     }
-    //    @Test
-//    public void testCorrectHandCheck() throws Exception {
-//        //makes sure it lines up to the hand constructed entities
-//        Map<byte[],Integer> correctReps = Maps.newHashMap();
-//        correctReps.put(new byte[]{0x04}, 1);
-//        correctReps.put(new byte[]{0x02,(byte)0x80}, 2);
-//        correctReps.put(new byte[]{0x02,(byte)0xC0}, 3);
-//        correctReps.put(new byte[]{0x03,(byte)0x80}, 4);
-//        correctReps.put(new byte[]{0x03,(byte)0xA0}, 5);
-//        correctReps.put(new byte[]{0x03,(byte)0xC0}, 6);
-//        correctReps.put(new byte[]{0x03,(byte)0xE0}, 7);
-//        correctReps.put(new byte[]{0x01,(byte)0x80}, 8);
-//        correctReps.put(new byte[]{0x01,(byte)0x84}, 9);
-//        correctReps.put(new byte[]{0x01,(byte)0x88}, 10);
-//        correctReps.put(new byte[]{0x01,(byte)0x8C}, 11);
-//        correctReps.put(new byte[]{0x01,(byte)0x90}, 12);
-//        correctReps.put(new byte[]{0x01,(byte)0x94}, 13);
-//        correctReps.put(new byte[]{0x01,(byte)0x98}, 14);
-//        correctReps.put(new byte[]{0x01,(byte)0x9C}, 15);
-//        correctReps.put(new byte[]{0x01,(byte)0xA0}, 16);
-//        correctReps.put(new byte[]{0x01,(byte)0xA2}, 17);
-//
-//        for(byte[] bytees:correctReps.keySet()){
-//            SparseBitIndex index = SparseBitIndex.wrap(bytees,0,bytees.length);
-//            Assert.assertTrue("Incorrect bytes with index "+ index,index.isSet(correctReps.get(bytees)));
-//            Assert.assertEquals(1,index.cardinality());
-//        }
-//    }
-//
-//    @Test
-//    public void testEncodesCorrectlyHandCheck() throws Exception {
-//        //makes sure it lines up to the hand constructed entities
-//        Map<Integer,byte[]> correctReps = Maps.newHashMap();
-//        correctReps.put(1,new byte[]{0x04});
-//        correctReps.put(2,new byte[]{0x02,(byte)0x80});
-//        correctReps.put(3,new byte[]{0x02,(byte)0xC0});
-//        correctReps.put(4,new byte[]{0x03,(byte)0x80});
-//        correctReps.put(5,new byte[]{0x03,(byte)0xA0});
-//        correctReps.put(6,new byte[]{0x03,(byte)0xC0});
-//        correctReps.put(7,new byte[]{0x03,(byte)0xE0});
-//        correctReps.put(8,new byte[]{0x01,(byte)0x80});
-//        correctReps.put(9,new byte[]{0x01,(byte)0x84});
-//        correctReps.put(10,new byte[]{0x01,(byte)0x88});
-//        correctReps.put(11,new byte[]{0x01,(byte)0x8C});
-//        correctReps.put(12,new byte[]{0x01,(byte)0x90});
-//        correctReps.put(13,new byte[]{0x01,(byte)0x94});
-//        correctReps.put(14,new byte[]{0x01,(byte)0x98});
-//        correctReps.put(15,new byte[]{0x01,(byte)0x9C});
-//        correctReps.put(16,new byte[]{0x01,(byte)0xA0});
-//        correctReps.put(17,new byte[]{0x01,(byte)0xA2});
-//
-//        for(int val:correctReps.keySet()){
-//            BitSet test = new BitSet();
-//            test.set(val);
-//
-//            byte[] actual = new SparseBitIndex(test,new BitSet()).encode();
-//            Assert.assertArrayEquals("Incorrect encoding for BitSet "+ test,correctReps.get(val),actual);
-//        }
-//    }
-
 
 }

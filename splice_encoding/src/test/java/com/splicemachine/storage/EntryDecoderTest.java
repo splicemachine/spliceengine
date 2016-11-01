@@ -15,8 +15,11 @@
 
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -61,4 +64,16 @@ public class EntryDecoderTest {
         assertEquals("Note that the cardinality only indicates number of non-null fields", 1, bitIndex.cardinality());
     }
 
+    @Test
+    public void rebuildBitIndexWorksProperlyForSpecificByteArray() throws Exception{
+        byte[] value = new byte[]{0,-64,-128,0,51};
+        EntryDecoder decoder = new EntryDecoder(value);
+
+        BitIndex bi = decoder.getCurrentIndex();
+        BitSet correct = new BitSet();
+        correct.set(128);
+        BitIndex correctIndex =BitIndexing.sparseBitMap(correct,new BitSet(),new BitSet(),new BitSet());
+
+        Assert.assertEquals("Incorrect decoded bit index!",correctIndex,bi);
+    }
 }
