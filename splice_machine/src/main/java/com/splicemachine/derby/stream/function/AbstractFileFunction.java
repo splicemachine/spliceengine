@@ -128,11 +128,13 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
         operationContext.recordRead();
         try {
             ExecRow returnRow = execRow.getClone();
+            if(values==null)
+                throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, execRow.nColumns(), 0);
             for (int i = 1; i <= returnRow.nColumns(); i++) {
                 DataValueDescriptor dvd = returnRow.getColumn(i);
                 int type = dvd.getTypeFormatId();
-                if (values.size() <= i-1) {
-                    throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, execRow.nColumns(), values.size());
+                if (values.size()<=i-1) {
+                    throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, execRow.nColumns(),values.size());
                 }
                 String value = values.get(i - 1);
                 if (shouldBeNull(value,quotedColumns.valueAt(i-1)))
