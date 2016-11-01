@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -543,7 +544,8 @@ public class HdfsImportIT extends SpliceUnitTest {
         } catch (SQLException e) {
             assertEquals("Expected too many bad records, but got: "+e.getLocalizedMessage(), "SE009", e.getSQLState());
         }
-        assertTrue("Bad file " +badFileName+" does not exist.", new File(badFileName).exists());
+        boolean exists = existsBadFile(new File(newImportFile.getParent()), inputFileName+".bad");
+        assertTrue("Bad file " +badFileName+" does not exist.", exists);
     }
 
     @Test
@@ -1505,11 +1507,6 @@ public class HdfsImportIT extends SpliceUnitTest {
         TableDAO td = new TableDAO(methodWatcher.getOrCreateConnection());
         td.drop(spliceSchemaWatcher.schemaName, tableName);
 
-        File badFile = new File(BADDIR, "salary_check_constraint.csv" + ".bad");
-        if (badFile.exists()) {
-            assertTrue("Cannot delete "+badFile.getCanonicalPath(),badFile.delete());
-        }
-
         methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
                 format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+
                         "(EMPNO CHAR(6) NOT NULL CONSTRAINT EMP_PK PRIMARY KEY, " +
@@ -1557,9 +1554,11 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
         Assert.assertEquals(format("Expected %s row1 imported", insertRowsExpected), insertRowsExpected, results.size());
 
-        assertTrue("Bad file " +badFile+" does not exist.", badFile.exists());
-        List<String> badLines = Files.readAllLines(badFile.toPath(), Charset.defaultCharset());
-        assertEquals("Expected 2 lines in bad file "+badFile.getCanonicalPath(), 2, badLines.size());
+        boolean exists = existsBadFile(BADDIR, "salary_check_constraint.csv.bad");
+        String badFile = getBadFile(BADDIR, "salary_check_constraint.csv.bad");
+        assertTrue("Bad file " +badFile+" does not exist.",exists);
+        List<String> badLines = Files.readAllLines((new File(BADDIR, badFile)).toPath(), Charset.defaultCharset());
+        assertEquals("Expected 2 lines in bad file "+badFile, 2, badLines.size());
         assertContains(badLines, containsString("BONUS_CK"));
         assertContains(badLines, containsString(spliceSchemaWatcher.schemaName+"."+tableName));
         assertContains(badLines, containsString("SAL_CK"));
@@ -1571,6 +1570,6 @@ public class HdfsImportIT extends SpliceUnitTest {
                 return;
             }
         }
-        fail("Expected to contain "+target.toString()+ " in: "+collection);
+        fail("Expected to contain " + target.toString() + " in: " + collection);
     }
 }
