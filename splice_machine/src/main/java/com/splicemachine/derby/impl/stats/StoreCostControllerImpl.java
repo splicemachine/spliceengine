@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -24,13 +25,12 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.stats.PartitionStatistics;
-import com.splicemachine.db.iapi.stats.PartitionStatisticsImpl;
-import com.splicemachine.db.iapi.stats.TableStatistics;
-import com.splicemachine.db.iapi.stats.TableStatisticsImpl;
+import com.splicemachine.db.iapi.stats.*;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.vti.VTICosting;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -96,27 +96,35 @@ public class StoreCostControllerImpl implements StoreCostController {
         }
         byte[] table = Bytes.toBytes(tableId);
         List<Partition> partitions = new ArrayList<>();
-        getPartitions(table, partitions, false);
-        assert partitions !=null && !partitions.isEmpty():"No Partitions returned";
-        List<String> partitionNames = Lists.transform(partitions,partitionNameTransform);
-        LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
-        Map<String,PartitionStatisticsDescriptor> partitionMap = Maps.uniqueIndex(partitionStatistics,partitionStatisticsTransform);
-        if (partitions.size() < partitionStatistics.size()) {
-            // reload if partition cache contains outdated data for this table
-            partitions.clear();
-            getPartitions(table, partitions, true);
-        }
-        List<PartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
-        PartitionStatisticsDescriptor tStats;
-
-
-        for(String partitionName : partitionNames){
-            tStats = partitionMap.get(partitionName);
-            if(tStats==null) {
-                missingPartitions++;
-                continue; //skip missing partitions entirely
+        List<PartitionStatistics> partitionStats;
+        if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE) {
+            getPartitions(table, partitions, false);
+            assert partitions != null && !partitions.isEmpty() : "No Partitions returned";
+            List<String> partitionNames = Lists.transform(partitions, partitionNameTransform);
+            LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+            Map<String, PartitionStatisticsDescriptor> partitionMap = Maps.uniqueIndex(partitionStatistics, partitionStatisticsTransform);
+            if (partitions.size() < partitionStatistics.size()) {
+                // reload if partition cache contains outdated data for this table
+                partitions.clear();
+                getPartitions(table, partitions, true);
             }
-            partitionStats.add(new PartitionStatisticsImpl(tStats));
+            partitionStats = new ArrayList<>(partitions.size());
+            PartitionStatisticsDescriptor tStats;
+
+
+            for (String partitionName : partitionNames) {
+                tStats = partitionMap.get(partitionName);
+                if (tStats == null) {
+                    missingPartitions++;
+                    continue; //skip missing partitions entirely
+                }
+                partitionStats.add(new PartitionStatisticsImpl(tStats));
+            }
+        } else {
+            partitionStats = new ArrayList<>(partitionStatistics.size());
+            for (PartitionStatisticsDescriptor tStats : partitionStatistics) {
+                partitionStats.add(new PartitionStatisticsImpl(tStats));
+            }
         }
 
         /*
@@ -127,7 +135,19 @@ public class StoreCostControllerImpl implements StoreCostController {
         if (partitionStats.size() == 0) {
             missingPartitions = 0;
             noStats = true;
-            tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier);
+            if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE)
+                tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier);
+            else {
+                try {
+                    FileInfo fileInfo = ImportUtils.getImportFileInfo(td.getLocation());
+                    FakePartitionStatisticsImpl impl = new FakePartitionStatisticsImpl(
+                            tableId,tableId,fileInfo !=null?fileInfo.size()/100:(long) VTICosting.defaultEstimatedRowCount,fileInfo.size(),fallbackNullFraction,extraQualifierMultiplier);
+                    partitionStats.add(impl);
+                    tableStatistics = new TableStatisticsImpl(tableId,partitionStats,fallbackNullFraction,extraQualifierMultiplier);
+                } catch (Exception e) {
+                    throw StandardException.plainWrapException(e);
+                }
+            }
         } else {
             tableStatistics = new TableStatisticsImpl(tableId, partitionStats,fallbackNullFraction,extraQualifierMultiplier);
         }

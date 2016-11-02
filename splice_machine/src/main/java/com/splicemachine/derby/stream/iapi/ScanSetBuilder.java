@@ -42,8 +42,6 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> scan(DataScan scan);
 
-    ScanSetBuilder<V> execRowTypeFormatIds(int[] execRowTypeFormatIds);
-
     ScanSetBuilder<V> transaction(TxnView txn);
 
     ScanSetBuilder<V> optionalProbeValue(DataValueDescriptor optionalProbeValue);
@@ -103,4 +101,29 @@ public interface ScanSetBuilder<V>{
     long getBaseTableConglomId();
 
     ExecRow getTemplate();
+
+    ScanSetBuilder<V> pin(boolean pin);
+
+    ScanSetBuilder<V> delimited(String delimited);
+
+    ScanSetBuilder<V> escaped(String escaped);
+
+    ScanSetBuilder<V> lines(String lines);
+
+    ScanSetBuilder<V> storedAs(String storedAs);
+
+    ScanSetBuilder<V> location(String location);
+
+    boolean getPin();
+
+    String getDelimited();
+
+    String getEscaped();
+
+    String getLines();
+
+    String getStoredAs();
+
+    String getLocation();
+
 }

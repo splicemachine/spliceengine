@@ -46,10 +46,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
      * @see JoinStrategy#resultSetMethodName
      */
 	@Override
-    public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
-        if (bulkFetch)
-            return "getBulkTableScanResultSet";
-        else if (multiprobe)
+    public String resultSetMethodName(boolean multiprobe) {
+        if (multiprobe)
             return "getMultiProbeTableScanResultSet";
         else
             return "getTableScanResultSet";

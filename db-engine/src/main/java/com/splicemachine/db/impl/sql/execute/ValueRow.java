@@ -141,8 +141,7 @@ public class ValueRow implements ExecRow, Externalizable {
 		/* Get the right type of row */
 		ExecRow rowClone = cloneMe();
 
-		for (int colCtr = 0; colCtr < numColumns; colCtr++) 
-		{
+		for (int colCtr = 0; colCtr < numColumns; colCtr++) {
 			// Copy those columns whose bit isn't set (and there is a FormatableBitSet)
 			if (clonedCols != null && !(clonedCols.get(colCtr + 1)))
 			{
@@ -400,7 +399,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	public StructType schema() {
 		StructField[] fields = new StructField[ncols];
 		for (int i = 0; i < ncols;i++) {
-			fields[i] = column[i].getStructField(""+i);
+			fields[i] = column[i].getStructField("col"+i);
 		}
 		return DataTypes.createStructType(fields);
 	}
@@ -607,7 +606,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	public StructType createStructType() {
 		StructField[] fields = new StructField[length()];
 		for (int i = 0; i < length(); i++) {
-			fields[i] = getColumn(i + 1).getStructField("" + i);
+			fields[i] = getColumn(i + 1).getStructField("col" + i);
 		}
 		return DataTypes.createStructType(fields);
 	}

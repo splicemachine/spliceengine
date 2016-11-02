@@ -58,6 +58,12 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected String scanQualifiersField;
     protected String tableVersion;
     protected boolean rowIdKey;
+    protected boolean pin;
+    protected String delimited;
+    protected String escaped;
+    protected String lines;
+    protected String storedAs;
+    protected String location;
 
     public ScanOperation(){
         super();
@@ -75,7 +81,10 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                          int indexColItem,
                          boolean oneRowScan,
                          double optimizerEstimatedRowCount,
-                         double optimizerEstimatedCost,String tableVersion) throws StandardException{
+                         double optimizerEstimatedCost,String tableVersion,
+                         boolean pin, String delimited, String escaped, String lines,
+                         String storedAs, String location
+    ) throws StandardException{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.lockMode=lockMode;
         this.isolationLevel=isolationLevel;
@@ -83,6 +92,12 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         this.scanQualifiersField=scanQualifiersField;
         this.tableVersion=tableVersion;
         this.rowIdKey = rowIdKey;
+        this.pin = pin;
+        this.delimited = delimited;
+        this.escaped = escaped;
+        this.lines = lines;
+        this.storedAs = storedAs;
+        this.location = location;
         this.scanInformation=new DerbyScanInformation(resultRowAllocator.getMethodName(),
                 startKeyGetter!=null?startKeyGetter.getMethodName():null,
                 stopKeyGetter!=null?stopKeyGetter.getMethodName():null,
@@ -115,6 +130,12 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         scanInformation=(ScanInformation<ExecRow>)in.readObject();
         tableVersion=in.readUTF();
         rowIdKey = in.readBoolean();
+        pin = in.readBoolean();
+        delimited = in.readBoolean()?in.readUTF():null;
+        escaped = in.readBoolean()?in.readUTF():null;
+        lines = in.readBoolean()?in.readUTF():null;
+        storedAs = in.readBoolean()?in.readUTF():null;
+        location = in.readBoolean()?in.readUTF():null;
     }
 
     @Override
@@ -126,6 +147,22 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         out.writeObject(scanInformation);
         out.writeUTF(tableVersion);
         out.writeBoolean(rowIdKey);
+        out.writeBoolean(pin);
+        out.writeBoolean(delimited!=null);
+        if (delimited!=null)
+            out.writeUTF(delimited);
+        out.writeBoolean(escaped!=null);
+        if (escaped!=null)
+            out.writeUTF(escaped);
+        out.writeBoolean(lines!=null);
+        if (lines!=null)
+            out.writeUTF(lines);
+        out.writeBoolean(storedAs!=null);
+        if (storedAs!=null)
+            out.writeUTF(storedAs);
+        out.writeBoolean(location!=null);
+        if (location!=null)
+            out.writeUTF(location);
     }
 
     @Override

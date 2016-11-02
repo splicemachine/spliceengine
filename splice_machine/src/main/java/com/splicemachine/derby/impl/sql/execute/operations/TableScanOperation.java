@@ -27,7 +27,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
@@ -139,10 +139,17 @@ public class TableScanOperation extends ScanOperation{
                               boolean oneRowScan,
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
-                              String tableVersion) throws StandardException{
+                              String tableVersion,
+                              boolean pin,
+                              String delimited,
+                              String escaped,
+                              String lines,
+                              String storedAs,
+                              String location) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
-                colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+                colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
+                pin,delimited,escaped,lines,storedAs,location);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
@@ -171,6 +178,7 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
+        pin = in.readBoolean();
         tableName=in.readUTF();
         tableDisplayName=in.readUTF();
         tableNameBytes=Bytes.toBytes(tableName);
@@ -190,6 +198,7 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
+        out.writeBoolean(pin);
         out.writeUTF(tableName);
         out.writeUTF(tableDisplayName);
         out.writeInt(indexColItem);
@@ -317,6 +326,7 @@ public class TableScanOperation extends ScanOperation{
      */
     public DataSet<LocatedRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
+        OperationContext context = dsp.createOperationContext(this);
         return dsp.<TableScanOperation,LocatedRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)
@@ -329,11 +339,16 @@ public class TableScanOperation extends ScanOperation{
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                 .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                 .keyColumnTypes(getKeyFormatIds())
-                .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(getRowDecodingMap())
                 .baseColumnMap(baseColumnMap)
+                .pin(pin)
+                .delimited(delimited)
+                .escaped(escaped)
+                .lines(lines)
+                .storedAs(storedAs)
+                .location(location)
                 .buildDataSet(this);
     }
 }

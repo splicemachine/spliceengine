@@ -27,7 +27,6 @@ import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import java.io.IOException;
@@ -114,7 +113,14 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         int isolationLevel,
         boolean oneRowScan,
         double optimizerEstimatedRowCount,
-        double optimizerEstimatedCost, String tableVersion)
+        double optimizerEstimatedCost, String tableVersion,
+                                        boolean pin,
+                                        String delimited,
+                                        String escaped,
+                                        String lines,
+                                        String storedAs,
+                                        String location
+                                        )
             throws StandardException
     {
         /* Note: We use '1' as rows per read because we do not currently
@@ -146,7 +152,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             1, // rowsPerRead
             oneRowScan,
             optimizerEstimatedRowCount,
-            optimizerEstimatedCost,tableVersion);
+            optimizerEstimatedCost,tableVersion,pin,
+                delimited,
+                escaped,
+                lines,
+                storedAs,
+                location);
 
         if (SanityManager.DEBUG)
         {
@@ -238,7 +249,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                     .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                     .keyColumnTypes(getKeyFormatIds())
-                    .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
                     .rowDecodingMap(getRowDecodingMap())

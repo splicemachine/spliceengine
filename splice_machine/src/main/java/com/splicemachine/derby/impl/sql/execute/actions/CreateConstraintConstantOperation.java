@@ -197,6 +197,8 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 		switch (constraintType) {
 			case DataDictionary.PRIMARYKEY_CONSTRAINT:
+				if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+					throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_PRIMARY_KEYS,td.getName());
 				conDesc = ddg.newPrimaryKeyConstraintDescriptor(
 								td, constraintName,
 								false, //deferable,
@@ -212,6 +214,8 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				break;
 
 			case DataDictionary.UNIQUE_CONSTRAINT:
+				if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+					throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_UNIQUE_CONSTRAINTS,td.getName());
 				conDesc = ddg.newUniqueConstraintDescriptor(
 								td, constraintName,
 								false, //deferable,
@@ -227,6 +231,9 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				break;
 
 			case DataDictionary.CHECK_CONSTRAINT:
+				if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+					throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_CHECK_CONSTRAINTS,td.getName());
+
 				conDesc = ddg.newCheckConstraintDescriptor(
 								td, constraintName,
 								false, //deferable,
@@ -243,6 +250,8 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				break;
 
 			case DataDictionary.FOREIGNKEY_CONSTRAINT:
+				if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+					throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS,td.getName());
 				ReferencedKeyConstraintDescriptor referencedConstraint = DDUtils.locateReferencedConstraint
 					( dd, td, constraintName, columnNames, otherConstraintInfo );
 				DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames);

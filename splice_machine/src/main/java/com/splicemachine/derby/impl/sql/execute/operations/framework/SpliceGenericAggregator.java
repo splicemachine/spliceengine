@@ -112,7 +112,7 @@ public class SpliceGenericAggregator implements Serializable{
 		DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId);
 		
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua ==null|| (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null))
+		if(ua ==null|| (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null))
 			ua = getAggregatorInstance();
 		
 		DataValueDescriptor result = ua.getResult();
@@ -131,7 +131,7 @@ public class SpliceGenericAggregator implements Serializable{
         UserDataValue aggColumn = (UserDataValue) row.getColumn(aggregatorColumnId);
 
         ExecAggregator ua = (ExecAggregator) aggColumn.getObject();
-        if (ua == null || (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null)) {
+        if (ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)) {
             ua = getAggregatorInstance();
             aggColumn.setValue(ua);
             return true;
@@ -143,7 +143,7 @@ public class SpliceGenericAggregator implements Serializable{
         UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
 
         ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
-		if (ua == null || (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null)) {
+		if (ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)) {
 			return false;
 		}
 
@@ -153,7 +153,7 @@ public class SpliceGenericAggregator implements Serializable{
 	public void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
 																throws StandardException{
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua == null || (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null)){
+		if(ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)){
 			ua = getAggregatorInstance();
 		}
 		ua.accumulate(inputCol,this);
@@ -161,7 +161,7 @@ public class SpliceGenericAggregator implements Serializable{
 
 	public void initializeAndAccumulateIfNeeded(DataValueDescriptor inputCol,DataValueDescriptor aggCol) throws StandardException{
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua == null || (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null)){
+		if(ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)){
 			ua = getAggregatorInstance();
 			ua.accumulate(inputCol,this);
 			aggCol.setValue(ua);

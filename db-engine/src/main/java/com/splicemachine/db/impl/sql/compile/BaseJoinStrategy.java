@@ -118,7 +118,14 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                                       int indexColItem,
                                       int lockMode,
                                       boolean tableLocked,
-                                      int isolationLevel, String tableVersion)
+                                      int isolationLevel, String tableVersion,
+                                      boolean pin,
+                                      String delimited,
+                                      String escaped,
+                                      String lines,
+                                      String storedAs,
+                                      String location
+                                      )
             throws StandardException{
         mb.push(innerTable.getBaseTableName());
         //User may have supplied optimizer overrides in the sql
@@ -161,14 +168,6 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
 
         mb.push(isolationLevel);
 
-        if(bulkFetch>0){
-            mb.push(bulkFetch);
-            // If the table references LOBs, we want to disable bulk fetching
-            // when the cursor is holdable. Otherwise, a commit could close
-            // LOBs before they have been returned to the user.
-            mb.push(innerTable.hasLargeObjectColumns());
-        }
-
 		/* 1 row scans (avoiding 2nd next()) are
           * only meaningful for some join strategies.
 		 * (Only an issue for outer table, which currently
@@ -182,13 +181,17 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         mb.push(
                 innerTable.getTrulyTheBestAccessPath().
                         getCostEstimate().rowCount());
-
         mb.push(
                 innerTable.getTrulyTheBestAccessPath().
                         getCostEstimate().getEstimatedCost());
         mb.push(tableVersion);
-
         mb.push(innerTable instanceof ResultSetNode ? ((ResultSetNode)innerTable).printExplainInformationForActivation() : "");
+        mb.push(pin);
+        pushNullableString(mb,delimited);
+        pushNullableString(mb,escaped);
+        pushNullableString(mb,lines);
+        pushNullableString(mb,storedAs);
+        pushNullableString(mb,location);
     }
 
     /**
@@ -228,4 +231,20 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         return false;
     }
 
+    /**
+     * @see JoinStrategy#resultSetMethodName
+     */
+    public String resultSetMethodName(boolean multiprobe) {
+        if (multiprobe)
+            return "getMultiProbeTableScanResultSet";
+        else
+            return "getTableScanResultSet";
+    }
+
+    public static void pushNullableString(MethodBuilder mb, String pushable) {
+        if (pushable != null)
+            mb.push(pushable);
+        else
+            mb.pushNull("java.lang.String");
+    }
 }

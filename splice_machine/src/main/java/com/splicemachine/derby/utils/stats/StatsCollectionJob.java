@@ -19,7 +19,9 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import org.apache.log4j.Logger;
 
 import java.util.List;
@@ -49,7 +51,27 @@ public class StatsCollectionJob implements Callable<Void> {
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.jobGroup, "");
         try {
-            List<LocatedRow> result = request.scanSetBuilder.buildDataSet(request.scope)
+
+
+            DataSet statsDataSet;
+            if (request.scanSetBuilder.getStoredAs() !=null) {
+                ScanSetBuilder builder = request.scanSetBuilder;
+                String storedAs = request.scanSetBuilder.getStoredAs();
+                    if (storedAs.equals("T"))
+                        statsDataSet = dsp.readTextFile(null,builder.getLocation(),builder.getDelimited(),null,builder.getColumnPositionMap(),null,builder.getTemplate());
+                    else if (storedAs.equals("P"))
+                        statsDataSet = dsp.readParquetFile(builder.getColumnPositionMap(),builder.getLocation(),null,null,null,builder.getTemplate());
+                    else if (storedAs.equals("O"))
+                        statsDataSet =  dsp.readORCFile(builder.getColumnPositionMap(),builder.getLocation(),null,null,null,builder.getTemplate());
+                    else {
+                        throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
+                    }
+            }
+            else {
+                statsDataSet = request.scanSetBuilder.buildDataSet(request.scope);
+            }
+
+            List<LocatedRow> result = statsDataSet
                     .mapPartitions(
                     new StatisticsFlatMapFunction(request.scanSetBuilder.getBaseTableConglomId(),request.scanSetBuilder.getColumnPositionMap(), request.scanSetBuilder.getTemplate())).collect();
             jobStatus.markCompleted(new StatsResult(result));

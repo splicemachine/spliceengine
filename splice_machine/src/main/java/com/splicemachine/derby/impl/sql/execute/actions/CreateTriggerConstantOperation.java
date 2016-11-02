@@ -233,6 +233,12 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
          * when compile was done, and the table might well have been dropped.
          */
         triggerTable = dd.getTableDescriptor(triggerTableId);
+        if (triggerTable!=null && triggerTable.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
+            throw StandardException.newException(
+                    SQLState.EXTERNAL_TABLES_NO_TRIGGERS,triggerTable.getName());
+        }
+
+
         if (triggerTable == null) {
             throw StandardException.newException(
                     SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,

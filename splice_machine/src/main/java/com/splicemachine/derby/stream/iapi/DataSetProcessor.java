@@ -17,13 +17,19 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
+import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
+import com.splicemachine.derby.vti.SpliceFileVTI;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Higher level constructs for getting datasets and manipulating the processing mechanisms.
@@ -89,6 +95,18 @@ public interface DataSetProcessor {
      */
     DataSet<String> readTextFile(String path);
 
+    /**
+     *
+     * Specific Column Types for Parquet File
+     *
+     * @param conglomerateID
+     * @param baseColumnMap
+     * @param context
+     * @param <V>
+     * @return
+     */
+    <V> DataSet<V> readParquetFile(long conglomerateID,int[] baseColumnMap, OperationContext context) throws StandardException;
+
     DataSet<String> readTextFile(String path, SpliceOperation op);
     
     /**
@@ -117,4 +135,14 @@ public interface DataSetProcessor {
     void stopJobGroup(String jobName);
 
     Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys);
+
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
+                                          OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
+
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
+                                      OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException;
+
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+                                                OperationContext context,  ExecRow execRow) throws StandardException;
+
 }

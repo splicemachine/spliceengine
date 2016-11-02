@@ -503,7 +503,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SchemaDescriptor.class,EXTERNALIZABLE_SERIALIZER,56);
         instance.register(ProjectRestrictOperation.class,EXTERNALIZABLE_SERIALIZER,58);
         instance.register(TableScanOperation.class,EXTERNALIZABLE_SERIALIZER,59);
-        instance.register(BulkTableScanOperation.class,EXTERNALIZABLE_SERIALIZER,60);
         instance.register(GroupedAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,61);
         instance.register(DistinctScanOperation.class,EXTERNALIZABLE_SERIALIZER,62);
         instance.register(DistinctScalarAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,63);

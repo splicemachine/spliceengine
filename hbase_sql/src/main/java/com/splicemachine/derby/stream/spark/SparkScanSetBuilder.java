@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
+import com.splicemachine.derby.stream.function.TableScanQualifierFunction;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -66,6 +68,22 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             operationContext = dsp.createOperationContext(op);
         else // this call works even if activation is null
             operationContext = dsp.createOperationContext(activation);
+
+        if (pin) {
+            throw new UnsupportedOperationException("Pinning Tables in Memory is not supported");
+        }
+        if (storedAs!= null) {
+            ScanOperation operation = (ScanOperation) op;
+            if (storedAs.equals("T"))
+                return dsp.readTextFile(op,location,delimited,null,baseColumnMap,operationContext,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
+            if (storedAs.equals("P"))
+                return dsp.readParquetFile(baseColumnMap,location,operationContext,operation.getScanInformation().getScanQualifiers(),null,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
+            if (storedAs.equals("O"))
+                return dsp.readORCFile(baseColumnMap,location,operationContext,operation.getScanInformation().getScanQualifiers(),null,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
+            else {
+                throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
+            }
+        }
 
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
