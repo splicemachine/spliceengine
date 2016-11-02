@@ -22,6 +22,9 @@ import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.Pair;
+import org.spark_project.guava.collect.Lists;
+
+import java.util.List;
 
 /**
  * Replaces a ProjectRestrictNode under an Update with a BatchOnceNode.  See BatchOnceNode and BatchOnceOperation for
@@ -55,14 +58,14 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
         int subqueryCount = 0;
         SubqueryNode subqueryNode = null;
         ResultColumn subqueryResultColumn = null;
-        Pair<ColumnReference, ColumnReference> correlatedSubqueryColRef = null;
+        List<Pair<ColumnReference, ColumnReference>> correlatedSubqueryColRefList = null;
         for (ResultColumn resultColumn : prUnderUpdate.getResultColumns()) {
             ValueNode resultColumnExpression = resultColumn.getExpression();
             if (resultColumnExpression instanceof SubqueryNode) {
                 subqueryCount++;
                 subqueryNode = (SubqueryNode) resultColumnExpression;
-                correlatedSubqueryColRef = isApplicableSubqueryNode(subqueryNode);
-                if (correlatedSubqueryColRef != null) {
+                correlatedSubqueryColRefList = isApplicableSubqueryNode(subqueryNode);
+                if (correlatedSubqueryColRefList != null && correlatedSubqueryColRefList.size() > 0) {
                     subqueryResultColumn = resultColumn;
                 }
             }
@@ -88,12 +91,8 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
         if (!(fromBaseTable instanceof FromBaseTable)) {
             return updateNode;
         }
-        ResultColumnList resultColumns1 = fromBaseTable.getResultColumns();
-        if (resultColumns1.size() != 2) {
-            return updateNode;
-        }
 
-        insertBatchOnceNode(updateNode, prUnderUpdate, subqueryNode, correlatedSubqueryColRef);
+        insertBatchOnceNode(updateNode, prUnderUpdate, subqueryNode, correlatedSubqueryColRefList);
         return updateNode;
     }
 
@@ -109,7 +108,7 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
     private void insertBatchOnceNode(UpdateNode updateNode,
                                      ProjectRestrictNode prUnderUpdate,
                                      SubqueryNode subqueryNode,
-                                     Pair<ColumnReference, ColumnReference> correlatedSubqueryColRef) throws StandardException {
+                                     List<Pair<ColumnReference, ColumnReference>> correlatedSubqueryColRefList) throws StandardException {
 
         /* Remove predicates from subquery table */
         ProjectRestrictNode subPrNode = (ProjectRestrictNode) subqueryNode.getResultSet();
@@ -119,20 +118,23 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
 
         /* Batch once is over existing project restrict */
         ResultSetNode newSourceNode = prUnderUpdate.getChildResult();
-
-        int sourceCorrelatedColumnPosition = findColRefPosition(correlatedSubqueryColRef.getFirst(), newSourceNode);
-        int subqueryCorrelatedColumnPosition = findColRefPosition(correlatedSubqueryColRef.getSecond(), subFromBaseTable);
-        int sourceRowLocationColumnPosition = findRowLocationPosition(newSourceNode);
-
+        int[] sourceCorrelatedColumnPositions = new int[correlatedSubqueryColRefList.size()];
+        int[] subqueryCorrelatedColumnPositions = new int[correlatedSubqueryColRefList.size()];
+        for (int i = 0; i < correlatedSubqueryColRefList.size(); ++i) {
+            Pair<ColumnReference, ColumnReference> correlatedSubqueryColRef = correlatedSubqueryColRefList.get(i);
+            int sourceCorrelatedColumnPosition = findColRefPosition(correlatedSubqueryColRef.getFirst(), newSourceNode);
+            int subqueryCorrelatedColumnPosition = findColRefPosition(correlatedSubqueryColRef.getSecond(), subFromBaseTable);
+            sourceCorrelatedColumnPositions[i] = sourceCorrelatedColumnPosition;
+            subqueryCorrelatedColumnPositions[i] = subqueryCorrelatedColumnPosition;
+        }
         BatchOnceNode batchOnceNode = (BatchOnceNode) updateNode.getNodeFactory().getNode(
                 C_NodeTypes.BATCH_ONCE_NODE,
                 updateNode.getContextManager());
 
         batchOnceNode.init(newSourceNode,
                 subqueryNode,
-                sourceRowLocationColumnPosition,
-                sourceCorrelatedColumnPosition,
-                subqueryCorrelatedColumnPosition);
+                sourceCorrelatedColumnPositions,
+                subqueryCorrelatedColumnPositions);
 
         /* Update node is over batch once */
         updateNode.init(batchOnceNode);
@@ -162,7 +164,7 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
      * NULL if the tree does not look like this.  If it does in returns a pair of column references where
      * the first element in the pair is the correlated column reference.
      */
-    private Pair<ColumnReference,ColumnReference> isApplicableSubqueryNode(SubqueryNode subqueryNode) throws StandardException {
+    private List<Pair<ColumnReference,ColumnReference>> isApplicableSubqueryNode(SubqueryNode subqueryNode) throws StandardException {
 
         /*
          * Must be expression subquery
@@ -186,46 +188,43 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
             return null;
         }
 
-        /*
-         * FromBaseTable must have one predicate
-         */
+
         FromBaseTable fromBaseTable = (FromBaseTable) pr2.getChildResult();
         PredicateList predicateList = RSUtils.getPreds(fromBaseTable);
-        if (predicateList.size() != 1) {
-            return null;
-        }
+        List<Pair<ColumnReference,ColumnReference>> result = Lists.newArrayList();
+        for (int i = 0; i < predicateList.size(); ++i) {
+            /*
+             * Must be equality BRON
+             */
+            Predicate predicate = predicateList.elementAt(i);
+            AndNode and = predicate.getAndNode();
+            if (!(and.getLeftOperand() instanceof BinaryRelationalOperatorNode)) {
+                return null;
+            }
+            BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) and.getLeftOperand();
+            if (bron.getOperator() != RelationalOperator.EQUALS_RELOP) {
+                return null;
+            }
 
-        /*
-         * Must be equality BRON
-         */
-        Predicate predicate = (Predicate) predicateList.getNodes().get(0);
-        AndNode and = predicate.getAndNode();
-        if (!(and.getLeftOperand() instanceof BinaryRelationalOperatorNode)) {
-            return null;
-        }
-        BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) and.getLeftOperand();
-        if (bron.getOperator() != RelationalOperator.EQUALS_RELOP) {
-            return null;
-        }
+            /**
+             * With one correlated CR
+             */
+            ValueNode leftOperand = bron.getLeftOperand();
+            ValueNode rightOperand = bron.getRightOperand();
+            if (!(leftOperand instanceof ColumnReference && rightOperand instanceof ColumnReference)) {
+                return null;
+            }
 
-        /**
-         * With one correlated CR
-         */
-        ValueNode leftOperand = bron.getLeftOperand();
-        ValueNode rightOperand = bron.getRightOperand();
-        if (!(leftOperand instanceof ColumnReference && rightOperand instanceof ColumnReference)) {
-            return null;
-        }
+            ColumnReference leftCr = (ColumnReference) leftOperand;
+            ColumnReference rightCr = (ColumnReference) rightOperand;
 
-        ColumnReference leftCr = (ColumnReference) leftOperand;
-        ColumnReference rightCr = (ColumnReference) rightOperand;
-
-        if (leftCr.getCorrelated()) {
-            return Pair.newPair(leftCr, rightCr);
-        } else if (rightCr.getCorrelated()) {
-            return Pair.newPair(rightCr, leftCr);
+            if (leftCr.getCorrelated()) {
+                result.add(Pair.newPair(leftCr, rightCr));
+            } else if (rightCr.getCorrelated()) {
+                result.add(Pair.newPair(rightCr, leftCr));
+            }
         }
-        return null;
+        return result;
     }
 
     /**
