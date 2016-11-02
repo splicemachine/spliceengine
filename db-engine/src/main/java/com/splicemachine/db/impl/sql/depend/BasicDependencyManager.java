@@ -26,12 +26,7 @@
 package com.splicemachine.db.impl.sql.depend;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -313,7 +308,14 @@ public class BasicDependencyManager implements DependencyManager {
         }
 	}
 
-    /**
+	@Override
+	public Collection<Dependency> find(UUID dependencyUUID) throws StandardException{
+		synchronized(this){
+            return dependents.get(dependencyUUID);
+        }
+	}
+
+	/**
      * A version of invalidateFor that does not provide synchronization among
      * invalidators.
      *
