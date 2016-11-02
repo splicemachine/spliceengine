@@ -1,5 +1,5 @@
---- hbase-env.sh.orig	2016-07-19 04:15:37.081337868 +0000
-+++ hbase-env.sh	2016-07-19 04:24:50.423718074 +0000
+--- hbase-env.sh.orig	2016-11-02 15:48:25.636480334 +0000
++++ hbase-env.sh	2016-11-02 15:56:37.310527931 +0000
 @@ -31,6 +31,10 @@
  # Extra Java CLASSPATH elements.  Optional.
  # export HBASE_CLASSPATH=
@@ -11,7 +11,7 @@
  # The maximum amount of heap to use. Default is left to JVM default.
  # export HBASE_HEAPSIZE=1G
  
-@@ -38,17 +42,102 @@
+@@ -38,17 +42,101 @@
  # offheap, set the value to "8G".
  # export HBASE_OFFHEAPSIZE=1G
  
@@ -70,7 +70,6 @@
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.streaming.ui.retainedBatches=100"
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.cores=4"
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.memory=8g"
-+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.cleaner.ttl=14400"
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dspark.compaction.reserved.slots=4"
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.eventLog.enabled=true"
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.eventLog.dir=maprfs:///user/splice/history" # this needs to be created before startup
@@ -118,7 +117,7 @@
  
  # Uncomment one of the below three options to enable java garbage collection logging for the server-side processes.
  
-@@ -85,11 +174,11 @@
+@@ -85,11 +173,11 @@
  # NOTE: HBase provides an alternative JMX implementation to fix the random ports issue, please see JMX
  # section in HBase Reference Guide for instructions.
  
