@@ -222,7 +222,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			);
 			this.hregion = srs.getRegion();
 			this.mrs = srs;
-			ExecRow template = getExecRow();
+			ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());
             assert this.hregion !=null:"Returned null HRegion for htable "+htable.getName();
 			long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getQualifierAsString());
             TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));
@@ -244,7 +244,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	}
 
 
-    public ExecRow getExecRow() {
+    public int[] getExecRowTypeFormatIds() {
 		if (builder == null) {
 			String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
 			if (tableScannerAsString == null)
@@ -257,7 +257,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
 		}
-		return builder.getTemplate();
+		return builder.getExecRowTypeFormatIds();
 	}
 
 	public void addCloseable(AutoCloseable closeable) {

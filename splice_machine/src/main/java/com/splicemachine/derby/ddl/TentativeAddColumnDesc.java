@@ -18,6 +18,7 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 
 import org.spark_project.guava.primitives.Ints;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -87,7 +88,7 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
         FormatableBitSet accessedPKColumns = getAccessedKeyColumns(keyColumnEncodingOrder);
 
         builder.template(templateRow).tableVersion(tableVersion)
-                .template(templateRow)
+                .execRowTypeFormatIds(getFormatIds(templateRow))
                .rowDecodingMap(baseColumnOrder).keyColumnEncodingOrder(keyColumnEncodingOrder)
                .keyColumnSortOrder(getKeyColumnSortOrder(nColumns))
                .keyColumnTypes(getKeyColumnTypes(templateRow, keyColumnEncodingOrder))

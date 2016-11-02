@@ -535,12 +535,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	/**
 	 * @see DataValueDescriptor#getNewNull
 	 */
-	public DataValueDescriptor getNewNull() {
-		try {
-			return new SQLDecimal(null,precision,scale);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+	public DataValueDescriptor getNewNull()
+	{
+		return new SQLDecimal();
 	}
 
 	/**

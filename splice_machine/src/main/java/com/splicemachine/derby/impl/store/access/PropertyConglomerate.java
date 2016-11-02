@@ -84,7 +84,7 @@ public class PropertyConglomerate {
                 RawStoreFactory.PAGE_RESERVED_SPACE_PARAMETER, 
                 RawStoreFactory.PAGE_RESERVED_ZERO_SPACE_STRING);
 			propertiesConglomId = 
-                tc.createConglomerate(false,
+                tc.createConglomerate(
                     AccessFactoryGlobals.HEAP,
                     template, 
                     null,

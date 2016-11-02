@@ -39,10 +39,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 /**
- *
- *
- *
- *
+ * Created by jleach on 10/7/15.
  */
 public class SpliceFileVTI implements DatasetProvider, VTICosting {
     private String fileName;
@@ -133,7 +130,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     }
 
     private static final int defaultBytesPerRow = 100;
-    public static int getBytesPerRow() {
+    protected int getBytesPerRow() {
         // Imprecise assumption of a fixed number of bytes per row,
         // but better than assuming fixed default row count.
         // Future improvements might include:
@@ -166,7 +163,6 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         return VTICosting.defaultEstimatedRowCount;
     }
 
-
     // Like the above row count estimate, our cost estimate is an approximation
     // using fixed assumptions, but much better than just returning same
     // default value all the time. We assume a disk throughput and
@@ -180,9 +176,9 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     // File size (MB) = 724 MB (size of tpch1g lineitem file)
     // Total time (cost) = total latency * file size (MB) = 57000 micros/MB * 724 = 41268000 micros
 
-    public static final double defaultDiskThroughputMBPerSecond = 20d;
-    public static final double defaultNetworkThroughputMBPerSecond = 144d;
-    public static final double defaultTotalLatencyMicrosPerMB =
+    private static final double defaultDiskThroughputMBPerSecond = 20d;
+    private static final double defaultNetworkThroughputMBPerSecond = 144d;
+    private static final double defaultTotalLatencyMicrosPerMB =
         1000000d * /* seconds to microseconds */
         ((1 / defaultDiskThroughputMBPerSecond) /* disk latency for 1 MB */ +
          (1 / defaultNetworkThroughputMBPerSecond)) /* network latency for 1 MB */;

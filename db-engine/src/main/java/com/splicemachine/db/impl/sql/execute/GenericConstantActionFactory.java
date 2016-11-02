@@ -59,13 +59,15 @@ import com.splicemachine.db.impl.sql.compile.TableName;
  *
  * See SpliceGenericConstantActionFactory in spliceengine repo
  */
-public abstract class GenericConstantActionFactory {
+public abstract class GenericConstantActionFactory
+{
 	///////////////////////////////////////////////////////////////////////
 	//
 	//	CONSTRUCTORS
 	//
 	///////////////////////////////////////////////////////////////////////
-    public	GenericConstantActionFactory() {
+    public	GenericConstantActionFactory()
+	{
 	}
 
 	///////////////////////////////////////////////////////////////////////
@@ -88,7 +90,8 @@ public abstract class GenericConstantActionFactory {
 	 *	@param ddlList		Replication list of actions to propagate,
 	 *						null unless a replication source
 	 */
-	public abstract ConstantAction getSetConstraintsConstantAction(
+	public abstract ConstantAction getSetConstraintsConstantAction
+	(
 		ConstraintDescriptorList	cdl,
 		boolean						enable,
 		boolean						unconditionallyEnforce,
@@ -128,7 +131,8 @@ public abstract class GenericConstantActionFactory {
 	 *  	updateStatistics/dropStatistics is set to true.
 	 *  .
 	 */
-	public abstract ConstantAction	getAlterTableConstantAction(
+	public abstract ConstantAction	getAlterTableConstantAction
+	(
 		SchemaDescriptor			sd,
 		String						tableName,
 		UUID						tableId,
@@ -168,7 +172,8 @@ public abstract class GenericConstantActionFactory {
 	 *	@param otherConstraint	The referenced constraint, if a foreign key constraint
 	 *  @param providerInfo Information on all the Providers
 	 */
-	public abstract	ConstantAction getCreateConstraintConstantAction(
+	public abstract	ConstantAction getCreateConstraintConstantAction
+	(
 		String				constraintName,
 		int					constraintType,
         boolean             forCreateTable,
@@ -313,19 +318,8 @@ public abstract class GenericConstantActionFactory {
 		char			lockGranularity,
 		boolean			onCommitDeleteRows,
 		boolean			onRollbackDeleteRows,
-        String          withDataQueryString,
-		String delimited,
-		String escaped,
-		String lines,
-		String storedAs,
-		String location
+        String          withDataQueryString
 		);
-
-	public abstract	ConstantAction	getPinTableConstantAction (
-					String			schemaName,
-					String			tableName
-			);
-
 
 	/**
 	 *	Make the ConstantAction for a savepoint statement (ROLLBACK savepoint, RELASE savepoint and SAVEPOINT).
@@ -333,7 +327,8 @@ public abstract class GenericConstantActionFactory {
 	 *  @param savepointName	name for the savepoint.
 	 *  @param statementType	Type of savepoint statement ie rollback, release or set savepoint
 	 */
-	public abstract ConstantAction	getSavepointConstantAction (
+	public abstract ConstantAction	getSavepointConstantAction
+	(
 		String			savepointName,
 		int				statementType);
 

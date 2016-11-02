@@ -16,8 +16,11 @@
 package com.splicemachine.mrio.api.hive;
 
 import java.io.IOException;
+import java.util.Arrays;
+
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.mrio.api.core.SMRecordReaderImpl;
 import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.mrio.api.serde.RowLocationWritable;
@@ -77,9 +80,9 @@ public class SMHiveRecordReader implements RecordReader<RowLocationWritable,Exec
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "createValue");
 		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "createValue with delegate=%s, formatIds=%s",delegate, delegate.getExecRow());
+			SpliceLogUtils.trace(LOG, "createValue with delegate=%s, formatIds=%s",delegate, delegate.getExecRowTypeFormatIds());		
 		try {
-			return new ExecRowWritable(delegate.getExecRow());
+			return new ExecRowWritable(delegate.getExecRowTypeFormatIds());
 		} catch (Exception e) {
 			throw new RuntimeException(e); // Not Possible
 		}

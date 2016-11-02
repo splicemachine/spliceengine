@@ -28,20 +28,25 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
+
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+
 import com.splicemachine.db.iapi.error.StandardException;
+
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import javafx.scene.control.Tab;
 
 import java.util.Properties;
 
@@ -64,17 +69,8 @@ public class CreateTableNode extends DDLStatementNode
 	private ResultColumnList	resultColumns;
 	private ResultSetNode		queryExpression;
     private String              queryString;
-	boolean             isExternal;
-	ResultColumnList	partitionedResultColumns;
-	CharConstantNode              terminationChar;
-	CharConstantNode              escapedByChar;
-	CharConstantNode              linesTerminatedByChar;
-	String              storageFormat;
-	CharConstantNode              location;
 
-
-
-	/**
+		/**
 	 * Initializer for a CreateTableNode for a base table
 	 *
 	 * @param newObjectName		The name of the new object being created (ie base table)
@@ -91,22 +87,10 @@ public class CreateTableNode extends DDLStatementNode
 			Object newObjectName,
 			Object tableElementList,
 			Object properties,
-			Object lockGranularity,
-			Object isExternal,
-			Object partitionedResultColumns,
-			Object terminationChar,
-			Object escapedByChar,
-			Object linesTerminatedByChar,
-			Object storageFormat,
-			Object location
-		)
+			Object lockGranularity)
 		throws StandardException
 	{
-		this.isExternal = (Boolean) isExternal;
-		if (this.isExternal)
-			tableType = TableDescriptor.EXTERNAL_TYPE;
-		else
-			tableType = TableDescriptor.BASE_TABLE_TYPE;
+		tableType = TableDescriptor.BASE_TABLE_TYPE;
 		this.lockGranularity = ((Character) lockGranularity).charValue();
 		implicitCreateSchema = true;
 
@@ -119,15 +103,10 @@ public class CreateTableNode extends DDLStatementNode
 				"Unexpected value for lockGranularity = " + this.lockGranularity);
 			}
 		}
+
 		initAndCheck(newObjectName);
 		this.tableElementList = (TableElementList) tableElementList;
 		this.properties = (Properties) properties;
-		this.partitionedResultColumns = (ResultColumnList) partitionedResultColumns;
-		this.terminationChar = (CharConstantNode) terminationChar;
-		this.escapedByChar = (CharConstantNode) escapedByChar;
-		this.linesTerminatedByChar = (CharConstantNode) linesTerminatedByChar;
-		this.storageFormat = (String) storageFormat;
-		this.location = (CharConstantNode) location;
 	}
 
 	/**
@@ -170,7 +149,6 @@ public class CreateTableNode extends DDLStatementNode
 				"Unexpected value for onRollbackDeleteRows = " + this.onRollbackDeleteRows);
 			}
 		}
-
 	}
 	
 	/**
@@ -184,14 +162,7 @@ public class CreateTableNode extends DDLStatementNode
 	public void init(
 			Object newObjectName,
 			Object resultColumns,
-			Object queryExpression,
-			Object isExternal,
-			Object partitionedResultColumns,
-			Object terminationChar,
-			Object escapedByChar,
-			Object linesTerminatedByChar,
-			Object storageFormat,
-			Object location)
+			Object queryExpression)
 		throws StandardException
 	{
 		tableType = TableDescriptor.BASE_TABLE_TYPE;
@@ -200,13 +171,6 @@ public class CreateTableNode extends DDLStatementNode
 		initAndCheck(newObjectName);
 		this.resultColumns = (ResultColumnList) resultColumns;
 		this.queryExpression = (ResultSetNode) queryExpression;
-		this.isExternal = (Boolean) isExternal;
-		this.partitionedResultColumns = (ResultColumnList) partitionedResultColumns;
-		this.terminationChar = (CharConstantNode) terminationChar;
-		this.escapedByChar = (CharConstantNode) escapedByChar;
-		this.linesTerminatedByChar = (CharConstantNode) linesTerminatedByChar;
-		this.storageFormat = (String) storageFormat;
-		this.location = (CharConstantNode) location;
 	}
 
     public void setQueryString(String queryString) {
@@ -430,7 +394,8 @@ public class CreateTableNode extends DDLStatementNode
 								DataDictionary.PRIMARYKEY_CONSTRAINT);
 
 		/* Only 1 primary key allowed per table */
-		if (numPrimaryKeys > 1) {
+		if (numPrimaryKeys > 1)
+		{
 			throw StandardException.newException(SQLState.LANG_TOO_MANY_PRIMARY_KEY_CONSTRAINTS, getRelativeName());
 		}
 
@@ -445,21 +410,6 @@ public class CreateTableNode extends DDLStatementNode
 									DataDictionary.UNIQUE_CONSTRAINT);
 
         numGenerationClauses = tableElementList.countGenerationClauses();
-
-		if (tableType == TableDescriptor.EXTERNAL_TYPE) {
-			if (numPrimaryKeys>0)
-				throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_PRIMARY_KEYS,getRelativeName());
-			if (numCheckConstraints>0)
-				throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_CHECK_CONSTRAINTS,getRelativeName());
-			if (numReferenceConstraints>0)
-				throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS,getRelativeName());
-			if (numUniqueConstraints>0)
-				throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_UNIQUE_CONSTRAINTS,getRelativeName());
-			if (numGenerationClauses>0)
-				throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_GENERATION_CLAUSES,getRelativeName());
-
-		}
-
 
 		//temp tables can't have foreign key constraints defined on them
 		if ((tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) &&
@@ -530,7 +480,7 @@ public class CreateTableNode extends DDLStatementNode
 		// for each column, stuff system.column
 		ColumnInfo[] colInfos = new ColumnInfo[coldefs.countNumberOfColumns()];
 
-	    int numConstraints = coldefs.genColumnInfos(colInfos, this.partitionedResultColumns);
+	    int numConstraints = coldefs.genColumnInfos(colInfos);
 
 		/* If we've seen a constraint, then build a constraint list */
 		ConstantAction[] conActions = null;
@@ -593,13 +543,7 @@ public class CreateTableNode extends DDLStatementNode
                 lockGranularity,
                 onCommitDeleteRows,
                 onRollbackDeleteRows,
-                queryString,
-				terminationChar!=null?terminationChar.value.getString():null,
-				escapedByChar!=null?escapedByChar.value.getString():null,
-				linesTerminatedByChar!=null?linesTerminatedByChar.value.getString():null,
-				storageFormat,
-					location!=null?location.value.getString():null
-					));
+                queryString));
 	}
 
 	/**

@@ -15,11 +15,15 @@
 
 package com.splicemachine.derby.ddl;
 
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
 import org.spark_project.guava.primitives.Ints;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -89,8 +93,8 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
         int[] keyColumnEncodingOrder = srcColumnOrdering;
         FormatableBitSet accessedPKColumns = getAccessedKeyColumns(keyColumnEncodingOrder);
 
-        builder.template(templateRow)
-                .tableVersion(tableVersion)
+        builder.template(templateRow).tableVersion(tableVersion)
+                .execRowTypeFormatIds(getFormatIds(templateRow))
                .rowDecodingMap(baseColumnOrder).keyColumnEncodingOrder(keyColumnEncodingOrder)
                .keyColumnSortOrder(getKeyColumnSortOrder(nColumns))
                .keyColumnTypes(getKeyColumnTypes(templateRow, keyColumnEncodingOrder))

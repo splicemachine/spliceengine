@@ -418,7 +418,6 @@ public interface TransactionController
 	not be created for some reason.
     **/
     long createConglomerate(
-	boolean					isExternal,
     String                  implementation,
     DataValueDescriptor[]   template,
     ColumnOrdering[]        columnOrder,
@@ -486,7 +485,6 @@ public interface TransactionController
 	were duplicate of a row already in the conglomerate.
 	**/
     long createAndLoadConglomerate(
-	boolean 				isExternal,
     String                  implementation,
     DataValueDescriptor[]   template,
 	ColumnOrdering[]		columnOrder,
@@ -574,7 +572,6 @@ public interface TransactionController
 	were duplicate of a row already in the conglomerate.
 	**/
     long recreateAndLoadConglomerate(
-	boolean					isExternal,
     String                  implementation,
     boolean                 recreate_ifempty,
     DataValueDescriptor[]   template,

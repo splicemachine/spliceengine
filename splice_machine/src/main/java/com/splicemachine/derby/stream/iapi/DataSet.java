@@ -15,19 +15,11 @@
 
 package com.splicemachine.derby.stream.iapi;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
-import org.apache.spark.sql.Row;
-
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -261,13 +253,4 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
 
     DataSet<V> windows(WindowContext windowContext, OperationContext context, boolean pushScope, String scopeDetail);
-
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,
-                                                    OperationContext context) ;
-
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, OperationContext context) ;
-
-    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                             OperationContext context);
-
 }

@@ -81,8 +81,7 @@ public class IndexConglomerate extends SpliceConglomerate{
     }
 
     @Override
-    protected void create(boolean isExternal,
-                Transaction rawtran,
+    protected void create(Transaction rawtran,
                           long input_containerid,
                           DataValueDescriptor[] template,
                           ColumnOrdering[] columnOrder,
@@ -92,7 +91,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                           int tmpFlag,
                           TxnOperationFactory opFactory,
                           PartitionFactory partitionFactory) throws StandardException{
-        super.create(isExternal,rawtran,
+        super.create(rawtran,
                 input_containerid,
                 template,
                 columnOrder,
@@ -152,7 +151,7 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
         try{
 //            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
-            ConglomerateUtils.createConglomerate(isExternal,
+            ConglomerateUtils.createConglomerate(
                 containerId,
                 this,
                 ((SpliceTransaction)rawtran).getTxn(),

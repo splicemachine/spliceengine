@@ -142,9 +142,4 @@ public abstract class WindowFunctionBase implements WindowFunction {
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
         return null;
     }
-
-    @Override
-    public boolean isUserDefinedAggregator() {
-        return false;
-    }
 }

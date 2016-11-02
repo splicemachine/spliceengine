@@ -107,18 +107,11 @@ public class DataDescriptorGenerator
 		SchemaDescriptor	schema,
 		int					tableType,
 		char				lockGranularity,
-        int                 columnSequence,
-		String 				delimited,
-		String 				escaped,
-		String 				lines,
-		String 				storedAs,
-		String 				location
-
+        int                 columnSequence
     )
 	{
 		return new TableDescriptor
-			(dataDictionary, tableName, schema, tableType, lockGranularity,columnSequence,
-					delimited,escaped,lines,storedAs,location);
+			(dataDictionary, tableName, schema, tableType, lockGranularity,columnSequence);
 	}
 
 	/**

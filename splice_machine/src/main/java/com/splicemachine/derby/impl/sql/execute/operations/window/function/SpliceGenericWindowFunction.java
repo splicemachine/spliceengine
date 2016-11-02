@@ -249,9 +249,4 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
         // override/implement if function needs the entire frame
         return null;
     }
-
-    @Override
-    public boolean isUserDefinedAggregator() {
-        return false;
-    }
 }

@@ -83,18 +83,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        char lockGranularity,
                                                        boolean onCommitDeleteRows,
                                                        boolean onRollbackDeleteRows,
-                                                       String withDataQueryString,
-                                                       String delimited,
-                                                       String escaped,
-                                                       String lines,
-                                                       String storedAs,
-                                                       String location) {
+                                                       String withDataQueryString) {
         SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
             schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
             constantActions,properties,lockGranularity,
-            onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString,
-                delimited,escaped,lines,storedAs,location);
+            onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString);
     }
 
 
@@ -136,6 +130,23 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         if(truncateTable){
             return new TruncateTableConstantOperation(sd,tableName,tableId,
                     lockGranularity,behavior,indexNameForStatistics);
+//        }        else if(compressTable){
+//            if(purge){
+//                return new PurgeTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                        lockGranularity,
+//                        behavior,
+//                        sequential,
+//                        indexNameForStatistics);
+//            }else
+//                return new CompressTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                        lockGranularity,behavior,sequential,
+//                        indexNameForStatistics);
+//
+//        }else if(updateStatistics||dropStatistics){
+//            return new UpdateStatisticsConstantOperation(sd,tableName,tableId,tableConglomerateId,
+//                    columnInfo,constraintActions,lockGranularity,
+//                    behavior,sequential,
+//                    updateStatistics,updateStatisticsAll,dropStatistics,dropStatisticsAll,indexNameForStatistics);
         }else if(columnInfo!=null && columnInfo.length>0){
             return new ModifyColumnConstantOperation(sd,tableName,tableId,
                     columnInfo,constraintActions,
@@ -473,9 +484,4 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         return new RevokeRoleConstantOperation(roleNames,grantees);
     }
 
-
-    @Override
-    public ConstantAction getPinTableConstantAction(String schemaName, String tableName) {
-        return new CreatePinConstantOperation(schemaName,tableName);
-    }
 }

@@ -243,7 +243,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
      *
      * @exception StandardException		Thrown on error
      */
-    @Override
+
     public int getScanArgs(
             TransactionController tc,
             MethodBuilder mb,
@@ -259,13 +259,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             boolean tableLocked,
             int isolationLevel,
             int maxMemoryPerTable,
-            boolean genInListVals, String tableVersion, boolean pin,
-            String delimited,
-            String escaped,
-            String lines,
-            String storedAs,
-            String location
-            ) throws StandardException {
+            boolean genInListVals, String tableVersion) throws StandardException {
         ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
         int numArgs;
 		/* If we're going to generate a list of IN-values for index probing
@@ -275,10 +269,17 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * sorted.
 		 */
         if (genInListVals) {
-            numArgs = 35;
+            numArgs = 29;
+        }
+        else if (bulkFetch > 1) {
+            // Bulk-fetch uses TableScanResultSet arguments plus two
+            // additional arguments: 1) bulk fetch size, and 2) whether the
+            // table contains LOB columns (used at runtime to decide if
+            // bulk fetch is safe DERBY-1511).
+            numArgs = 29;
         }
         else {
-            numArgs = 33 ;
+            numArgs = 27 ;
         }
         // Splice: our Hashable joins (MSJ, Broadcast) don't have a notion of store vs. non-store
         // filters, so include any nonStoreRestrictions in the storeRestrictionList
@@ -307,8 +308,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             }
         }
 
-        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,pin,
-            delimited, escaped, lines, storedAs, location);
+        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion);
         return numArgs;
     }
 
@@ -547,6 +547,9 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
      /** @see JoinStrategy#getName */
     public abstract String getName();
+
+   /** @see JoinStrategy#resultSetMethodName */
+    public abstract String resultSetMethodName(boolean bulkFetch, boolean multiprobe);
 
     /** @see JoinStrategy#joinResultSetMethodName */
     public abstract String joinResultSetMethodName();

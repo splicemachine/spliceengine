@@ -1527,10 +1527,4 @@ public final class UpdateNode extends DMLModStatementNode
         return sb.toString();
     }
 
-	@Override
-	void verifyTargetTable() throws StandardException {
-		super.verifyTargetTable();
-		if (targetTableDescriptor.getTableType() == TableDescriptor.EXTERNAL_TYPE)
-			throw StandardException.newException(SQLState.EXTERNAL_TABLES_ARE_NOT_UPDATEABLE, targetTableName);
-	}
 } // end of UpdateNode

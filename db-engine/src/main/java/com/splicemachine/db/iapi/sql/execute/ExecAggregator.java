@@ -135,6 +135,4 @@ public interface ExecAggregator extends Formatable
 		null from the input data set.
 	*/
 	public boolean didEliminateNulls();
-
-	public boolean isUserDefinedAggregator();
 }

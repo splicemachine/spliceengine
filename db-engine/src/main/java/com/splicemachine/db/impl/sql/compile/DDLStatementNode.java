@@ -394,11 +394,10 @@ abstract class DDLStatementNode extends StatementNode
 				return td;
 			break;
 
-			case TableDescriptor.BASE_TABLE_TYPE:
-				return td;
-			case TableDescriptor.EXTERNAL_TYPE:
-				return td;
-			case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
+		case TableDescriptor.BASE_TABLE_TYPE:
+			return td;
+
+		case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
 			return td;
 
 		/*

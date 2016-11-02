@@ -63,7 +63,6 @@ import	com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 
 import com.splicemachine.db.catalog.UUID;
-import org.apache.commons.lang.ArrayUtils;
 
 import java.util.*;
 
@@ -465,11 +464,12 @@ public class TableElementList extends QueryTreeNodeVector {
 	 *
 	 * @return int		The number of constraints in the create table.
 	 */
-	public int genColumnInfos( ColumnInfo[] colInfos, ResultColumnList partitionedColumnList)
-        throws StandardException {
+	public int genColumnInfos( ColumnInfo[] colInfos)
+        throws StandardException
+	{
 		int	numConstraints = 0;
 		int size = size();
-		String[] columnNames = partitionedColumnList==null?new String[0]:partitionedColumnList.getColumnNames();
+
 		for (int index = 0; index < size; index++)
 		{
 			if (((TableElementNode) elementAt(index)).getElementType() == TableElementNode.AT_DROP_COLUMN)
@@ -480,9 +480,7 @@ public class TableElementList extends QueryTreeNodeVector {
 								columnName,
 								td.getColumnDescriptor( columnName ).getType(),
                                 null, null, null, null, null,
-								ColumnInfo.DROP, 0, 0, 0,
-							ArrayUtils.indexOf(columnNames,columnName)
-						);
+								ColumnInfo.DROP, 0, 0, 0);
 				break;
 			}
 
@@ -532,8 +530,7 @@ public class TableElementList extends QueryTreeNodeVector {
 							   (coldef.isAutoincrementColumn() ? 
 								coldef.getAutoincrementIncrement() : 0),
 							   (coldef.isAutoincrementColumn() ? 
-								coldef.getAutoinc_create_or_modify_Start_Increment() : -1),
-						-1);
+								coldef.getAutoinc_create_or_modify_Start_Increment() : -1));
 
 			/* Remember how many constraints that we've seen */
 			if (coldef.hasConstraint())

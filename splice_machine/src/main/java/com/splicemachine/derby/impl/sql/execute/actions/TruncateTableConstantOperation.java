@@ -159,7 +159,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         //create new conglomerate
         newHeapConglom =
                 tc.createConglomerate(
-                        td.isExternal(),
                         "heap",
                         emptyHeapRow.getRowArray(),
                         columnOrdering, //column sort order - not required for heap
@@ -221,7 +220,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                                  int[] collationIds) throws StandardException {
         newIndexCongloms[index] =
                 tc.createConglomerate(
-                        td.isExternal(),
                         "BTREE",
                         rowArray,
                         columnOrder,

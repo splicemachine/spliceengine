@@ -15,6 +15,8 @@
 
 package com.splicemachine.derby.impl.sql.execute;
 
+import java.util.List;
+
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
@@ -30,7 +32,9 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
+
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.pipeline.Exceptions;
@@ -194,6 +198,58 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
+    public NoPutResultSet getHashJoinResultSet(NoPutResultSet leftResultSet,
+                                               int leftNumCols,
+                                               NoPutResultSet rightResultSet,
+                                               int rightNumCols,
+                                               int leftHashKeyItem,
+                                               int righthashKeyItem,
+                                               GeneratedMethod joinClause,
+                                               int resultSetNumber,
+                                               boolean oneRowRightSide,
+                                               boolean notExistsRightSide,
+                                               double optimizerEstimatedRowCount,
+                                               double optimizerEstimatedCost,
+                                               String userSuppliedOptimizerOverrides,
+                                               String explainPlan) throws StandardException {
+        throw new UnsupportedOperationException("HashJoin operation shouldn't be called");
+    }
+
+    @Override
+    public NoPutResultSet getHashScanResultSet(Activation activation,
+                                               long conglomId,
+                                               int scociItem,
+                                               GeneratedMethod resultRowAllocator,
+                                               int resultSetNumber,
+                                               GeneratedMethod startKeyGetter,
+                                               int startSearchOperator,
+                                               GeneratedMethod stopKeyGetter,
+                                               int stopSearchOperator,
+                                               boolean sameStartStopPosition,
+                                               boolean rowIdKey,
+                                               String scanQualifiersField,
+                                               String nextQualifierField,
+                                               int initialCapacity,
+                                               float loadFactor,
+                                               int maxCapacity,
+                                               int hashKeyColumn,
+                                               String tableName,
+                                               String userSuppliedOptimizerOverrides,
+                                               String indexName,
+                                               boolean isConstraint,
+                                               boolean forUpdate,
+                                               int colRefItem,
+                                               int indexColItem,
+                                               int lockMode,
+                                               boolean tableLocked,
+                                               int isolationLevel,
+                                               double optimizerEstimatedRowCount,
+                                               double optimizerEstimatedCost) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getHashScanResultSet");
+        throw new UnsupportedOperationException("HashScan operation shouldn't be called");
+   }
+
+    @Override
     public NoPutResultSet getNestedLoopLeftOuterJoinResultSet(
             NoPutResultSet leftResultSet,
             int leftNumCols,
@@ -277,13 +333,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 double optimizerEstimatedRowCount,
                                                 double optimizerEstimatedCost,
                                                 String tableVersion,
-                                                String explainPlan,
-                                                boolean pin,
-                                                String delimited,
-                                                String escaped,
-                                                String lines,
-                                                String storedAs,
-                                                String location)
+                                                String explainPlan)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -316,13 +366,76 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     oneRowScan,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    tableVersion,
-                    pin,
-                    delimited,
-                    escaped,
-                    lines,
-                    storedAs,
-                    location);
+                    tableVersion);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public NoPutResultSet getBulkTableScanResultSet(Activation activation,
+                                                    long conglomId,
+                                                    int scociItem,
+                                                    GeneratedMethod resultRowAllocator,
+                                                    int resultSetNumber,
+                                                    GeneratedMethod startKeyGetter,
+                                                    int startSearchOperator,
+                                                    GeneratedMethod stopKeyGetter,
+                                                    int stopSearchOperator,
+                                                    boolean sameStartStopPosition,
+                                                    boolean rowIdKey,
+                                                    String qualifiersField,
+                                                    String tableName,
+                                                    String userSuppliedOptimizerOverrides,
+                                                    String indexName,
+                                                    boolean isConstraint,
+                                                    boolean forUpdate,
+                                                    int colRefItem,
+                                                    int indexColItem,
+                                                    int lockMode,
+                                                    boolean tableLocked,
+                                                    int isolationLevel,
+                                                    int rowsPerRead,
+                                                    boolean disableForHoldable,
+                                                    boolean oneRowScan,
+                                                    double optimizerEstimatedRowCount,
+                                                    double optimizerEstimatedCost,
+                                                    String tableVersion,
+                                                    String explainPlan) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getBulkTableScanResultSet");
+        try{
+            StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
+                    getSavedObject(scociItem));
+            TableScanOperation op = new TableScanOperation(
+                    conglomId,
+                    scoci,
+                    activation,
+                    resultRowAllocator,
+                    resultSetNumber,
+                    startKeyGetter,
+                    startSearchOperator,
+                    stopKeyGetter,
+                    stopSearchOperator,
+                    sameStartStopPosition,
+                    rowIdKey,
+                    qualifiersField,
+                    tableName,
+                    userSuppliedOptimizerOverrides,
+                    indexName,
+                    isConstraint,
+                    forUpdate,
+                    colRefItem,
+                    indexColItem,
+                    lockMode,
+                    tableLocked,
+                    isolationLevel,
+                    rowsPerRead,
+                    oneRowScan,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    tableVersion);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -525,14 +638,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String tableVersion,
-            String explainPlan,
-            boolean pin,
-            String delimited,
-            String escaped,
-            String lines,
-            String storedAs,
-            String location
-            ) throws StandardException {
+            String explainPlan) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             ScanOperation op = new DistinctScanOperation(
@@ -552,13 +658,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     isolationLevel,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    tableVersion,
-                    pin,
-                    delimited,
-                    escaped,
-                    lines,
-                    storedAs,
-                    location);
+                    tableVersion);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -664,12 +764,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int colRefItem, int indexColItem, int lockMode,
             boolean tableLocked, int isolationLevel, boolean oneRowScan,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion,
-            String explainPlan, boolean pin,
-            String delimited,
-            String escaped,
-            String lines,
-            String storedAs,
-            String location)
+            String explainPlan)
 
             throws StandardException {
         try{
@@ -704,14 +799,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     oneRowScan,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    tableVersion,
-                    pin,
-                    delimited,
-                    escaped,
-                    lines,
-                    storedAs,
-                    location
-                    );
+                    tableVersion);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1120,19 +1208,12 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
                                              String tableVersion,
-                                             String explainPlan,
-                                             String delimited,
-                                             String escaped,
-                                             String lines,
-                                             String storedAs,
-                                             String location,
-                                             int partitionBy)
+                                             String explainPlan)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
-                    statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
-                    delimited,escaped,lines,storedAs,location, partitionBy);
+                    statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);

@@ -51,10 +51,6 @@ public class IndexRow extends ValueRow implements ExecIndexRow
 	//
 	///////////////////////////////////////////////////////////////////////
 
-	public IndexRow() {
-
-	}
-
 	public IndexRow(int ncols) {
 					this(ncols,new boolean[ncols]);
 	}

@@ -78,7 +78,6 @@ public interface ConglomerateFactory extends MethodFactory
 	the lower level modules.
 	**/
 	Conglomerate createConglomerate(
-	boolean					isExternal,
     TransactionManager      xact_mgr,
     long                    input_containerid,
     DataValueDescriptor[]   template,

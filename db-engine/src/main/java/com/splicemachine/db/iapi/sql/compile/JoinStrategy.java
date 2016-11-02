@@ -213,10 +213,11 @@ public interface JoinStrategy {
 	/**
 	 * Get the name of the result set method for base table scans
 	 *
+	 * @param bulkFetch True means bulk fetch is being done on the inner table
 	 * @param multiprobe True means we are probing the inner table for rows
 	 *  matching a specified list of values.
 	 */
-	String resultSetMethodName(boolean multiprobe);
+	String resultSetMethodName(boolean bulkFetch, boolean multiprobe);
 
 	/**
 	 * Get the name of the join result set method for the join
@@ -272,13 +273,8 @@ public interface JoinStrategy {
 							int isolationLevel,
 							int maxMemoryPerTable,
 							boolean genInListVals,
-                            String tableVersion,
-							boolean pin,
-							String delimited,
-							String escaped,
-							String lines,
-							String storedAs,
-							String location)
+                            String tableVersion
+							)
 					throws StandardException;
 
 	/**

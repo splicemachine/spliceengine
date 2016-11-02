@@ -170,9 +170,8 @@ public abstract class ArrayUtil
 	  */
 	public static void writeIntArray(ObjectOutput out, int[] a) throws IOException {
 		if (a == null)
-			out.writeBoolean(false);
+			out.writeInt(0);
 		else {
-			out.writeBoolean(true);
 			out.writeInt(a.length);
 			for (int i=0; i<a.length; i++)
 				out.writeInt(a[i]);
@@ -189,9 +188,9 @@ public abstract class ArrayUtil
 	  @exception java.io.IOException The write caused an IOException. 
 	  */
 	public static int[] readIntArray(ObjectInput in) throws IOException {
-		if (!in.readBoolean())
-			return null;
 		int length = in.readInt();
+		if (length == 0)
+			return null;
 		int[] a = new int[length];
 		for (int i=0; i<length; i++)
 			a[i] = in.readInt();

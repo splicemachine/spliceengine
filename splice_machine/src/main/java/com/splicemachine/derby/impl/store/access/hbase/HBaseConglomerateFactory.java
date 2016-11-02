@@ -63,9 +63,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
      * @throws StandardException Standard exception policy.
      * @see ConglomerateFactory#createConglomerate
      **/
-    @Override
     public Conglomerate createConglomerate(
-            boolean isExternal,
             TransactionManager xact_mgr,
             long input_containerid,
             DataValueDescriptor[] template,
@@ -77,7 +75,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
         HBaseConglomerate hbase=new HBaseConglomerate();
 
         SIDriver driver=SIDriver.driver();
-        hbase.create(isExternal,
+        hbase.create(
                 xact_mgr.getRawStoreXact(),
                 input_containerid,
                 template,

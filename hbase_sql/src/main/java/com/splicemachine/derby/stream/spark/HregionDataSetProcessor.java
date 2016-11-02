@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
@@ -70,7 +71,7 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
                             clock,
                             partition, driver.getConfiguration());
                     final HRegion hregion = srs.getRegion();
-                    ExecRow template = getTemplate();
+                    ExecRow template = SMSQLUtil.getExecRow(getExecRowTypeFormatIds());
                     spliceOperation.registerCloseable(new AutoCloseable() {
                         @Override
                         public void close() throws Exception {

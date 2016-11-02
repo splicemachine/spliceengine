@@ -17,10 +17,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -31,6 +34,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class LastIndexKeyOperation extends ScanOperation {
@@ -66,8 +70,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         super(conglomId, activation, resultSetNumber, null, -1, null, -1,
             true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
 
-        colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion,false,
-                null,null,null,null,null);
+        colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
         this.indexName = indexName;
@@ -126,6 +129,7 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                 .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                 .keyColumnTypes(getKeyFormatIds())
+                .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(baseColumnMap)

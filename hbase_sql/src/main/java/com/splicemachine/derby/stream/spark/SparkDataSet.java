@@ -16,9 +16,6 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
@@ -50,7 +47,6 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.SaveMode;
 import org.apache.spark.storage.StorageLevel;
 
 import java.io.IOException;
@@ -586,7 +582,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
             assert rightJoinKeys!=null && leftJoinKeys!=null && rightJoinKeys.length == leftJoinKeys.length:"Join Keys Have Issues";
             for (int i = 0; i< rightJoinKeys.length;i++) {
-                Column joinEquality = (leftDF.col("col"+leftJoinKeys[i]).equalTo(rightDF.col("col"+rightJoinKeys[i])));
+                Column joinEquality = (leftDF.col(leftJoinKeys[i]+"").equalTo(rightDF.col(rightJoinKeys[i]+"")));
                 expr = i!=0?expr.and(joinEquality):joinEquality;
             }
             DataSet joinedSet;
@@ -630,79 +626,9 @@ public class SparkDataSet<V> implements DataSet<V> {
      */
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    DataSet<V> toSpliceLocatedRow(Dataset<Row> dataSet, OperationContext context) throws StandardException {
-        return new SparkDataSet(dataSet.javaRDD()
+    DataSet<V> toSpliceLocatedRow(Dataset<Row> dataSet, OperationContext context){
+       return new SparkDataSet(dataSet.javaRDD()
                 .map(new RowToLocatedRowFunction(context)));
-    }
-
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,
-                                          OperationContext context) {
-        try {
-            Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                    rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
-                    context.getOperation().getExecRowDefinition().schema());
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                    cols.add(new Column("col"+baseColumnMap[i]));
-            }
-            List<String> partitionByCols = new ArrayList();
-            for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(new String("col"+partitionBy[i]));
-            }
-            insertDF.write().option("compression","none").partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                    .mode(SaveMode.Append).parquet(location);
-            ValueRow valueRow=new ValueRow(1);
-            valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,
-                                                    OperationContext context) {
-        try {
-            Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                    rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
-                    context.getOperation().getExecRowDefinition().schema());
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                cols.add(new Column("col"+baseColumnMap[i]));
-            }
-            List<Column> partitionByCols = new ArrayList();
-            for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(new Column("col"+partitionBy[i]));
-            }
-            insertDF.write().option("compression","none")
-                    .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                    .mode(SaveMode.Append).orc(location);
-            ValueRow valueRow=new ValueRow(1);
-            valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                                OperationContext context) {
-
-        try {
-            Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                    rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
-                    context.getOperation().getExecRowDefinition().schema());
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                cols.add(new Column("col"+baseColumnMap[i]));
-            }
-            insertDF.write()
-                    .mode(SaveMode.Append).csv(location);
-            ValueRow valueRow=new ValueRow(1);
-            valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
 

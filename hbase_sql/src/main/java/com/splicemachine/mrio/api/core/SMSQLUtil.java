@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.splicemachine.derby.stream.output.WriteReadUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 
@@ -430,11 +429,11 @@ public class SMSQLUtil  {
         FormatableBitSet accessedKeyColumns = getAccessedKeyColumns(keyColumnEncodingOrder,keyDecodingMap);
         Txn txn=ReadOnlyTxn.create(Long.parseLong(getTransactionID()),IsolationLevel.SNAPSHOT_ISOLATION,null,HExceptionFactory.INSTANCE);
         TableScannerBuilder tableScannerBuilder = new SMTableBuilder();
-        ExecRow template = WriteReadUtils.getExecRowFromTypeFormatIds(execRowFormatIds);
+
         return tableScannerBuilder
                 .transaction(txn)
                 .scan(createNewScan())
-                .template(template)
+                .execRowTypeFormatIds(execRowFormatIds)
                 .tableVersion("2.0")
                 .indexName(null)
                 .keyColumnEncodingOrder(keyColumnEncodingOrder)
