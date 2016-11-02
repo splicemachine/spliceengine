@@ -230,6 +230,30 @@ public class BatchOnceOperationIT {
                 " 1 |3333 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    @Test
+    public void testMultiplePredicates() throws Exception {
+        String sqlText = "update a set a.name=(select b.name from b where a.id=b.id and a.id2=b.id2)";
+        doUpdate(true, 9, sqlText);
+        ResultSet rs = methodWatcher.executeQuery("select * from A order by id");
+        String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals( "" +
+                "ID |NAME | ID2 | NAME2 |\n" +
+                "------------------------\n" +
+                "10 | 10_ |1000 |  10_  |\n" +
+                "11 | 11_ |1100 |  11_  |\n" +
+                "12 | 12_ |1200 |  11_  |\n" +
+                "13 |NULL |1300 | NULL  |\n" +
+                "14 |NULL |1400 | NULL  |\n" +
+                "15 |NULL |1500 | NULL  |\n" +
+                "16 | 16_ |1600 | NULL  |\n" +
+                "17 | 17_ |1700 | NULL  |\n" +
+                "18 | 18_ |1800 | NULL  |\n" +
+                "19 |NULL |1900 | NULL  |\n" +
+                "20 |NULL |2000 | NULL  |\n" +
+                "21 |NULL |2100 | NULL  |", s);
+        System.out.println(s);
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // Utility methods
