@@ -1804,11 +1804,60 @@ public class SystemProcedures{
                     throw StandardException.newException(SQLState.DBO_ONLY);
                 }
             }
+            addUser(userName,password,tc);
+
+
+            // Create User Schema if one doesn't exists.
+            // If there is already a schema then we will let the admin decide what he want to do
+            // like granting privileges to that schema manually. Look at SPLICE-1030
+            addSchema(userName, userName, lcc);
+
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }
 
-        addUser(userName,password,tc);
+
+
+
+    }
+
+    /**
+     * Logic to add a new schema in the system. This is used  when we add a new user,
+     * if the schema already exists do nothing, let the admin handle the privileges manually
+     * if necessary. This schema is the default schema associated to each user.
+     */
+
+    public static void addSchema
+    (
+            String schemaName,
+            String aid,
+            LanguageConnectionContext lcc
+    ) throws StandardException {
+        DataDictionary dd=lcc.getDataDictionary();
+        TransactionController tc=lcc.getTransactionExecute();
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+
+        // if the schema already, do nothing,  we already have a schema for the user
+        // let the admin handle that
+        if ((sd != null) && (sd.getUUID() != null)){
+            return;
+        }
+
+        UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
+          /*
+            ** Inform the data dictionary that we are about to write to it.
+            ** There are several calls to data dictionary "get" methods here
+            ** that might be done in "read" mode in the data dictionary, but
+            ** it seemed safer to do this whole operation in "write" mode.
+            **
+            ** We tell the data dictionary we're done writing at the end of
+            ** the transaction.
+            */
+        dd.startWriting(lcc);
+        sd = ddg.newSchemaDescriptor(schemaName, aid, tmpSchemaId);
+        dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc);
+
     }
 
     /**
