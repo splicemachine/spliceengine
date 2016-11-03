@@ -33,6 +33,7 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
     long numRows;
     long heapSize;
     double fallbackNullFraction;
+    double fallbackCardinalityFraction;
     double extraQualifierMultiplier;
 
     /**
@@ -46,12 +47,15 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
      * @param fallbackNullFraction
      * @param extraQualifierMultiplier
      */
-    public FakePartitionStatisticsImpl(String tableId, String partitionId, long numRows, long heapSize,double fallbackNullFraction, double extraQualifierMultiplier) {
+    public FakePartitionStatisticsImpl(String tableId, String partitionId, long numRows, long heapSize,
+                                       double fallbackNullFraction, double fallbackCardinalityFraction,
+                                       double extraQualifierMultiplier) {
         this.tableId = tableId;
         this.partitionId = partitionId;
         this.numRows = numRows;
         this.heapSize = heapSize;
         this.fallbackNullFraction = fallbackNullFraction;
+        this.fallbackCardinalityFraction = fallbackCardinalityFraction;
         this.extraQualifierMultiplier = extraQualifierMultiplier;
     }
 
@@ -172,7 +176,7 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public long cardinality(int positionNumber) {
-        return rowCount();
+        return (long)(1/fallbackCardinalityFraction);
     }
 
     /**

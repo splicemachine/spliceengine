@@ -144,7 +144,7 @@ public class StatsConfiguration implements ConfigurationDefault {
         builder.fallbackRegionRowCount = configurationSource.getLong(FALLBACK_REGION_ROW_COUNT, DEFAULT_FALLBACK_REGION_COUNT);
 
         builder.fallbackNullFraction = configurationSource.getDouble(FALLBACK_NULL_FRACTION, DEFAULT_FALLBACK_NULL_FRACTION);
-//        builder.fallbackCardinalityFraction = configurationSource.getDouble(FALLBACK_CARDINALITY_FRACTION, DEFAULT_FALLBACK_CARDINALITY_FRACTION);
+        builder.fallbackCardinalityFraction = configurationSource.getDouble(FALLBACK_CARDINALITY_FRACTION, DEFAULT_FALLBACK_CARDINALITY_FRACTION);
 //        builder.fallbackIndexSelectivityFraction = configurationSource.getDouble(FALLBACK_INDEX_SELECTIVITY_FRACTION, DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION);
         builder.optimizerExtraQualifierMultiplier = configurationSource.getDouble(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
     }

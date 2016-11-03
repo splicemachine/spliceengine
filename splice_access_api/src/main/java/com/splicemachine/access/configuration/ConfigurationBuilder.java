@@ -60,6 +60,7 @@ public class ConfigurationBuilder {
 
     // StatsConfiguration
     public double fallbackNullFraction;
+    public double fallbackCardinalityFraction;
     public double optimizerExtraQualifierMultiplier;
     public int cardinalityPrecision;
     public int fallbackRowWidth;

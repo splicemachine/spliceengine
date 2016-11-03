@@ -69,6 +69,7 @@ public class StoreCostControllerImpl implements StoreCostController {
     private final double openLatency;
     private final double closeLatency;
     private final double fallbackNullFraction;
+    private final double fallbackCardinalityFraction;
     private final double extraQualifierMultiplier;
     private int missingPartitions;
     private TableStatistics tableStatistics;
@@ -84,6 +85,7 @@ public class StoreCostControllerImpl implements StoreCostController {
         openLatency = config.getFallbackOpencloseLatency();
         closeLatency = config.getFallbackOpencloseLatency();
         fallbackNullFraction = config.getFallbackNullFraction();
+        fallbackCardinalityFraction = config.getFallbackCardinalityFraction();
         extraQualifierMultiplier = config.getOptimizerExtraQualifierMultiplier();
         fallbackLocalLatency =config.getFallbackLocalLatency();
         fallbackRemoteLatencyRatio =config.getFallbackRemoteLatencyRatio();
@@ -127,9 +129,11 @@ public class StoreCostControllerImpl implements StoreCostController {
         if (partitionStats.size() == 0) {
             missingPartitions = 0;
             noStats = true;
-            tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier);
+            tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,
+                    fallbackCardinalityFraction, extraQualifierMultiplier);
         } else {
-            tableStatistics = new TableStatisticsImpl(tableId, partitionStats,fallbackNullFraction,extraQualifierMultiplier);
+            tableStatistics = new TableStatisticsImpl(tableId, partitionStats,fallbackNullFraction,
+                    fallbackCardinalityFraction,extraQualifierMultiplier);
         }
     }
 

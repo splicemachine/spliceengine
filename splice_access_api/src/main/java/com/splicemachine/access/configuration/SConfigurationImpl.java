@@ -144,6 +144,7 @@ public final class SConfigurationImpl implements SConfiguration {
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
+    private final  double fallbackCardinalityFraction;
     private final  double optimizerExtraQualifierMultiplier;
     private final  int cardinalityPrecision;
     private final  int fallbackRowWidth;
@@ -506,6 +507,11 @@ public final class SConfigurationImpl implements SConfiguration {
         return fallbackNullFraction;
     }
     @Override
+    public double getFallbackCardinalityFraction() {
+        return fallbackCardinalityFraction;
+    }
+
+    @Override
     public double getOptimizerExtraQualifierMultiplier() {
         return optimizerExtraQualifierMultiplier;
     }
@@ -608,6 +614,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationLdapServer = builder.authenticationLdapServer;
         authenticationNativeAlgorithm = builder.authenticationNativeAlgorithm;
         fallbackNullFraction = builder.fallbackNullFraction;
+        fallbackCardinalityFraction = builder.fallbackCardinalityFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;
         cardinalityPrecision = builder.cardinalityPrecision;
         fallbackRowWidth = builder.fallbackRowWidth;

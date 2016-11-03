@@ -29,6 +29,7 @@ public class TableStatisticsImpl implements TableStatistics {
     private long totalSize = 0;
     private int avgRowWidth = 0;
     private double fallbackNullFraction;
+    private double fallbackCardinalityFraction;
     private double extraQualifierMultiplier;
 
     public TableStatisticsImpl() {
@@ -47,11 +48,13 @@ public class TableStatisticsImpl implements TableStatistics {
     public TableStatisticsImpl(String tableId,
                                List<? extends PartitionStatistics> partitionStatistics,
                                double fallbackNullFraction,
+                               double fallbackCardinalityFraction,
                                double extraQualifierMultiplier) {
         this.tableId = tableId;
         this.partitionStatistics = partitionStatistics;
         assert partitionStatistics.size() > 0:"Partition statistics are 0";
         this.fallbackNullFraction = fallbackNullFraction;
+        this.fallbackCardinalityFraction = fallbackCardinalityFraction;
         this.extraQualifierMultiplier = extraQualifierMultiplier;
     }
 
@@ -128,12 +131,11 @@ public class TableStatisticsImpl implements TableStatistics {
                 }
                     if (fake) {
                         effectivePartitionStatistics = new FakePartitionStatisticsImpl(tableId, null, rowCount, totalSize,
-                                fallbackNullFraction,extraQualifierMultiplier);
+                                fallbackNullFraction,fallbackCardinalityFraction,extraQualifierMultiplier);
                     }
                     else {
                         effectivePartitionStatistics = new EffectivePartitionStatisticsImpl(itemStatisticsBuilder,
-                                rowCount, totalSize,
-                                avgRowWidth,fallbackNullFraction,extraQualifierMultiplier);
+                                rowCount, totalSize, avgRowWidth,fallbackNullFraction,extraQualifierMultiplier);
                     }
             }
             return effectivePartitionStatistics;

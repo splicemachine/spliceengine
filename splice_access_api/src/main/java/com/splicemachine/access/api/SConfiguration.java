@@ -212,6 +212,8 @@ public interface SConfiguration {
     // StatsConfiguration
     double getFallbackNullFraction();
 
+    double getFallbackCardinalityFraction();
+
     double getOptimizerExtraQualifierMultiplier();
 
     int getCardinalityPrecision();
