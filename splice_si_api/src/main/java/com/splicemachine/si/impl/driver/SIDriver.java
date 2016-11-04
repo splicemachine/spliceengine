@@ -77,6 +77,7 @@ public class SIDriver {
     private final OperationFactory baseOpFactory;
     private final PartitionInfoCache partitionInfoCache;
     private final SnowflakeFactory snowflakeFactory;
+    private final SIEnvironment env;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -108,6 +109,7 @@ public class SIDriver {
         readResolver = initializedReadResolver(config,env.keyedReadResolver());
         this.fileSystem = env.fileSystem();
         this.baseOpFactory = env.baseOperationFactory();
+        this.env = env;
     }
 
 
@@ -154,6 +156,10 @@ public class SIDriver {
 
     public Transactor getTransactor(){
         return transactor;
+    }
+
+    public SIEnvironment getSIEnvironment(){
+        return env;
     }
 
     public TxnOperationFactory getOperationFactory(){
@@ -203,6 +209,11 @@ public class SIDriver {
     public DistributedFileSystem fileSystem(){
         return fileSystem;
     }
+
+    public DistributedFileSystem getFileSystem(String path){
+        return fileSystem;
+    }
+
 
     public OperationFactory baseOperationFactory(){
         return baseOpFactory;
