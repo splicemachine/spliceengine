@@ -16,6 +16,7 @@
 package com.splicemachine.derby.hbase;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
@@ -182,6 +183,21 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override
     public DistributedFileSystem fileSystem(){
         return delegate.fileSystem();
+    }
+
+    /**
+     *
+     * Retrieve the appropriate filesystem based on the scheme.  If not scheme provided,
+     * it will use the filesystem from the configuration.
+     *
+     * @param path
+     * @return
+     * @throws IOException
+     * @throws URISyntaxException
+     */
+    @Override
+    public DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException {
+        return delegate.fileSystem(path);
     }
 
     @Override

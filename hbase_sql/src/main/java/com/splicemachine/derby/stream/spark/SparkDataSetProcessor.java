@@ -24,12 +24,10 @@ import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.input.CombineTextInputFormat;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.input.StreamInputFormat;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -162,13 +160,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public PairDataSet<String, InputStream> readWholeTextFile(String path) {
+    public PairDataSet<String, InputStream> readWholeTextFile(String path) throws StandardException {
         return readWholeTextFile(path,null);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
+    public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) throws StandardException {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             String displayString="";
@@ -191,13 +189,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public DataSet<String> readTextFile(String path) {
+    public DataSet<String> readTextFile(String path) throws StandardException {
         return readTextFile(path, null);
     }
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public DataSet<String> readTextFile(String path, SpliceOperation op) {
+    public DataSet<String> readTextFile(String path, SpliceOperation op) throws StandardException {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             String displayString="";

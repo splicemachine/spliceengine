@@ -15,6 +15,8 @@
 
 package com.splicemachine.si;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
@@ -160,6 +162,11 @@ public class MemSIEnvironment implements SIEnvironment{
 
     @Override
     public DistributedFileSystem fileSystem(){
+        return fileSystem;
+    }
+
+    @Override
+    public DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException {
         return fileSystem;
     }
 
