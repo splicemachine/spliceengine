@@ -475,7 +475,6 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test(timeout=1000*60*5)  // Time out after 3 min
-    @Ignore
     public void testJoinCustomerOrdersOrderLineWithIndexNotInColumnOrder() throws Exception{
         SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME,CustomerTable.INDEX_ORDER_DEF,false);
         SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,OrderTable.TABLE_NAME,OrderTable.INDEX_NAME,OrderTable.INDEX_ORDER_DEF,false);
