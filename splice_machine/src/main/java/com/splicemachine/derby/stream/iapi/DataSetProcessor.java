@@ -79,17 +79,17 @@ public interface DataSetProcessor {
     /**
      * Reads a whole text file from path.
      */
-    PairDataSet<String,InputStream> readWholeTextFile(String path);
+    PairDataSet<String,InputStream> readWholeTextFile(String path) throws StandardException;
 
-    PairDataSet<String,InputStream> readWholeTextFile(String path, SpliceOperation op);
+    PairDataSet<String,InputStream> readWholeTextFile(String path, SpliceOperation op) throws StandardException;
 
     /**
      * Reads a text file that will be split in blocks when splittable compression algorithms are
      * utilized.
      */
-    DataSet<String> readTextFile(String path);
+    DataSet<String> readTextFile(String path) throws StandardException;
 
-    DataSet<String> readTextFile(String path, SpliceOperation op);
+    DataSet<String> readTextFile(String path, SpliceOperation op) throws StandardException;
     
     /**
      * Gets an empty PairDataSet

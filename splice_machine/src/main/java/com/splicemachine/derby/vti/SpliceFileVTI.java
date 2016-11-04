@@ -142,7 +142,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     }
 
     private FileInfo fileInfo = null;
-    protected FileInfo getFileInfo() throws IOException {
+    protected FileInfo getFileInfo() throws StandardException, IOException {
         if (fileInfo == null) {
             if (fileName != null) fileInfo = ImportUtils.getImportFileInfo(fileName);
         }
@@ -154,7 +154,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         FileInfo fileInfo;
         try {
             fileInfo = getFileInfo();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new SQLException(e);
         }
         if (fileInfo != null &&fileInfo.exists()) {
@@ -189,7 +189,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         FileInfo fileInfo;
         try {
             fileInfo = getFileInfo();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new SQLException(e);
         }
         if (fileInfo != null && fileInfo.exists()) {

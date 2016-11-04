@@ -31,6 +31,9 @@ import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+
 /**
  * @author Scott Fines
  *         Date: 12/18/15
@@ -67,6 +70,17 @@ public interface SIEnvironment{
     KeyedReadResolver keyedReadResolver();
 
     DistributedFileSystem fileSystem();
+
+    /**
+     *
+     * Retrieve the appropriate filesystem based on the path and configuration.
+     *
+     * @param path
+     * @return
+     * @throws IOException
+     * @throws URISyntaxException
+     */
+    DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException;
 
     OperationFactory baseOperationFactory();
 
