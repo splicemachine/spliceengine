@@ -22,6 +22,8 @@ import java.util.List;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.ImmutableList;
+import static org.apache.hadoop.fs.s3a.Constants.ACCESS_KEY;
+import static org.apache.hadoop.fs.s3a.Constants.SECRET_KEY;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.hbase.*;
 import org.apache.hadoop.conf.Configuration;
@@ -184,6 +186,13 @@ class SpliceTestPlatformConfig {
         //
         config.set("hbase.cluster.distributed", "true");  // don't start zookeeper for us
         config.set("hbase.master.distributed.log.splitting", "false"); // TODO: explain why we are setting this
+
+        // AWS Credentials for test...
+        //
+
+        config.set(ACCESS_KEY,"AKIAJ6HBMCK5ALHVBFPQ");
+        config.set(SECRET_KEY,"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");
+
 
         //
         // Splice
