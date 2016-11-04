@@ -194,6 +194,11 @@ public class VTIOperation extends SpliceBaseOperation {
     }
 
     @Override
+    public ExecRow getExecRowDefinition() throws StandardException {
+        return getAllocatedRow();
+    }
+
+    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         javaClassName = in.readUTF();
