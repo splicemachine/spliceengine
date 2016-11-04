@@ -121,6 +121,18 @@ public class VTIOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testJDBCTableVTIWithJoin() throws Exception {
+        String sql = String.format("select * from table (JDBCTableVTI('jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin', '%s', '%s'))a" +
+                ", employee where employee.id = a.id", CLASS_NAME, TABLE_NAME);
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals(2, count);
+    }
+
+    @Test
     public void testFileVTI() throws Exception {
         String location = getResourceDirectory()+"importTest.in";
         String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b (c1 varchar(128), c2 varchar(128), c3 int)", location);
@@ -130,6 +142,20 @@ public class VTIOperationIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertEquals(5, count);
+    }
+
+
+    @Test
+    public void testFileVTIWithJoin() throws Exception {
+        String location = getResourceDirectory()+"importTest.in";
+        String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b (c1 varchar(128), c2 varchar(128), c3 int)" +
+                ", employee where employee.id + 25 = b.c3", location);
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals(1, count);
     }
 
     @Test
