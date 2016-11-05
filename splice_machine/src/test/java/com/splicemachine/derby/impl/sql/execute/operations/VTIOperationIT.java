@@ -208,6 +208,7 @@ public class VTIOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals(5, count);
     }
+    
 
 
 }
