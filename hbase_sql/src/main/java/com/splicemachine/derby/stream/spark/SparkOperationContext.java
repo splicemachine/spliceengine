@@ -361,17 +361,17 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void pushScope(){
-        SpliceSpark.pushScope(getOperation().getScopeName());
+            SpliceSpark.pushScope(op !=null?getOperation().getScopeName():"");
     }
 
     @Override
     public void pushScopeForOp(Scope step){
-        SpliceSpark.pushScope(getOperation().getScopeName()+": "+step.displayName());
+        SpliceSpark.pushScope(op !=null?getOperation().getScopeName():""+": "+step.displayName());
     }
 
     @Override
     public void pushScopeForOp(String step){
-        SpliceSpark.pushScope(getOperation().getScopeName() + (step != null ? ": " + step : ""));
+            SpliceSpark.pushScope(op !=null?getOperation().getScopeName():"" + (step != null ? ": " + step : ""));
     }
 
     @Override

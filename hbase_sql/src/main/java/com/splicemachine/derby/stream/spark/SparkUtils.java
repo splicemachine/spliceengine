@@ -297,7 +297,8 @@ public class SparkUtils {
     public static scala.collection.mutable.Buffer<Column> convertSortColumns(ColumnOrdering[] sortColumns){
         return Arrays
                 .stream(sortColumns)
-                .map(column -> column.getIsAscending() ? asc(String.valueOf(column.getColumnId()-1)) : desc(String.valueOf(column.getColumnId()-1)))
+                .map(column -> column.getIsAscending() ? asc(ValueRow.getNamedColumn(column.getColumnId()-1)) :
+                        desc(ValueRow.getNamedColumn(column.getColumnId()-1)))
                 .collect(Collectors.collectingAndThen(Collectors.toList(), JavaConversions::asScalaBuffer));
     }
 
@@ -311,7 +312,9 @@ public class SparkUtils {
     public static scala.collection.mutable.Buffer<Column> convertPartitions(ColumnOrdering[] sortColumns){
         return Arrays
                 .stream(sortColumns)
-                .map(column -> col(String.valueOf(column.getColumnId()-1)))
+                .map(column -> col(ValueRow.getNamedColumn(column.getColumnId()-1)))
                 .collect(Collectors.collectingAndThen(Collectors.toList(), JavaConversions::asScalaBuffer));
     }
+
+
 }

@@ -106,7 +106,13 @@ public class DistinctScanOperation extends ScanOperation {
                                  int isolationLevel,
                                  double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost,
-                                 String tableVersion) throws StandardException {
+                                 String tableVersion,
+                                 boolean pin,
+                                 String delimited,
+                                 String escaped,
+                                 String lines,
+                                 String storedAs,
+                                 String location) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -126,7 +132,8 @@ public class DistinctScanOperation extends ScanOperation {
                 false,
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost,
-                tableVersion);
+                tableVersion,
+                pin,delimited,escaped,lines,storedAs,location);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
@@ -262,10 +269,16 @@ public class DistinctScanOperation extends ScanOperation {
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                 .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                 .keyColumnTypes(getKeyFormatIds())
-                .execRowTypeFormatIds(execRowTypeFormatIds)
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(colMap)
+                .pin(pin)
+                .delimited(delimited)
+                .escaped(escaped)
+                .lines(lines)
+                .storedAs(storedAs)
+                .location(location)
+                .baseColumnMap(operationInformation.getBaseColumnMap())
                 .buildDataSet(this)
                 .distinct(OperationContext.Scope.DISTINCT.displayName(), true, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
     }

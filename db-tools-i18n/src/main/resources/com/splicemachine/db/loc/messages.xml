@@ -8846,6 +8846,102 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>A concurrent {0} backup is running.</text>
                <arg>backupType</arg>
            </msg>
+
+           <msg>
+               <name>EXT01</name>
+               <text>row format specification not allowed with 'stored as parquet' </text>
+           </msg>
+
+           <msg>
+               <name>EXT02</name>
+               <text>row format specification not allowed with 'stored as orc' </text>
+           </msg>
+
+           <msg>
+               <name>EXT03</name>
+               <text>'stored as [TEXTFILE,PARQUET,ORC]' required for external tables</text>
+           </msg>
+
+           <msg>
+               <name>EXT04</name>
+               <text>'location' required for external tables </text>
+           </msg>
+
+           <msg>
+               <name>EXT05</name>
+               <text>External Table '{0}' is not updatable. (External tables are not currently updateable.) </text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT06</name>
+               <text>External Table '{0}' is not capable of having primary keys.</text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT07</name>
+               <text>External Table '{0}' is not capable of having check constraints.</text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT08</name>
+               <text>External Table '{0}' is not capable of having reference constraints.</text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT09</name>
+               <text>External Table '{0}' is not capable of having unique constraints.</text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT10</name>
+               <text>External Table '{0}' is not capable of having generation clauses.</text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT11</name>
+               <text>External Table read failed with exception '{0}'</text>
+               <arg>exceptionMessage</arg>
+           </msg>
+
+           <msg>
+               <name>EXT12</name>
+               <text>Cannot alter external table '{0}', please drop and recreate.</text>
+               <arg>tableName</arg>
+           </msg>
+
+
+           <msg>
+               <name>EXT13</name>
+               <text>Cannot add indexes to external table '{0}'.</text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT14</name>
+               <text>Cannot add triggers to external table '{0}'.</text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT15</name>
+               <text>Cannot create statistics on external table '{0}' currently.</text>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>EXT16</name>
+               <text>Pinned Table read failed with exception '{0}'</text>
+               <arg>exceptionMessage</arg>
+           </msg>
+
+
+
        </family>
     </section>
 

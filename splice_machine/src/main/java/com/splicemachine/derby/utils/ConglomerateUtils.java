@@ -212,25 +212,25 @@ public class ConglomerateUtils{
      * @param conglomerate the conglomerate to store
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void createConglomerate(long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
-        createConglomerate(Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,null,null,-1);
+    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,null,null,-1);
     }
 
-    public static void createConglomerate(long conglomId,
+    public static void createConglomerate(boolean isExternal,long conglomId,
                                           Conglomerate conglomerate,
                                           Txn txn,
                                           String tableDisplayName,
                                           String indexDisplayName) throws StandardException{
-        createConglomerate(Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,tableDisplayName,indexDisplayName,-1);
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,tableDisplayName,indexDisplayName,-1);
     }
 
-    public static void createConglomerate(long conglomId,
+    public static void createConglomerate(boolean isExternal,long conglomId,
                                           Conglomerate conglomerate,
                                           Txn txn,
                                           String tableDisplayName,
                                           String indexDisplayName,
                                           long partitionSize) throws StandardException{
-        createConglomerate(Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,tableDisplayName,indexDisplayName,partitionSize);
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,tableDisplayName,indexDisplayName,partitionSize);
     }
 
     /**
@@ -240,6 +240,7 @@ public class ConglomerateUtils{
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void createConglomerate(
+            boolean isExternal,
             String tableName,
             long conglomId,
             byte[] conglomData,
@@ -254,26 +255,33 @@ public class ConglomerateUtils{
         EntryEncoder entryEncoder=null;
         SIDriver driver=SIDriver.driver();
         PartitionFactory tableFactory=driver.getTableFactory();
-        try(PartitionAdmin admin=tableFactory.getAdmin()){
-            PartitionCreator partitionCreator=admin.newPartition().withName(tableName).withDisplayNames(new String[]{tableDisplayName,indexDisplayName});
-            if(partitionSize >0)
-                partitionCreator = partitionCreator.withPartitionSize(partitionSize);
-            partitionCreator.create();
-            try(Partition table=tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
-                DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
-                BitSet fields=new BitSet();
-                fields.set(0);
-                entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,fields,null,null,null);
-                entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
-                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
-                table.put(put);
+        if (!isExternal) {
+            try (PartitionAdmin admin = tableFactory.getAdmin()) {
+                PartitionCreator partitionCreator = admin.newPartition().withName(tableName).withDisplayNames(new String[]{tableDisplayName, indexDisplayName});
+                if (partitionSize > 0)
+                    partitionCreator = partitionCreator.withPartitionSize(partitionSize);
+                partitionCreator.create();
+            } catch (Exception e) {
+                SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
             }
-        }catch(Exception e){
+        }
+
+        try(Partition table=tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+            DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
+            BitSet fields=new BitSet();
+            fields.set(0);
+            entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,fields,null,null,null);
+            entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
+            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
+            table.put(put);
+        }
+        catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));
         }finally{
             if(entryEncoder!=null)
                 entryEncoder.close();
         }
+
     }
 
     /**

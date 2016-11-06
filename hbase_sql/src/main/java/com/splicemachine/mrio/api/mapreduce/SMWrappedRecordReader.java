@@ -41,7 +41,7 @@ public class SMWrappedRecordReader extends RecordReader<RowLocationWritable,Exec
 			SpliceLogUtils.trace(LOG, "SMWrappedRecordReader with reader=%s",reader);
 		this.delegate = reader;	
 		this.key = new RowLocationWritable();
-		this.value = new ExecRowWritable(delegate.getExecRowTypeFormatIds());
+		this.value = new ExecRowWritable(delegate.getExecRow());
 	}
 
 	@Override

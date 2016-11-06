@@ -236,4 +236,10 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
     public Aggregator getAggregator() {
         return _aggregator;
     }
+
+	@Override
+	public boolean isUserDefinedAggregator() {
+		return true;
+	}
+
 }

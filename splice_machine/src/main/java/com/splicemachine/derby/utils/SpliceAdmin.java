@@ -403,9 +403,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException{
         List<ExecRow> results=new ArrayList<>();
-        try(PreparedStatement preparedStatement=SpliceAdmin.getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, C.ISINDEX, "+
+        try(PreparedStatement preparedStatement=SpliceAdmin.getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, " +
+                "C.ISINDEX, "+
                 "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S "+
-                "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLENAME NOT LIKE 'SYS%' "+
+                "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLE_TYPE not in ('S','E') "+
                 "ORDER BY S.SCHEMANAME")){
             try(ResultSet allTablesInSchema=preparedStatement.executeQuery()){
 

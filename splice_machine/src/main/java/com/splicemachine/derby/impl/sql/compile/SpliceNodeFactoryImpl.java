@@ -612,6 +612,11 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.BATCH_ONCE_NODE:
                 return C_NodeNames.BATCH_ONCE_NODE_NAME;
 
+			case C_NodeTypes.CREATE_PIN_NODE:
+				return C_NodeNames.CREATE_PIN_NODE_NAME;
+
+			case C_NodeTypes.DROP_PIN_NODE:
+				return C_NodeNames.DROP_PIN_NODE_NAME;
 
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
 		  // THEM TO tools/jar/DBMSnodes.properties

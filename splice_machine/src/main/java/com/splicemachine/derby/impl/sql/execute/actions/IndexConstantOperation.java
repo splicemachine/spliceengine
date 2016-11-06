@@ -147,26 +147,27 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
 
+
+
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
 			ScanSetBuilder<LocatedRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
 			builder.tableDisplayName(tableName)
-				.demarcationPoint(demarcationPoint)
-				.transaction(indexTransaction)
-				.scan(DDLUtils.createFullScan())
-				.keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
-				.execRowTypeFormatIds(indexFormatIds)
-				.reuseRowLocation(false)
-				.rowDecodingMap(rowDecodingMap)
-				.keyColumnTypes(ScanOperation.getKeyFormatIds(
-						Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
-						Ints.toArray(tentativeIndex.getTable().getFormatIdsList())
-						))
-				.keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
-						Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
-						baseColumnMap
-						))
-				.accessedKeyColumns(accessedKeyCols)
-				.template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds));
+			.demarcationPoint(demarcationPoint)
+			.transaction(indexTransaction)
+			.scan(DDLUtils.createFullScan())
+			.keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
+			.reuseRowLocation(false)
+			.rowDecodingMap(rowDecodingMap)
+			.keyColumnTypes(ScanOperation.getKeyFormatIds(
+					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+					Ints.toArray(tentativeIndex.getTable().getFormatIdsList())
+					))
+			.keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
+					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+					baseColumnMap
+					))
+			.accessedKeyColumns(accessedKeyCols)
+			.template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds));
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);
 			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);

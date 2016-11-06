@@ -59,7 +59,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
         super();
     }
 
-    protected void create(
+    protected void create(boolean isExternal,
             Transaction rawtran,
             long input_containerid,
             DataValueDescriptor[] template,
@@ -70,7 +70,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
             int tmpFlag,
             TxnOperationFactory operationFactory,
             PartitionFactory partitionFactory) throws StandardException{
-        super.create(rawtran,
+        super.create(isExternal,rawtran,
                 input_containerid,
                 template,
                 columnOrder,
@@ -89,7 +89,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                //TODO -sf- add a warning to the activation that we weren't able to
             }
         }
-        ConglomerateUtils.createConglomerate(
+        ConglomerateUtils.createConglomerate(isExternal,
                 containerId,
                 this,
                 ((SpliceTransaction)rawtran).getTxn(),

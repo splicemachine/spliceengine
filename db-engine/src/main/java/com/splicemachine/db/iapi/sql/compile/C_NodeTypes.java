@@ -257,9 +257,11 @@ public interface C_NodeTypes
     static final int BATCH_ONCE_NODE = 252;
     static final int FIRST_LAST_VALUE_FUNCTION_NODE = 253;
     static final int LEAD_LAG_FUNCTION_NODE = 254;
+	static final int CREATE_PIN_NODE = 255;
+	static final int DROP_PIN_NODE = 256;
 
-    // Final value in set, keep up to date!
-    static final int FINAL_VALUE = LEAD_LAG_FUNCTION_NODE;
+	// Final value in set, keep up to date!
+    static final int FINAL_VALUE = DROP_PIN_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

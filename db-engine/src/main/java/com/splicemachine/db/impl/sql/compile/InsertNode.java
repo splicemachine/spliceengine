@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -732,7 +733,9 @@ public final class InsertNode extends DMLModStatementNode {
         }
 
 
-    }
+
+
+	}
 
 	/**
 	 * Do the bind time checks to see if bulkInsert is allowed on
@@ -925,6 +928,14 @@ public final class InsertNode extends DMLModStatementNode {
 
 		/* generate the parameters */
 		generateParameterValueSet(acb);
+
+		/* Generate Partitions if Applicable */
+		int partitionReferenceItem = -1;
+		int[] partitionBy = targetTableDescriptor.getPartitionBy();
+		if (partitionBy.length != 0)
+			partitionReferenceItem=acb.addItem(new ReferencedColumnsDescriptorImpl(partitionBy));
+
+
 		// Base table
 		if (targetTableDescriptor != null)
 		{
@@ -933,6 +944,9 @@ public final class InsertNode extends DMLModStatementNode {
 			** source or the normalize result set, the constant action,
 			** and "this".
 			*/
+			if (targetTableDescriptor.getStoredAs()!=null) {
+				acb.setDataSetProcessorType(CompilerContext.DataSetProcessorType.FORCED_SPARK);
+			}
 
 			acb.pushGetResultSetFactoryExpression(mb);
 
@@ -954,8 +968,13 @@ public final class InsertNode extends DMLModStatementNode {
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
             mb.push(targetTableDescriptor.getVersion());
             mb.push(this.printExplainInformationForActivation());
-
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 10);
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getDelimited());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getEscaped());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLines());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getStoredAs());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLocation());
+			mb.push(partitionReferenceItem);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 16);
 		}
 		else
 		{

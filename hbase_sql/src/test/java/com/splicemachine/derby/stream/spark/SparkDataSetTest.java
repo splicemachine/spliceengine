@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.SQLDouble;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -27,6 +28,10 @@ import com.splicemachine.derby.stream.spark.SparkDataSet;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.junit.Ignore;
 import org.junit.Test;
 import static org.apache.spark.sql.functions.*;
@@ -54,13 +59,34 @@ public class SparkDataSetTest extends AbstractDataSetTest{
     public void testFoobar() {
         List<Row> foo = new ArrayList();
         for (int i = 0; i< 10; i++) {
-            ValueRow row = new ValueRow(3);
+            ValueRow row = new ValueRow(1);
             row.setColumn(1,new SQLInteger(i));
-            row.setColumn(2,new SQLInteger(i));
-            row.setColumn(3,new SQLInteger(i));
             foo.add(row);
         }
 
+        StructType schema = DataTypes.createStructType(new StructField[]{DataTypes.createStructField("col1", DataTypes.IntegerType, true)});
+
+//        ValueRow row = new ValueRow(2);
+//        row.setColumn(1,new SQLDouble());
+//        row.setColumn(2,new SQLInteger());
+
+/*
+
+        SpliceSpark.getSession().read().parquet("/Users/jleach/Documents/workspace/spliceengine/hbase_sql/target/external/simple_parquet")
+                .select(new Column("0"),new Column("1"))
+                .filter(col("0").gt(1).or(col("0").lt(4))).explain(true);
+*/
+        SpliceSpark.getSession().createDataFrame(foo,schema).write().format("orc").mode(SaveMode.Append)
+                .orc("/Users/jleach/Documents/workspace/spliceengine/hbase_sql/target/external/orc_it");
+
+        Column filter = (new Column("col1")).gt(1l).and(new Column("col1").lt(1l));
+
+        SpliceSpark.getSession().read().schema(schema)
+                .orc("/Users/jleach/Documents/workspace/spliceengine/hbase_sql/target/external/orc_it")
+                .filter(filter).show();
+//                .select(new Column("0"),new Column("1")).show();
+
+/*
         Dataset<Row> leftSide = SpliceSpark.getSession().createDataFrame(foo,foo.get(0).schema());
         Dataset<Row> rightSide = SpliceSpark.getSession().createDataFrame(foo.subList(0,8),foo.get(0).schema());
 
@@ -72,6 +98,7 @@ public class SparkDataSetTest extends AbstractDataSetTest{
         leftSide.join(broadcast(rightSide),col,"leftouter").explain(true);
         leftSide.join(broadcast(rightSide),col,"leftouter").show(10);
         leftSide.join(broadcast(rightSide),col,"leftanti").show(10);
+        */
     }
 
 }

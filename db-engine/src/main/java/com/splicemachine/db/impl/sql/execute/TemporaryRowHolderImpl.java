@@ -304,7 +304,7 @@ class TemporaryRowHolderImpl implements TemporaryRowHolder
 			** Create the conglomerate with the template row.
 			*/
 			CID = 
-                tc.createConglomerate(
+                tc.createConglomerate(false,
                     "heap",
                     inputRow.getRowArray(),
                     null, //column sort order - not required for heap
@@ -382,8 +382,8 @@ class TemporaryRowHolderImpl implements TemporaryRowHolder
 				uniqueIndexRow[1] = baseRowLocation;
 				Properties props = makeIndexProperties(uniqueIndexRow, CID);
 				uniqueIndexConglomId =
-					tc.createConglomerate(
-                        "BTREE",
+					tc.createConglomerate(false,
+	                    "BTREE",
                         uniqueIndexRow, 
                         null,  
                         null, // no collation needed for index on row locations.
@@ -449,6 +449,7 @@ class TemporaryRowHolderImpl implements TemporaryRowHolder
 			Properties props = makeIndexProperties(positionIndexRow, CID);
 			positionIndexConglomId =
                 tc.createConglomerate(
+						false,
                     "BTREE",
                     positionIndexRow, 
                     null,  

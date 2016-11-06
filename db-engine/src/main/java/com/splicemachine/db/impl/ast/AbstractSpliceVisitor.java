@@ -844,5 +844,15 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     public Visitable visit(BatchOnceNode node) throws StandardException {
         return defaultVisit(node);
     }
-    
+
+    @Override
+    public Visitable visit(CreatePinNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(DropPinNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
 }

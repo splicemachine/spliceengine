@@ -1943,5 +1943,26 @@ public interface SQLState {
 	String BACKUP_DOESNOT_EXIST                                    = "BR012";
 	String PARENT_BACKUP_MISSING                                   = "BR013";
 	String EXISTS_CONCURRENT_BACKUP                                = "BR014";
+
+
+	String ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET					   = "EXT01";
+	String ROW_FORMAT_NOT_ALLOWED_WITH_ORC						   = "EXT02";
+	String STORED_AS_REQUIRED_WITH_EXTERNAL_TABLES		   			= "EXT03";
+	String LOCATION_REQUIRED_WITH_EXTERNAL_TABLES		   			= "EXT04";
+	String EXTERNAL_TABLES_ARE_NOT_UPDATEABLE		   			= "EXT05";
+	String EXTERNAL_TABLES_NO_PRIMARY_KEYS		   				= "EXT06";
+	String EXTERNAL_TABLES_NO_CHECK_CONSTRAINTS		   			= "EXT07";
+	String EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS		   			= "EXT08";
+	String EXTERNAL_TABLES_NO_UNIQUE_CONSTRAINTS		   			= "EXT09";
+	String EXTERNAL_TABLES_NO_GENERATION_CLAUSES		   			= "EXT10";
+	String EXTERNAL_TABLES_READ_FAILURE					   			= "EXT11";
+	String EXTERNAL_TABLES_NO_ALTER					   			= "EXT12";
+	String EXTERNAL_TABLES_NO_INDEX					   			= "EXT13";
+	String EXTERNAL_TABLES_NO_TRIGGERS					   			= "EXT14";
+	String EXTERNAL_TABLES_NO_STATS					   			= "EXT15";
+	String PIN_READ_FAILURE					   							= "EXT16";
+
+
+
 }
 

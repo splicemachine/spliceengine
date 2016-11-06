@@ -17,9 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
@@ -55,6 +53,13 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     // Contains CreateConstraintConstantOperation elements, but array ref is ConstraintConstantOperation[]
     protected ConstraintConstantOperation[]	constraintActions;
     private Properties				properties;
+    private String delimited;
+    private String escaped;
+    private String lines;
+    private String storedAs;
+    private String location;
+
+
 
     /**
      *	Make the ConstantAction for a CREATE TABLE statement.
@@ -80,7 +85,13 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             Properties		properties,
             char			lockGranularity,
             boolean			onCommitDeleteRows,
-            boolean			onRollbackDeleteRows) {
+            boolean			onRollbackDeleteRows,
+            String delimited,
+            String escaped,
+            String lines,
+            String storedAs,
+            String location
+            ) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tableType = tableType;
@@ -90,6 +101,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.lockGranularity = lockGranularity;
         this.onCommitDeleteRows = onCommitDeleteRows;
         this.onRollbackDeleteRows = onRollbackDeleteRows;
+        this.delimited = delimited;
+        this.escaped = escaped;
+        this.lines = lines;
+        this.storedAs = storedAs;
+        this.location = location;
 
         if (SanityManager.DEBUG) {
             if (tableType == TableDescriptor.BASE_TABLE_TYPE && lockGranularity != TableDescriptor.TABLE_LOCK_GRANULARITY &&
@@ -132,7 +148,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     protected void createTable(Activation activation) throws StandardException {
         /*
          * Put the create table into a child transaction.
-         * At this end of this action, no matter what, we will
+         * At this end of this action, nxo matter what, we will
          * either commit or roll back the transaction.
          *
          * This may not be strictly necessary (e.g. we might
@@ -223,7 +239,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 		 * that lets us specify the conglomerate number then
 		 * we will need to handle it here.
 		 */
-        long conglomId = tc.createConglomerate(
+        long conglomId = tc.createConglomerate(storedAs!=null,
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template
                 columnOrdering, //column sort order - not required for heap
@@ -241,7 +257,13 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
-            td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length);
+            td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length,
+                    delimited,
+                    escaped,
+                    lines,
+                    storedAs,
+                    location
+                    );
         } else {
             td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
             td.setUUID(dd.getUUIDFactory().createUUID());
@@ -286,7 +308,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         defaultUUID,
                         columnInfo[ix].autoincStart,
                         columnInfo[ix].autoincInc,
-                        columnInfo[ix].autoinc_create_or_modify_Start_Increment
+                        columnInfo[ix].autoinc_create_or_modify_Start_Increment,
+                        columnInfo[ix].partitionPosition
                 );
             else {
                 columnDescriptor = new ColumnDescriptor(
@@ -299,7 +322,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         td,
                         defaultUUID,
                         columnInfo[ix].autoincStart,
-                        columnInfo[ix].autoincInc
+                        columnInfo[ix].autoincInc,
+                        columnInfo[ix].partitionPosition
+
                 );
             }
             index++;

@@ -17,18 +17,20 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
-
 import java.io.InputStream;
 import java.util.Iterator;
 
 /**
  * Higher level constructs for getting datasets and manipulating the processing mechanisms.
  *
- * @author jleach
+ *
+ *
  */
 public interface DataSetProcessor {
     enum Type {LOCAL,SPARK};
@@ -90,7 +92,7 @@ public interface DataSetProcessor {
     DataSet<String> readTextFile(String path) throws StandardException;
 
     DataSet<String> readTextFile(String path, SpliceOperation op) throws StandardException;
-    
+
     /**
      * Gets an empty PairDataSet
      */
@@ -117,4 +119,87 @@ public interface DataSetProcessor {
     void stopJobGroup(String jobName);
 
     Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys);
+
+    /**
+     *
+     * Reads Parquet files given the scan variables.  The qualifiers in conjunctive normal form
+     * will be applied in the parquet storage layer.
+     *
+     * @param baseColumnMap
+     * @param location
+     * @param context
+     * @param qualifiers
+     * @param probeValue
+     * @param execRow
+     * @param <V>
+     * @return
+     * @throws StandardException
+     */
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
+                                          OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
+
+    /**
+     *
+     * Reads in-memory version given the scan variables.  The qualifiers are applied to the in-memory version.
+     *
+     * @param conglomerateId
+     * @param baseColumnMap
+     * @param location
+     * @param context
+     * @param qualifiers
+     * @param probeValue
+     * @param execRow
+     * @param <V>
+     * @return
+     * @throws StandardException
+     */
+    public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location,
+                                          OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
+
+    /**
+     *
+     * Reads ORC files given the scan variables.  The qualifiers in conjunctive normal form
+     * will be applied in the parquet storage layer.
+     *
+     * @param baseColumnMap
+     * @param location
+     * @param context
+     * @param qualifiers
+     * @param probeValue
+     * @param execRow
+     * @param <V>
+     * @return
+     * @throws StandardException
+     */
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
+                                      OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException;
+
+    /**
+     *
+     * Reads Text files given the scan variables.  The qualifiers in conjunctive normal form
+     * will be applied in the parquet storage layer.
+     *
+     * @param op
+     * @param location
+     * @param characterDelimiter
+     * @param columnDelimiter
+     * @param baseColumnMap
+     * @param context
+     * @param execRow
+     * @param <V>
+     * @return
+     * @throws StandardException
+     */
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+                                                OperationContext context,  ExecRow execRow) throws StandardException;
+
+    /**
+     *
+     * Drops the in-memory version of the table.
+     *
+     * @param conglomerateId
+     * @throws StandardException
+     */
+    public void dropPinnedTable(long conglomerateId) throws StandardException;
+
 }

@@ -56,7 +56,9 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 
 	@see ConglomerateFactory#createConglomerate
 	**/
-	public Conglomerate createConglomerate(	
+	@Override
+	public Conglomerate createConglomerate(
+	boolean 				isExternal,
     TransactionManager      xact_mgr,
     long                    input_containerid,
     DataValueDescriptor[]   template,
@@ -65,7 +67,7 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
     Properties              properties,
 	int                     temporaryFlag) throws StandardException {
 		IndexConglomerate index = new IndexConglomerate();
-		index.create(
+		index.create(isExternal,
             xact_mgr.getRawStoreXact(), input_containerid,
             template, columnOrder, collationIds, properties, 
             index.getTypeFormatId(), 

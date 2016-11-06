@@ -72,6 +72,20 @@ public class S3IT extends SpliceUnitTest{
     }
 
     @Test
+    public void testReadFromS3File() throws Exception{
+        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE NATION (" +
+                "                N_NATIONKEY INTEGER NOT NULL,\n" +
+                "                N_NAME VARCHAR(25),\n" +
+                "                N_REGIONKEY INTEGER NOT NULL,\n" +
+                "                N_COMMENT VARCHAR(152)\n" +
+                "        ) ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' " +
+                "stored as %s location '%s'", "TEXTFILE",LOCATION));
+        ResultSet rs = methodWatcher.executeQuery("select * from nation");
+        Assert.assertEquals(NATION_FULL_RESPONSE, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
+    @Test
     public void testImportFromS3() throws Exception {
 
             PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
@@ -96,5 +110,22 @@ public class S3IT extends SpliceUnitTest{
         ResultSet rs = methodWatcher.executeQuery("select * from nation2");
         Assert.assertEquals(NATION_FULL_RESPONSE, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
+
+    @Test
+    public void testPinS3File() throws Exception{
+        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE NATION3 (" +
+                "                N_NATIONKEY INTEGER NOT NULL,\n" +
+                "                N_NAME VARCHAR(25),\n" +
+                "                N_REGIONKEY INTEGER NOT NULL,\n" +
+                "                N_COMMENT VARCHAR(152)\n" +
+                "        ) ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' " +
+                "stored as %s location '%s'", "TEXTFILE",LOCATION));
+        ResultSet rs = methodWatcher.executeQuery("select * from nation3");
+        Assert.assertEquals(NATION_FULL_RESPONSE, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate("create pin table nation3");
+        ResultSet rs2 = methodWatcher.executeQuery("select * from nation3 --splice-properties pin=true");
+        Assert.assertEquals(NATION_FULL_RESPONSE, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+    }
+
 
 }

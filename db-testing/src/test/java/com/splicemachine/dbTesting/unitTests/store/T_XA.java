@@ -209,7 +209,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
 		long conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null,  	//column sort order - not required for heap
@@ -337,7 +337,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
 		long conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
                 null, 	//column sort order - not required for heap
@@ -467,7 +467,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
 		long conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null, //column sort order - not required for heap
@@ -495,7 +495,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         template_row = new T_AccessRow(1);
 		conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null, //column sort order - not required for heap
@@ -606,7 +606,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
 		long conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null, //column sort order - not required for heap
@@ -737,7 +737,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         template_row = new T_AccessRow(1);
 		conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null, //column sort order - not required for heap
@@ -865,7 +865,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
 		long conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null, //column sort order - not required for heap
@@ -942,7 +942,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         template_row = new T_AccessRow(1);
 		conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null, //column sort order - not required for heap
@@ -1074,7 +1074,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
 		long conglomid = 
-            tc.createConglomerate(
+            tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null, //column sort order - not required for heap
@@ -1121,7 +1121,7 @@ public class T_XA extends T_Generic
 		// Create a heap conglomerate.
         template_row = new T_AccessRow(1);
 		conglomid = 
-            xa_tc.createConglomerate(
+            xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
 				null, //column sort order - not required for heap

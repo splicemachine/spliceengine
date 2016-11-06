@@ -346,8 +346,10 @@ abstract class SQLBinary
 
 	 * @exception IOException		io exception
 	 */
-	public final void writeExternal(ObjectOutput out) throws IOException
-	{
+	public final void writeExternal(ObjectOutput out) throws IOException {
+		out.writeBoolean(evaluateNull());
+		if (evaluateNull())
+			return;
         if ( _blobValue != null )
         {
             writeBlob(  out );
@@ -433,6 +435,15 @@ abstract class SQLBinary
 		streamValueLength = -1;
         _blobValue = null;
 
+		if (in instanceof FormatIdInputStream) {
+
+		} else {
+			isNull = in.readBoolean();
+			if (isNull) {
+				return;
+			}
+		}
+
 
 		int len = SQLBinary.readBinaryLength(in);
 
@@ -455,6 +466,11 @@ abstract class SQLBinary
 		streamValueLength = -1;
         _blobValue = null;
 
+/*		isNull = in.readBoolean();
+		if (isNull) {
+			return;
+		}
+*/
 		int len = SQLBinary.readBinaryLength(in);
 
 		if (len != 0)

@@ -114,7 +114,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
                         kp = spliceKryoPool = new KryoPool(kpSize);
                     }
                     kp.setKryoRegistry(new SpliceSparkKryoRegistrator());
-
                 }
             }
         }
@@ -373,7 +372,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(SchemaDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ProjectRestrictOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(TableScanOperation.class, EXTERNALIZABLE_SERIALIZER);
-        instance.register(BulkTableScanOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(GroupedAggregateOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DistinctScanOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DistinctScalarAggregateOperation.class, EXTERNALIZABLE_SERIALIZER);
@@ -419,6 +417,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(float[].class);
         instance.register(long[].class);
         instance.register(short[].class);
+        instance.register(Object[].class);
+        instance.register(scala.collection.mutable.WrappedArray.ofRef.class);
         instance.register(Collections.emptyList().getClass());
         instance.register(Collections.unmodifiableList(new LinkedList()).getClass(), UNMODIFIABLE_COLLECTIONS_SERIALIZER);
         instance.register(Collections.unmodifiableList(new ArrayList()).getClass(), UNMODIFIABLE_COLLECTIONS_SERIALIZER);
@@ -684,6 +684,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(MapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowTransformFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TxnViewDecoderFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CountWriteFunction.class,EXTERNALIZABLE_SERIALIZER);
 
 
     }
