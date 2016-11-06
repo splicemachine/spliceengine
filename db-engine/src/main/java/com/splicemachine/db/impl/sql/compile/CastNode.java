@@ -1137,6 +1137,11 @@ public class CastNode extends ValueNode
 		else
 			castOperand.setHashableJoinColumnReference(cr);
 	}
+
+	@Override
+	public int getTableNumber() {
+		return castOperand.getTableNumber();
+	}
 }
 
 
