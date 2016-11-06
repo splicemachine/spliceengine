@@ -1916,6 +1916,9 @@ public class ResultColumn extends ValueNode
 			// Else recurse down the VCN.
 			return vcn.getSourceColumn().getTableNumber();
 		}
+		else if (expression instanceof TernaryOperatorNode) {
+			return ((TernaryOperatorNode) expression).receiver.getTableNumber();
+		}
 
 		// We can get here if expression has neither a column
 		// reference nor a FromBaseTable beneath it--for example,
