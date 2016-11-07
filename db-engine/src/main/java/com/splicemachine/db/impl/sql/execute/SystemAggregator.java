@@ -87,4 +87,9 @@ abstract class SystemAggregator implements ExecAggregator
                 return e.getMessage();
             }
         }
+
+	@Override
+	public boolean isUserDefinedAggregator() {
+		return false;
+	}
 }

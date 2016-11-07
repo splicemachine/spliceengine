@@ -16,16 +16,12 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.expressions.Window;
 import org.apache.spark.sql.expressions.WindowSpec;
 import org.apache.spark.sql.types.DataType;
-import scala.collection.JavaConversions;
-
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 import static com.splicemachine.derby.stream.spark.SparkUtils.convertPartitions;
 import static com.splicemachine.derby.stream.spark.SparkUtils.convertSortColumns;
 import static org.apache.spark.sql.functions.*;
@@ -176,84 +172,84 @@ public class SparkWindow {
         Column column = null;
         switch (functionType) {
             case MAX_FUNCTION:
-                column = max(col(String.valueOf(inputColumnIds[0] - 1)))
+                column = max(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)))
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
             case MIN_FUNCTION:
-                column = min(col(String.valueOf(inputColumnIds[0] - 1)))
+                column = min(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)))
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
             case SUM_FUNCTION:
-                column = sum(col(String.valueOf(inputColumnIds[0] - 1)))
+                column = sum(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)))
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
 
             case LAST_VALUE_FUNCTION:
-                column = last(col(String.valueOf(inputColumnIds[0] - 1)),(Boolean) specificArgs.getOrDefault("IGNORE_NULLS",false))
+                column = last(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)),(Boolean) specificArgs.getOrDefault("IGNORE_NULLS",false))
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
             case AVG_FUNCTION:
-                column = avg(col(String.valueOf(inputColumnIds[0] - 1)))
+                column = avg(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)))
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1))
+                        .as(ValueRow.getNamedColumn(resultColumn - 1))
                         .cast(resultDataType);
                 break;
 
             case COUNT_FUNCTION:
-                column = count(col(String.valueOf(inputColumnIds[0] - 1)))
+                column = count(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)))
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
             case COUNT_STAR_FUNCTION:
                 column = count("*")
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
             case DENSE_RANK_FUNCTION:
                 column = dense_rank()
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1))
+                        .as(ValueRow.getNamedColumn(resultColumn - 1))
                         .cast(resultDataType);
                 break;
 
             case RANK_FUNCTION:
                 column = rank()
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1))
+                        .as(ValueRow.getNamedColumn(resultColumn - 1))
                         .cast(resultDataType);
                 break;
 
             case FIRST_VALUE_FUNCTION:
-                column = first(col(String.valueOf(inputColumnIds[0] - 1)),(Boolean) specificArgs.getOrDefault("IGNORE_NULLS",false))
+                column = first(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)),(Boolean) specificArgs.getOrDefault("IGNORE_NULLS",false))
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
             case LAG_FUNCTION:
-                column = lag(col(String.valueOf(inputColumnIds[0] - 1)),1)
+                column = lag(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)),1)
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
             case LEAD_FUNCTION:
-                column = lead(col(String.valueOf(inputColumnIds[0] - 1)),1)
+                column = lead(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)),1)
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1));
+                        .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
             case ROW_NUMBER_FUNCTION:
                 column = row_number()
                         .over(spec)
-                        .as(String.valueOf(resultColumn - 1))
+                        .as(ValueRow.getNamedColumn(resultColumn - 1))
                         .cast(resultDataType);
                 break;
         }

@@ -381,7 +381,7 @@ public class CreateViewNode extends DDLStatementNode
 											 null,
 											 null,
 											 ColumnInfo.CREATE,
-											 0, 0, 0);
+											 0, 0, 0,-1);
 		}
 	}
 
@@ -451,7 +451,7 @@ public class CreateViewNode extends DDLStatementNode
 		 * (Pass in row locking, even though meaningless for views.)
 		 */
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		TableDescriptor td = ddg.newTableDescriptor(getRelativeName(),sd,TableDescriptor.WITH_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
+		TableDescriptor td = ddg.newTableDescriptor(getRelativeName(),sd,TableDescriptor.WITH_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null);
 		UUID toid = td.getUUID();
 
 		// No Need to add since this will be dynamic!!!

@@ -32,6 +32,8 @@ import java.util.Properties;
 
 /**
  *
+ * Factory class for the physical creation of storage.
+ *
  *
  **/
 
@@ -58,12 +60,30 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
     }
 
     /**
+     *
+     *
      * Create the conglomerate and return a conglomerate object for it.
+     *
+     * @param isExternal           Whether this table is managed internally or via an external mechanism
+     * @param xact_mgr             transaction to perform the create in.
+     * @param input_containerid    containerid to assign the container, or
+    ContainerHandle.DEFAULT_ASSIGN_ID if you want
+     * @param template             Template of row in the conglomerate.
+     * @param columnOrder          columns sort order for Index creation
+     * @param collationIds         collation ids of columns in the conglomerate.
+     * @param properties           Properties associated with the conglomerate.
+     * @param temporaryFlag
+     * @return
+     * @throws StandardException
      *
      * @throws StandardException Standard exception policy.
      * @see ConglomerateFactory#createConglomerate
-     **/
+     *
+     *
+     */
+    @Override
     public Conglomerate createConglomerate(
+            boolean isExternal,
             TransactionManager xact_mgr,
             long input_containerid,
             DataValueDescriptor[] template,
@@ -75,7 +95,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
         HBaseConglomerate hbase=new HBaseConglomerate();
 
         SIDriver driver=SIDriver.driver();
-        hbase.create(
+        hbase.create(isExternal,
                 xact_mgr.getRawStoreXact(),
                 input_containerid,
                 template,

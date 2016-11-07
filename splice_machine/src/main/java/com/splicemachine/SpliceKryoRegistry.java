@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.AggregateAliasInfo;
@@ -503,7 +504,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SchemaDescriptor.class,EXTERNALIZABLE_SERIALIZER,56);
         instance.register(ProjectRestrictOperation.class,EXTERNALIZABLE_SERIALIZER,58);
         instance.register(TableScanOperation.class,EXTERNALIZABLE_SERIALIZER,59);
-        instance.register(BulkTableScanOperation.class,EXTERNALIZABLE_SERIALIZER,60);
         instance.register(GroupedAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,61);
         instance.register(DistinctScanOperation.class,EXTERNALIZABLE_SERIALIZER,62);
         instance.register(DistinctScalarAggregateOperation.class,EXTERNALIZABLE_SERIALIZER,63);
@@ -849,6 +849,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER,276);
         instance.register(StatisticsFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,277);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,278);
+        instance.register(RowToLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER,279);
 
     }
 }

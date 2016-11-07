@@ -1474,7 +1474,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         //create new conglomerate with same properties as the old conglomerate 
         //and same row template as the old conglomerate
         long conglomId=
-                tc.createConglomerate(
+                tc.createConglomerate(td.getTableType() == TableDescriptor.EXTERNAL_TYPE,
                         "heap", // we're requesting a heap conglomerate
                         td.getEmptyExecRow().getRowArray(), // row template
                         null, //column sort order - not required for heap

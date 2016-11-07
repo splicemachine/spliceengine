@@ -225,8 +225,8 @@ abstract class DMLModStatementNode extends DMLStatementNode
 			case TableDescriptor.SYSTEM_TABLE_TYPE:
               // System tables are not updatable
                   throw StandardException.newException(SQLState.LANG_UPDATE_SYSTEM_TABLE_ATTEMPTED, targetTableName);
-              default:
-              break;
+				default:
+				break;
 			}
 			getCompilerContext().createDependency(targetTableDescriptor);
 		}

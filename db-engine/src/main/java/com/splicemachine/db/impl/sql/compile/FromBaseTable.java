@@ -100,7 +100,7 @@ public class FromBaseTable extends FromTable {
 
     ConglomerateDescriptor baseConglomerateDescriptor;
     ConglomerateDescriptor[] conglomDescs;
-
+    private boolean pin;
     int updateOrDelete;
 
     /*
@@ -525,6 +525,9 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public void verifyProperties(DataDictionary dDictionary) throws StandardException{
+        if (tableDescriptor.getStoredAs()!=null) {
+            dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+        }
         if(tableProperties==null){
             return;
         }
@@ -590,8 +593,8 @@ public class FromBaseTable extends FromTable {
                 }
                 constraintSpecified=true;
 
-                if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
-                    consDesc=dDictionary.getConstraintDescriptorByName(tableDescriptor,null,value,false);
+             if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
+                 consDesc=dDictionary.getConstraintDescriptorByName(tableDescriptor,null,value,false);
 
 		            /* Throw exception if user specified constraint not found
 		             * or if it does not have a backing index.
@@ -613,11 +616,22 @@ public class FromBaseTable extends FromTable {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value);
                 }
             }
+            else if (key.equals("pin")) {
+                try {
+                    pin = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
+                    dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+                    tableProperties.setProperty("index","null");
+                } catch (Exception pinE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value); // TODO Fix Error message - JL
+                }
+            }
+
             else{
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark");
+                        "index, constraint, joinStrategy, useSpark, pin");
             }
+
 
 		    /* If user specified a non-null constraint name(DERBY-1707), then
 		     * replace it in the properties list with the underlying index name to
@@ -1941,6 +1955,7 @@ public class FromBaseTable extends FromTable {
 		 */
         assignResultSetNumber();
 
+        // TODO ASSIGN SPARK IN CASE OF EXTERNAL TABLES
         determineSpark();
 
 		/*
@@ -1970,8 +1985,7 @@ public class FromBaseTable extends FromTable {
         int nargs=getScanArguments(acb,mb);
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,
-                trulyTheBestJoinStrategy.resultSetMethodName(
-                        (bulkFetch!=UNSET),multiProbing),
+                trulyTheBestJoinStrategy.resultSetMethodName(multiProbing),
                 ClassName.NoPutResultSet,nargs);
 
         if (rowIdColumn != null) {
@@ -2091,26 +2105,6 @@ public class FromBaseTable extends FromTable {
         CostEstimate costEstimate=getFinalCostEstimate();
         int colRefItem=(referencedCols==null)? -1: acb.addItem(referencedCols);
         boolean tableLockGranularity=tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY;
-	
-		/*
-		** getDistinctScanResultSet
-		** (
-		**		activation,			
-		**		resultSetNumber,			
-		**		resultRowAllocator,			
-		**		conglomereNumber,			
-		**		tableName,
-		**		optimizeroverride			
-		**		indexName,			
-		**		colRefItem,			
-		**		lockMode,			
-		**		tableLocked,
-		**		isolationLevel,
-		**		optimizerEstimatedRowCount,
-		**		optimizerEstimatedRowCost,
-		**		closeCleanupMethod
-		**	);
-		*/
 
 		/* Get the hash key columns and wrap them in a formattable */
         int[] hashKeyColumns;
@@ -2167,9 +2161,14 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
-
+        mb.push(pin);
+        BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getDelimited());
+        BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getEscaped());
+        BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLines());
+        BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getStoredAs());
+        BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLocation());
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,18);
+                ClassName.NoPutResultSet,24);
     }
 
     private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
@@ -2247,7 +2246,13 @@ public class FromBaseTable extends FromTable {
                 getCompilerContext().getScanIsolationLevel(),
                 ap.getOptimizer().getMaxMemoryPerTable(),
                 multiProbing,
-                tableDescriptor.getVersion()
+                tableDescriptor.getVersion(),
+                pin,
+                tableDescriptor.getDelimited(),
+                tableDescriptor.getEscaped(),
+                tableDescriptor.getLines(),
+                tableDescriptor.getStoredAs(),
+                tableDescriptor.getLocation()
         );
     }
 

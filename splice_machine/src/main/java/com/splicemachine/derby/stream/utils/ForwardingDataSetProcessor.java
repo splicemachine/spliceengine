@@ -18,6 +18,8 @@ package com.splicemachine.derby.stream.utils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
@@ -144,6 +146,31 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     @Override
     public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         return delegate.getPartitioner(dataSet, template, keyDecodingMap, keyOrder,rightHashKeys);
+    }
+
+    @Override
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
+        return delegate.readParquetFile(baseColumnMap, location, context,qualifiers,probeValue,execRow);
+    }
+
+    @Override
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
+        return delegate.readORCFile(baseColumnMap, location, context,qualifiers,probeValue,execRow);
+    }
+
+    @Override
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context,ExecRow execRow) throws StandardException {
+        return delegate.readTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context,execRow);
+    }
+
+    @Override
+    public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+        return delegate.readPinnedTable(conglomerateId, baseColumnMap, location, context, qualifiers, probeValue, execRow);
+    }
+
+    @Override
+    public void dropPinnedTable(long conglomerateId) throws StandardException {
+        delegate.dropPinnedTable(conglomerateId);
     }
 }
 

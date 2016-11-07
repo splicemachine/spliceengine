@@ -18,10 +18,15 @@ package com.splicemachine.derby.stream.spark;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.*;
 import com.google.common.collect.Lists;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataType;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
+import com.splicemachine.derby.vti.SpliceFileVTI;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -29,6 +34,9 @@ import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -181,7 +189,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     InputStream.class,
                     HConfiguration.unwrapDelegate());
             return new SparkPairDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
-        } catch (IOException ioe) {
+        } catch (IOException | StandardException ioe) {
             throw new RuntimeException(ioe);
         } finally {
             SpliceSpark.popScope();
@@ -219,7 +227,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     });
             SparkUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
-        } catch (IOException ioe) {
+        } catch (IOException | StandardException ioe) {
             throw new RuntimeException(ioe);
         } finally {
             SpliceSpark.popScope();
@@ -282,5 +290,163 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder, rightHashKeys);
     }
 
+    @Override
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
+                                          OperationContext context, Qualifier[][] qualifiers,
+                                          DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException {
+        try {
+            Dataset<Row> table = SpliceSpark.getSession().read().parquet(location);
+            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            return new SparkDataSet(table
+                    .rdd().toJavaRDD()
+                    .map(new RowToLocatedRowFunction(context,execRow)));
+        } catch (Exception e) {
+            throw StandardException.newException(
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+        }
+    }
 
+    @Override
+    public void dropPinnedTable(long conglomerateId) throws StandardException {
+        if (SpliceSpark.getSession().catalog().isCached("SPLICE_"+conglomerateId)) {
+            SpliceSpark.getSession().catalog().uncacheTable("SPLICE_"+conglomerateId);
+            SpliceSpark.getSession().catalog().dropTempView("SPLICE_"+conglomerateId);
+
+        }
+    }
+
+    private Dataset<Row> processExternalDataset(Dataset<Row> rawDataset,int[] baseColumnMap,Qualifier[][] qualifiers,DataValueDescriptor probeValue) throws StandardException {
+        String[] allCols = rawDataset.columns();
+        List<Column> cols = new ArrayList();
+        for (int i = 0; i < baseColumnMap.length; i++) {
+            if (baseColumnMap[i] != -1)
+                cols.add(new Column(allCols[i]));
+        }
+        Dataset dataset = rawDataset
+                .select(cols.toArray(new Column[cols.size()]));
+        if (qualifiers !=null) {
+            Column filter = createFilterCondition(dataset, qualifiers, baseColumnMap, probeValue);
+            if (filter != null)
+                dataset = dataset.filter(filter);
+        }
+        return dataset;
+
+    }
+
+
+    @Override
+    public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+        try {
+            Dataset<Row> table = SpliceSpark.getSession().table("SPLICE_"+conglomerateId);
+            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            return new SparkDataSet(table
+                    .rdd().toJavaRDD()
+                    .map(new RowToLocatedRowFunction(context,execRow)));
+        } catch (Exception e) {
+            throw StandardException.newException(
+                    SQLState.PIN_READ_FAILURE,e.getMessage());
+        }
+    }
+
+    @Override
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
+                                          OperationContext context, Qualifier[][] qualifiers,
+                                      DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+        try {
+            Dataset<Row> table = SpliceSpark.getSession().read().orc(location);
+            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            return new SparkDataSet(table
+                    .rdd().toJavaRDD()
+                    .map(new RowToLocatedRowFunction(context,execRow)));
+        } catch (Exception e) {
+            throw StandardException.newException(
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+        }
+    }
+    @Override
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+                                      OperationContext context, ExecRow execRow) throws StandardException {
+        try {
+            return SpliceFileVTI.getSpliceFileVTI(location, characterDelimiter, columnDelimiter, baseColumnMap).getDataSet(op, this, execRow);
+        } catch (Exception e) {
+            throw StandardException.newException(
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+        }
+    }
+
+
+    private static Column createFilterCondition(Dataset dataset, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
+            assert qual_list!=null:"qualifier[][] passed in is null";
+            boolean     row_qualifies = true;
+            Column andCols = null;
+            for (int i = 0; i < qual_list[0].length; i++) {
+                Qualifier q = qual_list[0][i];
+                if (q.getVariantType() == Qualifier.VARIANT)
+                    continue; // Cannot Push Down Qualifier
+                Column col = dataset.col(ValueRow.getNamedColumn(q.getStoragePosition()));
+                q.clearOrderableCache();
+                Object value = (probeValue==null || i!=0?q.getOrderable():probeValue).getObject();
+                switch (q.getOperator()) {
+                    case DataType.ORDER_OP_LESSTHAN:
+                        col=q.negateCompareResult()?col.geq(value):col.lt(value);
+                        break;
+                    case DataType.ORDER_OP_LESSOREQUALS:
+                        col=q.negateCompareResult()?col.gt(value):col.leq(value);
+                        break;
+                    case DataType.ORDER_OP_GREATERTHAN:
+                        col=q.negateCompareResult()?col.leq(value):col.gt(value);
+                        break;
+                    case DataType.ORDER_OP_GREATEROREQUALS:
+                        col=q.negateCompareResult()?col.lt(value):col.geq(value);
+                        break;
+                    case DataType.ORDER_OP_EQUALS:
+                        col=q.negateCompareResult()?col.notEqual(value):col.equalTo(value);
+                        break;
+                }
+                if (andCols ==null)
+                    andCols = col;
+                else
+                    andCols = andCols.and(col);
+            }
+            // all the qual[0] and terms passed, now process the OR clauses
+            for (int and_idx = 1; and_idx < qual_list.length; and_idx++) {
+                Column orCols = null;
+                for (int or_idx = 0; or_idx < qual_list[and_idx].length; or_idx++) {
+                    Qualifier q = qual_list[and_idx][or_idx];
+                    if (q.getVariantType() == Qualifier.VARIANT)
+                        continue; // Cannot Push Down Qualifier
+                    q.clearOrderableCache();
+                    Column orCol = dataset.col(ValueRow.getNamedColumn((baseColumnMap != null ? baseColumnMap[q.getStoragePosition()] : q.getStoragePosition())));
+                    Object value = q.getOrderable().getObject();
+                    switch (q.getOperator()) {
+                        case DataType.ORDER_OP_LESSTHAN:
+                            orCol = q.negateCompareResult() ? orCol.geq(value) : orCol.lt(value);
+                            break;
+                        case DataType.ORDER_OP_LESSOREQUALS:
+                            orCol = q.negateCompareResult() ? orCol.gt(value) : orCol.leq(value);
+                            break;
+                        case DataType.ORDER_OP_GREATERTHAN:
+                            orCol = q.negateCompareResult() ? orCol.leq(value) : orCol.gt(value);
+                            break;
+                        case DataType.ORDER_OP_GREATEROREQUALS:
+                            orCol = q.negateCompareResult() ? orCol.lt(value) : orCol.geq(value);
+                            break;
+                        case DataType.ORDER_OP_EQUALS:
+                            orCol = q.negateCompareResult() ? orCol.notEqual(value) : orCol.equalTo(value);
+                            break;
+                    }
+                    if (orCols == null)
+                        orCols = orCol;
+                    else
+                        orCols = orCols.or(orCol);
+                }
+                if (orCols!=null) {
+                    if (andCols ==null)
+                        andCols = orCols;
+                    else
+                        andCols = andCols.and(orCols);
+                }
+            }
+            return andCols;
+        }
 }

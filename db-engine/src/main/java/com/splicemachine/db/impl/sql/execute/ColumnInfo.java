@@ -51,8 +51,7 @@ import java.io.IOException;
  *	@version 0.1
  */
 
-public class ColumnInfo implements Formatable
-{
+public class ColumnInfo implements Formatable {
 	/********************************************************
 	**
 	**	This class implements Formatable. That means that it
@@ -82,6 +81,7 @@ public class ColumnInfo implements Formatable
 	//MODIFY_COLUMN_DEFAULT_RESTART or MODIFY_COLUMN_DEFAULT_INCREMENT. Otherwise,
 	//this variable will be set to -1.
 	public long 						autoinc_create_or_modify_Start_Increment = -1;
+	public int 							partitionPosition;
 
 	//This indicates column is for CREATE TABLE
 	public static final int CREATE					= 0;
@@ -94,6 +94,8 @@ public class ColumnInfo implements Formatable
 	//This indicates column is for ALTER TABLE to change the increment value of autoinc column 
 	public static final int MODIFY_COLUMN_DEFAULT_INCREMENT	= 6;
 	public static final int MODIFY_COLUMN_DEFAULT_VALUE	= 7;
+	public static final int MODIFY_COLUMN_PARTITION_POSITION	= 8;
+
 	// CONSTRUCTORS
 
 	/**
@@ -129,7 +131,8 @@ public class ColumnInfo implements Formatable
 					   int							action,
 					   long							autoincStart,
 					   long							autoincInc,
-					   long							autoinc_create_or_modify_Start_Increment)
+					   long							autoinc_create_or_modify_Start_Increment,
+					   int 							partitionPosition)
 	{
 		this.name = name;
 		this.dataType = dataType;
@@ -142,6 +145,7 @@ public class ColumnInfo implements Formatable
 		this.autoincStart = autoincStart;
 		this.autoincInc = autoincInc;
 		this.autoinc_create_or_modify_Start_Increment = autoinc_create_or_modify_Start_Increment;
+		this.partitionPosition = partitionPosition;
 	}
 
 	// Formatable methods
@@ -155,35 +159,21 @@ public class ColumnInfo implements Formatable
 	 * @exception ClassNotFoundException		thrown on error
 	 */
 	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
+		 throws IOException, ClassNotFoundException {
 
-		FormatableLongHolder flh;
-
-		FormatableHashtable fh = (FormatableHashtable)in.readObject();
-		name = (String)fh.get("name");
-		dataType = (DataTypeDescriptor) fh.get("dataType");
-		defaultValue = (DataValueDescriptor)fh.get("defaultValue");
-		defaultInfo = (DefaultInfo)fh.get("defaultInfo");
-		newDefaultUUID = (UUID)fh.get("newDefaultUUID");
-		oldDefaultUUID = (UUID)fh.get("oldDefaultUUID");
-		action = fh.getInt("action");
-		
-		if (fh.get("autoincStart") != null)
-		{
-			autoincStart = fh.getLong("autoincStart");
-			autoincInc = fh.getLong("autoincInc");
+		name = in.readUTF();
+		dataType = (DataTypeDescriptor) in.readObject();
+		defaultValue = (DataValueDescriptor) in.readObject();
+		defaultInfo = (DefaultInfo) in.readObject();
+		newDefaultUUID = (UUID) in.readObject();
+		oldDefaultUUID = (UUID)in.readObject();
+		action = in.readInt();
+		autoincStart = in.readLong();
+		autoincInc = in.readLong();
+		providers = new ProviderInfo[in.readInt()];
+		for (int i = 0; i< providers.length;i++) {
+			providers[i] = (ProviderInfo) in.readObject();
 		}
-		else
-		{
-			autoincInc = autoincStart = 0;
-		}
-
-        FormatableArrayHolder   fah = (FormatableArrayHolder) fh.get( "providers" );
-        if ( fah != null )
-        {
-            providers = (ProviderInfo[]) fah.getArray( ProviderInfo.class );
-        }
 	}
 
 	/**
@@ -194,31 +184,21 @@ public class ColumnInfo implements Formatable
 	 * @exception IOException		thrown on error
 	 */
 	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
-		FormatableHashtable fh = new FormatableHashtable();
-		fh.put("name", name);
-		fh.put("dataType", dataType);
-		fh.put("defaultValue", defaultValue);
-		fh.put("defaultInfo", defaultInfo);
-		fh.put("newDefaultUUID", newDefaultUUID);
-		fh.put("oldDefaultUUID", oldDefaultUUID );
-		fh.putInt("action", action);
-		
-		if (autoincInc != 0)
-		{
-			// only write out autoinc values if its an autoinc column.
-			fh.putLong("autoincStart", autoincStart);
-			fh.putLong("autoincInc", autoincInc);
+		 throws IOException {
+		out.writeUTF(name);
+		out.writeObject(dataType);
+		out.writeObject(defaultValue);
+		out.writeObject(defaultInfo);
+		out.writeObject(newDefaultUUID);
+		out.writeObject(oldDefaultUUID);
+		out.writeInt(action);
+		out.writeLong(autoincStart);
+		out.writeLong(autoincInc);
+		int providerLength = providers==null?0:providers.length;
+		out.writeInt(providerLength);
+		for (int i = 0; i< providerLength;i++) {
+			out.writeObject(providers[i]);
 		}
-
-        if ( providers != null )
-        {
-            FormatableArrayHolder   fah = new FormatableArrayHolder( providers );
-            fh.put( "providers", fah );
-        }
-        
-		out.writeObject(fh);
 	}
  
 	/**

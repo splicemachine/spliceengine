@@ -2141,7 +2141,7 @@ throws SQLException
 		[ <IN> schema=caIdentifier() ]
 	{
 		if(t!=null) {
-		    types = new String[] { "TABLE", "SYSTEM TABLE" };
+		    types = new String[] { "TABLE", "SYSTEM TABLE", "EXTERNAL TABLE" };
 		}
 		else if(v!=null)
 			types = new String[] { "VIEW" };

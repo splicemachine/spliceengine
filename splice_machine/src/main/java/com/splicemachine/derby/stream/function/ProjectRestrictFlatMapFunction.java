@@ -21,9 +21,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import org.apache.commons.collections.iterators.SingletonIterator;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -67,14 +65,11 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
         op.source.setCurrentRow(from.getRow());
         if (!op.getRestriction().apply(from.getRow())) {
             operationContext.recordFilter();
-            StreamLogUtils.logOperationRecordWithMessage(from,operationContext,"filtered");
             return Collections.<LocatedRow>emptyList().iterator();
         }
-//        ExecRow execRow = executionFactory.getValueRow(numberOfColumns);
         ExecRow preCopy = op.doProjection(from.getRow());
         LocatedRow locatedRow = new LocatedRow(from.getRowLocation(), preCopy);
         op.setCurrentLocatedRow(locatedRow);
-        StreamLogUtils.logOperationRecord(locatedRow,operationContext);
         return new SingletonIterator(locatedRow);
     }
 }

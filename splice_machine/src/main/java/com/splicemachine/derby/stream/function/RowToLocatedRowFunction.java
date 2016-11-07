@@ -14,12 +14,14 @@
  */
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.spark.TaskContext;
 import org.apache.spark.sql.Row;
-
 import java.io.*;
 
 import org.apache.spark.api.java.function.Function;
@@ -38,29 +40,39 @@ public class RowToLocatedRowFunction implements Function <Row, LocatedRow>, Seri
     }
     protected boolean initialized = false;
 
-    public RowToLocatedRowFunction(OperationContext<SpliceOperation> operationContext) {
+    public RowToLocatedRowFunction(OperationContext<SpliceOperation> operationContext) throws StandardException {
+            this(operationContext, operationContext.getOperation().getExecRowDefinition());
+    };
+
+    public RowToLocatedRowFunction(OperationContext<SpliceOperation> operationContext,ExecRow execRow) {
         this.operationContext = operationContext;
+        this.execRow = execRow;
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(operationContext);
+        out.writeObject(execRow);
     }
 
     @Override
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException {
         operationContext = (OperationContext) in.readObject();
+        execRow = (ExecRow) in.readObject();
     }
     @Override
     public LocatedRow call(Row row) throws Exception {
         if (!initialized) {
-            op = operationContext.getOperation();
-            execRow = op.getExecRowDefinition();
+            if (operationContext!=null)
+                op = operationContext.getOperation();
+            else
+                SITableScanner.regionId.set(""+TaskContext.getPartitionId()); // Sets PartitionId for columnar files.
             initialized = true;
         }
-        LocatedRow locatedRow = new LocatedRow(execRow.getClone().fromSparkRow(row));
-        op.setCurrentLocatedRow(locatedRow);
+        LocatedRow locatedRow = new LocatedRow(execRow.getNewNullRow().fromSparkRow(row));
+        if (op!=null)
+            op.setCurrentLocatedRow(locatedRow);
         return locatedRow;
     }
 }

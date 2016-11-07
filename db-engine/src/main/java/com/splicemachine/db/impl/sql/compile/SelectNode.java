@@ -1940,6 +1940,11 @@ public class SelectNode extends ResultSetNode{
                 SanityManager.DEBUG("DumpUpdateCheck","cursor select is on system table");
             return false;
         }
+        if(targetTableDescriptor.getTableType()==TableDescriptor.EXTERNAL_TYPE){
+            if(SanityManager.DEBUG)
+                SanityManager.DEBUG("DumpUpdateCheck","cursor select is on system table");
+            return false;
+        }
         if(targetTableDescriptor.getTableType()==TableDescriptor.VIEW_TYPE){
             if(SanityManager.DEBUG)
                 SanityManager.DEBUG("DumpUpdateCheck","cursor select is on view");

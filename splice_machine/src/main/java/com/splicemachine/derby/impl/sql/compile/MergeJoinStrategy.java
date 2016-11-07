@@ -40,16 +40,6 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
     }
 
     @Override
-    public String resultSetMethodName(boolean bulkFetch,boolean multiprobe){
-        if(bulkFetch)
-            return "getBulkTableScanResultSet";
-        else if(multiprobe)
-            return "getMultiProbeTableScanResultSet";
-        else
-            return "getTableScanResultSet";
-    }
-
-    @Override
     public String joinResultSetMethodName(){
         return "getMergeJoinResultSet";
     }

@@ -1342,7 +1342,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(
                 sd.getSchemaName())){
-            TableDescriptor td=new TableDescriptor(this,tableName,sd,TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1);
+            TableDescriptor td=new TableDescriptor(this,tableName,sd,TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
+                    null,null,null,null,null);
 
             // ensure a vti class exists
             if(getVTIClass(td,false)!=null)
@@ -6663,7 +6664,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         indexProperties.setProperty("indexDisplayName", ti.getIndexName(indexNumber));
         
 		/* Create and add the conglomerate (index) */
-        conglomId=tc.createConglomerate(
+        conglomId=tc.createConglomerate(false,
                 "BTREE", // we're requesting an index conglomerate
                 indexableRow.getRowArray(),
                 null, //default sort order
@@ -6739,7 +6740,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // add table to the data dictionary
 
         columnCount=columnList.length;
-        td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
+        td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,
+                null,null,null,null,null);
         td.setUUID(crf.getCanonicalTableUUID());
         addDescriptor(td,sd,SYSTABLES_CATALOG_NUM,false,tc);
         toid=td.getUUID();
@@ -6813,7 +6815,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                       ColumnOrdering[] columnOrdering) throws StandardException{
         long conglomId;
 
-        conglomId=tc.createConglomerate(
+        conglomId=tc.createConglomerate(false,
                 "heap", // we're requesting a heap conglomerate
                 rowTemplate.getRowArray(), // row template
                 columnOrdering,

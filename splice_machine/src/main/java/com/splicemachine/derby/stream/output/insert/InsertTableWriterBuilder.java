@@ -25,7 +25,6 @@ import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -38,7 +37,9 @@ import java.io.ObjectOutput;
 import org.apache.commons.codec.binary.Base64;
 
 /**
- * Created by jleach on 5/6/15.
+ *
+ * Builder for InsertTable Functionality
+ *
  */
 public abstract class InsertTableWriterBuilder implements Externalizable,InsertDataSetWriterBuilder{
     protected int[] pkCols;
@@ -154,6 +155,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
             ArrayUtil.writeIntArray(out, pkCols);
             out.writeUTF(tableVersion);
             ArrayUtil.writeIntArray(out,execRowTypeFormatIds);
+            out.writeObject(execRowDefinition);
             out.writeInt(autoIncrementRowLocationArray.length);
             for (int i = 0; i < autoIncrementRowLocationArray.length; i++)
                 out.writeObject(autoIncrementRowLocationArray[i]);
@@ -177,6 +179,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         pkCols = ArrayUtil.readIntArray(in);
         tableVersion = in.readUTF();
         execRowTypeFormatIds = ArrayUtil.readIntArray(in);
+        execRowDefinition = (ExecRow) in.readObject();
         autoIncrementRowLocationArray = new RowLocation[in.readInt()];
         for (int i = 0; i < autoIncrementRowLocationArray.length; i++)
             autoIncrementRowLocationArray[i] = (RowLocation) in.readObject();
@@ -184,7 +187,6 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         for (int i =0; i< spliceSequences.length; i++)
             spliceSequences[i] = (SpliceSequence) in.readObject();
         heapConglom = in.readLong();
-        execRowDefinition = WriteReadUtils.getExecRowFromTypeFormatIds(execRowTypeFormatIds);
     }
 
     @Override

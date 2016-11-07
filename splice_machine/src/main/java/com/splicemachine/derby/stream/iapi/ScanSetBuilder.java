@@ -28,21 +28,43 @@ import com.splicemachine.storage.DataScanner;
 import java.io.IOException;
 
 /**
+ *
+ * Builder for metadata around generating a scan.
+ *
  * @author Scott Fines
  *         Date: 1/7/16
  */
 public interface ScanSetBuilder<V>{
+    /**
+     *
+     * Metric Factory to use when counting information.
+     *
+     * @param metricFactory
+     * @return
+     */
     ScanSetBuilder<V> metricFactory(MetricFactory metricFactory);
 
+    /**
+     *
+     * Active Scanner
+     *
+     * @param scanner
+     * @return
+     */
     ScanSetBuilder<V> scanner(DataScanner scanner);
 
+    /**
+     *
+     * Template for the data.
+     *
+     * @param template
+     * @return
+     */
     ScanSetBuilder<V> template(ExecRow template);
 
     ScanSetBuilder<V> operationContext(OperationContext operationContext);
 
     ScanSetBuilder<V> scan(DataScan scan);
-
-    ScanSetBuilder<V> execRowTypeFormatIds(int[] execRowTypeFormatIds);
 
     ScanSetBuilder<V> transaction(TxnView txn);
 
@@ -103,4 +125,107 @@ public interface ScanSetBuilder<V>{
     long getBaseTableConglomId();
 
     ExecRow getTemplate();
+
+    /**
+     *
+     * Whether the scan should go against an in-memory version (pin)
+     *
+     * @param pin
+     * @return
+     */
+    ScanSetBuilder<V> pin(boolean pin);
+
+    /**
+     *
+     * Column delimitter
+     *
+     * @param delimited
+     * @return
+     */
+    ScanSetBuilder<V> delimited(String delimited);
+
+    /**
+     *
+     * Escaped clause for delimitters
+     *
+     * @param escaped
+     * @return
+     */
+    ScanSetBuilder<V> escaped(String escaped);
+
+    /**
+     *
+     * Line delimitter
+     *
+     * @param lines
+     * @return
+     */
+    ScanSetBuilder<V> lines(String lines);
+
+    /**
+     *
+     * Stored as type (PARQUET, ORC, TEXTFILE)
+     *
+     * @param storedAs
+     * @return
+     */
+    ScanSetBuilder<V> storedAs(String storedAs);
+
+    /**
+     *
+     * The Hadoop Comliant file system location.
+     *
+     * @param location
+     * @return
+     */
+    ScanSetBuilder<V> location(String location);
+
+    /**
+     *
+     * Retrieve whether you should go against the in-memory (pin) version of the data.
+     *
+     * @return
+     */
+    boolean getPin();
+
+    /**
+     *
+     * Return how the columns are delimitted.
+     *
+     * @return
+     */
+    String getDelimited();
+
+    /**
+     *
+     * Get the escape character for textfile parsing.
+     *
+     * @return
+     */
+    String getEscaped();
+
+    /**
+     *
+     * Retrieve the line delimitter
+     *
+     * @return
+     */
+    String getLines();
+
+    /**
+     *
+     * Retrieve the stored as type (Parquet, ORC, Textfile)
+     *
+     * @return
+     */
+    String getStoredAs();
+
+    /**
+     *
+     * Retrieve the Hadoop compliant file system.
+     *
+     * @return
+     */
+    String getLocation();
+
 }
