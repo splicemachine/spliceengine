@@ -282,6 +282,30 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "0,'2013-05-12',44880,467.33,74065939"
     };
 
+    private static String nestedAggregateWindowFunction = "(a INTEGER, b INTEGER, c INTEGER)";
+    private static final String NESTED_AGGREGATION_WF = "NESTED_AGGREGATION_WF";
+    private static SpliceTableWatcher nestedAggregateWindowFunctionWatcher = new SpliceTableWatcher(NESTED_AGGREGATION_WF, SCHEMA, nestedAggregateWindowFunction);
+
+    private static String[] NESTED_AGGREGATION_WF_ROWS = {
+        "1,2,3",
+        "1,2,3",
+        "10,3,30",
+        "10,3,30",
+        "5,4,30",
+        "5,4,30",
+        "5,6,30",
+        "5,6,30",
+        "5,7,30",
+        "5,7,30"
+
+    };
+
+
+    private static String nestedAggregateEmptyFunction = "(a INTEGER, b INTEGER, c INTEGER)";
+    private static final String EMPTY_TABLE = "NESTED_AGGREGATION_EMPTY_TABLE";
+    private static SpliceTableWatcher nestedAggregateEmptyWatcher = new SpliceTableWatcher(EMPTY_TABLE, SCHEMA, nestedAggregateEmptyFunction);
+
+
     private static String allSalesDef = "(years INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount NUMERIC(8, 2))";
     private static final String ALL_SALES = "ALL_SALES";
     private static SpliceTableWatcher allSalesTableWatcher = new SpliceTableWatcher(ALL_SALES, SCHEMA, allSalesDef);
@@ -930,7 +954,23 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                         throw new RuntimeException(e);
                                                     }
                                                 }
-                                            });
+                                            })
+                                            .around(nestedAggregateWindowFunctionWatcher)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : NESTED_AGGREGATION_WF_ROWS) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                    String.format("insert into %s values (%s)", nestedAggregateWindowFunctionWatcher, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }})
+                                            .around(nestedAggregateEmptyWatcher);
 
     @ClassRule
     public static SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -3634,6 +3674,38 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "-------------------------------------------\n" +
                 "      1      |227276.50 |  1  |     1     |\n" +
                 "      2      |223927.08 |  2  |     2     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNestedAggregateFunction() throws Exception {
+        // SPLICE-969 -  Test a simple use case of nested aggregate within a window functions
+        String sqlText =
+                String.format("select  sum(sum(b)) over (partition by b)  as revenue\n" +
+                        "from %s\n" +
+                        "group by  c", this.getTableReference(NESTED_AGGREGATION_WF));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "REVENUE |\n" +
+                        "----------\n" +
+                        "    4    |\n" +
+                        "   40    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNestedAggregatWithEmptyTableFunction() throws Exception {
+        // SPLICE-969 -  Test a simple use case of nested aggregate within a window functions
+        String sqlText =
+                String.format("select  sum(sum(b)) over (partition by b)  as revenue\n" +
+                        "from %s\n" +
+                        "group by  c", this.getTableReference(EMPTY_TABLE));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected = "";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
