@@ -3638,4 +3638,50 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testWindowColFromSubqry_1() throws Exception {
+        // SPLICE_1005: NPE with window function when used with the subquery aggregate column
+        String sqlText =
+                String.format("SELECT rank_col, rank() over (order by rank_col asc) rnk \n" +
+                                "from (select dept dept_sk, avg(salary) rank_col \n" +
+                                "   from %s ss1 --SPLICE-PROPERTIES useSpark = %s \n" +
+                                "   group by dept)V1",
+                        this.getTableReference(EMPTAB),useSpark);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "RANK_COL | RNK |\n" +
+                "----------------\n" +
+                "  52000  |  1  |\n" +
+                "  62285  |  2  |\n" +
+                "  73250  |  3  |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testWindowColFromSubqry_2() throws Exception {
+        // SPLICE_1005: NPE with window function when used with the subquery aggregate column
+        String sqlText =
+                String.format(
+                        "select rank() over (order by rnk asc) new_rnk \n" +
+                        "  from (select rank() over (order by rank_col asc) rnk \n" +
+                        "    from (select dept dept_sk, avg(salary) rank_col \n" +
+                        "      from %s ss1 --SPLICE-PROPERTIES useSpark = %s \n" +
+                        "      group by dept) V1) V2",
+                        this.getTableReference(EMPTAB),useSpark);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "NEW_RNK |\n" +
+                "----------\n" +
+                "    1    |\n" +
+                "    2    |\n" +
+                "    3    |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
 }

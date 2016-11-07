@@ -469,7 +469,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         // Cache the ref
                         pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
 
-                    } else if (exp instanceof ColumnReference && ((ColumnReference)exp).getGeneratedToReplaceAggregate()) {
+                    } else if (exp instanceof ColumnReference &&
+                            ((((ColumnReference)exp).getGeneratedToReplaceAggregate())  ||
+                             (expRC != null)) ) {
                         // We didn't find it in an RCL below us, probably because it's an agg function previously
                         // created -- the RCs for those don't have ColumnDescriptors which we need to find an
                         // equivalent RC.
