@@ -172,7 +172,7 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public long cardinality(int positionNumber) {
-        return rowCount();
+        return 0;
     }
 
     /**

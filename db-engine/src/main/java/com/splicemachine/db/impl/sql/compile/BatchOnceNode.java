@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import java.util.Collection;
@@ -59,14 +60,11 @@ public class BatchOnceNode extends SingleChildResultSetNode {
 
     private SubqueryNode subqueryNode;
 
-    /* The column position in the source of a RowLocation column (or -1 if the source does not provide) */
-    private int sourceRowLocationColumnPosition;
-
     /* The column position in the source referenced by the correlated subquery column reference */
-    private int sourceCorrelatedColumnPosition;
+    private int[] sourceCorrelatedColumnPositions;
 
     /* The column position of the correlated column in the subquery result set */
-    private int subqueryCorrelatedColumnPosition;
+    private int[] subqueryCorrelatedColumnPositions;
 
 
     /* Used by NodeFactory */
@@ -76,15 +74,13 @@ public class BatchOnceNode extends SingleChildResultSetNode {
     @Override
     public void init(Object projectRestrictNode,
                      Object subqueryNode,
-                     Object sourceRowLocationColumnPosition,
                      Object sourceCorrelatedColumnPosition,
                      Object subqueryCorrelatedColumnPosition
     ) {
         this.childResult = (ResultSetNode) projectRestrictNode;
         this.subqueryNode = (SubqueryNode) subqueryNode;
-        this.sourceRowLocationColumnPosition = (int) sourceRowLocationColumnPosition;
-        this.sourceCorrelatedColumnPosition = (int) sourceCorrelatedColumnPosition;
-        this.subqueryCorrelatedColumnPosition = (int) subqueryCorrelatedColumnPosition;
+        this.sourceCorrelatedColumnPositions = (int[]) sourceCorrelatedColumnPosition;
+        this.subqueryCorrelatedColumnPositions = (int[]) subqueryCorrelatedColumnPosition;
     }
 
     @Override
@@ -99,12 +95,13 @@ public class BatchOnceNode extends SingleChildResultSetNode {
         mb.push(getCompilerContext().getNextResultSetNumber());  // ARG 3 - resultSetNumber
         this.subqueryNode.getResultSet().generate(acb, mb);      // ARG 4 - the subquery result set
         mb.push(acb.getRowLocationScanResultSetName());          // ARG 5 - name of the activation field containing update RS
-        mb.push(sourceRowLocationColumnPosition);                // ARG 6 - position of the row location column in the source RS
-        mb.push(sourceCorrelatedColumnPosition);                 // ARG 7 - position of the correlated CR in the update source RS
-        mb.push(subqueryCorrelatedColumnPosition);               // ARG 8 - position of the correlated CR in subquery RS
+        int sourceCorrelatedColumnItem=acb.addItem(FormatableIntHolder.getFormatableIntHolders(sourceCorrelatedColumnPositions));
+        mb.push(sourceCorrelatedColumnItem);                 // ARG 6 - position of the correlated CR in the update source RS
+        int subqueryCorrelatedColumnItem=acb.addItem(FormatableIntHolder.getFormatableIntHolders(subqueryCorrelatedColumnPositions));
+        mb.push(subqueryCorrelatedColumnItem);               // ARG 7 - position of the correlated CR in subquery RS
 
         // push: method to invoke on ResultSetFactory
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getBatchOnceResultSet", ClassName.NoPutResultSet, 8);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getBatchOnceResultSet", ClassName.NoPutResultSet, 7);
     }
 
 

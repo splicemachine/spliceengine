@@ -46,6 +46,7 @@ import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 /**
  * @author Scott Fines
@@ -189,5 +190,10 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public SnowflakeFactory snowflakeFactory() {
         return siEnv.snowflakeFactory();
+    }
+
+    @Override
+    public DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException {
+        return siEnv.fileSystem(path);
     }
 }

@@ -143,7 +143,7 @@ class CreateSchemaConstantAction extends DDLConstantAction
 		UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
 
 		/*
-		** AID defaults to connection authorization if not 
+		** AID defaults to connection authorization if not
 		** specified in CREATE SCHEMA (if we had module
 	 	** authorizations, that would be the first check
 		** for default, then session aid).

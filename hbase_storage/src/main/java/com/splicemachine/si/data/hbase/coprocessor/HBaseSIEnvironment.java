@@ -16,14 +16,14 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
 import java.io.IOException;
-
+import java.net.URI;
+import java.net.URISyntaxException;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
 import com.splicemachine.access.util.ByteComparisons;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DistributedFileSystem;
@@ -225,6 +225,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public DistributedFileSystem fileSystem(){
         return fileSystem;
+    }
+
+    @Override
+    public DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException  {
+        return new HNIOFileSystem(FileSystem.get(new URI(path), (Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
     }
 
     @Override

@@ -585,7 +585,7 @@ public class ImportDefaultValueIT {
                 fail("Didn't expect exception but got: "+e.getSQLState()+" "+e.getLocalizedMessage()+".  Printing \"bad\" file: "+
                         SpliceUnitTest.printBadFile(BADDIR, fileName));
             } else if (sqlStateCodeInErrorFile != null && ! sqlStateCodeInErrorFile.isEmpty()) {
-                SpliceUnitTest.assertBadFileContainsError(BADDIR, fileName, sqlStateCodeInErrorFile, null);
+                SpliceUnitTest.assertBadFileContainsError(BADDIR, new File(fileName).getName(), sqlStateCodeInErrorFile, null);
             }
             assertEquals("Expected different error but got: ["+e.getSQLState()+" "+e.getLocalizedMessage()+"].  Printing \"bad\" file: "+
                              SpliceUnitTest.printBadFile(BADDIR, fileName), sqlStateCode, e.getSQLState());
