@@ -332,7 +332,13 @@ public class AggregateNode extends UnaryOperatorNode
 			*/
 			HasNodeVisitor visitor = new HasNodeVisitor(this.getClass(), ResultSetNode.class);
 			operand.accept(visitor);
-			if (visitor.hasNode())
+
+			/*
+			 * We relax the constraint there for window functions for SPLICE-969
+			 * We need to support nested aggregate for queries: 12,20,47,53,57,63,89,98.
+			 * in TPC-DS
+			 */
+			if (visitor.hasNode() && this.isWindowFunction == false)
 			{
 				throw StandardException.newException
 				                    (
