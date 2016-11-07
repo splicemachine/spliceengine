@@ -3684,7 +3684,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
                 String.format("select  sum(sum(b)) over (partition by b)  as revenue\n" +
                         "from %s\n" +
-                        "group by  c", this.getTableReference(NESTED_AGGREGATION_WF));
+                        "group by c order by revenue", this.getTableReference(NESTED_AGGREGATION_WF));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -3702,7 +3702,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
                 String.format("select  sum(sum(b)) over (partition by b)  as revenue\n" +
                         "from %s\n" +
-                        "group by  c", this.getTableReference(EMPTY_TABLE));
+                        "group by  c order by revenue", this.getTableReference(EMPTY_TABLE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected = "";
