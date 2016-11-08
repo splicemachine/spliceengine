@@ -81,7 +81,7 @@ public class LimitOffsetVisitorIT extends SpliceUnitTest {
     @Test
     public void limitOverGroupBy() throws Exception {
         rowContainsQuery(new int[]{1,2,3,4,5,6,7},"explain select top 10 col1,max(col2) from A group by col1",methodWatcher,
-                "rows=10,","outputRows=10,","outputRows=10,","outputRows=10,","outputRows=20,",
+                "rows=10,","outputRows=10,","outputRows=10,","outputRows=20,","outputRows=20,",
                 "outputRows=20,","outputRows=20,");
     }
 
