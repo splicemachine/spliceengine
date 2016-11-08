@@ -150,8 +150,10 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
     public Visitable defaultVisit(Visitable node) throws StandardException {
 
         Visitable updatedNode = node;
-
-        if(node instanceof ValueNode){
+        // DB-5672: Disable repeated predicate elimination because it does not work in general. Much
+        // more work needs to be done to make sure the predicates are equivalent before and after transformation.
+        //
+        /*if(node instanceof ValueNode){
 
             foundWhereClause = true;
 
@@ -170,10 +172,10 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
                             ((ValueNode) node).getContextManager());
                     newNode = newAndNode;
                 }
-            }
+
 
             updatedNode = newNode;
-        }
+        }*/
 
         return updatedNode;
     }

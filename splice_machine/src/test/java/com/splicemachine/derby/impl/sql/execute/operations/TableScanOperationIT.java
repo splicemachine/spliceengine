@@ -907,6 +907,15 @@ public class TableScanOperationIT{
         }
     }
 
+    @Test
+    public void testDuplicatePredicates () throws Exception {
+        try(Statement s=conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(format("select * from %s where sd=1 and (1!=0 or sa='j') and (1!=0 and sa='i')",spliceTableWatcher))){
+                assertTrue("Incorrect number of rows returned!",rs.next());
+            }
+        }
+    }
+
     private void assertCountEquals(Connection connection,long expectedCount,String query) throws SQLException{
         long count=0l;
         try(Statement s=connection.createStatement()){
