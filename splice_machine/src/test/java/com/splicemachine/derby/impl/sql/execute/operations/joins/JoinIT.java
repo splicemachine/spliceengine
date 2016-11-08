@@ -68,6 +68,12 @@ public class JoinIT extends SpliceUnitTest {
             "(c1 numeric(10,0) primary key)");
     protected static final SpliceTableWatcher T5_TABLE = new SpliceTableWatcher("T5",schemaWatcher.schemaName,
             "(c1 char(3) primary key)");
+    protected static final SpliceTableWatcher T6_TABLE = new SpliceTableWatcher("T6",schemaWatcher.schemaName,
+            "(c1 char(19), c2 char(3), c3 char(3), c4 varchar(40))");
+    protected static final SpliceTableWatcher T7_TABLE = new SpliceTableWatcher("T7",schemaWatcher.schemaName,
+            "(c1 numeric(10, 3))");
+    protected static final SpliceTableWatcher T8_TABLE = new SpliceTableWatcher("T8",schemaWatcher.schemaName,
+            "(c1 char(3))");
 
     private static final String A_VALS =
             "INSERT INTO A VALUES (1,1,3,6,NULL,2),(2,3,2,4,2,2),(3,4,2,NULL,NULL,NULL),(4,NULL,4,2,5,2),(5,2,3,5,7,4),(7,1,4,2,3,4),(8,8,8,8,8,8),(6,7,3,2,3,4)";
@@ -86,6 +92,7 @@ public class JoinIT extends SpliceUnitTest {
     private static final String T3_VALS = "INSERT INTO T3 VALUES ('123456')";
     private static final String T4_VALS = "INSERT INTO T4 VALUES (123456)";
     private static final String T5_VALS = "INSERT INTO T5 VALUES ('   ')";
+    private static final String T6_VALS = "INSERT INTO T6 (c1, c2, c3) VALUES ('123456789', 'Y', 'Y')";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -100,6 +107,9 @@ public class JoinIT extends SpliceUnitTest {
             .around(T3_TABLE)
             .around(T4_TABLE)
             .around(T5_TABLE)
+            .around(T6_TABLE)
+            .around(T7_TABLE)
+            .around(T8_TABLE)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -114,6 +124,7 @@ public class JoinIT extends SpliceUnitTest {
                         spliceClassWatcher.getStatement().executeUpdate(T3_VALS);
                         spliceClassWatcher.getStatement().executeUpdate(T4_VALS);
                         spliceClassWatcher.getStatement().executeUpdate(T5_VALS);
+                        spliceClassWatcher.getStatement().executeUpdate(T6_VALS);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -337,6 +348,20 @@ public class JoinIT extends SpliceUnitTest {
                 "          on    (SUBSTR(t1.c7,1, 3) = t5.c1)" ;
 
         ResultSet rs = methodWatcher.prepareStatement(sqlText).executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertNull(rs.getObject(1));
+
+        sqlText = "select  \n" +
+                "SUBSTR(CHAR(t7.c1),1,3)\n" +
+                "from  t6\n" +
+                "left outer join (select SUBSTR(CHAR(c1),1,3) as c2 from t7) a119\n" +
+                "on  (t6.c2 = a119.c2)\n" +
+                "left outer join t7\n" +
+                "on  (t6.c3 = SUBSTR(CHAR(t7.c1),1,3) )\n" +
+                "left outer join t8\n" +
+                "on  (SUBSTR(t6.c4,1,3) = t8.c1)\n" +
+                "where t6.c1 = '123456789'";
+        rs = methodWatcher.prepareStatement(sqlText).executeQuery();
         Assert.assertTrue(rs.next());
         Assert.assertNull(rs.getObject(1));
     }

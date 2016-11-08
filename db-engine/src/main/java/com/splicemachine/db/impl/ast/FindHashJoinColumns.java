@@ -263,11 +263,11 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             }
 
             // copy result columns that reference to left result set
+            Set<ResultSetNode>  leftResultSetNodeSet = getResultSetNodes(node.getLeftResultSet());
             Iterator<ResultColumn> iter=temp.iterator();
             while(iter.hasNext()){
                ResultColumn resultColumn = iter.next();
-                int tableNumber = resultColumn.getTableNumber();
-                if (tableNumber>=0 && leftReferencedTableMap.get(tableNumber)) {
+                if (fromResultSets(leftResultSetNodeSet, resultColumn)) {
                     rcl.addResultColumn(resultColumn);
                     iter.remove();
                 }else break;
@@ -285,5 +285,24 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
         else {
             rcl.addResultColumn(rc);
         }
+    }
+
+    private static Set<ResultSetNode> getResultSetNodes(ResultSetNode node) throws StandardException {
+        List<ResultSetNode> resultSetNodeList = RSUtils.collectNodes(node, ResultSetNode.class);
+        Set<ResultSetNode>  resultSetNodeSet = new HashSet<>();
+        for(ResultSetNode resultSetNode : resultSetNodeList) {
+            resultSetNodeSet.add(resultSetNode);
+        }
+        return resultSetNodeSet;
+    }
+
+    private static boolean fromResultSets(Set<ResultSetNode>  resultSetNodeSet, ResultColumn resultColumn) {
+        ValueNode v = resultColumn.getExpression();
+        if (v instanceof VirtualColumnNode) {
+            ResultSetNode sourceResultSet = ((VirtualColumnNode) v).getSourceResultSet();
+            if (resultSetNodeSet.contains(sourceResultSet))
+                return true;
+        }
+        return false;
     }
 }
