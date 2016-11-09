@@ -71,7 +71,7 @@ public class S3IT extends SpliceUnitTest{
         assertNotNull(BADDIR);
     }
 
-    @Test
+    @Test @Ignore
     public void testImportFromS3() throws Exception {
 
             PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
