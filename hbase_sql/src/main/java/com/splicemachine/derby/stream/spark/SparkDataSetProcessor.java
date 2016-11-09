@@ -160,13 +160,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public PairDataSet<String, InputStream> readWholeTextFile(String path) throws StandardException {
+    public PairDataSet<String, InputStream> readWholeTextFile(String path) {
         return readWholeTextFile(path,null);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) throws StandardException {
+    public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             String displayString="";
@@ -189,13 +189,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public DataSet<String> readTextFile(String path) throws StandardException {
+    public DataSet<String> readTextFile(String path) {
         return readTextFile(path, null);
     }
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public DataSet<String> readTextFile(String path, SpliceOperation op) throws StandardException {
+    public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             String displayString="";

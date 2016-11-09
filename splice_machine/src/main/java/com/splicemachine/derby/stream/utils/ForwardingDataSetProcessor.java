@@ -96,22 +96,22 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public PairDataSet<String, InputStream> readWholeTextFile(String path) throws StandardException{
+    public PairDataSet<String, InputStream> readWholeTextFile(String path){
         return delegate.readWholeTextFile(path);
     }
 
     @Override
-    public PairDataSet<String, InputStream> readWholeTextFile(String path,SpliceOperation op) throws StandardException{
+    public PairDataSet<String, InputStream> readWholeTextFile(String path,SpliceOperation op){
         return delegate.readWholeTextFile(path,op);
     }
 
     @Override
-    public DataSet<String> readTextFile(String path) throws StandardException {
+    public DataSet<String> readTextFile(String path){
         return delegate.readTextFile(path);
     }
 
     @Override
-    public DataSet<String> readTextFile(String path,SpliceOperation op) throws StandardException {
+    public DataSet<String> readTextFile(String path,SpliceOperation op){
         return delegate.readTextFile(path,op);
     }
 

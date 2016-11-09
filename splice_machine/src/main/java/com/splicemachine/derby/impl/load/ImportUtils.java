@@ -17,11 +17,16 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.Path;
 
 /**
  * @author Scott Fines
@@ -35,8 +40,8 @@ public class ImportUtils{
      * @return total space consumed by the import data files
      * @throws IOException
      */
-    public static FileInfo getImportFileInfo(String filePath) throws StandardException, IOException{
-        DistributedFileSystem fsLayer=getFileSystem(filePath);
+    public static FileInfo getImportFileInfo(String filePath) throws IOException{
+        DistributedFileSystem fsLayer=SIDriver.driver().fileSystem();
         return fsLayer.getInfo(filePath);
     }
 
@@ -49,7 +54,7 @@ public class ImportUtils{
     public static void validateReadable(String file,boolean checkDirectory) throws StandardException{
         if(file==null) return;
 
-        DistributedFileSystem fsLayer=getFileSystem(file);
+        DistributedFileSystem fsLayer=SIDriver.driver().fileSystem();
         FileInfo info;
         try{
             info=fsLayer.getInfo(file);
@@ -74,7 +79,7 @@ public class ImportUtils{
     public static void validateWritable(String path,boolean checkDirectory) throws StandardException{
         //check that the badLogDirectory exists and is writable
         if(path==null) return;
-        DistributedFileSystem fsLayer = getFileSystem(path);
+        DistributedFileSystem fsLayer = SIDriver.driver().fileSystem();
         FileInfo info;
         try{
             info = fsLayer.getInfo(path);
@@ -87,15 +92,6 @@ public class ImportUtils{
         }
         if(!info.isWritable()){
             throw ErrorState.LANG_NO_WRITE_PERMISSION.newException(info.getUser(),info.getGroup(),path);
-        }
-    }
-
-
-    private static DistributedFileSystem getFileSystem(String path) throws StandardException {
-        try {
-           return SIDriver.driver().getSIEnvironment().fileSystem(path);
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
         }
     }
 }

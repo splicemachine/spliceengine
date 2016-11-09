@@ -18,8 +18,6 @@ package com.splicemachine.test;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static com.google.common.collect.Lists.transform;
-import static org.apache.hadoop.fs.s3a.Constants.ACCESS_KEY;
-import static org.apache.hadoop.fs.s3a.Constants.SECRET_KEY;
 import java.util.List;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -186,13 +184,6 @@ class SpliceTestPlatformConfig {
         //
         config.set("hbase.cluster.distributed", "true");  // don't start zookeeper for us
         config.set("hbase.master.distributed.log.splitting", "false"); // TODO: explain why we are setting this
-
-        // AWS Credentials for test...
-        //
-
-        config.set(ACCESS_KEY,"AKIAJ6HBMCK5ALHVBFPQ");
-        config.set(SECRET_KEY,"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");
-
 
         //
         // Splice
