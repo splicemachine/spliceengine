@@ -232,7 +232,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test
+    @Test @Ignore
     public void testWriteReadFromSimpleORCExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table simple_orc (col1 int, col2 varchar(24))" +
                 " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_orc"));
@@ -248,7 +248,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test
+    @Test @Ignore
     public void testWriteReadFromPartitionedORCExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table partitioned_orc (col1 int, col2 varchar(24))" +
                 "partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"partitioned_orc"));
