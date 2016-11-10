@@ -455,6 +455,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold){
         this.permissive=true;
         this.badRecordThreshold = badRecordThreshold;
+	if(importFileName == null)importFileName="unspecified_" + System.currentTimeMillis();
         BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory,
                                                                        importFileName,
                                                                        badRecordThreshold);
