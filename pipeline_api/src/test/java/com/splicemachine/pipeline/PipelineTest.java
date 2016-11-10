@@ -274,6 +274,41 @@ public class PipelineTest{
         }
     }
 
+    @Test
+    public void uniqueViolationFromSiblingTxn() throws Exception{
+        WriteCoordinator writeCoordinator=testEnv.writeCoordinator();
+        PartitionFactory partitionFactory=writeCoordinator.getPartitionFactory();
+        Txn txn = lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
+        Txn txn1 =lifecycleManager.beginChildTransaction(txn, DESTINATION_TABLE_BYTES);
+        try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn1)){
+            KVPair data = encode("scott11",null,29);
+            callBuffer.add(data);
+            callBuffer.flushBufferAndWait();
+
+            DataGet dg = testEnv.getOperationFactory().newDataGet(txn1,data.getRowKey(),null);
+            try(Partition p = testEnv.getPartition(DESTINATION_TABLE,tts)){
+                DataResult result=p.get(dg,null);
+                assertCorrectPresence(txn1,data,result);
+            }
+        } finally {
+            txn1.commit();
+        }
+
+        Txn txn2 = lifecycleManager.beginChildTransaction(txn, DESTINATION_TABLE_BYTES);
+        try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn2)){
+            KVPair data=encode("scott11",null,30);
+            callBuffer.add(data);
+            try{
+                callBuffer.flushBufferAndWait();
+                Assert.fail("Did not throw a UniqueConstraintViolation exception");
+            }catch(ExecutionException ee){
+                Throwable t=ee.getCause();
+                t=testEnv.pipelineExceptionFactory().processPipelineException(t);
+                Assert.assertTrue("Did not throw a Write conflict: instead: "+t,t instanceof UniqueConstraintViolation);
+            }
+        }
+    }
+
     protected void assertCorrectPresence(Txn txn1,KVPair data,DataResult result){
         Assert.assertNotNull("Row was not written!");
         Assert.assertTrue("Incorrect number of cells returned!",result.size()>0);
