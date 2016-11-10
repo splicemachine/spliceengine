@@ -38,11 +38,14 @@ import static com.splicemachine.test_tools.Rows.rows;
 public class StatisticsAdminIT{
     private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
+    private static final String SCHEMA3=SCHEMA+"3";
 
     private static final SpliceWatcher spliceClassWatcher=new SpliceWatcher(SCHEMA);
     private static final SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA);
     private static final SpliceWatcher spliceClassWatcher2=new SpliceWatcher(SCHEMA2);
     private static final SpliceSchemaWatcher spliceSchemaWatcher2=new SpliceSchemaWatcher(SCHEMA2);
+    private static final SpliceWatcher spliceClassWatcher3=new SpliceWatcher(SCHEMA3);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher3=new SpliceSchemaWatcher(SCHEMA3);
 
     private static final String TABLE_EMPTY="EMPTY";
     private static final String TABLE_OCCUPIED="OCCUPIED";
@@ -50,6 +53,7 @@ public class StatisticsAdminIT{
     private static final String MIXED_CASE_TABLE="MixedCaseTable";
     private static final String MIXED_CASE_SCHEMA="MixedCaseSchema";
     private static final String UPDATE="UP_TABLE";
+    private static final String WITH_NULLS_NUMERIC = "WITH_NULLS_NUMERIC";
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -58,11 +62,19 @@ public class StatisticsAdminIT{
     @ClassRule
     public static TestRule chain2=RuleChain.outerRule(spliceClassWatcher2)
             .around(spliceSchemaWatcher2);
+
+    @ClassRule
+    public static TestRule chain3=RuleChain.outerRule(spliceClassWatcher3)
+            .around(spliceSchemaWatcher3);
+
     @Rule
     public final SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA);
 
     @Rule
     public final SpliceWatcher methodWatcher2=new SpliceWatcher(SCHEMA2);
+
+    @Rule
+    public final SpliceWatcher methodWatcher3=new SpliceWatcher(SCHEMA3);
 
     @BeforeClass
     public static void createSharedTables() throws Exception{
@@ -73,9 +85,21 @@ public class StatisticsAdminIT{
         Connection conn2=spliceClassWatcher2.getOrCreateConnection();
         doCreateSharedTables(conn2);
 
+        Connection conn3=spliceClassWatcher3.getOrCreateConnection();
+
         new TableCreator(conn)
                 .withCreate("create table \""+MIXED_CASE_TABLE+"\" (a int)")
                 .create();
+
+        new TableCreator(conn3)
+                .withCreate("create table "+WITH_NULLS_NUMERIC+" " +
+                        "(id int, mybigint BIGINT, mydecimal DECIMAL(5,2), " +
+                        "mydec DEC(7,5), mydouble DOUBLE, mydoublep DOUBLE PRECISION, " +
+                        "myfloat FLOAT, myinteger INTEGER, mynumeric NUMERIC, myreal REAL, " +
+                        "mysmallint SMALLINT)")
+                .create();
+
+
     }
 
     private static void doCreateSharedTables(Connection conn) throws Exception{
@@ -273,6 +297,32 @@ public class StatisticsAdminIT{
 
         conn.rollback();
         conn.reset();
+    }
+
+
+    @Test
+    public void testNullFractionCalculation() throws Exception {
+        TestConnection conn = methodWatcher3.getOrCreateConnection();
+        methodWatcher3.executeUpdate("insert into "+WITH_NULLS_NUMERIC + " values " +
+                "(null, null, 123.45, 12.34567, 1.79769E+308, 2.225E-307, 1.79769E+308, -2147483648, " +
+                "123.456, 3.402E+38, 32767)");
+        methodWatcher3.executeUpdate("insert into "+WITH_NULLS_NUMERIC + " values " +
+                "(null, -9223372036854775808, null, 1.34567, -1.79769E+308, -2.225E-307, -1.79769E+308," +
+                " 2147483647, 0.456, -1.175E-37, -32768)");
+        methodWatcher3.executeUpdate("insert into "+WITH_NULLS_NUMERIC + " values " +
+                "(null, 36854775808, 1.2, 1.12, -1.79769E+308, -2.225E-307, -1.79769E+308, 2147483647, 0.456, " +
+                "-1.175E-37, -32768)");
+        methodWatcher3.executeUpdate("insert into "+WITH_NULLS_NUMERIC + " values " +
+                "(null, null, null, null, null, null, null, null, null, null, null)");
+        try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,false)")){
+            cs.setString(1,spliceSchemaWatcher3.schemaName);
+            cs.setString(2,"\""+WITH_NULLS_NUMERIC+"\"");
+            cs.execute();
+        }
+
+        ResultSet rs = methodWatcher3.executeQuery("select null_fraction from sys.SYSCOLUMNSTATISTICS where TABLENAME like '"+WITH_NULLS_NUMERIC+"' and SCHEMANAME like '" + spliceSchemaWatcher3.schemaName+ "' and columnname='MYFLOAT'");
+        Assert.assertTrue("statistics missing",rs.next());
+        Assert.assertEquals("statistics missing",0.33333334f,rs.getFloat(1),0.000001f);
     }
 
     @Test

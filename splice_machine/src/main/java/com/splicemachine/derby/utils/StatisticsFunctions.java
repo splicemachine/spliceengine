@@ -44,7 +44,7 @@ public class StatisticsFunctions {
         if(itemStatistics==null) return 0;
         if (itemStatistics.notNullCount() == 0)
             return 0;
-        return itemStatistics.nullCount()/itemStatistics.notNullCount();
+        return ((float) itemStatistics.nullCount()/ (float) itemStatistics.notNullCount());
     }
 
     public static String STATS_MAX(ColumnStatisticsImpl itemStatistics) throws StandardException {
