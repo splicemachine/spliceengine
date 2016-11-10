@@ -257,9 +257,9 @@ public class SITransactor implements Transactor{
                 possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
                 if(possibleConflicts!=null){
                     //we need to check for write conflicts
-                    conflictResults=ensureNoWriteConflict(transaction,writeType,possibleConflicts);
-                    if(applyConstraint(constraintChecker,constraintStateFilter,i,kvPair,possibleConflicts,finalStatus,conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
+                    if(applyConstraint(transaction, constraintChecker,constraintStateFilter,i,kvPair,possibleConflicts,finalStatus,conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
                         continue;
+                    conflictResults=ensureNoWriteConflict(transaction,writeType,possibleConflicts);
                 }
                 //TODO -sf- if type is an UPSERT, and conflict type is ADDITIVE_CONFLICT, then we
                 //set the status on the row to ADDITIVE_CONFLICT_DURING_UPSERT
@@ -282,7 +282,8 @@ public class SITransactor implements Transactor{
         return finalMutationsToWrite;
     }
 
-    private boolean applyConstraint(ConstraintChecker constraintChecker,
+    private boolean applyConstraint(TxnView updateTransaction,
+                                    ConstraintChecker constraintChecker,
                                     TxnFilter constraintStateFilter,
                                     int rowPosition,
                                     KVPair mutation,
@@ -299,19 +300,35 @@ public class SITransactor implements Transactor{
         //must reset the filter here to avoid contaminating multiple rows with tombstones and stuff
         constraintStateFilter.reset();
 
-        //we need to make sure that this row is visible to the current transaction
         List<DataCell> visibleColumns=Lists.newArrayListWithExpectedSize(row.size());
-        for(DataCell data : row){
-            DataFilter.ReturnCode code=constraintStateFilter.filterCell(data);
-            switch(code){
-                case NEXT_ROW:
-                case NEXT_COL:
-                case SEEK:
-                    return false;
-                case SKIP:
-                    continue;
-                default:
-                    visibleColumns.add(data.getClone()); //TODO -sf- remove this clone
+        // Should also check data committed by sibling transactions
+        DataCell userDataKeyValue=row.userData();
+        boolean siblingTxn = false;
+        if(userDataKeyValue!=null) {
+            long dataTransactionId = userDataKeyValue.version();
+            TxnView dataTransaction = txnSupplier.getTransaction(dataTransactionId);
+            siblingTxn = dataTransaction.getEffectiveState() == Txn.State.COMMITTED &&
+                    dataTransaction.getParentTxnId() == updateTransaction.getParentTxnView().getTxnId();
+        }
+        if (siblingTxn) {
+            // Data from a sibling transaction is visible for constraint checking
+            for (DataCell data : row) {
+                visibleColumns.add(data.getClone());
+            }
+        }
+        else {    //we need to make sure that this row is visible to the current transaction
+            for (DataCell data : row) {
+                DataFilter.ReturnCode code = constraintStateFilter.filterCell(data);
+                switch (code) {
+                    case NEXT_ROW:
+                    case NEXT_COL:
+                    case SEEK:
+                        return false;
+                    case SKIP:
+                        continue;
+                    default:
+                        visibleColumns.add(data.getClone()); //TODO -sf- remove this clone
+                }
             }
         }
         constraintStateFilter.nextRow();
