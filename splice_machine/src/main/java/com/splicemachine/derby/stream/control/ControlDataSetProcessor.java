@@ -260,7 +260,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold){
         this.permissive = true;
         this.statusDirectory = statusDirectory;
-        this.importFileName = importFileName;
+        if(importFileName != null) {
+            this.importFileName = importFileName;
+        } else {
+            this.importFileName = "unspecified_" + System.currentTimeMillis();
+        }
         this.badRecordThreshold = badRecordThreshold;
     }
 
