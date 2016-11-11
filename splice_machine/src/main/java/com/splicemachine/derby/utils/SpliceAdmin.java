@@ -406,7 +406,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         try(PreparedStatement preparedStatement=SpliceAdmin.getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, " +
                 "C.ISINDEX, "+
                 "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S "+
-                "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLE_TYPE not in ('S','E') "+
+                "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLETYPE not in ('S','E') "+
                 "ORDER BY S.SCHEMANAME")){
             try(ResultSet allTablesInSchema=preparedStatement.executeQuery()){
 

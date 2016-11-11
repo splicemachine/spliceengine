@@ -81,9 +81,9 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             if (storedAs.equals("T"))
                 return dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
             if (storedAs.equals("P"))
-                return dsp.readParquetFile(baseColumnMap,location,operationContext,qualifiers,null,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
+                return dsp.readParquetFile(baseColumnMap,location,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
             if (storedAs.equals("O"))
-                return dsp.readORCFile(baseColumnMap,location,operationContext,qualifiers,null,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
+                return dsp.readORCFile(baseColumnMap,location,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }

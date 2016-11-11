@@ -143,6 +143,6 @@ public class JoinSelectivityNoIndexesIT extends SpliceUnitTest {
 
     @Test
     public void leftAntiJoinNoRelationships() throws Exception {
-        firstRowContainsQuery("explain select * from ts_10_npk where not exists (select * from ts_5_npk where ts_10_npk.c1 = ts_5_npk.c1)","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_10_npk where not exists (select * from ts_5_npk where ts_10_npk.c1 = ts_5_npk.c1)","rows=10",methodWatcher);
     }
 }

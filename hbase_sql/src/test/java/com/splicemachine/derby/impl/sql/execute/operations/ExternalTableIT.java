@@ -5,9 +5,12 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
+import org.apache.commons.io.FileUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import static org.junit.Assert.assertEquals;
@@ -33,6 +36,14 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @BeforeClass
     public static void cleanoutDirectory() {
+        try {
+            File file = new File(getExternalResourceDirectory());
+            if (file.exists())
+                FileUtils.deleteDirectory(new File(getExternalResourceDirectory()));
+            file.mkdir();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -232,7 +243,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test
+    @Test @Ignore
     public void testWriteReadFromSimpleORCExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table simple_orc (col1 int, col2 varchar(24))" +
                 " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_orc"));
@@ -280,7 +291,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test
+    @Test @Ignore
     public void testWriteReadFromPartitionedORCExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table partitioned_orc (col1 int, col2 varchar(24))" +
                 "partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"partitioned_orc"));
@@ -352,6 +363,21 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |XXXX |\n" +
                 "  2  |YYYY |\n" +
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void pinExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table pinExternal ( a int, b int, c int)" +
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"pinExternal"));
+        methodWatcher.executeUpdate("insert into pinExternal values (1,1,1),(2,2,2), (3,3,3)");
+        methodWatcher.executeUpdate("create pin table pinExternal");
+        ResultSet rs = methodWatcher.executeQuery("select * from pinExternal --splice-properties pin=true");
+        Assert.assertEquals("A | B | C |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate("drop pin pinExternal");
     }
 
     @Test
