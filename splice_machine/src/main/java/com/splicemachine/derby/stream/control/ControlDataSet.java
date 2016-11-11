@@ -398,7 +398,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, OperationContext context) {
+    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write parquet files");
     }
 
@@ -413,7 +413,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, OperationContext context) {
+    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write orc files");
     }
 
@@ -430,7 +430,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
-    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context) {
+    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,  OperationContext context) {
         throw new UnsupportedOperationException("Cannot write text files");
     }
 

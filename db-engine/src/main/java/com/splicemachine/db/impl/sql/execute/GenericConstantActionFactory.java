@@ -318,7 +318,8 @@ public abstract class GenericConstantActionFactory {
 		String escaped,
 		String lines,
 		String storedAs,
-		String location
+		String location,
+		String compression
 		);
 
 	public abstract	ConstantAction	getPinTableConstantAction (

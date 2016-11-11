@@ -88,13 +88,14 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        String escaped,
                                                        String lines,
                                                        String storedAs,
-                                                       String location) {
+                                                       String location,
+                                                       String compression) {
         SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
             schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
             constantActions,properties,lockGranularity,
             onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString,
-                delimited,escaped,lines,storedAs,location);
+                delimited,escaped,lines,storedAs,location,compression);
     }
 
 
