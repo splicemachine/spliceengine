@@ -106,6 +106,7 @@
                                 db-tools-ij,
                                 db-tools-testing,
                                 pipeline_api,
+                                jul-to-slf4j,
                                 splice_access_api,
                                 splice_encoding,
                                 splice_machine,
