@@ -322,7 +322,7 @@ public class StatisticsAdminIT{
 
         ResultSet rs = methodWatcher3.executeQuery("select null_fraction from sys.SYSCOLUMNSTATISTICS where TABLENAME like '"+WITH_NULLS_NUMERIC+"' and SCHEMANAME like '" + spliceSchemaWatcher3.schemaName+ "' and columnname='MYFLOAT'");
         Assert.assertTrue("statistics missing",rs.next());
-        Assert.assertEquals("statistics missing",0.33333334f,rs.getFloat(1),0.000001f);
+        Assert.assertEquals("statistics missing",0.25f,rs.getFloat(1),0.000001f);
     }
 
     @Test
