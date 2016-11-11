@@ -42,9 +42,9 @@ public class StatisticsFunctions {
 
     public static float STATS_NULL_FRACTION(ColumnStatisticsImpl itemStatistics){
         if(itemStatistics==null) return 0;
-        if (itemStatistics.notNullCount() == 0)
+        if (itemStatistics.notNullCount() + itemStatistics.nullCount() == 0) // Divide by null check
             return 0;
-        return itemStatistics.nullCount()/itemStatistics.notNullCount();
+        return ((float) itemStatistics.nullCount()/ (float) (itemStatistics.notNullCount()+itemStatistics.nullCount()));
     }
 
     public static String STATS_MAX(ColumnStatisticsImpl itemStatistics) throws StandardException {
