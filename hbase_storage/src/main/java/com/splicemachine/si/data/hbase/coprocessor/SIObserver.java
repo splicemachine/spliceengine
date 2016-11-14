@@ -23,8 +23,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
+import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
@@ -240,6 +243,9 @@ public class SIObserver extends BaseRegionObserver{
                         case SANITY_CHECK_FAILURE:
                             throw new IOException("Sanity Check failure:" + ms.getExceptionMsg());
                         case FAILURE:
+                            if (ms instanceof ExtendedOperationStatus) {
+                                throw ((ExtendedOperationStatus)ms).getException();
+                            }
                             throw new IOException(ms.getExceptionMsg());
                         default:
                             processed = true;
