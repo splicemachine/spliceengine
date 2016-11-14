@@ -13,27 +13,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.splicemachine.storage;
+package com.splicemachine.si.data.hbase;
+
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.io.IOException;
 
-/**
- * @author Scott Fines
- *         Date: 12/16/15
- */
-public interface MutationStatus{
+public class ExtendedOperationStatus extends OperationStatus {
+        private IOException e;
 
-    boolean isSuccess();
+        public ExtendedOperationStatus(HConstants.OperationStatusCode code, IOException e) {
+            super(code, e);
+            this.e = e;
+        }
 
-    boolean isFailed();
-
-    boolean isNotRun();
-
-    String errorMessage();
-
-    MutationStatus getClone();
-
-    boolean hasException();
-
-    IOException getException();
+        public IOException getException() {
+            return e;
+        }
 }
