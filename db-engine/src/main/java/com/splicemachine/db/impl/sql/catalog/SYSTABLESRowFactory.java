@@ -70,7 +70,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_LINES_BY = 10;
 	protected static final int		SYSTABLES_STORED_AS = 11;
 	protected static final int		SYSTABLES_LOCATION = 12;
-	protected static final int		SYSTABLES_COMPRESSION = 13;
 	/* End External Tables Columns	*/
 	protected static final int		SYSTABLES_INDEX1_ID = 0;
 	protected static final int		SYSTABLES_INDEX1_TABLENAME = 1;
@@ -147,7 +146,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String 					lines = null;
 		String 					storedAs = null;
 		String 					location = null;
-		String 					compression = null;
 
 		if (td != null)
 		{
@@ -221,7 +219,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			lines = descriptor.getLines();
 			storedAs = descriptor.getStoredAs();
 			location = descriptor.getLocation();
-			compression = descriptor.getCompression();
 		}
 
 		/* Insert info into systables */
@@ -258,7 +255,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		row.setColumn(SYSTABLES_LINES_BY,new SQLVarchar(lines));
 		row.setColumn(SYSTABLES_STORED_AS,new SQLVarchar(storedAs));
 		row.setColumn(SYSTABLES_LOCATION,new SQLVarchar(location));
-		row.setColumn(SYSTABLES_COMPRESSION,new SQLVarchar(compression));
 
 		return row;
 	}
@@ -386,7 +382,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String lines;
 		String storedAs;
 		String location;
-		String compression;
 
 
 		/* 1st column is TABLEID (UUID - char(36)) */
@@ -460,7 +455,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		DataValueDescriptor linesDVD = row.getColumn(SYSTABLES_LINES_BY);
 		DataValueDescriptor storedDVD = row.getColumn(SYSTABLES_STORED_AS);
 		DataValueDescriptor locationDVD = row.getColumn(SYSTABLES_LOCATION);
-		DataValueDescriptor compressionDVD = row.getColumn(SYSTABLES_COMPRESSION);
 
 
 
@@ -471,8 +465,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 				escapedDVD!=null?escapedDVD.getString():null,
 				linesDVD!=null?linesDVD.getString():null,
 				storedDVD!=null?storedDVD.getString():null,
-				locationDVD!=null?locationDVD.getString():null,
-				compressionDVD!=null?compressionDVD.getString():null
+				locationDVD!=null?locationDVD.getString():null
 				);
 		tabDesc.setUUID(tableUUID);
 
@@ -523,8 +516,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			SystemColumnImpl.getColumn("ESCAPED", Types.VARCHAR, true),
 			SystemColumnImpl.getColumn("LINES", Types.VARCHAR, true),
 			SystemColumnImpl.getColumn("STORED", Types.VARCHAR, true),
-			SystemColumnImpl.getColumn("LOCATION", Types.VARCHAR, true),
-			SystemColumnImpl.getColumn("COMPRESSION", Types.VARCHAR, true)
+			SystemColumnImpl.getColumn("LOCATION", Types.VARCHAR, true)
         };
 	}
 

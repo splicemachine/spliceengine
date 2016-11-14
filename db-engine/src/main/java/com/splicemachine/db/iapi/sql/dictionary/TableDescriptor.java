@@ -159,7 +159,6 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     private String lines;
     private String storedAs;
     private String location;
-    private String compression;
 
 
 
@@ -234,7 +233,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -259,8 +258,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String escaped,
                            String lines,
                            String storedAs,
-                           String location,
-                           String compression
+                           String location
     ){
         super(dataDictionary);
 
@@ -278,8 +276,6 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.lines = lines;
         this.storedAs = storedAs;
         this.location = location;
-        this.compression = compression;
-
     }
 
     //
@@ -302,17 +298,6 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
     public void setColumnSequence(int columnSequence) {
         this.columnSequence = columnSequence;
-    }
-
-
-    /**
-     *
-     * Compression Type,
-     *
-     * @return
-     */
-    public String getCompression() {
-        return compression;
     }
 
     /**

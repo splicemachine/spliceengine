@@ -112,14 +112,13 @@ public class DataDescriptorGenerator
 		String 				escaped,
 		String 				lines,
 		String 				storedAs,
-		String 				location,
-		String 				compression
+		String 				location
 
     )
 	{
 		return new TableDescriptor
 			(dataDictionary, tableName, schema, tableType, lockGranularity,columnSequence,
-					delimited,escaped,lines,storedAs,location, compression);
+					delimited,escaped,lines,storedAs,location);
 	}
 
 	/**
