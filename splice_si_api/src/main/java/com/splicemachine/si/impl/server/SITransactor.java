@@ -30,6 +30,7 @@ import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ConflictResults;
 import com.splicemachine.si.impl.SimpleTxnFilter;
@@ -257,7 +258,14 @@ public class SITransactor implements Transactor{
                 possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
                 if(possibleConflicts!=null){
                     //we need to check for write conflicts
-                    conflictResults=ensureNoWriteConflict(transaction,writeType,possibleConflicts);
+                    try {
+                        conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts);
+                    } catch (IOException ioe) {
+                        if (ioe instanceof WriteConflict) {
+                            finalStatus[i] = operationStatusLib.failure(ioe);
+                            continue;
+                        } else throw ioe;
+                    }
                     if(applyConstraint(constraintChecker,constraintStateFilter,i,kvPair,possibleConflicts,finalStatus,conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
                         continue;
                 }
