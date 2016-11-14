@@ -37,8 +37,9 @@ public class MOpStatusFactory implements OperationStatusFactory{
 
     @Override
     public boolean processPutStatus(MutationStatus operationStatus) throws IOException{
-        if(operationStatus.isFailed())
-            throw new IOException(operationStatus.errorMessage());
+        if(operationStatus.isFailed()) {
+            throw operationStatus.hasException() ? operationStatus.getException() : new IOException(operationStatus.errorMessage());
+        }
         else return true;
     }
 
@@ -65,6 +66,9 @@ public class MOpStatusFactory implements OperationStatusFactory{
 
     @Override
     public MutationStatus failure(Throwable t){
+        if (t instanceof IOException) {
+            return MOperationStatus.failure((IOException) t);
+        }
         return MOperationStatus.failure(t.getMessage());
     }
 
