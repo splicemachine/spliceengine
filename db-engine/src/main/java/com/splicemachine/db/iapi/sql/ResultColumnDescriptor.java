@@ -26,6 +26,7 @@
 package com.splicemachine.db.iapi.sql;
 
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * A ResultColumnDescriptor describes a result column in a ResultSet.
@@ -42,6 +43,15 @@ public interface ResultColumnDescriptor
 	 * @return	A DataTypeDescriptor describing the type of the column.
 	 */
 	DataTypeDescriptor	getType();
+
+	/**
+	 * Returns a Spark Type for the column. This StructField
+	 * will not represent an actual value, it will only represent the type
+	 * that all values in the column will have.
+	 *
+	 * @return	A StructField describing the type of the column.
+	 */
+	StructField getStructField();
 
 	/**
 	 * Returns the name of the Column.

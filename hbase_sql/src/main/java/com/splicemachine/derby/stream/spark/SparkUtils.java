@@ -30,6 +30,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 
+import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
+import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -151,7 +155,7 @@ public class SparkUtils {
         org.apache.spark.rdd.RDD currentRDD = rdd;
         for (int i = 0; i < levels && currentRDD != null; i++) {
             org.apache.spark.rdd.RDD rddAnc =
-                ((org.apache.spark.Dependency)currentRDD.dependencies().head()).rdd();
+                    ((org.apache.spark.Dependency) currentRDD.dependencies().head()).rdd();
             if (rddAnc != null) {
                 if (checkNames == null || checkNames[i] == null)
                     rddAnc.setName(newNames[i]);
@@ -210,81 +214,20 @@ public class SparkUtils {
 
     public static Dataset<Row> resultSetToDF(ResultSet rs) throws StandardException {
         EmbedResultSet40 ers = (EmbedResultSet40) rs;
-        com.splicemachine.db.iapi.sql.ResultSet serverSideRs = ers.getUnderlyingResultSet();
-        JavaRDD<LocatedRow> rdd = ((SparkDataSet) ((SpliceBaseOperation) serverSideRs).getDataSet(EngineDriver.driver().processorFactory().distributedProcessor())).rdd;
-        // The schema is encoded in a string
-        ResultDescription rd = serverSideRs.getResultDescription();
-        final ResultColumnDescriptor[] columns = rd.getColumnInfo();
+        com.splicemachine.db.iapi.sql.ResultSet serverSideResultSet = ers.getUnderlyingResultSet();
+        SpliceBaseOperation operation = (SpliceBaseOperation) serverSideResultSet;
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
+        SparkDataSet<LocatedRow> spliceDataSet = (SparkDataSet) operation.getResultDataSet(dsp);
+        JavaRDD<LocatedRow> rdd = spliceDataSet.rdd;
+        final ResultColumnDescriptor[] columns = serverSideResultSet.getResultDescription().getColumnInfo();
 
-        // Generate the schema based on the string of schema
+        // Generate the schema based on the ResultColumnDescriptors
         List<StructField> fields = new ArrayList<>();
-        int i = 0;
         for (ResultColumnDescriptor column : columns) {
-            StructField field = DataTypes.createStructField(column.getName(), convertResultColumnDescriptorToSparkType(column), true);
-            fields.add(field);
-            i++;
+            fields.add(column.getStructField());
         }
         StructType schema = DataTypes.createStructType(fields);
-
-        // Convert records of the RDD to Rows
-        JavaRDD<Row> rowRDD = rdd.map(new Function<LocatedRow, Row>() {
-            @Override
-            public Row call(LocatedRow record) throws Exception {
-                Object[] values = new Object[columns.length];
-                int i=0;
-                for(DataValueDescriptor dvd : record.getRow().getRowArray()){
-                    values[i] = dvd.getObject();
-                    ++i;
-                }
-                return RowFactory.create(values);
-            }
-        });
-
-        /* Apply the schema to the RDD
-           Maybe we have to dispatcg an OLAP query because this creation is resource intense
-           Staying simple for now
-        */
-        SparkSession s = SpliceSpark.getSession();
-        Dataset<Row> df = s.createDataFrame(rowRDD, schema);
-        return df;
-    }
-
-//TODO: (MZ) Will make a DataType ResultColumnDescriptor.getSparkType() method to make this cleaner
-    public static DataType convertResultColumnDescriptorToSparkType(ResultColumnDescriptor rcd){
-        int position = rcd.getColumnPosition();
-        DataTypeDescriptor type = rcd.getType();
-        switch(type.getJDBCTypeId()) {
-            case Types.BIGINT:
-                return DataTypes.LongType;
-            case Types.INTEGER:
-                return DataTypes.IntegerType;
-            case Types.SMALLINT:
-                return DataTypes.ShortType;
-            case Types.TINYINT:
-                return DataTypes.ShortType;
-            case Types.DECIMAL:
-                return DataTypes.FloatType;
-            case Types.NUMERIC:
-                return DataTypes.DoubleType;
-            case Types.DOUBLE:
-                return DataTypes.DoubleType;
-            case Types.FLOAT:
-                return DataTypes.FloatType;
-            case Types.CHAR:
-                return DataTypes.StringType;
-            case Types.VARCHAR:
-                return DataTypes.StringType;
-            case Types.DATE:
-                return DataTypes.DateType;
-            case Types.TIMESTAMP:
-                return DataTypes.TimestampType;
-            case Types.TIME:
-                return DataTypes.TimestampType; /* TODO: (MZ) Not sure if this is the right conversion */
-            case Types.NULL:
-                return DataTypes.NullType;
-            default:
-                return DataTypes.NullType;
-        }
+        return SpliceSpark.getSession().createDataFrame(rdd.map(new LocatedRowToRowFunction()), schema);
     }
 
     /**
@@ -318,3 +261,5 @@ public class SparkUtils {
 
 
 }
+
+

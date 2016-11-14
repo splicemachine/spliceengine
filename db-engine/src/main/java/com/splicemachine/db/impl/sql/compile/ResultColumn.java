@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 
@@ -47,6 +48,8 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.StringUtil;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * A ResultColumn represents a result column in a SELECT, INSERT, or UPDATE
@@ -1991,5 +1994,49 @@ public class ResultColumn extends ValueNode
     public void setColumnDescriptor(ColumnDescriptor columnDescriptor) {
         this.columnDescriptor = columnDescriptor;
     }
+
+	/**
+	 * Returns a Spark Type for the column. This StructField
+	 * will not represent an actual value, it will only represent the Spark type
+	 * that all values in the column will have.
+	 *
+	 * @return	A StructField describing the type of the column.
+	 */
+	public StructField getStructField() {
+		DataTypeDescriptor type = getType();
+		switch (type.getJDBCTypeId()) {
+			case Types.BIGINT:
+				return DataTypes.createStructField(getName(), DataTypes.LongType, true);
+			case Types.INTEGER:
+				return DataTypes.createStructField(getName(), DataTypes.IntegerType, true);
+			case Types.SMALLINT:
+				return DataTypes.createStructField(getName(), DataTypes.ShortType, true);
+			case Types.TINYINT:
+				return DataTypes.createStructField(getName(), DataTypes.ShortType, true);
+			case Types.DECIMAL:
+				return DataTypes.createStructField(getName(), DataTypes.FloatType, true);
+			case Types.NUMERIC:
+				return DataTypes.createStructField(getName(), DataTypes.DoubleType, true);
+			case Types.DOUBLE:
+				return DataTypes.createStructField(getName(), DataTypes.DoubleType, true);
+			case Types.FLOAT:
+				return DataTypes.createStructField(getName(), DataTypes.FloatType, true);
+			case Types.CHAR:
+				return DataTypes.createStructField(getName(), DataTypes.StringType, true);
+			case Types.VARCHAR:
+				return DataTypes.createStructField(getName(), DataTypes.StringType, true);
+			case Types.DATE:
+				return DataTypes.createStructField(getName(), DataTypes.DateType, true);
+			case Types.TIMESTAMP:
+				return DataTypes.createStructField(getName(), DataTypes.TimestampType, true);
+			case Types.TIME:
+				return DataTypes.createStructField(getName(), DataTypes.TimestampType, true); /* TODO: (MZ) Not sure if this is the right conversion */
+			case Types.NULL:
+				return DataTypes.createStructField(getName(), DataTypes.NullType, true);
+			default:
+				return DataTypes.createStructField(getName(), DataTypes.NullType, true);
+		}
+	}
+
 }
 

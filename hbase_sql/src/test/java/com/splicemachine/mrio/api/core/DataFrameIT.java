@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
@@ -34,7 +35,6 @@ import com.splicemachine.derby.test.framework.*;
 
 import org.apache.log4j.Logger;
 
-
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Assert;
@@ -45,8 +45,14 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.awt.*;
 import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Types;
 import java.util.*;
+import java.util.List;
 
 
 import static org.junit.Assert.assertEquals;
@@ -81,6 +87,9 @@ public class DataFrameIT extends SpliceUnitTest {
             new GenericColumnDescriptor("COUNT", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
     };
 
+    private static final ResultColumnDescriptor[] DATAFRAME_NTH_STORED_PROCEDURE_COLUMN_DECSRIPTOR = new GenericColumnDescriptor[]{
+            new GenericColumnDescriptor("SAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN))
+    };
     private static long startTime;
 
     @ClassRule
@@ -99,13 +108,23 @@ public class DataFrameIT extends SpliceUnitTest {
                         spliceClassWatcher.setAutoCommit(true);
 
                         // Stored procedure returns size of dataframe
-                        String proc = format("CREATE PROCEDURE Splice.testResultSetToDF(statement varchar(1024))" +
+                        String proc = format("CREATE PROCEDURE Splice.testResultSetToDF(statement VARCHAR(1024))" +
                                 "   PARAMETER STYLE JAVA " +
                                 "   LANGUAGE JAVA " +
                                 "   READS SQL DATA " +
                                 "   DYNAMIC RESULT SETS 1 " +
                                 "   EXTERNAL NAME 'com.splicemachine.mrio.api.core.DataFrameIT.testResultSetToDF'");
                         PreparedStatement ps = spliceClassWatcher.prepareStatement(proc);
+                        ps.execute();
+
+                        // Stored procedure returns true if nth element of dataframe
+                        String proc1 = format("CREATE PROCEDURE Splice.testNth(tableName VARCHAR(1024), type VARCHAR(100), nthRow INTEGER, nthCol INTEGER)" +
+                                "   PARAMETER STYLE JAVA " +
+                                "   LANGUAGE JAVA " +
+                                "   READS SQL DATA " +
+                                "   DYNAMIC RESULT SETS 1 " +
+                                "   EXTERNAL NAME 'com.splicemachine.mrio.api.core.DataFrameIT.testNth'");
+                        ps = spliceClassWatcher.prepareStatement(proc1);
                         ps.execute();
 
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,'dw')",CLASS_NAME,TABLE_NAME_4));
@@ -251,7 +270,66 @@ public class DataFrameIT extends SpliceUnitTest {
 
     }
 
-    // Class for a stored procedure that converts a given table into a DataFrame and returns count() of DataFrame
+
+    @Test
+    public void testDFNth() throws Exception {
+        String[] tests = {
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 0, 1),
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 0, 2),
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 0, 3),
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 1, 1),
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 1, 2),
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 1, 3),
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 2, 1),
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 2, 2),
+                format("call splice.testNth('%s','%s',%d,%d)", this.getTableReference(TABLE_NAME_1), "String", 2, 3),
+
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "String", 0, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "Double", 0, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "Timestamp", 0, 3),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "String", 1, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "Double", 1, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "Timestamp", 1, 3),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "String", 2, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "Double", 2, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_2), "Timestamp", 2, 3),
+
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_3), "Boolean", 0, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_3), "Boolean", 1, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_3), "Boolean", 2, 1),
+
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "Integer", 0, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "String", 0, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "Integer", 1, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "String", 1, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "Integer", 2, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "String", 2, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "Integer", 3, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "String", 3, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "Integer", 4, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "String", 4, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "Integer", 5, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "String", 5, 2),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "Integer", 6, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_4), "String", 6, 2),
+
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_5), "Integer", 0, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_5), "Integer", 1, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_5), "Integer", 2, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_5), "Integer", 3, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_5), "Integer", 4, 1),
+                format("call splice.testNth('%s','%s',%d,%d)",this.getTableReference(TABLE_NAME_5), "Integer", 7, 1)
+        };
+
+        for (int i=0; i < tests.length; ++i) {
+            ResultSet rss = methodWatcher.executeQuery(tests[i]); // Call procedure
+            Assert.assertTrue("Test: "+ tests[i]+" failed conversion to DF!",rss.next());
+            Assert.assertTrue("Test: "+ tests[i]+" has values that do not match!", rss.getBoolean(1)); // assert that procedure validated elements were equal
+        }
+    }
+
+
+    // Method for stored procedure that converts a given table into a DataFrame and returns count() of DataFrame
     public static void testResultSetToDF(String table, ResultSet[] resultSets) throws SQLException {
 
     try{
@@ -262,21 +340,92 @@ public class DataFrameIT extends SpliceUnitTest {
         Dataset<Row> resultSetDF = SparkUtils.resultSetToDF(res);
         resultSets[0] = res;
 
-        // Construct Stored Procedure Result
-        List<ExecRow> rows = Lists.newArrayList();
-        ExecRow row = new ValueRow(1);
-        System.out.println(resultSetDF.rdd().count());
-        row.setColumn(1, new SQLLongint(resultSetDF.count()));
-        rows.add(row);
-        IteratorNoPutResultSet resultsToWrap = wrapResults((EmbedConnection) conn, rows);
-        resultSets[0] = new EmbedResultSet40((EmbedConnection)conn, resultsToWrap, false, null, true);
+            // Construct Stored Procedure Result
+            List<ExecRow> rows = Lists.newArrayList();
+            ExecRow row = new ValueRow(1);
+            // System.out.println(resultSetDF.rdd().count());
+            row.setColumn(1, new SQLLongint(resultSetDF.count()));
+            rows.add(row);
+            IteratorNoPutResultSet resultsToWrap = wrapResults((EmbedConnection) conn, rows, DATAFRAME_COUNT_STORED_PROCEDURE_COLUMN_DECSRIPTOR);
+            resultSets[0] = new EmbedResultSet40((EmbedConnection)conn, resultsToWrap, false, null, true);
 
-        conn.close();
+            conn.close();
         }
         catch (StandardException e) {
             throw new SQLException(Throwables.getRootCause(e));
         }
     }
+
+
+    // Converts a table to a dataframe and tests a single specified cell to make sure the dataframe and result set have equal values
+    // Uses ExecRow offsets where Rows start at 0, Columns start at 1
+    // returns a Boolean value as a ResultSet indicating whether the cells match
+    public static void testNth(String table, String type, Integer nthRow, Integer nthCol, ResultSet[] resultSets) throws SQLException {
+
+        try{
+            Connection conn = DriverManager.getConnection("jdbc:default:connection");
+            PreparedStatement pstmt = conn.prepareStatement("select * from " + table.toUpperCase());
+            ResultSet res = pstmt.executeQuery();
+
+            // Convert result set to Dataframe
+            Dataset<Row> resultSetDF = SparkUtils.resultSetToDF(res);
+            //Retrieve nthRow of DataFrame
+            org.apache.spark.sql.Row[] r = (Row[])resultSetDF.collect();
+
+
+            //Retrieve nthRow of ResultSet
+            int i = 0;
+            Boolean equalsTest = false;
+            while(res.next() && i<nthRow){
+                i++;
+            }
+            //System.out.println("Type="+type+"nthrow="+nthRow+" nthcol="+nthCol+" rs="+res.getObject(nthCol)+" i="+i+" df="+r[i]);
+
+            // if either null both have to be null
+            if (res.getObject(nthCol) == null) {
+                equalsTest = r[i].isNullAt(nthCol-1);
+            }
+            else if(r[i].isNullAt(nthCol-1)) {
+                equalsTest = false;
+            }
+            else {
+
+                // Test nth element of ResultSet
+                switch (type.toLowerCase()){
+                    case "string":
+                            equalsTest = res.getString(nthCol).equals(r[i].getString(nthCol-1));
+                            break;
+                    case "integer":
+                        equalsTest = res.getInt(nthCol) == r[i].getInt(nthCol-1);
+                        break;
+                    case "boolean":
+                        equalsTest = res.getBoolean(nthCol) == r[i].getBoolean(nthCol-1);
+                        break;
+                    case "double":
+                        equalsTest = res.getDouble(nthCol) == (r[i].getDouble(nthCol-1));
+                        break;
+                    case "timestamp":
+                        equalsTest = res.getTimestamp(nthCol).equals(r[i].getTimestamp(nthCol-1));
+                        break;
+                    default: equalsTest = false;
+                        break;
+                }
+              }
+
+            // Construct Stored Procedure Result
+            List<ExecRow> rows = Lists.newArrayList();
+            ExecRow row = new ValueRow(1);
+            row.setColumn(1, new SQLBoolean(equalsTest));
+            rows.add(row);
+            IteratorNoPutResultSet resultsToWrap = wrapResults((EmbedConnection) conn, rows, DATAFRAME_NTH_STORED_PROCEDURE_COLUMN_DECSRIPTOR);
+            resultSets[0] = new EmbedResultSet40((EmbedConnection)conn, resultsToWrap, false, null, true);
+            conn.close();
+        }
+        catch (Exception e) {
+            throw new SQLException(Throwables.getRootCause(e));
+        }
+    }
+
 
     private static class Triplet implements Comparable<Triplet>{
         private final String k1;
@@ -344,10 +493,10 @@ public class DataFrameIT extends SpliceUnitTest {
 
     // Helper method to construct the return value of the Stored Procedure
     // Create a IteratorNoPutResultSet and insert an activation, column descriptor, and open the ResultSet
-    private static IteratorNoPutResultSet wrapResults(EmbedConnection conn, Iterable<ExecRow> rows) throws
+    private static IteratorNoPutResultSet wrapResults(EmbedConnection conn, Iterable<ExecRow> rows, ResultColumnDescriptor[] colDesc) throws
             StandardException {
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, DATAFRAME_COUNT_STORED_PROCEDURE_COLUMN_DECSRIPTOR,
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, colDesc,
                 lastActivation);
         resultsToWrap.openCore();
         return resultsToWrap;
