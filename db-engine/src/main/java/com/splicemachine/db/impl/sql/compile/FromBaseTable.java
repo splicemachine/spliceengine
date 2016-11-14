@@ -2167,6 +2167,7 @@ public class FromBaseTable extends FromTable {
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLines());
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getStoredAs());
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLocation());
+        BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getCompression());
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
                 ClassName.NoPutResultSet,24);
     }

@@ -2841,6 +2841,9 @@ TOKEN [IGNORE_CASE] :
 |	<ESCAPED: "escaped">
 |	<LINES: "lines">
 |	<PARTITIONED: "partitioned">
+|	<COMPRESSED: "compressed">
+|	<SNAPPY: "snappy">
+|	<ZLIB: "zlib">
 |	<STORED: "stored">
 |	<LOCATION: "location">
 |	<PIN: "pin">
@@ -11618,6 +11621,7 @@ tableDefinition() throws StandardException :
 	boolean				withData = true;
 	boolean             hasJDBClimitClause = false;
 	String              queryString = null;
+	String              compression = "none";
 	boolean             isExternal = false;
 	ResultColumnList	partitionedResultColumns = null;
 	ValueNode              terminationChar = null;
@@ -11640,6 +11644,8 @@ tableDefinition() throws StandardException :
 			tableElementList = tableElementList()
 			[ properties = propertyList(false)<CHECK_PROPERTIES>]
 			[<COMMA>]
+			[ <COMPRESSED> <WITH> [ <ZLIB> { compression ="zlib"; } | <SNAPPY> { compression ="snappy"; } ] ]
+			[<COMMA>]
             [ <PARTITIONED> <BY> <LEFT_PAREN> partitionedResultColumns = tableColumnList() <RIGHT_PAREN> ]
             [<COMMA>]
             [ <ROW> <FORMAT> <DELIMITED>
@@ -11655,7 +11661,7 @@ tableDefinition() throws StandardException :
             [<LOCATION> {location = literal();}]
 			{
 			validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
-                        linesTerminatedByChar, location);
+                        linesTerminatedByChar, location,compression);
 				return (StatementNode) nodeFactory.getNode(
 										C_NodeTypes.CREATE_TABLE_NODE,
 										tableName,
@@ -11669,6 +11675,7 @@ tableDefinition() throws StandardException :
 										linesTerminatedByChar,
 										storageFormat,
 										location,
+										compression,
 										getContextManager());
 			}
 		|
@@ -11711,7 +11718,7 @@ tableDefinition() throws StandardException :
 						SQLState.LANG_NO_PARAMS_IN_TABLES);
 				}
 				validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
-                linesTerminatedByChar, location);
+                linesTerminatedByChar, location, compression);
 				StatementNode node = (StatementNode)nodeFactory.getNode(
 										C_NodeTypes.CREATE_TABLE_NODE,
 										tableName,
@@ -11735,7 +11742,7 @@ tableDefinition() throws StandardException :
 
 void
 validateParameters(boolean isExternal, String storageFormat, ValueNode terminationChar, ValueNode escapedByChar,
-            ValueNode linesTerminatedByChar, ValueNode location) throws StandardException :
+            ValueNode linesTerminatedByChar, ValueNode location, String compression) throws StandardException :
 {
 }
 {
@@ -11746,6 +11753,12 @@ validateParameters(boolean isExternal, String storageFormat, ValueNode terminati
                 if (isExternal && location == null)
                         throw StandardException.newException(
                         						SQLState.LOCATION_REQUIRED_WITH_EXTERNAL_TABLES);
+
+			    //COMPRESSION ERROR WITH TEXT
+			    if(compression != "none" && storageFormat.equals("T")){
+			           throw StandardException.newException(SQLState.COMPRESSION_NOT_ALLOWED_WITH_TEXT_FILE);
+			    }
+
 			    // PARQUET ERRRORS
 	            if (storageFormat != null && storageFormat.equals("P")) {
 	                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)

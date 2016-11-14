@@ -172,6 +172,14 @@ public interface ScanSetBuilder<V>{
     ScanSetBuilder<V> storedAs(String storedAs);
 
     /**
+     *  Type of compression you  to store external files
+     * @param compression
+     * @return
+     */
+
+    ScanSetBuilder<V> compression(String compression);
+
+    /**
      *
      * The Hadoop Comliant file system location.
      *
