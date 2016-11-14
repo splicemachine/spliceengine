@@ -92,7 +92,7 @@ public class FunctionIT extends SpliceUnitTest {
 	      * Fixed in DERBY-6273.
 	      */
 		@Test
-	public void testMultipleUntypedParameters() throws Exception {
+	public void testMultipleUntypedParametersAndNVL() throws Exception {
 		// All parameters cannot be untyped. This should still fail.
 		try {
 			methodWatcher.prepareStatement("values coalesce(?,?,?)");
@@ -106,6 +106,10 @@ public class FunctionIT extends SpliceUnitTest {
 		vetThreeArgCoalesce("values coalesce(cast(? as char(1)), ?, ?)");
 		vetThreeArgCoalesce("values coalesce(?, cast(? as char(1)), ?)");
 		vetThreeArgCoalesce("values coalesce(?, ?, cast(? as char(1)))");
+		vetThreeArgCoalesce("values nvl(cast(? as char(1)), ?, ?)");
+		vetThreeArgCoalesce("values nvl(?, cast(? as char(1)), ?)");
+		vetThreeArgCoalesce("values nvl(?, ?, cast(? as char(1)))");
+
 	}
 
 		private void vetThreeArgCoalesce(String sql) throws Exception {
@@ -132,5 +136,6 @@ public class FunctionIT extends SpliceUnitTest {
 				Assert.assertFalse(rs.next());
 			}
 	}
+
 }
 

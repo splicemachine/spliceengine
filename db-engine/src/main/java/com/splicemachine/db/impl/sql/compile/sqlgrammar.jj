@@ -2565,6 +2565,7 @@ TOKEN [IGNORE_CASE] :
 |	<CHECK: "check">
 |	<CLOSE: "close">
 |	<COALESCE: "coalesce">
+|	<NVL: "nvl">
 |	<COLLATE: "collate">
 |	<COLLATION: "collation">
 |	<COLUMN: "column">
@@ -7522,8 +7523,9 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == SQRT ||
                 getToken(1).kind == MOD ||
                 getToken(1).kind == COALESCE ||
+                getToken(1).kind == NVL ||
                 getToken(1).kind == VALUE ||
-                getToken(1).kind == IDENTITY_VAL_LOCAL ||
+
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == REPLACE ||
@@ -7639,6 +7641,11 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
 	}
 |
 	<COALESCE>  value = coalesceFunction("COALESCE")
+	{
+		return value;
+	}
+|
+	<NVL>  value = coalesceFunction("COALESCE")
 	{
 		return value;
 	}
@@ -16209,7 +16216,8 @@ nonReservedKeyword()  :
 	|	tok = <CALLED>
 	|	tok = <CLASS>
 	|	tok = <CLOB>
-|	tok = <COALESCE>
+    |	tok = <COALESCE>
+    |	tok = <NVL>
 	|	tok = <COBOL>
 	|	tok = <COMMITTED>
 	|	tok = <COMPRESS>
