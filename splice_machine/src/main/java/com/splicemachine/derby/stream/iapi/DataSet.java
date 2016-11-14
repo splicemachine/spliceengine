@@ -266,7 +266,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param context
      * @return
      */
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,
                                                     OperationContext context) ;
 
     /**
@@ -279,8 +279,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param context
      * @return
      */
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
-                                            OperationContext context) ;
+    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, OperationContext context) ;
 
     /**
      *

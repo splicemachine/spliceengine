@@ -79,7 +79,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected String lines;
     protected String storedAs;
     protected String location;
-    protected String compression;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
@@ -357,11 +356,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
     public ScanSetBuilder<V> location(String location){
         this.location=location;
-        return this;
-    }
-
-    public ScanSetBuilder<V> compression(String compression){
-        this.compression=compression;
         return this;
     }
 
