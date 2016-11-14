@@ -90,11 +90,17 @@ public class HOperationStatusFactory implements OperationStatusFactory{
 
     @Override
     public MutationStatus failure(Throwable t){
-        return new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.FAILURE,t.getMessage()));
+        if (t instanceof IOException) {
+            return new HMutationStatus(new ExtendedOperationStatus(HConstants.OperationStatusCode.FAILURE, (IOException) t));
+        } else {
+            return new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.FAILURE, t.getMessage()));
+        }
     }
 
     @Override
     public ConstraintChecker getNoOpConstraintChecker(){
         return NO_OP_CHECKER;
     }
+
 }
+

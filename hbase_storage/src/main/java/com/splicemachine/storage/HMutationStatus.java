@@ -18,6 +18,8 @@ package com.splicemachine.storage;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 12/16/15
@@ -61,6 +63,16 @@ public class HMutationStatus implements MutationStatus{
     @Override
     public MutationStatus getClone(){
         return new HMutationStatus(delegate);
+    }
+
+    @Override
+    public boolean hasException() {
+        return false;
+    }
+
+    @Override
+    public IOException getException() {
+        return null;
     }
 
     public static MutationStatus success(){

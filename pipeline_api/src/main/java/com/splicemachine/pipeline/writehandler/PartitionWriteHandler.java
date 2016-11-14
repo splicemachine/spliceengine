@@ -186,7 +186,10 @@ public class PartitionWriteHandler implements WriteHandler {
                 if (constraintChecker != null && constraintChecker.matches(stat)) {
                     ctx.result(mutation, constraintChecker.asWriteResult(stat));
                     break;
-                }else{
+                }else if (stat.errorMessage().contains("Write conflict")) {
+                    WriteResult conflict = new WriteResult(Code.WRITE_CONFLICT,stat.errorMessage());
+                    ctx.result(mutation, conflict);
+                }else {
                     failed++;
                     ctx.failed(mutation, WriteResult.failed(stat.errorMessage()));
                 }

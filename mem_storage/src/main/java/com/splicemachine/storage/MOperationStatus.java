@@ -15,6 +15,8 @@
 
 package com.splicemachine.storage;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 12/16/15
@@ -24,12 +26,16 @@ public abstract class MOperationStatus implements MutationStatus{
         @Override public boolean isSuccess(){ return true; }
         @Override public boolean isFailed(){ return false; }
         @Override public boolean isNotRun(){ return false; }
+        @Override public boolean hasException() { return false; }
+        @Override public IOException getException() { return null; }
     };
 
     private static final MOperationStatus NOT_RUN = new MOperationStatus(){
         @Override public boolean isSuccess(){ return false; }
         @Override public boolean isFailed(){ return false; }
         @Override public boolean isNotRun(){ return true; }
+        @Override public boolean hasException() { return false; }
+        @Override public IOException getException() { return null; }
     };
 
     @Override
@@ -45,12 +51,19 @@ public abstract class MOperationStatus implements MutationStatus{
     public static MOperationStatus success(){ return SUCCESS;}
     public static MOperationStatus notRun(){ return NOT_RUN;}
     public static MOperationStatus failure(String message){ return new Failure(message);}
+    public static MOperationStatus failure(IOException ex){ return new Failure(ex);}
 
     private static class Failure extends MOperationStatus{
         private final String errorMsg;
+        private IOException ex = null;
 
         public Failure(String errorMsg){
             this.errorMsg = errorMsg;
+        }
+
+        public Failure(IOException ex) {
+            this(ex.getMessage());
+            this.ex = ex;
         }
 
         @Override public boolean isSuccess(){ return false; }
@@ -65,6 +78,16 @@ public abstract class MOperationStatus implements MutationStatus{
         @Override
         public MutationStatus getClone(){
             return new Failure(errorMsg);
+        }
+
+        @Override
+        public boolean hasException() {
+            return ex != null;
+        }
+
+        @Override
+        public IOException getException() {
+            return ex;
         }
     }
 }
