@@ -93,6 +93,10 @@ public class WritableTxn extends AbstractTxn{
         return isAdditive;
     }
 
+    public void setAdditive(boolean additive) {
+        this.isAdditive = additive;
+    }
+
     @Override
     public long getGlobalCommitTimestamp(){
         if(globalCommitTimestamp<0) return parentTxn.getGlobalCommitTimestamp();

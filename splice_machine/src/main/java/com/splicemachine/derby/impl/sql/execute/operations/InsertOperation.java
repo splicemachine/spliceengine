@@ -24,6 +24,8 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.utils.IntArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -38,7 +40,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
-import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
@@ -301,8 +302,17 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
         operationContext.pushScope();
         try{
-            if(statusDirectory!=null)
+            if(statusDirectory!=null) {
                 dsp.setSchedulerPool("import");
+                if (txn instanceof ActiveWriteTxn) {
+                    ActiveWriteTxn activeWriteTxn = (ActiveWriteTxn) txn;
+                    activeWriteTxn.setAdditive(true);
+                }
+                else if (txn instanceof WritableTxn) {
+                    WritableTxn writableTxn = (WritableTxn)txn;
+                    writableTxn.setAdditive(true);
+                }
+            }
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p"))
                     return set.writeParquetFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location,operationContext);
