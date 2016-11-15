@@ -220,6 +220,8 @@ public class Trigger_Row_IT {
     }
 
     @Test
+    @Ignore
+    //SPLICE-1168
     public void afterUpdate_sinkingTriggerAction() throws Exception {
         try(Statement s = conn.createStatement()){
             s.executeUpdate("insert into RECORD values('aaa')");
