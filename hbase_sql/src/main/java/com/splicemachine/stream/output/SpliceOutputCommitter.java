@@ -83,7 +83,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
             SpliceLogUtils.debug(LOG,"setupTask");
         // Create child additive transaction so we don't read rows inserted by ourselves in this operation
         TxnView txn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, destinationTable);
-        ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, parentTxn.isAdditive(), parentTxn.getIsolationLevel());
+        ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, true, parentTxn.getIsolationLevel());
         taskAttemptMap.put(taskContext.getTaskAttemptID(), childTxn);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"beginTxn=%s and destinationTable=%s",childTxn,destinationTable);
