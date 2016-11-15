@@ -43,6 +43,7 @@ import java.util.List;
 public class SparkOperationContext<Op extends SpliceOperation> implements OperationContext<Op>{
     protected static Logger LOG=Logger.getLogger(SparkOperationContext.class);
     private static final String LINE_SEP = System.lineSeparator();
+    private static final String BAD_FILENAME = "unspecified_";
     private BroadcastedActivation broadcastedActivation;
     private Accumulable<BadRecordsRecorder,String> badRecordsAccumulator;
 
@@ -455,7 +456,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold){
         this.permissive=true;
         this.badRecordThreshold = badRecordThreshold;
-	if(importFileName == null)importFileName="unspecified_" + System.currentTimeMillis();
+	if(importFileName == null)importFileName=BAD_FILENAME + System.currentTimeMillis();
         BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory,
                                                                        importFileName,
                                                                        badRecordThreshold);
