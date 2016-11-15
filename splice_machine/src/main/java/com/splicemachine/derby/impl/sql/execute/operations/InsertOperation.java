@@ -20,6 +20,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.WritableTxn;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.EngineDriver;
@@ -33,7 +35,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
-import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
@@ -248,8 +249,18 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
         operationContext.pushScope();
         try{
-            if(statusDirectory!=null)
+            if(statusDirectory!=null) {
                 dsp.setSchedulerPool("import");
+                if (txn instanceof ActiveWriteTxn) {
+                    ActiveWriteTxn activeWriteTxn = (ActiveWriteTxn) txn;
+                    activeWriteTxn.setAdditive(true);
+                }
+                else if (txn instanceof WritableTxn) {
+                    WritableTxn writableTxn = (WritableTxn)txn;
+                    writableTxn.setAdditive(true);
+                }
+            }
+
             PairDataSet dataSet=set.index(new InsertPairFunction(operationContext),true);
             DataSetWriter writer=dataSet.insertData(operationContext)
                     .autoIncrementRowLocationArray(autoIncrementRowLocationArray)

@@ -85,6 +85,9 @@ public class ActiveWriteTxn extends AbstractTxnView{
         return additive;
     }
 
+    public void setAdditive(boolean additive) {
+        this.additive = additive;
+    }
     @Override
     public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException{
         super.readExternal(input);
