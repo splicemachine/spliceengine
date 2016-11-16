@@ -76,8 +76,9 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
                 env = INSTANCE;
                 if(env==null){
                     SIEnvironment siEnv =HBaseSIEnvironment.loadEnvironment(systemClock,ZkUtils.getRecoverableZooKeeper());
-                    env= INSTANCE = new HBasePipelineEnvironment(siEnv,ctxFactoryLoader,HPipelineExceptionFactory.INSTANCE);
+                    env = new HBasePipelineEnvironment(siEnv,ctxFactoryLoader,HPipelineExceptionFactory.INSTANCE);
                     PipelineDriver.loadDriver(env);
+                    INSTANCE = env;
                 }
             }
         }
