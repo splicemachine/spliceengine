@@ -455,7 +455,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest,${excluded.categories}</excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
@@ -483,7 +483,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <groups>com.splicemachine.test.BackupTest</groups>
+                            <groups>com.splicemachine.test.RestoreTest</groups>
                             <argLine>-Xmx3g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>
