@@ -28,11 +28,8 @@ package com.splicemachine.db.impl.ast;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
-import com.splicemachine.db.impl.sql.compile.AndNode;
-import com.splicemachine.db.impl.sql.compile.BinaryListOperatorNode;
-import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
-import com.splicemachine.db.impl.sql.compile.OrNode;
-import com.splicemachine.db.impl.sql.compile.ValueNode;
+import com.splicemachine.db.impl.sql.compile.*;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -83,13 +80,16 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
      * @return a map of the predicate ValueNode and how many times it occurs (only including ValueNodes that occur more than once
      * @throws StandardException
      */
-    private Map<ValueNode,Integer> nodesWithMultipleOccurrences(ValueNode pred) throws StandardException {
+    private Map<ValueNode,Integer> nodesWithMultipleOccurrences(ValueNode pred, int n) throws StandardException {
 
         Map<ValueNode, Integer> m = new HashMap<ValueNode,Integer>();
 
         List<ValueNode> binNodes = new LinkedList<ValueNode>();
         binNodes.addAll(RSUtils.collectNodes(pred, BinaryRelationalOperatorNode.class));
         binNodes.addAll(RSUtils.collectNodes(pred, BinaryListOperatorNode.class));
+
+        List<NotNode> notNodes = new LinkedList<>();
+        notNodes.addAll(RSUtils.collectNodes(pred, NotNode.class));
 
         for(ValueNode node : binNodes ){
 
@@ -108,11 +108,18 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
             Map.Entry<ValueNode,Integer> me = mapIt.next();
             Integer i = me.getValue();
 
-            if(i.intValue() <= 1){
+            if(i.intValue() != n){
                 mapIt.remove();
             }
         }
 
+        // remove all predicate that has a NotNode on top of it
+        for (NotNode notNode:notNodes) {
+            ValueNode operand = notNode.getOperand();
+            if (m.containsKey(operand)) {
+                m.remove(operand);
+            }
+        }
         return m;
     }
 
@@ -153,16 +160,25 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
         // DB-5672: Disable repeated predicate elimination because it does not work in general. Much
         // more work needs to be done to make sure the predicates are equivalent before and after transformation.
         //
-        /*if(node instanceof ValueNode){
+        if(node instanceof ValueNode){
 
             foundWhereClause = true;
 
             ValueNode newNode = (ValueNode) node;
 
-            Map<ValueNode, Integer> m = nodesWithMultipleOccurrences(newNode);
+            int n = 0;
+            // is the predicate a DNF?
+            if (isDNF(newNode))
+                n = numClauses(newNode);
 
-            for(Map.Entry<ValueNode,Integer> me : m.entrySet()){
-                if(foundInPath(me.getKey(), newNode)){
+            if (n<=1)
+                 return updatedNode;
+
+            // calculate the number of clauses in the predicate
+            Map<ValueNode, Integer> m = nodesWithMultipleOccurrences(newNode, n);
+
+            for(Map.Entry<ValueNode,Integer> me : m.entrySet()) {
+                if (foundInPath(me.getKey(), newNode)) {
                     AndOrReplacementVisitor aor = new AndOrReplacementVisitor(me.getKey());
                     newNode.accept(new SpliceDerbyVisitorAdapter(aor));
                     AndNode newAndNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
@@ -173,9 +189,9 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
                     newNode = newAndNode;
                 }
 
-
+            }
             updatedNode = newNode;
-        }*/
+        }
 
         return updatedNode;
     }
@@ -189,5 +205,53 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
     @Override
     public boolean skipChildren(Visitable node) {
        return foundWhereClause;
+    }
+
+    private boolean isDNF(ValueNode node) {
+
+        if (isConjunctiveLiteral(node))
+            return true;
+
+        if (!(node instanceof OrNode))
+            return false;
+
+        ValueNode leftChild = ((OrNode) node).getLeftOperand();
+        ValueNode rightChild = ((OrNode) node).getRightOperand();
+
+        return (isDNF(leftChild) && isConjunctiveLiteral(rightChild) ||
+                isDNF(rightChild) && isConjunctiveLiteral(leftChild));
+    }
+
+    private boolean isConjunctiveLiteral(ValueNode valueNode) {
+
+        if (isLiteral(valueNode))
+            return true;
+
+        if (!(valueNode instanceof AndNode))
+            return false;
+
+
+        ValueNode leftChild = ((AndNode) valueNode).getLeftOperand();
+        ValueNode rightChild = ((AndNode) valueNode).getRightOperand();
+
+        if (leftChild instanceof OrNode || rightChild instanceof OrNode)
+            return false;
+
+        return  (isConjunctiveLiteral(leftChild) && isLiteral(rightChild) ||
+                isLiteral(leftChild) && isConjunctiveLiteral(rightChild));
+    }
+
+    private boolean isLiteral(ValueNode valueNode) {
+        return !(valueNode instanceof AndNode) && !(valueNode instanceof OrNode);
+    }
+
+    private int numClauses(ValueNode node) {
+        if (!(node instanceof OrNode))
+            return 1;
+
+        ValueNode leftChild = ((OrNode)node).getLeftOperand();
+        ValueNode rightChild = ((OrNode)node).getRightOperand();
+
+        return numClauses(rightChild) + numClauses(leftChild);
     }
 }
