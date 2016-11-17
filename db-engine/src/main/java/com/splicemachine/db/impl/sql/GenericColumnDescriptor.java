@@ -26,6 +26,7 @@
 package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
@@ -33,10 +34,13 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.sql.Types;
 
 /**
  * This is a stripped down implementation of a column
@@ -113,6 +117,21 @@ public final class GenericColumnDescriptor
 	public DataTypeDescriptor	getType()
 	{
 		return type;
+	}
+
+	/**
+	 * Returns a Spark Type for the column. This StructField
+	 * will not represent an actual value, it will only represent the Spark type
+	 * that all values in the column will have.
+	 *
+	 * @return	A StructField describing the type of the column.
+	 */
+	public StructField getStructField() {
+		try {
+			return getType().getNull().getStructField(getName());
+		} catch (StandardException e) {
+			return null;
+		}
 	}
 
 	/**
