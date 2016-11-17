@@ -34,6 +34,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -290,12 +291,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder, rightHashKeys);
     }
 
+
     @Override
     public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
                                           OperationContext context, Qualifier[][] qualifiers,
                                           DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException {
         try {
-            Dataset<Row> table = SpliceSpark.getSession().read().parquet(location);
+            Dataset<Row> table = null;
+            try {
+                table = SpliceSpark.getSession().read().parquet(location);
+            } catch (Exception e) {
+                return handleExceptionInCaseOfEmptySet(e,location);
+            }
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
             return new SparkDataSet(table
                     .rdd().toJavaRDD()
@@ -304,6 +311,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
         }
+    }
+
+    /**
+     *
+     * Spark cannot handle empty directories.  Unfortunately, sometimes tables are empty.  Returns
+     * empty when it can infer the error and check the directory for files.
+     *
+     * @param e
+     * @param <V>
+     * @return
+     * @throws Exception
+     */
+    private <V> DataSet<V> handleExceptionInCaseOfEmptySet(Exception e, String location) throws Exception {
+        // Cannot Infer Schema, Argh
+        if (e instanceof AnalysisException && e.getMessage() != null && e.getMessage().startsWith("Unable to infer schema")) {
+            // Lets check if there are existing files...
+            FileInfo fileInfo = ImportUtils.getImportFileInfo(location);
+            if (fileInfo.fileCount() == 0) // Handle Empty Directory
+                return getEmpty();
+        }
+        throw e;
     }
 
     @Override
@@ -353,7 +381,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                           OperationContext context, Qualifier[][] qualifiers,
                                       DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
         try {
-            Dataset<Row> table = SpliceSpark.getSession().read().orc(location);
+            Dataset<Row> table = null;
+            try {
+                table = SpliceSpark.getSession().read().orc(location);
+            } catch (Exception e) {
+                return handleExceptionInCaseOfEmptySet(e,location);
+            }
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
             return new SparkDataSet(table
                     .rdd().toJavaRDD()
