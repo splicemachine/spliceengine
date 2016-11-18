@@ -452,6 +452,17 @@ public class SpliceUnitTest {
         return false;
     }
 
+    public static List<String> getAllBadFiles(File badDir, String prefix) {
+        List<String> badFiles = new ArrayList<>();
+        String[] files = badDir.list();
+        for (String file : files) {
+            if (file.startsWith(prefix)) {
+                badFiles.add(file);
+            }
+        }
+        return badFiles;
+    }
+
     public static String getBadFile(File badDir, String prefix) {
         String[] files = badDir.list();
         for (String file : files) {

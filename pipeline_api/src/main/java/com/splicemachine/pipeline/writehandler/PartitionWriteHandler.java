@@ -185,7 +185,10 @@ public class PartitionWriteHandler implements WriteHandler {
                 //see if it's due to constraints, otherwise just pass it through
                 if (constraintChecker != null && constraintChecker.matches(stat)) {
                     ctx.result(mutation, constraintChecker.asWriteResult(stat));
-                }else{
+                }else if (stat.errorMessage().contains("Write conflict")) {
+                    WriteResult conflict = new WriteResult(Code.WRITE_CONFLICT,stat.errorMessage());
+                    ctx.result(mutation, conflict);
+                }else {
                     ctx.failed(mutation, WriteResult.failed(stat.errorMessage()));
                 }
                 failed++;
