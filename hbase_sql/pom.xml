@@ -494,6 +494,8 @@
                     <artifactSet>
                         <includes>
                             <include>io.netty:netty-all</include>
+                            <include>io.netty:netty</include>
+                            <include>org.jboss.netty:netty</include>
                             <!-- <include>com.typesafe.akka:akka-remote_${scala.binary.version}</include> -->
                         </includes>
                     </artifactSet>
@@ -513,6 +515,13 @@
                     <shadedPattern>splice.io.netty</shadedPattern>
                     <includes>
                         <include>io.netty.**</include>
+                    </includes>
+                </relocation>
+                <relocation>
+                    <pattern>org.jboss.netty</pattern>
+                    <shadedPattern>splice.org.jboss.netty</shadedPattern>
+                    <includes>
+                        <include>org.jboss.netty.**</include>
                     </includes>
                 </relocation>
                 <!-- <relocation>
