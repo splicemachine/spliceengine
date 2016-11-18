@@ -37,6 +37,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -173,6 +174,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     private static SpliceTableWatcher  multiLine = new SpliceTableWatcher("mytable",spliceSchemaWatcher.schemaName,
             "(a int, b char(10),c timestamp, d varchar(100),e bigint)");
+    private static SpliceTableWatcher  multiPK = new SpliceTableWatcher("withpk",spliceSchemaWatcher.schemaName,
+            "(a int primary key)");
 
 
     protected static SpliceTableWatcher autoIncTableWatcher = new SpliceTableWatcher(AUTO_INCREMENT_TABLE,
@@ -204,6 +207,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher19)
             .around(spliceTableWatcher20)
             .around(multiLine)
+            .around(multiPK)
             .around(autoIncTableWatcher);
 
     @Rule
@@ -308,6 +312,48 @@ public class HdfsImportIT extends SpliceUnitTest {
             Assert.assertTrue("Did not return a row!",rs.next());
             long c = rs.getLong(1);
             Assert.assertEquals("Incorrect row count!",16,c);
+            Assert.assertFalse("Returned too many rows!",rs.next());
+        }
+    }
+
+    @Test
+    public void testImportMultiFilesPKViolations() throws Exception {
+        try(PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "-1," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "'true'," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName,multiPK.tableName, getResourceDirectory()+"/multiFilePKViolation",
+                BADDIR.getCanonicalPath()))){
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+
+                int failed = rs.getInt(2);
+                assertEquals("Failed rows don't match", 4, failed);
+
+                boolean exists = existsBadFile(BADDIR, "multiFilePKViolation.bad");
+                List<String> badFiles = getAllBadFiles(BADDIR, "multiFilePKViolation.bad");
+                assertTrue("Bad file " +badFiles+" does not exist.",exists);
+                List<String> badLines = new ArrayList<>();
+                for(String badFile : badFiles) {
+                    badLines.addAll(Files.readAllLines((new File(BADDIR, badFile)).toPath(), Charset.defaultCharset()));
+                }
+                assertEquals("Expected 4 lines in bad files "+badFiles, 4, badLines.size());
+            }
+        }
+        try(ResultSet rs = methodWatcher.executeQuery("select count(*) from "+multiPK)){
+            Assert.assertTrue("Did not return a row!",rs.next());
+            long c = rs.getLong(1);
+            Assert.assertEquals("Incorrect row count!",9,c);
             Assert.assertFalse("Returned too many rows!",rs.next());
         }
     }

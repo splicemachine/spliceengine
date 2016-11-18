@@ -498,6 +498,18 @@ public class SpliceUnitTest {
         }
         return null;
     }
+
+    public static List<String> getAllBadFiles(File badDir, String prefix) {
+        List<String> badFiles = new ArrayList<>();
+        String[] files = badDir.list();
+        for (String file : files) {
+            if (file.startsWith(prefix)) {
+                badFiles.add(file);
+            }
+        }
+        return badFiles;
+    }
+
     /**
      * System to generate fake data points into a file. This way we can write out quick,
      * well known files without storing a bunch of extras anywhere.
