@@ -276,18 +276,18 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadFromSimpleTextExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table simple_text (col1 int, col2 varchar(24))" +
+        methodWatcher.executeUpdate(String.format("create external table simple_text (col1 int, col2 varchar(24), col3 boolean)" +
                 " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"simple_text"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_text values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_text values (1,'XXXX',true)," +
+                "(2,'YYYY',false)," +
+                "(3,'ZZZZ', true)"));
         Assert.assertEquals("insertCount is wrong",3,insertCount);
         ResultSet rs = methodWatcher.executeQuery("select * from simple_text");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        Assert.assertEquals("COL1 |COL2 |COL3  |\n" +
+                "-------------------\n" +
+                "  1  |XXXX |true  |\n" +
+                "  2  |YYYY |false |\n" +
+                "  3  |ZZZZ |true  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
