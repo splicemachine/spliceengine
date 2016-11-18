@@ -89,8 +89,6 @@
                                 kryo-serializers,
                                 lucene-core,
                                 memory,
-                                netty,
-                                netty-all,
                                 opencsv,
                                 protobuf-java,
                                 sketches-core,
