@@ -1101,8 +1101,10 @@ public final class SQLBoolean
 	public void read(Row row, int ordinal) throws StandardException {
 		if (row.isNullAt(ordinal))
 			setToNull();
-		else
+		else {
+			isNull = false;
 			value = row.getBoolean(ordinal);
+		}
 	}
 
 
