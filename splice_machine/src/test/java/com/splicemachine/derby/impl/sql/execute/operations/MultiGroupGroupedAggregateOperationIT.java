@@ -16,6 +16,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.homeless.TestUtils;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -28,6 +29,10 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.test_tools.TableCreator;
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -48,11 +53,37 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(uname varchar(40),fruit varchar(40),bushels int)");
-	
-	@ClassRule 
+
+	private static String EMP_2 = "EMP2";
+	private static String EMP_2_REF = CLASS_NAME + "." + EMP_2;
+	private static String EMP_2_DEF = "(EMPNO int not null, EMPNAME varchar(20) not null, SALARY int, DEPTNO int not null)";
+	private static Iterable<Iterable<Object>> EMP_2_ROWS = rows(
+			row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+			row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+			row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+			row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+			row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4));
+
+	@ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
+		.around(new SpliceDataWatcher() {
+			@Override
+			protected void starting(Description description) {
+				try {
+					new TableDAO(spliceClassWatcher.getOrCreateConnection()).drop(CLASS_NAME, EMP_2);
+					new TableCreator(spliceClassWatcher.getOrCreateConnection())
+							.withCreate(String.format("create table %s %s", EMP_2_REF, EMP_2_DEF))
+							.withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", EMP_2_REF))
+							.withRows(EMP_2_ROWS)
+							.create();
+
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		})
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -488,7 +519,159 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals("Not all groups found!", pairStats.size()+unameStats.size()+1,row);
     }
-	
+
+    @Test
+    public void testRollupWithNotNull_1() throws Exception {
+    	String sqlText = String.format("SELECT deptno, sum(salary) from %s group by rollup(deptno) order by 1, 2", EMP_2_REF);
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+		String expected = "DEPTNO |   2   |\n"+
+						"----------------\n"+
+						"   1   | 24100 |\n"+
+						"   2   | 25700 |\n"+
+						"   3   | 22900 |\n"+
+						"   4   | 21500 |\n"+
+						"   5   | 32000 |\n"+
+						" NULL  |126200 |";
+
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+		rs.close();
+	}
+
+	@Test
+	public void testRollupWithNotNull_2() throws Exception {
+		String sqlText = String.format("SELECT deptno, empno, sum(salary) from %s group by rollup(deptno, empno) order by 1, 2", EMP_2_REF);
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+		String expected = "DEPTNO | EMPNO |   3   |\n"+
+						"------------------------\n"+
+						"   1   |  13   | 9000  |\n"+
+						"   1   |  14   | 7500  |\n"+
+						"   1   |  15   | 7600  |\n"+
+						"   1   | NULL  | 24100 |\n"+
+						"   2   |  16   | 8500  |\n"+
+						"   2   |  17   | 9500  |\n"+
+						"   2   |  18   | 7700  |\n"+
+						"   2   | NULL  | 25700 |\n"+
+						"   3   |  19   | 8500  |\n"+
+						"   3   |  20   | 6900  |\n"+
+						"   3   |  21   | 7500  |\n"+
+						"   3   | NULL  | 22900 |\n"+
+						"   4   |  22   | 6500  |\n"+
+						"   4   |  23   | 7800  |\n"+
+						"   4   |  24   | 7200  |\n"+
+						"   4   | NULL  | 21500 |\n"+
+						"   5   |  10   | 12000 |\n"+
+						"   5   |  11   | 10000 |\n"+
+						"   5   |  12   | 10000 |\n"+
+						"   5   | NULL  | 32000 |\n"+
+						" NULL  | NULL  |126200 |";
+
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+		rs.close();
+	}
+
+	@Test
+	public void testRollupWithNotNull_3() throws Exception {
+		String sqlText = String.format(" " +
+				"SELECT * from (" +
+						"SELECT deptno, sum(salary) "+
+						"from %s group by rollup(deptno)) v1 (x, y) " +
+						"order by 1, 2", EMP_2_REF);
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+		String expected = "X  |   Y   |\n"+
+						"--------------\n"+
+						"  1  | 24100 |\n"+
+						"  2  | 25700 |\n"+
+						"  3  | 22900 |\n"+
+						"  4  | 21500 |\n"+
+						"  5  | 32000 |\n"+
+						"NULL |126200 |";
+
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+		rs.close();
+	}
+
+	@Test
+	public void testRollupWithNotNull_4() throws Exception {
+		String sqlText = String.format(" " +
+			"SELECT * from (" +
+			  "SELECT * from (" +
+				"SELECT deptno, sum(salary) "+
+				"from %s group by rollup(deptno)) v1 (x, y)) v2 " +
+				"order by 1, 2", EMP_2_REF);
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+		String expected = "X  |   Y   |\n"+
+						"--------------\n"+
+						"  1  | 24100 |\n"+
+						"  2  | 25700 |\n"+
+						"  3  | 22900 |\n"+
+						"  4  | 21500 |\n"+
+						"  5  | 32000 |\n"+
+						"NULL |126200 |";
+
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+		rs.close();
+	}
+
+	@Test
+	public void testRollupWithNotNull_5() throws Exception {
+		String sqlText = String.format(
+				"SELECT deptno, count(s_sum) from (" +
+					"SELECT deptno, empno, sum(salary) as s_sum " +
+						"FROM %s " +
+						"group by rollup(deptno, empno) ) v1 " +
+				"group by rollup(deptno) " +
+				"order by 1, 2", EMP_2_REF);
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+		String expected = "DEPTNO | 2 |\n"+
+						"------------\n"+
+						"   1   | 4 |\n"+
+						"   2   | 4 |\n"+
+						"   3   | 4 |\n"+
+						"   4   | 4 |\n"+
+						"   5   | 4 |\n"+
+						" NULL  |22 |";
+
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+		rs.close();
+	}
+
+	@Test
+	public void testRollupWithNotNull_6() throws Exception {
+	    // rollup with aggr distinct
+		String sqlText = String.format(
+				"SELECT deptno, count(distinct s_sum) from (" +
+				  "SELECT deptno, count(distinct salary) as s_sum " +
+						"FROM %s " +
+						"group by rollup(deptno) ) v1 " +
+				"group by rollup(deptno) " +
+				"order by 1, 2", EMP_2_REF);
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+		String expected = "DEPTNO | 2 |\n"+
+				"------------\n"+
+				"   1   | 1 |\n"+
+				"   2   | 1 |\n"+
+				"   3   | 1 |\n"+
+				"   4   | 1 |\n"+
+				"   5   | 1 |\n"+
+				" NULL  | 7 |";
+
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+		rs.close();
+	}
+
+
 	private static class Pair {
 		private final String key1;
 		private final String key2;
