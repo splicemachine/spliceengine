@@ -15,8 +15,14 @@
 
 package com.splicemachine.test;
 
+import com.splicemachine.hbase.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.zookeeper.KeeperException;
+
+import java.io.IOException;
 
 /**
  * Start MiniHBaseCluster for use by ITs.
@@ -45,6 +51,18 @@ public class SpliceTestPlatform {
                     regionServerInfoPort,
                     derbyPort,
                     failTasksRandomly);
+
+            // clean-up zookeeper
+            try {
+                ZkUtils.delete("/hbase/master");
+            } catch (KeeperException.NoNodeException ex) {
+                // ignore
+            }
+            try {
+                ZkUtils.recursiveDelete("/hbase/rs");
+            } catch (KeeperException.NoNodeException | IOException ex) {
+                // ignore
+            }
 
             MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 1, 1);
 
