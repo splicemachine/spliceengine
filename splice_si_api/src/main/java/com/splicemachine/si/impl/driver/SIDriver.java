@@ -35,7 +35,9 @@ import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.ClientTxnLifecycleManager;
+import com.splicemachine.si.impl.txn.ConcurrentTxnRegistry;
 import com.splicemachine.si.impl.TxnRegion;
+import com.splicemachine.si.api.txn.TxnRegistry;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
@@ -50,6 +52,7 @@ import org.apache.log4j.Logger;
 
 public class SIDriver {
     private static final Logger LOG = Logger.getLogger("splice.uncaught");
+
 
     static {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
@@ -90,6 +93,7 @@ public class SIDriver {
     private final PartitionInfoCache partitionInfoCache;
     private final SnowflakeFactory snowflakeFactory;
     private final SIEnvironment env;
+    private final TxnRegistry txnRegistry = new ConcurrentTxnRegistry();
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -231,6 +235,9 @@ public class SIDriver {
         return baseOpFactory;
     }
 
+    public TxnRegistry getTxnRegistry(){
+        return txnRegistry;
+    }
 
     /* ****************************************************************************************************************/
     /*private helper methods*/

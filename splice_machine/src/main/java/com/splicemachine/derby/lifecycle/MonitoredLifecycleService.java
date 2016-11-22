@@ -17,6 +17,9 @@ package com.splicemachine.derby.lifecycle;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.utils.DatabasePropertyManagementImpl;
+import com.splicemachine.si.api.txn.TxnRegistry;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.txn.ConcurrentTxnRegistry;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
 
@@ -41,6 +44,10 @@ public class MonitoredLifecycleService extends EngineLifecycleService{
         super.registerJMX(mbs);
         metricsReporter = new JmxReporter(metricsRegistry);
         metricsReporter.start();
+
+        TxnRegistry txnRegistry=SIDriver.driver().getTxnRegistry();
+        if(txnRegistry instanceof ConcurrentTxnRegistry)
+            ((ConcurrentTxnRegistry)txnRegistry).registerJmx(mbs);
 
         DatabasePropertyManagementImpl.registerJMX(mbs);
     }

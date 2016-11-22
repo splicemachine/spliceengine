@@ -24,6 +24,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.TxnRegistry;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.Pair;
@@ -40,11 +41,13 @@ public class SpliceTransaction extends BaseSpliceTransaction{
     private boolean ignoreSavePoints;
 
     private Deque<Pair<String, Txn>> txnStack=new LinkedList<>();
+    private final TxnRegistry registry;
 
     public SpliceTransaction(CompatibilitySpace compatibilitySpace,
                              SpliceTransactionFactory spliceTransactionFactory,
                              DataValueFactory dataValueFactory,
-                             String transName){
+                             String transName,TxnRegistry registry){
+        this.registry=registry;
         SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
         this.compatibilitySpace=compatibilitySpace;
         this.spliceTransactionFactory=spliceTransactionFactory;
@@ -57,7 +60,9 @@ public class SpliceTransaction extends BaseSpliceTransaction{
     public SpliceTransaction(CompatibilitySpace compatibilitySpace,
                              SpliceTransactionFactory spliceTransactionFactory,
                              DataValueFactory dataValueFactory,
-                             String transName,Txn txn){
+                             String transName,
+                             Txn txn ){
+        this.registry=null;
         SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
         this.compatibilitySpace=compatibilitySpace;
         this.spliceTransactionFactory=spliceTransactionFactory;
@@ -211,10 +216,14 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"commit, state="+state+" for transaction "+(txnStack.peekLast()==null?"null":txnStack.getLast().getSecond()));
 
+        Txn lastTxn = null;
         while(txnStack.size()>0){
             Pair<String, Txn> userPair=txnStack.pop();
             doCommit(userPair);
+            lastTxn = userPair.getSecond();
         }
+        if(lastTxn!=null && registry!=null)
+            registry.deregisterTxn(lastTxn);
 
         //throw away all savepoints
         txnStack.clear();
@@ -232,9 +241,15 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         try{
             if(state!=ACTIVE)
                 return;
+            Txn lastTxn = null;
             while(txnStack.size()>0){
-                txnStack.pop().getSecond().rollback();
+                Txn second=txnStack.pop().getSecond();
+                second.rollback();
+                lastTxn = second;
             }
+            if(lastTxn!=null && registry!=null)
+                registry.deregisterTxn(lastTxn);
+
             state=IDLE;
         }catch(Exception e){
             throw StandardException.newException(e.getMessage(),e);
@@ -278,8 +293,11 @@ public class SpliceTransaction extends BaseSpliceTransaction{
                     Txn txn;
                     if(nested)
                         txn=lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),additive,table);
-                    else
+                    else{
                         txn=lifecycleManager.beginTransaction();
+                        assert registry!=null: "Programmer error: creating top-level transaction without a registry!";
+                        registry.registerTxn(txn);
+                    }
 
                     txnStack.push(Pair.newPair(transName,txn));
                     state=ACTIVE;

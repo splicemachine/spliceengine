@@ -16,6 +16,7 @@
 package com.splicemachine.management;
 
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.si.api.txn.TxnRegistry;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -47,4 +48,6 @@ public interface DatabaseAdministrator{
     void setGlobalDatabaseProperty(String key, String value) throws SQLException;
 
     void emptyGlobalStatementCache() throws SQLException;
+
+//    TxnRegistry getGlobalTransactionRegistry() throws SQLException;
 }

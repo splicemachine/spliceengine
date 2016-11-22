@@ -34,6 +34,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.TxnRegistry;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -56,6 +57,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
     protected HBaseStore hbaseStore;
     protected StorageFactory storageFactory;
     protected FileResource fileHandler;
+    private TxnRegistry txnRegistry;
 
     public LockFactory getLockFactory(){
         return lockFactory;
@@ -107,6 +109,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
      */
     public Transaction startTransaction(HBaseStore hbaseStore,ContextManager contextMgr,String transName) throws StandardException{
         checkContextAndStore(hbaseStore,contextMgr,"startTransaction");
+
 
         return startCommonTransaction(hbaseStore,contextMgr,dataValueFactory,transName,false,USER_CONTEXT_ID);
     }
@@ -218,7 +221,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                              String transName,
                                                              boolean abortAll,
                                                              String contextName){
-        SpliceTransaction trans=new SpliceTransaction(NoLockSpace.INSTANCE,this,dataValueFactory,transName);
+        SpliceTransaction trans=new SpliceTransaction(NoLockSpace.INSTANCE,this,dataValueFactory,transName,txnRegistry);
         trans.setTransactionName(transName);
 
         SpliceTransactionContext context=new SpliceTransactionContext(contextMgr,contextName,trans,abortAll,hbaseStore);
@@ -249,6 +252,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
         }
         FileResourceFactory frf = FileResourceFactoryService.loadFileResourceFactory();
         fileHandler = frf.newFileResource(storageFactory);
+        txnRegistry = SIDriver.driver().getTxnRegistry();
     }
 
     public void stop(){
