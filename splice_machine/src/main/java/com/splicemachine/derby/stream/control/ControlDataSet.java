@@ -18,6 +18,12 @@ package com.splicemachine.derby.stream.control;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.Attributable;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.util.MapAttributes;
+import com.splicemachine.utils.Pair;
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.*;
@@ -35,6 +41,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.io.Closeables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -43,7 +50,8 @@ import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
+
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 
 /**
@@ -171,7 +179,34 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
-        return new ControlDataSet<>(Iterators.concat(iterator, ((ControlDataSet<V>) dataSet).iterator));
+        ThreadPoolExecutor tpe = null;
+        try {
+
+        ThreadFactory factory=new ThreadFactoryBuilder()
+                .setNameFormat("union-begin-query-%d")
+                .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
+                    @Override
+                    public void uncaughtException(Thread t,Throwable e){
+                        e.printStackTrace();
+                    }
+                })
+                .build();
+        tpe=new ThreadPoolExecutor(2,2,
+                60, TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        tpe.allowCoreThreadTimeOut(false);
+        tpe.prestartAllCoreThreads();
+        Future<Iterator<V>> leftSideFuture = tpe.submit(new NonLazy(iterator));
+        Future<Iterator<V>> rightSideFuture = tpe.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
+
+        return new ControlDataSet<>(Iterators.concat(leftSideFuture.get(), rightSideFuture.get()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+        if (tpe!=null)
+            tpe.shutdown();
+        }
     }
 
     @Override
@@ -445,4 +480,25 @@ public class ControlDataSet<V> implements DataSet<V> {
     public void pin(ExecRow template, long conglomId) {
         throw new UnsupportedOperationException("Pin Not Supported in Control Mode");
     }
+
+    /**
+     *
+     * Non Lazy Callable
+     *
+     */
+    private class NonLazy implements Callable<Iterator<V>>{
+        private final Iterator<V> lazyIterator;
+
+        public NonLazy(Iterator<V> lazyIterator){
+            this.lazyIterator=lazyIterator;
+        }
+
+        @Override
+        public Iterator<V> call() throws Exception{
+            lazyIterator.hasNext(); // Performs hbase call - make it non lazy.
+            return lazyIterator;
+        }
+    }
+
+
 }
