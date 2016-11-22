@@ -46,6 +46,11 @@
             <artifactId>jersey-core</artifactId>
             <version>1.9</version>
         </dependency>
+	    <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${databind.version}</version>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>

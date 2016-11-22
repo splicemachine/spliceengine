@@ -74,6 +74,7 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <spark.version>1.6.2</spark.version>
+	    <databind.version>2.2.2</databind.version>
         <!-- Dependency added so Splice Machine will use the shaded libraries for Guava and Netty -->
         <!-- TODO: Remove CDH version dependency in favor of generic apache hbase spark assembly -->
         <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
