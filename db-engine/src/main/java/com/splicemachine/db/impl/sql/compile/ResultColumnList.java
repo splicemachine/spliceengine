@@ -2176,13 +2176,13 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 			** Check type compatability.
 			*/
             ClassFactory cf=getClassFactory();
-            if(!unionCompatible(thisExpr,otherExpr)){
+/*            if(!unionCompatible(thisExpr,otherExpr)){
                 throw StandardException.newException(SQLState.LANG_NOT_UNION_COMPATIBLE,
                         thisTypeId.getSQLTypeName(),
                         otherTypeId.getSQLTypeName(),
                         operatorName);
             }
-
+*/
             DataTypeDescriptor resultType=thisExpr.getTypeServices().getDominantType(
                     otherExpr.getTypeServices(),
                     cf);

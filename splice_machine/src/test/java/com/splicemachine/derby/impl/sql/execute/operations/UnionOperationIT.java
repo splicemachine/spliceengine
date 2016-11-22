@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
@@ -39,7 +40,8 @@ public class UnionOperationIT {
 
     private static final String CLASS_NAME = UnionOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-
+    private static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("UNION_TYPE1",CLASS_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("UNION_TYPE2",CLASS_NAME,"(col1 varchar(20))");
     private static final Comparator<int[]> intArrayComparator= new Comparator<int[]>(){
         @Override
         public int compare(int[] o1,int[] o2){
@@ -55,7 +57,9 @@ public class UnionOperationIT {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(new SpliceSchemaWatcher(CLASS_NAME))
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/UnionOperationIT.sql", CLASS_NAME));
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/UnionOperationIT.sql", CLASS_NAME))
+            .around(spliceTableWatcher)
+            .around(spliceTableWatcher2);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
@@ -72,6 +76,18 @@ public class UnionOperationIT {
     public void tearDown() throws Exception{
         conn.rollback();
         conn.reset();
+    }
+
+    @Test
+    public void testUnionDifferentTypes() throws Exception {
+        conn.createStatement().executeUpdate("insert into UNION_TYPE1(col1) values (1)");
+        conn.createStatement().executeUpdate("insert into UNION_TYPE2(col1) values ('1')");
+        ResultSet rs = conn.createStatement().executeQuery("select col1 from UNION_TYPE1 union all select col1 from UNION_TYPE2");
+        int i = 0;
+        while (rs.next()) {
+            i++;
+        }
+        Assert.assertEquals("Missing Records",2,i);
     }
 
     @Test
