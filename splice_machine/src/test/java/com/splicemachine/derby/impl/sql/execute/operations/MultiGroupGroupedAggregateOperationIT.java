@@ -521,7 +521,8 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testRollupWithNotNull_1() throws Exception {
+    public void testRollupWithNotNull() throws Exception {
+    	// simple rollup with not-null column
     	String sqlText = String.format("SELECT deptno, sum(salary) from %s group by rollup(deptno) order by 1, 2", EMP_2_REF);
 
 		ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -540,7 +541,8 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testRollupWithNotNull_2() throws Exception {
+	public void testRollupWithNotNullMultiCols() throws Exception {
+		// rollup with multiple not-null cols
 		String sqlText = String.format("SELECT deptno, empno, sum(salary) from %s group by rollup(deptno, empno) order by 1, 2", EMP_2_REF);
 
 		ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -574,7 +576,8 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testRollupWithNotNull_3() throws Exception {
+	public void testRollupWithNotNullAndSubq() throws Exception {
+		// subquery with rollup and not-null columns
 		String sqlText = String.format(" " +
 				"SELECT * from (" +
 						"SELECT deptno, sum(salary) "+
@@ -597,7 +600,8 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testRollupWithNotNull_4() throws Exception {
+	public void testRollupWithNotNullNestedSubq() throws Exception {
+		// nested subquery with rollup on not-null columns
 		String sqlText = String.format(" " +
 			"SELECT * from (" +
 			  "SELECT * from (" +
@@ -621,7 +625,8 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testRollupWithNotNull_5() throws Exception {
+	public void testRollupWithNotNullNestedSubqRollup() throws Exception {
+		// nested subquery with nested rollup on not-null columns
 		String sqlText = String.format(
 				"SELECT deptno, count(s_sum) from (" +
 					"SELECT deptno, empno, sum(salary) as s_sum " +
@@ -646,8 +651,8 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	}
 
 	@Test
-	public void testRollupWithNotNull_6() throws Exception {
-	    // rollup with aggr distinct
+	public void testRollupWithNotNullDistinct() throws Exception {
+	    // rollup with not-null columns and aggr distinct
 		String sqlText = String.format(
 				"SELECT deptno, count(distinct s_sum) from (" +
 				  "SELECT deptno, count(distinct salary) as s_sum " +
