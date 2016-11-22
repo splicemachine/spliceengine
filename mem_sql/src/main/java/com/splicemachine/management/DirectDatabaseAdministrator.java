@@ -15,6 +15,8 @@
 
 package com.splicemachine.management;
 
+import com.splicemachine.si.api.txn.TxnRegistry;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -87,5 +89,10 @@ public class DirectDatabaseAdministrator implements DatabaseAdministrator{
     @Override
     public void emptyGlobalStatementCache() throws SQLException{
         //TODO -sf- no-op for now --eventually may need to implement
+    }
+
+    @Override
+    public TxnRegistry.TxnRegistryView getGlobalTransactionRegistry() throws SQLException{
+        return SIDriver.driver().getTxnRegistry().asView();
     }
 }

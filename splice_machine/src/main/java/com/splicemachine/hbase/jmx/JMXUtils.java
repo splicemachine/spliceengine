@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import com.splicemachine.si.api.txn.TxnRegistry;
 import org.spark_project.guava.collect.Lists;
 
 import com.splicemachine.EngineDriver;
@@ -50,6 +51,7 @@ public class JMXUtils {
     public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.client.timestamp.generator:type=TimestampMasterManagement";
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.client.timestamp.request:type=TimestampRegionManagement";
 	public static final String DATABASE_PROPERTY_MANAGEMENT = "com.splicemachine.derby.utils:type=DatabasePropertyManagement";
+    private static final String TXN_REGISTRY_NAME= "com.splicemachine.si.txn:type=TxnRegistry.TxnRegistryView";
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
         List<Pair<String,JMXConnector>> mbscArray =new ArrayList<>(serverConnections.size());
@@ -60,6 +62,13 @@ public class JMXUtils {
             mbscArray.add(Pair.newPair(serverConn.getSecond(),jmxc));
         }
         return mbscArray;
+    }
+
+    public static JMXConnector getMBeanServerConnection(String serverName) throws IOException {
+        int regionServerJMXPort = EngineDriver.driver().getConfiguration().getPartitionserverJmxPort();
+        JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s:%2$d/jndi/rmi://%1$s:%2$d/jmxrmi",serverName,regionServerJMXPort));
+        JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
+        return jmxc;
     }
 
     public static List<Logging> getLoggingManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
@@ -130,6 +139,10 @@ public class JMXUtils {
         	dbProps.add(getNewMXBeanProxy(mbsc.getSecond(), DATABASE_PROPERTY_MANAGEMENT, DatabasePropertyManagement.class));
         }
         return dbProps;
+    }
+
+    public static TxnRegistry.TxnRegistryView getTxnRegistry(JMXConnector jmxc) throws IOException, MalformedObjectNameException{
+        return getNewMXBeanProxy(jmxc,TXN_REGISTRY_NAME,TxnRegistry.TxnRegistryView.class);
     }
 
 	public static <T> T getNewMBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {

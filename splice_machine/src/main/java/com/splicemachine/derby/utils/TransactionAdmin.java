@@ -15,7 +15,9 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.si.api.txn.*;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -35,10 +37,6 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
@@ -134,6 +132,29 @@ public class TransactionAdmin{
         }
     }
 
+    private static final ResultColumnDescriptor[] ACTIVE_TXN_COUNT_COLS={
+            new GenericColumnDescriptor("numActiveTxns",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("minimumActiveTxn",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
+    };
+
+    public static void SYSCS_GET_ACTIVE_TRANSACTION_COUNTS(ResultSet[] resultSets) throws SQLException{
+        TxnRegistry.TxnRegistryView globalTransactionRegistry=EngineDriver.driver().dbAdministrator().getGlobalTransactionRegistry();
+        long mat = globalTransactionRegistry.getMinimumActiveTransactionId();
+        int activeCount = globalTransactionRegistry.getActiveTxnCount();
+        try{
+            ExecRow template = toRow(ACTIVE_TXN_COUNT_COLS);
+            template.getColumn(1).setValue(activeCount);
+            template.getColumn(2).setValue(mat);
+            EmbedConnection defaultConn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+            IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Collections.singleton(template),ACTIVE_TXN_COUNT_COLS,lastActivation);
+            rs.openCore();
+
+            resultSets[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
+        }catch(StandardException e){
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
 
     private static final ResultColumnDescriptor[] TRANSACTION_TABLE_COLUMNS=new GenericColumnDescriptor[]{
             new GenericColumnDescriptor("txnId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),

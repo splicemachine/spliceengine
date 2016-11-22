@@ -49,5 +49,5 @@ public interface DatabaseAdministrator{
 
     void emptyGlobalStatementCache() throws SQLException;
 
-//    TxnRegistry getGlobalTransactionRegistry() throws SQLException;
+    TxnRegistry.TxnRegistryView getGlobalTransactionRegistry() throws SQLException;
 }

@@ -256,6 +256,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(activeTxn);
 
+                    Procedure activeCount = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_TRANSACTION_COUNTS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(TransactionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(activeCount);
+
                     /*
                      * Statistics procedures
                      */
