@@ -19,6 +19,7 @@ import static org.junit.Assert.assertNotNull;
  * Test class for validating S3 connectivity with test credentials.
  *
  */
+@Ignore
 public class S3IT extends SpliceUnitTest{
     public static final String LOCATION = "s3a://spliceintegrationtest/nation.tbl";
     public static File BADDIR;
