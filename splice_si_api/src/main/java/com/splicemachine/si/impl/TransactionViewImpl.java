@@ -13,20 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.splicemachine.derby.impl.store.access;
+package com.splicemachine.si.impl;
 
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.TransactionImpl;
-import com.splicemachine.si.impl.TransactionViewImpl;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
-import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * A view-only representation of a Derby transaction.
@@ -40,49 +36,58 @@ import org.apache.log4j.Logger;
  * @author Scott Fines
  * Date: 8/14/14
  */
-public class SpliceTransactionView extends BaseSpliceTransaction<TransactionViewImpl> {
-    private static Logger LOG = Logger.getLogger(SpliceTransaction.class);
+public class TransactionViewImpl extends BaseTransaction {
+    private static Logger LOG = Logger.getLogger(TransactionViewImpl.class);
 
-    public SpliceTransactionView(CompatibilitySpace compatibilitySpace,
-    						 SpliceTransactionFactory spliceTransactionFactory,
-    						 DataValueFactory dataValueFactory,
-                             String transName, TxnView txn) {
+    private TxnView txn;
+
+    public TransactionViewImpl(String transName, TxnView txn) {
         SpliceLogUtils.trace(LOG, "Instantiating Splice transaction");
-        this.compatibilitySpace = compatibilitySpace;
-		this.spliceTransactionFactory = spliceTransactionFactory;
-        this.dataValueFactory = dataValueFactory;
-        this.transaction = new TransactionViewImpl(transName, txn);
+        this.transName = transName;
+        this.state = BaseTransaction.ACTIVE;
+        this.txn = txn;
     }
 
     @Override
     public boolean allowsWrites(){
-        return transaction.allowsWrites();
+        return txn.allowsWrites();
     }
 
     @Override
-    public void commit() throws StandardException {
+    public void commit() throws IOException {
         ExceptionFactory ef =SIDriver.driver().getExceptionFactory();
-        throw Exceptions.parseException(ef.cannotCommit("Cannot commit from SpliceTransactionView"));
+        throw new IOException(ef.cannotCommit("Cannot commit from SpliceTransactionView"));
     }
 
     @Override
-    public void abort() throws StandardException {
+    public void abort() throws IOException {
         throw new UnsupportedOperationException("Cannot abort from SpliceTransactionView");
     }
 
-    @Override public TxnView getTxnInformation() { return transaction.getTxnInformation(); }
+    @Override protected void clearState() { txn = null; }
+    @Override public TxnView getTxnInformation() { return txn; }
 
     @Override
     public String getActiveStateTxIdString() {
-        return transaction.getActiveStateTxIdString();
+        if(txn!=null)
+            return txn.toString();
+        else
+            return null;
+    }
+
+    @Override
+    public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn,byte[] tableName) {
+        assert state==ACTIVE: "Cannot have an inactive SpliceTransactionView";
+        //otherwise, it's a no-op
     }
 
     @Override
     public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn) {
-        transaction.setActiveState(nested, dependent, parentTxn);
+        assert state==ACTIVE: "Cannot have an inactive SpliceTransactionView";
+        //otherwise, it's a no-op
     }
 
     public void setTxn(Txn txn) {
-        transaction.setTxn(txn);
+        this.txn = txn;
     }
 }
