@@ -20,9 +20,9 @@ import java.io.IOException;
 /**
  * Created by dgomezferro on 11/24/16.
  */
-public class SavepointNotFoundException extends IOException {
+public class SavePointNotFoundException extends IOException {
     private String name;
-    public SavepointNotFoundException(String name) {
+    public SavePointNotFoundException(String name) {
         this.name = name;
     }
 

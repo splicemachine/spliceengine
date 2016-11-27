@@ -94,7 +94,7 @@ public class TransactionImpl extends BaseTransaction {
             }
         }
         if(!found)
-            throw new SavepointNotFoundException(name);
+            throw new SavePointNotFoundException(name);
 
         /*
          * Pop all the transactions up until the savepoint to release.
@@ -141,7 +141,7 @@ public class TransactionImpl extends BaseTransaction {
             }
         }
         if(!found)
-            throw new SavepointNotFoundException(name);
+            throw new SavePointNotFoundException(name);
 
         /*
          * Pop all the transactions up until the savepoint to rollback.

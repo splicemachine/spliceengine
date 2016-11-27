@@ -21,7 +21,7 @@ import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
-import com.splicemachine.si.impl.SavepointNotFoundException;
+import com.splicemachine.si.impl.SavePointNotFoundException;
 import com.splicemachine.si.impl.TransactionImpl;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestEnv;
@@ -93,7 +93,7 @@ public class SavepointsTest {
     }
 
 
-    @Test(expected = SavepointNotFoundException.class)
+    @Test(expected = SavePointNotFoundException.class)
     public void testSavepointNotFound() throws Exception{
         Txn parent=control.beginTransaction(DESTINATION_TABLE);
         TransactionImpl transaction = new TransactionImpl("user", parent, false, control);
