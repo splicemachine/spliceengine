@@ -22,40 +22,43 @@ import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.raw.*;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
  *         Date: 8/19/14
  */
-public abstract class BaseSpliceTransaction implements Transaction{
+public abstract class BaseSpliceTransaction<T extends BaseTransaction> implements Transaction{
     private static Logger LOG=Logger.getLogger(BaseSpliceTransaction.class);
-    protected CompatibilitySpace compatibilitySpace;
-    protected SpliceTransactionFactory spliceTransactionFactory;
-    protected DataValueFactory dataValueFactory;
-    protected SpliceTransactionContext transContext;
-    protected String transName;
+    CompatibilitySpace compatibilitySpace;
+    SpliceTransactionFactory spliceTransactionFactory;
+    DataValueFactory dataValueFactory;
+    SpliceTransactionContext transContext;
+    protected T transaction;
 
-    protected volatile int state;
-
-    protected static final int CLOSED=0;
-    protected static final int IDLE=1;
-    protected static final int ACTIVE=2;
-
-    public void setTransactionName(String s){
-        this.transName=s;
+    void setTransactionName(String s){
+        transaction.setTransactionName(s);
     }
 
-    public String getTransactionName(){
-        return this.transName;
+    String getTransactionName(){
+        return transaction.getTransactionName();
     }
 
-    public void commitNoSync(int commitflag) throws StandardException{
-        SpliceLogUtils.debug(LOG,"commitNoSync commitflag"+commitflag);
-        commit();
+    public void commitNoSync(int commitFlag) throws StandardException{
+        SpliceLogUtils.debug(LOG,"commitNoSync commitFlag"+commitFlag);
+        try {
+            transaction.commitNoSync(commitFlag);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     public void close() throws StandardException{
@@ -65,18 +68,19 @@ public abstract class BaseSpliceTransaction implements Transaction{
             transContext.popMe();
             transContext=null;
         }
-        clearState();
-        state=CLOSED;
+        transaction.close();
     }
 
     public abstract boolean allowsWrites();
 
-    protected abstract void clearState();
-
     public void destroy() throws StandardException{
         SpliceLogUtils.debug(LOG,"destroy");
-        if(state!=CLOSED)
-            abort();
+        if (!transaction.isClosed())
+            try {
+                transaction.abort();
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
         close();
     }
 
@@ -87,17 +91,29 @@ public abstract class BaseSpliceTransaction implements Transaction{
 
     @Override
     public int setSavePoint(String name,Object kindOfSavepoint) throws StandardException{
-        return 0;
+        try {
+            return transaction.setSavePoint(name, kindOfSavepoint);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override
     public int releaseSavePoint(String name,Object kindOfSavepoint) throws StandardException{
-        return 0;
+        try {
+            return transaction.releaseSavePoint(name, kindOfSavepoint);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override
     public int rollbackToSavePoint(String name,Object kindOfSavepoint) throws StandardException{
-        return 0;
+        try {
+            return transaction.rollbackToSavePoint(name, kindOfSavepoint);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override
@@ -129,12 +145,12 @@ public abstract class BaseSpliceTransaction implements Transaction{
 
     @Override
     public boolean isIdle(){
-        return (state==IDLE);
+        return transaction.isIdle();
     }
 
     @Override
     public boolean isPristine(){
-        return (state==IDLE || state==ACTIVE);
+        return transaction.isPristine();
     }
 
     @Override
@@ -169,12 +185,7 @@ public abstract class BaseSpliceTransaction implements Transaction{
     public void xa_commit(boolean onePhase) throws StandardException{
         SpliceLogUtils.debug(LOG,"xa_commit");
         try{
-            if(onePhase)
-                commit();
-            else{
-                xa_prepare();
-                commit();
-            }
+            transaction.xa_commit(onePhase);
         }catch(Exception e){
             throw StandardException.newException(e.getMessage(),e);
         }
@@ -182,12 +193,9 @@ public abstract class BaseSpliceTransaction implements Transaction{
 
     public abstract TxnView getTxnInformation();
 
-    public abstract void setActiveState(boolean nested,boolean additive,TxnView parentTxn,byte[] table);
-
     public abstract void setActiveState(boolean nested,boolean additive,TxnView parentTxn);
 
     public TxnView getActiveStateTxn(){
-        setActiveState(false,false,null);
-        return getTxnInformation();
+        return transaction.getActiveStateTxn();
     }
 }

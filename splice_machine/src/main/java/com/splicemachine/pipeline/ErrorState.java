@@ -28,6 +28,7 @@ import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
+import com.splicemachine.si.impl.SavepointNotFoundException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -319,7 +320,19 @@ public enum ErrorState{
     XACT_MAX_SAVEPOINT_LEVEL_REACHED("3B002.S"),
     //Bug 4466 - changed sqlstate for following two to match DB2 sqlstates.
     XACT_SAVEPOINT_EXISTS("3B501.S"),
-    XACT_SAVEPOINT_NOT_FOUND("3B001.S"),
+    XACT_SAVEPOINT_NOT_FOUND("3B001.S") {
+        @Override
+        public StandardException newException(Throwable rootCause) {
+            if (rootCause instanceof SavepointNotFoundException)
+                return super.newException(((SavepointNotFoundException)rootCause).getName());
+            return super.newException(rootCause);
+        }
+
+        @Override
+        public boolean accepts(Throwable t) {
+            return t instanceof SavepointNotFoundException;
+        }
+    },
     //Bug 4468 - release/rollback of savepoint failed because it doesn't exist
     XACT_SAVEPOINT_RELEASE_ROLLBACK_FAIL("3B502.S"),
     XACT_TRANSACTION_ACTIVE("XSTA2.S"),
