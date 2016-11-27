@@ -28,7 +28,7 @@ import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
-import com.splicemachine.si.impl.SavepointNotFoundException;
+import com.splicemachine.si.impl.SavePointNotFoundException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -323,14 +323,14 @@ public enum ErrorState{
     XACT_SAVEPOINT_NOT_FOUND("3B001.S") {
         @Override
         public StandardException newException(Throwable rootCause) {
-            if (rootCause instanceof SavepointNotFoundException)
-                return super.newException(((SavepointNotFoundException)rootCause).getName());
+            if (rootCause instanceof SavePointNotFoundException)
+                return super.newException(((SavePointNotFoundException)rootCause).getName());
             return super.newException(rootCause);
         }
 
         @Override
         public boolean accepts(Throwable t) {
-            return t instanceof SavepointNotFoundException;
+            return t instanceof SavePointNotFoundException;
         }
     },
     //Bug 4468 - release/rollback of savepoint failed because it doesn't exist
