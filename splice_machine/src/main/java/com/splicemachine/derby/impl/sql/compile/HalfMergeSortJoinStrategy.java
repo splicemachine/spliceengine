@@ -111,7 +111,7 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         // Half sort merge join cost is 90% the cost of doing a merge sort join
-        double joinCost = 0.9D * SelectivityUtil.mergeSortJoinStrategyLocalCost(innerCost, outerCost, 3);
+        double joinCost = 0.9D * SelectivityUtil.mergeSortJoinStrategyLocalCost(innerCost, outerCost);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalOutputRows));
