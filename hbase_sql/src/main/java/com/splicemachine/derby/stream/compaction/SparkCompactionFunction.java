@@ -59,18 +59,32 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     private byte[] tableName;
     private byte[] storeColumn;
     private HRegionInfo hri;
+    private long mat;
 
     public SparkCompactionFunction() {
 
     }
 
-    public SparkCompactionFunction(long smallestReadPoint, byte[] namespace,
-                                   byte[] tableName, HRegionInfo hri, byte[] storeColumn) {
+    public SparkCompactionFunction(long smallestReadPoint,
+                                   byte[] namespace,
+                                   byte[] tableName,
+                                   HRegionInfo hri,
+                                   byte[] storeColumn) {
+        this(smallestReadPoint, namespace, tableName, hri, storeColumn,0L);
+    }
+
+    public SparkCompactionFunction(long smallestReadPoint,
+                                   byte[] namespace,
+                                   byte[] tableName,
+                                   HRegionInfo hri,
+                                   byte[] storeColumn,
+                                   long minimumActiveTxn) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
         this.hri = hri;
         this.storeColumn = storeColumn;
+        this.mat = minimumActiveTxn;
     }
 
     @Override
@@ -86,6 +100,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         out.write(hriBytes);
         out.writeInt(storeColumn.length);
         out.write(storeColumn);
+        out.writeLong(mat);
     }
 
     @Override
@@ -105,6 +120,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         }
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
+        mat = in.readLong();
         SpliceSpark.setupSpliceStaticComponents();
     }
 
@@ -147,7 +163,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
             );
         }
 
-        SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
+        SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint,mat);
         List<Path> paths = sdc.sparkCompact(new CompactionRequest(readersToClose));
 
         if (LOG.isTraceEnabled()) {

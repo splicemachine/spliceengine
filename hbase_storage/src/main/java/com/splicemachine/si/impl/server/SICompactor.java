@@ -42,15 +42,18 @@ import java.util.TreeSet;
  * guts for SICompactionScanner.
  * <p/>
  * It is handed key-values and can change them.
+ *
+ * This implementation relies on the list of cells being handed in to be the <em>entire</em> contents of the row(i.e.
+ * no batching). It is not guaranteed to be correct if a single row is split across multiple lists.
  */
-public class SICompactionState {
-    private static final Logger LOG = Logger.getLogger(SICompactionState.class);
+public class SICompactor implements Compactor{
+    private static final Logger LOG = Logger.getLogger(SICompactor.class);
     private final TxnSupplier transactionStore;
     private SortedSet<Cell> dataToReturn;
     private final RollForward rollForward;
     private ByteSlice rowSlice = new ByteSlice();
 
-    public SICompactionState(TxnSupplier transactionStore,RollForward rollForward,int activeTransactionCacheSize) {
+    public SICompactor(TxnSupplier transactionStore,RollForward rollForward,int activeTransactionCacheSize) {
         this.rollForward = rollForward;
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize);
         this.dataToReturn  =new TreeSet<>(KeyValue.COMPARATOR);
@@ -62,7 +65,8 @@ public class SICompactionState {
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Cell> rawList, List<Cell> results) throws IOException {
+    @Override
+    public void compact(List<Cell> rawList, List<Cell> results) throws IOException {
         dataToReturn.clear();
         for (Cell aRawList : rawList) {
             mutate(aRawList);

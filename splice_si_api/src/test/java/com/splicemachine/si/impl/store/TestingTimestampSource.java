@@ -22,8 +22,16 @@ import com.splicemachine.timestamp.api.TimestampSource;
  *         Date: 12/17/15
  */
 public class TestingTimestampSource implements TimestampSource{
-    private long id = 0;
-    private long memory = 0;
+    private long id;
+    private long memory;
+
+    public TestingTimestampSource(){
+        this.id = this.memory = 0;
+    }
+
+    public TestingTimestampSource(long id){
+        this.id = this.memory = id;
+    }
 
     @Override
     public long nextTimestamp() {

@@ -27,7 +27,8 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.SICompactionState;
+import com.splicemachine.si.impl.server.MVCCCompactor;
+import com.splicemachine.si.impl.server.SICompactor;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
@@ -55,6 +56,8 @@ import java.util.concurrent.TimeoutException;
 public class SpliceDefaultCompactor extends DefaultCompactor {
     private static final boolean allowSpark = true;
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
+
+    private long mat;
     private long smallestReadPoint;
     private String conglomId = null;
     private String tableDisplayName = null;
@@ -75,9 +78,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
     }
 
-    public SpliceDefaultCompactor(final Configuration conf, final Store store, long smallestReadPoint) {
+    public SpliceDefaultCompactor(final Configuration conf, final Store store, long smallestReadPoint,long mat) {
         this(conf, store);
         this.smallestReadPoint = smallestReadPoint;
+        this.mat = mat;
     }
 
     @Override
@@ -158,11 +162,12 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     private SparkCompactionFunction getCompactionFunction() {
         return new SparkCompactionFunction(
-            smallestReadPoint,
-            store.getTableName().getNamespace(),
-            store.getTableName().getQualifier(),
-            store.getRegionInfo(),
-            store.getFamily().getName());
+                smallestReadPoint,
+                store.getTableName().getNamespace(),
+                store.getTableName().getQualifier(),
+                store.getRegionInfo(),
+                store.getFamily().getName(),
+                mat);
     }
 
     private String getScope(CompactionRequest request) {
@@ -260,8 +265,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 }
                 if (needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
-                    SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                            driver.getRollForward(),
+                    com.splicemachine.si.impl.server.Compactor state= new MVCCCompactor(driver.getTxnSupplier(),
+                            mat,
+                            64,
                             driver.getConfiguration().getActiveTransactionCacheSize());
                     scanner = new SICompactionScanner(state,scanner);
                 }

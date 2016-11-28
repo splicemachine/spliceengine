@@ -25,7 +25,7 @@ import java.util.List;
 
 /**
  * Decorator for an HBase scanner that performs SI operations at compaction time. Delegates the core work to
- * SICompactionState.
+ * SICompactor.
  */
 public class SICompactionScanner implements InternalScanner {
     private final SICompactionState compactionState;
@@ -41,7 +41,7 @@ public class SICompactionScanner implements InternalScanner {
     @Override
     public boolean next(List<Cell> list) throws IOException{
         /*
-         * Read data from the underlying scanner and send the results through the SICompactionState.
+         * Read data from the underlying scanner and send the results through the SICompactor.
          */
         rawList.clear();
         final boolean more = delegate.next(rawList);

@@ -15,7 +15,8 @@
 
 package com.splicemachine.hbase;
 
-import com.splicemachine.si.impl.server.SICompactionState;
+import com.splicemachine.si.impl.server.Compactor;
+import com.splicemachine.si.impl.server.SICompactor;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
@@ -26,14 +27,14 @@ import java.util.List;
 
 /**
  * Decorator for an HBase scanner that performs SI operations at compaction time. Delegates the core work to
- * SICompactionState.
+ * SICompactor.
  */
 public class SICompactionScanner implements InternalScanner {
-    private final SICompactionState compactionState;
+    private final Compactor compactionState;
     private final InternalScanner delegate;
     private List<Cell> rawList =new ArrayList<>();
 
-    public SICompactionScanner(SICompactionState compactionState,
+    public SICompactionScanner(Compactor compactionState,
                                InternalScanner scanner) {
         this.compactionState = compactionState;
         this.delegate = scanner;
@@ -42,11 +43,11 @@ public class SICompactionScanner implements InternalScanner {
     @Override
     public boolean next(List<Cell> list) throws IOException{
         /*
-         * Read data from the underlying scanner and send the results through the SICompactionState.
+         * Read data from the underlying scanner and send the results through the SICompactor.
          */
         rawList.clear();
         final boolean more = delegate.next(rawList);
-        compactionState.mutate(rawList, list);
+        compactionState.compact(rawList, list);
         return more;
     }
 

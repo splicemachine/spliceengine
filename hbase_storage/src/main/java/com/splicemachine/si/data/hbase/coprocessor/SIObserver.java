@@ -24,10 +24,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
-import com.splicemachine.si.data.hbase.HOperationStatusFactory;
+import com.splicemachine.si.impl.server.Compactor;
+import com.splicemachine.si.impl.server.MVCCCompactor;
+import com.splicemachine.si.impl.server.SICompactor;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
@@ -68,7 +69,6 @@ import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HMutationStatus;
 import com.splicemachine.storage.MutationStatus;
@@ -169,8 +169,9 @@ public class SIObserver extends BaseRegionObserver{
                                       InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
         if(tableEnvMatch){
             SIDriver driver=SIDriver.driver();
-            SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                    driver.getRollForward(),
+            Compactor state = new MVCCCompactor(driver.getTxnSupplier(),
+                    0L,
+                    64,
                     driver.getConfiguration().getActiveTransactionCacheSize());
             return new SICompactionScanner(state,scanner);
         }else{

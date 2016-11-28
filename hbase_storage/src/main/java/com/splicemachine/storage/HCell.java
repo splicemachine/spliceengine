@@ -231,6 +231,12 @@ public class HCell implements DataCell{
         return delegate.getFamilyLength();
     }
 
+    public String stringify(){
+        String famString = Bytes.toString(delegate.getFamilyArray(),delegate.getFamilyOffset(),delegate.getFamilyLength());
+        String qualString = Bytes.toString(delegate.getQualifierArray(),delegate.getQualifierOffset(),delegate.getQualifierLength());
+        return famString+":"+qualString;
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private CellType parseType(Cell cell){
