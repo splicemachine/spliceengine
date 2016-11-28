@@ -298,6 +298,7 @@ public class SelectivityUtil {
      */
 
     public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
-        return outerCost.localCostPerPartition() + (outerCost.rowCount()/outerCost.partitionCount())*(innerCost.localCost()+innerCost.getRemoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost());
+        double perRowRightSideCost = innerCost.localCost()+innerCost.getRemoteCost()/innerCost.getEstimatedRowCount();
+        return outerCost.localCostPerPartition() + (outerCost.rowCount()/outerCost.partitionCount())*(perRowRightSideCost);
     }
 }
