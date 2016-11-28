@@ -251,7 +251,7 @@ public class ScanCostFunction{
         double closeLatency = scc.getCloseLatency();
         double localLatency = scc.getLocalLatency();
         double remoteLatency = scc.getRemoteLatency();
-        double remoteCost = openLatency + closeLatency + totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/100d);
+        double remoteCost = openLatency + closeLatency + totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
         assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
         assert closeLatency >= 0 : "closeLatency cannot be negative -> " + closeLatency;
         assert localLatency >= 0 : "localLatency cannot be negative -> " + localLatency;
