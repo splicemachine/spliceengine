@@ -368,6 +368,18 @@
 			    <groupId>asm</groupId>
 			    <artifactId>asm</artifactId>
 		    </exclusion>
+            <exclusion>
+                <groupId>com.codahale.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+            </exclusion>
+            <exclusion>
+                <groupId>com.codahale.metrics</groupId>
+                <artifactId>metrics-jvm</artifactId>
+            </exclusion>
+            <exclusion>
+                <groupId>com.codahale.metrics</groupId>
+                <artifactId>metrics-json</artifactId>
+            </exclusion>
 	    </exclusions>
         </dependency>
         <dependency>

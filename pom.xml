@@ -56,6 +56,11 @@
             <id>splicemachine</id>
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </pluginRepository>
+        <pluginRepository>
+            <id>apache.snapshots</id>
+            <url>http://repository.apache.org/snapshots/</url>
+        </pluginRepository>
+
     </pluginRepositories>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -245,13 +250,13 @@
             <dependency>
                 <groupId>com.google.code.gson</groupId>
                 <artifactId>gson</artifactId>
-                <version>2.2.2</version>
+                <version>2.2.4</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
-                <version>3.2.1</version>
+                <version>3.3.0</version>
             </dependency>
             <dependency>
                 <groupId>com.sun.jersey</groupId>
@@ -317,6 +322,11 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
                 <version>3.6.6.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.servlet</groupId>
+                <artifactId>javax.servlet-api</artifactId>
+                <version>3.1.0</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>

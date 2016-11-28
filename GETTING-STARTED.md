@@ -52,15 +52,13 @@ On OS X/macOS:<br />
 
 #### Helpful Environment Variables, etc. (example assumes Mac OS X developer machine)
 ```bash
-# for java nonsense
-export J8_HOME="/Library/Java/JavaVirtualMachines/jdk1.8.0_31.jdk/Contents/Home"
-export J7_HOME="/Library/Java/JavaVirtualMachines/jdk1.7.0_67.jdk/Contents/Home"
-export J6_HOME="/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home"
-# export JAVA_HOME="$(/usr/libexec/java_home)"
-export JAVA_HOME=${J7_HOME}
-# for maven builds
-export M2_HOME="/opt/maven/maven"
-# export M2_HOME="/opt/maven/apache-maven-3.3.9"
+# java
+export J6_HOME="`/usr/libexec/java_home -v 1.6`"
+export J7_HOME="`/usr/libexec/java_home -v 1.7`"
+export J8_HOME="`/usr/libexec/java_home -v 1.8`"
+export JAVA_HOME=${J8_HOME}
+# maven
+export M2_HOME="/opt/maven/apache-maven-3.3.9"
 export MAVEN_OPTS="-Xmx4g -Djava.awt.headless=true -XX:ReservedCodeCacheSize=512m"
 export M2=${M2_HOME}/bin
 export PATH="${M2}:${PATH}"

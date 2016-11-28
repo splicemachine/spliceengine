@@ -91,12 +91,12 @@ Since Core modules are shared, they need only be built once; after that, they on
 ### Build core modules and a set of hbase platform modules
 HBase is further separated into subprofiles, indicating the specific hbase distribution of interest. To build hbase against a specific distribution:
 > * available hbase versions *(at the time of writing, double project check root pom for latest)* are:
->   *  `cdh5.4.10`
->   *  `cdh5.5.2`
 >   *  `cdh5.6.0`
->   *  `cdh5.7.0`
+>   *  `cdh5.7.2`
 >   *  `mapr5.1.0`
+>   *  `mapr5.2.0`
 >   *  `hdp2.4.2`
+>   *  `hdp2.5.0`
 
 * build core modules (only needs done once as mentioned above)
 ```mvn clean install -Pcore -DskipTests```

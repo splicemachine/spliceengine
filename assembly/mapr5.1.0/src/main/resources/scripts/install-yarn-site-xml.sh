@@ -64,7 +64,6 @@ hadoop_version="$(cat /opt/mapr/hadoop/hadoopversion)"
 hadoop_conf_dir="/opt/mapr/hadoop/hadoop-${hadoop_version}/etc/hadoop"
 hbase_lib_dir="/opt/mapr/hbase/hbase-${hbase_version}/lib"
 yarn_lib_dir="/opt/mapr/hadoop/hadoop-${hadoop_version}/share/hadoop/yarn"
-splice_jar=$(basename ${installer_dir}/resources/jars/splice_machine-*complete.jar)
 
 # Assemble SSH options
 common_ssh_opts="${ssh_identity} -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
@@ -81,7 +80,6 @@ for node in ${nodes[@]}; do
     echo "PATCHING ${hadoop_conf_dir}/${yarn_site_xml} on ${node}"
     # SSH commands to patch/modify yarn-site.xml on target node
     ssh_cmd="sudo patch -b -p0 ${hadoop_conf_dir}/${yarn_site_xml} < ~/splice-installer-temp/${yarn_site_xml}.patch"
-    ssh_cmd="${ssh_cmd} && sudo ln -sf ${hbase_lib_dir}/${splice_jar} ${yarn_lib_dir}/${splice_jar}"
     ssh ${ssh_opts} ${ssh_user}@${node} "[ ! -f  ${hadoop_conf_dir}/${yarn_site_xml}.orig ] && ${ssh_cmd}"
     
     # Clean up
