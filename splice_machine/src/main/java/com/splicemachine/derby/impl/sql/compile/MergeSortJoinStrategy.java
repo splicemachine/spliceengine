@@ -96,7 +96,7 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
         innerCost.setRowOrdering(null);
-        innerCost.setNumPartitions(16);
+        innerCost.setNumPartitions(outerCost.partitionCount());
     }
 
     @Override
