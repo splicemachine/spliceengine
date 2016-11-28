@@ -21,6 +21,8 @@ import com.splicemachine.hash.HashFunctions;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Random;
+
 /**
  * Tests for the LongKeyedCache's correctness in a single thread.
  *
@@ -153,5 +155,65 @@ public class LongKeyedCacheTest {
         Assert.assertEquals("Incorrect miss count!",0l,stats.missCount());
         Assert.assertEquals("Incorrect request count!",10l,stats.requestCount());
         Assert.assertEquals("Incorrect eviction count!",6l,stats.evictionCount());
+    }
+
+    @Test
+    public void testEviction() {
+        final int maxElements = 8;
+        final int iterations = 1024;
+        LongKeyedCache<Long> cache = LongKeyedCache.<Long>newBuilder().maxEntries(maxElements)
+                .withHashFunction(HashFunctions.murmur3(0)).build();
+
+
+        int count = 0;
+
+        Random rand = new Random(0);
+        for (int i = 0; i < iterations; ++i) {
+            cache.put(count++, rand.nextLong());
+            Assert.assertTrue("There has been a shortcircuit on the linked list", count(cache) >= Math.min(i, maxElements));
+        }
+
+        for (int batchSize = 0; batchSize <= 2 * maxElements; ++batchSize) {
+            int misses = 0;
+            int hits = 0;
+
+            int[] values = new int[batchSize];
+            for (int i = 0; i < iterations; ++i) {
+                for (int k = 0; k < batchSize; k++) {
+                    values[k] = count++;
+                }
+                for (int k = 0; k < batchSize; k++) {
+                    cache.put(values[k], rand.nextLong());
+                    Assert.assertTrue("There has been a shortcircuit on the linked list", count(cache) >= maxElements);
+                }
+
+                for (int k = 0; k < batchSize; k++) {
+                    if (cache.get(values[k]) == null) {
+                        misses++;
+                    } else {
+                        hits++;
+                    }
+                }
+            }
+
+            if (batchSize <= maxElements) {
+                Assert.assertEquals("Unexpected cache misses", 0, misses);
+                Assert.assertEquals("Missing hits", iterations * batchSize, hits);
+            } else {
+                int expectedMisses = (batchSize - maxElements)*iterations;
+                Assert.assertEquals("Wrong cache misses", expectedMisses, misses);
+                Assert.assertEquals("Wrong cache hits", iterations * batchSize - expectedMisses, hits);
+            }
+        }
+    }
+
+    private int count(LongKeyedCache<?> cache) {
+        int count = 0;
+        LongKeyedCache.Holder head = cache.head;
+        while (head != null) {
+            count++;
+            head = head.next;
+        }
+        return count;
     }
 }
