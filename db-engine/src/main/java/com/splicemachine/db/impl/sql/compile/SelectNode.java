@@ -346,6 +346,30 @@ public class SelectNode extends ResultSetNode{
     }
 
     /**
+     * Find colName in the result columns and return underlying columnReference.
+     *
+     * @param    colName        Name of the column
+     * @return ColumnReference    ColumnReference to the column, if found
+     */
+    private ResultColumn getColumnInResult(String colName) throws StandardException{
+        if (resultColumns != null) {
+            // Loop through the result columns looking for a match
+            int rclSize = resultColumns.size();
+            for (int index = 0; index < rclSize; index++) {
+                ResultColumn rc = resultColumns.elementAt(index);
+                if (!(rc.getExpression() instanceof ColumnReference))
+                    return null;
+
+                ColumnReference crNode = (ColumnReference) rc.getExpression();
+
+                if (crNode.columnName.equals(colName))
+                    return rc;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Return the whereClause for this SelectNode.
      *
      * @return ValueNode    The whereClause for this SelectNode.
@@ -653,6 +677,16 @@ public class SelectNode extends ResultSetNode{
 		 */
         fromList.bindResultColumns(fromListParam);
         super.bindResultColumns(fromListParam);
+
+        // Find the group-by-rollup columns in the resultset and mark it nullable
+        if (groupByList != null && groupByList.isRollup()) {
+            for (int i = 0; i < groupByList.size(); i++) {
+                String col = groupByList.getGroupByColumn(i).getColumnExpression().getColumnName();
+                ResultColumn rc = getColumnInResult(col);
+                if (rc != null)
+                    rc.setNullability(true);
+            }
+        }
 		/* Only 1012 elements allowed in select list */
         if(resultColumns.size()>Limits.DB2_MAX_ELEMENTS_IN_SELECT_LIST){
             throw StandardException.newException(SQLState.LANG_TOO_MANY_ELEMENTS);
