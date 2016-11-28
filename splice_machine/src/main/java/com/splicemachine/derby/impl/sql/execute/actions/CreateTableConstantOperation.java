@@ -15,8 +15,10 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -52,6 +54,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     private ColumnInfo[]			columnInfo;
     // Contains CreateConstraintConstantOperation elements, but array ref is ConstraintConstantOperation[]
     protected ConstraintConstantOperation[]	constraintActions;
+    private boolean isExternal;
     private Properties				properties;
     private String delimited;
     private String escaped;
@@ -87,6 +90,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             char			lockGranularity,
             boolean			onCommitDeleteRows,
             boolean			onRollbackDeleteRows,
+            boolean isExternal,
             String delimited,
             String escaped,
             String lines,
@@ -104,6 +108,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.onCommitDeleteRows = onCommitDeleteRows;
         this.onRollbackDeleteRows = onRollbackDeleteRows;
         this.delimited = delimited;
+        this.isExternal = isExternal;
         this.escaped = escaped;
         this.lines = lines;
         this.storedAs = storedAs;
@@ -427,6 +432,18 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
         DDLMessage.DDLChange change =DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build();
         tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
+
+        // is this a external file ?
+        // if yest get the partitions, and sen a command to create a external empty file
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        int[] partitionby = activation.getDDLTableDescriptor().getPartitionBy();
+        String jobGroup = userId + " <" +txnId +">";
+        try {
+            if(storedAs != null)
+            EngineDriver.driver().getOlapClient().execute( new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, partitionby, jobGroup,  template));
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
     }
 
     protected ConglomerateDescriptor getTableConglomerateDescriptor(TableDescriptor td,

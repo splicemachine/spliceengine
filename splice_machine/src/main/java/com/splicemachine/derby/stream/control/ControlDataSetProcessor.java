@@ -339,4 +339,16 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         proc.dropPinnedTable(conglomerateId);
     }
+
+    @Override
+    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storageAs, String location) throws StandardException {
+        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+        proc.createEmptyExternalFile(execRow,baseColumnMap,partitionBy,storageAs,location);
+    }
+
+    @Override
+    public void refreshTable(String location) {
+        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+        proc.refreshTable(location);
+    }
 }
