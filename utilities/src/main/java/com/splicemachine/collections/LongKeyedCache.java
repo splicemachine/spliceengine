@@ -61,8 +61,8 @@ public class LongKeyedCache<T> {
     /* mask for determining array positions. Cached for efficiency */
     private final int positionMask;
 
-    private Holder tail;
-    private Holder head;
+    Holder tail;
+    Holder head;
 
     private int size;
     private Counter evictedCounter;
@@ -216,8 +216,12 @@ public class LongKeyedCache<T> {
         Holder toSet = existing;
         if(toSet==null)
             toSet = holderFactory.newHolder();
+        if (toSet.prev != null) {
+            toSet.prev.next = toSet.next;
+        }
         toSet.set(value);
         toSet.prev = tail;
+        toSet.next = null;
         tail.next = toSet;
         tail = toSet;
         toSet.hash = hash;
@@ -233,9 +237,14 @@ public class LongKeyedCache<T> {
             Holder h = head;
             while(h.isEmpty()){
                 head = h.next; //unlink from LL
+                h.next = null;
+                h.prev = null;
                 h = head;
             }
             h.clear(); //remove fields from the holder so that it can be re-used
+            head = h.next;
+            h.next = null;
+            h.prev = null;
             //update stats
             evictedCounter.increment();
             size--;
@@ -260,7 +269,7 @@ public class LongKeyedCache<T> {
         abstract Holder newHolder();
     }
 
-    private abstract class Holder {
+    abstract class Holder {
         Holder next; //linked-list in order to clear elements
         Holder prev;
         int hash;
