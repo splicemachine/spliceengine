@@ -24,7 +24,6 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.TransactionInfo;
 import com.splicemachine.db.iapi.store.raw.Transaction;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -73,9 +72,6 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 	public void startReplicationMaster(String dbmaster, String host, int port,String replicationMode) {
 		SpliceLogUtils.trace(LOG,"startReplication");
 	}
-	public void stopReplicationMaster() {
-		SpliceLogUtils.trace(LOG,"stopReplicationMaster");
-	}
 	public void freeze() {
 		SpliceLogUtils.trace(LOG,"freeze");		
 	}
@@ -88,14 +84,6 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 	public void backup(String  backupDir, boolean wait) {
 		SpliceLogUtils.trace(LOG,"backup");								
 	}
-	public void backupAndEnableLogArchiveMode(String backupDir,boolean deleteOnlineArchivedLogFiles,boolean wait) throws StandardException {
-		SpliceLogUtils.trace(LOG,"backupAndEnableLogArchiveMode");								
-	}
-
-	public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles) throws StandardException {
-		SpliceLogUtils.trace(LOG,"disableLogArchiveMode");								
-	}
-
 	public void checkpoint() throws StandardException {
 		SpliceLogUtils.trace(LOG,"checkpoint");									
 	}

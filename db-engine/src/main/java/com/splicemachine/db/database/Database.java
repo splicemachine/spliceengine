@@ -74,52 +74,6 @@ public interface Database
 
     public void restore(String restoreDir, boolean wait) 
             throws SQLException;
-    
-    
-
-    /**
-     * Backup the database to a backup directory and enable the log archive
-     * mode that will keep the archived log files required for roll-forward
-     * from this version backup.
-     *
-     * @param backupDir                     The directory name where the 
-     *                                      database backup should go.  This 
-     *                                      directory will be created if it 
-     *                                      does not exist.
-     *
-     * @param deleteOnlineArchivedLogFiles  If true deletes online archived log
-     *                                      files that exist before this backup;
-     *                                      otherwise they will not be deleted. 
-     *
-     *                                      Deletion will occur only after 
-     *                                      backup is complete.
-     *
-     * @param wait                          if <tt>true</tt>, waits for all 
-     *                                      the backup blocking operations in 
-     *                                      progress to finish.
-     *
-     * @exception SQLException Thrown on error
-     */
-    public void backupAndEnableLogArchiveMode(
-    String  backupDir,
-    boolean deleteOnlineArchivedLogFiles,
-    boolean wait) 
-        throws SQLException;
-
-	/**
-	 * Disables the log archival process, i.e No old log files
-	 * will be kept around for a roll-forward recovery. Only restore that can 
-	 * be performed after disabling log archive mode is version recovery.
-     *
-	 * @param deleteOnlineArchivedLogFiles  If true deletes all online archived
-     *                                      log files that exist before this 
-     *                                      call immediately; otherwise they 
-     *                                      will not be deleted.
-     *
-	 * @exception SQLException Thrown on error
-	 */
-	public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles) 
-		throws SQLException;
 
 	/**
 	  * Freeze the database temporarily so a backup can be taken.

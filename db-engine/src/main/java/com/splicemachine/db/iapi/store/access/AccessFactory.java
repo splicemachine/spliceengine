@@ -214,44 +214,6 @@ public interface AccessFactory
      **************************************************************************
      */
 
-    /**
-     * Start the replication master role for this database
-     * @param dbmaster The master database that is being replicated.
-     * @param host The hostname for the slave
-     * @param port The port the slave is listening on
-     * @param replicationMode The type of replication contract.
-     * Currently only asynchronous replication is supported, but
-     * 1-safe/2-safe/very-safe modes may be added later.
-     * @exception StandardException Standard Derby exception policy,
-     * thrown on error.
-     */
-    public void startReplicationMaster(String dbmaster, String host, int port,
-                                       String replicationMode)
-        throws StandardException;
-
-    /**
-     * Stop the replication master role for this database.
-     * 
-     * @exception StandardException Standard Derby exception policy,
-     * thrown on error.
-     */
-    public void stopReplicationMaster() throws StandardException;
-        
-    /**
-     * Start the failover for this database.
-     *
-     * @param dbname the replication database that is being failed over.
-     * 
-     * @exception StandardException Standard Derby exception policy,
-     *                           1) If the failover succeeds, an exception is
-     *                              thrown to indicate that the master database
-     *                              was shutdown after a successful failover
-     *                           2) If a failure occurs during network 
-     *                              communication with slave.
-     */
-    public void failover(String dbname) throws StandardException;
-    
-
 	/**
 	  * Freeze the database temporarily so a backup can be taken.
 	  * <P>Please see Derby on line documentation on backup and restore.
@@ -282,49 +244,6 @@ public interface AccessFactory
     public void backup(String backupDir, boolean wait) 
         throws StandardException;
 
-	
-	/**
-     * Backup the database to a backup directory and enable the log archive
-     * mode that will keep the archived log files required for roll-forward
-     * from this version backup.
-     *
-     * @param backupDir                     the directory name where the 
-     *                                      database backup should go.  This 
-     *                                      directory will be created if not it
-     *                                      does not exist.
-     *
-     * @param deleteOnlineArchivedLogFiles  If true deletes online archived log
-     *                                      files that exist before this backup,
-     *                                      delete will occur only after backup
-     *                                      is complete.
-     *
-     * @param wait                          if <tt>true</tt>, waits for all the
-     *                                      backup blocking operations in 
-     *                                      progress to finish.
-     *
-	 * @exception StandardException Thrown on error
-	 */
-    public void backupAndEnableLogArchiveMode(
-    String  backupDir, 
-    boolean deleteOnlineArchivedLogFiles,
-    boolean wait) 	
-		throws StandardException;
-	
-	/**
-	 * disables the log archival process, i.e No old log files
-	 * will be kept around for a roll-forward recovery.
-     *
-	 * @param deleteOnlineArchivedLogFiles  If true deletes all online archived
-     *                                      log files that exist before this 
-     *                                      call immediately; Only restore that
-     *                                      can be performed after disabling log
-     *                                      archive mode is version recovery.
-     *
-	 * @exception StandardException Thrown on error
-	 */
-	public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles)
-		throws StandardException;
-
 
 	/**
 	 * Checkpoints the database, that is, flushes all dirty data to disk.
@@ -333,11 +252,5 @@ public interface AccessFactory
 	 * @exception StandardException Thrown on error
 	 */
 	public void checkpoint() throws StandardException;
-
-	/*
-	 *Wait until the thread handling the post commit work
-	 *finihes the work assigned to it.
-	 */
-	public void waitForPostCommitToFinishWork();
 
 }

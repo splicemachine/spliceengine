@@ -549,40 +549,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return rawstore.getTransactionInfo();
     }
 
-    /**
-     * Start the replication master role for this database.
-     * @param dbmaster The master database that is being replicated.
-     * @param host The hostname for the slave
-     * @param port The port the slave is listening on
-     * @param replicationMode The type of replication contract.
-     * Currently only asynchronous replication is supported, but
-     * 1-safe/2-safe/very-safe modes may be added later.
-     * @exception StandardException Standard Derby exception policy,
-     * thrown on error.
-     */
-    public void startReplicationMaster(String dbmaster, String host, int port,
-                                       String replicationMode)
-            throws StandardException {
-        rawstore.startReplicationMaster(dbmaster, host, port, replicationMode);
-    }
-
-		/**
-		 * @see com.splicemachine.db.iapi.store.access.AccessFactory#failover(String dbname).
-		 */
-		public void failover(String dbname) throws StandardException {
-				rawstore.failover(dbname);
-		}
-
-    /**
-     * Stop the replication master role for this database.
-     *
-     * @exception StandardException Standard Derby exception policy,
-     * thrown on error.
-     */
-    public void stopReplicationMaster() throws StandardException {
-        rawstore.stopReplicationMaster();
-    }
-
     public void freeze() throws StandardException
     {
         rawstore.freeze();
@@ -601,23 +567,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         rawstore.backup(backupDir, wait);
     }
 
-
-    public void backupAndEnableLogArchiveMode(
-            String  backupDir,
-            boolean deleteOnlineArchivedLogFiles,
-            boolean wait)
-            throws StandardException
-    {
-        rawstore.backupAndEnableLogArchiveMode(backupDir,
-                deleteOnlineArchivedLogFiles,
-                wait);
-    }
-
-    public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles)
-            throws StandardException
-    {
-        rawstore.disableLogArchiveMode(deleteOnlineArchivedLogFiles);
-    }
 
     public void checkpoint() throws StandardException
     {

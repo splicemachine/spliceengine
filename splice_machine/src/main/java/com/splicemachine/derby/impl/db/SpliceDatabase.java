@@ -186,42 +186,12 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public void startReplicationMaster(String dbmaster,String host,int port,String replicationMode) throws SQLException{
-        throw new SQLException("Unsupported Exception");
-    }
-
-    @Override
-    public void stopReplicationMaster() throws SQLException{
-        throw new SQLException("Unsupported Exception");
-    }
-
-    @Override
-    public void stopReplicationSlave() throws SQLException{
-        throw new SQLException("Unsupported Exception");
-    }
-
-    @Override
-    public void failover(String dbname) throws StandardException{
-        throw StandardException.plainWrapException(new SQLException("Unsupported Exception"));
-    }
-
-    @Override
     public void freeze() throws SQLException{
         throw new SQLException("Unsupported Exception");
     }
 
     @Override
     public void unfreeze() throws SQLException{
-        throw new SQLException("Unsupported Exception");
-    }
-
-    @Override
-    public void backupAndEnableLogArchiveMode(String backupDir,boolean deleteOnlineArchivedLogFiles,boolean wait) throws SQLException{
-        throw new SQLException("Unsupported Exception");
-    }
-
-    @Override
-    public void disableLogArchiveMode(boolean deleteOnlineArchivedLogFiles) throws SQLException{
         throw new SQLException("Unsupported Exception");
     }
 

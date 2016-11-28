@@ -131,57 +131,6 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
      */
     public DataDictionary getDataDictionary();
 
-    /**
-     * Start failover for the given database.
-     *
-     * @param dbname the replication database that is being failed over.
-     *
-     * @exception StandardException 1) If the failover succeeds, an exception
-     *                                 is thrown to indicate that the master
-     *                                 database was shutdown after a successful
-     *                                 failover
-     *                              2) If a failure occurs during network
-     *                                 communication with slave.
-     */
-    public void failover(String dbname) throws StandardException;
-
-    /**
-     * Used to indicated whether the database is in the replication
-     * slave mode.
-     *
-     * @return true if this database is in replication slave mode,
-     *         false otherwise.
-     */
-    public boolean isInSlaveMode();
-
-    /**
-     * Stop the replication slave role for the given database.
-     *
-     * @exception SQLException Thrown on error
-     */
-    public void stopReplicationSlave() throws SQLException;
-
-    /**
-     * Start the replication master role for this database
-     * @param dbmaster The master database that is being replicated.
-     * @param host The hostname for the slave
-     * @param port The port the slave is listening on
-     * @param replicationMode The type of replication contract.
-     * Currently only asynchronous replication is supported, but
-     * 1-safe/2-safe/very-safe modes may be added later.
-     * @exception SQLException Thrown on error
-     */
-    public void startReplicationMaster(String dbmaster, String host, int port,
-                                       String replicationMode)
-        throws SQLException;
-
-    /**
-     * Stop the replication master role for the given database.
-     *
-     * @exception SQLException Thrown on error
-     */
-    public void stopReplicationMaster() throws SQLException;
-
 	long addJar(final InputStream is, JarUtil util) throws StandardException;
 
 	void dropJar(JarUtil util) throws StandardException;
