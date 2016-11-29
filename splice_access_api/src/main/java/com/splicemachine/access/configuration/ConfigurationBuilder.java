@@ -83,6 +83,7 @@ public class ConfigurationBuilder {
     public long regionLoadUpdateInterval;
     public String backupPath;
     public String compressionAlgorithm;
+    public String dataBlockEncoding;
     public String namespace;
     public String spliceRootPath;
     public String hbaseSecurityAuthorization;
