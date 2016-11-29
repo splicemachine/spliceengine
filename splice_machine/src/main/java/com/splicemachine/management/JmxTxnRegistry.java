@@ -84,8 +84,18 @@ class JmxTxnRegistry implements TxnRegistryWatcher{
         FutureTask<TxnRegistry.TxnRegistryView> uFuture;
         do{
             uFuture=updateFutureRef.get();
-            if(uFuture!=null)
-                break;
+            if(uFuture!=null){
+                try{
+                   return uFuture.get();
+                }catch(InterruptedException e){
+                    Thread.currentThread().interrupt();
+                    return null;
+                }catch(ExecutionException e){
+                    Throwable t=e.getCause();
+                    if(t instanceof IOException) throw (IOException)t;
+                    else throw new IOException(t);
+                }
+            }
             else{
                 FutureTask<TxnRegistry.TxnRegistryView> fut = new FutureTask<>(updateCallable);
                 if(updateFutureRef.compareAndSet(null,fut)){
