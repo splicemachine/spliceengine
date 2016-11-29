@@ -31,13 +31,10 @@ import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
-import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnStore;
-import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.impl.ClientTxnLifecycleManager;
 import com.splicemachine.si.impl.txn.ConcurrentTxnRegistry;
 import com.splicemachine.si.impl.TxnRegion;
-import com.splicemachine.si.api.txn.TxnRegistry;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
@@ -94,6 +91,12 @@ public class SIDriver {
     private final SnowflakeFactory snowflakeFactory;
     private final SIEnvironment env;
     private final TxnRegistry txnRegistry = new ConcurrentTxnRegistry();
+    /*
+     * We have to make this mutable, because this is a hook from
+     * the JMX logic (which is held in the _sql module), into the SI module
+     * (where compactions are triggered from).
+     */
+    private volatile TxnRegistryWatcher globalRegistryWatcher;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -237,6 +240,14 @@ public class SIDriver {
 
     public TxnRegistry getTxnRegistry(){
         return txnRegistry;
+    }
+
+    public TxnRegistryWatcher getGlobalWatcher(){
+        return globalRegistryWatcher;
+    }
+
+    public void setGlobalRegistryWatcher(TxnRegistryWatcher globalWatcher){
+        this.globalRegistryWatcher = globalWatcher;
     }
 
     /* ****************************************************************************************************************/

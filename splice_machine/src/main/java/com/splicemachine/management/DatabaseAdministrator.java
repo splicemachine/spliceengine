@@ -17,6 +17,7 @@ package com.splicemachine.management;
 
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.si.api.txn.TxnRegistry;
+import com.splicemachine.si.api.txn.TxnRegistryWatcher;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -27,7 +28,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 2/17/16
  */
-public interface DatabaseAdministrator{
+public interface DatabaseAdministrator extends AutoCloseable{
 
     void setLoggerLevel(String loggerName, String logLevel) throws SQLException;
 
@@ -50,4 +51,6 @@ public interface DatabaseAdministrator{
     void emptyGlobalStatementCache() throws SQLException;
 
     TxnRegistry.TxnRegistryView getGlobalTransactionRegistry() throws SQLException;
+
+    TxnRegistryWatcher getGlobalTransactionRegistryWatcher() throws SQLException;
 }

@@ -24,6 +24,8 @@ import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.TxnRegistry;
+import com.splicemachine.si.api.txn.TxnRegistryWatcher;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -102,8 +104,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
         String regionLocation = getRegionLocation(store);
         SConfiguration config = HConfiguration.getConfiguration();
+        SIDriver driver=SIDriver.driver();
+        long matToUse =0L;
+        if(driver!=null){
+            TxnRegistry.TxnRegistryView globalView=driver.getGlobalWatcher().currentView(false);
+            if(globalView!=null)
+                matToUse = globalView.getMinimumActiveTransactionId();
+        }
         DistributedCompaction jobRequest=new DistributedCompaction(
-                getCompactionFunction(),
+                getCompactionFunction(matToUse),
                 files,
                 getJobDetails(request),
                 getJobGroup(request,regionLocation),
@@ -160,14 +169,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return paths;
     }
 
-    private SparkCompactionFunction getCompactionFunction() {
+    private SparkCompactionFunction getCompactionFunction(long matToUse) {
         return new SparkCompactionFunction(
                 smallestReadPoint,
                 store.getTableName().getNamespace(),
                 store.getTableName().getQualifier(),
                 store.getRegionInfo(),
                 store.getFamily().getName(),
-                mat);
+                matToUse);
     }
 
     private String getScope(CompactionRequest request) {

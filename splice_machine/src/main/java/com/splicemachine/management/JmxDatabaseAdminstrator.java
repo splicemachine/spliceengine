@@ -24,6 +24,7 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 import com.splicemachine.si.api.txn.TxnRegistry;
+import com.splicemachine.si.api.txn.TxnRegistryWatcher;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
@@ -41,6 +42,16 @@ import java.util.*;
  *         Date: 2/17/16
  */
 public class JmxDatabaseAdminstrator implements DatabaseAdministrator{
+    private final JmxTxnRegistry txnRegistry;
+
+    public JmxDatabaseAdminstrator(){
+        long updateWindow = SIDriver.driver().getConfiguration().getDdlRefreshInterval();
+        this.txnRegistry = new JmxTxnRegistry(updateWindow);
+        this.txnRegistry.start();
+    }
+
+    @Override public void close() throws Exception{ txnRegistry.shutdown(); }
+
     @Override
     public void setLoggerLevel(final String loggerName,final String logLevel) throws SQLException{
         operate(new JMXServerOperation(){
@@ -194,65 +205,16 @@ public class JmxDatabaseAdminstrator implements DatabaseAdministrator{
 
     @Override
     public TxnRegistry.TxnRegistryView getGlobalTransactionRegistry() throws SQLException{
-        try(PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin()){
-            Collection<PartitionServer> partitionServers=admin.allServers();
-            /*
-             * We have a list of servers. Ideally, we would be able to connect to all the servers. However,
-             * if one server is unavailable, we have to deal with that (otherwise, we may not be able to use this
-             * for critical "must-occur" situations like Compaction logic, etc). So we attempt to connect
-             * to each. If it connects, then we perform our logic; if it fails (after retries), then we assume
-             * that the minimum active transaction is 0 (effectively disabling any logic requiring an accurate MAT),
-             * and bail.
-             */
-            long mat = 0L;
-            int numActiveTxns = 0;
-            for(PartitionServer pServer:partitionServers){
-                int tryCount = 0;
-                JMXConnector jmxc = null;
-                IOException error = null;
-                int maxTries = SIDriver.driver().getConfiguration().getMaxRetries();
-                while(tryCount<maxTries){
-                    try{
-                        jmxc=JMXUtils.getMBeanServerConnection(pServer.getHostname());
-                        TxnRegistry.TxnRegistryView txnRegistry=JMXUtils.getTxnRegistry(jmxc);
-                        int activeTxnCount=txnRegistry.getActiveTxnCount();
-                        long serverMat=txnRegistry.getMinimumActiveTransactionId();
-
-                        /*
-                         * if it gets to this point, then we are operating wholly on in-jvm data,
-                         * and can safely modify our counters
-                         */
-                        numActiveTxns+=activeTxnCount;
-                        if(mat>serverMat|| mat==0){
-                            mat = serverMat;
-                        }
-                        break;
-                    }catch(IOException ioe){
-                        error=ioe;
-                    }
-                   tryCount++;
-                }
-                if(error!=null)
-                    Logger.getLogger(JmxDatabaseAdminstrator.class).error("Unable to get TxnRegistry information for node "+pServer.getHostname(),error);
-                if(tryCount>=maxTries){
-                    /*
-                     * We couldn't contact a server within the retries allowed, so we have to bail out. In
-                     * this case, we set the mat to 0, then abort early.
-                     */
-                    mat =0L;
-                    break;
-                }
-            }
-            final int totalActive = numActiveTxns;
-            final long finalMat = mat;
-            return new TxnRegistry.TxnRegistryView(){
-                @Override public int getActiveTxnCount(){ return totalActive; }
-                @Override public long getMinimumActiveTransactionId(){ return finalMat; }
-            };
-        }catch(IOException | MalformedObjectNameException e){
-            //malformed objects should never happen, but just in case
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        try{
+            return txnRegistry.currentView(true);
+        }catch(IOException ioe){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(ioe));
         }
+    }
+
+    @Override
+    public TxnRegistryWatcher getGlobalTransactionRegistryWatcher() throws SQLException{
+        return txnRegistry;
     }
 
     /* ***************************************************************************************************************/

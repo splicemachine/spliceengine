@@ -16,35 +16,25 @@
 
 package com.splicemachine.si.api.txn;
 
-import javax.management.MXBean;
+import java.io.IOException;
 
 /**
+ * Mechanism for "watching" the transaction registry. This is useful for things like keeping the global
+ * mat accurate (to within a time frame) via polling or other such mechanism.
+ *
  * @author Scott Fines
- *         Date: 11/21/16
+ *         Date: 11/28/16
  */
-public interface TxnRegistry{
-    int activeTxnCount();
+public interface TxnRegistryWatcher{
 
-    long minimumActiveTransactionId();
+    void start();
 
-    void registerTxn(Txn txn);
-
-    void deregisterTxn(Txn txn);
+    void shutdown();
 
     /**
-     * @return a view of the registry (minus the register and deregister methods that won't fly in MXBeans),
-     * primarily useful for exposure through JMX.
+     * @param forceUpdate if {@code true}, then the view is forcibly updated, otherwise
+     *                    slightly out-of-date information is allowed to be returned.
+     * @return a view of the current registry.
      */
-    TxnRegistryView asView();
-
-    /**
-     * @return a watcher, which can be used to retain global state.
-     */
-    TxnRegistryWatcher watcher();
-
-    @MXBean
-    interface TxnRegistryView{
-        int getActiveTxnCount();
-        long getMinimumActiveTransactionId();
-    }
+    TxnRegistry.TxnRegistryView currentView(boolean forceUpdate) throws IOException;
 }

@@ -16,6 +16,7 @@
 package com.splicemachine.management;
 
 import com.splicemachine.si.api.txn.TxnRegistry;
+import com.splicemachine.si.api.txn.TxnRegistryWatcher;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.EngineDriver;
@@ -34,6 +35,8 @@ import java.util.*;
  */
 public class DirectDatabaseAdministrator implements DatabaseAdministrator{
     private final Logging logging = new LogManager();
+
+    @Override public void close() throws Exception{ } //nothing to close
 
     @Override
     public void setLoggerLevel(String loggerName,String logLevel) throws SQLException{
@@ -94,5 +97,10 @@ public class DirectDatabaseAdministrator implements DatabaseAdministrator{
     @Override
     public TxnRegistry.TxnRegistryView getGlobalTransactionRegistry() throws SQLException{
         return SIDriver.driver().getTxnRegistry().asView();
+    }
+
+    @Override
+    public TxnRegistryWatcher getGlobalTransactionRegistryWatcher() throws SQLException{
+        return SIDriver.driver().getTxnRegistry().watcher();
     }
 }

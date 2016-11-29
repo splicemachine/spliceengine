@@ -18,9 +18,11 @@ package com.splicemachine.si.impl.txn;
 
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnRegistry;
+import com.splicemachine.si.api.txn.TxnRegistryWatcher;
 
 import javax.management.*;
 import java.util.NavigableSet;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
@@ -35,6 +37,7 @@ public class ConcurrentTxnRegistry implements TxnRegistry,TxnRegistry.TxnRegistr
         }else if(o2==null) return 1;
         return Long.compare(o1.getBeginTimestamp(),o2.getBeginTimestamp());
     });
+    private final TxnRegistryWatcher watcher = new DirectWatcher(this);
 
     @Override
     public int activeTxnCount(){
@@ -43,12 +46,17 @@ public class ConcurrentTxnRegistry implements TxnRegistry,TxnRegistry.TxnRegistr
 
     @Override
     public long minimumActiveTransactionId(){
-        Txn first=activeTxns.first();
-        if(first==null) return 0L;
-        return first.getBeginTimestamp();
+        try{
+            Txn first=activeTxns.first();
+            if(first==null) return 0L;
+            return first.getBeginTimestamp();
+        }catch(NoSuchElementException nsee){
+            return 0L;
+        }
     }
 
     @Override public TxnRegistryView asView(){ return this; }
+    @Override public TxnRegistryWatcher watcher(){ return watcher; }
 
     @Override public int getActiveTxnCount(){ return activeTxnCount(); }
     @Override public long getMinimumActiveTransactionId(){ return minimumActiveTransactionId(); }
@@ -66,5 +74,21 @@ public class ConcurrentTxnRegistry implements TxnRegistry,TxnRegistry.TxnRegistr
     public void registerJmx(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException{
         ObjectName name = new ObjectName("com.splicemachine.si.txn:type=TxnRegistry.TxnRegistryView");
         mbs.registerMBean(this,name);
+    }
+
+    private static class DirectWatcher implements TxnRegistryWatcher{
+        private final ConcurrentTxnRegistry registry;
+
+        DirectWatcher(ConcurrentTxnRegistry registry){
+            this.registry=registry;
+        }
+
+        @Override public void start(){ }
+        @Override public void shutdown(){ }
+
+        @Override
+        public TxnRegistryView currentView(boolean forceUpdate){
+            return registry.asView(); //we are always up-to-date, so no need to force anything
+        }
     }
 }

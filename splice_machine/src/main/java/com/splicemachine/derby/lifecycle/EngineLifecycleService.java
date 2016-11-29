@@ -115,6 +115,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         //initialize the engine driver
         SqlEnvironment ese = SqlEnvironmentLoader.loadEnvironment(configuration,snowflake,internalConnection,spliceVersion);
         EngineDriver.loadDriver(ese);
+        SIDriver.driver().setGlobalRegistryWatcher(EngineDriver.driver().dbAdministrator().getGlobalTransactionRegistryWatcher());
 
         //initialize the DDLDriver
         DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment(configuration,EngineDriver.driver().getExceptionFactory()));
@@ -145,6 +146,13 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         try{
             if(internalConnection!=null)
                 internalConnection.close();
+        }catch(Exception e){
+            LOG.error("Unexpected error during shutdown",e);
+        }
+        try{
+            EngineDriver engineDriver = EngineDriver.driver();
+            if(engineDriver!=null)
+                engineDriver.dbAdministrator().close();
         }catch(Exception e){
             LOG.error("Unexpected error during shutdown",e);
         }

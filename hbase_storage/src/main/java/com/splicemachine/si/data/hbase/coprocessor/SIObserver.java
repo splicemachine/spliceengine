@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.si.api.txn.TxnRegistry;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.server.Compactor;
 import com.splicemachine.si.impl.server.MVCCCompactor;
@@ -169,8 +170,11 @@ public class SIObserver extends BaseRegionObserver{
                                       InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
         if(tableEnvMatch){
             SIDriver driver=SIDriver.driver();
+
+            TxnRegistry.TxnRegistryView txnRegistryView=driver.getGlobalWatcher().currentView(false);
+            long mat = txnRegistryView!=null? txnRegistryView.getMinimumActiveTransactionId(): 0L;
             Compactor state = new MVCCCompactor(driver.getTxnSupplier(),
-                    0L,
+                    mat,
                     64,
                     driver.getConfiguration().getActiveTransactionCacheSize());
             return new SICompactionScanner(state,scanner);

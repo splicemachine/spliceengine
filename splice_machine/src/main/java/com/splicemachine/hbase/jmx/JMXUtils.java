@@ -67,8 +67,7 @@ public class JMXUtils {
     public static JMXConnector getMBeanServerConnection(String serverName) throws IOException {
         int regionServerJMXPort = EngineDriver.driver().getConfiguration().getPartitionserverJmxPort();
         JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s:%2$d/jndi/rmi://%1$s:%2$d/jmxrmi",serverName,regionServerJMXPort));
-        JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
-        return jmxc;
+        return JMXConnectorFactory.connect(url, null);
     }
 
     public static List<Logging> getLoggingManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
