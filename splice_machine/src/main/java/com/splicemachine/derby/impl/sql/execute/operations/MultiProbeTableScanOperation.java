@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import java.io.IOException;
@@ -231,34 +232,41 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        TxnView txn = getCurrentTransaction();
-        List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
-        DataSet<LocatedRow> dataSet = dsp.getEmpty();
-        int i = 0;
-        for (DataScan scan: scans) {
-            deSiify(scan);
-            DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation,LocatedRow>newScanSet(this,tableName)
-                    .tableDisplayName(tableDisplayName)
-                    .activation(activation)
-                    .transaction(txn)
-                    .scan(scan)
-                    .template(currentTemplate)
-                    .tableVersion(tableVersion)
-                    .indexName(indexName)
-                    .reuseRowLocation(false)
-                    .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
-                    .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
-                    .keyColumnTypes(getKeyFormatIds())
-                    .accessedKeyColumns(scanInformation.getAccessedPkColumns())
-                    .keyDecodingMap(getKeyDecodingMap())
-                    .rowDecodingMap(getRowDecodingMap())
-                    .baseColumnMap(baseColumnMap)
-                    .optionalProbeValue(probeValues[i])
-                    .buildDataSet(this);
-            dataSet = dataSet.union(ds);
-            i++;
+        try {
+            TxnView txn = getCurrentTransaction();
+            List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
+            DataSet<LocatedRow> dataSet = dsp.getEmpty();
+            OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
+            int i = 0;
+            for (DataScan scan : scans) {
+                deSiify(scan);
+                MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) operationContext.getClone().getOperation();
+                DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation, LocatedRow>newScanSet(this, tableName)
+                        .tableDisplayName(tableDisplayName)
+                        .activation(clone.getActivation())
+                        .transaction(txn)
+                        .scan(scan)
+                        .template(clone.currentTemplate)
+                        .tableVersion(tableVersion)
+                        .indexName(indexName)
+                        .reuseRowLocation(false)
+                        .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+                        .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+                        .keyColumnTypes(getKeyFormatIds())
+                        .accessedKeyColumns(scanInformation.getAccessedPkColumns())
+                        .keyDecodingMap(getKeyDecodingMap())
+                        .rowDecodingMap(getRowDecodingMap())
+                        .baseColumnMap(baseColumnMap)
+                        .optionalProbeValue(probeValues[i])
+                        .buildDataSet(this);
+                dataSet = dataSet.union(ds);
+                i++;
+            }
+            return dataSet;
         }
-        return dataSet;
+        catch (Exception e) {
+                throw StandardException.plainWrapException(e);
+            }
     }
         
 }
