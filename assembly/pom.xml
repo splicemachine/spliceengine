@@ -177,7 +177,11 @@
                                     <pattern>org.spark_project</pattern>
                                     <shadedPattern>splice.org.spark_project</shadedPattern>
                                 </relocation>
-
+                                <relocation>
+                                        <pattern>org.apache.spark</pattern>
+                                        <shadedPattern>splice.org.apache.spark</shadedPattern>
+                                    </relocation>
+                                
                             </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>splice-yarn-webproxy</shadedClassifierName>
