@@ -1088,4 +1088,11 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 
 	int getRowWidth();
 
+	/**
+	 * Retrieve the Spark Object (required in places where spark has type issues (time for example).
+	 *
+	 * @return
+     */
+	Object getSparkObject() throws StandardException;
+
 }
