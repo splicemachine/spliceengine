@@ -91,7 +91,7 @@ public class MVCCCompactor implements Compactor{
             mutate(currentCell);
         }
 
-        if(matPredFilter!=null){
+        if(matApplies && matPredFilter!=null){
             long ts = firstTxnBelowMAT;
             byte[] mergedValue=matAccumulator.finish();
             Cell c = new KeyValue(currentCell.keyArray(),currentCell.keyOffset(),currentCell.keyLength(),

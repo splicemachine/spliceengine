@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
+import com.splicemachine.vacuum.VacuumAdmin;
 
 /**
  * System procedure generator implementation class that extends
@@ -512,6 +513,22 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(vacuum);
 
+                    Procedure vacuumTable = Procedure.newBuilder().name("VACUUM_TABLE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .varchar("schema",32672)
+                            .varchar("table",32672)
+                            .ownerClass(VacuumAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(vacuumTable);
+
+                    Procedure vacuumSchema = Procedure.newBuilder().name("VACUUM_SCHEMA")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .varchar("schema",32672)
+                            .ownerClass(VacuumAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(vacuumSchema);
                     /*
                      * Procedure to return timestamp generator info
                      */

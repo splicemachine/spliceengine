@@ -74,7 +74,6 @@ import java.util.concurrent.Future;
  */
 public class StatisticsAdmin extends BaseAdminProcedures {
     private static final Logger LOG = Logger.getLogger(StatisticsAdmin.class);
-    public static final String TABLEID_FROM_SCHEMA = "select tableid from sys.systables t where t.schemaid = ?";
 
     @SuppressWarnings("UnusedDeclaration")
     public static void DISABLE_COLUMN_STATISTICS(String schema,
@@ -173,7 +172,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             SchemaDescriptor sd = getSchemaDescriptor(schema, lcc, dd);
             //get a list of all the TableDescriptors in the schema
-            List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
+            List<TableDescriptor> tds = EngineUtils.getAllTableDescriptors(sd, conn);
             if (tds.isEmpty()) {
                 // No point in continuing with empty TableDescriptor list, possible NPE
                 return;
@@ -297,7 +296,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
             SchemaDescriptor sd = getSchemaDescriptor(schema, lcc, dd);
-            List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
+            List<TableDescriptor> tds = EngineUtils.getAllTableDescriptors(sd, conn);
             authorize(tds);
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             tc.elevate("statistics");
@@ -487,33 +486,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return outputRow;
     }
 
-    private static List<TableDescriptor> getAllTableDescriptors(SchemaDescriptor sd, EmbedConnection conn) throws
-        SQLException {
-        try (PreparedStatement statement = conn.prepareStatement(TABLEID_FROM_SCHEMA)) {
-            statement.setString(1, sd.getUUID().toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
-                UUIDFactory uuidFactory = dd.getUUIDFactory();
-                List<TableDescriptor> tds = new LinkedList<>();
-                while (resultSet.next()) {
-                    com.splicemachine.db.catalog.UUID tableId = uuidFactory.recreateUUID(resultSet.getString(1));
-                    TableDescriptor tableDescriptor = dd.getTableDescriptor(tableId);
-                    /*
-                     * We need to filter out views from the TableDescriptor list. Views
-                     * are special cases where the number of conglomerate descriptors is 0. We
-                     * don't collect statistics for those views
-                     */
-
-                    if (tableDescriptor != null && tableDescriptor.getConglomerateDescriptorList().size() > 0) {
-                        tds.add(tableDescriptor);
-                    }
-                }
-                return tds;
-            }
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-    }
 
     private static TableDescriptor verifyTableExists(Connection conn, String schema, String table) throws
         SQLException, StandardException {

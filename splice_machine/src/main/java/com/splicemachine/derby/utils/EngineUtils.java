@@ -19,13 +19,22 @@ import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.pipeline.ErrorState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
+
 
 /**
  * @author Scott Fines
@@ -152,6 +161,36 @@ public class EngineUtils{
                         //no op, this doesn't have a useful default value
                 }
             }
+        }
+    }
+
+
+    private static final String TABLEID_FROM_SCHEMA = "select tableid from sys.systables t where t.schemaid = ?";
+    public static List<TableDescriptor> getAllTableDescriptors(SchemaDescriptor sd,EmbedConnection conn) throws
+            SQLException {
+        try (PreparedStatement statement = conn.prepareStatement(TABLEID_FROM_SCHEMA)) {
+            statement.setString(1, sd.getUUID().toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
+                UUIDFactory uuidFactory = dd.getUUIDFactory();
+                List<TableDescriptor> tds = new LinkedList<>();
+                while (resultSet.next()) {
+                    com.splicemachine.db.catalog.UUID tableId = uuidFactory.recreateUUID(resultSet.getString(1));
+                    TableDescriptor tableDescriptor = dd.getTableDescriptor(tableId);
+                    /*
+                     * We need to filter out views from the TableDescriptor list. Views
+                     * are special cases where the number of conglomerate descriptors is 0. We
+                     * don't collect statistics for those views
+                     */
+
+                    if (tableDescriptor != null && tableDescriptor.getConglomerateDescriptorList().size() > 0) {
+                        tds.add(tableDescriptor);
+                    }
+                }
+                return tds;
+            }
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
         }
     }
 }
