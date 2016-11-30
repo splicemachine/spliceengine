@@ -276,9 +276,10 @@ public class UnaryOperatorNode extends OperatorNode
 			return null;
 		else {
 			UnaryOperatorNode tempUON = this;
-			while (!(tempUON.getOperand() instanceof ParameterNode)) 
-				tempUON = (UnaryOperatorNode)tempUON.getOperand();
-			return (ParameterNode)(tempUON.getOperand());
+			while (!(tempUON.operand instanceof ParameterNode)) {
+				tempUON = (UnaryOperatorNode) tempUON.operand;
+			}
+			return (ParameterNode)(tempUON.operand);
 		}
 	}
 

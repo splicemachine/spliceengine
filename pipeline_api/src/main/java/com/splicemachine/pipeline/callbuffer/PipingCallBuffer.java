@@ -323,8 +323,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     @Override public long getTotalElementsAdded() { return totalElementsAdded; }
     @Override public long getTotalBytesAdded() { return totalBytesAdded; }
     @Override public long getTotalFlushes() {  return totalFlushes;  }
-    @Override public double getAverageEntriesPerFlush() { return ((double)totalElementsAdded)/getTotalFlushes(); }
-    @Override public double getAverageSizePerFlush() { return ((double) totalBytesAdded)/getTotalFlushes(); }
+    @Override public double getAverageEntriesPerFlush() {
+        return ((double)totalElementsAdded)/ totalFlushes; }
+    @Override public double getAverageSizePerFlush() {
+        return ((double) totalBytesAdded)/ totalFlushes; }
     @Override public CallBuffer<KVPair> unwrap() { return this; }
     @Override public WriteStats getWriteStats() { return writeStats; }
 

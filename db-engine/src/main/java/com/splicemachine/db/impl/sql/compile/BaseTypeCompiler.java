@@ -298,14 +298,15 @@ abstract class BaseTypeCompiler implements TypeCompiler
 
 		// For CHAR  Conversions, function can convert 
 		// Floating types
-		if (forDataTypeFunction)
-			retval = retval || 
+		if (forDataTypeFunction) {
+			retval = retval ||
 				(otherType.isFixedStringTypeId() &&
-				(getTypeId().isFloatingPointTypeId()));
-	   
+				(correspondingTypeId.isFloatingPointTypeId()));
+		}
+
 		retval = retval ||
 			(otherType.isFixedStringTypeId() && 					  
-			 (!getTypeId().isFloatingPointTypeId()));
+			 (!correspondingTypeId.isFloatingPointTypeId()));
 		
 		return retval;
 
@@ -372,7 +373,7 @@ abstract class BaseTypeCompiler implements TypeCompiler
 	 */
 	protected int getStoredFormatIdFromTypeId()
 	{
-		return getTypeId().getTypeFormatId();
+		return correspondingTypeId.getTypeFormatId();
 	}
 
     private static DataValueDescriptor gnn(DataValueFactory dvf)

@@ -448,7 +448,7 @@ public class DataTypeDescriptor implements Formatable{
                 source.getMaximumWidth(),
                 source.getCollationType()
         );
-        this.collationDerivation=source.getCollationDerivation();
+        this.collationDerivation= source.collationDerivation;
     }
 
     private DataTypeDescriptor(DataTypeDescriptor source, int collationType, int collationDerivation){
@@ -490,7 +490,7 @@ public class DataTypeDescriptor implements Formatable{
                 maximumWidth,
                 source.getCollationType()
         );
-        this.collationDerivation=source.getCollationDerivation();
+        this.collationDerivation= source.collationDerivation;
     }
 
     /**
@@ -510,7 +510,7 @@ public class DataTypeDescriptor implements Formatable{
                 maximumWidth,
                 source.getCollationType()
         );
-        this.collationDerivation=source.getCollationDerivation();
+        this.collationDerivation= source.collationDerivation;
 
     }
 
@@ -530,7 +530,7 @@ public class DataTypeDescriptor implements Formatable{
                                          DataValueDescriptor cachedDest) throws StandardException{
         assert cachedDest!=null: "cachedDest is null";
         if(SanityManager.DEBUG){
-            if(!getTypeId().isUserDefinedTypeId()){
+            if(!typeId.isUserDefinedTypeId()){
                 String t1=getTypeName();
                 String t2=cachedDest.getTypeName();
                 if(!t1.equals(t2)){
@@ -619,8 +619,8 @@ public class DataTypeDescriptor implements Formatable{
         int precision=getPrecision();
         int scale=getScale();
 
-        thisType=getTypeId();
-        otherType=otherDTS.getTypeId();
+        thisType= typeId;
+        otherType= otherDTS.typeId;
 
 		/* The result is nullable if either side is nullable */
         nullable=isNullable() || otherDTS.isNullable();
@@ -787,19 +787,19 @@ public class DataTypeDescriptor implements Formatable{
 
         //Set collation info on the DTD for dominant type if it is string type
         //The algorithm used is explained in this method's javadoc
-        if(higherType.getTypeId().isStringTypeId()){
-            if(getCollationDerivation()!=otherDTS.getCollationDerivation()){
-                if(getCollationDerivation()==StringDataValue.COLLATION_DERIVATION_NONE){
+        if(higherType.typeId.isStringTypeId()){
+            if(collationDerivation != otherDTS.collationDerivation){
+                if(collationDerivation ==StringDataValue.COLLATION_DERIVATION_NONE){
                     //Step 2
                     higherType=higherType.getCollatedType(
                             otherDTS.getCollationType(),
-                            otherDTS.getCollationDerivation());
+                            otherDTS.collationDerivation);
 
-                }else if(otherDTS.getCollationDerivation()==StringDataValue.COLLATION_DERIVATION_NONE){
+                }else if(otherDTS.collationDerivation ==StringDataValue.COLLATION_DERIVATION_NONE){
                     //Step 2
                     higherType=higherType.getCollatedType(
                             getCollationType(),
-                            getCollationDerivation());
+                            collationDerivation);
                 }else{
                     //Step 3
                     higherType=higherType.getCollatedType(
@@ -815,7 +815,7 @@ public class DataTypeDescriptor implements Formatable{
                 //Step 1
                 higherType=higherType.getCollatedType(
                         getCollationType(),
-                        getCollationDerivation());
+                        collationDerivation);
             }
         }
 
@@ -844,8 +844,8 @@ public class DataTypeDescriptor implements Formatable{
             return false;
         }
 
-        TypeId thisType=getTypeId();
-        TypeId otherType=otherDTS.getTypeId();
+        TypeId thisType= typeId;
+        TypeId otherType= otherDTS.typeId;
 
 		/* Do both sides have the same type? */
         return thisType.equals(otherType);
@@ -987,7 +987,7 @@ public class DataTypeDescriptor implements Formatable{
      * @return the name of the collation being used in this type.
      */
     public String getCollationName(){
-        if(getCollationDerivation()==StringDataValue.COLLATION_DERIVATION_NONE)
+        if(collationDerivation ==StringDataValue.COLLATION_DERIVATION_NONE)
             return Property.COLLATION_NONE;
         else
             return getCollationName(getCollationType());
@@ -1095,7 +1095,7 @@ public class DataTypeDescriptor implements Formatable{
         if(!typeDescriptor.isStringType())
             return this;
 
-        if((getCollationType()==collationType) && (getCollationDerivation()==collationDerivation))
+        if((getCollationType()==collationType) && (this.collationDerivation ==collationDerivation))
             return this;
 
         return new DataTypeDescriptor(this, collationType, collationDerivation);
@@ -1170,7 +1170,7 @@ public class DataTypeDescriptor implements Formatable{
 
     public boolean comparable(DataTypeDescriptor compareWithDTD){
 
-        TypeId compareWithTypeID=compareWithDTD.getTypeId();
+        TypeId compareWithTypeID= compareWithDTD.typeId;
         int compareWithJDBCTypeId=compareWithTypeID.getJDBCTypeId();
 
         // Long types cannot be compared.
@@ -1280,11 +1280,11 @@ public class DataTypeDescriptor implements Formatable{
         //both the operands can not have the collation derivation of
         //NONE. This is because in that case, we do not know what kind
         //of collation to use for comparison.
-        if(getCollationDerivation()==compareWithDTD.getCollationDerivation() &&
-                getCollationDerivation()==StringDataValue.COLLATION_DERIVATION_NONE)
+        if(collationDerivation == compareWithDTD.collationDerivation &&
+                collationDerivation ==StringDataValue.COLLATION_DERIVATION_NONE)
             return false;
         //collation matches
-        return getCollationDerivation()==compareWithDTD.getCollationDerivation()
+        return collationDerivation == compareWithDTD.collationDerivation
                 && getCollationType()==compareWithDTD.getCollationType();
     }
 
@@ -1595,7 +1595,7 @@ public class DataTypeDescriptor implements Formatable{
      */
     public void writeExternal(ObjectOutput out) throws IOException{
         out.writeObject(typeDescriptor);
-        out.writeInt(getCollationDerivation());
+        out.writeInt(collationDerivation);
     }
 
     /**
@@ -1632,7 +1632,7 @@ public class DataTypeDescriptor implements Formatable{
     public boolean isUserCreatableType() throws StandardException{
         switch(typeId.getJDBCTypeId()){
             case Types.JAVA_OBJECT:
-                return getTypeId().getBaseTypeId().isAnsiUDT();
+                return typeId.getBaseTypeId().isAnsiUDT();
             case Types.DECIMAL:
                 return
                         (getPrecision()<=typeId.getMaximumPrecision()) && (getScale()<=typeId.getMaximumScale());

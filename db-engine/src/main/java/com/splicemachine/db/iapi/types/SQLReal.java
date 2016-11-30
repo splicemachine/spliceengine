@@ -256,7 +256,7 @@ public final class SQLReal
 		/* neither are null, get the value */
 
         // jsk: should use double? depends on DB2
-		float thisValue = this.getFloat();
+		float thisValue = value;
 		float otherValue = NumberDataType.normalizeREAL(arg.getFloat()); // could gotten from "any type", may not be a float
 
 		if (thisValue == otherValue)
@@ -824,7 +824,7 @@ public final class SQLReal
 			return result;
 		}
 
-		minusResult = -(this.getFloat());
+		minusResult = -(value);
 		result.setValue(minusResult);
 		return result;
 	}

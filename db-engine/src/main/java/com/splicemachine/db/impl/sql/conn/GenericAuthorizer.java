@@ -116,7 +116,7 @@ implements Authorizer
 		// SQL write operations
 		case Authorizer.SQL_WRITE_OP:
 		case Authorizer.PROPERTY_WRITE_OP:
-			if (isReadOnlyConnection())
+			if (readOnlyConnection)
 				throw StandardException.newException(SQLState.AUTH_WRITE_WITH_READ_ONLY_CONNECTION);
 			if (sqlAllowed > RoutineAliasInfo.MODIFIES_SQL_DATA)
 				throw externalRoutineException(operation, sqlAllowed);
@@ -125,7 +125,7 @@ implements Authorizer
 		// SQL DDL operations
 		case Authorizer.JAR_WRITE_OP:
 		case Authorizer.SQL_DDL_OP:
- 			if (isReadOnlyConnection())
+			if (readOnlyConnection)
 				throw StandardException.newException(SQLState.AUTH_DDL_WITH_READ_ONLY_CONNECTION);
 
 			if (sqlAllowed > RoutineAliasInfo.MODIFIES_SQL_DATA)

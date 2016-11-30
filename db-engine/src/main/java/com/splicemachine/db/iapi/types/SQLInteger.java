@@ -201,7 +201,8 @@ public final class SQLInteger
 	{
 		/* neither are null, get the value */
 
-		int thisValue = this.getInt();
+		/* This value is 0 if the SQLInteger is null */
+		int thisValue = value;
 
 		int otherValue = arg.getInt();
 
@@ -639,7 +640,8 @@ public final class SQLInteger
 			return result;
 		}
 
-		operandValue = this.getInt();
+		/* This value is 0 if the SQLInteger is null */
+		operandValue = value;
 
 		/*
 		** In two's complement arithmetic, the minimum value for a number

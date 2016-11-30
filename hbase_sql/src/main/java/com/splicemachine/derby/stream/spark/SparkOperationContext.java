@@ -361,17 +361,17 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void pushScope(){
-            SpliceSpark.pushScope(op !=null?getOperation().getScopeName():"");
+        SpliceSpark.pushScope(op !=null? op.getScopeName():"");
     }
 
     @Override
     public void pushScopeForOp(Scope step){
-        SpliceSpark.pushScope(op !=null?getOperation().getScopeName():""+": "+step.displayName());
+        SpliceSpark.pushScope(op !=null? op.getScopeName():""+": "+step.displayName());
     }
 
     @Override
     public void pushScopeForOp(String step){
-            SpliceSpark.pushScope(op !=null?getOperation().getScopeName():"" + (step != null ? ": " + step : ""));
+        SpliceSpark.pushScope(op !=null? op.getScopeName():"" + (step != null ? ": " + step : ""));
     }
 
     @Override
@@ -410,7 +410,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public long getBadRecords() {
         // can only be called after we're back on the client side since we need to reference accumulator value
         long nBadRecords = (getBadRecordsRecorder() != null ? getBadRecordsRecorder().getNumberOfBadRecords() : 0);
-        List<SpliceOperation> operations=getOperation().getSubOperations();
+        List<SpliceOperation> operations= op.getSubOperations();
         if(operations!=null){
             for(SpliceOperation operation : operations){
                 if(operation.getOperationContext()!=null)

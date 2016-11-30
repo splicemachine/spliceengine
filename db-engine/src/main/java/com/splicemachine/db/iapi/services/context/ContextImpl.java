@@ -77,12 +77,12 @@ public abstract class ContextImpl
 	}
 
 	final public void pushMe() {
-		getContextManager().pushContext(this);
+		myContextManager.pushContext(this);
 	}
 
 	/** @see Context#popMe */
 	final public void popMe() {
-		getContextManager().popContext(this);
+		myContextManager.popContext(this);
 	}
 
 	/**

@@ -106,12 +106,12 @@ public class LocatedRow implements KeyableRow, Externalizable, Row {
     }
 
     public LocatedRow getClone() {
-        return new LocatedRow(getRowLocation(),getRow());
+        return new LocatedRow(rowLocation, row);
     }
 
     public LocatedRow getClone(boolean materialized){
         return materialized?
-                new LocatedRow(HBaseRowLocation.deepClone((HBaseRowLocation)getRowLocation()),getRow().getClone()):
+                new LocatedRow(HBaseRowLocation.deepClone((HBaseRowLocation) rowLocation), row.getClone()):
                 getClone();
     }
 

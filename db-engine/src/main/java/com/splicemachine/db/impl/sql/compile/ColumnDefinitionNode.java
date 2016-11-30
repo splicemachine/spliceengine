@@ -199,7 +199,7 @@ public class ColumnDefinitionNode extends TableElementNode
 	{
 		if (SanityManager.DEBUG)
 		{
-			return "type: " + getType() + "\n" +
+			return "type: " + type + "\n" +
 				"defaultValue: " + defaultValue + "\n" +
 				super.toString();
 		}
@@ -237,7 +237,7 @@ public class ColumnDefinitionNode extends TableElementNode
       */
     void setNullability(boolean nullable)
     {
-        type = getType().getNullabilityType(nullable);
+		type = type.getNullabilityType(nullable);
     }
     
     /**
@@ -246,7 +246,7 @@ public class ColumnDefinitionNode extends TableElementNode
      */
     void setCollationType(int collationType)
     {
-        type = getType().getCollatedType(collationType,
+		type = type.getCollatedType(collationType,
                 StringDataValue.COLLATION_DERIVATION_IMPLICIT);
     }
 
@@ -393,19 +393,19 @@ public class ColumnDefinitionNode extends TableElementNode
 
         // continue if this is a generated column and the datatype has been
         // omitted. we can't check generation clauses until later on
-        if ( hasGenerationClause() && (getType() == null ) ) { return; }
+		if ( hasGenerationClause() && (type == null ) ) { return; }
 
 		/* Built-in types need no checking */
-		if (!getType().getTypeId().userType())
+		if (!type.getTypeId().userType())
 			return;
 
         // bind the UDT if necessary
-        setType( bindUserType( getType() ) );
+		setType( bindUserType(type) );
 
 		ClassInspector classInspector = getClassFactory().getClassInspector();
 
 		columnTypeName =
-			getType().getTypeId().getCorrespondingJavaTypeName();
+			type.getTypeId().getCorrespondingJavaTypeName();
 
 		/* User type - We first check for the columnTypeName as a java class.
 		 * If that fails, then we treat it as a class alias.
@@ -468,10 +468,10 @@ public class ColumnDefinitionNode extends TableElementNode
 		throws StandardException
 	{
 		/* DB2 requires non-nullable columns to have a default in ALTER TABLE */
-		if (td != null && !hasGenerationClause() && !getType().isNullable() && defaultNode == null)
+		if (td != null && !hasGenerationClause() && !type.isNullable() && defaultNode == null)
 		{
 			if (!isAutoincrement )
-				throw StandardException.newException(SQLState.LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT, getColumnName());
+				throw StandardException.newException(SQLState.LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT, this.name);
 		}
 			
 		// No work to do if no user specified default
@@ -518,11 +518,11 @@ public class ColumnDefinitionNode extends TableElementNode
 		//increment value for autoincrement column can't be 0 if the autoinc column
 		//is part of create table or it is part of alter table to change the 
 		//increment value. 
-		if (autoincrementIncrement == 0 && 
+		if (autoincrementIncrement == 0 &&
 				(autoinc_create_or_modify_Start_Increment == ColumnDefinitionNode.CREATE_AUTOINCREMENT ||
 						autoinc_create_or_modify_Start_Increment == ColumnDefinitionNode.MODIFY_AUTOINCREMENT_INC_VALUE))
-			throw StandardException.newException(SQLState.LANG_AI_INVALID_INCREMENT, getColumnName());
-		int jdbctype = getType().getTypeId().getJDBCTypeId();
+			throw StandardException.newException(SQLState.LANG_AI_INVALID_INCREMENT, this.name);
+		int jdbctype = type.getTypeId().getJDBCTypeId();
 		switch (jdbctype)
 		{
 		case Types.TINYINT:
@@ -546,7 +546,7 @@ public class ColumnDefinitionNode extends TableElementNode
 			break;
 		default:
 			throw StandardException.newException(SQLState.LANG_AI_INVALID_TYPE,
-												 getColumnName());
+					this.name);
 		}
 	}
 
@@ -630,12 +630,12 @@ public class ColumnDefinitionNode extends TableElementNode
 							(SubqueryList) null,
 							(Vector) null);
 
-			TypeId columnTypeId = getType().getTypeId();
+			TypeId columnTypeId = type.getTypeId();
 			TypeId defaultTypeId = defaultTree.getTypeId();
 
 			// Check for 'invalid default' errors (42894)
 			// before checking for 'not storable' errors (42821).
-			if (!defaultTypeIsValid(columnTypeId, getType(),
+			if (!defaultTypeIsValid(columnTypeId, type,
 					defaultTypeId, defaultTree, defaultNode.getDefaultText()))
 			{
 					throw StandardException.newException(

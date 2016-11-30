@@ -77,7 +77,7 @@ public class MutableCSVTokenizer extends QuoteTrackingTokenizer {
      */
     public List<String> read() throws IOException {
         if( readRow() ) {
-            return new ArrayList<>(getColumns()); // Do we need to array copy here?
+            return new ArrayList<>(columns); // Do we need to array copy here?
         }
         return null; // EOF
     }

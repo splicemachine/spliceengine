@@ -3479,14 +3479,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          * position is less than the index position of the other.
          */
         boolean before(PredicateWrapper other){
-            return (indexPosition<other.getIndexPosition());
+            return (indexPosition< other.indexPosition);
         }
 
         /* for our purposes two predicates at the same index
           position are contiguous. (have i spelled this right?)
         */
         boolean contiguous(PredicateWrapper other){
-            int otherIP=other.getIndexPosition();
+            int otherIP= other.indexPosition;
             return ((indexPosition==otherIP) || (indexPosition-otherIP==1)
                     || (indexPosition-otherIP==-1));
         }

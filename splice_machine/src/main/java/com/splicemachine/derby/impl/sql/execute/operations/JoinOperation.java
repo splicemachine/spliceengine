@@ -278,7 +278,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				if(leftResultSet.isReferencingTable(tableNumber)){
 						rootCols = leftResultSet.getRootAccessedCols(tableNumber);
 				}else if(rightResultSet.isReferencingTable(tableNumber)){
-						int leftCols = getLeftNumCols();
+					int leftCols = this.leftNumCols;
 						int[] rightRootCols = rightResultSet.getRootAccessedCols(tableNumber);
 						rootCols = new int[rightRootCols.length];
 
