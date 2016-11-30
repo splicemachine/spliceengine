@@ -19,6 +19,9 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.spark_project.guava.collect.Lists.transform;
 import java.util.List;
+
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.ImmutableList;
@@ -175,6 +178,7 @@ class SpliceTestPlatformConfig {
         //
         // HFile
         //
+        config.set(HConfiguration.DATA_BLOCK_ENCODING,DataBlockEncoding.FAST_DIFF.name());
         config.setInt("hfile.index.block.max.size", 16 * 1024); // 16KiB
         config.setFloat("hfile.block.cache.size", 0.25f); // set block cache to 25% of heap
         config.setFloat("io.hfile.bloom.error.rate", (float) 0.005);

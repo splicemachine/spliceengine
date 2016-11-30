@@ -70,6 +70,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long regionLoadUpdateInterval;
     private final  String backupPath;
     private final  String compressionAlgorithm;
+    private final String dataBlockEncoding;
     private final  String namespace;
     private final  String spliceRootPath;
     private final  String hbaseSecurityAuthorization;
@@ -260,6 +261,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public String getCompressionAlgorithm() {
         return compressionAlgorithm;
+    }
+    @Override
+    public String getDataBlockEncoding() {
+        return dataBlockEncoding;
     }
     @Override
     public String getNamespace() {
@@ -627,6 +632,7 @@ public final class SConfigurationImpl implements SConfiguration {
         backupPath = builder.backupPath;
         backupParallelism = builder.backupParallelism;
         compressionAlgorithm = builder.compressionAlgorithm;
+        dataBlockEncoding = builder.dataBlockEncoding;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;
         hbaseSecurityAuthorization = builder.hbaseSecurityAuthorization;
