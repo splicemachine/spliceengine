@@ -1335,9 +1335,4 @@ public abstract class DataType extends NullValueData
 	public int getRowWidth() {
 		return 8;
 	}
-
-	@Override
-	public Object getSparkObject() throws StandardException {
-		return getObject();
-	}
 }
