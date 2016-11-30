@@ -173,29 +173,8 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
     }
 
-    @Test
-    public void testFileNotFoundParquet() throws Exception {
-        try {
-            methodWatcher.executeUpdate("create external table file_not_found_p (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
-            methodWatcher.executeQuery("select * from file_not_found_p");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT11",e.getSQLState());
-        }
-    }
 
-    @Test
-    public void testFileNotFoundORC() throws Exception {
-        try {
-            methodWatcher.executeUpdate("create external table file_not_found_o (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
-            methodWatcher.executeQuery("select * from file_not_found_o");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT11",e.getSQLState());
-        }
-    }
+
 
     @Test
     public void testFileNotFoundTextFile() {
@@ -275,6 +254,38 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testWriteReadFromCompressedORCExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table compressed_orc (col1 int, col2 varchar(24))" +
+                "COMPRESSED WITH ZLIB STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"compressed_orc"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_orc values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from compressed_orc");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test @Ignore
+    public void testWriteReadFromCompressedParquetExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table compressed_parquet_test (col1 int, col2 varchar(24))" +
+                " COMPRESSED WITH SNAPPY  STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"compressed_parquet_test"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_parquet_test values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from compressed_parquet_test");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
     public void testWriteReadFromSimpleTextExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table simple_text (col1 int, col2 varchar(24), col3 boolean)" +
                 " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"simple_text"));
@@ -288,6 +299,48 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |XXXX |true  |\n" +
                 "  2  |YYYY |false |\n" +
                 "  3  |ZZZZ |true  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testWriteReadFromCompressedErrorTextExternalTable() throws Exception {
+        try{
+
+                methodWatcher.executeUpdate(String.format("create external table compressed_ignored_text (col1 int, col2 varchar(24))" +
+                        "COMPRESSED WITH SNAPPY STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"compressed_ignored_text"));
+
+                Assert.fail("Exception not thrown");
+            } catch (SQLException e) {
+                Assert.assertEquals("Wrong Exception","EXT17",e.getSQLState());
+            }
+    }
+
+    @Test
+    public void testExternalTableDescriptorCompression() throws Exception {
+        //with no compression token
+        methodWatcher.executeUpdate(String.format("create external table simple_table_none_orc (col1 int, col2 varchar(24))" +
+                "partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_table_none_orc"));
+        ResultSet rs = methodWatcher.executeQuery("select COMPRESSION from SYS.SYSTABLES where tablename='SIMPLE_TABLE_NONE_ORC'");
+        Assert.assertEquals("COMPRESSION |\n" +
+                "--------------\n" +
+                "    none     |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+
+        //with compression snappy
+        methodWatcher.executeUpdate(String.format("create external table simple_table_snappy_orc (col1 int, col2 varchar(24))" +
+                "compressed with snappy partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_table_snappy_orc"));
+        rs = methodWatcher.executeQuery("select COMPRESSION from SYS.SYSTABLES where tablename='SIMPLE_TABLE_SNAPPY_ORC'");
+        Assert.assertEquals("COMPRESSION |\n" +
+                "--------------\n" +
+                "   snappy    |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        //with compression zlib
+        methodWatcher.executeUpdate(String.format("create external table simple_table_ZLIB_orc (col1 int, col2 varchar(24))" +
+                "compressed with zlib partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_table_ZLIB_orc"));
+        rs = methodWatcher.executeQuery("select COMPRESSION from SYS.SYSTABLES where tablename='SIMPLE_TABLE_ZLIB_ORC'");
+        Assert.assertEquals("COMPRESSION |\n" +
+                "--------------\n" +
+                "    zlib     |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
     }
 
     @Test

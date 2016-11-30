@@ -973,8 +973,9 @@ public final class InsertNode extends DMLModStatementNode {
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLines());
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getStoredAs());
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLocation());
+			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getCompression());
 			mb.push(partitionReferenceItem);
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 16);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 17);
 		}
 		else
 		{

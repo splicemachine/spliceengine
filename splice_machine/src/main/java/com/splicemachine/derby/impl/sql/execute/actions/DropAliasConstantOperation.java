@@ -121,7 +121,7 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
             DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
             TableDescriptor td = ddg.newTableDescriptor(aliasName, sd,
                     TableDescriptor.SYNONYM_TYPE, TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-                    null,null,null,null,null);
+                    null,null,null,null,null,null);
             dd.dropTableDescriptor(td, sd, tc);
         }
         else
