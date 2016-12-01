@@ -1180,7 +1180,7 @@ public final class SQLTime extends DataType
 			setToNull();
 		else {
 			isNull = false;
-			encodedTime = computeEncodedTime(row.getTimestamp(ordinal));
+			encodedTime = computeEncodedTime(row.getDate(ordinal));
 			encodedTimeFraction = 0;
 		}
 	}
@@ -1235,7 +1235,7 @@ public final class SQLTime extends DataType
 
 	@Override
 	public StructField getStructField(String columnName) {
-		return DataTypes.createStructField(columnName, DataTypes.TimestampType, true);
+		return DataTypes.createStructField(columnName, DataTypes.DateType, true);
 	}
 
 
@@ -1243,9 +1243,5 @@ public final class SQLTime extends DataType
 		updateSketch.update(new int[]{encodedTime,encodedTimeFraction});
 	}
 
-	@Override
-	public Object getSparkObject() throws StandardException {
-		return getTimestamp(null);
-	}
 }
 

@@ -21,7 +21,6 @@ import java.io.PrintStream;
 import java.sql.*;
 import java.util.*;
 
-import com.splicemachine.db.iapi.types.SQLClob;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.dbutils.BasicRowProcessor;
@@ -448,12 +447,7 @@ public class TestUtils {
                             columns.add(metaData.getColumnName(i).trim());
                         }
                         Object value = rs.getObject(i);
-                        if (value != null && value instanceof Clob) {
-                            Clob clob = (Clob) value;
-                             row.add( clob.getSubString(1,(int)clob.length()));
-                        } else {
-                            row.add((value != null && value.toString() != null ? value.toString().trim() : "NULL"));
-                        }
+                        row.add((value != null ? value.toString().trim() : "NULL"));
                     }
                     rows.add(row);
                     gotColumnNames = true;
