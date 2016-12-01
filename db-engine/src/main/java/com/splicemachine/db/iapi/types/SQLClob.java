@@ -54,6 +54,7 @@ import java.sql.Timestamp;
 import java.text.RuleBasedCollator;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.spark_project.guava.io.CharStreams;
 
 
 /**
@@ -650,7 +651,10 @@ public class SQLClob
      */
     public void writeExternal(ObjectOutput out)
             throws IOException {
-        super.writeClobUTF(out);
+        out.writeBoolean(isNull());
+        if (!isNull) {
+            super.writeClobUTF(out);
+        }
     }
 
     /**
@@ -768,6 +772,10 @@ public class SQLClob
      */
     public void readExternal(ObjectInput in)
             throws IOException {
+        if (in.readBoolean()) {
+            setIsNull(true);
+            return;
+        }
         HeaderInfo hdrInfo;
         if (csd != null) {
             int hdrLen = (int)csd.getDataOffset();
@@ -965,5 +973,15 @@ public class SQLClob
     }
     public Format getFormat() {
     	return Format.CLOB;
+    }
+
+    @Override
+    public Object getSparkObject() throws StandardException {
+        try {
+            Clob clob = (Clob) getObject();
+            return clob == null ? null : CharStreams.toString(clob.getCharacterStream());
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
     }
 }

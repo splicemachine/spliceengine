@@ -365,6 +365,35 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    @Test
+    // SPLICE-1180
+    public void testReadTimeFromFile() throws Exception {
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"timestamp_parquet"));
+        if (!directory.exists())
+            directory.mkdir();
+        methodWatcher.executeUpdate(String.format("create external table timestamp_parquet (a time)" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"timestamp_parquet"));
+        methodWatcher.executeUpdate("insert into timestamp_parquet values ('22:22:22')");
+        ResultSet rs = methodWatcher.executeQuery("select * from timestamp_parquet");
+        Assert.assertEquals("A    |\n" +
+                "----------\n" +
+                "22:22:22 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    // SPLICE-1180
+    public void testReadClobFromFile() throws Exception {
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"clob_parquet"));
+        if (!directory.exists())
+            directory.mkdir();
+        methodWatcher.executeUpdate(String.format("create external table clob_parquet (largecol clob(65535))" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"clob_parquet"));
+        methodWatcher.executeUpdate("insert into clob_parquet values ('asdfasfd234234')");
+        ResultSet rs = methodWatcher.executeQuery("select * from clob_parquet");
+        Assert.assertEquals("LARGECOL    |\n" +
+                "----------------\n" +
+                "asdfasfd234234 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
 
     @Test
     public void testCannotAlterExternalTable() throws Exception {
