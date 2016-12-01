@@ -36,7 +36,6 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -177,7 +176,6 @@ public class HBaseConnectionFactory{
         columnDescriptor.setMaxVersions(5);
         Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         columnDescriptor.setCompressionType(compress);
-        columnDescriptor.setDataBlockEncoding(DataBlockEncoding.valueOf(config.getDataBlockEncoding()));
         columnDescriptor.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
         columnDescriptor.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
         columnDescriptor.setBloomFilterType(BloomType.valueOf(HConfiguration.DEFAULT_BLOOMFILTER.toUpperCase()));
@@ -200,7 +198,6 @@ public class HBaseConnectionFactory{
         snapshot.setMaxVersions(Integer.MAX_VALUE);
         Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         snapshot.setCompressionType(compress);
-        snapshot.setDataBlockEncoding(DataBlockEncoding.valueOf(config.getDataBlockEncoding()));
         snapshot.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
         snapshot.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
         snapshot.setBloomFilterType(BloomType.ROW);

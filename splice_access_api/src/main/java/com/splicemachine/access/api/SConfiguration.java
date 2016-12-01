@@ -90,8 +90,6 @@ public interface SConfiguration {
 
     String getCompressionAlgorithm();
 
-    String getDataBlockEncoding();
-
     String getNamespace();
 
     String getSpliceRootPath();
