@@ -81,15 +81,13 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 									  String escaped,
 									  String lines,
 									  String storedAs,
-									  String location,
-									  String compression) {
+									  String location) {
 		super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows,
 				delimited,
 				escaped,
 				lines,
 				storedAs,
-				location,
-				compression
+				location
 				);
 		this.tableType = tableType;
 		this.tableName = tableName;

@@ -1126,14 +1126,13 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String lines,
                                              String storedAs,
                                              String location,
-                                             String compression,
                                              int partitionBy)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
                     statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
-                    delimited,escaped,lines,storedAs,location, compression, partitionBy);
+                    delimited,escaped,lines,storedAs,location, partitionBy);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);

@@ -147,8 +147,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
                 .lines(td.getLines())
                 .delimited(td.getDelimited())
                 .location(td.getLocation())
-                .storedAs(td.getStoredAs())
-                .compression(td.getCompression());
+                .storedAs(td.getStoredAs());
         String scope = this.getScopeName();
         String prefix = StreamUtils.getScopeString(this);
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);

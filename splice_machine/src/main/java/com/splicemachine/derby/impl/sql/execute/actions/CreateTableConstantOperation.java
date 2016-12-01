@@ -58,7 +58,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     private String lines;
     private String storedAs;
     private String location;
-    private String compression;
 
 
 
@@ -91,8 +90,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             String escaped,
             String lines,
             String storedAs,
-            String location,
-            String compression
+            String location
             ) {
         this.schemaName = schemaName;
         this.tableName = tableName;
@@ -108,7 +106,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.lines = lines;
         this.storedAs = storedAs;
         this.location = location;
-        this.compression = compression;
 
         if (SanityManager.DEBUG) {
             if (tableType == TableDescriptor.BASE_TABLE_TYPE && lockGranularity != TableDescriptor.TABLE_LOCK_GRANULARITY &&
@@ -265,8 +262,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     escaped,
                     lines,
                     storedAs,
-                    location,
-                    compression
+                    location
                     );
         } else {
             td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);

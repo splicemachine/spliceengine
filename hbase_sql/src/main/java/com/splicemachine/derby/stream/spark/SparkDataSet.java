@@ -68,9 +68,6 @@ import static org.apache.spark.sql.functions.*;
  *
  */
 public class SparkDataSet<V> implements DataSet<V> {
-
-    private static String SPARK_COMPRESSION_OPTION = "compression";
-
     public JavaRDD<V> rdd;
     private Map<String,String> attributes;
     public SparkDataSet(JavaRDD<V> rdd) {
@@ -638,14 +635,12 @@ public class SparkDataSet<V> implements DataSet<V> {
                 .map(new RowToLocatedRowFunction(context)));
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,
                                           OperationContext context) {
         try {
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                     rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                     context.getOperation().getExecRowDefinition().schema());
-
             List<Column> cols = new ArrayList();
             for (int i = 0; i < baseColumnMap.length; i++) {
                     cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
@@ -654,7 +649,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
             }
-            insertDF.write().option(SPARK_COMPRESSION_OPTION,compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+            insertDF.write().option("compression","none").partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                     .mode(SaveMode.Append).parquet(location);
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
@@ -664,8 +659,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,
                                                     OperationContext context) {
         try {
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
@@ -679,7 +673,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
             }
-            insertDF.write().option(SPARK_COMPRESSION_OPTION,compression)
+            insertDF.write().option("compression","none")
                     .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                     .mode(SaveMode.Append).orc(location);
             ValueRow valueRow=new ValueRow(1);
@@ -690,9 +684,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter,
-                                                int[] baseColumnMap,
+    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
                                                 OperationContext context) {
 
         try {
@@ -713,7 +705,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
     }
 
-    @Override @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
     public void pin(ExecRow template, long conglomId) {
         Dataset<Row> pinDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
