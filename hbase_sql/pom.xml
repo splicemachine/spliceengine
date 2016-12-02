@@ -56,11 +56,12 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-network-common_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-tags_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.scalatest</groupId>
+                    <artifactId>scalatest_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -108,6 +109,12 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-reflect</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -1063,6 +1070,7 @@
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
+                                <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument>
                                 <!--                                <argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
                                 <argument>-Dsplice.spark.driver.host=localhost</argument>
                                 <argument>-Dsplice.spark.driver.cores=1</argument>

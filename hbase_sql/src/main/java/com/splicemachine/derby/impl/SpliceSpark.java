@@ -131,6 +131,10 @@ public class SpliceSpark {
 
         SparkConf conf = new SparkConf();
 
+        // Set default warehouse directory, currently spark can get confused.
+        // User Supplied splice.spark.sql.warehouse.dir will overwrite it.
+        conf.set("spark.sql.warehouse.dir","/user/splice/spark-warehouse");
+
         String schedulerAllocationFile = System.getProperty("splice.spark.scheduler.allocation.file");
         if (schedulerAllocationFile != null) {
             conf.set("spark.scheduler.allocation.file", schedulerAllocationFile);
@@ -146,6 +150,8 @@ public class SpliceSpark {
         if(HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file") != null){
             conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
         }
+
+
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
             String spsPropertyName = (String) sysPropertyKey;
