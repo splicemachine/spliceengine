@@ -426,6 +426,10 @@
 			    <groupId>asm</groupId>
 			    <artifactId>asm</artifactId>
 		    </exclusion>
+            <exclusion>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-exec</artifactId>
+            </exclusion>
 	    </exclusions>
         </dependency>
         <dependency>
@@ -442,6 +446,10 @@
 			    <groupId>asm</groupId>
 			    <artifactId>asm</artifactId>
 		    </exclusion>
+            <exclusion>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-exec</artifactId>
+            </exclusion>
 	    </exclusions>
         </dependency>
         <dependency>
