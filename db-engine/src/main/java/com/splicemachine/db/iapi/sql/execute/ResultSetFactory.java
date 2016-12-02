@@ -130,6 +130,7 @@ public interface ResultSetFactory {
 								 String lines,
 								 String storedAs,
 								 String location,
+								 String compression,
 								 int partitionBy)
         throws StandardException;
 
