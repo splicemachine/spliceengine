@@ -52,6 +52,8 @@ message Txn {
     optional int64 globalCommitTs = 4 [default = -1];
 
     optional int64 lastKeepAliveTime = 5;
+
+    repeated int64 rollbackSubIds = 6;
 }
 
 /*
@@ -121,6 +123,7 @@ enum LifecycleAction {
      * Indicate that this transaction is still alive.
      */
     KEEPALIVE = 4;
+    ROLLBACK_SUBTRANSACTIONS = 5;
 }
 
 message ActionResponse{
@@ -130,6 +133,7 @@ message ActionResponse{
 message TxnLifecycleMessage{
     required uint64 txnId = 1;
     required LifecycleAction action = 2;
+    repeated uint64 rolledbackSubTxns = 3;
 }
 
 message TxnRequest{

@@ -84,7 +84,7 @@ public class AsynchronousDDLControllerTest{
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,config);
-        TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
+        TxnView txn = new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
         DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"testChange",DDLMessage.DDLChangeType.CREATE_INDEX);
         try{
             controller.notifyMetadataChange(change);
@@ -125,7 +125,7 @@ public class AsynchronousDDLControllerTest{
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,config);
-        TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
+        TxnView txn = new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
         DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"testChange",DDLMessage.DDLChangeType.CHANGE_PK );
         try{
             controller.notifyMetadataChange(change);
@@ -177,7 +177,7 @@ public class AsynchronousDDLControllerTest{
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,10,100);
-        TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
+        TxnView txn = new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
         DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"testChange",DDLMessage.DDLChangeType.ADD_COLUMN);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
@@ -231,7 +231,7 @@ public class AsynchronousDDLControllerTest{
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,10,100);
-        TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
+        TxnView txn = new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
         DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"testChange",DDLMessage.DDLChangeType.ALTER_STATS);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
@@ -277,7 +277,7 @@ public class AsynchronousDDLControllerTest{
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,config);
-        TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
+        TxnView txn = new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
         DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"testChange",DDLMessage.DDLChangeType.ADD_UNIQUE_CONSTRAINT );
         try{
             controller.notifyMetadataChange(change);
@@ -314,7 +314,7 @@ public class AsynchronousDDLControllerTest{
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,100,10);
-        TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
+        TxnView txn = new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
         DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"testChange",DDLMessage.DDLChangeType.CREATE_SCHEMA );
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
@@ -355,7 +355,7 @@ public class AsynchronousDDLControllerTest{
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,10,100);
-        TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
+        TxnView txn = new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
         DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"testChange",DDLMessage.DDLChangeType.CREATE_SCHEMA);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
@@ -388,7 +388,7 @@ public class AsynchronousDDLControllerTest{
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,100,10);
-        TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
+        TxnView txn = new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false,null);
         DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"testCHange",DDLMessage.DDLChangeType.ADD_NOT_NULL);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);

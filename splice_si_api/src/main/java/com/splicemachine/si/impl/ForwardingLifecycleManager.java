@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
@@ -81,6 +82,13 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
 		}
 
 		@Override
+		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, boolean inMemory) throws IOException {
+			Txn txn = lifecycleManager.beginChildTransaction(parentTxn, isolationLevel, additive, destinationTable, inMemory);
+			afterStart(txn);
+			return txn;
+		}
+
+	@Override
 		public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, Txn txnToCommit) throws IOException {
 				Txn txn = lifecycleManager.chainTransaction(parentTxn,isolationLevel, additive,destinationTable,txnToCommit);
 				afterStart(txn);
@@ -109,8 +117,13 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
 				lifecycleManager.rollback(txnId);
 		}
 
+	@Override
+	public void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException {
+		lifecycleManager.rollbackSubtransactions(txnId, rolledback);
+	}
 
-		protected void afterStart(Txn txn){
+
+	protected void afterStart(Txn txn){
 				//no-op by default
 		}
 

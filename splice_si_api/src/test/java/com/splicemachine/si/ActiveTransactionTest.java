@@ -20,6 +20,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
+import com.splicemachine.si.impl.ForwardingTxnView;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.SITestEnvironment;
@@ -115,9 +116,19 @@ public class ActiveTransactionTest{
 
     @Test
     public void testGetActiveTransactionsFiltersOutIfParentRollsbackGrandChildCommits() throws Exception{
-        Txn parent=control.beginTransaction(DESTINATION_TABLE);
+        Txn parent=new ForwardingTxnView(control.beginTransaction(DESTINATION_TABLE)) {
+            @Override
+            public boolean allowsSubtransactions() {
+                return false;
+            }
+        };
         transactorSetup.timestampSource.rememberTimestamp(parent.getTxnId());
-        Txn child=control.beginChildTransaction(parent,parent.getIsolationLevel(),DESTINATION_TABLE);
+        Txn child=new ForwardingTxnView(control.beginChildTransaction(parent,parent.getIsolationLevel(),DESTINATION_TABLE)) {
+            @Override
+            public boolean allowsSubtransactions() {
+                return false;
+            }
+        };
         Txn grandChild=control.beginChildTransaction(child,child.getIsolationLevel(),DESTINATION_TABLE);
         long[] ids=txnStore.getActiveTransactionIds(grandChild,DESTINATION_TABLE);
         Assert.assertEquals("Incorrect size",3,ids.length);
@@ -216,7 +227,12 @@ public class ActiveTransactionTest{
 
     @Test
     public void oldestActiveTransactionsDoesNotIgnoreEffectiveStatus() throws IOException{
-        final Txn t0=control.beginTransaction(DESTINATION_TABLE);
+        final Txn t0=new ForwardingTxnView(control.beginTransaction(DESTINATION_TABLE)) {
+            @Override
+            public boolean allowsSubtransactions() {
+                return false;
+            }
+        };
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
         final Txn t1=control.beginChildTransaction(t0,DESTINATION_TABLE);
         t1.commit();

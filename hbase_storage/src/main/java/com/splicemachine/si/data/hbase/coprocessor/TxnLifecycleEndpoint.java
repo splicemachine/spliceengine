@@ -16,6 +16,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import java.io.IOException;
 
+import com.google.common.primitives.Longs;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
@@ -154,6 +155,11 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
                     boolean b=keepAlive(request.getTxnId());
                     response=TxnMessage.ActionResponse.newBuilder().setContinue(b).build();
                     break;
+                case ROLLBACK_SUBTRANSACTIONS:
+                    long[] ids = Longs.toArray(request.getRolledbackSubTxnsList());
+                    rollbackSubtransactions(request.getTxnId(), ids);
+                    response=TxnMessage.ActionResponse.getDefaultInstance();
+                    break;
             }
             done.run(response);
         }catch(IOException ioe){
@@ -214,6 +220,10 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
     public long commit(long txnId) throws IOException{
         return lifecycleStore.commitTransaction(txnId);
+    }
+
+    public void rollbackSubtransactions(long txnId, long[] subIds) throws IOException {
+        lifecycleStore.rollbackSubtransactions(txnId, subIds);
     }
 
     public void rollback(long txnId) throws IOException{

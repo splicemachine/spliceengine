@@ -60,58 +60,20 @@ public class TransactionImpl extends BaseTransaction {
             ignoreSavePoints=true;
         }
 
-        if(LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"Before setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
+//        if(LOG.isDebugEnabled())
+//            SpliceLogUtils.debug(LOG,"Before setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
         setActiveState(false,false,null); //make sure that we are active
         Txn currentTxn=getTxn();
         Txn child=lifecycleManager.beginChildTransaction(currentTxn,null);
         txnStack.push(Pair.newPair(name,child));
-        if(LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"After setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
+//        if(LOG.isDebugEnabled())
+//            SpliceLogUtils.debug(LOG,"After setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
         return txnStack.size();
     }
 
     @Override
     public int releaseSavePoint(String name,Object kindOfSavepoint) throws IOException{
-        if(kindOfSavepoint!=null && BATCH_SAVEPOINT.equals(kindOfSavepoint)){
-            ignoreSavePoints=false;
-        }
-        if(ignoreSavePoints)
-            return 0;
-        if(LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"Before releaseSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
-
-
-        /*
-         * Check first to ensure such a save point exists before we attempt to release anything
-         */
-        boolean found=false;
-        for(Pair<String, Txn> savePoint : txnStack){
-            if(savePoint.getFirst().equals(name)){
-                found=true;
-                break;
-            }
-        }
-        if(!found)
-            throw new SavePointNotFoundException(name);
-
-        /*
-         * Pop all the transactions up until the savepoint to release.
-         *
-         * Note that we do *NOT* commit all the transactions that are higher
-         * on the stack than the savepoint we wish to release. This is because
-         * we are committing a parent of that transaction,and committing the parent
-         * will treat the underlying transaction as committed also. This saves on excessive
-         * network calls when releasing multiple save points, at the cost of looking a bit weird
-         * here.
-         */
-        Pair<String, Txn> savePoint;
-        do{
-            savePoint=txnStack.pop();
-            doCommit(savePoint);
-        }while(!savePoint.getFirst().equals(name));
-        if(LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"After releaseSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
+        // Don't do anything, we'll release the savepoints when we commit the parent transaction
         return txnStack.size();
     }
 

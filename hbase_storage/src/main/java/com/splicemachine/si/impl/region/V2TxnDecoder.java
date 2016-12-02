@@ -35,6 +35,8 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class V2TxnDecoder implements TxnDecoder{
@@ -46,6 +48,7 @@ public class V2TxnDecoder implements TxnDecoder{
     static final byte[] GLOBAL_COMMIT_QUALIFIER_BYTES=Bytes.toBytes("g");
     static final byte[] STATE_QUALIFIER_BYTES=Bytes.toBytes("s");
     static final byte[] DESTINATION_TABLE_QUALIFIER_BYTES=Bytes.toBytes("e"); //had to pick a letter that was unique
+    static final byte[] ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES=Bytes.toBytes("r"); //had to pick a letter that was unique
 
     private V2TxnDecoder(){ } //singleton instance
 
@@ -59,6 +62,7 @@ public class V2TxnDecoder implements TxnDecoder{
         Cell globalCommitKv=null;
         Cell stateKv=null;
         Cell destinationTables=null;
+        Cell rollbackIds=null;
 
         for(Cell kv : keyValues){
             if(CellUtils.singleMatchingColumn(kv,FAMILY,DATA_QUALIFIER_BYTES))
@@ -73,11 +77,13 @@ public class V2TxnDecoder implements TxnDecoder{
                 stateKv=kv;
             else if(CellUtils.singleMatchingColumn(kv,FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES))
                 destinationTables=kv;
+            else if(CellUtils.singleMatchingColumn(kv,FAMILY,ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES))
+                rollbackIds=kv;
         }
         if(dataKv==null) return null;
 
         long txnId=TxnUtils.txnIdFromRowKey(dataKv.getRowArray(),dataKv.getRowOffset(),dataKv.getRowLength());
-        return decodeInternal(txnStore,dataKv,keepAliveKv,commitKv,globalCommitKv,stateKv,destinationTables,txnId);
+        return decodeInternal(txnStore,dataKv,keepAliveKv,commitKv,globalCommitKv,stateKv,destinationTables,txnId, rollbackIds);
     }
 
     @Override
@@ -89,9 +95,10 @@ public class V2TxnDecoder implements TxnDecoder{
         Cell stateKv=result.getColumnLatestCell(FAMILY,STATE_QUALIFIER_BYTES);
         Cell destinationTables=result.getColumnLatestCell(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
         Cell kaTime=result.getColumnLatestCell(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES);
+        Cell rollbackIds=result.getColumnLatestCell(FAMILY,ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES);
 
         if(dataKv==null) return null;
-        return decodeInternal(txnStore,dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId);
+        return decodeInternal(txnStore,dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId,rollbackIds);
     }
 
     protected long toLong(Cell data){
@@ -99,8 +106,10 @@ public class V2TxnDecoder implements TxnDecoder{
     }
 
     protected TxnMessage.Txn decodeInternal(RegionTxnStore txnStore,
-                                            Cell dataKv,Cell keepAliveKv,Cell commitKv,Cell globalCommitKv,
-                                            Cell stateKv,Cell destinationTables,long txnId){
+                                            Cell dataKv, Cell keepAliveKv, Cell commitKv, Cell globalCommitKv,
+                                            Cell stateKv, Cell destinationTables, long txnId, Cell rollbackIds){
+        long subId = txnId & SIConstants.SUBTRANSANCTION_ID_MASK;
+
         MultiFieldDecoder decoder=MultiFieldDecoder.wrap(dataKv.getValueArray(),dataKv.getValueOffset(),dataKv.getValueLength());
         long beginTs=decoder.decodeNextLong();
         long parentTxnId=-1l;
@@ -145,9 +154,24 @@ public class V2TxnDecoder implements TxnDecoder{
             state=txnStore.adjustStateForTimeout(state,keepAliveKv);
         }
         long kaTime=decodeKeepAlive(keepAliveKv,false);
+        List<Long> rollbackSubIds=decodeRollbackIds(rollbackIds);
+        if (subId != 0 && rollbackSubIds.contains(subId)) {
+            state = Txn.State.ROLLEDBACK;
+        }
         return composeValue(destinationTables,level,txnId,beginTs,parentTxnId,hasAdditive,
-                isAdditive,commitTs,globalTs,state,kaTime);
+                isAdditive,commitTs,globalTs,state,kaTime,rollbackSubIds);
 
+    }
+
+    private List<Long> decodeRollbackIds(Cell rollbackIds) {
+        if (rollbackIds == null)
+            return Collections.emptyList();
+        List<Long> ids = new ArrayList<>();
+        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(rollbackIds.getValueArray(), rollbackIds.getValueOffset(), rollbackIds.getValueLength());
+        while (decoder.available()) {
+            ids.add(decoder.decodeNextLong());
+        }
+        return ids;
     }
 
     protected static long decodeKeepAlive(Cell columnLatest,boolean oldForm){
@@ -224,9 +248,9 @@ public class V2TxnDecoder implements TxnDecoder{
     }
 
     protected TxnMessage.Txn composeValue(Cell destinationTables,
-                                          Txn.IsolationLevel level,long txnId,long beginTs,long parentTs,boolean hasAdditive,
-                                          boolean additive,long commitTs,long globalCommitTs,Txn.State state,long kaTime){
-        return TXNDecoderUtils.composeValue(destinationTables,level,txnId,beginTs,parentTs,hasAdditive,additive,commitTs,globalCommitTs,state,kaTime);
+                                          Txn.IsolationLevel level, long txnId, long beginTs, long parentTs, boolean hasAdditive,
+                                          boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime, List<Long> rollbackSubIds){
+        return TXNDecoderUtils.composeValue(destinationTables,level,txnId,beginTs,parentTs,hasAdditive,additive,commitTs,globalCommitTs,state,kaTime,rollbackSubIds);
     }
 
 }

@@ -226,7 +226,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getQualifierAsString());
             TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));
             TxnView parentTxn = builder.getTxn();
-            this.localTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, null);
+            this.localTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), false, null);
             builder.region(region)
                     .template(template)
                     .transaction(localTxn)

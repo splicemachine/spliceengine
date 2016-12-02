@@ -15,6 +15,7 @@
 package com.splicemachine.si.impl;
 
 
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.timestamp.api.TimestampSource;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,7 +27,7 @@ public class MemTimestampSource implements TimestampSource {
 
     @Override
     public long nextTimestamp() {
-        return id.incrementAndGet();
+        return id.addAndGet(SIConstants.TRASANCTION_INCREMENT);
     }
 
     @Override

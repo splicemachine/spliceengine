@@ -46,6 +46,9 @@ public class SIConstants {
     public static final int TRANSACTION_ID_COLUMN = 14;
     public static final int TRANSACTION_COUNTER_COLUMN = 15;
     public static final int TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN = 16;
+    public static final long TRASANCTION_INCREMENT = 0x100l;
+    public static final long SUBTRANSANCTION_ID_MASK = 0xFFl;
+    public static final long TRANSANCTION_ID_MASK= 0xFFFFFFFFFFFFFF00l;
 
     /**
      * Splice Columns

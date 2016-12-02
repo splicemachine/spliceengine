@@ -33,6 +33,8 @@ public interface TxnLifecycleStore{
 
     void rollbackTransaction(long txnId) throws IOException;
 
+    void rollbackSubtransactions(long txnId, long[] subIds) throws IOException;
+
     boolean keepAlive(long txnId) throws IOException;
 
     TxnMessage.Txn getTransaction(long txnId) throws IOException;
