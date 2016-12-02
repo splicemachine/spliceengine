@@ -28,7 +28,7 @@ public class TestingTimestampSource implements TimestampSource{
     @Override
     public long nextTimestamp() {
         synchronized (this) {
-            id = id + 1;
+            id = id + 0x100;
             return id;
         }
     }

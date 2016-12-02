@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
@@ -66,6 +67,11 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 		}
 
 		@Override
+		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, boolean inMemory) throws IOException {
+				throw new UnsupportedOperationException("Cannot create new transactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
+		}
+
+		@Override
 		public Txn elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
 				throw new UnsupportedOperationException("Cannot elevate a transaction from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 		}
@@ -80,7 +86,12 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 				throw new UnsupportedOperationException("Cannot rollback a transaction from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 		}
 
-		@Override
+	@Override
+	public void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException {
+		throw new UnsupportedOperationException("Cannot rollback subtransactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
+	}
+
+	@Override
 		public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable, Txn txnToCommit) throws IOException {
 				throw new UnsupportedOperationException("Cannot chain a transaction from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 		}

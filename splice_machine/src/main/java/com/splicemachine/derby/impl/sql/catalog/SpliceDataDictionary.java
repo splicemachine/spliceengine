@@ -614,6 +614,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             return;
         assert rawTransaction instanceof SpliceTransaction:
                 "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
+        // No subtransactions from here on
+        ((SpliceTransaction) rawTransaction).getTxn().forbidSubtransactions();
         /*
          * This is a bit of an awkward hack--at this stage, we need to ensure that the transaction
          * allows writes, but we don't really know where it's going, except to the data dictionary (and

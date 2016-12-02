@@ -15,6 +15,8 @@
 
 package com.splicemachine.si.api.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -33,6 +35,8 @@ public interface TxnStore extends TxnSupplier{
     void recordNewTransaction(Txn txn) throws IOException;
 
     void rollback(long txnId) throws IOException;
+
+    void rollbackSubtransactions(long txnId, LongOpenHashSet subtransactions) throws IOException;
 
     long commit(long txnId) throws IOException;
 

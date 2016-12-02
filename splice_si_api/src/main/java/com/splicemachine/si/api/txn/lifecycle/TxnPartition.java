@@ -181,4 +181,6 @@ public interface TxnPartition{
     boolean keepAlive(long txnId) throws IOException;
 
     void rollbackTransactionsAfter(long txnId) throws IOException;
+
+    void recordRollbackSubtransactions(long txnId, long[] subIds) throws IOException;
 }

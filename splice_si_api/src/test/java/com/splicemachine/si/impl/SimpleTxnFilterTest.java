@@ -87,14 +87,14 @@ public class SimpleTxnFilterTest{
     public void testCanSeeCommittedRowSnapshotIsolation() throws Exception{
         TxnSupplier baseStore=txnStore;
 
-        TxnView committed=new CommittedTxn(0l,1l);
+        TxnView committed=new CommittedTxn(0x100l,0x200l);
         baseStore.cache(committed);
 
         ReadResolver noopResolver=NoOpReadResolver.INSTANCE;
-        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,2l,2l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
+        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,0x300l,0x300l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
 
         DataPut testCommitKv=operationFactory.newDataPut(myTxn,Encoding.encode("1"));
-        testCommitKv.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0l,Bytes.toBytes(1l));
+        testCommitKv.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0x100l,Bytes.toBytes(1l));
         DataCell commitCell=testCommitKv.cells().iterator().next();
         Assert.assertNotNull("Did not create a commit cell!",commitCell);
         Assert.assertEquals("Incorrect data type!",CellType.COMMIT_TIMESTAMP,commitCell.dataType());
@@ -105,7 +105,7 @@ public class SimpleTxnFilterTest{
         Assert.assertEquals("Incorrect return code for commit keyvalue!",DataFilter.ReturnCode.SKIP,code);
 
         DataPut testUserPut=operationFactory.newDataPut(myTxn,Encoding.encode("1"));
-        testUserPut.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,0l,Encoding.encode("hello"));
+        testUserPut.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,0x100l,Encoding.encode("hello"));
         DataCell userCell=testUserPut.cells().iterator().next();
         Assert.assertNotNull("Did not create a user cell!",userCell);
         Assert.assertEquals("Incorrect data type!",CellType.USER_DATA,userCell.dataType());
@@ -122,7 +122,7 @@ public class SimpleTxnFilterTest{
         rolledBack.rollback();
 
         ReadResolver noopResolver=NoOpReadResolver.INSTANCE;
-        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,2l,2l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
+        TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,0x300l,0x300l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
         SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
 
         DataCell userCell=getUserCell(rolledBack);
@@ -141,10 +141,10 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        Txn active=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
+        Txn active=new WritableTxn(0x200l,0x200l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
         baseStore.cache(active);
 
-        assertActive(baseStore,active,2l);
+        assertActive(baseStore,active,0x400l);
     }
 
     @Test
@@ -155,12 +155,12 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView active=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
-        TxnView child=new WritableTxn(2l,2l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,active,mock(TxnLifecycleManager.class),false,exceptionFactory);
+        TxnView active=new WritableTxn(0x200l,0x200l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
+        TxnView child=new WritableTxn(0x300l,0x300l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,active,mock(TxnLifecycleManager.class),false,exceptionFactory);
         baseStore.cache(active);
         baseStore.cache(child);
 
-        assertActive(baseStore,child,5l);
+        assertActive(baseStore,child,0x500l);
     }
 
     /*Tests for Read-Resolution of Committed transactions*/
@@ -174,7 +174,7 @@ public class SimpleTxnFilterTest{
         Txn committed = txnLifecycleManager.beginTransaction(Bytes.toBytes("table"));
         committed.commit();
 
-        assertCommitted(baseStore,committed,5l);
+        assertCommitted(baseStore,committed,0x500l);
     }
 
     @Test
@@ -190,7 +190,7 @@ public class SimpleTxnFilterTest{
         committed.commit();
         parentTxn.commit();
 
-        assertCommitted(baseStore,committed,5l);
+        assertCommitted(baseStore,committed,0x500l);
     }
 
     @Test
@@ -201,12 +201,12 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView parentTxn=getMockCommittedTxn(1,4,null);
-        TxnView committed=getMockCommittedTxn(2,3,null);
+        TxnView parentTxn=getMockCommittedTxn(0x200l,0x500l,null);
+        TxnView committed=getMockCommittedTxn(0x300l,0x400l,null);
         baseStore.cache(parentTxn);
         baseStore.cache(committed);
 
-        assertCommitted(baseStore,committed,5l);
+        assertCommitted(baseStore,committed,0x600l);
     }
 
     /*Tests around read-resolution of rolled back transactions*/
@@ -217,7 +217,7 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView rolledBackTxn=getMockRolledBackTxn(1l,null);
+        TxnView rolledBackTxn=getMockRolledBackTxn(0x100l,null);
         baseStore.cache(rolledBackTxn);
 
         assertRolledBack(baseStore,rolledBackTxn);
@@ -232,8 +232,8 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView parenTxn=getMockRolledBackTxn(1l,null);
-        TxnView rolledBackTxn=getMockActiveTxn(2l,parenTxn);
+        TxnView parenTxn=getMockRolledBackTxn(0x100l,null);
+        TxnView rolledBackTxn=getMockActiveTxn(0x200l,parenTxn);
         baseStore.cache(rolledBackTxn);
         baseStore.cache(parenTxn);
 
@@ -249,8 +249,8 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView parenTxn=getMockRolledBackTxn(1l,null);
-        TxnView rolledBackTxn=getMockCommittedTxn(2,3,parenTxn);
+        TxnView parenTxn=getMockRolledBackTxn(0x100l,null);
+        TxnView rolledBackTxn=getMockCommittedTxn(0x200l,0x300l,parenTxn);
         baseStore.cache(parenTxn);
         baseStore.cache(rolledBackTxn);
 
@@ -265,8 +265,8 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView parenTxn=getMockCommittedTxn(1l,3l,null);
-        TxnView rolledBackTxn=getMockRolledBackTxn(2l,parenTxn);
+        TxnView parenTxn=getMockCommittedTxn(0x100l,0x300l,null);
+        TxnView rolledBackTxn=getMockRolledBackTxn(0x200l,parenTxn);
         baseStore.cache(parenTxn);
         baseStore.cache(rolledBackTxn);
 
@@ -354,7 +354,9 @@ public class SimpleTxnFilterTest{
         Assert.assertArrayEquals("Incorrect row to resolve committed!",testDataKv.key(),first.getByteCopy());
 
         Pair<Long, Long> txnIdToCommitTs=committedTs.getSecond();
-        Assert.assertEquals("Incorrect transaction id!",committed.getTxnId(),txnIdToCommitTs.getFirst().longValue());
+        Assert.assertEquals("Incorrect transaction id!",
+                committed.getTxnId() & SIConstants.TRANSANCTION_ID_MASK,
+                txnIdToCommitTs.getFirst().longValue() & SIConstants.TRANSANCTION_ID_MASK);
         Assert.assertEquals("Incorrect commit timestamp!",committed.getEffectiveCommitTimestamp(),
                 txnIdToCommitTs.getSecond().longValue());
     }

@@ -90,7 +90,7 @@ public class ReadOnlyTxn extends AbstractTxn{
                        TxnLifecycleManager tc,
                        ExceptionFactory exceptionFactory,
                        boolean additive){
-        super(txnId,beginTimestamp,isolationLevel);
+        super(null, txnId,beginTimestamp,isolationLevel);
         this.parentTxn=parentTxn;
         this.tc=tc;
         this.additive=additive;
@@ -131,6 +131,29 @@ public class ReadOnlyTxn extends AbstractTxn{
     }
 
     @Override
+    public void subRollback() {
+        for (Txn c : children) {
+            c.subRollback();
+        }
+
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"Before rollback: txn=%s",this);
+        boolean shouldContinue;
+        do{
+            State currState=state.get();
+            switch(currState){
+                case COMMITTED:
+                case ROLLEDBACK:
+                    return;
+                default:
+                    shouldContinue=state.compareAndSet(currState,State.ROLLEDBACK);
+            }
+        }while(shouldContinue);
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"After rollback: txn=%s",this);
+    }
+
+    @Override
     public void commit() throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"Before commit: txn=%s",this);
@@ -152,21 +175,7 @@ public class ReadOnlyTxn extends AbstractTxn{
 
     @Override
     public void rollback() throws IOException{
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"Before rollback: txn=%s",this);
-        boolean shouldContinue;
-        do{
-            State currState=state.get();
-            switch(currState){
-                case COMMITTED:
-                case ROLLEDBACK:
-                    return;
-                default:
-                    shouldContinue=state.compareAndSet(currState,State.ROLLEDBACK);
-            }
-        }while(shouldContinue);
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"After rollback: txn=%s",this);
+        subRollback();
     }
 
     @Override
@@ -186,7 +195,7 @@ public class ReadOnlyTxn extends AbstractTxn{
 			* create a child transaction id or a begin timestamp of our own. Instead of elevating,
 			* we actually create a writable child transaction.
 			*/
-            newTxn=tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable);
+            newTxn=tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable,true);
         }else{
             newTxn=tc.elevateTransaction(this,writeTable); //requires at least one network call
         }

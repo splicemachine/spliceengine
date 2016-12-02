@@ -36,6 +36,8 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,9 +81,10 @@ public class RegionTxnStore implements TxnPartition{
 
     @Override
     public TxnMessage.Txn getTransaction(long txnId) throws IOException{
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getTransaction txnId=%d",txnId);
-        Get get=new Get(getRowKey(txnId));
+        Get get=new Get(getRowKey(beginTS));
         Result result=region.get(get);
         if(result==null||result.isEmpty())
             return null; //no transaction
@@ -262,7 +265,7 @@ public class RegionTxnStore implements TxnPartition{
     public Source<TxnMessage.Txn> getActiveTxns(long afterTs,long beforeTs,byte[] destinationTable) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getActiveTxns afterTs=%d, beforeTs=%s",afterTs,beforeTs);
-        Scan scan=setupScanOnRange(afterTs,beforeTs);
+        Scan scan = setupScanOnRange(afterTs, beforeTs);
         scan.setFilter(new ActiveTxnFilter(beforeTs,afterTs,destinationTable,clock,keepAliveTimeoutMs));
 
         final RegionScanner scanner=region.getScanner(scan);
@@ -320,6 +323,28 @@ public class RegionTxnStore implements TxnPartition{
         }
         uncommittedAfter.close();
     }
+
+    @Override
+    public void recordRollbackSubtransactions(long txnId, long[] subIds) throws IOException {
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"recordRollback txnId=%d",txnId);
+
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+
+        Put put=new Put(getRowKey(beginTS));
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        boolean first = true;
+        for (long id : subIds) {
+            if (!first) {
+                baos.write(0);
+            }
+            baos.write(Encoding.encode(id));
+            first = false;
+        }
+        put.add(FAMILY,V2TxnDecoder.ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES,baos.toByteArray());
+        region.put(put);
+    }
+
     /******************************************************************************************************************/
 	/*private helper methods*/
 
@@ -339,12 +364,11 @@ public class RegionTxnStore implements TxnPartition{
 
         byte[] regionKey=region.getRegionInfo().getStartKey();
         byte bucket;
-        if(regionKey.length<=0)
-            regionKey = region.getRegionInfo().getEndKey();
-        if(regionKey.length<=0)
-            bucket = 0; //should never happen
-        else
-            bucket=regionKey[0];
+        if(regionKey.length>0)
+            bucket = regionKey[0];
+        else { // first region, bucket is 0
+            bucket = 0;
+        }
         byte[] sk = new byte[startKey.length+1];
         sk[0] = bucket;
         System.arraycopy(startKey,0,sk,1,startKey.length);

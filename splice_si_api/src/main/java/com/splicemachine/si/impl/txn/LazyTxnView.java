@@ -20,6 +20,7 @@ import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -116,6 +117,16 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
+    public boolean allowsSubtransactions() {
+        return false;
+    }
+
+    @Override
+    public int getSubId() {
+        return (int)(txnId & SIConstants.SUBTRANSANCTION_ID_MASK);
+    }
+
+    @Override
     public long getBeginTimestamp() {
         /*
          * As of this comment (Sept. 2014) the begin timestamp and the
@@ -190,7 +201,13 @@ public class LazyTxnView implements TxnView {
         TxnView other = (TxnView) o;
 
         return txnId == other.getTxnId();
+    }
 
+    @Override
+    public boolean equivalent(TxnView o) {
+        if (this == o) return true;
+        if (!(o instanceof TxnView)) return false;
+        return (txnId & SIConstants.TRANSANCTION_ID_MASK) == (o.getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
     }
 
     @Override
