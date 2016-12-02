@@ -15,7 +15,6 @@
 
 package com.splicemachine.db.iapi.stats;
 
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;

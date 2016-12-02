@@ -25,7 +25,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Arrays;
 import java.util.List;
 
 import com.splicemachine.db.catalog.AliasInfo;

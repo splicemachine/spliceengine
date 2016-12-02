@@ -41,7 +41,6 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import javafx.scene.control.Tab;
 
 import java.util.Properties;
 

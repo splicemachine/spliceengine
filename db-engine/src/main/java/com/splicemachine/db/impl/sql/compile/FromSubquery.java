@@ -38,7 +38,6 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.HashMap;
-import java.util.HashSet;
 
 
 /**

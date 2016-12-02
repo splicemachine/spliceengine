@@ -18,11 +18,6 @@ package com.splicemachine.utils.kryo;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.spark.serializer.KryoSerializer;
-
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Simple Pool of Kryo objects that allows a core of Kryo objects to remain

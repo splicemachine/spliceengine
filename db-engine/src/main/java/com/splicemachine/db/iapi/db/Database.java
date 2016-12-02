@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 
 import java.io.InputStream;
-import java.sql.SQLException;
 import java.util.Locale;
 
 /**

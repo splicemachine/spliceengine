@@ -25,7 +25,6 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.lang.reflect.Method;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.Qualifier;

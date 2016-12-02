@@ -14,15 +14,7 @@
  */
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.Row;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  *

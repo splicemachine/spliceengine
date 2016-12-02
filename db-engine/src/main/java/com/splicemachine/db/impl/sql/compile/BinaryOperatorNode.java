@@ -33,7 +33,6 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 
 import java.lang.reflect.Modifier;
 
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -45,7 +44,6 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * A BinaryOperatorNode represents a built-in binary operator as defined by

@@ -29,7 +29,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.SortedSet;
 
 public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner{
     protected static final Logger LOG=Logger.getLogger(MemstoreKeyValueScanner.class);

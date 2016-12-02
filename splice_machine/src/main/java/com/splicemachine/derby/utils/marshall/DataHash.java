@@ -16,7 +16,6 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 import java.io.Closeable;
 import java.io.IOException;

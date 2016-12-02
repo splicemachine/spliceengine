@@ -25,14 +25,6 @@
 
 package com.splicemachine.db.jdbc;
 
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.logging.Logger;
-
-import com.splicemachine.db.client.am.ClientMessageId;
-import com.splicemachine.db.client.am.SqlException;
-import com.splicemachine.db.shared.common.reference.SQLState;
-
 /**
  * ClientDataSource40 is a simple data source implementation
  * that can be used for establishing connections in a

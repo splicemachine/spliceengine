@@ -24,8 +24,6 @@ import java.util.*;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
@@ -38,7 +36,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.jdbc.InternalDriver;
 
 
-import org.spark_project.guava.io.Closeables;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;

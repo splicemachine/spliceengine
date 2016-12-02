@@ -36,10 +36,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.catalog.UUID;
 
-import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
-import com.splicemachine.db.iapi.services.io.FormatableHashtable;
-import com.splicemachine.db.iapi.services.io.FormatableLongHolder;
-
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;

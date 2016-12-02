@@ -15,9 +15,7 @@
 
 package com.splicemachine.stream.index;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.TableWriter;
-import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.OutputCommitter;

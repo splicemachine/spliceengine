@@ -52,8 +52,6 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 
 import java.sql.Types;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;

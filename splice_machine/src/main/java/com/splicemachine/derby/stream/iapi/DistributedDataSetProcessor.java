@@ -17,10 +17,6 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 
 /**
  * @author Scott Fines
