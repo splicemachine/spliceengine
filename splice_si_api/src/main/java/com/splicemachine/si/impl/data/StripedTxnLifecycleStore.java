@@ -20,6 +20,7 @@ import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.Source;
@@ -136,6 +137,30 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
     }
 
     @Override
+    public void rollbackSubtransactions(long txnId, long[] subIds) throws IOException {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+
+        Lock lock=lockStriper.get(beginTS).writeLock();
+        acquireLock(lock);
+        try{
+            Txn.State state=baseStore.getState(beginTS);
+            if(state==null){
+                return;
+            }
+            switch(state){
+                case COMMITTED:
+                    return;
+                case ROLLEDBACK:
+                    return;
+                default:
+                    baseStore.recordRollbackSubtransactions(txnId, subIds);
+            }
+        }finally{
+            unlock(lock);
+        }
+    }
+
+    @Override
     public boolean keepAlive(long txnId) throws IOException{
         Lock lock=lockStriper.get(txnId).writeLock();
         acquireLock(lock);
@@ -149,13 +174,13 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
 
     @Override
     public TxnMessage.Txn getTransaction(long txnId) throws IOException{
-        Lock lock=lockStriper.get(txnId).readLock();
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock lock=lockStriper.get(beginTS).readLock();
         acquireLock(lock);
         try{
             TxnMessage.Txn txn=baseStore.getTransaction(txnId);
             if(txn==null)
                 txn=NONEXISTENT_TXN;
-
             return txn;
         }finally{
             unlock(lock);

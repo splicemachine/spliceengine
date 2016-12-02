@@ -40,6 +40,7 @@ import static org.junit.Assert.*;
  */
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
+@Ignore("DB-1222")
 public class Trigger_Row_IT {
 
     private static final String SCHEMA = Trigger_Row_IT.class.getSimpleName();

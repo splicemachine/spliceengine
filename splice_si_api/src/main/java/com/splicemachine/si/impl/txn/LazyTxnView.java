@@ -20,6 +20,7 @@ import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -113,6 +114,16 @@ public class LazyTxnView implements TxnView {
     @Override
     public long getTxnId() {
         return txnId;
+    }
+
+    @Override
+    public boolean allowsSubtransactions() {
+        return false;
+    }
+
+    @Override
+    public int getSubId() {
+        return (int)(txnId & SIConstants.SUBTRANSANCTION_ID_MASK);
     }
 
     @Override

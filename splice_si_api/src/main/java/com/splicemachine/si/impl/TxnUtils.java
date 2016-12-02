@@ -16,6 +16,8 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
+
 import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKET_COUNT;
 /**
  * @author Scott Fines
@@ -26,9 +28,10 @@ public class TxnUtils {
 		private TxnUtils(){}
 
 		public static byte[] getRowKey(long txnId) {
+				long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
 				byte[] rowKey = new byte[9];
-				rowKey[0] = (byte)(txnId & (TRANSACTION_TABLE_BUCKET_COUNT-1));
-				Bytes.longToBytes(txnId, rowKey, 1);
+				rowKey[0] = (byte)(beginTS & (TRANSACTION_TABLE_BUCKET_COUNT-1));
+				Bytes.longToBytes(beginTS, rowKey, 1);
 				return rowKey;
 		}
 

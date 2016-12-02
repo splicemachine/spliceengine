@@ -44,6 +44,10 @@ public interface TxnView extends Externalizable {
      */
     long getTxnId();
 
+    boolean allowsSubtransactions();
+
+    int getSubId();
+
     /**
      * @return the begin timestmap for the transaction.
      */

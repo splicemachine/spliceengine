@@ -183,6 +183,7 @@ public class CheckConstraintIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-1222")
     public void testAlterTableExistingDataViolatesConstraint() throws Exception {
         String tableName = "table4".toUpperCase();
         try(Statement s = conn.createStatement()){

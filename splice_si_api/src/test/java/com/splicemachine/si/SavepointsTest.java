@@ -121,8 +121,8 @@ public class SavepointsTest {
         Txn parent2=control.beginTransaction();
 
         long[] ids=txnStore.getActiveTransactionIds(parent2,DESTINATION_TABLE);
-        Assert.assertEquals("Incorrect size",2,ids.length);
-        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId(), transaction.getTxn().getTxnId()},ids);
+        Assert.assertEquals("Incorrect size",1,ids.length);
+        Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId()},ids);
 
 
         res = transaction.rollbackToSavePoint("first", null);
@@ -153,13 +153,10 @@ public class SavepointsTest {
         transaction.elevate(DESTINATION_TABLE);
         Txn second = transaction.getTxn();
 
-        // release first, should also commit second
+        // release first, we shouldn't do anything
         res = transaction.releaseSavePoint("first", null);
 
-        Assert.assertEquals("Wrong txn stack size", 1, res);
-
-        Assert.assertEquals(Txn.State.COMMITTED, first.getState());
-        Assert.assertEquals(Txn.State.COMMITTED, second.getState());
+        Assert.assertEquals("Wrong txn stack size", 3, res);
     }
 
 
@@ -207,11 +204,11 @@ public class SavepointsTest {
         Assert.assertTrue(transaction.getTxn().allowsWrites());
 
         res = transaction.releaseSavePoint("second", null);
-        Assert.assertEquals("Wrong txn stack size", 2, res);
+        Assert.assertEquals("Wrong txn stack size", 3, res);
         Assert.assertTrue(transaction.getTxn().allowsWrites());
 
         res = transaction.releaseSavePoint("first", null);
-        Assert.assertEquals("Wrong txn stack size", 1, res);
+        Assert.assertEquals("Wrong txn stack size", 3, res);
         Assert.assertTrue(transaction.getTxn().allowsWrites());
 
         transaction.commit();

@@ -20,6 +20,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
+import com.splicemachine.si.impl.ForwardingTxnView;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.si.testenv.*;
 import org.junit.*;
@@ -102,10 +103,9 @@ public class TransactionInteractionTest {
         //now check that fetching the grandchild is still correct
         TxnView userView = testEnv.getTxnStore().getTransaction(user.getTxnId());
         TxnView childView = testEnv.getTxnStore().getTransaction(child.getTxnId());
-        Assert.assertEquals("Incorrect parent transaction for child!",userView,childView.getParentTxnView());
+        Assert.assertEquals("Incorrect parent transaction for child!",userView.getParentTxnView(),childView.getParentTxnView());
         TxnView grandChildView = testEnv.getTxnStore().getTransaction(grandchild.getTxnId());
-        Assert.assertEquals("Incorrect parent transaction for grandchild!", childView, grandChildView.getParentTxnView());
-        Assert.assertEquals("Incorrect grandparent transaction for grandchild!", userView, grandChildView.getParentTxnView().getParentTxnView());
+        Assert.assertEquals("Incorrect parent transaction for grandchild!", userView.getParentTxnView(), grandChildView.getParentTxnView());
     }
 
     @Test
@@ -449,6 +449,15 @@ public class TransactionInteractionTest {
         Assert.assertEquals("Incorrectly written data!",name+" age=29 job=plumber",testUtility.read(userTxn,name));
     }
 
+    private static Txn noSubTxns(Txn txn) {
+        return new ForwardingTxnView(txn) {
+            @Override
+            public boolean allowsSubtransactions() {
+                return false;
+            }
+        };
+    }
+
     @Test
     public void testTwoAdditiveTransactionsCannotSeeEachOthersWritesEvenAfterCommit() throws Exception {
         /*
@@ -467,7 +476,7 @@ public class TransactionInteractionTest {
          * during writes and so forth), but is necessary.
          */
         String name = "scott10";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = noSubTxns(control.beginTransaction(DESTINATION_TABLE));
         Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
         Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,null);
 

@@ -15,6 +15,8 @@
 
 package com.splicemachine.si.api.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
+
 import java.io.IOException;
 
 /**
@@ -171,6 +173,8 @@ public interface TxnLifecycleManager{
      * @throws IOException If something goes wrong during the rollback
      */
     void rollback(long txnId) throws IOException;
+
+    void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException;
 
     /**
      * "Chains" a new transaction to the old one.
