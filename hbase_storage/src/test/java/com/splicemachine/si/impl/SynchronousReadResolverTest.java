@@ -77,7 +77,7 @@ public class SynchronousReadResolverTest {
             }
         }).when(tc).rollback(1l);
 
-        Txn rolledBackTxn = new WritableTxn(1l, 1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, tc, false,HExceptionFactory.INSTANCE);
+        Txn rolledBackTxn = new WritableTxn(1l, 1l, Txn.ROOT_TRANSACTION, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, tc, false,HExceptionFactory.INSTANCE);
         store.recordNewTransaction(rolledBackTxn);
         rolledBackTxn.rollback(); //ensure that it's rolled back
 
@@ -123,7 +123,7 @@ public class SynchronousReadResolverTest {
                 return next + 1;
             }
         }).when(tc).commit(anyLong());
-        Txn committedTxn = new WritableTxn(1l, 1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, tc, false,HExceptionFactory.INSTANCE);
+        Txn committedTxn = new WritableTxn(1l, 1l, Txn.ROOT_TRANSACTION, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, tc, false,HExceptionFactory.INSTANCE);
         store.recordNewTransaction(committedTxn);
         committedTxn.commit();
 

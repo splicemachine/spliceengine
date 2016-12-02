@@ -26,6 +26,7 @@ public class TxnUtils {
 		private TxnUtils(){}
 
 		public static byte[] getRowKey(long txnId) {
+				txnId ^= txnId & 0xff;
 				byte[] rowKey = new byte[9];
 				rowKey[0] = (byte)(txnId & (TRANSACTION_TABLE_BUCKET_COUNT-1));
 				Bytes.longToBytes(txnId, rowKey, 1);

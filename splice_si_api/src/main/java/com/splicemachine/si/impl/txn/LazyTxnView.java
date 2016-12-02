@@ -116,6 +116,16 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
+    public boolean allowsSubtransactions() {
+        return false;
+    }
+
+    @Override
+    public int getSubId() {
+        return (int)(txnId & 0xFF);
+    }
+
+    @Override
     public long getBeginTimestamp() {
         /*
          * As of this comment (Sept. 2014) the begin timestamp and the

@@ -93,7 +93,7 @@ public abstract class AbstractTxnView implements TxnView {
         return null;
     }
 
-    @Override public long getParentTxnId() { 
+    @Override public long getParentTxnId() {
     	return getParentTxnView().getTxnId(); 
     }
 
@@ -110,6 +110,7 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
     public boolean canSee(TxnView otherTxn) {
         assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
+        if(otherTxn.getState() == Txn.State.ROLLEDBACK) return false; // can't see rolledback
         if(equals(otherTxn)) return true; //you can always see your own writes
         if(isAdditive() && otherTxn.isAdditive()){
             /*
@@ -299,7 +300,10 @@ public abstract class AbstractTxnView implements TxnView {
         return txnId == ((TxnView) o).getTxnId();
     }
 
-    @Override public int hashCode() { return (int) (txnId ^ (txnId >>> 32)); }
+    @Override
+    public int hashCode() {
+        return (int) (txnId ^ (txnId >>> 32));
+    }
 
     /************************************************************************************************************/
     /*private helper methods*/
@@ -347,5 +351,14 @@ public abstract class AbstractTxnView implements TxnView {
     			txnId,
     			getState(),
     			(LOG.isDebugEnabled() ? String.format(" -> %s", getParentTxnView()) : ""));
-    }    
+    }
+
+    public int getSubId() {
+        return (int)(txnId & 0xFF);
+    }
+
+    @Override
+    public boolean allowsSubtransactions() {
+        return false;
+    }
 }

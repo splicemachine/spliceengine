@@ -36,6 +36,8 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,9 +81,10 @@ public class RegionTxnStore implements TxnPartition{
 
     @Override
     public TxnMessage.Txn getTransaction(long txnId) throws IOException{
+        long beginTS = txnId ^ (txnId & 0xff);
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getTransaction txnId=%d",txnId);
-        Get get=new Get(getRowKey(txnId));
+        Get get=new Get(getRowKey(beginTS));
         Result result=region.get(get);
         if(result==null||result.isEmpty())
             return null; //no transaction
@@ -320,6 +323,28 @@ public class RegionTxnStore implements TxnPartition{
         }
         uncommittedAfter.close();
     }
+
+    @Override
+    public void recordRollbackSubtransactions(long txnId, long[] subIds) throws IOException {
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"recordRollback txnId=%d",txnId);
+
+        long beginTS = txnId ^ (txnId & 0xff);
+
+        Put put=new Put(getRowKey(beginTS));
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        boolean first = true;
+        for (long id : subIds) {
+            if (!first) {
+                baos.write(0);
+            }
+            baos.write(Encoding.encode(id));
+            first = false;
+        }
+        put.add(FAMILY,V2TxnDecoder.ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES,baos.toByteArray());
+        region.put(put);
+    }
+
     /******************************************************************************************************************/
 	/*private helper methods*/
 

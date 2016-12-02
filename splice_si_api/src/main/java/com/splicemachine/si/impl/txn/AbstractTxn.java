@@ -15,26 +15,45 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.Txn;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
  *         Date: 6/18/14
  */
-public abstract class AbstractTxn extends AbstractTxnView implements Txn{
+public abstract class AbstractTxn extends AbstractTxnView implements Txn {
+
+    private AtomicLong counter;
+    protected LongOpenHashSet rolledback = new LongOpenHashSet();
+    protected Set<Txn> children = new HashSet<>();
+    protected Txn parentRoot;
 
     protected AbstractTxn(){
-
     }
 
-    protected AbstractTxn(long txnId,
-                          long beginTimestamp,
-                          IsolationLevel isolationLevel){
+    protected AbstractTxn(
+            Txn parentRoot,
+            long txnId,
+            long beginTimestamp,
+            IsolationLevel isolationLevel){
         super(txnId,beginTimestamp,isolationLevel);
+        if (parentRoot != null) {
+            this.parentRoot = parentRoot;
+            this.parentRoot.register(this);
+        } else {
+            this.parentRoot = this;
+        }
+        if (getSubId() == 0) {
+            counter = new AtomicLong(0);
+        }
     }
 
     @Override
@@ -45,5 +64,52 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn{
     @Override
     public void writeExternal(ObjectOutput output) throws IOException{
         throw new UnsupportedOperationException("Transactions cannot be serialized, only their views");
+    }
+
+    @Override
+    public long newSubId() {
+        if (getSubId() == 0) {
+            return counter.incrementAndGet();
+        } else {
+            return parentRoot.newSubId();
+        }
+    }
+
+    @Override
+    public Txn getParentRoot() {
+        return parentRoot;
+    }
+
+    @Override
+    public void register(Txn child) {
+        children.add(child);
+    }
+
+    @Override
+    public void addRolledback(long subId) {
+        if (getSubId() == 0) {
+            rolledback.add(subId);
+        } else {
+            parentRoot.addRolledback(subId);
+        }
+    }
+
+    @Override
+    public LongOpenHashSet getRolledback() {
+        if (getSubId() == 0) {
+            return rolledback.clone();
+        } else {
+            return parentRoot.getRolledback();
+        }
+    }
+
+    @Override
+    public boolean allowsSubtransactions() {
+        for (Txn c : children) {
+            if (c.getState() == State.ACTIVE) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -27,7 +27,7 @@ public class MemTimestampSource implements TimestampSource {
 
     @Override
     public long nextTimestamp() {
-        return id.incrementAndGet();
+        return id.addAndGet(0x100);
     }
 
     @Override

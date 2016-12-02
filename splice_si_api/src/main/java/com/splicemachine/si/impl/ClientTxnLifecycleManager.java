@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
@@ -103,8 +104,14 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         if(parentTxn.getState()!=Txn.State.ACTIVE)
             throw exceptionFactory.doNotRetry("Cannot create a child of an inactive transaction. Parent: "+parentTxn);
         if(destinationTable!=null){
-            long timestamp=timestampSource.nextTimestamp();
-            return createWritableTransaction(timestamp,isolationLevel,additive,parentTxn,destinationTable);
+            if (parentTxn.allowsSubtransactions()) {
+                Txn parent = (Txn) parentTxn;
+                long subId = parent.newSubId();
+                if (subId < 0xFF)
+                    return createWritableTransaction(parent.getBeginTimestamp(), subId, parent, isolationLevel, additive, parentTxn, destinationTable);
+            }
+            long timestamp = timestampSource.nextTimestamp();
+            return createWritableTransaction(timestamp, 0, null, isolationLevel, additive, parentTxn, destinationTable);
         }else
             return createReadableTransaction(isolationLevel,additive,parentTxn);
     }
@@ -138,7 +145,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         long oldTs=txnToCommit.getCommitTimestamp();
 
         if(destinationTable!=null)
-            return createWritableTransaction(oldTs,isolationLevel,additive,parentTxn,destinationTable);
+            return createWritableTransaction(oldTs, 0, null, isolationLevel,additive,parentTxn,destinationTable);
         else{
             if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
                 return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,exceptionFactory,additive);
@@ -185,9 +192,19 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         //TODO -sf- add the transaction to the global cache?
     }
 
+    @Override
+    public void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException {
+        if(restoreMode){
+            return; // we are in restore mode, don't try to access the store
+        }
+        store.rollbackSubtransactions(txnId, rolledback);
+    }
+
     /**********************************************************************************************************/
         /*private helper method*/
     private Txn createWritableTransaction(long timestamp,
+                                          long subId,
+                                          Txn parentRoot,
                                           Txn.IsolationLevel isolationLevel,
                                           boolean additive,
                                           TxnView parentTxn,
@@ -198,11 +215,13 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 		 * This uses 2 network calls--once to get a beginTimestamp, and then once to record the
 		 * transaction to the table.
 		 */
-        WritableTxn newTxn=new WritableTxn(timestamp,
-                timestamp,isolationLevel,parentTxn,this,additive,destinationTable,exceptionFactory);
-        //record the transaction on the transaction table--network call
-        store.recordNewTransaction(newTxn);
-        keepAliveScheduler.scheduleKeepAlive(newTxn);
+        WritableTxn newTxn=new WritableTxn(timestamp ^ subId, timestamp, parentRoot,
+                isolationLevel,parentTxn,this,additive,destinationTable,exceptionFactory);
+        if (subId == 0) {
+            //record the transaction on the transaction table--network call
+            store.recordNewTransaction(newTxn);
+            keepAliveScheduler.scheduleKeepAlive(newTxn);
+        }
 
         return newTxn;
     }

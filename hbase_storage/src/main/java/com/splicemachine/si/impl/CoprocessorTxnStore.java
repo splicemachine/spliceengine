@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
@@ -113,6 +114,18 @@ public class CoprocessorTxnStore implements TxnStore {
         byte[] rowKey=getTransactionRowKey(txnId);
         TxnMessage.TxnLifecycleMessage lifecycle=TxnMessage.TxnLifecycleMessage.newBuilder()
                 .setTxnId(txnId).setAction(TxnMessage.LifecycleAction.ROLLBACk).build();
+        try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
+            table.lifecycleAction(rowKey,lifecycle);
+            rollbacks.incrementAndGet();
+        }
+    }
+
+    @Override
+    public void rollbackSubtransactions(long txnId, LongOpenHashSet subtransactions) throws IOException {
+        byte[] rowKey=getTransactionRowKey(txnId);
+        TxnMessage.TxnLifecycleMessage lifecycle=TxnMessage.TxnLifecycleMessage.newBuilder()
+                .setTxnId(txnId).addAllRolledbackSubTxns(Longs.asList(subtransactions.toArray()))
+                .setAction(TxnMessage.LifecycleAction.ROLLBACK_SUBTRANSACTIONS).build();
         try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
             table.lifecycleAction(rowKey,lifecycle);
             rollbacks.incrementAndGet();
@@ -226,7 +239,7 @@ public class CoprocessorTxnStore implements TxnStore {
     @Override
     public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
         lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
-        byte[] rowKey=getTransactionRowKey(txnId);
+        byte[] rowKey=getTransactionRowKey(txnId );
         TxnMessage.TxnRequest request=TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).build();
 
         try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){

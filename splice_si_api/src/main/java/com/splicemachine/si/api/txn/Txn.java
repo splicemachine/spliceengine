@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.api.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -64,6 +65,11 @@ public interface Txn extends TxnView{
         }
 
         @Override
+        public boolean allowsSubtransactions() {
+            return false;
+        }
+
+        @Override
         public long getBeginTimestamp(){
             return 0;
         }
@@ -106,6 +112,41 @@ public interface Txn extends TxnView{
         @Override
         public boolean allowsWrites(){
             return true;
+        }
+
+        @Override
+        public int getSubId() {
+            return 0;
+        }
+
+        @Override
+        public long newSubId() {
+            throw new UnsupportedOperationException("Can't create subtransactions of ROOT_TXN");
+        }
+
+        @Override
+        public Txn getParentRoot() {
+            return this;
+        }
+
+        @Override
+        public void register(Txn child) {
+            throw new UnsupportedOperationException("Can't register subtransactions of ROOT_TXN");
+        }
+
+        @Override
+        public void addRolledback(long subId) {
+            throw new UnsupportedOperationException("Can't rollback subtransactions of ROOT_TXN");
+        }
+
+        @Override
+        public LongOpenHashSet getRolledback() {
+            return new LongOpenHashSet();
+        }
+
+        @Override
+        public void subRollback() {
+            throw new UnsupportedOperationException("Can't create subtransactions of ROOT_TXN");
         }
 
         @Override
@@ -154,6 +195,18 @@ public interface Txn extends TxnView{
             throw new RuntimeException("Not Implemented");
         }
     };
+
+    long newSubId();
+
+    Txn getParentRoot();
+
+    void register(Txn child);
+
+    void addRolledback(long subId);
+
+    LongOpenHashSet getRolledback();
+
+    void subRollback();
 
     enum State{
         ACTIVE((byte)0x00), //represents an Active transaction that has not timed out

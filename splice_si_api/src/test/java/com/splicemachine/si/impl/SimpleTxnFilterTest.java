@@ -141,7 +141,7 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        Txn active=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
+        Txn active=new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
         baseStore.cache(active);
 
         assertActive(baseStore,active,2l);
@@ -155,8 +155,8 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView active=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
-        TxnView child=new WritableTxn(2l,2l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,active,mock(TxnLifecycleManager.class),false,exceptionFactory);
+        TxnView active=new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
+        TxnView child=new WritableTxn(2l,2l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,active,mock(TxnLifecycleManager.class),false,exceptionFactory);
         baseStore.cache(active);
         baseStore.cache(child);
 

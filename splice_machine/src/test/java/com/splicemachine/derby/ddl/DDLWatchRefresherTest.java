@@ -46,7 +46,7 @@ import static org.mockito.Mockito.mock;
 @Category(ArchitectureIndependent.class)
 public class DDLWatchRefresherTest{
 
-    private static final WritableTxn txn=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true,null);
+    private static final WritableTxn txn=new WritableTxn(1l,1l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true,null);
     private static final SqlExceptionFactory ef = new SqlExceptionFactory(){
         @Override
         public IOException asIOException(StandardException se){

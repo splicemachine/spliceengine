@@ -16,6 +16,7 @@
 package com.splicemachine.si.impl.store;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
@@ -107,6 +108,11 @@ public class TestingTxnStore implements TxnStore{
         Txn.State state=txn.getState();
         if(state!=Txn.State.ACTIVE) return; //nothing to do if we aren't active
         txnHolder.txn=getRolledbackTxn(txn);
+    }
+
+    @Override
+    public void rollbackSubtransactions(long txnId, LongOpenHashSet subtransactions) throws IOException {
+        // TODO
     }
 
     private Txn getRolledbackTxn(final Txn txn){

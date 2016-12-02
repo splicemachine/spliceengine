@@ -494,6 +494,7 @@
                         <encoding>UTF-8</encoding>
                         <compilerArgs>
                             <arg>-XDignore.symbol.file</arg>
+			    <arg>-Xpkginfo:always</arg>
                         </compilerArgs>
                         <fork>true</fork>
                         <showWarnings>true</showWarnings>

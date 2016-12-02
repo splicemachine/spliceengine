@@ -51,7 +51,7 @@ public class CompletedTxnCacheSupplierTest{
                 return al.incrementAndGet();
             }
         });
-        Txn txn=new WritableTxn(1,1,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,null);
+        Txn txn=new WritableTxn(1,1,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,null);
 
         final boolean[] called=new boolean[]{false};
         TxnStore backStore=new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),null,Long.MAX_VALUE){
@@ -87,7 +87,7 @@ public class CompletedTxnCacheSupplierTest{
                 return al.incrementAndGet();
             }
         });
-        Txn txn=new WritableTxn(1,1,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,null);
+        Txn txn=new WritableTxn(1,1,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,null);
         txn.rollback();
 
         final boolean[] called=new boolean[]{false};
@@ -127,7 +127,7 @@ public class CompletedTxnCacheSupplierTest{
                 return al.incrementAndGet();
             }
         });
-        Txn txn=new WritableTxn(1,1,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,null);
+        Txn txn=new WritableTxn(1,1,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,null);
         txn.commit();
 
         final boolean[] called=new boolean[]{false};

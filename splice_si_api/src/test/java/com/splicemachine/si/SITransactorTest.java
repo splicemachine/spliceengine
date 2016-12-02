@@ -21,6 +21,10 @@ import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
+import com.splicemachine.si.impl.ForwardingTxnView;
+import com.splicemachine.si.impl.txn.DDLTxnView;
+import com.splicemachine.si.impl.txn.InheritingTxnView;
+import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.si.testenv.*;
 import com.splicemachine.utils.ByteSlice;
 import org.hamcrest.core.IsInstanceOf;
@@ -1848,8 +1852,9 @@ public class SITransactorTest {
     @Test
     public void multipleChildIndependentConflict() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
+        TxnView t1v = new DDLTxnView(t1, t1.getBeginTimestamp());
+        Txn t2 = control.beginChildTransaction(t1v, t1.getIsolationLevel(), DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t1v, t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe31", 21);
         try {
             testUtility.insertJob(t3, "moe31", "baker");

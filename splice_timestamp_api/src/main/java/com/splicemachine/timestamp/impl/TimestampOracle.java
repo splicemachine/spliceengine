@@ -78,7 +78,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
 	private void initialize() throws TimestampIOException {
 			synchronized(this) {
                 _maxReservedTimestamp = timestampBlockManager.initialize();
-				_timestampCounter.set(_maxReservedTimestamp + 1);
+				_timestampCounter.set(_maxReservedTimestamp + 0x100);
 			}
 			try {
 				registerJMX();
@@ -88,7 +88,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
     }
 
 	public long getNextTimestamp() throws TimestampIOException {
-		long nextTS = _timestampCounter.getAndIncrement();
+		long nextTS = _timestampCounter.addAndGet(0x100);
 		long maxTS = _maxReservedTimestamp; // avoid the double volatile read
 		if (nextTS > maxTS) {
 			reserveNextBlock(maxTS);

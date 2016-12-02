@@ -108,7 +108,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
      * Defaults to 8192
      */
     public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
-    protected static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 8192;
+    protected static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 32768;
 
     public static final int DEFAULT_JMX_BIND_PORT = 10102;
 
