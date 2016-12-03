@@ -63,13 +63,14 @@ public class CreateTableNode extends DDLStatementNode
 	private ResultColumnList	resultColumns;
 	private ResultSetNode		queryExpression;
     private String              queryString;
-	boolean             isExternal;
-	ResultColumnList	partitionedResultColumns;
+	boolean             		  isExternal;
+	ResultColumnList			  partitionedResultColumns;
 	CharConstantNode              terminationChar;
 	CharConstantNode              escapedByChar;
 	CharConstantNode              linesTerminatedByChar;
-	String              storageFormat;
+	String              		  storageFormat;
 	CharConstantNode              location;
+	String              		  compression;
 
 
 
@@ -97,7 +98,8 @@ public class CreateTableNode extends DDLStatementNode
 			Object escapedByChar,
 			Object linesTerminatedByChar,
 			Object storageFormat,
-			Object location
+			Object location,
+			Object compression
 		)
 		throws StandardException
 	{
@@ -127,6 +129,7 @@ public class CreateTableNode extends DDLStatementNode
 		this.linesTerminatedByChar = (CharConstantNode) linesTerminatedByChar;
 		this.storageFormat = (String) storageFormat;
 		this.location = (CharConstantNode) location;
+		this.compression = (String) compression;
 	}
 
 	/**
@@ -597,7 +600,8 @@ public class CreateTableNode extends DDLStatementNode
 				escapedByChar!=null?escapedByChar.value.getString():null,
 				linesTerminatedByChar!=null?linesTerminatedByChar.value.getString():null,
 				storageFormat,
-					location!=null?location.value.getString():null
+				location!=null?location.value.getString():null,
+				compression
 					));
 	}
 

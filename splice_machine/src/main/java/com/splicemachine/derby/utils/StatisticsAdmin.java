@@ -462,6 +462,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .oneSplitPerRegion(true)
                 .storedAs(table.getStoredAs())
                 .location(table.getLocation())
+                .compression(table.getCompression())
                 .delimited(table.getDelimited())
                 .lines(table.getLines())
                 .escaped(table.getEscaped())

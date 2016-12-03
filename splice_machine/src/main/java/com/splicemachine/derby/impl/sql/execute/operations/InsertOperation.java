@@ -78,6 +78,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected String lines;
     protected String storedAs;
     protected String location;
+    protected String compression;
     protected int partitionByRefItem;
     protected int[] partitionBy;
 
@@ -107,7 +108,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String lines,
                            String storedAs,
                            String location,
-                            int partitionByRefItem) throws StandardException{
+                           String compression,
+                           int partitionByRefItem) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
@@ -117,6 +119,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.lines = lines;
         this.storedAs = storedAs;
         this.location = location;
+        this.compression = compression;
         this.partitionByRefItem = partitionByRefItem;
         init();
     }
@@ -248,6 +251,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         lines = in.readBoolean()?in.readUTF():null;
         storedAs = in.readBoolean()?in.readUTF():null;
         location = in.readBoolean()?in.readUTF():null;
+        compression = in.readBoolean()?in.readUTF():null;
         this.partitionByRefItem = in.readInt();
     }
 
@@ -279,6 +283,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeBoolean(location!=null);
         if (location!=null)
             out.writeUTF(location);
+        out.writeBoolean(compression!=null);
+        if (compression!=null)
+            out.writeUTF(compression);
         out.writeInt(partitionByRefItem);
     }
 
@@ -303,11 +310,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p"))
-                    return set.writeParquetFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location,operationContext);
+                    return set.writeParquetFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
                 if (storedAs.toLowerCase().equals("o"))
-                    return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location,operationContext);
+                    return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
                 if (storedAs.toLowerCase().equals("t"))
-                    return set.writeTextFile(this,location,delimited,lines,IntArrays.count(execRowTypeFormatIds.length),operationContext);
+                    return set.writeTextFile(this,location,delimited,lines,IntArrays.count(execRowTypeFormatIds.length), operationContext);
                 new RuntimeException("storedAs type not supported -> " + storedAs);
             }
 
