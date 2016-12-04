@@ -63,26 +63,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
-        <dependency>
-            <groupId>org.spark-project.hive</groupId>
-            <artifactId>hive-exec</artifactId>
-            <version>1.2.1.spark2</version>
-        </dependency>
-
-
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.scalatest</groupId>
-                    <artifactId>scalatest_${scala.binary.version}</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_${scala.binary.version}</artifactId>
