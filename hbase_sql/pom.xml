@@ -322,7 +322,17 @@
 			    <groupId>asm</groupId>
 			    <artifactId>asm</artifactId>
 		    </exclusion>
+            <exclusion>
+                <groupId>asm</groupId>
+                <artifactId>asm</artifactId>
+            </exclusion>
+            <exclusion>
+                <artifactId>hive-common</artifactId>
+                <groupId>org.apache.hive</groupId>
+             </exclusion>
 	    </exclusions>
+
+
         </dependency>
 	<dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -379,6 +389,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!--
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-common</artifactId>
@@ -403,6 +414,7 @@
             </exclusion>
 	    </exclusions>
         </dependency>
+        -->
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-contrib</artifactId>
@@ -532,6 +544,14 @@
         </dependency>
     </dependencies>
     <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.5.0.Final</version>
+            </extension>
+        </extensions>
+
         <plugins>
 
             <plugin>
@@ -1090,6 +1110,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
                                 <argument>-Xmx6g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
