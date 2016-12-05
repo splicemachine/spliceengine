@@ -333,6 +333,7 @@
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
                                             <fileset dir="target/classes/scripts" includes="**/*"/>
+                                            <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
                                         </copy>
                                         <!-- el6 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-el6" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
@@ -433,6 +434,7 @@
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
                                             <fileset dir="target/classes/scripts" includes="**/*"/>
+                                            <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
                                             <fileset dir="target/dependency" includes="**/*"/>
