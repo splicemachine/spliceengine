@@ -361,11 +361,13 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-beeline</artifactId>
             <version>${hive.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-cli</artifactId>
             <version>${hive.version}</version>
+            <scope>compile</scope>
             <exclusions>
                 <exclusion>
                     <artifactId>guava</artifactId>
@@ -380,6 +382,7 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-common</artifactId>
+            <scope>compile</scope>
             <version>${hive.version}</version>
 	    <exclusions>
 		    <exclusion>
@@ -403,6 +406,7 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-contrib</artifactId>
+            <scope>compile</scope>
             <version>${hive.version}</version>
             <exclusions>
                 <exclusion>
@@ -415,6 +419,7 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-hbase-handler</artifactId>
+            <scope>compile</scope>
             <version>${hive.version}</version>
             <exclusions>
                 <exclusion>
@@ -426,6 +431,7 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-hwi</artifactId>
+            <scope>compile</scope>
             <version>${hive.version}</version>
 	    <exclusions>
 		    <exclusion>
@@ -441,11 +447,13 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-jdbc</artifactId>
+            <scope>compile</scope>
             <version>${hive.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-service</artifactId>
+            <scope>compile</scope>
             <version>${hive.version}</version>
 	    <exclusions>
 		    <exclusion>
@@ -461,6 +469,7 @@
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-shims</artifactId>
+            <scope>compile</scope>
             <version>${hive.version}</version>
         </dependency>
         <dependency>
