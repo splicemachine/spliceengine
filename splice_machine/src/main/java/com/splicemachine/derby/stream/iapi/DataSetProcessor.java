@@ -139,6 +139,29 @@ public interface DataSetProcessor {
                                           OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
 
     /**
+     *  Create a empty external file based on the storage format specified in the method
+     *  This is useful to have always a consitent system where we don't try to query on a file
+     *  that doesn't exist.
+     *  This is currently use when we do "CREATE EXTERNAL TABLE..."
+     *
+     * @param execRow
+     * @param baseColumnMap
+     * @param partitionBy
+     * @param storageAs
+     * @param location
+     * @throws StandardException
+     */
+    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy,String storageAs,  String location) throws StandardException ;
+
+    /**
+     * This is used when someone modify the external table outside of Splice.
+     * One need to refresh the schema table if the underlying file have been modify outside Splice because
+     * Splice has now way to know when this happen
+     * This method is used with a procedure look at SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE
+     * @param location
+     */
+    public void refreshTable(String location);
+    /**
      *
      * Reads in-memory version given the scan variables.  The qualifiers are applied to the in-memory version.
      *

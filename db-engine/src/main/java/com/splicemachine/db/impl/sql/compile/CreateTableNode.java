@@ -596,6 +596,7 @@ public class CreateTableNode extends DDLStatementNode
                 onCommitDeleteRows,
                 onRollbackDeleteRows,
                 queryString,
+				isExternal,
 				terminationChar!=null?terminationChar.value.getString():null,
 				escapedByChar!=null?escapedByChar.value.getString():null,
 				linesTerminatedByChar!=null?linesTerminatedByChar.value.getString():null,

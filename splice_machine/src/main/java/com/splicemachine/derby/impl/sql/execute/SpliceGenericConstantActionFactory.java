@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.compile.ResultColumnList;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
@@ -84,6 +85,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        boolean onCommitDeleteRows,
                                                        boolean onRollbackDeleteRows,
                                                        String withDataQueryString,
+                                                       boolean isExternal,
                                                        String delimited,
                                                        String escaped,
                                                        String lines,
@@ -94,8 +96,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
             schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
             constantActions,properties,lockGranularity,
-            onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString,
-                delimited,escaped,lines,storedAs,location,compression);
+            onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString, isExternal,
+                delimited,escaped,lines,storedAs,location, compression);
     }
 
 
