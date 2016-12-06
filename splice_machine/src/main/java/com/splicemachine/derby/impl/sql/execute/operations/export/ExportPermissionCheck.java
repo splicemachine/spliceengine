@@ -42,7 +42,7 @@ class ExportPermissionCheck {
     }
 
     ExportPermissionCheck(ExportParams exportParams) throws IOException {
-        this(exportParams,SIDriver.driver().getFileSystem(exportParams.getDirectory()));
+        this(exportParams,SIDriver.driver().fileSystem());
     }
 
     void verify() throws IOException, StandardException {

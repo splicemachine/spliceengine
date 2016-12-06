@@ -91,7 +91,7 @@ public class ImportUtils{
     }
 
 
-    public static DistributedFileSystem getFileSystem(String path) throws StandardException {
+    private static DistributedFileSystem getFileSystem(String path) throws StandardException {
         try {
            return SIDriver.driver().getSIEnvironment().fileSystem(path);
         } catch (Exception e) {
