@@ -16,12 +16,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.Ignore;
 import org.spark_project.guava.collect.Maps;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
@@ -80,6 +82,7 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
+    @Ignore // TODO: ignore until we have real support for multiple distincts
     public void testMultipleDistinctAggregates() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(format("select oid, sum(distinct quantity) as summation,count(distinct quantity) as count from %s group by oid",this.getTableReference(TABLE_NAME_1)));
         int j = 0;
@@ -151,4 +154,30 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
                                                                                                "order by 1"));
         Assert.assertArrayEquals(bothSumsExpected.toArray(), bothSumsRows.toArray());
     }
+
+    @Test
+    public void testUnsupportedSyntax() throws Exception {
+        // TODO: Need to support multiple distinct aggregates, till then error out without wrong answer
+        try {
+            methodWatcher.executeQuery("select count(distinct c1), count(distinct c2) from t1");
+            Assert.fail("Error not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("42Z02", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeQuery("select count(distinct c1) from t1 order by count(distinct c2)");
+            Assert.fail("Error not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("42Z02", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeQuery("select count(distinct c1) from t1 group by c2 order by count(distinct c2)");
+            Assert.fail("Error not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("42Z02", e.getSQLState());
+        }
+    }
+
 }
