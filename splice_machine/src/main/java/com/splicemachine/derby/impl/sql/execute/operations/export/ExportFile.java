@@ -18,6 +18,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -41,7 +42,7 @@ public class ExportFile {
     private static Logger LOG=Logger.getLogger(ExportFile.class);
 
     ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        this(exportParams, taskId, SIDriver.driver().fileSystem());
+        this(exportParams, taskId, SIDriver.driver().getFileSystem(exportParams.getDirectory()));
     }
 
     ExportFile(ExportParams exportParams, byte[] taskId, DistributedFileSystem fileSystem) throws IOException {
@@ -125,9 +126,9 @@ public class ExportFile {
 
     public boolean isWritable(){
         try {
-            FileInfo info = fileSystem.getInfo(exportParams.getDirectory());
-            return info != null && info.isWritable();
-        } catch (IOException e) {
+            ImportUtils.validateWritable(exportParams.getDirectory(),false);
+            return true;
+        } catch (Exception e) {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "isWritable(): exception trying to check writable path %s: %s", exportParams.getDirectory(), e);
             return false;
