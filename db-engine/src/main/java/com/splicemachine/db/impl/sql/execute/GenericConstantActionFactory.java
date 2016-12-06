@@ -314,7 +314,6 @@ public abstract class GenericConstantActionFactory {
 		boolean			onCommitDeleteRows,
 		boolean			onRollbackDeleteRows,
         String          withDataQueryString,
-		boolean isExternal,
 		String delimited,
 		String escaped,
 		String lines,

@@ -27,7 +27,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.vti.SpliceFileVTI;
-import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -39,7 +38,6 @@ import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SaveMode;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -337,44 +335,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location) throws StandardException {
-        try{
-
-
-            Dataset<Row> empty =  SpliceSpark.getSession()
-                    .createDataFrame(new ArrayList<Row>(), execRows.schema());
-
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
-            }
-            List<String> partitionByCols = new ArrayList();
-            for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
-            }
-
-            if(!SIDriver.driver().fileSystem().getPath(location).toFile().exists()) {
-                if (storedAs!=null) {
-                    if (storedAs.toLowerCase().equals("p")) {
-                        empty.write().option("compression","none").partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                                .mode(SaveMode.Append).parquet(location);
-
-                    }
-                }
-
-            }
-
-
-        }
-
-        catch (Exception e) {
-            throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
-        }
-    }
-
-
-    @Override
     public void dropPinnedTable(long conglomerateId) throws StandardException {
         if (SpliceSpark.getSession().catalog().isCached("SPLICE_"+conglomerateId)) {
             SpliceSpark.getSession().catalog().uncacheTable("SPLICE_"+conglomerateId);
@@ -522,9 +482,4 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
             return andCols;
         }
-
-    @Override
-    public void refreshTable(String location) {
-        SpliceSpark.getSession().catalog().refreshByPath(location);
-    }
 }

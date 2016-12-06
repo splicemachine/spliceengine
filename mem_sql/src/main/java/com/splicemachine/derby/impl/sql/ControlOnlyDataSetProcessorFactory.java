@@ -17,7 +17,6 @@ package com.splicemachine.derby.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -112,18 +111,6 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "DistributedWrapper#setup()");
             //no-op
-        }
-
-        @Override
-        public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storageAs, String location) throws StandardException {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "DistributedWrapper#createEmptyExternalFile()");
-        }
-
-        @Override
-        public void refreshTable(String location) {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "DistributedWrapper#refreshTable()");
         }
     }
 }
