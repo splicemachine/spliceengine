@@ -220,3 +220,4 @@ tramp
 # cask packages
 .cask/
 
+/bin/

@@ -16,6 +16,7 @@
 package com.splicemachine.derby.stream.control;
 
 import javax.annotation.Nonnull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
@@ -28,10 +29,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Charsets;
+
 import scala.Tuple2;
+
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -62,6 +67,7 @@ import com.splicemachine.storage.Partition;
  * @author jleach
  */
 public class ControlDataSetProcessor implements DataSetProcessor{
+    private static final String BAD_FILENAME = "unspecified_";
     private long badRecordThreshold=-1;
     private boolean permissive;
     private String statusDirectory;
@@ -159,6 +165,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         OperationContext<Op> operationContext=new ControlOperationContext<>(spliceOperation);
         spliceOperation.setOperationContext(operationContext);
         if(permissive){
+	    if(importFileName == null)importFileName=BAD_FILENAME + System.currentTimeMillis();
             operationContext.setPermissive(statusDirectory, importFileName, badRecordThreshold);
         }
         return operationContext;
