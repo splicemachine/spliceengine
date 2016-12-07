@@ -209,5 +209,20 @@ public class VTIOperationIT extends SpliceUnitTest {
         Assert.assertEquals(5, count);
     }
 
+    @Test
+    // SPLICE-957
+    public void testVTIEncoding() throws Exception {
+        String location = getResourceDirectory()+"vtiConversion.in";
+        try {
+            ResultSet rs = spliceClassWatcher.executeQuery(
+                    String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s', null, null, null, null, null, null, null, 'utf-50') as t (bi_col BIGINT)",location));
+            fail("Expected: Unsupported Encoding");
+        } catch (SQLException e) {
+            // expected: "Number of columns in column definition, 6, differ from those found in import file 3. "
+            assertEquals("EXT20", e.getSQLState());
+            return;
+        }
+    }
+
 
 }
