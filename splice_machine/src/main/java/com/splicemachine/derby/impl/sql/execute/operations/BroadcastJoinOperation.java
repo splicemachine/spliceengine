@@ -187,13 +187,15 @@ public class BroadcastJoinOperation extends JoinOperation{
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
         DataSet<LocatedRow> result;
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction ==null) {
+        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+                (restriction ==null || (!isOuterJoin && !notExistsRightSide))) {
             if (isOuterJoin)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTANTI,true);
             else
-                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true);
+                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true)
+                        .filter(new JoinRestrictionPredicateFunction(operationContext));
         }
         else {
             if (isOuterJoin) { // Outer Join with and without restriction

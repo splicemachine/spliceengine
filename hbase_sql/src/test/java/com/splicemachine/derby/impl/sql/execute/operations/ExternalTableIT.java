@@ -205,6 +205,33 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     }
 
+
+    @Test
+    // SPLICE-1219
+    public void testLocalBroadcastColumnar() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table left_side_bcast (col1 int, col2 int)" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into left_side_bcast values (1,5)," +
+                "(2,2)," +
+                "(3,3)"));
+        methodWatcher.executeUpdate(String.format("create external table right_side_bcast (col1 int, col2 int)" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"right_side_bcast"));
+        int insertCount2 = methodWatcher.executeUpdate(String.format("insert into right_side_bcast values (1,1)," +
+                "(2,2)," +
+                "(3,3)"));
+
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        Assert.assertEquals("insertCount is wrong",3,insertCount2);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from --splice-properties joinOrder=fixed\n " +
+                "left_side_bcast l inner join right_side_bcast r --splice-properties joinStrategy=BROADCAST\n" +
+                " on l.col1 = r.col1 and l.col2 > r.col2+1 ");
+        Assert.assertEquals("COL1 |COL2 |COL1 |COL2 |\n" +
+                "------------------------\n" +
+                "  1  |  5  |  1  |  1  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
     @Test
     public void testWriteReadFromPartitionedParquetExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table partitioned_parquet (col1 int, col2 varchar(24))" +
