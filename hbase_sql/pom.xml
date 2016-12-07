@@ -240,6 +240,11 @@
                     <artifactId>netty</artifactId>
                 </exclusion>
                 <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-all</artifactId>
+                </exclusion>
+
+                <exclusion>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-common</artifactId>
                 </exclusion>
@@ -1131,9 +1136,13 @@
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
+                                <argument>-Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
                                 <argument>
                                     -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
                                 </argument>
+
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
+
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2g</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
@@ -1229,6 +1238,7 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
                                 <argument>-Xmx4g</argument>
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
