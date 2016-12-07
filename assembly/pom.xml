@@ -100,6 +100,9 @@
                                 <relocation>
                                     <pattern>org.apache.spark</pattern>
                                     <shadedPattern>splice.org.apache.spark</shadedPattern>
+                                    <excludes>
+                                        <exclude>org.apache.spark.sql.execution.BufferedRowIterator</exclude>
+                                    </excludes>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.spark_project</pattern>
@@ -138,6 +141,7 @@
                                     <exclude>**/hbase-site.xml</exclude>
                                     <exclude>**/splice-site.xml</exclude>
                                     <exclude>**/yarn-site.xml</exclude>
+                                    <exclude>org/apache/spark/sql/execution/BufferedRowIterator</exclude>
                                 </excludes>
                             </filter>
 
@@ -180,6 +184,9 @@
                                 <relocation>
                                         <pattern>org.apache.spark</pattern>
                                         <shadedPattern>splice.org.apache.spark</shadedPattern>
+                                    <excludes>
+                                        <exclude>org.apache.spark.sql.execution.BufferedRowIterator</exclude>
+                                    </excludes>
                                     </relocation>
                                 
                             </relocations>
@@ -198,6 +205,7 @@
                                         <exclude>**/hbase-site.xml</exclude>
                                         <exclude>**/splice-site.xml</exclude>
                                         <exclude>**/yarn-site.xml</exclude>
+                                        <exclude>org/apache/spark/sql/execution/BufferedRowIterator.class</exclude>
                                     </excludes>
                                 </filter>
 
