@@ -124,6 +124,12 @@
                                     <shadedPattern>splice.org.jboss.netty</shadedPattern>
                                 </relocation>
 
+                                <relocation>
+                                    <pattern>io.netty</pattern>
+                                    <shadedPattern>splice.io.netty</shadedPattern>
+                                </relocation>
+
+
 
                             </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
@@ -180,6 +186,10 @@
                                 <relocation>
                                     <pattern>org.spark_project</pattern>
                                     <shadedPattern>splice.org.spark_project</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.netty</pattern>
+                                    <shadedPattern>splice.io.netty</shadedPattern>
                                 </relocation>
                                 <relocation>
                                         <pattern>org.apache.spark</pattern>
