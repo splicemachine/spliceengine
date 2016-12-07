@@ -695,7 +695,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     // SPLICE-1180
     public void testReadTimeFromFile() throws Exception {
-
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"timestamp_parquet"));
+        if (!directory.exists())
+            directory.mkdir();
         methodWatcher.executeUpdate(String.format("create external table timestamp_parquet (a time)" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"timestamp_parquet"));
         methodWatcher.executeUpdate("insert into timestamp_parquet values ('22:22:22')");
@@ -708,7 +710,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     // SPLICE-1180
     public void testReadClobFromFile() throws Exception {
-
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"clob_parquet"));
+        if (!directory.exists())
+            directory.mkdir();
         methodWatcher.executeUpdate(String.format("create external table clob_parquet (largecol clob(65535))" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"clob_parquet"));
         methodWatcher.executeUpdate("insert into clob_parquet values ('asdfasfd234234')");
@@ -721,7 +725,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     // SPLICE-1180
     public void testReadSmallIntFromFile() throws Exception {
-
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"short_parquet"));
+        if (!directory.exists())
+            directory.mkdir();
         methodWatcher.executeUpdate(String.format("create external table short_parquet (col1 smallint)" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"short_parquet"));
         methodWatcher.executeUpdate("insert into short_parquet values (12)");
