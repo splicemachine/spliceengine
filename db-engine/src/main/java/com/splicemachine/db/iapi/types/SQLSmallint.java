@@ -853,6 +853,10 @@ public final class SQLSmallint
 		return DataTypes.createStructField(columnName, DataTypes.ShortType, true);
 	}
 
+	@Override
+	public Object getSparkObject() throws StandardException {
+		return getShort();
+	}
 
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(value);

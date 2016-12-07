@@ -505,4 +505,9 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     public int getTypeFormatId() {
         return dvd.getTypeFormatId();
     }
+
+    @Override
+    public Object getSparkObject() throws StandardException {
+        return dvd.getSparkObject();
+    }
 }
