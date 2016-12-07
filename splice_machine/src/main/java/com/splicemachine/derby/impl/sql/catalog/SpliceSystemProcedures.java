@@ -16,7 +16,6 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
-import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
@@ -34,6 +33,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
+import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
 
 /**
  * System procedure generator implementation class that extends
@@ -115,6 +115,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 //
 
                 if (key.equals(sysUUID)) {
+                    Procedure refreshExternalTable = Procedure.newBuilder().name("SYSCS_REFRESH_EXTERNAL_TABLE")
+                            .numOutputParams(0).numResultSets(1).ownerClass(ExternalTableSystemProcedures.class.getCanonicalName())
+                            .varchar("schema", 32672)
+                            .varchar("table", 32672)
+                            .build();
+                    procedures.add(refreshExternalTable);
+
         			/*
         			 * Add a system procedure to enable splitting tables once data is loaded.
         			 *

@@ -10,6 +10,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import java.io.File;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import static org.junit.Assert.assertEquals;
@@ -189,15 +190,44 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
-    public void testFileNotFoundTextFile() {
+    public void testFileExistingNotDeleted() throws  Exception{
+        String tablePath = getExternalResourceDirectory()+"location_existing_file";
+
+        File newFile = new File(tablePath);
+        newFile.createNewFile();
+        long lastModified = newFile.lastModified();
+
+
+        methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 int, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+        Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),lastModified,newFile.lastModified());
+    }
+
+    @Test
+    public void refreshRequireExternalTable() throws  Exception{
+        String tablePath = getExternalResourceDirectory()+"external_table_refresh";
+
+        methodWatcher.executeUpdate(String.format("create external table external_table_refresh (col1 int, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+
+        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
+        ps.setString(1, "EXTERNALTABLEIT");
+        ps.setString(2, "EXTERNAL_TABLE_REFRESH");
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+
+        Assert.assertEquals("Error with refresh external table","EXTERNALTABLEIT.EXTERNAL_TABLE_REFRESH schema table refreshed",  rs.getString(1));
+
 
     }
 
 
+
     @Test
     public void testWriteReadFromSimpleParquetExternalTable() throws Exception {
+         String tablePath = getExternalResourceDirectory()+"simple_parquet";
             methodWatcher.executeUpdate(String.format("create external table simple_parquet (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"simple_parquet"));
+                    " STORED AS PARQUET LOCATION '%s'",tablePath));
             int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_parquet values (1,'XXXX')," +
                     "(2,'YYYY')," +
                     "(3,'ZZZZ')"));
@@ -214,6 +244,9 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |\n" +
                 "  2  |\n" +
                 "  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        //Make sure empty file is created
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
 
     }
 
@@ -246,7 +279,8 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadFromPartitionedParquetExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table partitioned_parquet (col1 int, col2 varchar(24))" +
+        String tablePath =  getExternalResourceDirectory()+"partitioned_parquet";
+                methodWatcher.executeUpdate(String.format("create external table partitioned_parquet (col1 int, col2 varchar(24))" +
                 "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"partitioned_parquet"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_parquet values (1,'XXXX')," +
                 "(2,'YYYY')," +
@@ -258,6 +292,10 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |XXXX |\n" +
                 "  2  |YYYY |\n" +
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        //Make sure empty file is created
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+
     }
 
     @Test @Ignore

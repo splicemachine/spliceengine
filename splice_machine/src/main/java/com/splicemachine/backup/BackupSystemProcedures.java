@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.TimeZone;
 
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.procedures.ProcedureUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
 
@@ -80,9 +81,9 @@ public class BackupSystemProcedures {
             } else {
                 throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
             }
-            resultSets[0] = generateResult("Success", String.format("%s backup to %s", type, directory));
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
         } catch (Throwable t) {
-            resultSets[0] = generateResult("Error", t.getLocalizedMessage());
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database backup error", t);
             t.printStackTrace();
         }
@@ -191,10 +192,10 @@ public class BackupSystemProcedures {
             }
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             backupManager.scheduleDailyBackup(directory, type, hour);
-            resultSets[0] = generateResult("Success",
+            resultSets[0] = ProcedureUtils.generateResult("Success",
                                            String.format("Schedule %s daily backup to %s on hour %s", type, directory, hour));
         } catch (Throwable t) {
-            resultSets[0] = generateResult("Error", t.getLocalizedMessage());
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Schedule daily backup error", t);
         }
     }
@@ -212,9 +213,9 @@ public class BackupSystemProcedures {
         try {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             backupManager.cancelDailyBackup(jobId);
-            resultSets[0] = generateResult("Success", "Cancel daily backup "+jobId);
+            resultSets[0] = ProcedureUtils.generateResult("Success", "Cancel daily backup "+jobId);
         } catch (Throwable t) {
-            resultSets[0] = generateResult("Error", t.getLocalizedMessage());
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Cancel daily backup error", t);
         }
     }
@@ -232,9 +233,9 @@ public class BackupSystemProcedures {
             List<Long> backupIds = Lists.newArrayList();
             backupIds.add(new Long(backupId));
             backupManager.removeBackup(backupIds);
-            resultSets[0] = generateResult("Success", "Delete backup "+backupId);
+            resultSets[0] = ProcedureUtils.generateResult("Success", "Delete backup "+backupId);
         } catch (Throwable t) {
-            resultSets[0] = generateResult("Error", t.getLocalizedMessage());
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Delete backup error", t);
         }
     }
@@ -265,9 +266,9 @@ public class BackupSystemProcedures {
                 }
                 backupManager.removeBackup(backupIdList);
             }
-            resultSets[0] = generateResult("Success", "Delete old backups in window "+backupWindow);
+            resultSets[0] = ProcedureUtils.generateResult("Success", "Delete old backups in window "+backupWindow);
         } catch (Throwable t) {
-            resultSets[0] = generateResult("Error", t.getLocalizedMessage());
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Delete old backups error", t);
         }
     }
@@ -277,29 +278,10 @@ public class BackupSystemProcedures {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             backupManager.cancelBackup();
         } catch (Throwable t) {
-            resultSets[0] = generateResult("Error", t.getLocalizedMessage());
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Cancel backup error", t);
         }
     }
 
-    private static ResultSet generateResult(String outcome, String message) throws StandardException, SQLException {
-        if (message == null) {
-            message = "";
-        }
-        Connection conn = SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();;
 
-        DataTypeDescriptor dtd =
-            DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, message.length());
-        ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{new GenericColumnDescriptor(outcome, dtd)};
-        ExecRow template = new ValueRow(1);
-        template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
-        List<ExecRow> rows = Lists.newArrayList();
-        template.getColumn(1).setValue(message);
-
-        rows.add(template.getClone());
-        IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
-        inprs.openCore();
-        return new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
-    }
 }
