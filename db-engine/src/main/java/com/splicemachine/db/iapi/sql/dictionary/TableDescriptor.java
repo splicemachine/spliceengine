@@ -147,8 +147,6 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     private char lockGranularity;
     private boolean onCommitDeleteRows; //true means on commit delete rows, false means on commit preserve rows of temporary table.
     private boolean onRollbackDeleteRows; //true means on rollback delete rows. This is the only value supported.
-    private boolean indexStatsUpToDate=true;
-    private String indexStatsUpdateReason;
     String tableName;
     UUID oid;
     int tableType;
@@ -160,8 +158,6 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     private String storedAs;
     private String location;
     private String compression;
-
-
 
 
     /**
@@ -1255,99 +1251,6 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return inc;
     }
 
-
-    /**
-     * Tells if the index statistics for the indexes associated with this table
-     * are consideres up-to-date, and clears the state.
-     *
-     * @return {@code true} if the statistics are considered up-to-date,
-     * {@code false} if not.
-     */
-    public boolean getAndClearIndexStatsIsUpToDate(){
-        // TODO: Consider adding a flag telling if statistics update has been
-        //       scheduled already.
-        boolean tmp=indexStatsUpToDate;
-        indexStatsUpToDate=true;
-        return tmp;
-    }
-
-    /**
-     * Returns the update criteria telling why the statistics are considered
-     * stale.
-     * <p/>
-     * This method is used for debugging.
-     *
-     * @return A string describing the update criteria that were met.
-     */
-    public String getIndexStatsUpdateReason(){
-        return indexStatsUpdateReason;
-    }
-
-    /**
-     * Are there statistics for this particular conglomerate.
-     *
-     * @param cd Conglomerate/Index for which we want to check if statistics
-     *           exist. cd can be null in which case user wants to know if there are any
-     *           statistics at all on the table.
-     */
-    public boolean statisticsExist(ConglomerateDescriptor cd)
-            throws StandardException{
-        return false;
-
-        // getStatistics is synchronized :(
-
-/*		
-		List sdl = getStatistics();
-
-		if (cd == null)
-			return (sdl.size() > 0);
-
-		UUID cdUUID = cd.getUUID();
-
-		for (Iterator li = sdl.iterator(); li.hasNext(); )
-		{
-			StatisticsDescriptor statDesc = (StatisticsDescriptor) li.next();
-			if (cdUUID.equals(statDesc.getReferenceID()))
-				return true;
-
-		}
-
-		return false;
-		
-		*/
-    }
-
-    /**
-     * For this conglomerate (index), return the selectivity of the first
-     * numKeys. This basically returns the reciprocal of the number of unique
-     * values in the leading numKey columns of the index. It is assumed that
-     * statistics exist for the conglomerate if this function is called.
-     * However, no locks are held to prevent the statistics from being dropped,
-     * so the method also handles the case of missing statistics by using a
-     * heuristic to estimate the selectivity.
-     *
-     * @param cd      ConglomerateDescriptor (Index) whose
-     *                cardinality we are interested in.
-     * @param numKeys Number of leading columns of the index for which
-     *                cardinality is desired.
-     */
-    public double selectivityForConglomerate(TransactionController tc,ConglomerateDescriptor cd,int numKeys) throws StandardException{
-        DataDictionary dd = getDataDictionary();
-/*        StatisticsStore statisticsStore=dd.getStatisticsStore();
-        List<Statistics> stats = statisticsStore.getAllStatistics(tc,cd);
-        for(Statistics stat:stats){
-            if(stat.getColumnCount()!=numKeys) continue;
-
-            return stat.selectivity(null);
-        }
-
-        // Didn't find statistics for these columns. Assume uniform 10%
-        // selectivity for each column in the key.
-        */
-        /* JL-TODO */
-
-        return Math.pow(0.1,numKeys);
-    }
 
     /**
      * @see TupleDescriptor#getDescriptorName
