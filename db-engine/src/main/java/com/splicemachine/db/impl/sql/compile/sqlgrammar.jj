@@ -11778,6 +11778,11 @@ validateParameters(boolean isExternal, String storageFormat, ValueNode terminati
                         throw StandardException.newException(
                         						SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_ORC);
 	             }
+                // STORAGE OR LOCATION WITHOUT EXTERNAL
+	             if ( (storageFormat != null || location !=null) && !isExternal)
+	                throw StandardException.newException(
+                                            	SQLState.STORED_AS_OR_LOCATION_WITHOUT_EXTERNAL);
+
 	   }
 }
 

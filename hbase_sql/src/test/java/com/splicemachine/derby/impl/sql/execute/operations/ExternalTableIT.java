@@ -150,6 +150,18 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testMissingExternal() throws Exception {
+        try {
+            methodWatcher.executeUpdate("create table foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT18",e.getSQLState());
+        }
+    }
+
+
+    @Test
     public void testCannotUpdateExternalTable() throws Exception {
         try {
             methodWatcher.executeUpdate("create external table update_foo (col1 int, col2 varchar(24))" +

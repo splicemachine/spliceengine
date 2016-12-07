@@ -8945,6 +8945,12 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>TEXTFILE storage format doesn't allow compression</text>
            </msg>
 
+           <msg>
+               <name>EXT18</name>
+               <text>'STORED AS' or 'LOCATION' used without 'EXTERNAL' keyword</text>
+           </msg>
+
+
 
 
        </family>
