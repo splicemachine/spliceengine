@@ -161,6 +161,14 @@ public class HBaseConfiguration implements ConfigurationDefault {
      */
     public static final String COMPRESSION_ALGORITHM = "splice.compression";
 
+    /**
+     *
+     * The data block encoding that Splice Machine will use for hbase.  Please see
+     * https://hbase.apache.org/book.html#compression for a more thorough discussion.
+     *
+     */
+    public static final String DATA_BLOCK_ENCODING = "splice.datablockencoding";
+
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {

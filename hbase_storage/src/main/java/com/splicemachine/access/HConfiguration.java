@@ -19,7 +19,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.ConfigurationBuilder;
 import com.splicemachine.access.configuration.ConfigurationSource;
@@ -47,7 +46,9 @@ import com.splicemachine.constants.SpliceConfiguration;
 public class HConfiguration extends HBaseConfiguration {
     private static final Logger LOG = Logger.getLogger("splice.config");
 
-    private static final String DEFAULT_COMPRESSION = "none";
+    private static final String DEFAULT_COMPRESSION = HColumnDescriptor.DEFAULT_COMPRESSION;
+    private static final String DEFAULT_BLOCK_ENCODING = HColumnDescriptor.DEFAULT_DATA_BLOCK_ENCODING;
+
 
     // Splice Default Table Definitions
     public static final Boolean DEFAULT_IN_MEMORY = HColumnDescriptor.DEFAULT_IN_MEMORY;
@@ -106,10 +107,9 @@ public class HConfiguration extends HBaseConfiguration {
         builder.regionServerHandlerCount = configurationSource.getInt(REGION_SERVER_HANDLER_COUNT, HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT);
         // TODO: JC - this looks strange (transactionLockStripes = REGION_SERVER_HANDLER_COUNT) but is as I found it, typo?
         builder.transactionLockStripes = configurationSource.getInt(REGION_SERVER_HANDLER_COUNT, HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT);
-
         builder.regionMaxFileSize = configurationSource.getLong(REGION_MAX_FILE_SIZE, HConstants.DEFAULT_MAX_FILE_SIZE);
-
         builder.compressionAlgorithm = configurationSource.getString(COMPRESSION_ALGORITHM, DEFAULT_COMPRESSION);
+        builder.dataBlockEncoding = configurationSource.getString(DATA_BLOCK_ENCODING,DEFAULT_BLOCK_ENCODING);
     }
 
     private SConfiguration init() {
