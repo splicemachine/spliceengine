@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import com.splicemachine.compactions.SparkAccumulator;
 import org.apache.commons.collections.iterators.EmptyListIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -60,6 +61,8 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     private byte[] storeColumn;
     private HRegionInfo hri;
     private long mat;
+
+    private SparkAccumulator accumulator;
 
     public SparkCompactionFunction() {
 
@@ -101,6 +104,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         out.writeInt(storeColumn.length);
         out.write(storeColumn);
         out.writeLong(mat);
+        out.writeObject(accumulator);
     }
 
     @Override
@@ -121,7 +125,12 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
         mat = in.readLong();
+        accumulator = (SparkAccumulator)in.readObject();
         SpliceSpark.setupSpliceStaticComponents();
+    }
+
+    public void setAccumulator(SparkAccumulator accumulator){
+        this.accumulator=accumulator;
     }
 
     @SuppressWarnings("unchecked")
@@ -164,7 +173,8 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         }
 
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint,mat);
-        List<Path> paths = sdc.sparkCompact(new CompactionRequest(readersToClose));
+        CompactionRequest cr = new SpliceCompactionRequest(readersToClose,accumulator);
+        List<Path> paths = sdc.sparkCompact(cr);
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);

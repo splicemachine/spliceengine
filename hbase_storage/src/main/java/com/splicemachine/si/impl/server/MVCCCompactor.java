@@ -69,26 +69,41 @@ public class MVCCCompactor implements Compactor{
     private final SortedSet<Cell> returnData = new TreeSet<>(KeyValue.COMPARATOR);
     private final HCell currentCell = new HCell();
 
+    private final Accumulator accumulator;
+
     public MVCCCompactor(TxnSupplier txnStore,
                          long minimumActiveTxn,
                          int matApplicationThreshold,
                          int activeTxnCacheSize){
+        this(txnStore, minimumActiveTxn, matApplicationThreshold, activeTxnCacheSize,NoOpAccumulator);
+    }
+    public MVCCCompactor(TxnSupplier txnStore,
+                         long minimumActiveTxn,
+                         int matApplicationThreshold,
+                         int activeTxnCacheSize,
+                         Accumulator accumulator){
         this.minimumActiveTxn=minimumActiveTxn;
-        this.matApplicationThreshold = 2*matApplicationThreshold;
+        this.matApplicationThreshold = matApplicationThreshold;
         this.txnCache = new ActiveTxnCacheSupplier(txnStore,activeTxnCacheSize);
+        this.accumulator = accumulator;
     }
 
     @Override
     public void compact(List<Cell> input,List<Cell> destination) throws IOException{
         matApplies = minimumActiveTxn>0 && input.size()>matApplicationThreshold;
+        if(input.size()>0) accumulator.rowProcessed();
         returnData.clear();
         if(matPredFilter!=null){
             matAccumulator.reset();
             matPredFilter.reset();
         }
+        matDeleteLine = -1L;
+        firstTxnBelowMAT = -1L;
+
         for(Cell inputCell:input){
             currentCell.set(inputCell);
             mutate(currentCell);
+            accumulator.cellProcessed();
         }
 
         if(matApplies && matPredFilter!=null){
@@ -101,8 +116,11 @@ public class MVCCCompactor implements Compactor{
                     mergedValue,0,mergedValue.length);
             ensureCommitTimestampPresent(c,txnCache.getTransaction(ts));
             returnData.add(c);
+            accumulator.cellProcessed(); //count the user data cell that got added
         }
-        destination.addAll(returnData);
+        if(returnData.size()>0)
+            destination.addAll(returnData);
+        else if(input.size()>0) accumulator.rowDeleted();
     }
 
     /* ****************************************************************************************************************/
@@ -136,6 +154,7 @@ public class MVCCCompactor implements Compactor{
              * we are below the MAT delete line, so we should discard this
              * even if it was committed (it was deleted, and it can't be active).
              */
+            accumulator.cellDeleted();
             return;
         }
 
@@ -150,6 +169,7 @@ public class MVCCCompactor implements Compactor{
                 break;
             case ROLLEDBACK:
                 //data was rolled back, so remove the cell
+                accumulator.cellDeleted();
                 return;
             case COMMITTED:
                 if(matApplies && ts<minimumActiveTxn){
@@ -160,15 +180,24 @@ public class MVCCCompactor implements Compactor{
                          * since we are discarding the user data, we also need to discard any
                          * commit timestamp that may exist as well
                          */
-                        returnData.removeIf(cell -> cell.getTimestamp()<ts);
+                        returnData.removeIf(cell -> {
+                            boolean shouldRemove = cell.getTimestamp()<ts;
+                            if(shouldRemove)accumulator.cellDeleted();
+                            return shouldRemove;
+                        });
                     } else if(ts==firstTxnBelowMAT){
                         /*
                          * since we are discarding the user data, we also need to discard any
                          * commit timestamp that may exist as well
                          */
-                        returnData.removeIf(cell -> cell.getTimestamp()<ts);
+                        returnData.removeIf(cell -> {
+                            boolean shouldRemove = cell.getTimestamp()<ts;
+                            if(shouldRemove)accumulator.cellDeleted();
+                            return shouldRemove;
+                        });
                     }
                     accumulateData(currentCell);
+                    accumulator.cellDeleted();
                 }else{
                     ensureCommitTimestampPresent(currentCell.unwrapDelegate(),txn);
                     returnData.add(currentCell.unwrapDelegate());
@@ -199,7 +228,8 @@ public class MVCCCompactor implements Compactor{
                 SIConstants.DEFAULT_FAMILY_BYTES,0,1,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,
                 element.getTimestamp(),KeyValue.Type.Put,value,0,value.length));
-
+        accumulator.cellCommitted();
+        accumulator.cellProcessed();
     }
 
     private void processAntiTombstone(HCell currentCell) throws IOException{
@@ -224,6 +254,7 @@ public class MVCCCompactor implements Compactor{
                 break;
             case ROLLEDBACK:
                 //the insert was rolled back, so just remove the cell
+                accumulator.cellDeleted();
                 return;
             case COMMITTED:
                 if(ts<minimumActiveTxn){
@@ -249,6 +280,7 @@ public class MVCCCompactor implements Compactor{
                     if(ts>firstTxnBelowMAT){
                         firstTxnBelowMAT = ts;
                     }
+                    accumulator.cellDeleted();
                 }else{
                     /*
                      * Anti-tombstone data is always associated with user data, so
@@ -299,6 +331,8 @@ public class MVCCCompactor implements Compactor{
                  * The delete transaction has been rolled back, so just remove the cell
                  * from physical storage.
                  */
+                accumulator.cellRolledback();
+                accumulator.cellDeleted();
                 return;
             case COMMITTED:
                 /*
@@ -321,11 +355,17 @@ public class MVCCCompactor implements Compactor{
                     }
                     if(ts<matDeleteLine){
                         //this cell (and everything else) has been deleted. discard it
+                        accumulator.cellDeleted();
                         return;
                     }else{
                         matDeleteLine = ts;
                         //clean the commit timestamps which occur for cells below this one
-                        returnData.removeIf(c -> c.getTimestamp()<=ts);
+                        returnData.removeIf(c -> {
+                            boolean shouldRemove = c.getTimestamp()<=ts;
+                            if(shouldRemove)
+                                accumulator.cellDeleted();
+                            return shouldRemove;
+                        });
                     }
                 }else{
                     //this delete occurs above the MAT, so keep hold of it

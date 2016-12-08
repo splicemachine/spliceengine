@@ -61,12 +61,11 @@ public class SICompactor implements Compactor{
 
     /**
      * Given a list of key-values, populate the results list with possibly mutated values.
-     *
-     * @param rawList - the input of key values to process
+     *  @param rawList - the input of key values to process
      * @param results - the output key values
      */
     @Override
-    public void compact(List<Cell> rawList, List<Cell> results) throws IOException {
+    public void compact(List<Cell> rawList,List<Cell> results) throws IOException {
         dataToReturn.clear();
         for (Cell aRawList : rawList) {
             mutate(aRawList);

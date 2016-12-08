@@ -27,13 +27,22 @@ import org.apache.hadoop.hbase.util.Bytes;
  *         Date: 11/28/16
  */
 class MVCCDataUtils{
+    public static final String DEFAULT_ROW_KEY="row1";
 
     public static Cell insert(Txn insertTxn){
         return insert(insertTxn,Bytes.toBytes("hello"));
     }
 
+    public static Cell insert(Txn insertTxn,String row){
+        return insert(insertTxn,row,Bytes.toBytes("hello"));
+    }
+
     public static Cell insert(Txn insertTxn,byte[] value){
-        return new KeyValue(Bytes.toBytes("row1"),
+        return insert(insertTxn,DEFAULT_ROW_KEY,value);
+    }
+
+    public static Cell insert(Txn insertTxn,String row,byte[] value){
+        return new KeyValue(Bytes.toBytes(row),
                 SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.PACKED_COLUMN_BYTES,
                 insertTxn.getBeginTimestamp(),
@@ -41,7 +50,11 @@ class MVCCDataUtils{
     }
 
     public static  Cell tombstone(Txn deleteTxn){
-        return new KeyValue(Bytes.toBytes("row1"),
+        return tombstone(deleteTxn,DEFAULT_ROW_KEY);
+    }
+
+    public static  Cell tombstone(Txn deleteTxn,String row){
+        return new KeyValue(Bytes.toBytes(row),
                 SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
                 deleteTxn.getBeginTimestamp(),
@@ -49,7 +62,11 @@ class MVCCDataUtils{
     }
 
     public static Cell antiTombstone(Txn txn){
-        return new KeyValue(Bytes.toBytes("row1"),
+        return antiTombstone(txn,DEFAULT_ROW_KEY);
+    }
+
+    public static Cell antiTombstone(Txn txn,String row){
+        return new KeyValue(Bytes.toBytes(row),
                 SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
                 txn.getBeginTimestamp(),
@@ -57,7 +74,10 @@ class MVCCDataUtils{
     }
 
     public static Cell commitTimestamp(Txn txn){
-        return new KeyValue(Bytes.toBytes("row1"),
+        return commitTimestamp(txn,DEFAULT_ROW_KEY);
+    }
+    public static Cell commitTimestamp(Txn txn,String row){
+        return new KeyValue(Bytes.toBytes(row),
                 SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
                 txn.getBeginTimestamp(),

@@ -27,5 +27,24 @@ import java.util.List;
  */
 public interface Compactor{
 
-    void compact(List<Cell> input,List<Cell> destination) throws IOException;
+    void compact(List<Cell> input,
+                 List<Cell> destination) throws IOException;
+
+    interface Accumulator{
+        void cellDeleted();
+        void cellProcessed();
+        void rowProcessed();
+        void rowDeleted();
+        void cellCommitted();
+        void cellRolledback();
+    }
+
+    Accumulator NoOpAccumulator = new Accumulator(){
+        @Override public void cellDeleted(){ }
+        @Override public void cellProcessed(){ }
+        @Override public void rowProcessed(){ }
+        @Override public void rowDeleted(){ }
+        @Override public void cellCommitted(){ }
+        @Override public void cellRolledback(){ }
+    };
 }

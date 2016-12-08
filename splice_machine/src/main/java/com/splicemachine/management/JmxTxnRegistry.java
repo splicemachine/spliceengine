@@ -77,6 +77,11 @@ class JmxTxnRegistry implements TxnRegistryWatcher{
         return view;
     }
 
+    @Override
+    public void registerAction(long minTxnId,boolean requiresCommit,Runnable action){
+
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
@@ -154,12 +159,10 @@ class JmxTxnRegistry implements TxnRegistryWatcher{
                 for(PartitionServer pServer:partitionServers){
                     if(Thread.currentThread().isInterrupted()) return currentView.get();
                     int tryCount = 0;
-                    JMXConnector jmxc;
                     IOException error = null;
                     int maxTries = SIDriver.driver().getConfiguration().getMaxRetries();
                     while(tryCount<maxTries){
-                        try{
-                            jmxc=JMXUtils.getMBeanServerConnection(pServer.getHostname());
+                        try(JMXConnector jmxc=JMXUtils.getMBeanServerConnection(pServer.getHostname())){
                             TxnRegistry.TxnRegistryView txnRegistry=JMXUtils.getTxnRegistry(jmxc);
                             int activeTxnCount=txnRegistry.getActiveTxnCount();
                             long serverMat=txnRegistry.getMinimumActiveTransactionId();

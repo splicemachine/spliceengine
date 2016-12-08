@@ -19,6 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.compactions.CompactionInputFormat;
 import com.splicemachine.compactions.CompactionResult;
+import com.splicemachine.compactions.SparkAccumulator;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
@@ -95,6 +96,8 @@ public class CompactionJob implements Callable<Void>{
         SpliceSpark.popScope();
 
         SpliceSpark.pushScope(compactionRequest.scope + ": Compact files");
+        SparkAccumulator accumulator = new SparkAccumulator(context);
+        compactionRequest.compactionFunction.setAccumulator(accumulator);
         JavaRDD<String> rdd2=rdd1.mapPartitions(new SparkFlatMapFunction<>(compactionRequest.compactionFunction));
         rdd2.setName(compactionRequest.jobDetails);
         SpliceSpark.popScope();
