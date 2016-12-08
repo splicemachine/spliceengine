@@ -27,7 +27,9 @@ package com.splicemachine.derby.security;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.SlowTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -44,6 +46,7 @@ import static org.junit.Assert.fail;
 /**
  * Created by jfilali on 8/22/16.
  */
+@Category(SlowTest.class)
 public class SchemaPrivilegeIT {
 
     private static final String SCHEMA1 = "MAIN_SCH";
