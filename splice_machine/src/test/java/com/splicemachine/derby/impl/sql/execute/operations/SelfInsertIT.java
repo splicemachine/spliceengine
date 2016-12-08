@@ -75,7 +75,7 @@ public class SelfInsertIT{
 
     @Test
     public void testInsertCountMatchesRowCountNoSpark() throws Exception{
-        int maxLevel = 20;
+        int maxLevel = 16;
         try(PreparedStatement ps = conn.prepareStatement("select count(*) from "+splitTable)){
             try(Statement s=conn.createStatement()){
                 String sql = "insert into "+splitTable+"(a,b,c) values (1,1,'"+REALLY_LONG_GARBAGE_STRING+"')";
