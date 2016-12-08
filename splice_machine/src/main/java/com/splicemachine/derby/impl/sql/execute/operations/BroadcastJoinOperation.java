@@ -187,43 +187,31 @@ public class BroadcastJoinOperation extends JoinOperation{
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
         DataSet<LocatedRow> result;
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
-                (restriction ==null || (!isOuterJoin && !notExistsRightSide))) {
-            if (isOuterJoin)
-                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
-            else if (notExistsRightSide)
-                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTANTI,true);
-            else
-                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true)
-                        .filter(new JoinRestrictionPredicateFunction(operationContext));
-        }
-        else {
-            if (isOuterJoin) { // Outer Join with and without restriction
-                result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                        .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
-                        .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
-            } else {
-                leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
-                if (this.notExistsRightSide) { // antijoin
+        if (isOuterJoin) { // Outer Join with and without restriction
+            result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                    .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
+        } else {
+            leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
+            if (this.notExistsRightSide) { // antijoin
+                if (restriction != null) { // with restriction
+                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                            .flatMap(new AntiJoinRestrictionFlatMapFunction(operationContext));
+                } else { // No Restriction
+                    result = leftDataSet.mapPartitions(new SubtractByKeyBroadcastJoinFunction(operationContext))
+                            .map(new AntiJoinFunction(operationContext));
+                }
+            } else { // Inner Join
+
+                if (isOneRowRightSide()) {
+                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                            .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
+                } else {
+                    result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
+                            .map(new InnerJoinFunction<SpliceOperation>(operationContext));
+
                     if (restriction != null) { // with restriction
-                        result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                                .flatMap(new AntiJoinRestrictionFlatMapFunction(operationContext));
-                    } else { // No Restriction
-                        result = leftDataSet.mapPartitions(new SubtractByKeyBroadcastJoinFunction(operationContext))
-                                .map(new AntiJoinFunction(operationContext));
-                    }
-                } else { // Inner Join
-
-                    if (isOneRowRightSide()) {
-                        result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                                .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
-                    } else {
-                        result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
-                                .map(new InnerJoinFunction<SpliceOperation>(operationContext));
-
-                        if (restriction != null) { // with restriction
-                            result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
-                        }
+                        result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
                     }
                 }
             }
