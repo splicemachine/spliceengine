@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.types.RowLocation;
+import org.xerial.snappy.Snappy;
 
 /**
 	The DDMWriter is used to write DRDA protocol.   The DRDA Protocol is
@@ -1405,7 +1406,7 @@ class DDMWriter
 			if ((dssTrace != null) && dssTrace.isComBufferTraceOn()) {
 			  dssTrace.writeComBufferData (bytes,
 			                               0,
-                                           length,
+			                               length,
 			                               DssTrace.TYPE_TRACE_SEND,
 			                               "Reply",
 			                               "flush",
@@ -1483,13 +1484,44 @@ class DDMWriter
 	private void finalizeDssLength ()
 	{
 		// initial position in the byte buffer
-		final int offset = buffer.position();
+		int offset = buffer.position();
 
 		// calculate the total size of the dss and the number of bytes which would
 		// require continuation dss headers.	The total length already includes the
 		// the 6 byte dss header located at the beginning of the dss.	It does not
 		// include the length of any continuation headers.
 		int totalSize = offset - dssLengthLocation;
+		
+		SanityManager.DEBUG_PRINT("COMPRESS", "agent.canCompress() " + agent.canCompress());
+		SanityManager.DEBUG_PRINT("COMPRESS", "totalSize " + totalSize);
+		if(agent.canCompress() && (totalSize > DssConstants.MAX_DSS_LENGTH)) 
+		{
+			// use snappy compression
+			final int uncompressedSize = totalSize - 6;
+			byte[] compressedBuffer = new byte[uncompressedSize];
+			int compressedSize = 0;
+			try {
+			    compressedSize = Snappy.compress(buffer.array(), dssLengthLocation + 6, 
+			        uncompressedSize, compressedBuffer, 0);
+			} catch (IOException e) {
+		            SanityManager.DEBUG_PRINT("COMPRESS", "Snappy compression exception:  " + e.getMessage());
+			}
+
+			SanityManager.DEBUG_PRINT("COMPRESS", "finalizeDssLength original size " + uncompressedSize + " compressed size " + compressedSize);
+
+			if(compressedSize < uncompressedSize) 
+			{
+				System.arraycopy(compressedBuffer, 0, buffer.array(), dssLengthLocation + 6, compressedSize);
+				buffer.array()[dssLengthLocation + 2] = (byte)0xD1;
+				buffer.position(dssLengthLocation + 6 + compressedSize);
+			
+				offset = buffer.position();
+				totalSize = offset - dssLengthLocation;
+			}
+		}
+		SanityManager.DEBUG_PRINT("COMPRESS", "post compression totalSize " + totalSize);
+
+		
 		int bytesRequiringContDssHeader = totalSize - DssConstants.MAX_DSS_LENGTH;
 
 		// determine if continuation headers are needed

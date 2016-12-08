@@ -76,6 +76,17 @@ class Session
 	private	Hashtable	dbtable;		// Table of databases accessed in this session
 	private NetworkServerControlImpl nsctrl;        // NetworkServerControlImpl needed for logging
                                                         // message if tracing fails.
+        private boolean enableOutboundCompression;
+
+	protected boolean canCompress()
+ 	{
+ 		return enableOutboundCompression;
+ 	}
+ 	
+ 	protected void enableCompress(boolean enable)
+ 	{
+ 		enableOutboundCompression = enable;
+ 	}
                                                         
 
 	// constructor
@@ -282,6 +293,8 @@ class Session
 		if (traceOn)
 			initTrace(traceDirectory,false);
 		state = INIT;
+
+                enableOutboundCompression = false;
 	}
 
 	protected  String buildRuntimeInfo(String indent, LocalizedResource localLangUtil)
