@@ -25,12 +25,15 @@
 
 package com.splicemachine.db.iapi.store.access;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.types.RowLocation;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+
+import java.util.List;
 
 
 /**
@@ -184,7 +187,36 @@ public interface ConglomerateController extends ConglomPropertyQueryable
     FormatableBitSet                 validColumns) 
 		throws StandardException;
 
-    /**
+	/**
+	 * Fetch the (partial) rows at the given location.
+	 * <p>
+	 *
+	 * @param locations             The "RowLocations" which describes the exact row
+	 *                        to fetch from the table.
+	 * @param destRows         The rows to read the data into.
+	 * @param validColumns    A description of which columns to return from
+	 *                        row on the page into "destRow."  destRow
+	 *                        and validColumns work together to
+	 *                        describe the row to be returned by the fetch -
+	 *                        see RowUtil for description of how these three
+	 *                        parameters work together to describe a fetched
+	 *                        "row".
+	 *
+	 * @return Returns true if fetch was successful, false if the record
+	 *         pointed at no longer represents a valid record.
+	 *
+	 * @exception  StandardException  Standard exception policy.
+	 *
+	 * @see RowUtil
+	 **/
+	boolean batchFetch(
+			List<RowLocation> locations,
+			List<ExecRow>   destRows,
+			FormatableBitSet                 validColumns)
+			throws StandardException;
+
+
+	/**
      * Fetch the (partial) row at the given location.
      * <p>
      *
@@ -218,39 +250,74 @@ public interface ConglomerateController extends ConglomPropertyQueryable
     boolean     waitForLock) 
 		throws StandardException;
 
-    /**
+	/**
+	 * Fetch the (partial) row at the given location.
+	 * <p>
+	 *
+	 * @param locations             The "RowLocation" which describes the exact row
+	 *                        to fetch from the table.
+	 * @param destRows         The row to read the data into.
+	 * @param validColumns    A description of which columns to return from
+	 *                        row on the page into "destRow."  destRow
+	 *                        and validColumns work together to
+	 *                        describe the row to be returned by the fetch -
+	 *                        see RowUtil for description of how these three
+	 *                        parameters work together to describe a fetched
+	 *                        "row".
+	 * @param waitForLock     If false, then the call will throw a lock timeout
+	 *                        exception immediately, if the lock can not be
+	 *                        granted without waiting.  If true call will
+	 *                        act exactly as fetch() interface with no
+	 *                        waitForLock parameter.
+	 *
+	 * @return Returns true if fetch was successful, false if the record
+	 *         pointed at no longer represents a valid record.
+	 *
+	 * @exception  StandardException  Standard exception policy.
+	 *
+	 * @see RowUtil
+	 **/
+	boolean batchFetch(
+			List<RowLocation> locations,
+			List<ExecRow>   destRows,
+			FormatableBitSet     validColumns,
+			boolean     waitForLock)
+			throws StandardException;
+
+
+	/**
      * Fetch the (partial) row at the given location.
      * <p>
      * RESOLVE - interface NOT SUPPORTED YET!!!!!
      *
-	 * @param loc             The "RowLocation" which describes the exact row
+     * @param loc             The "RowLocation" which describes the exact row
      *                        to fetch from the table.
-	 * @param destRow         The row to read the data into.
-	 * @param validColumns    A description of which columns to return from
+     * @param destRow         The row to read the data into.
+     * @param validColumns    A description of which columns to return from
      *                        row on the page into "destRow."  destRow,
      *                        and validColumns work together to
-     *                        describe the row to be returned by the fetch - 
-     *                        see RowUtil for description of how these three 
-     *                        parameters work together to describe a fetched 
+     *                        describe the row to be returned by the fetch -
+     *                        see RowUtil for description of how these three
+     *                        parameters work together to describe a fetched
      *                        "row".
-	 * @param qualifier       An array of qualifiers which, 
-     *                        applied to each key, restrict the rows returned 
-     *                        by the scan.  Rows for which any one of the 
-     *                        qualifiers returns false are not returned by 
-     *                        the scan. If null, all rows are returned.  
-     *                        Qualifiers can only reference columns which are 
-     *                        included in the scanColumnList.  The column id 
-     *                        that a qualifier returns in the column id the 
+     * @param qualifier       An array of qualifiers which,
+     *                        applied to each key, restrict the rows returned
+     *                        by the scan.  Rows for which any one of the
+     *                        qualifiers returns false are not returned by
+     *                        the scan. If null, all rows are returned.
+     *                        Qualifiers can only reference columns which are
+     *                        included in the scanColumnList.  The column id
+     *                        that a qualifier returns in the column id the
      *                        table, not the column id in the partial row being
-     *                        returned.  See openScan() for description of how 
+     *                        returned.  See openScan() for description of how
      *                        qualifiers are applied.
      *
-	 * @return Returns true if fetch was successful, false if the record 
+     * @return Returns true if fetch was successful, false if the record
      *         pointed at no longer represents a valid record.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
-	 * @see RowUtil
+     * @see RowUtil
      **/
     /*
     boolean fetch(
