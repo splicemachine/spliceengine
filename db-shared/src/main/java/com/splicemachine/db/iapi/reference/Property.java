@@ -602,7 +602,7 @@ public interface Property {
 	 * Undocumented.
 	 */
 	String	LANG_TD_CACHE_SIZE = "derby.language.tableDescriptorCacheSize";
-	int		LANG_TD_CACHE_SIZE_DEFAULT = 64;
+	int		LANG_TD_CACHE_SIZE_DEFAULT = 128;
 
     /**
      * The size of the permissions cache used by the data dictionary.
@@ -611,7 +611,7 @@ public interface Property {
 	 * Undocumented.
 	 */
 	String	LANG_PERMISSIONS_CACHE_SIZE = "derby.language.permissionsCacheSize";
-	int		LANG_PERMISSIONS_CACHE_SIZE_DEFAULT = 64;
+	int		LANG_PERMISSIONS_CACHE_SIZE_DEFAULT = 128;
 	/**
 	 * The size of the stored prepared statment descriptor cache 
 	 * used by the data dictionary.  Database.  Static.
