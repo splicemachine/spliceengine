@@ -16,6 +16,8 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.carrotsearch.hppc.BitSet;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -41,7 +43,12 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;
+import org.apache.parquet.Closeables;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController{
@@ -53,6 +60,17 @@ public abstract class SpliceController implements ConglomerateController{
     private String tableVersion;
     private Partition table;
     protected TxnOperationFactory opFactory;
+    private static Function ROWLOCATION_TO_BYTES = new Function<RowLocation, byte[]>() {
+        @Override
+        public byte[] apply(@Nullable RowLocation rowLocation) {
+            try {
+                return rowLocation.getBytes();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    };
+
 
     public SpliceController(){
     }
@@ -167,6 +185,50 @@ public abstract class SpliceController implements ConglomerateController{
             throw Exceptions.parseException(e);
         }
     }
+    @Override
+    public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows, FormatableBitSet validColumns) throws StandardException{
+        return batchFetch(locations,destRows,validColumns,false);
+    }
+    @Override
+    public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
+        if (locations.size() == 0)
+            return false;
+        Partition htable = getTable();
+        KeyHashDecoder rowDecoder = null;
+        try{
+            DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),locations.get(0).getBytes(),null);
+            baseGet.returnAllVersions();
+            DataGet get = createGet(baseGet,destRows.get(0).getRowArray(),validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
+            Iterator<DataResult> results = htable.batchGet(get, Lists.transform(locations, ROWLOCATION_TO_BYTES));
+            assert results != null:"Results Returned are Null";
+            int i = 0;
+            DescriptorSerializer[] serializers = null;
+            int[] cols=FormatableBitSetUtils.toIntArray(validColumns);
+            while (results.hasNext()) {
+                DataResult result = results.next();
+                DataValueDescriptor[] destRow = destRows.get(i).getRowArray();
+                if (serializers ==null) {
+                    serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(destRow);
+                    rowDecoder=new EntryDataDecoder(cols,null,serializers);
+                }
+                ExecRow row=new ValueRow(destRow.length);
+                row.setRowArray(destRow);
+                row.resetRowArray();
+                DataCell keyValue=result.userData();
+                rowDecoder.set(keyValue.valueArray(),keyValue.valueOffset(),keyValue.valueLength());
+                rowDecoder.decode(row);
+                i++;
+            }
+            return true;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        } finally {
+            if (rowDecoder !=null)
+                Closeables.closeAndSwallowIOExceptions(rowDecoder);
+        }
+
+    }
+
 
     @Override
     public String toString(){

@@ -7006,9 +7006,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                                            TransactionController tc) throws StandardException{
         CatalogRowFactory rf=ti.getCatalogRowFactory();
         ConglomerateController heapCC;
-        ExecIndexRow indexRow1;
+        ExecIndexRow indexRow1 = null;
         ExecRow outRow;
-        RowLocation baseRowLocation;
         ScanController scanController;
         T td=null;
 
@@ -7017,9 +7016,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     (isolationLevel==TransactionController.ISOLATION_REPEATABLE_READ ||
                             isolationLevel==TransactionController.ISOLATION_READ_UNCOMMITTED);
         }
-
-        outRow=rf.makeEmptyRow();
-
         heapCC=tc.openConglomerate(ti.getHeapConglomerate(),false,0,TransactionController.MODE_RECORD,isolationLevel);
 
 		/* Scan the index and go to the data pages for qualifying rows to
@@ -7037,60 +7033,36 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 scanQualifiers,         //scanQualifier,
                 keyRow.getRowArray(),   // stop position - through last row
                 ScanController.GT);     // stopSearchOperation
+        List<RowLocation> rowLocations = new ArrayList();
 
-        while(true){
+        List<ExecRow> outRows = new ArrayList();
+        int i = 0;
+        while(true) {
+            if (list==null && i==1) // List = null means the caller wants only one record.
+                break;
             // create an index row template
-            indexRow1=getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId),heapCC.newRowLocationTemplate(),outRow);
-
+            outRow=rf.makeEmptyRow().getClone();
+            indexRow1 = getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId), heapCC.newRowLocationTemplate(), outRow);
             // It is important for read uncommitted scans to use fetchNext()
             // rather than fetch, so that the fetch happens while latch is
             // held, otherwise the next() might position the scan on a row,
             // but the subsequent fetch() may find the row deleted or purged
             // from the table.
-            if(!scanController.fetchNext(indexRow1.getRowArray())){
+            if (!scanController.fetchNext(indexRow1.getRowArray())) {
                 break;
             }
+            i++;
 
-            baseRowLocation=(RowLocation)indexRow1.getColumn(
-                    indexRow1.nColumns());
-
-            // RESOLVE paulat - remove the try catch block when track 3677 is fixed
-            // just leave the contents of the try block
-            // adding to get more info on track 3677
-
-            boolean base_row_exists;
-            try{
-                base_row_exists=heapCC.fetch(baseRowLocation,outRow.getRowArray(),null);
-            }catch(RuntimeException re){
-                if (SanityManager.DEBUG) {
-                    StringBuilder strbuf = new StringBuilder("Error retrieving base row in table " + ti.getTableName());
-                    strbuf.append(": An ASSERT was thrown when trying to locate a row matching index row ")
-                            .append(indexRow1).append(" from index ").append(ti.getIndexName(indexId))
-                            .append(", conglom number ").append(ti.getIndexConglomerate(indexId));
-                    debugGenerateInfo(strbuf, tc, heapCC, ti, indexId);
-                }
-                throw re;
-            }catch(StandardException se){
-                if(SanityManager.DEBUG){
-                    // only look for a specific error i.e. that of record on page
-                    // no longer exists
-                    // do not want to catch lock timeout errors here
-                    if(se.getSQLState().equals("XSRS9")){
-                        StringBuilder strbuf=new StringBuilder("Error retrieving base row in table "+ti.getTableName());
-                        strbuf.append(": A StandardException was thrown when trying to locate a row matching index row ")
-                                .append(indexRow1).append(" from index ").append(ti.getIndexName(indexId))
-                                .append(", conglom number ").append(ti.getIndexConglomerate(indexId));
-                        debugGenerateInfo(strbuf,tc,heapCC,ti,indexId);
-                    }
-                }
-                throw se;
-            }
-
+            outRows.add(outRow);
+            rowLocations.add((RowLocation) indexRow1.getColumn(
+                    indexRow1.nColumns()).cloneValue(true));
+        }
+        heapCC.batchFetch(rowLocations,outRows,null);
+        if (outRows.size() != i) {
             if(SanityManager.DEBUG){
                 // it can not be possible for heap row to disappear while
                 // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
-                if(!base_row_exists &&
-                        (isolationLevel==TransactionController.ISOLATION_REPEATABLE_READ)){
+                if((isolationLevel==TransactionController.ISOLATION_REPEATABLE_READ)){
                     StringBuilder strbuf=new StringBuilder("Error retrieving base row in table "+ti.getTableName());
                     strbuf.append(": could not locate a row matching index row ").append(indexRow1)
                             .append(" from index ").append(ti.getIndexName(indexId)).append(", conglom number ")
@@ -7099,58 +7071,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     // RESOLVE: for now, we are going to kill the VM
                     // to help debug this problem.
                     System.exit(1);
-
                     // RESOLVE: not currently reached
                     //SanityManager.THROWASSERT(strbuf.toString());
                 }
             }
+        }
 
-            if(!base_row_exists && (isolationLevel==TransactionController.ISOLATION_READ_UNCOMMITTED)){
-                // If isolationLevel == ISOLATION_READ_UNCOMMITTED we may
-                // possibly see that the base row does not exist even if the
-                // index row did.  This mode is currently only used by
-                // TableNameInfo's call to hashAllTableDescriptorsByTableId,
-                // cf. DERBY-3678, and by getStatisticsDescriptors,
-                // cf. DERBY-4881.
-                //
-                // For the former call, a table's schema descriptor is attempted
-                // read, and if the base row for the schema has gone between
-                // reading the index and the base table, the table that needs
-                // this information has gone, too.  So, the table should not
-                // be needed for printing lock timeout or deadlock
-                // information, so we can safely just return an empty (schema)
-                // descriptor. Furthermore, neither Timeout or DeadLock
-                // diagnostics access the schema of a table descriptor, so it
-                // seems safe to just return an empty schema descriptor for
-                // the table.
-                //
-                // There is a theoretical chance another row may have taken
-                // the first one's place, but only if a compress of the base
-                // table managed to run between the time we read the index and
-                // the base row, which seems unlikely so we ignore that.
-                //
-                // Even the index row may be gone in the above use case, of
-                // course, and that case also returns an empty descriptor
-                // since no match is found.
-
-                td=null;
-
-            }else{
-                // normal case
-                //noinspection unchecked
-                td=(T)rf.buildDescriptor(outRow,parentTupleDescriptor,this);
-            }
-
-
-
-			/* If list is null, then caller only wants a single descriptor - we're done
-			 * else just add the current descriptor to the list.
-			 */
-            if(list==null){
-                break;
-            }else if(td!=null){
+        for (ExecRow retrievedRow: outRows) {
+            td=(T)rf.buildDescriptor(retrievedRow,parentTupleDescriptor,this);
+            if (td!=null && list !=null)
                 list.add(td);
-            }
         }
         scanController.close();
         heapCC.close();
