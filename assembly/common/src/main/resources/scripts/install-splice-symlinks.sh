@@ -89,6 +89,12 @@ for platform in ${platforms[@]} ; do
       ln -sf ${spliceservletapijar} ${servletapijar}
     done
 
+    # make sure all jars are fully world-readable
+    for splicejar in $(find ${splicedir[${platform}]} -xdev -type f -name \*.jar) ; do
+      echo "setting full read permissions (644) for ${splicejar}"
+      chmod 644 ${splicejar}
+    done
+
     # XXX - any CDH platform-specific steps?
 
     # platform-specific stuff for hdp, mapr
