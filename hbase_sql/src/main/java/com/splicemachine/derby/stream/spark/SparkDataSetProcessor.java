@@ -473,7 +473,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         col=q.negateCompareResult()?col.lt(value):col.geq(value);
                         break;
                     case DataType.ORDER_OP_EQUALS:
-                        col=q.negateCompareResult()?col.notEqual(value):col.equalTo(value);
+                        if (value == null) // Handle Null Case, push down into Catalyst and Hopefully Parquet/ORC
+                            col=q.negateCompareResult()?col.isNotNull():col.isNull();
+                        else
+                            col=q.negateCompareResult()?col.notEqual(value):col.equalTo(value);
                         break;
                 }
                 if (andCols ==null)

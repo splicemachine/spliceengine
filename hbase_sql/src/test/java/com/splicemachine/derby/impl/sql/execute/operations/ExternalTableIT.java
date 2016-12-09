@@ -221,23 +221,46 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     }
 
-
-
     @Test
+    public void testWriteReadNullValues() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"simple_parquet";
+        methodWatcher.executeUpdate(String.format("create external table null_test (col1 int, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into null_test values (1,null)," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from null_test where col2 is null");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |NULL |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet rs2 = methodWatcher.executeQuery("select * from null_test where col2 is not null");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        //Make sure empty file is created
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+
+    }
+
+
+     @Test
     public void testWriteReadFromSimpleParquetExternalTable() throws Exception {
-         String tablePath = getExternalResourceDirectory()+"simple_parquet";
-            methodWatcher.executeUpdate(String.format("create external table simple_parquet (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
-            int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_parquet values (1,'XXXX')," +
-                    "(2,'YYYY')," +
-                    "(3,'ZZZZ')"));
-            Assert.assertEquals("insertCount is wrong",3,insertCount);
-            ResultSet rs = methodWatcher.executeQuery("select * from simple_parquet");
-            Assert.assertEquals("COL1 |COL2 |\n" +
-                    "------------\n" +
-                    "  1  |XXXX |\n" +
-                    "  2  |YYYY |\n" +
-                    "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        String tablePath = getExternalResourceDirectory()+"simple_parquet";
+        methodWatcher.executeUpdate(String.format("create external table simple_parquet (col1 int, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_parquet values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from simple_parquet");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
         ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from simple_parquet");
         Assert.assertEquals("COL1 |\n" +
                 "------\n" +
