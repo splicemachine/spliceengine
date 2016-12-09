@@ -55,13 +55,8 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Properties;
-import java.util.StringTokenizer;
-import java.util.Vector;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.security.SystemPermission;
@@ -90,46 +85,46 @@ import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.mbeans.VersionMBean;
 import com.splicemachine.db.mbeans.drda.NetworkServerMBean;
 
-/** 
-	
-	NetworkServerControlImpl does all the work for NetworkServerControl
-	@see NetworkServerControl for description
+/**
 
-*/
+ NetworkServerControlImpl does all the work for NetworkServerControl
+ @see NetworkServerControl for description
+
+ */
 public final class NetworkServerControlImpl {
 	private final static int NO_USAGE_MSGS= 12;
-	private final static String [] COMMANDS = 
-	{"start","shutdown","trace","tracedirectory","ping", 
-	 "logconnections", "sysinfo", "runtimeinfo",  "maxthreads", "timeslice", ""};
+	private final static String [] COMMANDS =
+			{"start","shutdown","trace","tracedirectory","ping",
+					"logconnections", "sysinfo", "runtimeinfo",  "maxthreads", "timeslice", ""};
 	// number of required arguments for each command
 	private final static int [] COMMAND_ARGS =
-	{0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0};
+			{0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0};
 	public final static int COMMAND_START = 0;
-	public final static int COMMAND_SHUTDOWN = 1;
-	public final static int COMMAND_TRACE = 2;
-	public final static int COMMAND_TRACEDIRECTORY = 3;
-	public final static int COMMAND_TESTCONNECTION = 4;
-	public final static int COMMAND_LOGCONNECTIONS = 5;
-	public final static int COMMAND_SYSINFO = 6;
-	public final static int COMMAND_RUNTIME_INFO = 7;
-	public final static int COMMAND_MAXTHREADS = 8;
-	public final static int COMMAND_TIMESLICE = 9;
-	public final static int COMMAND_PROPERTIES = 10;
-	public final static int COMMAND_UNKNOWN = -1;
-	public final static String [] DASHARGS =
-	{"p", "d", "user", "password", "ld", "ea", "ep", "b", "h", "s",
-		 "noSecurityManager", "ssl"};
-	public final static int DASHARG_PORT = 0;
-	public final static int DASHARG_DATABASE = 1;
-	public final static int DASHARG_USER = 2;
-	public final static int DASHARG_PASSWORD = 3;
-	public final static int DASHARG_LOADSYSIBM = 4;
-	public final static int DASHARG_ENCALG = 5;
-	public final static int DASHARG_ENCPRV = 6;
+	private final static int COMMAND_SHUTDOWN = 1;
+	private final static int COMMAND_TRACE = 2;
+	private final static int COMMAND_TRACEDIRECTORY = 3;
+	private final static int COMMAND_TESTCONNECTION = 4;
+	private final static int COMMAND_LOGCONNECTIONS = 5;
+	private final static int COMMAND_SYSINFO = 6;
+	private final static int COMMAND_RUNTIME_INFO = 7;
+	private final static int COMMAND_MAXTHREADS = 8;
+	private final static int COMMAND_TIMESLICE = 9;
+	private final static int COMMAND_PROPERTIES = 10;
+	private final static int COMMAND_UNKNOWN = -1;
+	private final static String [] DASHARGS =
+			{"p", "d", "user", "password", "ld", "ea", "ep", "b", "h", "s",
+					"noSecurityManager", "ssl"};
+	private final static int DASHARG_PORT = 0;
+	private final static int DASHARG_DATABASE = 1;
+	private final static int DASHARG_USER = 2;
+	private final static int DASHARG_PASSWORD = 3;
+	private final static int DASHARG_LOADSYSIBM = 4;
+	private final static int DASHARG_ENCALG = 5;
+	private final static int DASHARG_ENCPRV = 6;
 	public final static int DASHARG_BOOTPASSWORD = 7;
-	public final static int DASHARG_HOST = 8;
-	public final static int DASHARG_SESSION = 9;
-	public final static int DASHARG_UNSECURE = 10;
+	private final static int DASHARG_HOST = 8;
+	private final static int DASHARG_SESSION = 9;
+	private final static int DASHARG_UNSECURE = 10;
 	private final static int DASHARG_SSL = 11;
 
 	//All the commands except shutdown with username and password are at 
@@ -176,49 +171,49 @@ public final class NetworkServerControlImpl {
 	private final static int MAXREPLY = 32767;
 
 	// Application Server Attributes.
-	protected static String att_srvclsnm;
-	protected final static String ATT_SRVNAM = "NetworkServerControl";
+	static String att_srvclsnm;
+	final static String ATT_SRVNAM = "NetworkServerControl";
 
-	protected static String att_extnam;
-	protected static String att_srvrlslv; 
-	protected static String prdId;
-    protected static byte[] prdIdBytes_;
-    
+	static String att_extnam;
+	static String att_srvrlslv;
+	static String prdId;
+	static byte[] prdIdBytes_;
+
 	private static String buildNumber;
 	private static String versionString;
 	// we will use single or mixed, not double byte to reduce traffic on the
 	// wire, this is in keeping with JCC
 	// Note we specify UTF8 for the single byte encoding even though it can
 	// be multi-byte.
-	protected final static int CCSIDSBC = 1208; //use UTF8
-	protected final static int CCSIDMBC = 1208; //use UTF8
-	protected final static String DEFAULT_ENCODING = "UTF8"; // use UTF8 for writing
+	final static int CCSIDSBC = 1208; //use UTF8
+	final static int CCSIDMBC = 1208; //use UTF8
+	final static String DEFAULT_ENCODING = "UTF8"; // use UTF8 for writing
 	final static Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_ENCODING);
 	protected final static int DEFAULT_CCSID = 1208;
 	protected final static byte SPACE_CHAR = 32;
-														
+
 
 	// Application Server manager levels - this needs to be in sync
 	// with CodePoint.MGR_CODEPOINTS
-	protected final static int [] MGR_LEVELS = { 7, // AGENT
-												 4,	// CCSID Manager
-												 0, // CNMAPPC not implemented
-												 0, // CMNSYNCPT not implemented
-												 5, // CMNTCPIP
-												 0, // DICTIONARY
-												 7, // RDB
-												 0, // RSYNCMGR
-												 7, // SECMGR
-												 7, // SQLAM
-												 0, // SUPERVISOR
-												 0, // SYNCPTMGR
-												 1208, // UNICODE Manager
-												 7  // XAMGR
-												};
-											
-	
-	protected PrintWriter logWriter;                        // console
-	protected PrintWriter cloudscapeLogWriter;              // db.log
+	final static int [] MGR_LEVELS = { 7, // AGENT
+			4,	// CCSID Manager
+			0, // CNMAPPC not implemented
+			0, // CMNSYNCPT not implemented
+			5, // CMNTCPIP
+			0, // DICTIONARY
+			7, // RDB
+			0, // RSYNCMGR
+			7, // SECMGR
+			7, // SQLAM
+			0, // SUPERVISOR
+			0, // SYNCPTMGR
+			1208, // UNICODE Manager
+			7  // XAMGR
+	};
+
+
+	PrintWriter logWriter;                        // console
+	PrintWriter cloudscapeLogWriter;              // db.log
 	private static Driver cloudscapeDriver;
 
 	// error types
@@ -231,15 +226,15 @@ public final class NetworkServerControlImpl {
 	private Vector commandArgs = new Vector();
 	private String databaseArg;
 	// DERBY-2109: Note that db JDBC clients have a default user name
-    // "SPLICE" (= Property.DEFAULT_USER_NAME) assigned if they don't provide
-    // credentials.  We could do the same for NetworkServerControl clients
-    // here, but this class is robust enough to allow for null as default.
+	// "SPLICE" (= Property.DEFAULT_USER_NAME) assigned if they don't provide
+	// credentials.  We could do the same for NetworkServerControl clients
+	// here, but this class is robust enough to allow for null as default.
 	private String userArg = null;
 	private String passwordArg = null;
 	private String bootPasswordArg;
 	private String encAlgArg;
 	private String encPrvArg;
-	private String hostArg = DEFAULT_HOST;	
+	private String hostArg = DEFAULT_HOST;
 	private InetAddress hostAddress;
 	private int sessionArg;
 	private boolean unsecureArg;
@@ -248,7 +243,7 @@ public final class NetworkServerControlImpl {
 	private memCheck mc;
 
 	// reply buffer
-	private byte [] replyBuffer;	
+	private byte [] replyBuffer;
 	private int replyBufferCount;	//length of reply
 	private int replyBufferPos;		//current position in reply
 
@@ -263,33 +258,33 @@ public final class NetworkServerControlImpl {
 	private Object traceDirectorySync = new Object();// object to use for syncing
 	private boolean traceAll;			// trace all sessions
 	private Object traceAllSync = new Object();	// object to use for syncing reading
-										// and changing trace all
+	// and changing trace all
 	private Object serverStartSync = new Object();	// for syncing start of server.
 	private boolean logConnections;		// log connects
 	private Object logConnectionsSync = new Object(); // object to use for syncing 
-										// logConnections value
+	// logConnections value
 	private int minThreads;				// default minimum number of connection threads
 	private int maxThreads;				// default maximum number of connection threads
 	private Object threadsSync = new Object(); // object to use for syncing reading
-										// and changing default min and max threads
+	// and changing default min and max threads
 	private int timeSlice;				// default time slice of a session to a thread
 	private Object timeSliceSync = new Object();// object to use for syncing reading
-										// and changing timeSlice
+	// and changing timeSlice
 
 	private boolean keepAlive = true;   // keepAlive value for client socket 
 	private int minPoolSize;			//minimum pool size for pooled connections
 	private int maxPoolSize;			//maximum pool size for pooled connections
 	private Object poolSync = new Object();	// object to use for syning reading
 
-	protected boolean debugOutput = false;
+	boolean debugOutput = false;
 	private boolean cleanupOnStart = false;	// Should we clean up when starting the server?
 	private boolean restartFlag = false;
 
-    protected final static int INVALID_OR_NOTSET_SECURITYMECHANISM = -1; 
-    // variable to store value set to db.drda.securityMechanism
-    // default value is -1 which indicates that this property isnt set or
-    // the value is invalid
-    private int allowOnlySecurityMechanism = INVALID_OR_NOTSET_SECURITYMECHANISM;
+	final static int INVALID_OR_NOTSET_SECURITYMECHANISM = -1;
+	// variable to store value set to db.drda.securityMechanism
+	// default value is -1 which indicates that this property isnt set or
+	// the value is invalid
+	private int allowOnlySecurityMechanism = INVALID_OR_NOTSET_SECURITYMECHANISM;
 	//
 	// variables for a client command session
 	//
@@ -298,28 +293,27 @@ public final class NetworkServerControlImpl {
 	private OutputStream clientOs = null;
 	private ByteArrayOutputStream byteArrayOs = new ByteArrayOutputStream();
 	private DataOutputStream commandOs = new DataOutputStream(byteArrayOs);
-	
+
 	private Object shutdownSync = new Object();
 	private boolean shutdown;
 	private int connNum;		// number of connections since server started
 	private ServerSocket serverSocket;
-	private NetworkServerControlImpl serverInstance;
 	private LocalizedResource langUtil;
 	public String clientLocale;
-	ArrayList  localAddresses; // list of local addresses for checking admin
-	                              // commands. 
+	private List<InetAddress> localAddresses; // list of local addresses for checking admin
+	// commands.
 
 	// open sessions
-	private Hashtable sessionTable = new Hashtable();
+	private final Map<Integer,Session> sessionTable = new ConcurrentHashMap<>();
 
 	// current session
 	private Session currentSession;
 	// DRDAConnThreads
-	private Vector threadList = new Vector();
+	private final List<DRDAConnThread> threadList = new Vector<>();
 
 	// queue of sessions waiting for a free thread - the queue is managed
 	// in a simple first come, first serve manner - no priorities
-	private Vector runQueue = new Vector();
+	private final List<Session> runQueue = new Vector<>();
 
 	// number of DRDAConnThreads waiting for something to do
 	private int freeThreads;
@@ -336,62 +330,62 @@ public final class NetworkServerControlImpl {
 	private boolean shutdownDatabasesOnShutdown = false;
 
 	// SSL related stuff
-	public static final int SSL_OFF = 0;
-	public static final int SSL_BASIC = 1;
-    public static final int SSL_PEER_AUTHENTICATION = 2;
+	private static final int SSL_OFF = 0;
+	private static final int SSL_BASIC = 1;
+	private static final int SSL_PEER_AUTHENTICATION = 2;
 
 	private int sslMode = SSL_OFF;
 
-    /**
-     * Can EUSRIDPWD security mechanism be used with 
-     * the current JVM
-     */
-    private static boolean SUPPORTS_EUSRIDPWD = false;
+	/**
+	 * Can EUSRIDPWD security mechanism be used with
+	 * the current JVM
+	 */
+	private static boolean SUPPORTS_EUSRIDPWD = false;
 
-    /*
+	/*
      * DRDA Specification for the EUSRIDPWD security mechanism
      * requires DH algorithm support with a 32-byte prime to be
      * used. Not all JCE implementations have support for this.
      * Hence here we need to find out if EUSRIDPWD can be used
      * with the current JVM.
-     */ 
-    static
-    {
-        try
-        {
-            // The DecryptionManager class will instantiate objects of the required 
-            // security algorithms that are needed for EUSRIDPWD
-            // An exception will be thrown if support is not available
-            // in the JCE implementation in the JVM in which the server
-            // is started.
-            new DecryptionManager();
-            SUPPORTS_EUSRIDPWD = true;
-        }catch(Exception e)
-        {
-            // if an exception is thrown, ignore exception.
-            // set SUPPORTS_EUSRIDPWD to false indicating that the server 
-            // does not have support for EUSRIDPWD security mechanism
-            SUPPORTS_EUSRIDPWD = false;
-        }
-    }
-
-    /**
-     * Get the host where we listen for connections.
      */
-    public  String  getHost() { return hostArg; }
+	static
+	{
+		try
+		{
+			// The DecryptionManager class will instantiate objects of the required
+			// security algorithms that are needed for EUSRIDPWD
+			// An exception will be thrown if support is not available
+			// in the JCE implementation in the JVM in which the server
+			// is started.
+			new DecryptionManager();
+			SUPPORTS_EUSRIDPWD = true;
+		}catch(Exception e)
+		{
+			// if an exception is thrown, ignore exception.
+			// set SUPPORTS_EUSRIDPWD to false indicating that the server
+			// does not have support for EUSRIDPWD security mechanism
+			SUPPORTS_EUSRIDPWD = false;
+		}
+	}
 
-    /**
-     * Return true if the customer forcibly overrode our decision to install a
-     * default SecurityManager.
-     */
-    public  boolean runningUnsecure() { return unsecureArg; }
-    
-    // constructor
+	/**
+	 * Get the host where we listen for connections.
+	 */
+	public  String  getHost() { return hostArg; }
+
+	/**
+	 * Return true if the customer forcibly overrode our decision to install a
+	 * default SecurityManager.
+	 */
+	public  boolean runningUnsecure() { return unsecureArg; }
+
+	// constructor
 	public NetworkServerControlImpl() throws Exception
 	{
 		init();
 		getPropertyInfo();
-    }
+	}
 
 	/**
 	 * Internal constructor for NetworkServerControl API. 
@@ -405,7 +399,7 @@ public final class NetworkServerControlImpl {
 		this();
 		this.hostAddress = address;
 		this.portNumber = (portNumber <= 0) ?
-			this.portNumber: portNumber;
+				this.portNumber: portNumber;
 		this.hostArg = address.getHostAddress();
 	}
 
@@ -417,9 +411,9 @@ public final class NetworkServerControlImpl {
 	 * @see NetworkServerControl
 	 */
 	public NetworkServerControlImpl(String userName, String password)
-		throws Exception
+			throws Exception
 	{
-        this();
+		this();
 		this.userArg = userName;
 		this.passwordArg = password;
 	}
@@ -435,28 +429,27 @@ public final class NetworkServerControlImpl {
 	 */
 	public NetworkServerControlImpl(InetAddress address, int portNumber,
 									String userName, String password)
-		throws Exception
+			throws Exception
 	{
 		this(address, portNumber);
 		this.userArg = userName;
 		this.passwordArg = password;
 	}
 
-    private void init() throws Exception
-    {
+	private void init() throws Exception
+	{
 
-        // adjust the application in accordance with db.ui.locale and db.ui.codeset
+		// adjust the application in accordance with db.ui.locale and db.ui.codeset
 		langUtil = new LocalizedResource(null,null,DRDA_PROP_MESSAGES);
 
-		serverInstance = this;
-		
+
 		//set Server attributes to be used in EXCSAT
 		ProductVersionHolder myPVH = getNetProductVersionHolder();
 		att_extnam = ATT_SRVNAM + " " + java.lang.Thread.currentThread().getName();
-		
+
 		att_srvclsnm = myPVH.getProductName();
 		versionString = myPVH.getVersionBuildString(true);
-		
+
 		String majorStr = String.valueOf(myPVH.getMajorVersion());
 		String minorStr = String.valueOf(myPVH.getMinorVersion());
 		// Maintenance version. Server protocol version.
@@ -477,36 +470,36 @@ public final class NetworkServerControlImpl {
 			prdId += "0";
 
 		prdId += minorStr;
-		
+
 		prdId += drdaMaintStr;
 		att_srvrlslv = prdId + "/" + myPVH.getVersionBuildString(true);
-                // Precompute this to save some cycles
-                prdIdBytes_ = prdId.getBytes(DEFAULT_ENCODING);
- 
+		// Precompute this to save some cycles
+		prdIdBytes_ = prdId.getBytes(DEFAULT_ENCODING);
+
 		if (SanityManager.DEBUG)
 		{
-			if (majorStr.length() > 2  || 
-				minorStr.length() > 2 || 
-				drdaMaintStr.length() > 1)
+			if (majorStr.length() > 2  ||
+					minorStr.length() > 2 ||
+					drdaMaintStr.length() > 1)
 				SanityManager.THROWASSERT("version values out of expected range  for PRDID");
 		}
 
 		buildNumber = myPVH.getBuildNumber();
 	}
 
-    private PrintWriter makePrintWriter( OutputStream out)
-    {
+	private PrintWriter makePrintWriter( OutputStream out)
+	{
 		if (out != null)
 			return new PrintWriter(out, true /* flush the buffer at the end of each line */);
 		else
 			return null;
-    }
+	}
 
 	protected static Driver getDriver()
 	{
 		return cloudscapeDriver;
 	}
-	
+
 
 	/********************************************************************************
 	 * Implementation of NetworkServerControl API
@@ -525,18 +518,18 @@ public final class NetworkServerControlImpl {
 	 */
 	public void setLogWriter(PrintWriter outWriter)
 	{
-        // wrap the user-set outWriter with, autoflush to true.
-        // this will ensure that messages to console will be 
-        // written out to the outWriter on a println.
-        // DERBY-1466
-        if ( outWriter != null )
-            logWriter = new PrintWriter(outWriter,true);
-        else
-            logWriter = outWriter;
-    }
+		// wrap the user-set outWriter with, autoflush to true.
+		// this will ensure that messages to console will be
+		// written out to the outWriter on a println.
+		// DERBY-1466
+		if ( outWriter != null )
+			logWriter = new PrintWriter(outWriter,true);
+		else
+			logWriter = outWriter;
+	}
 
 
-	
+
 	/**
 	 * Write an error message to console output stream
 	 * and throw an exception for this error
@@ -544,9 +537,7 @@ public final class NetworkServerControlImpl {
 	 * @param msg	error message
 	 * @exception Exception
 	 */
-	public void consoleError(String msg)
-		throws Exception
-	{
+	public void consoleError(String msg) throws Exception {
 		consoleMessage(msg, true);
 		throw new Exception(msg);
 	}
@@ -559,7 +550,7 @@ public final class NetworkServerControlImpl {
 	 */
 	public void consoleExceptionPrint(Exception e)
 	{
-		if (debugOutput == true)
+		if (debugOutput)
 			consoleExceptionPrintTrace(e);
 
 		return;
@@ -585,7 +576,7 @@ public final class NetworkServerControlImpl {
 		{
 			e.printStackTrace();
 		}
-		
+
 		lw = cloudscapeLogWriter;
 		if (lw != null)
 		{
@@ -602,7 +593,7 @@ public final class NetworkServerControlImpl {
 	 * Write a message to console output stream
 	 *
 	 * @param msg	message
-     * @param printTimeStamp Whether to prepend a timestamp to the message or not
+	 * @param printTimeStamp Whether to prepend a timestamp to the message or not
 	 */
 	public void consoleMessage(String msg, boolean printTimeStamp)
 	{
@@ -611,11 +602,11 @@ public final class NetworkServerControlImpl {
 		if (lw != null)
 		{
 			synchronized(lw) {
-                if (printTimeStamp) {
-                    lw.println(new Date() + " : " + msg);
-                } else {
-                    lw.println(msg);                    
-                }
+				if (printTimeStamp) {
+					lw.println(new Date() + " : " + msg);
+				} else {
+					lw.println(msg);
+				}
 			}
 		}
 		// always print to db.log
@@ -624,10 +615,10 @@ public final class NetworkServerControlImpl {
 			synchronized(lw)
 			{
 				if (printTimeStamp) {
-                    Monitor.logMessage(new Date() + " : " + msg);
-                } else {
-                    Monitor.logMessage(msg);
-                }
+					Monitor.logMessage(new Date() + " : " + msg);
+				} else {
+					Monitor.logMessage(msg);
+				}
 			}
 	}
 
@@ -642,15 +633,15 @@ public final class NetworkServerControlImpl {
 	 * @param consoleWriter   PrintWriter to which server console will be 
 	 *                        output. Null will disable console output.
 	 *
-	 *		   
+	 *
 	 * @exception Exception	throws an exception if an error occurs
 	 */
 	public void start(PrintWriter consoleWriter)
-		throws Exception
+			throws Exception
 	{
 		DRDAServerStarter starter = new DRDAServerStarter();
 		starter.setStartInfo(hostAddress,portNumber,consoleWriter);
-        this.setLogWriter(consoleWriter);
+		this.setLogWriter(consoleWriter);
 		startNetworkServer();
 		starter.boot(false,null);
 	}
@@ -658,9 +649,9 @@ public final class NetworkServerControlImpl {
 	/**
 	 * Create the right kind of server socket
 	 */
-	
+
 	private ServerSocket createServerSocket()
-		throws IOException
+			throws IOException
 	{
 		if (hostAddress == null)
 			hostAddress = InetAddress.getByName(hostArg);
@@ -668,34 +659,34 @@ public final class NetworkServerControlImpl {
 		// InetAddresses for NetworkServerControl
 		// admin commands.
 		buildLocalAddressList(hostAddress);
-											
+
 		// Create the right kind of socket
 		switch (getSSLMode()) {
-		case SSL_OFF:
-		default:
-			ServerSocketFactory sf =
-				ServerSocketFactory.getDefault();
-			return sf.createServerSocket(portNumber
-										 ,0,
-										 hostAddress);
-		case SSL_BASIC:
-			SSLServerSocketFactory ssf =
-				(SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-			return (SSLServerSocket)ssf.createServerSocket(portNumber,
-														   0,
-														   hostAddress);
-		case SSL_PEER_AUTHENTICATION:
-			SSLServerSocketFactory ssf2 =
-				(SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-			SSLServerSocket sss2= 
-				(SSLServerSocket)ssf2.createServerSocket(portNumber,
-														 0,
-														 hostAddress);
-			sss2.setNeedClientAuth(true);
-			return sss2;
+			case SSL_OFF:
+			default:
+				ServerSocketFactory sf =
+						ServerSocketFactory.getDefault();
+				return sf.createServerSocket(portNumber
+						,0,
+						hostAddress);
+			case SSL_BASIC:
+				SSLServerSocketFactory ssf =
+						(SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+				return (SSLServerSocket)ssf.createServerSocket(portNumber,
+						0,
+						hostAddress);
+			case SSL_PEER_AUTHENTICATION:
+				SSLServerSocketFactory ssf2 =
+						(SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+				SSLServerSocket sss2=
+						(SSLServerSocket)ssf2.createServerSocket(portNumber,
+								0,
+								hostAddress);
+				sss2.setNeedClientAuth(true);
+				return sss2;
 		}
 	}
-	
+
 
 	/**
 	 * Start a network server
@@ -703,11 +694,11 @@ public final class NetworkServerControlImpl {
 	 * @param consoleWriter   PrintWriter to which server console will be 
 	 *                        output. Null will disable console output.
 	 *
-	 *		   
+	 *
 	 * @exception Exception	throws an exception if an error occurs
 	 */
 	public void blockingStart(PrintWriter consoleWriter)
-		throws Exception
+			throws Exception
 	{
 		startNetworkServer();
 		setLogWriter(consoleWriter);
@@ -720,14 +711,14 @@ public final class NetworkServerControlImpl {
 		}
 		// Open a server socket listener	  
 		try{
-			serverSocket = 
-				(ServerSocket) 
-				AccessController.doPrivileged(new PrivilegedExceptionAction() {
-						public Object run() throws IOException
-						{
-							return createServerSocket();
-						}
-					});
+			serverSocket =
+					(ServerSocket)
+							AccessController.doPrivileged(new PrivilegedExceptionAction() {
+								public Object run() throws IOException
+								{
+									return createServerSocket();
+								}
+							});
 		} catch (PrivilegedActionException e) {
 			Exception e1 = e.getException();
 
@@ -737,168 +728,162 @@ public final class NetworkServerControlImpl {
 			if (e1 instanceof UnknownHostException) {
 				consolePropertyMessage("DRDA_UnknownHost.S", hostArg);
 			} else if (e1 instanceof IOException) {
-				consolePropertyMessage("DRDA_ListenPort.S", 
-									   new String [] {
-										   Integer.toString(portNumber), 
-										   hostArg,
-										   // Since SocketException
-										   // is used for a phletora
-										   // of situations, we need
-										   // to communicate the
-										   // underlying exception
-										   // string to the user.
-										   e1.toString()}); 
+				consolePropertyMessage("DRDA_ListenPort.S",
+						new String [] {
+								Integer.toString(portNumber),
+								hostArg,
+								// Since SocketException
+								// is used for a phletora
+								// of situations, we need
+								// to communicate the
+								// underlying exception
+								// string to the user.
+								e1.toString()});
 			} else {
 				throw e1;
 			}
 		} catch (Exception e) {
-		// If we find other (unexpected) errors, we ultimately exit--so make
-		// sure we print the error message before doing so (Beetle 5033).
+			// If we find other (unexpected) errors, we ultimately exit--so make
+			// sure we print the error message before doing so (Beetle 5033).
 			throwUnexpectedException(e);
 		}
-        
+
 		switch (getSSLMode()) {
-		default:
-		case SSL_OFF:
-			consolePropertyMessage("DRDA_Ready.I", new String [] 
-				{Integer.toString(portNumber), att_srvclsnm, versionString});
-			break;
-		case SSL_BASIC:
-			consolePropertyMessage("DRDA_SSLReady.I", new String [] 
-				{Integer.toString(portNumber), att_srvclsnm, versionString});
-			break;
-		case SSL_PEER_AUTHENTICATION:
-			consolePropertyMessage("DRDA_SSLClientAuthReady.I", new String [] 
-				{Integer.toString(portNumber), att_srvclsnm, versionString});
-			break;
+			default:
+			case SSL_OFF:
+				consolePropertyMessage("DRDA_Ready.I", new String []
+						{Integer.toString(portNumber), att_srvclsnm, versionString});
+				break;
+			case SSL_BASIC:
+				consolePropertyMessage("DRDA_SSLReady.I", new String []
+						{Integer.toString(portNumber), att_srvclsnm, versionString});
+				break;
+			case SSL_PEER_AUTHENTICATION:
+				consolePropertyMessage("DRDA_SSLClientAuthReady.I", new String []
+						{Integer.toString(portNumber), att_srvclsnm, versionString});
+				break;
 		}
 
-        // First, register any MBeans. We do this before we start accepting
-        // connections from the clients to ease testing of JMX (DERBY-3689).
-        // This way we know that once we can connect to the network server,
-        // the MBeans will be available.
-        ManagementService mgmtService = ((ManagementService)
-                Monitor.getSystemModule(Module.JMX));
+		// First, register any MBeans. We do this before we start accepting
+		// connections from the clients to ease testing of JMX (DERBY-3689).
+		// This way we know that once we can connect to the network server,
+		// the MBeans will be available.
+		ManagementService mgmtService = ((ManagementService)
+				Monitor.getSystemModule(Module.JMX));
 
-        final Object versionMBean = mgmtService.registerMBean(
-                           new Version(
-                                   getNetProductVersionHolder(),
-                                   SystemPermission.SERVER),
-                           VersionMBean.class,
-                           "type=Version,jar=derbynet-10.9.1.0.splice.jar");
-        final Object networkServerMBean = mgmtService.registerMBean(
-                            new NetworkServerMBeanImpl(this),
-                            NetworkServerMBean.class,
-                            "type=NetworkServer");
+		final Object versionMBean = mgmtService.registerMBean(
+				new Version(
+						getNetProductVersionHolder(),
+						SystemPermission.SERVER),
+				VersionMBean.class,
+				"type=Version,jar=derbynet-10.9.1.0.splice.jar");
+		final Object networkServerMBean = mgmtService.registerMBean(
+				new NetworkServerMBeanImpl(this),
+				NetworkServerMBean.class,
+				"type=NetworkServer");
 
 		// We accept clients on a separate thread so we don't run into a problem
 		// blocking on the accept when trying to process a shutdown
-		final ClientThread clientThread =	 
-			(ClientThread) AccessController.doPrivileged(
-								new PrivilegedExceptionAction() {
-									public Object run() throws Exception
-									{
-										return new ClientThread(thisControl, 
-																serverSocket);
-									}
-								}
-							);
+		final ClientThread clientThread =
+				(ClientThread) AccessController.doPrivileged(
+						new PrivilegedExceptionAction() {
+							public Object run() throws Exception
+							{
+								return new ClientThread(thisControl,
+										serverSocket);
+							}
+						}
+				);
 		clientThread.start();
 
 		try {
 			// wait until we are told to shutdown or someone sends an InterruptedException
-	        synchronized(shutdownSync) {
-	            try {
-                    while (!shutdown) {
-                        shutdownSync.wait();
-                    }
-	            }
-	            catch (InterruptedException e)
-	            {
-	                shutdown = true;
-	            }
-	        }
-	        
-	        try {
-	            AccessController.doPrivileged(
-	                    new PrivilegedAction() {
-	                        public Object run()  {
-	                        // Need to interrupt the memcheck thread if it is sleeping.
-	                            if (mc != null)
-	                                mc.interrupt();
-
-	                            //interrupt client thread
-	                            clientThread.interrupt();
-
-	                            return null;
-	                       }
-	                    });
-	        } catch (Exception exception) {
-	        	consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
-	        }
-			
-	 		// Close out the sessions
-	 		synchronized(sessionTable) {
-	 			for (Enumeration e = sessionTable.elements(); e.hasMoreElements(); )
-	 			{	
-	 				Session session = (Session) e.nextElement();
-	 				try {
-	 					session.close();
-	 				} catch (Exception exception) {
-	 		        	consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
-	 				}
-	 			}
-	 		}
-
-			synchronized (threadList)
-			{
-	 			//interupt any connection threads still active
-	 			for (int i = 0; i < threadList.size(); i++)
-	 			{
-	 				try {
-	 					final DRDAConnThread threadi = (DRDAConnThread)threadList.get(i);
-	 	                
-	 	 				threadi.close();
-	 					AccessController.doPrivileged(
-	 								new PrivilegedAction() {
-	 									public Object run() {
-	 										threadi.interrupt();
-	 										return null;
-	 									}
-	 								});
-	 				} catch (Exception exception) {
-	 		        	consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
-	 				}
-	 			}
-	 			threadList.clear();
+			synchronized(shutdownSync) {
+				try {
+					while (!shutdown) {
+						shutdownSync.wait();
+					}
+				}
+				catch (InterruptedException e)
+				{
+					shutdown = true;
+				}
 			}
-		   	
-		    // close the listener socket
-		    try{
-		       serverSocket.close();
-		    }catch(IOException e){
+
+			try {
+				AccessController.doPrivileged(
+						new PrivilegedAction() {
+							public Object run()  {
+								// Need to interrupt the memcheck thread if it is sleeping.
+								if (mc != null)
+									mc.interrupt();
+
+								//interrupt client thread
+								clientThread.interrupt();
+
+								return null;
+							}
+						});
+			} catch (Exception exception) {
+				consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
+			}
+
+			// Close out the sessions
+			synchronized(sessionTable) {
+                for(Session session:sessionTable.values()){
+					try {
+						session.close();
+					} catch (Exception exception) {
+						consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
+					}
+				}
+			}
+
+			synchronized (threadList) {
+				//interupt any connection threads still active
+                for(DRDAConnThread thread : threadList){
+                    try{
+                        thread.close();
+                        AccessController.doPrivileged(
+                                new PrivilegedAction(){
+                                    public Object run(){
+                                        thread.interrupt();
+                                        return null;
+                                    }
+                                });
+                    }catch(Exception exception){
+                        consolePrintAndIgnore("DRDA_UnexpectedException.S",exception,true);
+                    }
+                }
+				threadList.clear();
+			}
+
+			// close the listener socket
+			try{
+				serverSocket.close();
+			}catch(IOException e){
 				consolePropertyMessage("DRDA_ListenerClose.S", true);
-		    } catch (Exception exception) {
-	        	consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
-		    }
+			} catch (Exception exception) {
+				consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
+			}
 
 			// Wake up those waiting on sessions, so
 			// they can close down
-		    try{
+			try{
 				synchronized (runQueue) {
 					runQueue.notifyAll();
-				}	
-		    } catch (Exception exception) {
-	        	consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
-		    }
-	        
-	        // And now unregister any MBeans.
-		    try {
-		        mgmtService.unregisterMBean(versionMBean);
-		        mgmtService.unregisterMBean(networkServerMBean);
-		    } catch (Exception exception) {
-	        	consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
-		    }
+				}
+			} catch (Exception exception) {
+				consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
+			}
+
+			// And now unregister any MBeans.
+			try {
+				mgmtService.unregisterMBean(versionMBean);
+				mgmtService.unregisterMBean(networkServerMBean);
+			} catch (Exception exception) {
+				consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
+			}
 
 			if (shutdownDatabasesOnShutdown) {
 
@@ -921,51 +906,51 @@ public final class NetworkServerControlImpl {
 					// failed or System Privileges weren't granted. We will just
 					// print a message to the console and proceed.
 					String expectedState =
-						StandardException.getSQLStateFromIdentifier(
-								SQLState.CLOUDSCAPE_SYSTEM_SHUTDOWN);
+							StandardException.getSQLStateFromIdentifier(
+									SQLState.CLOUDSCAPE_SYSTEM_SHUTDOWN);
 					if (!expectedState.equals(sqle.getSQLState())) {
 						consolePropertyMessage("DRDA_ShutdownWarning.I",
-											   sqle.getMessage());
+								sqle.getMessage());
 					}
 				} catch (Exception exception) {
 					consolePrintAndIgnore("DRDA_UnexpectedException.S", exception, true);
 				}
 			}
 
-			consolePropertyMessage("DRDA_ShutdownSuccess.I", new String [] 
-							        {att_srvclsnm, versionString});
-			
+			consolePropertyMessage("DRDA_ShutdownSuccess.I", new String []
+					{att_srvclsnm, versionString});
+
 		} catch (Exception ex) {
 			try {
 				//If the console printing is not available,  then we have
 				//a simple stack trace print below to atleast print some
 				//exception info
-	        	consolePrintAndIgnore("DRDA_UnexpectedException.S", ex, true);				
+				consolePrintAndIgnore("DRDA_UnexpectedException.S", ex, true);
 			} catch (Exception e) {}
 			ex.printStackTrace();
 		}
-    }
-	
+	}
+
 	//Print the passed exception on the console and ignore it after that
-	private void consolePrintAndIgnore(String msgProp, 
-			Exception e, boolean printTimeStamp) {
+	private void consolePrintAndIgnore(String msgProp,
+									   Exception e, boolean printTimeStamp) {
 		// catch the exception consolePropertyMessage will throw since we
 		// just want to print information about it and move on.
 		try {
 			consolePropertyMessage(msgProp, true);
-		} catch (Exception ce) {} 
-		consoleExceptionPrintTrace(e);		
+		} catch (Exception ce) {}
+		consoleExceptionPrintTrace(e);
 	}
-	
-	/** 
+
+	/**
 	 * Load Derby and save driver for future use.
 	 * We can't call Driver Manager when the client connects, 
 	 * because they might be holding the DriverManager lock.
 	 *
-	 * 
+	 *
 	 */
 
-	
+
 
 
 	protected void startNetworkServer() throws Exception
@@ -976,16 +961,16 @@ public final class NetworkServerControlImpl {
 		synchronized (serverStartSync) {
 
 			if (restartCheck == this.restartFlag) {
-			// then we can go ahead and restart the server (odds
-			// that some else has just done so are very slim (but not
-			// impossible--however, even if it does happen, things
-			// should still work correctly, just not as efficiently...))
+				// then we can go ahead and restart the server (odds
+				// that some else has just done so are very slim (but not
+				// impossible--however, even if it does happen, things
+				// should still work correctly, just not as efficiently...))
 
 				try {
-	
+
 					if (cleanupOnStart) {
-					// we're restarting the server (probably after a shutdown
-					// exception), so we need to clean up first.
+						// we're restarting the server (probably after a shutdown
+						// exception), so we need to clean up first.
 
 						// Close and remove sessions on runQueue.
 						synchronized (runQueue) {
@@ -1014,7 +999,7 @@ public final class NetworkServerControlImpl {
 
 				}
 				catch (Exception e) {
-                    this.consoleExceptionPrintTrace(e);
+					this.consoleExceptionPrintTrace(e);
 					consolePropertyMessage("DRDA_LoadException.S", e.getMessage());
 				}
 				cleanupOnStart = true;
@@ -1033,159 +1018,159 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception	throws an exception if an error occurs
 	 */
 	public void shutdown()
-		throws Exception
+			throws Exception
 	{
 		// Wait up to 10 seconds for things to really shut down
 		// need a quiet ping so temporarily disable the logwriter
 		PrintWriter savWriter;
 		int ntry;
-        try {
-            setUpSocket();
-            try {
-                writeCommandHeader(COMMAND_SHUTDOWN, SHUTDOWN_WITH_CREDENTIAL_PROTOCOL_VERSION);
-                // DERBY-2109: transmit user credentials for System Privileges check
-                writeLDString(userArg);
-                writeLDString(passwordArg);
-                send();
-                readResult();
-            } catch (Exception e) {
-            	//The shutdown command with protocol level 2 failed. If 
-            	//the username or password were supplied then we can't 
-            	//try the shutdown with protocol level 1 because protocol
-            	//leve 1 does not support username/password. Because of
-            	//that, we should simply throw the caught exception to the
-            	//client
-            	if(userArg != null || passwordArg != null)
-            		throw e;
-                //If no username and password is specified then we can try
-            	//shutdown with the old protocol level of 1 which is the 
-            	//default protocol level. But this can be tried only if the
-            	//exception for attempt of shutdown with protocol level 2
-            	//was DRDA_InvalidReplyHead. This can happen if we are 
-            	//dealing with an older Network server product which do not
-            	//recognize shutdown at protocol level 2.
-            	if (e.getMessage().indexOf("DRDA_InvalidReplyHead") != -1)
-            	{
-                    try {
-                        closeSocket();
-                        setUpSocket();
-                        writeCommandHeader(COMMAND_SHUTDOWN);
-                        send();
-                        readResult();
-                    } catch (Exception e1) {
-                    	e1.initCause(e);
-                    	throw e1;
-                    }
-            	}
-            	else
-            		throw e;
-            }
-            savWriter = logWriter;
-            // DERBY-1571: If logWriter is null, stack traces are printed to
-            // System.err. Set logWriter to a silent stream to suppress stack
-            // traces too.
-            FilterOutputStream silentStream = new FilterOutputStream(null) {
-                public void write(int b) {
-                }
+		try {
+			setUpSocket();
+			try {
+				writeCommandHeader(COMMAND_SHUTDOWN, SHUTDOWN_WITH_CREDENTIAL_PROTOCOL_VERSION);
+				// DERBY-2109: transmit user credentials for System Privileges check
+				writeLDString(userArg);
+				writeLDString(passwordArg);
+				send();
+				readResult();
+			} catch (Exception e) {
+				//The shutdown command with protocol level 2 failed. If
+				//the username or password were supplied then we can't
+				//try the shutdown with protocol level 1 because protocol
+				//leve 1 does not support username/password. Because of
+				//that, we should simply throw the caught exception to the
+				//client
+				if(userArg != null || passwordArg != null)
+					throw e;
+				//If no username and password is specified then we can try
+				//shutdown with the old protocol level of 1 which is the
+				//default protocol level. But this can be tried only if the
+				//exception for attempt of shutdown with protocol level 2
+				//was DRDA_InvalidReplyHead. This can happen if we are
+				//dealing with an older Network server product which do not
+				//recognize shutdown at protocol level 2.
+				if (e.getMessage().indexOf("DRDA_InvalidReplyHead") != -1)
+				{
+					try {
+						closeSocket();
+						setUpSocket();
+						writeCommandHeader(COMMAND_SHUTDOWN);
+						send();
+						readResult();
+					} catch (Exception e1) {
+						e1.initCause(e);
+						throw e1;
+					}
+				}
+				else
+					throw e;
+			}
+			savWriter = logWriter;
+			// DERBY-1571: If logWriter is null, stack traces are printed to
+			// System.err. Set logWriter to a silent stream to suppress stack
+			// traces too.
+			FilterOutputStream silentStream = new FilterOutputStream(null) {
+				public void write(int b) {
+				}
 
-                public void flush() {
-                }
+				public void flush() {
+				}
 
-                public void close() {
-                }
-            };
-            setLogWriter(new PrintWriter(silentStream));
-            for (ntry = 0; ntry < SHUTDOWN_CHECK_ATTEMPTS; ntry++) {
-                Thread.sleep(SHUTDOWN_CHECK_INTERVAL);
-                try {
-                    pingWithNoOpen();
-                } catch (Exception e) {
-                    // as soon as we can't ping return
-                    break;
-                }
-            }
-        } finally {
-            closeSocket();
-        }		
-        
-        if (ntry == SHUTDOWN_CHECK_ATTEMPTS)
-            consolePropertyMessage("DRDA_ShutdownError.S", new String [] {
-                Integer.toString(portNumber), 
-                hostArg}); 
-        
+				public void close() {
+				}
+			};
+			setLogWriter(new PrintWriter(silentStream));
+			for (ntry = 0; ntry < SHUTDOWN_CHECK_ATTEMPTS; ntry++) {
+				Thread.sleep(SHUTDOWN_CHECK_INTERVAL);
+				try {
+					pingWithNoOpen();
+				} catch (Exception e) {
+					// as soon as we can't ping return
+					break;
+				}
+			}
+		} finally {
+			closeSocket();
+		}
+
+		if (ntry == SHUTDOWN_CHECK_ATTEMPTS)
+			consolePropertyMessage("DRDA_ShutdownError.S", new String [] {
+					Integer.toString(portNumber),
+					hostArg});
+
 		logWriter= savWriter;
 		return;
 	}
 
-    /**
-     * Authenticates the user and checks for shutdown System Privileges.
-     * No Network communication needed.
-     *
-     * To perform this check the following policy grant is required
-     * <ul>
-     * <li> to run the encapsulated test:
-     *      permission javax.security.auth.AuthPermission "doAsPrivileged";
-     * </ul>
-     * or a SQLException will be raised detailing the cause.
-     * <p>
-     * In addition, for the test to succeed
-     * <ul>
-     * <li> the given user needs to be covered by a grant:
-     *      principal com.splicemachine.db.authentication.SystemPrincipal "..." {}
-     * <li> that lists a shutdown permission:
-     *      permission com.splicemachine.db.security.SystemPermission "shutdown";
-     * </ul>
-     * or it will fail with a SQLException detailing the cause.
-     *
-     * @param user The user to be checked for shutdown privileges
-     * @throws SQLException if the privileges check fails
-     */
-    /**
-     * @throws SQLException if authentication or privileges check fails
-     */
-    public void checkShutdownPrivileges() throws SQLException {    
-        // get the system's authentication service
-        final AuthenticationService auth
-            = ((AuthenticationService)
-               Monitor.findService(AuthenticationService.MODULE,
-                                   "authentication"));
+	/**
+	 * Authenticates the user and checks for shutdown System Privileges.
+	 * No Network communication needed.
+	 *
+	 * To perform this check the following policy grant is required
+	 * <ul>
+	 * <li> to run the encapsulated test:
+	 *      permission javax.security.auth.AuthPermission "doAsPrivileged";
+	 * </ul>
+	 * or a SQLException will be raised detailing the cause.
+	 * <p>
+	 * In addition, for the test to succeed
+	 * <ul>
+	 * <li> the given user needs to be covered by a grant:
+	 *      principal com.splicemachine.db.authentication.SystemPrincipal "..." {}
+	 * <li> that lists a shutdown permission:
+	 *      permission com.splicemachine.db.security.SystemPermission "shutdown";
+	 * </ul>
+	 * or it will fail with a SQLException detailing the cause.
+	 *
+	 * @param user The user to be checked for shutdown privileges
+	 * @throws SQLException if the privileges check fails
+	 */
+	/**
+	 * @throws SQLException if authentication or privileges check fails
+	 */
+	public void checkShutdownPrivileges() throws SQLException {
+		// get the system's authentication service
+		final AuthenticationService auth
+				= ((AuthenticationService)
+				Monitor.findService(AuthenticationService.MODULE,
+						"authentication"));
 
-        // authenticate user
-        if (auth != null) {
-            final Properties finfo = new Properties();
-            if (userArg != null) {
-                finfo.setProperty("user", userArg);
-            }
-            if (passwordArg != null) {
-                finfo.setProperty("password", passwordArg);
-            }
-            if (!auth.authenticate((String)null, finfo)) {
-                // not a valid user
-                throw Util.generateCsSQLException(
-                SQLState.NET_CONNECT_AUTH_FAILED,
-                MessageService.getTextMessage(MessageId.AUTH_INVALID));
-            }
-        }
+		// authenticate user
+		if (auth != null) {
+			final Properties finfo = new Properties();
+			if (userArg != null) {
+				finfo.setProperty("user", userArg);
+			}
+			if (passwordArg != null) {
+				finfo.setProperty("password", passwordArg);
+			}
+			if (!auth.authenticate((String)null, finfo)) {
+				// not a valid user
+				throw Util.generateCsSQLException(
+						SQLState.NET_CONNECT_AUTH_FAILED,
+						MessageService.getTextMessage(MessageId.AUTH_INVALID));
+			}
+		}
 
-        // approve action if not running under a security manager
-        if (System.getSecurityManager() == null) {
-            return;
-        }
+		// approve action if not running under a security manager
+		if (System.getSecurityManager() == null) {
+			return;
+		}
 
-        // the check
-        try {
-            final Permission sp  = new SystemPermission(
-                  SystemPermission.SERVER, SystemPermission.SHUTDOWN);
-            // For porting the network server to J2ME/CDC, consider calling
-            // abstract method InternalDriver.checkShutdownPrivileges(user)
-            // instead of static SecurityUtil.checkUserHasPermission().
-            // SecurityUtil.checkUserHasPermission(userArg, sp);
-        } catch (AccessControlException ace) {
-            throw Util.generateCsSQLException(
-				SQLState.AUTH_SHUTDOWN_MISSING_PERMISSION,
-				userArg, (Object)ace); // overloaded method
-        }
-    }
+		// the check
+		try {
+			final Permission sp  = new SystemPermission(
+					SystemPermission.SERVER, SystemPermission.SHUTDOWN);
+			// For porting the network server to J2ME/CDC, consider calling
+			// abstract method InternalDriver.checkShutdownPrivileges(user)
+			// instead of static SecurityUtil.checkUserHasPermission().
+			// SecurityUtil.checkUserHasPermission(userArg, sp);
+		} catch (AccessControlException ace) {
+			throw Util.generateCsSQLException(
+					SQLState.AUTH_SHUTDOWN_MISSING_PERMISSION,
+					userArg, (Object)ace); // overloaded method
+		}
+	}
 
 	/*
 	 Shutdown the server directly (If you have the original object)
@@ -1196,14 +1181,14 @@ public final class NetworkServerControlImpl {
 		checkShutdownPrivileges();
 		directShutdownInternal();
 	}
-	
+
 	/*
 	 Shutdown the server directly (If you have the original object)
 	 No Network communication needed.
 	*/
-    void directShutdownInternal() {
+	void directShutdownInternal() {
 		// DERBY-2109: the direct, unchecked shutdown is made private
-		synchronized(shutdownSync) {						
+		synchronized(shutdownSync) {
 			shutdown = true;
 			// wake up the server thread
 			shutdownSync.notifyAll();
@@ -1224,26 +1209,26 @@ public final class NetworkServerControlImpl {
 		return true;
 	}
 
-    /**
-     * Ping opening an new socket and close it.
-     * @throws Exception
-     */
+	/**
+	 * Ping opening an new socket and close it.
+	 * @throws Exception
+	 */
 	public void ping() throws Exception
 	{
-        try {
-            setUpSocket();
-            pingWithNoOpen();
-        } finally {
-            closeSocket();
-        }
-    }
-    
-    /**
-     * Ping the server using the client socket that is already open.
-     */
-    private void pingWithNoOpen() throws Exception
-    {
-    
+		try {
+			setUpSocket();
+			pingWithNoOpen();
+		} finally {
+			closeSocket();
+		}
+	}
+
+	/**
+	 * Ping the server using the client socket that is already open.
+	 */
+	private void pingWithNoOpen() throws Exception
+	{
+
 		// database no longer used, but don't change the protocol 
 		// in case we add
 		// authorization  later.
@@ -1251,13 +1236,13 @@ public final class NetworkServerControlImpl {
 		String user = null;
 		String password = null;
 
-			
-			writeCommandHeader(COMMAND_TESTCONNECTION);
-			writeLDString(database);
-			writeLDString(user);
-			writeLDString(password);
-			send();
-			readResult();
+
+		writeCommandHeader(COMMAND_TESTCONNECTION);
+		writeLDString(database);
+		writeLDString(user);
+		writeLDString(password);
+		send();
+		readResult();
 	}
 
 
@@ -1269,7 +1254,7 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception	throws an exception if an error occurs
 	 */
 	public void trace(boolean on)
-		throws Exception
+			throws Exception
 	{
 		trace(0, on);
 	}
@@ -1283,20 +1268,20 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception	throws an exception if an error occurs
 	 */
 	public void trace(int connNum, boolean on)
-		throws Exception
+			throws Exception
 	{
-        try {
-            setUpSocket();
-            writeCommandHeader(COMMAND_TRACE);
-            commandOs.writeInt(connNum);
-            writeByte(on ? 1 : 0);
-            send();
-            readResult();
-            consoleTraceMessage(connNum, on);
-        } finally {
-            closeSocket();
-        }
-        
+		try {
+			setUpSocket();
+			writeCommandHeader(COMMAND_TRACE);
+			commandOs.writeInt(connNum);
+			writeByte(on ? 1 : 0);
+			send();
+			readResult();
+			consoleTraceMessage(connNum, on);
+		} finally {
+			closeSocket();
+		}
+
 	}
 
 	/**
@@ -1307,7 +1292,7 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception	throws an exception if an error occurs
 	 */
 	private void consoleTraceMessage(int connNum, boolean on)
-		throws Exception
+			throws Exception
 	{
 		if (connNum == 0)
 			consolePropertyMessage("DRDA_TraceChangeAll.I", on ? "DRDA_ON.I" : "DRDA_OFF.I");
@@ -1329,67 +1314,67 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception	throws an exception if an error occurs
 	 */
 	public void logConnections(boolean on)
-		throws Exception
+			throws Exception
 	{
-        try {
-            setUpSocket();
-            writeCommandHeader(COMMAND_LOGCONNECTIONS);
-            writeByte(on ? 1 : 0);
-            send();
-            readResult();
-        } finally {
-            closeSocket();
-        }		
+		try {
+			setUpSocket();
+			writeCommandHeader(COMMAND_LOGCONNECTIONS);
+			writeByte(on ? 1 : 0);
+			send();
+			readResult();
+		} finally {
+			closeSocket();
+		}
 	}
 
 	/**
 	 *@see NetworkServerControl#setTraceDirectory
 	 */
 	public void sendSetTraceDirectory(String traceDirectory)
-		throws Exception
+			throws Exception
 	{
-        try {
-            setUpSocket();
-            writeCommandHeader(COMMAND_TRACEDIRECTORY);
-            writeLDString(traceDirectory);
-            send();
-            readResult();
-        } finally {
-            closeSocket();
-        }		
-        
+		try {
+			setUpSocket();
+			writeCommandHeader(COMMAND_TRACEDIRECTORY);
+			writeLDString(traceDirectory);
+			send();
+			readResult();
+		} finally {
+			closeSocket();
+		}
+
 	}
 
 	/**
 	 *@see NetworkServerControl#getSysinfo
 	 */
 	public String sysinfo()
-		throws Exception
+			throws Exception
 	{
 		try {
-            setUpSocket();
-            writeCommandHeader(COMMAND_SYSINFO);
-            send();
-            return readStringReply("DRDA_SysInfoError.S");
-        } finally {
-            closeSocket();
-        }
+			setUpSocket();
+			writeCommandHeader(COMMAND_SYSINFO);
+			send();
+			return readStringReply("DRDA_SysInfoError.S");
+		} finally {
+			closeSocket();
+		}
 	}
 
 	/**
 	 *@see NetworkServerControl#getRuntimeInfo
 	 */
 	public String runtimeInfo()
-	throws Exception 
+			throws Exception
 	{
 		try {
-            setUpSocket();
-            writeCommandHeader(COMMAND_RUNTIME_INFO);
-            send();
-            return readStringReply("DRDA_RuntimeInfoError.S");
-        } finally {
-            closeSocket();
-        }
+			setUpSocket();
+			writeCommandHeader(COMMAND_RUNTIME_INFO);
+			send();
+			return readStringReply("DRDA_RuntimeInfoError.S");
+		} finally {
+			closeSocket();
+		}
 	}
 
 	/**
@@ -1399,8 +1384,8 @@ public final class NetworkServerControlImpl {
 	public void usage()
 	{
 		try {
-		for (int i = 1; i <= NO_USAGE_MSGS; i++)
-			consolePropertyMessage("DRDA_Usage"+i+".I", false);
+			for (int i = 1; i <= NO_USAGE_MSGS; i++)
+				consolePropertyMessage("DRDA_Usage"+i+".I", false);
 		} catch (Exception e) {}	// ignore exceptions - there shouldn't be any
 	}
 
@@ -1415,19 +1400,19 @@ public final class NetworkServerControlImpl {
 	 */
 	public void netSetMaxThreads(int max) throws Exception
 	{
-        try {
-            setUpSocket();
-            writeCommandHeader(COMMAND_MAXTHREADS);
-            commandOs.writeInt(max);
-            send();
-            readResult();
-            int newval = readInt();
-            consolePropertyMessage("DRDA_MaxThreadsChange.I", new Integer(
-                    newval).toString());
-        } finally {
-            closeSocket();
-        }		
-        
+		try {
+			setUpSocket();
+			writeCommandHeader(COMMAND_MAXTHREADS);
+			commandOs.writeInt(max);
+			send();
+			readResult();
+			int newval = readInt();
+			consolePropertyMessage("DRDA_MaxThreadsChange.I", new Integer(
+					newval).toString());
+		} finally {
+			closeSocket();
+		}
+
 	}
 
 	/**
@@ -1439,20 +1424,20 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception	throws an exception if an error occurs
 	 */
 	public void netSetTimeSlice(int timeslice)
-		throws Exception
+			throws Exception
 	{
-        try {
-            setUpSocket();
-            writeCommandHeader(COMMAND_TIMESLICE);
-            commandOs.writeInt(timeslice);
-            send();
-            readResult();
-            int newval = readInt();
-            consolePropertyMessage("DRDA_TimeSliceChange.I",
-                    new Integer(newval).toString());
-        } finally {
-            closeSocket();
-        }  
+		try {
+			setUpSocket();
+			writeCommandHeader(COMMAND_TIMESLICE);
+			commandOs.writeInt(timeslice);
+			send();
+			readResult();
+			int newval = readInt();
+			consolePropertyMessage("DRDA_TimeSliceChange.I",
+					new Integer(newval).toString());
+		} finally {
+			closeSocket();
+		}
 	}
 
 	/**
@@ -1461,37 +1446,37 @@ public final class NetworkServerControlImpl {
 	 * @return Properties object containing properties
 	 * @exception Exception	throws an exception if an error occurs
 	 */
-	public Properties getCurrentProperties() 
-		throws Exception
+	public Properties getCurrentProperties()
+			throws Exception
 	{
-        try {
-            setUpSocket();
-            writeCommandHeader(COMMAND_PROPERTIES);
-            send();
-            byte[] val = readBytesReply("DRDA_PropertyError.S");
-            
-            Properties p = new Properties();
-            try {
-                ByteArrayInputStream bs = new ByteArrayInputStream(val);
-                p.load(bs);
-            } catch (IOException io) {
-                consolePropertyMessage("DRDA_IOException.S", io.getMessage());
-            }
-            return p;
-        } finally {
-            closeSocket();
-        }		
+		try {
+			setUpSocket();
+			writeCommandHeader(COMMAND_PROPERTIES);
+			send();
+			byte[] val = readBytesReply("DRDA_PropertyError.S");
+
+			Properties p = new Properties();
+			try {
+				ByteArrayInputStream bs = new ByteArrayInputStream(val);
+				p.load(bs);
+			} catch (IOException io) {
+				consolePropertyMessage("DRDA_IOException.S", io.getMessage());
+			}
+			return p;
+		} finally {
+			closeSocket();
+		}
 	}
 
 	/**
 	 * Set a thread name to be something that is both meaningful and unique (primarily
 	 * for debugging purposes).
 	 *
-     * The received thread's name is set to a new string of the form
-     *  [newName + "_n"], where 'n' is a unique thread id originally generated
-     *  by the jvm Thread constructor.  If the default name of the thread has
-     *  been changed before getting here, then nothing is done.
-     *
+	 * The received thread's name is set to a new string of the form
+	 *  [newName + "_n"], where 'n' is a unique thread id originally generated
+	 *  by the jvm Thread constructor.  If the default name of the thread has
+	 *  been changed before getting here, then nothing is done.
+	 *
 	 * @param thrd An instance of a Thread object that still has its default
 	 *  thread name (as generated by the jvm Thread constructor).  This should
 	 *  always be of the form "Thread-N", where N is a unique thread id
@@ -1504,13 +1489,13 @@ public final class NetworkServerControlImpl {
 		// we do so by searching for the '-' character, and then counting everything
 		// after it as a N.
 		if (thrd.getName().indexOf("Thread-") == -1) {
-		// default name has been changed; don't do anything.
+			// default name has been changed; don't do anything.
 			return;
 		}
 		else {
 			String oldName = thrd.getName();
 			thrd.setName(newName + "_" +
-			  oldName.substring(oldName.indexOf("-")+1, oldName.length()));
+					oldName.substring(oldName.indexOf("-")+1, oldName.length()));
 		} // end else.
 
 		return;
@@ -1556,8 +1541,8 @@ public final class NetworkServerControlImpl {
 	 *   if OK 
 	 *		2 bytes		- length of sysinfo
 	 *		n bytes		- sysinfo
-	 *		
-	 * 		
+	 *
+	 *
 	 * 	Note, the 3rd byte of the command must not be 'D0' to distinquish it 
 	 *	from DSS structures.
 	 * 	The protocol for the parameters for each command follows:
@@ -1566,21 +1551,21 @@ public final class NetworkServerControlImpl {
 	 * 	Protocol:
 	 * 		4 bytes		- connection id - connection id of 0 means all sessions
 	 * 		1 byte		- 0 off, 1 on
-	 * 
+	 *
 	 * 	Command: logConnections {on | off}
 	 * 	Protocol:
 	 * 		1 byte		- 0 off, 1 on
-	 * 
+	 *
 	 *	Command: shutdown
 	 *		// DERBY-2109: transmit user credentials for System Privileges check
 	 *		2 bytes		- length of user name
 	 *		n bytes		- user name
 	 *		2 bytes		- length of password
 	 *		n bytes		- password
-	 * 
+	 *
 	 * 	Command: sysinfo
 	 * 	No parameters
-	 * 
+	 *
 	 * 	Command: dbstart
 	 * 	Protocol:
 	 * 		2 bytes		- length of database name
@@ -1642,15 +1627,15 @@ public final class NetworkServerControlImpl {
 	 *	The calling routine is synchronized so that multiple threads don't clobber each
 	 * 	other. This means that configuration commands will be serialized.
 	 * 	This shouldn't be a problem since they should be fairly rare.
-	 * 		
+	 *
 	 * @param reader	input reader for command
 	 * @param writer output writer for command
 	 * @param session	session information
 	 *
 	 * @exception Throwable	throws an exception if an error occurs
 	 */
-	protected synchronized void processCommands(DDMReader reader, DDMWriter writer, 
-		Session session) throws Throwable
+	protected synchronized void processCommands(DDMReader reader, DDMWriter writer,
+												Session session) throws Throwable
 	{
 		try {
 			String protocolStr = reader.readCmdString(4);
@@ -1711,7 +1696,7 @@ public final class NetworkServerControlImpl {
 						sendSQLMessage(writer, sqle, SQLERROR);
 						// also print a message to the console
 						consolePropertyMessage("DRDA_ShutdownWarning.I",
-											   sqle.getMessage());
+								sqle.getMessage());
 					}
 					break;
 				case COMMAND_TRACE:
@@ -1723,14 +1708,14 @@ public final class NetworkServerControlImpl {
 					}
 					else
 					{
-					    if (sessionArg != 0)
-							sendMessage(writer, ERROR,  
-							    localizeMessage("DRDA_SessionNotFound.U", 
-									    (session.langUtil == null) ? langUtil : session.langUtil,
-									    new String [] {new Integer(sessionArg).toString()}));
-					    else
-							sendMessage(writer, ERROR,  
-										localizeMessage("DRDA_ErrorStartingTracing.S",null));          
+						if (sessionArg != 0)
+							sendMessage(writer, ERROR,
+									localizeMessage("DRDA_SessionNotFound.U",
+											(session.langUtil == null) ? langUtil : session.langUtil,
+											new String [] {new Integer(sessionArg).toString()}));
+						else
+							sendMessage(writer, ERROR,
+									localizeMessage("DRDA_ErrorStartingTracing.S",null));
 					}
 					break;
 				case COMMAND_TRACEDIRECTORY:
@@ -1752,7 +1737,7 @@ public final class NetworkServerControlImpl {
 					setLogConnections(log);
 					sendOK(writer);
 					consolePropertyMessage("DRDA_LogConnectionsChange.I",
-						(log ? "DRDA_ON.I" : "DRDA_OFF.I"));
+							(log ? "DRDA_ON.I" : "DRDA_OFF.I"));
 					break;
 				case COMMAND_SYSINFO:
 					sendSysInfo(writer);
@@ -1773,8 +1758,8 @@ public final class NetworkServerControlImpl {
 					}
 					int newval = getMaxThreads();
 					sendOKInt(writer, newval);
-					consolePropertyMessage("DRDA_MaxThreadsChange.I", 
-						new Integer(newval).toString());
+					consolePropertyMessage("DRDA_MaxThreadsChange.I",
+							new Integer(newval).toString());
 					break;
 				case COMMAND_TIMESLICE:
 					int timeslice = reader.readNetworkInt();
@@ -1786,8 +1771,8 @@ public final class NetworkServerControlImpl {
 					}
 					newval = getTimeSlice();
 					sendOKInt(writer, newval);
-					consolePropertyMessage("DRDA_TimeSliceChange.I", 
-						new Integer(newval).toString());
+					consolePropertyMessage("DRDA_TimeSliceChange.I",
+							new Integer(newval).toString());
 					break;
 			}
 		} catch (DRDAProtocolException e) {
@@ -1846,10 +1831,10 @@ public final class NetworkServerControlImpl {
 				if (currentSession != null)
 					runQueueAdd(currentSession);
 			} catch (InterruptedException e) {
-			// If for whatever reason (ex. database shutdown) a waiting thread is
-			// interrupted while in this method, that thread is going to be
-			// closed down, so we need to decrement the number of threads
-			// that will be available for use.
+				// If for whatever reason (ex. database shutdown) a waiting thread is
+				// interrupted while in this method, that thread is going to be
+				// closed down, so we need to decrement the number of threads
+				// that will be available for use.
 				freeThreads--;
 			}
 		}
@@ -1900,7 +1885,7 @@ public final class NetworkServerControlImpl {
 		int mindex = CodePoint.getManagerIndex(manager);
 		if (SanityManager.DEBUG) {
 			if (mindex == CodePoint.UNKNOWN_MANAGER)
-			SanityManager.THROWASSERT("manager out of bounds");
+				SanityManager.THROWASSERT("manager out of bounds");
 		}
 		return MGR_LEVELS[mindex];
 	}
@@ -1914,7 +1899,7 @@ public final class NetworkServerControlImpl {
 	{
 		try {
 			CharacterEncodings.getJavaEncoding(ccsid);
-			}
+		}
 		catch (Exception e) {
 			return false;
 		}
@@ -1925,11 +1910,11 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @param msgProp		message property key
 	 * @param printTimeStamp whether to prepend a timestamp to the message
-     *
-     * @throws Exception if an error occurs
+	 *
+	 * @throws Exception if an error occurs
 	 */
 	protected void consolePropertyMessage(String msgProp, boolean printTimeStamp)
-		throws Exception
+			throws Exception
 	{
 		consolePropertyMessageWork(msgProp, null, printTimeStamp);
 	}
@@ -1942,7 +1927,7 @@ public final class NetworkServerControlImpl {
 	 * @throws Exception if an error occurs
 	 */
 	protected void consolePropertyMessage(String msgProp, String arg)
-		throws Exception
+			throws Exception
 	{
 		consolePropertyMessageWork(msgProp, new String [] {arg}, true);
 	}
@@ -1955,13 +1940,13 @@ public final class NetworkServerControlImpl {
 	 * @throws Exception if an error occurs
 	 */
 	protected void consolePropertyMessage(String msgProp, String [] args)
-		throws Exception
+			throws Exception
 	{
 		consolePropertyMessageWork(msgProp, args, true);
 	}
 	/**
 	 * Is this the command protocol
-	 * 
+	 *
 	 * @param  val
 	 */
 	protected static boolean isCmd(String val)
@@ -1987,7 +1972,7 @@ public final class NetworkServerControlImpl {
 		writer.setCMDProtocol();
 		writer.writeString(REPLY_HEADER);
 	}
-	 
+
 	/**
 	 * Send OK from server to client after processing a command
 	 *
@@ -2006,7 +1991,7 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @param writer writer to use for sending
 	 * @param val 	int val to send
-	 * 
+	 *
 	 * @throws Exception if a problem occurs
 	 */
 	private void sendOKInt(DDMWriter writer, int val) throws Exception
@@ -2025,8 +2010,8 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @throws Exception if a problem occurs sending message
 	 */
-	private void sendMessage(DDMWriter writer, int messageType, String message) 
-		throws Exception
+	private void sendMessage(DDMWriter writer, int messageType, String message)
+			throws Exception
 	{
 		writeCommandReplyHeader(writer);
 		writer.writeByte(messageType);
@@ -2043,19 +2028,19 @@ public final class NetworkServerControlImpl {
 	 * @throws Exception if a problem occurs sending message
 	 */
 	private void sendSQLMessage(DDMWriter writer, SQLException se, int type)
-		throws Exception
+			throws Exception
 	{
 		StringBuffer locMsg = new StringBuffer();
 		//localize message if necessary
 		while (se != null)
 		{
 			if (currentSession != null && currentSession.langUtil != null &&
-				se instanceof EmbedSQLException)
+					se instanceof EmbedSQLException)
 			{
-				locMsg.append(se.getSQLState()+":"+ 
-					MessageService.getLocalizedMessage(
-					currentSession.langUtil.getLocale(), ((EmbedSQLException)se).getMessageId(), 
-					((EmbedSQLException)se).getArguments()));
+				locMsg.append(se.getSQLState()+":"+
+						MessageService.getLocalizedMessage(
+								currentSession.langUtil.getLocale(), ((EmbedSQLException)se).getMessageId(),
+								((EmbedSQLException)se).getArguments()));
 			}
 			else
 				locMsg.append(se.getSQLState()+":"+se.getMessage());
@@ -2086,7 +2071,7 @@ public final class NetworkServerControlImpl {
 		}
 		writer.flush();
 	}
-	
+
 	/**
 	 * Send RuntimeInfo information from server to client
 	 *
@@ -2100,13 +2085,13 @@ public final class NetworkServerControlImpl {
 			writeCommandReplyHeader(writer);
 			writer.writeByte(0);	//O.K.
 			writer.writeLDString(getRuntimeInfo());
-				} catch (DRDAProtocolException e) {
+		} catch (DRDAProtocolException e) {
 			consolePropertyMessage("DRDA_SysInfoWriteError.S", e.getMessage());
 		}
 		writer.flush();
 	}
 
-	
+
 
 	/**
 	 * Send property information from server to client
@@ -2129,7 +2114,7 @@ public final class NetworkServerControlImpl {
 				consolePropertyMessage("DRDA_PropInfoWriteError.S", e.getMessage());
 			}
 			writer.flush();
-		} 
+		}
 		catch (Exception e) {
 			consoleExceptionPrintTrace(e);
 		}
@@ -2140,12 +2125,12 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @return system information for the Network Server
 	 */
-	private String getNetSysInfo() 
+	private String getNetSysInfo()
 	{
 		StringBuffer sysinfo = new StringBuffer();
 		LocalizedResource localLangUtil = langUtil;
 		if (currentSession != null && currentSession.langUtil != null)
-		localLangUtil = currentSession.langUtil;
+			localLangUtil = currentSession.langUtil;
 		sysinfo.append(localLangUtil.getTextMessage("DRDA_SysInfoBanner.I")+ "\n");
 		sysinfo.append(localLangUtil.getTextMessage("DRDA_SysInfoVersion.I")+ " " + att_srvrlslv);
 		sysinfo.append("  ");
@@ -2169,7 +2154,7 @@ public final class NetworkServerControlImpl {
 	/**
 	 * @see NetworkServerControl#getRuntimeInfo
 	 */
-	private String getRuntimeInfo() 
+	private String getRuntimeInfo()
 	{
 		return buildRuntimeInfo(langUtil);
 	}
@@ -2186,36 +2171,36 @@ public final class NetworkServerControlImpl {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		LocalizedResource localLangUtil = langUtil;
 		if (currentSession != null && currentSession.langUtil != null)
-		localLangUtil = currentSession.langUtil;
+			localLangUtil = currentSession.langUtil;
 		LocalizedOutput aw = localLangUtil.getNewOutput(bos);
 		com.splicemachine.db.impl.tools.sysinfo.Main.getMainInfo(aw, false);
 		return bos.toString();
 	}
 
 
-    /**
-     * Parse the command-line arguments. As a side-effect, fills in various instance
-     * fields. This method was carved out of executeWork() so that
-     * NetworkServerControl can figure out whether to install a security manager
-     * before the server actually comes up. This is part of the work for DERBY-2196.
-     *
-     * @param args	array of arguments indicating command to be executed
-     *
-     * @return the command to be executed
-     */
-    public int parseArgs(String args[]) throws Exception
-    {
-        // For convenience just use NetworkServerControlImpls log writer for user messages
-        logWriter = makePrintWriter(System.out);
+	/**
+	 * Parse the command-line arguments. As a side-effect, fills in various instance
+	 * fields. This method was carved out of executeWork() so that
+	 * NetworkServerControl can figure out whether to install a security manager
+	 * before the server actually comes up. This is part of the work for DERBY-2196.
+	 *
+	 * @param args	array of arguments indicating command to be executed
+	 *
+	 * @return the command to be executed
+	 */
+	public int parseArgs(String args[]) throws Exception
+	{
+		// For convenience just use NetworkServerControlImpls log writer for user messages
+		logWriter = makePrintWriter(System.out);
 
-        int command = findCommand(args);
-        if (command == COMMAND_UNKNOWN)
-        {
-            consolePropertyMessage("DRDA_NoCommand.U", true);
-        }
+		int command = findCommand(args);
+		if (command == COMMAND_UNKNOWN)
+		{
+			consolePropertyMessage("DRDA_NoCommand.U", true);
+		}
 
-        return command;
-    }
+		return command;
+	}
 
 	/**
 	 * Execute the command given on the command line
@@ -2248,16 +2233,16 @@ public final class NetworkServerControlImpl {
 				break;
 			case COMMAND_SHUTDOWN:
 				shutdown();
-				consolePropertyMessage("DRDA_ShutdownSuccess.I", new String [] 
-								{att_srvclsnm, versionString});
+				consolePropertyMessage("DRDA_ShutdownSuccess.I", new String []
+						{att_srvclsnm, versionString});
 				break;
 			case COMMAND_TRACE:
-				{
-					boolean on = isOn((String)commandArgs.get(0));
-					trace(sessionArg, on);
-					consoleTraceMessage(sessionArg, on);
-					break;
-				}
+			{
+				boolean on = isOn((String)commandArgs.get(0));
+				trace(sessionArg, on);
+				consoleTraceMessage(sessionArg, on);
+				break;
+			}
 			case COMMAND_TRACEDIRECTORY:
 				String directory = (String) commandArgs.get(0);
 				sendSetTraceDirectory(directory);
@@ -2265,33 +2250,33 @@ public final class NetworkServerControlImpl {
 				break;
 			case COMMAND_TESTCONNECTION:
 				ping();
-				consolePropertyMessage("DRDA_ConnectionTested.I", new String [] 
-					{hostArg, (new Integer(portNumber)).toString()});
+				consolePropertyMessage("DRDA_ConnectionTested.I", new String []
+						{hostArg, (new Integer(portNumber)).toString()});
 				break;
 			case COMMAND_LOGCONNECTIONS:
-				{
-					boolean on = isOn((String)commandArgs.get(0));
-					logConnections(on);
-					consolePropertyMessage("DRDA_LogConnectionsChange.I", on ? "DRDA_ON.I" : "DRDA_OFF.I");
-					break;
-				}
+			{
+				boolean on = isOn((String)commandArgs.get(0));
+				logConnections(on);
+				consolePropertyMessage("DRDA_LogConnectionsChange.I", on ? "DRDA_ON.I" : "DRDA_OFF.I");
+				break;
+			}
 			case COMMAND_SYSINFO:
-				{
-					String info = sysinfo();
-					consoleMessage(info, false);
-					break;
-				}
+			{
+				String info = sysinfo();
+				consoleMessage(info, false);
+				break;
+			}
 			case COMMAND_MAXTHREADS:
 				max = 0;
 				try{
 					max = Integer.parseInt((String)commandArgs.get(0));
 				}catch(NumberFormatException e){
-					consolePropertyMessage("DRDA_InvalidValue.U", new String [] 
-						{(String)commandArgs.get(0), "maxthreads"});
+					consolePropertyMessage("DRDA_InvalidValue.U", new String []
+							{(String)commandArgs.get(0), "maxthreads"});
 				}
 				if (max < MIN_MAXTHREADS)
-					consolePropertyMessage("DRDA_InvalidValue.U", new String [] 
-						{new Integer(max).toString(), "maxthreads"});
+					consolePropertyMessage("DRDA_InvalidValue.U", new String []
+							{new Integer(max).toString(), "maxthreads"});
 				netSetMaxThreads(max);
 
 				break;
@@ -2302,17 +2287,17 @@ public final class NetworkServerControlImpl {
 			case COMMAND_TIMESLICE:
 				int timeslice = 0;
 				String timeSliceArg = (String)commandArgs.get(0);
-            	try{
-                	timeslice = Integer.parseInt(timeSliceArg);
-            	}catch(NumberFormatException e){
-					consolePropertyMessage("DRDA_InvalidValue.U", new String [] 
-						{(String)commandArgs.get(0), "timeslice"});
-            	}
+				try{
+					timeslice = Integer.parseInt(timeSliceArg);
+				}catch(NumberFormatException e){
+					consolePropertyMessage("DRDA_InvalidValue.U", new String []
+							{(String)commandArgs.get(0), "timeslice"});
+				}
 				if (timeslice < MIN_TIMESLICE)
-					consolePropertyMessage("DRDA_InvalidValue.U", new String [] 
-						{new Integer(timeslice).toString(), "timeslice"});
+					consolePropertyMessage("DRDA_InvalidValue.U", new String []
+							{new Integer(timeslice).toString(), "timeslice"});
 				netSetTimeSlice(timeslice);
-				
+
 				break;
 			default:
 				//shouldn't get here
@@ -2321,7 +2306,7 @@ public final class NetworkServerControlImpl {
 		}
 	}
 
-  
+
 	/**
 	 * Add session to the run queue
 	 *
@@ -2363,14 +2348,14 @@ public final class NetworkServerControlImpl {
 				else
 					commandArgs.add(args[i++]);
 			}
-					
+
 			// look up command
 			if (commandArgs.size() > 0)
 			{
 				for (i = 0; i < COMMANDS.length; i++)
 				{
-					if (StringUtil.SQLEqualsIgnoreCase(COMMANDS[i], 
-													   (String)commandArgs.firstElement()))
+					if (StringUtil.SQLEqualsIgnoreCase(COMMANDS[i],
+							(String)commandArgs.firstElement()))
 					{
 						commandArgs.remove(0);
 						return i;
@@ -2378,14 +2363,14 @@ public final class NetworkServerControlImpl {
 				}
 
 				// didn't find command
-				consolePropertyMessage("DRDA_UnknownCommand.U", 
-					(String) commandArgs.firstElement());
+				consolePropertyMessage("DRDA_UnknownCommand.U",
+						(String) commandArgs.firstElement());
 			}
 		} catch (Exception e) {
 			if (e.getMessage().equals(NetworkServerControlImpl.UNEXPECTED_ERR))
 				throw e;
 			//Ignore expected exceptions, they will have been
-									//handled by the consolePropertyMessage routine
+			//handled by the consolePropertyMessage routine
 		}
 		return COMMAND_UNKNOWN;
 	}
@@ -2400,7 +2385,7 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception	thrown if an error occurs
 	 */
 	private int processDashArg(int pos, String[] args)
-		throws Exception
+			throws Exception
 	{
 		//check for a negative number
 		char c = args[pos].charAt(1);
@@ -2423,12 +2408,12 @@ public final class NetworkServerControlImpl {
 			case DASHARG_PORT:
 				if (pos < args.length)
 				{
-            		try{
-                		portNumber = Integer.parseInt(args[pos]);
-            		}catch(NumberFormatException e){
-						consolePropertyMessage("DRDA_InvalidValue.U", 
-							new String [] {args[pos], "DRDA_PortNumber.I"});
-            		}
+					try{
+						portNumber = Integer.parseInt(args[pos]);
+					}catch(NumberFormatException e){
+						consolePropertyMessage("DRDA_InvalidValue.U",
+								new String [] {args[pos], "DRDA_PortNumber.I"});
+					}
 				}
 				else
 					consolePropertyMessage("DRDA_MissingValue.U", "DRDA_PortNumber.I");
@@ -2445,8 +2430,8 @@ public final class NetworkServerControlImpl {
 				if (pos < args.length)
 					databaseArg = args[pos];
 				else
-					consolePropertyMessage("DRDA_MissingValue.U", 
-						"DRDA_DatabaseDirectory.I");
+					consolePropertyMessage("DRDA_MissingValue.U",
+							"DRDA_DatabaseDirectory.I");
 				break;
 			case DASHARG_USER:
 				if (pos < args.length)
@@ -2464,26 +2449,26 @@ public final class NetworkServerControlImpl {
 				if (pos < args.length)
 					encAlgArg = args[pos];
 				else
-					consolePropertyMessage("DRDA_MissingValue.U", 
-						"DRDA_EncryptionAlgorithm.I");
+					consolePropertyMessage("DRDA_MissingValue.U",
+							"DRDA_EncryptionAlgorithm.I");
 				break;
 			case DASHARG_ENCPRV:
 				if (pos < args.length)
 					encPrvArg = args[pos];
 				else
-					consolePropertyMessage("DRDA_MissingValue.U", 
-						"DRDA_EncryptionProvider.I");
+					consolePropertyMessage("DRDA_MissingValue.U",
+							"DRDA_EncryptionProvider.I");
 				break;
 			case DASHARG_LOADSYSIBM:
 				break;
 			case DASHARG_SESSION:
 				if (pos < args.length)
-            		try{
-                		sessionArg = Integer.parseInt(args[pos]);
-            		}catch(NumberFormatException e){
-						consolePropertyMessage("DRDA_InvalidValue.U", 
-							new String [] {args[pos], "DRDA_Session.I"});
-            		}
+					try{
+						sessionArg = Integer.parseInt(args[pos]);
+					}catch(NumberFormatException e){
+						consolePropertyMessage("DRDA_InvalidValue.U",
+								new String [] {args[pos], "DRDA_Session.I"});
+					}
 				else
 					consolePropertyMessage("DRDA_MissingValue.U", "DRDA_Session.I");
 				break;
@@ -2515,7 +2500,7 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception	thrown if string is not one of "on" or "off"
 	 */
 	private boolean isOn(String arg)
-		throws Exception
+			throws Exception
 	{
 		if (StringUtil.SQLEqualsIgnoreCase(arg, "on"))
 			return true;
@@ -2523,103 +2508,103 @@ public final class NetworkServerControlImpl {
 			consolePropertyMessage("DRDA_OnOffValue.U", arg);
 		return false;
 	}
-    
-    /**
-     * Close the resources associated with the opened socket.
-     * @throws IOException
-     */
-    private void closeSocket() throws IOException
-    {
-        try {
-            if (clientIs != null)
-                clientIs.close();
-            if (clientOs != null)
-                clientOs.close();
-            if (clientSocket != null)
-                clientSocket.close();
-        } finally {
-            clientIs = null;
-            clientOs = null;
-            clientSocket = null;
-        }
-    }
+
+	/**
+	 * Close the resources associated with the opened socket.
+	 * @throws IOException
+	 */
+	private void closeSocket() throws IOException
+	{
+		try {
+			if (clientIs != null)
+				clientIs.close();
+			if (clientOs != null)
+				clientOs.close();
+			if (clientSocket != null)
+				clientSocket.close();
+		} finally {
+			clientIs = null;
+			clientOs = null;
+			clientSocket = null;
+		}
+	}
 
 	/**
 	 * Set up client socket to send a command to the network server
 	 *
-   	 * @exception Exception	thrown if exception encountered
+	 * @exception Exception	thrown if exception encountered
 	 */
 	private void setUpSocket() throws Exception
 	{
-		
+
 		try {
 			clientSocket = (Socket) AccessController.doPrivileged(
-								new PrivilegedExceptionAction() {
-										
-									public Object run() 
-										throws UnknownHostException,
-											   IOException, 
-											   java.security.NoSuchAlgorithmException,
-											   java.security.KeyManagementException,
-                                               java.security.NoSuchProviderException,
-                                               java.security.KeyStoreException,
-                                               java.security.UnrecoverableKeyException,
-                                               java.security.cert.CertificateException
-									{
-										if (hostAddress == null)
-											hostAddress = InetAddress.getByName(hostArg);
-                                        
-										switch(getSSLMode()) {
-										case SSL_BASIC:
-											SSLSocket s1 = (SSLSocket)NaiveTrustManager.getSocketFactory().
-												createSocket(hostAddress, portNumber);
-											// Need to handshake now to get proper error reporting.
+					new PrivilegedExceptionAction() {
+
+						public Object run()
+								throws UnknownHostException,
+								IOException,
+								java.security.NoSuchAlgorithmException,
+								java.security.KeyManagementException,
+								java.security.NoSuchProviderException,
+								java.security.KeyStoreException,
+								java.security.UnrecoverableKeyException,
+								java.security.cert.CertificateException
+						{
+							if (hostAddress == null)
+								hostAddress = InetAddress.getByName(hostArg);
+
+							switch(getSSLMode()) {
+								case SSL_BASIC:
+									SSLSocket s1 = (SSLSocket)NaiveTrustManager.getSocketFactory().
+											createSocket(hostAddress, portNumber);
+									// Need to handshake now to get proper error reporting.
 //											s1.startHandshake();
-											return s1;
+									return s1;
 
-										case SSL_PEER_AUTHENTICATION:
-											SSLSocket s2 = (SSLSocket)SSLSocketFactory.getDefault().
-												createSocket(hostAddress, portNumber);
-											// Need to handshake now to get proper error reporting.
-											s2.startHandshake();
-											return s2;
+								case SSL_PEER_AUTHENTICATION:
+									SSLSocket s2 = (SSLSocket)SSLSocketFactory.getDefault().
+											createSocket(hostAddress, portNumber);
+									// Need to handshake now to get proper error reporting.
+									s2.startHandshake();
+									return s2;
 
-										case SSL_OFF:
-										default:
-											return SocketFactory.getDefault().
-												createSocket(hostAddress, portNumber);
-										}
-									}
-								}
-							);
+								case SSL_OFF:
+								default:
+									return SocketFactory.getDefault().
+											createSocket(hostAddress, portNumber);
+							}
+						}
+					}
+			);
 		} catch (PrivilegedActionException pae) {
 			Exception e1 = pae.getException();
 			if (e1 instanceof UnknownHostException) {
-					consolePropertyMessage("DRDA_UnknownHost.S", hostArg);
+				consolePropertyMessage("DRDA_UnknownHost.S", hostArg);
 			}
 			else if (e1 instanceof IOException) {
-					consolePropertyMessage("DRDA_NoIO.S",
-										   new String [] {hostArg, 
-														  (new Integer(portNumber)).toString(), 
-														  e1.getMessage()});
+				consolePropertyMessage("DRDA_NoIO.S",
+						new String [] {hostArg,
+								(new Integer(portNumber)).toString(),
+								e1.getMessage()});
 			}
 		} catch (Exception e) {
-		// If we find other (unexpected) errors, we ultimately exit--so make
-		// sure we print the error message before doing so (Beetle 5033).
+			// If we find other (unexpected) errors, we ultimately exit--so make
+			// sure we print the error message before doing so (Beetle 5033).
 			throwUnexpectedException(e);
 		}
 
 		try
 		{
-		   clientIs = clientSocket.getInputStream();
-	       clientOs = clientSocket.getOutputStream();
+			clientIs = clientSocket.getInputStream();
+			clientOs = clientSocket.getOutputStream();
 		} catch (IOException e) {
 			consolePropertyMessage("DRDA_NoInputStream.I", true);
 			throw e;
-        }
+		}
 	}
 
-	
+
 	private void checkAddressIsLocal(InetAddress inetAddr) throws UnknownHostException,Exception
 	{
 		for(int i = 0; i < localAddresses.size(); i++)
@@ -2638,32 +2623,32 @@ public final class NetworkServerControlImpl {
 	 * Build local address list to allow admin commands.
 	 *
 	 * @param bindAddr Address on which server was started
-	 * 
+	 *
 	 * Note: Some systems may not support localhost.
 	 * In that case a console message will print for the localhost entries,
 	 * but the server will continue to start.
 	 **/
-	private void buildLocalAddressList(InetAddress bindAddr) 
+	private void buildLocalAddressList(InetAddress bindAddr)
 	{
-        localAddresses = new ArrayList(3);
-        localAddresses.add(bindAddr);
-        
-        try { localAddresses.add(InetAddress.getLocalHost()); }
-        catch(UnknownHostException uhe) { unknownHostException( uhe ); }
-        
-        try { localAddresses.add(InetAddress.getByName("localhost")); }
-        catch(UnknownHostException uhe) { unknownHostException( uhe ); }
+		localAddresses = new ArrayList(3);
+		localAddresses.add(bindAddr);
+
+		try { localAddresses.add(InetAddress.getLocalHost()); }
+		catch(UnknownHostException uhe) { unknownHostException( uhe ); }
+
+		try { localAddresses.add(InetAddress.getByName("localhost")); }
+		catch(UnknownHostException uhe) { unknownHostException( uhe ); }
 	}
-    private void unknownHostException( Throwable t )
-    {
-        try {
-            consolePropertyMessage( "DRDA_UnknownHostWarning.I", t.getMessage() );
-        } catch (Exception e)
-        { 
-            // just a warning shouldn't actually throw an exception
-        }
-    }
-	
+	private void unknownHostException( Throwable t )
+	{
+		try {
+			consolePropertyMessage( "DRDA_UnknownHostWarning.I", t.getMessage() );
+		} catch (Exception e)
+		{
+			// just a warning shouldn't actually throw an exception
+		}
+	}
+
 	/**
 	 * Routines for writing commands for NetworkServerControlImpl being used as a client
 	 * to a server
@@ -2682,7 +2667,7 @@ public final class NetworkServerControlImpl {
 	{
 		writeCommandHeader(command, DEFAULT_PROTOCOL_VERSION);
 	}
-	
+
 	/**
 	 * Write command header consisting of command header string and passed
 	 * protocol version and command. At this point, all the commands except
@@ -2747,7 +2732,7 @@ public final class NetworkServerControlImpl {
 	 * @param msg String to write
 	 */
 
-	protected void writeString(String msg) throws Exception
+    private void writeString(String msg) throws Exception
 	{
 		byte[] msgBytes = msg.getBytes(DEFAULT_ENCODING);
 		commandOs.write(msgBytes,0,msgBytes.length);
@@ -2808,15 +2793,15 @@ public final class NetworkServerControlImpl {
 	}
 	/**
 	 * Stream error writing to client socket
- 	 */
+	 */
 	private void clientSocketError(IOException e) throws IOException
 	{
 		try {
 			consolePropertyMessage("DRDA_ClientSocketError.S", e.getMessage());
 		} catch (Exception ce) {} // catch the exception consolePropertyMessage will
-								 // throw since we also want to print a stack trace
+		// throw since we also want to print a stack trace
 		consoleExceptionPrintTrace(e);
-			throw e;
+		throw e;
 	}
 	/**
 	 * Read result from sending client message to server
@@ -2842,7 +2827,7 @@ public final class NetworkServerControlImpl {
 			consolePropertyMessage(message, true);
 	}
 
-	
+
 
 	/**
 	 * Ensure the reply buffer is at large enought to hold all the data;
@@ -2860,7 +2845,7 @@ public final class NetworkServerControlImpl {
 			try {
 				int bytesRead = clientIs.read(replyBuffer, replyBufferCount, replyBuffer.length - replyBufferCount);
 				replyBufferCount += bytesRead;
-		
+
 			} catch (IOException e)
 			{
 				clientSocketError(e);
@@ -2919,8 +2904,8 @@ public final class NetworkServerControlImpl {
 		ensureDataInBuffer(2);
 		if (replyBufferPos + 2 > replyBufferCount)
 			consolePropertyMessage("DRDA_InvalidReplyTooShort.S", true);
-	 	return ((replyBuffer[replyBufferPos++] & 0xff) << 8) + 
-			    (replyBuffer[replyBufferPos++] & 0xff);
+		return ((replyBuffer[replyBufferPos++] & 0xff) << 8) +
+				(replyBuffer[replyBufferPos++] & 0xff);
 	}
 	/**
 	 * Read int from buffer
@@ -2931,10 +2916,10 @@ public final class NetworkServerControlImpl {
 		ensureDataInBuffer(4);
 		if (replyBufferPos + 4 > replyBufferCount)
 			consolePropertyMessage("DRDA_InvalidReplyTooShort.S", true);
-	 	return ((replyBuffer[replyBufferPos++] & 0xff) << 24) + 
-	 	 	((replyBuffer[replyBufferPos++] & 0xff) << 16) + 
-	 		((replyBuffer[replyBufferPos++] & 0xff) << 8) + 
-			    (replyBuffer[replyBufferPos++] & 0xff);
+		return ((replyBuffer[replyBufferPos++] & 0xff) << 24) +
+				((replyBuffer[replyBufferPos++] & 0xff) << 16) +
+				((replyBuffer[replyBufferPos++] & 0xff) << 8) +
+				(replyBuffer[replyBufferPos++] & 0xff);
 	}
 	/**
 	 * Read String reply
@@ -2952,12 +2937,12 @@ public final class NetworkServerControlImpl {
 		else
 			consolePropertyMessage(msgKey, true);
 		return null;
-			
+
 	}
 
 
 
-	
+
 	/**
 	 * Read length delimited string from a buffer
 	 *
@@ -2990,7 +2975,7 @@ public final class NetworkServerControlImpl {
 		else
 			consolePropertyMessage(msgKey, true);
 		return null;
-			
+
 	}
 	/**
 	 * Read length delimited bytes from a buffer
@@ -3017,15 +3002,15 @@ public final class NetworkServerControlImpl {
 	private void  getPropertyInfo() throws Exception
 	{
 		//set values according to properties
-		
+
 		String directory = PropertyUtil.getSystemProperty(Property.SYSTEM_HOME_PROPERTY);
 		String propval = PropertyUtil.getSystemProperty(
-			Property.DRDA_PROP_LOGCONNECTIONS);
-		if (propval != null && StringUtil.SQLEqualsIgnoreCase(propval,"true"))  
+				Property.DRDA_PROP_LOGCONNECTIONS);
+		if (propval != null && StringUtil.SQLEqualsIgnoreCase(propval,"true"))
 			setLogConnections(true);
 		propval = PropertyUtil.getSystemProperty(Property.DRDA_PROP_TRACEALL);
-		if (propval != null && StringUtil.SQLEqualsIgnoreCase(propval, 
-															  "true"))  
+		if (propval != null && StringUtil.SQLEqualsIgnoreCase(propval,
+				"true"))
 			setTraceAll(true);
 
 		//If the db.system.home property has been set, it is the default.
@@ -3041,16 +3026,16 @@ public final class NetworkServerControlImpl {
 
 		//DERBY-375 If a system property is specified without any value, getProperty returns 
 		//an empty string. Use default values in such cases.
-		propval = PropertyUtil.getSystemProperty( 
-			Property.DRDA_PROP_MINTHREADS);
+		propval = PropertyUtil.getSystemProperty(
+				Property.DRDA_PROP_MINTHREADS);
 		if (propval != null){
 			if(propval.equals(""))
 				propval = "0";
 			setMinThreads(getIntPropVal(Property.DRDA_PROP_MINTHREADS, propval));
 		}
 
-		propval = PropertyUtil.getSystemProperty( 
-			Property.DRDA_PROP_MAXTHREADS);
+		propval = PropertyUtil.getSystemProperty(
+				Property.DRDA_PROP_MAXTHREADS);
 		if (propval != null){
 			if(propval.equals(""))
 				propval = "0";
@@ -3058,16 +3043,16 @@ public final class NetworkServerControlImpl {
 		}
 
 
-		propval = PropertyUtil.getSystemProperty( 
-			Property.DRDA_PROP_TIMESLICE);
+		propval = PropertyUtil.getSystemProperty(
+				Property.DRDA_PROP_TIMESLICE);
 		if (propval != null){
 			if(propval.equals(""))
 				propval = "0";
 			setTimeSlice(getIntPropVal(Property.DRDA_PROP_TIMESLICE, propval));
 		}
 
-		propval = PropertyUtil.getSystemProperty( 
-			Property.DRDA_PROP_PORTNUMBER);
+		propval = PropertyUtil.getSystemProperty(
+				Property.DRDA_PROP_PORTNUMBER);
 		if (propval != null){
 			if(propval.equals(""))
 				propval = String.valueOf(NetworkServerControl.DEFAULT_PORTNUMBER);
@@ -3075,29 +3060,29 @@ public final class NetworkServerControlImpl {
 		}
 
 		propval = PropertyUtil.getSystemProperty(
-			Property.DRDA_PROP_SSL_MODE);
+				Property.DRDA_PROP_SSL_MODE);
 		setSSLMode(getSSLModeValue(propval));
-												 
-		propval = PropertyUtil.getSystemProperty( 
-			Property.DRDA_PROP_KEEPALIVE);
-		if (propval != null && 
-			StringUtil.SQLEqualsIgnoreCase(propval,"false"))
+
+		propval = PropertyUtil.getSystemProperty(
+				Property.DRDA_PROP_KEEPALIVE);
+		if (propval != null &&
+				StringUtil.SQLEqualsIgnoreCase(propval,"false"))
 			keepAlive = false;
-		
-		propval = PropertyUtil.getSystemProperty( 
-			Property.DRDA_PROP_HOSTNAME);
+
+		propval = PropertyUtil.getSystemProperty(
+				Property.DRDA_PROP_HOSTNAME);
 		if (propval != null){
 			if(propval.equals(""))
-				hostArg = DEFAULT_HOST; 
+				hostArg = DEFAULT_HOST;
 			else
 				hostArg = propval;
-		}	
+		}
 		propval = PropertyUtil.getSystemProperty(
-						 NetworkServerControlImpl.DRDA_PROP_DEBUG);
+				NetworkServerControlImpl.DRDA_PROP_DEBUG);
 		if (propval != null	 && StringUtil.SQLEqualsIgnoreCase(propval, "true"))
 			debugOutput = true;
 
-		propval = PropertyUtil.getSystemProperty( 
+		propval = PropertyUtil.getSystemProperty(
 				Property.DRDA_PROP_SECURITYMECHANISM);
 		if (propval != null){
 			setSecurityMechanism(propval);
@@ -3105,69 +3090,69 @@ public final class NetworkServerControlImpl {
 
 	}
 
-    /**
-     * Retrieve the SECMEC integer value from the
-     * user friendly security mechanism name
-     * @param s  security mechanism name
-     * @return integer value , return the SECMEC value for 
-     * the security mechanism as defined by DRDA spec
-     * or INVALID_OR_NOTSET_SECURITYMECHANISM if 's'
-     * passed is invalid  or not supported security 
-     * mechanism
-     */
-    private int getSecMecValue(String s)
-    {
-        int secmec = INVALID_OR_NOTSET_SECURITYMECHANISM;
+	/**
+	 * Retrieve the SECMEC integer value from the
+	 * user friendly security mechanism name
+	 * @param s  security mechanism name
+	 * @return integer value , return the SECMEC value for
+	 * the security mechanism as defined by DRDA spec
+	 * or INVALID_OR_NOTSET_SECURITYMECHANISM if 's'
+	 * passed is invalid  or not supported security
+	 * mechanism
+	 */
+	private int getSecMecValue(String s)
+	{
+		int secmec = INVALID_OR_NOTSET_SECURITYMECHANISM;
 
-        if( StringUtil.SQLEqualsIgnoreCase(s,"USER_ONLY_SECURITY"))
-                secmec = CodePoint.SECMEC_USRIDONL;
-        else if( StringUtil.SQLEqualsIgnoreCase(s,"CLEAR_TEXT_PASSWORD_SECURITY"))
-                secmec = CodePoint.SECMEC_USRIDPWD;
-        else if( StringUtil.SQLEqualsIgnoreCase(s,"ENCRYPTED_USER_AND_PASSWORD_SECURITY"))
-                secmec = CodePoint.SECMEC_EUSRIDPWD;
-        else if( StringUtil.SQLEqualsIgnoreCase(s,"STRONG_PASSWORD_SUBSTITUTE_SECURITY"))
-                secmec = CodePoint.SECMEC_USRSSBPWD;
-        
-        return secmec;
-    }
+		if( StringUtil.SQLEqualsIgnoreCase(s,"USER_ONLY_SECURITY"))
+			secmec = CodePoint.SECMEC_USRIDONL;
+		else if( StringUtil.SQLEqualsIgnoreCase(s,"CLEAR_TEXT_PASSWORD_SECURITY"))
+			secmec = CodePoint.SECMEC_USRIDPWD;
+		else if( StringUtil.SQLEqualsIgnoreCase(s,"ENCRYPTED_USER_AND_PASSWORD_SECURITY"))
+			secmec = CodePoint.SECMEC_EUSRIDPWD;
+		else if( StringUtil.SQLEqualsIgnoreCase(s,"STRONG_PASSWORD_SUBSTITUTE_SECURITY"))
+			secmec = CodePoint.SECMEC_USRSSBPWD;
 
-    /**
-     * Retrieve the string name for the integer
-     * secmec value
-     * @param secmecVal   secmec value
-     * @return String - return the string name corresponding 
-     * to the secmec value if recognized else returns null
-     */
-    private String getStringValueForSecMec(int secmecVal)
-    {
-        switch(secmecVal)
-        {
-            case CodePoint.SECMEC_USRIDONL:
-                return "USER_ONLY_SECURITY";
-            
-            case CodePoint.SECMEC_USRIDPWD:
-                return "CLEAR_TEXT_PASSWORD_SECURITY";
-            
-            case CodePoint.SECMEC_EUSRIDPWD:
-                return "ENCRYPTED_USER_AND_PASSWORD_SECURITY";
-            
-            case CodePoint.SECMEC_USRSSBPWD:
-                return "STRONG_PASSWORD_SUBSTITUTE_SECURITY";
-        }
-        return null;
-    }
-   
-    /**
-     * This method returns whether EUSRIDPWD security mechanism
-     * is supported or not. See class static block for more
-     * info.
-     * @return true if EUSRIDPWD is supported, false otherwise
-     */ 
-    boolean supportsEUSRIDPWD()
-    {
-        return SUPPORTS_EUSRIDPWD;
-    }
-    
+		return secmec;
+	}
+
+	/**
+	 * Retrieve the string name for the integer
+	 * secmec value
+	 * @param secmecVal   secmec value
+	 * @return String - return the string name corresponding
+	 * to the secmec value if recognized else returns null
+	 */
+	private String getStringValueForSecMec(int secmecVal)
+	{
+		switch(secmecVal)
+		{
+			case CodePoint.SECMEC_USRIDONL:
+				return "USER_ONLY_SECURITY";
+
+			case CodePoint.SECMEC_USRIDPWD:
+				return "CLEAR_TEXT_PASSWORD_SECURITY";
+
+			case CodePoint.SECMEC_EUSRIDPWD:
+				return "ENCRYPTED_USER_AND_PASSWORD_SECURITY";
+
+			case CodePoint.SECMEC_USRSSBPWD:
+				return "STRONG_PASSWORD_SUBSTITUTE_SECURITY";
+		}
+		return null;
+	}
+
+	/**
+	 * This method returns whether EUSRIDPWD security mechanism
+	 * is supported or not. See class static block for more
+	 * info.
+	 * @return true if EUSRIDPWD is supported, false otherwise
+	 */
+	boolean supportsEUSRIDPWD()
+	{
+		return SUPPORTS_EUSRIDPWD;
+	}
+
 	/**
 	 * Get the SSL-mode from a string.
 	 * @param s the SSL-mode string ("off"/"false", "on"/"true" or
@@ -3178,7 +3163,7 @@ public final class NetworkServerControlImpl {
 	 **/
 
 	private int getSSLModeValue(String s)
-        throws Exception
+			throws Exception
 	{
 		if (s != null){
 			if (StringUtil.SQLEqualsIgnoreCase(s,"off")) {
@@ -3186,12 +3171,12 @@ public final class NetworkServerControlImpl {
 			} else if (StringUtil.SQLEqualsIgnoreCase(s,"basic")) {
 				return SSL_BASIC;
 			} else if (StringUtil.SQLEqualsIgnoreCase(s,"peerAuthentication")) {
-                return SSL_PEER_AUTHENTICATION;
+				return SSL_PEER_AUTHENTICATION;
 			} else {
 				// Unknown value
-                consolePropertyMessage("DRDA_InvalidValue.U", 
-                                       new String [] {s, Property.DRDA_PROP_SSL_MODE});
-                
+				consolePropertyMessage("DRDA_InvalidValue.U",
+						new String [] {s, Property.DRDA_PROP_SSL_MODE});
+
 				return SSL_OFF;
 			}
 		} else {
@@ -3209,25 +3194,25 @@ public final class NetworkServerControlImpl {
 	 * "autneticate"). Will default to SSL_OFF for other values than
 	 * those listed above.
 	 */
-	
+
 	private String getSSLModeString(int i)
 	{
 		switch(i) {
-		case SSL_OFF:
-			return "off";
-		case SSL_BASIC:
-			return "basic";
-		case SSL_PEER_AUTHENTICATION:
-			return "peerAuthentication";
-		default: 
-			// Assumes no SSL encryption for faulty values Anyway,
-			// this should not happen thince the input values are
-			// strings...
-			return "off";
+			case SSL_OFF:
+				return "off";
+			case SSL_BASIC:
+				return "basic";
+			case SSL_PEER_AUTHENTICATION:
+				return "peerAuthentication";
+			default:
+				// Assumes no SSL encryption for faulty values Anyway,
+				// this should not happen thince the input values are
+				// strings...
+				return "off";
 		}
 	}
 
-	
+
 	/**
 	 * Get integer property values
 	 *
@@ -3238,15 +3223,15 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception if not a valid integer
 	 */
 	private int getIntPropVal(String propName, String propVal)
-		throws Exception
+			throws Exception
 	{
 		int val = 0;
 		try {
-			 val = (new Integer(propVal)).intValue();
+			val = (new Integer(propVal)).intValue();
 		} catch (Exception e)
 		{
-			consolePropertyMessage("DRDA_InvalidPropVal.S", new String [] 
-				{propName, propVal});
+			consolePropertyMessage("DRDA_InvalidPropVal.S", new String []
+					{propName, propVal});
 		}
 		return val;
 	}
@@ -3259,11 +3244,11 @@ public final class NetworkServerControlImpl {
 	 * @param messageKey	message key
 	 * @param args			arguments to message
 	 * @param printTimeStamp whether to prepend a timestamp to the message
-     *
-     * @throws Exception if an error occurs
+	 *
+	 * @throws Exception if an error occurs
 	 */
 	private void consolePropertyMessageWork(String messageKey, String [] args, boolean printTimeStamp)
-		throws Exception
+			throws Exception
 	{
 		String locMsg = null;
 
@@ -3283,7 +3268,7 @@ public final class NetworkServerControlImpl {
 
 		//we may want to use a different locale for throwing the exception
 		//since this can be sent to a browser with a different locale
-		if (currentSession != null && 
+		if (currentSession != null &&
 				currentSession.langUtil != null &&
 				type != ERRTYPE_UNKNOWN)
 			locMsg = localizeMessage(messageKey, currentSession.langUtil, args);
@@ -3295,7 +3280,7 @@ public final class NetworkServerControlImpl {
 				throwSQLException(args[0]);
 			else if (messageKey.equals("DRDA_SQLWarning.I"))
 				throwSQLWarning(args[0]);
-			else 
+			else
 				throw new Exception(messageKey+":"+locMsg);
 		}
 
@@ -3433,29 +3418,29 @@ public final class NetworkServerControlImpl {
 	 * throw a generic exception indicating that 1) an unexpected
 	 * exception was thrown, and 2) we've already printed the trace
 	 * (so don't do it again).
-	 * 
+	 *
 	 * @param e An unexpected exception.
 	 * @throws Exception with message UNEXPECTED_ERR.
 	 */
 	private void throwUnexpectedException(Exception e)
-	 throws Exception {
+			throws Exception {
 
 		consoleExceptionPrintTrace(e);
 		throw new Exception(UNEXPECTED_ERR);
 
 	}
 
-    /**
-     * Convenience routine so that NetworkServerControl can localize messages.
-     *
-     * @param msgProp	message key
-     * @param args		arguments to message
-     *
-     */
-    public String localizeMessage( String msgProp, String[] args )
-    {
-        return localizeMessage( msgProp, langUtil, args );
-    }
+	/**
+	 * Convenience routine so that NetworkServerControl can localize messages.
+	 *
+	 * @param msgProp	message key
+	 * @param args		arguments to message
+	 *
+	 */
+	public String localizeMessage( String msgProp, String[] args )
+	{
+		return localizeMessage( msgProp, langUtil, args );
+	}
 
 	/**
 	 * Localize a message given a particular AppUI 
@@ -3482,7 +3467,7 @@ public final class NetworkServerControlImpl {
 			switch (args.length)
 			{
 				case 1:
-				 	locMsg = localLangUtil.getTextMessage(msgProp, argMsg[0]);
+					locMsg = localLangUtil.getTextMessage(msgProp, argMsg[0]);
 					break;
 				case 2:
 					locMsg = localLangUtil.getTextMessage(msgProp, argMsg[0], argMsg[1]);
@@ -3498,7 +3483,7 @@ public final class NetworkServerControlImpl {
 			}
 		}
 		else
-		 	locMsg = localLangUtil.getTextMessage(msgProp);
+			locMsg = localLangUtil.getTextMessage(msgProp);
 		return locMsg;
 	}
 	/**
@@ -3508,8 +3493,7 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @return message type
 	 */
-	private int getMessageType(String msg)
-	{
+	private int getMessageType(String msg) {
 		//all property messages should start with DRDA_
 		if (!msg.startsWith(DRDA_MSG_PREFIX))
 			return ERRTYPE_UNKNOWN;
@@ -3535,20 +3519,15 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @return true if it is a property key; false otherwise
 	 */
-	private boolean isMsgProperty(String msg)
-	{
-		if (msg.startsWith(DRDA_MSG_PREFIX))
-			return true;
-		else
-			return false;
+	private boolean isMsgProperty(String msg) {
+        return msg.startsWith(DRDA_MSG_PREFIX);
 	}
 	/**
 	 * Get the current value of logging connections
 	 *
 	 * @return true if logging connections is on; false otherwise
 	 */
-	public boolean getLogConnections()
-	{
+    private boolean getLogConnections() {
 		synchronized(logConnectionsSync) {
 			return logConnections;
 		}
@@ -3558,58 +3537,53 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @param value	true to turn logging connections on; false to turn it off
 	 */
-	public void setLogConnections(boolean value)
-	{
+	public void setLogConnections(boolean value) {
 		synchronized(logConnectionsSync) {
 			logConnections = value;
 		}
 		// update the value in all the threads
 		synchronized(threadList) {
-			for (Enumeration e = threadList.elements(); e.hasMoreElements(); )
-			{
-				DRDAConnThread thread = (DRDAConnThread)e.nextElement();
+			for(DRDAConnThread thread:threadList){
 				thread.setLogConnections(value);
 			}
 		}
 	}
 
 	/**
-     * Set the security mechanism for db.drda.securityMechanism
-     * If this property is set, server will only allow connections
-     * from client with this security mechanism.
-     * This method will map the user friendly string representing 
-     * the security mechanism to the corresponding drda secmec value
+	 * Set the security mechanism for db.drda.securityMechanism
+	 * If this property is set, server will only allow connections
+	 * from client with this security mechanism.
+	 * This method will map the user friendly string representing
+	 * the security mechanism to the corresponding drda secmec value
 	 * @param s security mechanism string value
 	 * @throws Exception if  value to set is invalid
-     * @see Property#DRDA_PROP_SECURITYMECHANISM 
+	 * @see Property#DRDA_PROP_SECURITYMECHANISM
 	 */
-    private void setSecurityMechanism(String s)
-        throws Exception
-    {
-       allowOnlySecurityMechanism = getSecMecValue(s);
-       
-       // if server vm cannot support EUSRIDPWD, then do not allow 
-       // db.drda.securityMechanism to be set to EUSRIDPWD security
-       // mechanism
-       if ((allowOnlySecurityMechanism == INVALID_OR_NOTSET_SECURITYMECHANISM) ||
-              (allowOnlySecurityMechanism == CodePoint.SECMEC_EUSRIDPWD &&
-              !SUPPORTS_EUSRIDPWD))
-           consolePropertyMessage("DRDA_InvalidValue.U", new String [] 
-                       {s, Property.DRDA_PROP_SECURITYMECHANISM});
-    }
-    
-    /**
-     * get the security mechanism (secmec value) that the server
-     * will accept connections from.
-     * @return the securitymechanism value. It is value that 
-     * the db.drda.securityMechanism was set to, if it is not set, then
-     * it is equal to INVALID_OR_NOTSET_SECURITYMECHANISM
-     * @see Property#DRDA_PROP_SECURITYMECHANISM 
-     */
-    protected int getSecurityMechanism()
-    {
-        return allowOnlySecurityMechanism;
-    }
+	private void setSecurityMechanism(String s) throws Exception {
+		allowOnlySecurityMechanism = getSecMecValue(s);
+
+		// if server vm cannot support EUSRIDPWD, then do not allow
+		// db.drda.securityMechanism to be set to EUSRIDPWD security
+		// mechanism
+		if ((allowOnlySecurityMechanism == INVALID_OR_NOTSET_SECURITYMECHANISM) ||
+				(allowOnlySecurityMechanism == CodePoint.SECMEC_EUSRIDPWD &&
+						!SUPPORTS_EUSRIDPWD))
+			consolePropertyMessage("DRDA_InvalidValue.U", new String []
+					{s, Property.DRDA_PROP_SECURITYMECHANISM});
+	}
+
+	/**
+	 * get the security mechanism (secmec value) that the server
+	 * will accept connections from.
+	 * @return the securitymechanism value. It is value that
+	 * the db.drda.securityMechanism was set to, if it is not set, then
+	 * it is equal to INVALID_OR_NOTSET_SECURITYMECHANISM
+	 * @see Property#DRDA_PROP_SECURITYMECHANISM
+	 */
+    int getSecurityMechanism()
+	{
+		return allowOnlySecurityMechanism;
+	}
 	/**
 	 * Set the trace on/off for all sessions, or one session, depending on
 	 * whether we got -s argument.
@@ -3619,14 +3593,10 @@ public final class NetworkServerControlImpl {
 	 */
 	private boolean setTrace(boolean on)
 	{
-        boolean setTraceSuccessful = true;
-		if (sessionArg == 0)
-		{
+		boolean setTraceSuccessful = true;
+		if (sessionArg == 0) {
 			synchronized(sessionTable) {
-				for (Enumeration e = sessionTable.elements(); e.hasMoreElements(); )
-				{
-                   
-				    Session session = (Session) e.nextElement();
+                for(Session session:sessionTable.values()){
 					if (on)
 						try {
 							session.setTraceOn(traceDirectory,true);
@@ -3641,14 +3611,11 @@ public final class NetworkServerControlImpl {
 				if (setTraceSuccessful)
 					setTraceAll(on);
 			}
-		}
-		else
-		{
-			Session session = (Session) sessionTable.get(new Integer(sessionArg));
-			if (session != null)
-			{	
+		} else {
+			Session session =sessionTable.get(sessionArg);
+			if (session != null) {
 				if (on)
-					try {                         
+					try {
 						session.setTraceOn(traceDirectory,true);
 					}catch (Exception te) {
 						consoleExceptionPrintTrace(te);
@@ -3670,9 +3637,9 @@ public final class NetworkServerControlImpl {
 	 *
 	 * @return time slice value
 	 */
-	protected int getTimeSlice()
+    int getTimeSlice()
 	{
-			return timeSlice;
+		return timeSlice;
 	}
 	/**
 	 * Set the current value of  time slice
@@ -3681,23 +3648,23 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception if value is < 0
 	 */
 	private void setTimeSlice(int value)
-		throws Exception
+			throws Exception
 	{
 		if (value < MIN_TIMESLICE)
-			consolePropertyMessage("DRDA_InvalidValue.U", new String [] 
-				{new Integer(value).toString(), "timeslice"});
+			consolePropertyMessage("DRDA_InvalidValue.U", new String []
+					{Integer.toString(value), "timeslice"});
 		if (value == USE_DEFAULT)
 			value = DEFAULT_TIMESLICE;
 		synchronized(timeSliceSync) {
 			timeSlice = value;
 		}
 	}
-	
-	/** 
+
+	/**
 	 * Get the current value of keepAlive to configure how long the server
 	 * should keep the socket alive for a disconnected client
 	 */
-	protected boolean getKeepAlive()
+    boolean getKeepAlive()
 	{
 		return keepAlive;
 	}
@@ -3744,8 +3711,8 @@ public final class NetworkServerControlImpl {
 	private void setMaxThreads(int value) throws Exception
 	{
 		if (value < MIN_MAXTHREADS)
-			consolePropertyMessage("DRDA_InvalidValue.U", new String [] 
-				{new Integer(value).toString(), "maxthreads"});
+			consolePropertyMessage("DRDA_InvalidValue.U", new String []
+					{new Integer(value).toString(), "maxthreads"});
 		if (value == USE_DEFAULT)
 			value = DEFAULT_MAXTHREADS;
 		synchronized(threadsSync) {
@@ -3758,11 +3725,11 @@ public final class NetworkServerControlImpl {
 		sslMode = mode;
 	}
 
-	protected int getSSLMode() 
+	protected int getSSLMode()
 	{
 		return sslMode;
 	}
-		
+
 	/**
 	 * Get the current value of whether to trace all the sessions
 	 *
@@ -3808,7 +3775,7 @@ public final class NetworkServerControlImpl {
 		}
 	}
 
-    
+
 
 	/**
 	 * Connect to a database to test whether a connection can be made
@@ -3818,22 +3785,22 @@ public final class NetworkServerControlImpl {
 	 * @param user		user to use
 	 * @param password	password to use
 	 */
-	private void connectToDatabase(DDMWriter writer, String database, String user, 
-		String password) throws Exception
+	private void connectToDatabase(DDMWriter writer, String database, String user,
+								   String password) throws Exception
 	{
 		Properties p = new Properties();
 		if (user != null)
 			p.put("user", user);
 		if (password != null)
 			p.put("password", password);
-	 	try {
-     		Class.forName(CLOUDSCAPE_DRIVER);
+		try {
+			Class.forName(CLOUDSCAPE_DRIVER);
 		}
 		catch (Exception e) {
 			sendMessage(writer, ERROR, e.getMessage());
 			return;
-	  	}
-	 	try {
+		}
+		try {
 			//Note, we add database to the url so that we can allow additional
 			//url attributes
 			Connection conn = getDriver().connect(Attribute.PROTOCOL+database, p);
@@ -3845,9 +3812,9 @@ public final class NetworkServerControlImpl {
 				sendOK(writer);
 			conn.close();
 			return;
-	  	} catch (SQLException se) {
+		} catch (SQLException se) {
 			sendSQLMessage(writer, se, SQLERROR);
-	  	}
+		}
 	}
 
 	/**
@@ -3858,7 +3825,7 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception raises exception for message
 	 */
 	private void wrapSQLError(String messageKey)
-		throws Exception
+			throws Exception
 	{
 		consolePropertyMessage("DRDA_SQLException.S", messageKey);
 	}
@@ -3871,11 +3838,11 @@ public final class NetworkServerControlImpl {
 	 * @exception Exception raises exception for message
 	 */
 	private void wrapSQLWarning(String messageKey)
-		throws Exception
+			throws Exception
 	{
 		consolePropertyMessage("DRDA_SQLWarning.I", messageKey);
 	}
-	
+
 	/**
 	 * <p>
 	 * Constructs an object containing network server related properties
@@ -3887,7 +3854,7 @@ public final class NetworkServerControlImpl {
 	 * <p>
 	 * This method is package private to allow access from relevant MBean 
 	 * implementations in the same package.</p>
-	 * 
+	 *
 	 * @return a collection of network server properties and their current 
 	 *         values
 	 */
@@ -3918,20 +3885,17 @@ public final class NetworkServerControlImpl {
 
 		// DERBY-2108 SSL
 		retval.put(Property.DRDA_PROP_SSL_MODE, getSSLModeString(getSSLMode()));
-		
-        // if Property.DRDA_PROP_SECURITYMECHANISM has been set on server
-        // then put it in retval else the default behavior is as though 
-        // it is not set
-        if ( getSecurityMechanism() != INVALID_OR_NOTSET_SECURITYMECHANISM )
-            retval.put( Property.DRDA_PROP_SECURITYMECHANISM, getStringValueForSecMec(getSecurityMechanism()));
-        
+
+		// if Property.DRDA_PROP_SECURITYMECHANISM has been set on server
+		// then put it in retval else the default behavior is as though
+		// it is not set
+		if ( getSecurityMechanism() != INVALID_OR_NOTSET_SECURITYMECHANISM )
+			retval.put( Property.DRDA_PROP_SECURITYMECHANISM, getStringValueForSecMec(getSecurityMechanism()));
+
 		//get the trace value for each session if tracing for all is not set
-		if (!getTraceAll())
-		{
+		if (!getTraceAll()) {
 			synchronized(sessionTable) {
-				for (Enumeration e = sessionTable.elements(); e.hasMoreElements(); )
-				{	
-					Session session = (Session) e.nextElement();
+				for(Session session:sessionTable.values()){
 					if (session.isTraceOn())
 						retval.put(Property.DRDA_PROP_TRACE+"."+session.getConnNum(), "true");
 				}
@@ -3959,14 +3923,14 @@ public final class NetworkServerControlImpl {
 
 		if (getLogConnections()) {
 			consolePropertyMessage("DRDA_ConnNumber.I",
-								   Integer.toString(connectionNumber));
+					Integer.toString(connectionNumber));
 		}
 
 		// Note that we always re-fetch the tracing configuration because it
 		// may have changed (there are administrative commands which allow
 		// dynamic tracing reconfiguration).
 		Session session = new Session(this,connectionNumber, clientSocket,
-									  getTraceDirectory(), getTraceAll());
+				getTraceDirectory(), getTraceAll());
 
 		sessionTable.put(new Integer(connectionNumber), session);
 
@@ -3993,8 +3957,7 @@ public final class NetworkServerControlImpl {
 				// only start a new thread if we have no maximum number of
 				// threads or the maximum number of threads is not exceeded
 				if ((maxThreads == 0) || (threadList.size() < maxThreads)) {
-					thread = new DRDAConnThread(session, this, getTimeSlice(),
-												getLogConnections());
+					thread = new DRDAConnThread(session, this, getTimeSlice(), getLogConnections());
 					threadList.add(thread);
 					thread.start();
 				}
@@ -4016,90 +3979,84 @@ public final class NetworkServerControlImpl {
 	void removeThread(DRDAConnThread thread) {
 		threadList.remove(thread);
 	}
-	
-	protected Object getShutdownSync() { return shutdownSync; } 
-	protected boolean getShutdown() { return shutdown; } 
+
+	Object getShutdownSync() { return shutdownSync; }
+	protected boolean getShutdown() { return shutdown; }
 
 
-	public String buildRuntimeInfo(LocalizedResource locallangUtil)
-	{
-		
+	private String buildRuntimeInfo(LocalizedResource locallangUtil) {
 		String s = locallangUtil.getTextMessage("DRDA_RuntimeInfoBanner.I")+ "\n";
 		int sessionCount = 0;
 		s += locallangUtil.getTextMessage("DRDA_RuntimeInfoSessionBanner.I") + "\n";
-		for (int i = 0; i < threadList.size(); i++)
-		{
-			String sessionInfo  = ((DRDAConnThread)
-								   threadList.get(i)).buildRuntimeInfo("",locallangUtil) ;
-			if (!sessionInfo.equals(""))
-			{
-				sessionCount ++;
-				s += sessionInfo + "\n";
+		for(DRDAConnThread thread : threadList){
+			String sessionInfo=thread.buildRuntimeInfo("",locallangUtil);
+			if(!sessionInfo.equals("")){
+				sessionCount++;
+				s+=sessionInfo+"\n";
 			}
 		}
 		int waitingSessions = 0;
-		for (int i = 0; i < runQueue.size(); i++)
-		{
-				s += ((Session)runQueue.get(i)).buildRuntimeInfo("", locallangUtil);
-				waitingSessions ++;
+		for(Session sesson : runQueue){
+			s+=sesson.buildRuntimeInfo("",locallangUtil);
+			waitingSessions++;
 		}
 		s+= "-------------------------------------------------------------\n";
 		s += locallangUtil.getTextMessage("DRDA_RuntimeInfoNumThreads.I") +
-			threadList.size() + "\n";
+				threadList.size() + "\n";
 		s += locallangUtil.getTextMessage("DRDA_RuntimeInfoNumActiveSessions.I") +
-			sessionCount  +"\n";
+				sessionCount  +"\n";
 		s +=locallangUtil.getTextMessage("DRDA_RuntimeInfoNumWaitingSessions.I") +
-			+ waitingSessions + "\n\n";
+				+ waitingSessions + "\n\n";
 
 		Runtime rt = Runtime.getRuntime();
 		rt.gc();
 		long totalmem = rt.totalMemory();
 		long freemem = rt.freeMemory();
 		s += locallangUtil.getTextMessage("DRDA_RuntimeInfoTotalMemory.I") +
-			+ totalmem + "\t";
+				+ totalmem + "\t";
 		s += locallangUtil.getTextMessage("DRDA_RuntimeInfoFreeMemory.I") +
-			+ freemem + "\n\n";
-		
+				+ freemem + "\n\n";
+
 		return s;
 	}
-    
-    long getBytesRead() {
-        long count=0;
-        for (int i = 0; i < threadList.size(); i++) {
-            count += ((DRDAConnThread)threadList.get(i)).getBytesRead();
-        }
-        return count;
-    }
-    
-     long getBytesWritten() {
-        long count=0;
-        for (int i = 0; i < threadList.size(); i++) {
-            count += ((DRDAConnThread)threadList.get(i)).getBytesWritten();
-        }
-        return count;
-    }
-     
-    int getActiveSessions() {
-        int count=0;
-        for (int i = 0; i < threadList.size(); i++) {
-           if (((DRDAConnThread)threadList.get(i)).hasSession()) {
-               count++;
-           }
-        }
-        return count;
-    }
 
-    int getRunQueueSize() {
-        return runQueue.size();
-    }
-    
-    int getThreadListSize() {
-        return threadList.size();
-    }
-    
-    int getConnectionNumber() {
-        return connNum;
-    }
+	long getBytesRead() {
+		long count=0;
+		for(DRDAConnThread aThreadList : threadList){
+			count+=aThreadList.getBytesRead();
+		}
+		return count;
+	}
+
+	long getBytesWritten() {
+		long count=0;
+		for(DRDAConnThread aThreadList : threadList){
+			count+=(aThreadList).getBytesWritten();
+		}
+		return count;
+	}
+
+	int getActiveSessions() {
+		int count=0;
+		for(DRDAConnThread aThreadList : threadList){
+			if(aThreadList.hasSession()){
+				count++;
+			}
+		}
+		return count;
+	}
+
+	int getRunQueueSize() {
+		return runQueue.size();
+	}
+
+	int getThreadListSize() {
+		return threadList.size();
+	}
+
+	int getConnectionNumber() {
+		return connNum;
+	}
 
 	protected void setClientLocale(String locale)
 	{
@@ -4113,25 +4070,22 @@ public final class NetworkServerControlImpl {
 	 * and won't be readily available to ProductVersionHolder when running
 	 * under security manager.
 	 */
-	private ProductVersionHolder getNetProductVersionHolder() throws Exception
-	{
+	private ProductVersionHolder getNetProductVersionHolder() throws Exception {
 		ProductVersionHolder myPVH= null;
 		try {
 			myPVH = (ProductVersionHolder) AccessController.doPrivileged(
-								new PrivilegedExceptionAction() {
-										
-									public Object run() throws UnknownHostException,IOException
-									{
-										InputStream versionStream = getClass().getResourceAsStream(ProductGenusNames.NET_INFO);
+					new PrivilegedExceptionAction() {
 
-										return ProductVersionHolder.getProductVersionHolderFromMyEnv(versionStream);
-									}
-									});
-		
-}
-		catch(PrivilegedActionException e) {
+						public Object run() throws IOException {
+							InputStream versionStream = getClass().getResourceAsStream(ProductGenusNames.NET_INFO);
+
+							return ProductVersionHolder.getProductVersionHolderFromMyEnv(versionStream);
+						}
+					});
+
+		} catch(PrivilegedActionException e) {
 			Exception e1 = e.getException();
-			consolePropertyMessage("DRDA_ProductVersionReadError.S", e1.getMessage());			
+			consolePropertyMessage("DRDA_ProductVersionReadError.S", e1.getMessage());
 		}
 		return myPVH;
 	}

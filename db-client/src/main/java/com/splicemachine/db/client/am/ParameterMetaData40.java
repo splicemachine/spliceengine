@@ -51,8 +51,8 @@ public class ParameterMetaData40 extends ParameterMetaData {
      *                                whether this is a wrapper for an object 
      *                                with the given interface.
      */
-    public boolean isWrapperFor(Class<?> interfaces) throws SQLException {
-        return interfaces.isInstance(this);
+    public boolean isWrapperFor(Class<?> interfaces) throws SQLException{
+        return interfaces.isAssignableFrom(ColumnMetaData.class) || interfaces.isInstance(this);
     }
     
     /**
@@ -65,8 +65,11 @@ public class ParameterMetaData40 extends ParameterMetaData {
      */
     public <T> T unwrap(java.lang.Class<T> interfaces)
                                    throws SQLException {
-        try { 
-            return interfaces.cast(this);
+        try {
+            if(interfaces.isAssignableFrom(ColumnMetaData.class))
+                return interfaces.cast(columnMetaData_);
+            else
+                return interfaces.cast(this);
         } catch (ClassCastException cce) {
             throw new SqlException(null,new ClientMessageId(SQLState.UNABLE_TO_UNWRAP),
                     interfaces).getSQLException();

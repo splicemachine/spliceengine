@@ -18,6 +18,7 @@ package com.splicemachine.management;
 import com.splicemachine.access.api.DatabaseVersion;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +28,8 @@ import java.util.Set;
  *         Date: 2/17/16
  */
 public interface DatabaseAdministrator{
+
+    Map<String, Collection<Integer>> getJDBCHostPortInfo() throws SQLException;
 
     void setLoggerLevel(String loggerName, String logLevel) throws SQLException;
 

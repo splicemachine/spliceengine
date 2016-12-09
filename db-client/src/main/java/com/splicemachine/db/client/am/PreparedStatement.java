@@ -52,16 +52,16 @@ public class PreparedStatement extends Statement
 
     //-----------------------------state------------------------------------------
 
-    public String sql_;
+    String sql_;
 
     // This variable is only used by Batch.
     // True if a call sql statement has an OUT or INOUT parameter registered.
-    public boolean outputRegistered_ = false;
+    boolean outputRegistered_ = false;
 
     // Parameter inputs are cached as objects so they may be sent on execute()
-    public Object[] parameters_;
+    Object[] parameters_;
 
-    boolean[] parameterSet_;
+    private boolean[] parameterSet_;
     boolean[] parameterRegistered_;
     
     void setInput(int parameterIndex, Object input) {
@@ -69,7 +69,7 @@ public class PreparedStatement extends Statement
         parameterSet_[parameterIndex - 1] = true;
     }
 
-    public ColumnMetaData parameterMetaData_; // type information for input sqlda
+    ColumnMetaData parameterMetaData_; // type information for input sqlda
     
     private ArrayList parameterTypeList;
 
@@ -81,11 +81,11 @@ public class PreparedStatement extends Statement
     // gets repositioned.
     // So instead of caching the scrollableRS_, we will cache the cursorName.  And re-retrieve the scrollable
     // result set from the map using this cursorName every time the PreparedStatement excutes.
-    String positionedUpdateCursorName_ = null;
+    private String positionedUpdateCursorName_ = null;
     
     // the ClientPooledConnection object used to notify of the events that occur
     // on this prepared statement object
-    protected final ClientPooledConnection pooledConnection_;
+    private final ClientPooledConnection pooledConnection_;
 
 
     private void initPreparedStatement() {
@@ -395,8 +395,7 @@ public class PreparedStatement extends Statement
 
 
     public int executeUpdate() throws SQLException {
-        try
-        {
+        try {
             synchronized (connection_) {
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "executeUpdate");
@@ -407,8 +406,7 @@ public class PreparedStatement extends Statement
                 }
                 return updateValue;
             }
-        }
-        catch ( SqlException se ) {
+        } catch ( SqlException se ) {
             checkStatementValidity(se);
             throw se.getSQLException();
         }
@@ -420,8 +418,7 @@ public class PreparedStatement extends Statement
     }
 
     public void setNull(int parameterIndex, int jdbcType) throws SQLException {
-        try
-        {
+        try {
             synchronized (connection_) {
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "setNull", parameterIndex, jdbcType);
@@ -442,9 +439,8 @@ public class PreparedStatement extends Statement
                     
                     //This exception mimic embedded behavior.
                     //see http://issues.apache.org/jira/browse/DERBY-1610#action_12432568
-                    PossibleTypes.throw22005Exception(agent_.logWriter_,
-                                                      jdbcType,
-                                                      paramType );
+                    //noinspection ThrowableResultOfMethodCallIgnored
+                    PossibleTypes.throw22005Exception(agent_.logWriter_, jdbcType, paramType );
                 }
                 
                 setNullX(parameterIndex, jdbcType);
@@ -463,7 +459,7 @@ public class PreparedStatement extends Statement
         if (!parameterMetaData_.nullable_[parameterIndex - 1]) {
             throw new SqlException(agent_.logWriter_, 
                 new ClientMessageId(SQLState.LANG_NULL_INTO_NON_NULL),
-                new Integer(parameterIndex));
+                    parameterIndex);
         }
         setInput(parameterIndex, null);
     }
@@ -479,8 +475,7 @@ public class PreparedStatement extends Statement
     }
 
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-        try
-        {
+        try {
             synchronized (connection_) {
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "setBoolean", parameterIndex, x);
@@ -500,8 +495,7 @@ public class PreparedStatement extends Statement
                 parameterMetaData_.clientParamtertype_[parameterIndex - 1] = java.sql.Types.BIT;
                 setInput(parameterIndex, Boolean.valueOf(x));
             }
-        }
-        catch ( SqlException se )
+        } catch ( SqlException se )
         {
             throw se.getSQLException();
         }
@@ -933,8 +927,7 @@ public class PreparedStatement extends Statement
     }
 
     public void setRowId(int parameterIndex, java.sql.RowId x) throws SQLException{
-        try
-        {
+        try {
             synchronized (connection_) {
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "setRowId", parameterIndex, x);
@@ -942,8 +935,9 @@ public class PreparedStatement extends Statement
 
                 final int paramType =
                         getColumnMetaDataX().getColumnType(parameterIndex);
+                /*
 
-                /*if( paramType != java.sql.Types.ROWID ) {
+                if( paramType != java.sql.Types.ROWID ) {
 
                     PossibleTypes.throw22005Exception(agent_.logWriter_,
                             java.sql.Types.ROWID,
@@ -959,14 +953,13 @@ public class PreparedStatement extends Statement
                 }
                 setInput(parameterIndex, x);
             }
-        }
-        catch ( SqlException se )
-        {
+        } catch ( SqlException se ) {
             throw se.getSQLException();
         }
     }
+
     // also used by BLOB
-    public void setBytesX(int parameterIndex, byte[] x) throws SqlException {
+    void setBytesX(int parameterIndex,byte[] x) throws SqlException {
         parameterMetaData_.clientParamtertype_[parameterIndex - 1] = java.sql.Types.LONGVARBINARY;
         if (x == null) {
             setNullX(parameterIndex, java.sql.Types.LONGVARBINARY);
@@ -2450,8 +2443,8 @@ public class PreparedStatement extends Statement
         if (parameterIndex < 1 || parameterIndex > parameterMetaData_.columns_) {
             throw new SqlException(agent_.logWriter_, 
                 new ClientMessageId(SQLState.LANG_INVALID_PARAM_POSITION),
-                new Integer(parameterIndex), 
-                new Integer(parameterMetaData_.columns_));
+                    parameterIndex,
+                    parameterMetaData_.columns_);
         }
     }
 
@@ -2469,8 +2462,7 @@ public class PreparedStatement extends Statement
     void checkForValidScale(int scale) throws SqlException {
         if (scale < 0 || scale > 31) {
             throw new SqlException(agent_.logWriter_, 
-                new ClientMessageId(SQLState.BAD_SCALE_VALUE),
-                new Integer(scale));
+                new ClientMessageId(SQLState.BAD_SCALE_VALUE), scale);
         }
     }
 
@@ -2798,405 +2790,6 @@ public class PreparedStatement extends Statement
             }
         }
     
-    /**
-     * PossibleTypes is information which is set of types.
-     * A given type is evaluated as *possible* at checkType method if same type was found in the set.
-     */
-    private static class PossibleTypes{
-        
-        final private int[] possibleTypes;
-        
-        private PossibleTypes(int[] types){
-            possibleTypes = types;
-            Arrays.sort(possibleTypes);
-        }
-        
-        /**
-         * This is possibleTypes of variable which can be set by set method for generic scalar.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_GENERIC_SCALAR = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.BIGINT,
-                java.sql.Types.LONGVARCHAR ,
-                java.sql.Types.CHAR,
-                java.sql.Types.DECIMAL,
-                java.sql.Types.INTEGER,
-                java.sql.Types.SMALLINT,
-                java.sql.Types.REAL,
-                java.sql.Types.DOUBLE,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.BOOLEAN } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setDate method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_DATE = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.DATE,
-                java.sql.Types.TIMESTAMP } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setTime method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_TIME = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.TIME } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setTimestamp method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_TIMESTAMP = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.DATE,
-                java.sql.Types.TIME,
-                java.sql.Types.TIMESTAMP } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setString method.
-         */
-        final private static PossibleTypes POSSIBLE_TYPES_IN_SET_STRING = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.BIGINT,
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.DECIMAL,
-                java.sql.Types.INTEGER,
-                java.sql.Types.SMALLINT,
-                java.sql.Types.REAL,
-                java.sql.Types.DOUBLE,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.BOOLEAN,
-                java.sql.Types.DATE,
-                java.sql.Types.TIME,
-                java.sql.Types.TIMESTAMP,
-                java.sql.Types.CLOB } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setBytes method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_BYTES = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.LONGVARBINARY,
-                java.sql.Types.VARBINARY,
-                java.sql.Types.BINARY,
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.BLOB } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setBinaryStream method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_BINARYSTREAM = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.LONGVARBINARY,
-                java.sql.Types.VARBINARY,
-                java.sql.Types.BINARY,
-                java.sql.Types.BLOB } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setAsciiStream method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_ASCIISTREAM = 
-            new PossibleTypes( new int[]{ 
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.CLOB } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setCharacterStream method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_CHARACTERSTREAM = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.CLOB } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setBlob method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_BLOB = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.BLOB } );
-        
-        /**
-         * This is possibleTypes of variable which can be set by setClob method.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_CLOB = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.CLOB } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to generic scalar typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.BIT,
-                java.sql.Types.TINYINT,
-                java.sql.Types.BIGINT,
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.NUMERIC,
-                java.sql.Types.DECIMAL,
-                java.sql.Types.INTEGER,
-                java.sql.Types.SMALLINT,
-                java.sql.Types.FLOAT,
-                java.sql.Types.REAL,
-                java.sql.Types.DOUBLE,
-                java.sql.Types.VARCHAR } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to generic character typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_GENERIC_CHARACTERS_NULL = 
-            new PossibleTypes( new int[] {
-                java.sql.Types.BIT,
-                java.sql.Types.TINYINT,
-                java.sql.Types.BIGINT,
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.NUMERIC,
-                java.sql.Types.DECIMAL,
-                java.sql.Types.INTEGER,
-                java.sql.Types.SMALLINT,
-                java.sql.Types.FLOAT,
-                java.sql.Types.REAL,
-                java.sql.Types.DOUBLE,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.DATE,
-                java.sql.Types.TIME,
-                java.sql.Types.TIMESTAMP } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to VARBINARY typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_VARBINARY_NULL = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.VARBINARY,
-                java.sql.Types.BINARY,
-                java.sql.Types.LONGVARBINARY } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to BINARY typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_BINARY_NULL = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.VARBINARY,
-                java.sql.Types.BINARY,
-                java.sql.Types.LONGVARBINARY } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to LONGVARBINARY typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_LONGVARBINARY_NULL = 
-            new PossibleTypes( new int[] {
-                java.sql.Types.VARBINARY,
-                java.sql.Types.BINARY,
-                java.sql.Types.LONGVARBINARY } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to DATE typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_DATE_NULL = 
-            new PossibleTypes( new int[] {
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.DATE,
-                java.sql.Types.TIMESTAMP } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to TIME typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_TIME_NULL = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.TIME,
-                java.sql.Types.TIMESTAMP } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to TIMESTAMP typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_TIMESTAMP_NULL = 
-            new PossibleTypes( new int[] {
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.DATE,
-                java.sql.Types.TIMESTAMP } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to CLOB typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_CLOB_NULL = 
-            new PossibleTypes( new int[] { 
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.CHAR,
-                java.sql.Types.VARCHAR,
-                java.sql.Types.CLOB } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to BLOB typed variable.
-         */
-        final public static PossibleTypes POSSIBLE_TYPES_FOR_BLOB_NULL = 
-            new PossibleTypes( new int[] {
-                java.sql.Types.BLOB } );
-        
-        /**
-         * This is possibleTypes of null value which can be assigned to other typed variable.
-         */
-        final public static PossibleTypes DEFAULT_POSSIBLE_TYPES_FOR_NULL = 
-            new PossibleTypes( new int[] {
-                java.sql.Types.BIT,
-                java.sql.Types.TINYINT,
-                java.sql.Types.BIGINT,
-                java.sql.Types.LONGVARBINARY,
-                java.sql.Types.VARBINARY,
-                java.sql.Types.BINARY,
-                java.sql.Types.LONGVARCHAR,
-                java.sql.Types.NULL,
-                java.sql.Types.CHAR,
-                java.sql.Types.NUMERIC,
-                java.sql.Types.DECIMAL,
-                java.sql.Types.INTEGER,
-                java.sql.Types.SMALLINT,
-                java.sql.Types.FLOAT,
-                java.sql.Types.REAL,
-                java.sql.Types.DOUBLE, 
-                java.sql.Types.VARCHAR,
-                java.sql.Types.BOOLEAN,
-                java.sql.Types.DATALINK,
-                java.sql.Types.DATE,
-                java.sql.Types.TIME,
-                java.sql.Types.TIMESTAMP,
-                java.sql.Types.OTHER,
-                java.sql.Types.JAVA_OBJECT,
-                java.sql.Types.DISTINCT,
-                java.sql.Types.STRUCT,
-                java.sql.Types.ARRAY,
-                java.sql.Types.BLOB,
-                java.sql.Types.CLOB,
-                java.sql.Types.REF } );
-        
-        /**
-         * This method return true if the type is possible.
-         */
-        boolean checkType(int type){
-            
-            if(SanityManager.DEBUG){
-                
-                for(int i = 0;
-                    i < possibleTypes.length - 1;
-                    i ++){
-                    
-                    SanityManager.ASSERT(possibleTypes[i] < possibleTypes[i + 1]);
-                    
-                }
-            }
-            
-            return Arrays.binarySearch( possibleTypes,
-                                        type ) >= 0;
-            
-        }
-        
-        static SqlException throw22005Exception( LogWriter logWriter, 
-                                                 int valType,
-                                                 int paramType)
-            
-            throws SqlException{
-            
-            throw new SqlException( logWriter,
-                                    new ClientMessageId(SQLState.LANG_DATA_TYPE_GET_MISMATCH) ,
-                                    new Object[]{ 
-                                        Types.getTypeString(valType),
-                                        Types.getTypeString(paramType) 
-                                    },
-                                    (Throwable) null);
-        }
-        
-        
-        /**
-         * This method return possibleTypes of null value in variable typed as typeOfVariable.
-         */
-        static PossibleTypes getPossibleTypesForNull(int typeOfVariable){
-            
-            switch(typeOfVariable){
-                
-            case java.sql.Types.SMALLINT:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
-            case java.sql.Types.INTEGER:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
-            case java.sql.Types.BIGINT:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
-            case java.sql.Types.REAL:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
-            case java.sql.Types.FLOAT:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
-            case java.sql.Types.DOUBLE:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
-            case java.sql.Types.DECIMAL:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
-            case java.sql.Types.CHAR:
-                return POSSIBLE_TYPES_FOR_GENERIC_CHARACTERS_NULL;
-                
-            case java.sql.Types.VARCHAR:
-                return POSSIBLE_TYPES_FOR_GENERIC_CHARACTERS_NULL;
-                
-            case java.sql.Types.LONGVARCHAR:
-                return POSSIBLE_TYPES_FOR_GENERIC_CHARACTERS_NULL;
-                
-            case java.sql.Types.VARBINARY:
-                return POSSIBLE_TYPES_FOR_VARBINARY_NULL;
-                
-            case java.sql.Types.BINARY:
-                return POSSIBLE_TYPES_FOR_BINARY_NULL;
-                
-            case java.sql.Types.LONGVARBINARY:
-                return POSSIBLE_TYPES_FOR_LONGVARBINARY_NULL;
-                
-            case java.sql.Types.DATE:
-                return POSSIBLE_TYPES_FOR_DATE_NULL;
-                
-            case java.sql.Types.TIME:
-                return POSSIBLE_TYPES_FOR_TIME_NULL;
-                
-            case java.sql.Types.TIMESTAMP:
-                return POSSIBLE_TYPES_FOR_TIMESTAMP_NULL;
-                
-            case java.sql.Types.CLOB:
-                return POSSIBLE_TYPES_FOR_CLOB_NULL;
-                
-            case java.sql.Types.BLOB:
-                return POSSIBLE_TYPES_FOR_BLOB_NULL;
-                
-            }
-        
-            // as default, accept all type...
-            return DEFAULT_POSSIBLE_TYPES_FOR_NULL;
-        }
-        
-    }
-
     @Override
     public void setNString(int parameterIndex,String value) throws SQLException{
        throw SQLExceptionFactory.notImplemented("setNString");

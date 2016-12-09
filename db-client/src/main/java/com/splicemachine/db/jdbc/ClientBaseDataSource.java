@@ -710,7 +710,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
     // tokenize "property=value;property=value..." and returns new properties object
     //This method is used both by ClientDriver to parse the url and
     // ClientDataSource.setConnectionAttributes
-    static Properties tokenizeAttributes(String attributeString, Properties properties) throws SqlException {
+    public static Properties tokenizeAttributes(String attributeString, Properties properties) throws SqlException {
         Properties augmentedProperties;
 
         if (attributeString == null) {

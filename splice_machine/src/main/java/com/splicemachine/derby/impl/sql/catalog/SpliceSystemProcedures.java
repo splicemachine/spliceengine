@@ -164,6 +164,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(1)
                             .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .allowPublicAccess() //we want anyone to be able to call this
                             .build();
                     procedures.add(getActiveServers);
 

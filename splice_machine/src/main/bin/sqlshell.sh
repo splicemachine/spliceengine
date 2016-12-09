@@ -37,7 +37,7 @@ LOG4J_CONFIG="-Dlog4j.configuration=${LOG4J_PATH}"
 
 GEN_SYS_ARGS="-Djava.awt.headless=true ${LOG4J_CONFIG}"
 
-IJ_SYS_ARGS="-Djdbc.drivers=com.splicemachine.db.jdbc.ClientDriver -Dij.connection.splice=jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
+IJ_SYS_ARGS="-Djdbc.drivers=com.splicemachine.db.com.splicemachine.db.client.cluster.ClusteredDriver -Dij.connection.splice=jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
 
 if hash rlwrap 2>/dev/null; then
     echo -en "\n ========= rlwrap detected and enabled.  Use up and down arrow keys to scroll through command line history. ======== \n\n"

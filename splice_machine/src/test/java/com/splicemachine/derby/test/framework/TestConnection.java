@@ -95,8 +95,6 @@ public class TestConnection implements Connection{
 
     public void reset() throws SQLException {
         delegate.setAutoCommit(oldAutoCommit);
-        if(oldSchema!=null)
-            delegate.setSchema(oldSchema);
     }
 
     @Override public boolean isClosed() throws SQLException { return delegate.isClosed(); }
@@ -202,6 +200,7 @@ public class TestConnection implements Connection{
     @Override public Array createArrayOf(String typeName, Object[] elements) throws SQLException { return delegate.createArrayOf(typeName,elements); }
     @Override public Struct createStruct(String typeName, Object[] attributes) throws SQLException { return delegate.createStruct(typeName, attributes); }
     public void setSchema(String schema) throws SQLException {
+        if(schema.equals(delegate.getSchema())) return; //nothing to do
         oldSchema = delegate.getSchema();
         delegate.setSchema(schema);
     }
@@ -219,8 +218,13 @@ public class TestConnection implements Connection{
         return 0;
 //        return delegate.getNetworkTimeout();
     }
-    @Override public <T> T unwrap(Class<T> iface) throws SQLException { return delegate.unwrap(iface); }
-    @Override public boolean isWrapperFor(Class<?> iface) throws SQLException { return delegate.isWrapperFor(iface); }
+    @Override public <T> T unwrap(Class<T> iface) throws SQLException {
+        if(iface.isAssignableFrom(delegate.getClass())) return iface.cast(delegate);
+        return delegate.unwrap(iface);
+    }
+    @Override public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        return iface.isAssignableFrom(delegate.getClass()) || delegate.isWrapperFor(iface);
+    }
 
     /*Convenience test methods*/
 
@@ -313,15 +317,26 @@ public class TestConnection implements Connection{
     }
 
     public long getCurrentTransactionId() throws SQLException {
-        Statement s= createStatement();
-        ResultSet resultSet = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
-        if(!resultSet.next())
-            throw new IllegalStateException("Did not see any response from GET_CURRENT_TRANSACTION()");
-        return resultSet.getLong(1);
+        try(Statement s= createStatement()){
+            try(ResultSet resultSet=s.executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()")){
+                if(!resultSet.next())
+                    throw new IllegalStateException("Did not see any response from GET_CURRENT_TRANSACTION()");
+                return resultSet.getLong(1);
+            }
+        }
+    }
+
+    public long getCurrentTransactionId(Statement s) throws SQLException {
+        try(ResultSet resultSet=s.executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()")){
+            if(!resultSet.next())
+                throw new IllegalStateException("Did not see any response from GET_CURRENT_TRANSACTION()");
+            return resultSet.getLong(1);
+        }
     }
 
     public boolean execute(String sql) throws SQLException{
-        Statement s = createStatement();
-        return s.execute(sql);
+        try(Statement s = createStatement()){
+            return s.execute(sql);
+        }
     }
 }

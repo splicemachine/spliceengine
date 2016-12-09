@@ -65,9 +65,9 @@ public class SQLExceptionFactory40 extends SQLExceptionFactory {
      */
     public SQLException getSQLException (String message, String sqlState, 
                                                             int errCode) { 
-        SQLException ex = null;
+        SQLException ex;
         if (sqlState == null) {
-            ex = new SQLException(message, sqlState, errCode); 
+            ex = new SQLException(message,null, errCode);
         } else if (sqlState.startsWith(SQLState.CONNECTIVITY_PREFIX) ||
             errCode >= ExceptionSeverity.SESSION_SEVERITY) {
             //none of the sqlstate supported by db belongs to

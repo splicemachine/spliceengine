@@ -25,9 +25,9 @@
 
 package com.splicemachine.db.client.am;
 
-import java.sql.SQLException;
-
 import com.splicemachine.db.shared.common.reference.SQLState;
+
+import java.sql.SQLException;
 
 // Note:
 //   Tag members using the strictest visibility.
@@ -44,38 +44,44 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 //   Assign an ErrorKey, ResourceKey, and Resource for each throw statement.
 //   Save for future pass to avoid maintenance during development.
 
-public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
+public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData{
     //----------------------------- constants  -----------------------------------
 
-    private final static short SQL_BEST_ROWID = 1;
-    private final static short SQL_ROWVER = 2;
+    private final static short SQL_BEST_ROWID=1;
+    private final static short SQL_ROWVER=2;
 
-    private final static short SQL_INDEX_UNIQUE = 0;
-    private final static short SQL_INDEX_ALL = 1;
+    private final static short SQL_INDEX_UNIQUE=0;
+    private final static short SQL_INDEX_ALL=1;
 
     //---------------------navigational members-----------------------------------
 
     protected Agent agent_;
-    protected Connection connection_;
+    protected final Connection connection_;
 
     //-----------------------------state------------------------------------------
 
-    private final static int numberOfMetaDataInfoMethods__ = 108;
-    private Object[] metaDataInfoCache_ = new Object[numberOfMetaDataInfoMethods__];
-    private boolean metaDataInfoIsCached_ = false;
+    private final static int numberOfMetaDataInfoMethods__=108;
+    private Object[] metaDataInfoCache_=new Object[numberOfMetaDataInfoMethods__];
+    private boolean metaDataInfoIsCached_=false;
 
-    public ProductLevel productLevel_;
+    ProductLevel productLevel_;
 
-    /** The JDBC major version supported by the server. */
+    /**
+     * The JDBC major version supported by the server.
+     */
     private final int serverJdbcMajorVersion;
-    /** The JDBC minor version supported by the server. */
+    /**
+     * The JDBC minor version supported by the server.
+     */
     private final int serverJdbcMinorVersion;
 
-    public boolean useServerXAState_ = true;
+    public boolean useServerXAState_=true;
 
-    /** True if the server supports QRYCLSIMP. */
+    /**
+     * True if the server supports QRYCLSIMP.
+     */
     private boolean supportsQryclsimp_;
-    
+
     private boolean supportsLayerBStreaming_;
 
     /**
@@ -83,7 +89,9 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      */
     private boolean supportsSessionDataCaching_;
 
-    /** True if the server supports UDTs */
+    /**
+     * True if the server supports UDTs
+     */
     private boolean supportsUDTs_;
 
     /**
@@ -93,11 +101,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      * streaming or not.
      */
     private boolean supportsEXTDTAAbort_;
-    
-    /** True if the server supports nanoseconds in timestamps */
+
+    /**
+     * True if the server supports nanoseconds in timestamps
+     */
     private boolean supportsTimestampNanoseconds_;
-    
-    /** True if the server supports boolean values */
+
+    /**
+     * True if the server supports boolean values
+     */
     private boolean supportsBooleanValues_;
 
     /**
@@ -110,20 +122,20 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     //---------------------constructors/finalizer---------------------------------
 
-    protected DatabaseMetaData(Agent agent, Connection connection, ProductLevel productLevel) {
-        agent_ = agent;
-        connection_ = connection;
-        productLevel_ = productLevel;
+    protected DatabaseMetaData(Agent agent,Connection connection,ProductLevel productLevel){
+        agent_=agent;
+        connection_=connection;
+        productLevel_=productLevel;
         computeFeatureSet_();
-        if (connection.isXAConnection()) {
-            connection.xaHostVersion_ = productLevel_.versionLevel_;
+        if(connection.isXAConnection()){
+            connection.xaHostVersion_=productLevel_.versionLevel_;
         }
-        if (productLevel_.lessThan(10, 2, 0)) {
-            serverJdbcMajorVersion = 3;
-            serverJdbcMinorVersion = 0;
-        } else {
-            serverJdbcMajorVersion = 4;
-            serverJdbcMinorVersion = 0;
+        if(productLevel_.lessThan(10,2,0)){
+            serverJdbcMajorVersion=3;
+            serverJdbcMinorVersion=0;
+        }else{
+            serverJdbcMajorVersion=4;
+            serverJdbcMinorVersion=0;
         }
     }
 
@@ -132,476 +144,476 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //----------------------------------------------------------------------
     // First, a variety of minor information about the target database.
 
-    private final static int allProceduresAreCallable__ = 0;
+    private final static int allProceduresAreCallable__=0;
 
-    public boolean allProceduresAreCallable() throws SQLException {
+    public boolean allProceduresAreCallable() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(allProceduresAreCallable__);
     }
 
-    private final static int allTablesAreSelectable__ = 1;
+    private final static int allTablesAreSelectable__=1;
 
-    public boolean allTablesAreSelectable() throws SQLException {
+    public boolean allTablesAreSelectable() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(allTablesAreSelectable__);
     }
 
-    private final static int nullsAreSortedHigh__ = 2;
+    private final static int nullsAreSortedHigh__=2;
 
-    public boolean nullsAreSortedHigh() throws SQLException {
+    public boolean nullsAreSortedHigh() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(nullsAreSortedHigh__);
     }
 
-    private final static int nullsAreSortedLow__ = 3;
+    private final static int nullsAreSortedLow__=3;
 
-    public boolean nullsAreSortedLow() throws SQLException {
+    public boolean nullsAreSortedLow() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(nullsAreSortedLow__);
     }
 
-    private final static int nullsAreSortedAtStart__ = 4;
+    private final static int nullsAreSortedAtStart__=4;
 
-    public boolean nullsAreSortedAtStart() throws SQLException {
+    public boolean nullsAreSortedAtStart() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(nullsAreSortedAtStart__);
     }
 
-    private final static int nullsAreSortedAtEnd__ = 5;
+    private final static int nullsAreSortedAtEnd__=5;
 
-    public boolean nullsAreSortedAtEnd() throws SQLException {
+    public boolean nullsAreSortedAtEnd() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(nullsAreSortedAtEnd__);
     }
 
-    private final static int usesLocalFiles__ = 6;
+    private final static int usesLocalFiles__=6;
 
-    public boolean usesLocalFiles() throws SQLException {
+    public boolean usesLocalFiles() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(usesLocalFiles__);
     }
 
-    private final static int usesLocalFilePerTable__ = 7;
+    private final static int usesLocalFilePerTable__=7;
 
-    public boolean usesLocalFilePerTable() throws SQLException {
+    public boolean usesLocalFilePerTable() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(usesLocalFilePerTable__);
     }
 
-    private final static int storesUpperCaseIdentifiers__ = 8;
+    private final static int storesUpperCaseIdentifiers__=8;
 
-    public boolean storesUpperCaseIdentifiers() throws SQLException {
+    public boolean storesUpperCaseIdentifiers() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(storesUpperCaseIdentifiers__);
     }
 
 
-    private final static int storesLowerCaseIdentifiers__ = 9;
+    private final static int storesLowerCaseIdentifiers__=9;
 
-    public boolean storesLowerCaseIdentifiers() throws SQLException {
+    public boolean storesLowerCaseIdentifiers() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(storesLowerCaseIdentifiers__);
     }
 
-    private final static int storesMixedCaseIdentifiers__ = 10;
+    private final static int storesMixedCaseIdentifiers__=10;
 
-    public boolean storesMixedCaseIdentifiers() throws SQLException {
+    public boolean storesMixedCaseIdentifiers() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(storesMixedCaseIdentifiers__);
     }
 
-    private final static int storesUpperCaseQuotedIdentifiers__ = 11;
+    private final static int storesUpperCaseQuotedIdentifiers__=11;
 
-    public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
+    public boolean storesUpperCaseQuotedIdentifiers() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(storesUpperCaseQuotedIdentifiers__);
     }
 
-    private final static int storesLowerCaseQuotedIdentifiers__ = 12;
+    private final static int storesLowerCaseQuotedIdentifiers__=12;
 
-    public boolean storesLowerCaseQuotedIdentifiers() throws SQLException {
+    public boolean storesLowerCaseQuotedIdentifiers() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(storesLowerCaseQuotedIdentifiers__);
     }
 
-    private final static int storesMixedCaseQuotedIdentifiers__ = 13;
+    private final static int storesMixedCaseQuotedIdentifiers__=13;
 
-    public boolean storesMixedCaseQuotedIdentifiers() throws SQLException {
+    public boolean storesMixedCaseQuotedIdentifiers() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(storesMixedCaseQuotedIdentifiers__);
     }
 
-    private final static int getSQLKeywords__ = 14;
+    private final static int getSQLKeywords__=14;
 
-    public String getSQLKeywords() throws SQLException {
+    public String getSQLKeywords() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getSQLKeywords__);
     }
 
-    private final static int getNumericFunctions__ = 15;
+    private final static int getNumericFunctions__=15;
 
-    public String getNumericFunctions() throws SQLException {
+    public String getNumericFunctions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getNumericFunctions__);
     }
 
-    private final static int getStringFunctions__ = 16;
+    private final static int getStringFunctions__=16;
 
-    public String getStringFunctions() throws SQLException {
+    public String getStringFunctions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getStringFunctions__);
     }
 
-    private final static int getSystemFunctions__ = 17;
+    private final static int getSystemFunctions__=17;
 
-    public String getSystemFunctions() throws SQLException {
+    public String getSystemFunctions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getSystemFunctions__);
     }
 
-    private final static int getTimeDateFunctions__ = 18;
+    private final static int getTimeDateFunctions__=18;
 
-    public String getTimeDateFunctions() throws SQLException {
+    public String getTimeDateFunctions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getTimeDateFunctions__);
     }
 
-    private final static int getSearchStringEscape__ = 19;
+    private final static int getSearchStringEscape__=19;
 
-    public String getSearchStringEscape() throws SQLException {
+    public String getSearchStringEscape() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getSearchStringEscape__);
     }
 
-    private final static int getExtraNameCharacters__ = 20;
+    private final static int getExtraNameCharacters__=20;
 
-    public String getExtraNameCharacters() throws SQLException {
+    public String getExtraNameCharacters() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getExtraNameCharacters__);
     }
 
-    private final static int supportsAlterTableWithAddColumn__ = 21;
+    private final static int supportsAlterTableWithAddColumn__=21;
 
-    public boolean supportsAlterTableWithAddColumn() throws SQLException {
+    public boolean supportsAlterTableWithAddColumn() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsAlterTableWithAddColumn__);
     }
 
-    private final static int supportsAlterTableWithDropColumn__ = 22;
+    private final static int supportsAlterTableWithDropColumn__=22;
 
-    public boolean supportsAlterTableWithDropColumn() throws SQLException {
+    public boolean supportsAlterTableWithDropColumn() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsAlterTableWithDropColumn__);
     }
 
-    private final static int supportsConvert__ = 23;
+    private final static int supportsConvert__=23;
 
-    public boolean supportsConvert() throws SQLException {
+    public boolean supportsConvert() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsConvert__);
     }
 
-    private final static int supportsConvertType__ = 24;
+    private final static int supportsConvertType__=24;
 
-    public boolean supportsConvert(int fromType, int toType) throws SQLException {
+    public boolean supportsConvert(int fromType,int toType) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBoolean_supportsConvert(supportsConvertType__, fromType, toType);
+        return getMetaDataInfoBoolean_supportsConvert(supportsConvertType__,fromType,toType);
     }
 
-    private final static int supportsDifferentTableCorrelationNames__ = 25;
+    private final static int supportsDifferentTableCorrelationNames__=25;
 
-    public boolean supportsDifferentTableCorrelationNames() throws SQLException {
+    public boolean supportsDifferentTableCorrelationNames() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsDifferentTableCorrelationNames__);
     }
 
-    private final static int supportsExpressionsInOrderBy__ = 26;
+    private final static int supportsExpressionsInOrderBy__=26;
 
-    public boolean supportsExpressionsInOrderBy() throws SQLException {
+    public boolean supportsExpressionsInOrderBy() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsExpressionsInOrderBy__);
     }
 
-    private final static int supportsOrderByUnrelated__ = 27;
+    private final static int supportsOrderByUnrelated__=27;
 
-    public boolean supportsOrderByUnrelated() throws SQLException {
+    public boolean supportsOrderByUnrelated() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsOrderByUnrelated__);
     }
 
-    private final static int supportsGroupBy__ = 28;
+    private final static int supportsGroupBy__=28;
 
-    public boolean supportsGroupBy() throws SQLException {
+    public boolean supportsGroupBy() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsGroupBy__);
     }
 
-    private final static int supportsGroupByUnrelated__ = 29;
+    private final static int supportsGroupByUnrelated__=29;
 
-    public boolean supportsGroupByUnrelated() throws SQLException {
+    public boolean supportsGroupByUnrelated() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsGroupByUnrelated__);
     }
 
-    private final static int supportsGroupByBeyondSelect__ = 30;
+    private final static int supportsGroupByBeyondSelect__=30;
 
-    public boolean supportsGroupByBeyondSelect() throws SQLException {
+    public boolean supportsGroupByBeyondSelect() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsGroupByBeyondSelect__);
     }
 
-    private final static int supportsMultipleResultSets__ = 31;
+    private final static int supportsMultipleResultSets__=31;
 
-    public boolean supportsMultipleResultSets() throws SQLException {
+    public boolean supportsMultipleResultSets() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsMultipleResultSets__);
     }
 
-    private final static int supportsMultipleTransactions__ = 32;
+    private final static int supportsMultipleTransactions__=32;
 
-    public boolean supportsMultipleTransactions() throws SQLException {
+    public boolean supportsMultipleTransactions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsMultipleTransactions__);
     }
 
-    private final static int supportsCoreSQLGrammar__ = 33;
+    private final static int supportsCoreSQLGrammar__=33;
 
-    public boolean supportsCoreSQLGrammar() throws SQLException {
+    public boolean supportsCoreSQLGrammar() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsCoreSQLGrammar__);
     }
 
-    private final static int supportsExtendedSQLGrammar__ = 34;
+    private final static int supportsExtendedSQLGrammar__=34;
 
-    public boolean supportsExtendedSQLGrammar() throws SQLException {
+    public boolean supportsExtendedSQLGrammar() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsExtendedSQLGrammar__);
     }
 
-    private final static int supportsANSI92IntermediateSQL__ = 35;
+    private final static int supportsANSI92IntermediateSQL__=35;
 
-    public boolean supportsANSI92IntermediateSQL() throws SQLException {
+    public boolean supportsANSI92IntermediateSQL() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsANSI92IntermediateSQL__);
     }
 
-    private final static int supportsANSI92FullSQL__ = 36;
+    private final static int supportsANSI92FullSQL__=36;
 
-    public boolean supportsANSI92FullSQL() throws SQLException {
+    public boolean supportsANSI92FullSQL() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsANSI92FullSQL__);
     }
 
-    private final static int supportsIntegrityEnhancementFacility__ = 37;
+    private final static int supportsIntegrityEnhancementFacility__=37;
 
-    public boolean supportsIntegrityEnhancementFacility() throws SQLException {
+    public boolean supportsIntegrityEnhancementFacility() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsIntegrityEnhancementFacility__);
     }
 
-    private final static int supportsOuterJoins__ = 38;
+    private final static int supportsOuterJoins__=38;
 
-    public boolean supportsOuterJoins() throws SQLException {
+    public boolean supportsOuterJoins() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsOuterJoins__);
     }
 
-    private final static int supportsFullOuterJoins__ = 39;
+    private final static int supportsFullOuterJoins__=39;
 
-    public boolean supportsFullOuterJoins() throws SQLException {
+    public boolean supportsFullOuterJoins() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsFullOuterJoins__);
     }
 
-    private final static int supportsLimitedOuterJoins__ = 40;
+    private final static int supportsLimitedOuterJoins__=40;
 
-    public boolean supportsLimitedOuterJoins() throws SQLException {
+    public boolean supportsLimitedOuterJoins() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsLimitedOuterJoins__);
     }
 
-    private final static int getSchemaTerm__ = 41;
+    private final static int getSchemaTerm__=41;
 
-    public String getSchemaTerm() throws SQLException {
+    public String getSchemaTerm() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getSchemaTerm__);
     }
 
-    private final static int getProcedureTerm__ = 42;
+    private final static int getProcedureTerm__=42;
 
-    public String getProcedureTerm() throws SQLException {
+    public String getProcedureTerm() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getProcedureTerm__);
     }
 
-    private final static int getCatalogTerm__ = 43;
+    private final static int getCatalogTerm__=43;
 
-    public String getCatalogTerm() throws SQLException {
+    public String getCatalogTerm() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getCatalogTerm__);
     }
 
-    private final static int isCatalogAtStart__ = 44;
+    private final static int isCatalogAtStart__=44;
 
-    public boolean isCatalogAtStart() throws SQLException {
+    public boolean isCatalogAtStart() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(isCatalogAtStart__);
     }
 
-    private final static int getCatalogSeparator__ = 45;
+    private final static int getCatalogSeparator__=45;
 
-    public String getCatalogSeparator() throws SQLException {
+    public String getCatalogSeparator() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoString(getCatalogSeparator__);
     }
 
-    private final static int supportsSchemasInDataManipulation__ = 46;
+    private final static int supportsSchemasInDataManipulation__=46;
 
-    public boolean supportsSchemasInDataManipulation() throws SQLException {
+    public boolean supportsSchemasInDataManipulation() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsSchemasInDataManipulation__);
     }
 
-    private final static int supportsSchemasInProcedureCalls__ = 47;
+    private final static int supportsSchemasInProcedureCalls__=47;
 
-    public boolean supportsSchemasInProcedureCalls() throws SQLException {
+    public boolean supportsSchemasInProcedureCalls() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsSchemasInProcedureCalls__);
     }
 
-    private final static int supportsSchemasInTableDefinitions__ = 48;
+    private final static int supportsSchemasInTableDefinitions__=48;
 
-    public boolean supportsSchemasInTableDefinitions() throws SQLException {
+    public boolean supportsSchemasInTableDefinitions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsSchemasInTableDefinitions__);
     }
 
 
-    private final static int supportsSchemasInIndexDefinitions__ = 49;
+    private final static int supportsSchemasInIndexDefinitions__=49;
 
-    public boolean supportsSchemasInIndexDefinitions() throws SQLException {
+    public boolean supportsSchemasInIndexDefinitions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsSchemasInIndexDefinitions__);
     }
 
-    private final static int supportsSchemasInPrivilegeDefinitions__ = 50;
+    private final static int supportsSchemasInPrivilegeDefinitions__=50;
 
-    public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException {
+    public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsSchemasInPrivilegeDefinitions__);
     }
 
-    private final static int supportsCatalogsInDataManipulation__ = 51;
+    private final static int supportsCatalogsInDataManipulation__=51;
 
-    public boolean supportsCatalogsInDataManipulation() throws SQLException {
+    public boolean supportsCatalogsInDataManipulation() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsCatalogsInDataManipulation__);
     }
 
-    private final static int supportsCatalogsInProcedureCalls__ = 52;
+    private final static int supportsCatalogsInProcedureCalls__=52;
 
-    public boolean supportsCatalogsInProcedureCalls() throws SQLException {
+    public boolean supportsCatalogsInProcedureCalls() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsCatalogsInProcedureCalls__);
     }
 
-    private final static int supportsCatalogsInTableDefinitions__ = 53;
+    private final static int supportsCatalogsInTableDefinitions__=53;
 
-    public boolean supportsCatalogsInTableDefinitions() throws SQLException {
+    public boolean supportsCatalogsInTableDefinitions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsCatalogsInTableDefinitions__);
     }
 
-    private final static int supportsCatalogsInIndexDefinitions__ = 54;
+    private final static int supportsCatalogsInIndexDefinitions__=54;
 
-    public boolean supportsCatalogsInIndexDefinitions() throws SQLException {
+    public boolean supportsCatalogsInIndexDefinitions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsCatalogsInIndexDefinitions__);
     }
 
-    private final static int supportsCatalogsInPrivilegeDefinitions__ = 55;
+    private final static int supportsCatalogsInPrivilegeDefinitions__=55;
 
-    public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException {
+    public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsCatalogsInPrivilegeDefinitions__);
     }
 
-    private final static int supportsPositionedDelete__ = 56;
+    private final static int supportsPositionedDelete__=56;
 
-    public boolean supportsPositionedDelete() throws SQLException {
+    public boolean supportsPositionedDelete() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsPositionedDelete__);
     }
 
 
-    private final static int supportsPositionedUpdate__ = 57;
+    private final static int supportsPositionedUpdate__=57;
 
-    public boolean supportsPositionedUpdate() throws SQLException {
+    public boolean supportsPositionedUpdate() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsPositionedUpdate__);
     }
 
-    private final static int supportsSelectForUpdate__ = 58;
+    private final static int supportsSelectForUpdate__=58;
 
-    public boolean supportsSelectForUpdate() throws SQLException {
+    public boolean supportsSelectForUpdate() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsSelectForUpdate__);
     }
 
-    private final static int supportsStoredProcedures__ = 59;
+    private final static int supportsStoredProcedures__=59;
 
-    public boolean supportsStoredProcedures() throws SQLException {
+    public boolean supportsStoredProcedures() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsStoredProcedures__);
     }
 
-    private final static int supportsSubqueriesInComparisons__ = 60;
+    private final static int supportsSubqueriesInComparisons__=60;
 
-    public boolean supportsSubqueriesInComparisons() throws SQLException {
+    public boolean supportsSubqueriesInComparisons() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsSubqueriesInComparisons__);
     }
 
-    private final static int supportsUnion__ = 61;
+    private final static int supportsUnion__=61;
 
-    public boolean supportsUnion() throws SQLException {
+    public boolean supportsUnion() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsUnion__);
     }
 
-    private final static int supportsUnionAll__ = 62;
+    private final static int supportsUnionAll__=62;
 
-    public boolean supportsUnionAll() throws SQLException {
+    public boolean supportsUnionAll() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsUnionAll__);
 
     }
 
-    private final static int supportsOpenCursorsAcrossCommit__ = 63;
+    private final static int supportsOpenCursorsAcrossCommit__=63;
 
-    public boolean supportsOpenCursorsAcrossCommit() throws SQLException {
+    public boolean supportsOpenCursorsAcrossCommit() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsOpenCursorsAcrossCommit__);
     }
 
-    private final static int supportsOpenCursorsAcrossRollback__ = 64;
+    private final static int supportsOpenCursorsAcrossRollback__=64;
 
-    public boolean supportsOpenCursorsAcrossRollback() throws SQLException {
+    public boolean supportsOpenCursorsAcrossRollback() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsOpenCursorsAcrossRollback__);
     }
 
-    private final static int supportsOpenStatementsAcrossCommit__ = 65;
+    private final static int supportsOpenStatementsAcrossCommit__=65;
 
-    public boolean supportsOpenStatementsAcrossCommit() throws SQLException {
+    public boolean supportsOpenStatementsAcrossCommit() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsOpenStatementsAcrossCommit__);
     }
 
 
-    private final static int supportsOpenStatementsAcrossRollback__ = 66;
+    private final static int supportsOpenStatementsAcrossRollback__=66;
 
-    public boolean supportsOpenStatementsAcrossRollback() throws SQLException {
+    public boolean supportsOpenStatementsAcrossRollback() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsOpenStatementsAcrossRollback__);
     }
@@ -611,440 +623,434 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     // based on the target database with the current driver.
     // Unless otherwise specified, a result of zero means there is no
     // limit, or the limit is not known.
-    private final static int getMaxBinaryLiteralLength__ = 67;
+    private final static int getMaxBinaryLiteralLength__=67;
 
-    public int getMaxBinaryLiteralLength() throws SQLException {
+    public int getMaxBinaryLiteralLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxBinaryLiteralLength__);
     }
 
-    private final static int getMaxCharLiteralLength__ = 68;
+    private final static int getMaxCharLiteralLength__=68;
 
-    public int getMaxCharLiteralLength() throws SQLException {
+    public int getMaxCharLiteralLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxCharLiteralLength__);
     }
 
-    private final static int getMaxColumnNameLength__ = 69;
+    private final static int getMaxColumnNameLength__=69;
 
-    public int getMaxColumnNameLength() throws SQLException {
+    public int getMaxColumnNameLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxColumnNameLength__);
     }
 
-    private final static int getMaxColumnsInGroupBy__ = 70;
+    private final static int getMaxColumnsInGroupBy__=70;
 
-    public int getMaxColumnsInGroupBy() throws SQLException {
+    public int getMaxColumnsInGroupBy() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxColumnsInGroupBy__);
     }
 
-    private final static int getMaxColumnsInIndex__ = 71;
+    private final static int getMaxColumnsInIndex__=71;
 
-    public int getMaxColumnsInIndex() throws SQLException {
+    public int getMaxColumnsInIndex() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxColumnsInIndex__);
     }
 
-    private final static int getMaxColumnsInOrderBy__ = 72;
+    private final static int getMaxColumnsInOrderBy__=72;
 
-    public int getMaxColumnsInOrderBy() throws SQLException {
+    public int getMaxColumnsInOrderBy() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxColumnsInOrderBy__);
     }
 
-    private final static int getMaxColumnsInSelect__ = 73;
+    private final static int getMaxColumnsInSelect__=73;
 
-    public int getMaxColumnsInSelect() throws SQLException {
+    public int getMaxColumnsInSelect() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxColumnsInSelect__);
     }
 
-    private final static int getMaxColumnsInTable__ = 74;
+    private final static int getMaxColumnsInTable__=74;
 
-    public int getMaxColumnsInTable() throws SQLException {
+    public int getMaxColumnsInTable() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxColumnsInTable__);
     }
 
-    private final static int getMaxConnections__ = 75;
+    private final static int getMaxConnections__=75;
 
-    public int getMaxConnections() throws SQLException {
+    public int getMaxConnections() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxConnections__);
     }
 
-    private final static int getMaxCursorNameLength__ = 76;
+    private final static int getMaxCursorNameLength__=76;
 
-    public int getMaxCursorNameLength() throws SQLException {
+    public int getMaxCursorNameLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxCursorNameLength__);
     }
 
-    private final static int getMaxIndexLength__ = 77;
+    private final static int getMaxIndexLength__=77;
 
-    public int getMaxIndexLength() throws SQLException {
+    public int getMaxIndexLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxIndexLength__);
     }
 
-    private final static int getMaxSchemaNameLength__ = 78;
+    private final static int getMaxSchemaNameLength__=78;
 
-    public int getMaxSchemaNameLength() throws SQLException {
+    public int getMaxSchemaNameLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxSchemaNameLength__);
     }
 
-    private final static int getMaxProcedureNameLength__ = 79;
+    private final static int getMaxProcedureNameLength__=79;
 
-    public int getMaxProcedureNameLength() throws SQLException {
+    public int getMaxProcedureNameLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxProcedureNameLength__);
     }
 
-    private final static int getMaxCatalogNameLength__ = 80;
+    private final static int getMaxCatalogNameLength__=80;
 
-    public int getMaxCatalogNameLength() throws SQLException {
+    public int getMaxCatalogNameLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxCatalogNameLength__);
     }
 
-    private final static int getMaxRowSize__ = 81;
+    private final static int getMaxRowSize__=81;
 
-    public int getMaxRowSize() throws SQLException {
+    public int getMaxRowSize() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxRowSize__);
     }
 
-    private final static int doesMaxRowSizeIncludeBlobs__ = 82;
+    private final static int doesMaxRowSizeIncludeBlobs__=82;
 
-    public boolean doesMaxRowSizeIncludeBlobs() throws SQLException {
+    public boolean doesMaxRowSizeIncludeBlobs() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(doesMaxRowSizeIncludeBlobs__);
     }
 
-    private final static int getMaxStatementLength__ = 83;
+    private final static int getMaxStatementLength__=83;
 
-    public int getMaxStatementLength() throws SQLException {
+    public int getMaxStatementLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxStatementLength__);
     }
 
-    private final static int getMaxStatements__ = 84;
+    private final static int getMaxStatements__=84;
 
-    public int getMaxStatements() throws SQLException {
+    public int getMaxStatements() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxStatements__);
     }
 
-    private final static int getMaxTableNameLength__ = 85;
+    private final static int getMaxTableNameLength__=85;
 
-    public int getMaxTableNameLength() throws SQLException {
+    public int getMaxTableNameLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxTableNameLength__);
     }
 
-    private final static int getMaxTablesInSelect__ = 86;
+    private final static int getMaxTablesInSelect__=86;
 
-    public int getMaxTablesInSelect() throws SQLException {
+    public int getMaxTablesInSelect() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxTablesInSelect__);
     }
 
-    private final static int getMaxUserNameLength__ = 87;
+    private final static int getMaxUserNameLength__=87;
 
-    public int getMaxUserNameLength() throws SQLException {
+    public int getMaxUserNameLength() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getMaxUserNameLength__);
     }
 
-    private final static int getDefaultTransactionIsolation__ = 88;
+    private final static int getDefaultTransactionIsolation__=88;
 
-    public int getDefaultTransactionIsolation() throws SQLException {
+    public int getDefaultTransactionIsolation() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoInt(getDefaultTransactionIsolation__);
     }
 
-    private final static int supportsTransactions__ = 89;
+    private final static int supportsTransactions__=89;
 
-    public boolean supportsTransactions() throws SQLException {
+    public boolean supportsTransactions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsTransactions__);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all supported levels
-    private final static int supportsTransactionIsolationLevel__ = 90;
+    private final static int supportsTransactionIsolationLevel__=90;
 
-    public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
+    public boolean supportsTransactionIsolationLevel(int level) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(supportsTransactionIsolationLevel__, level);
+        return getMetaDataInfoBooleanWithType(supportsTransactionIsolationLevel__,level);
     }
 
 
-    private final static int supportsDataDefinitionAndDataManipulationTransactions__ = 91;
+    private final static int supportsDataDefinitionAndDataManipulationTransactions__=91;
 
-    public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLException {
+    public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsDataDefinitionAndDataManipulationTransactions__);
     }
 
-    private final static int supportsDataManipulationTransactionsOnly__ = 92;
+    private final static int supportsDataManipulationTransactionsOnly__=92;
 
-    public boolean supportsDataManipulationTransactionsOnly() throws SQLException {
+    public boolean supportsDataManipulationTransactionsOnly() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsDataManipulationTransactionsOnly__);
     }
 
-    private final static int dataDefinitionCausesTransactionCommit__ = 93;
+    private final static int dataDefinitionCausesTransactionCommit__=93;
 
-    public boolean dataDefinitionCausesTransactionCommit() throws SQLException {
+    public boolean dataDefinitionCausesTransactionCommit() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(dataDefinitionCausesTransactionCommit__);
     }
 
-    private final static int dataDefinitionIgnoredInTransactions__ = 94;
+    private final static int dataDefinitionIgnoredInTransactions__=94;
 
-    public boolean dataDefinitionIgnoredInTransactions() throws SQLException {
+    public boolean dataDefinitionIgnoredInTransactions() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(dataDefinitionIgnoredInTransactions__);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all the supported resultSet types
-    private final static int supportsResultSetType__ = 95;
+    private final static int supportsResultSetType__=95;
 
-    public boolean supportsResultSetType(int type) throws SQLException {
+    public boolean supportsResultSetType(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(supportsResultSetType__, type);
+        return getMetaDataInfoBooleanWithType(supportsResultSetType__,type);
     }
 
-    private final static int supportsResultSetConcurrency__ = 96;
+    private final static int supportsResultSetConcurrency__=96;
 
-    public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
+    public boolean supportsResultSetConcurrency(int type,int concurrency) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoInt_SupportsResultSetConcurrency(supportsResultSetConcurrency__, type, concurrency);
-    }
-
-    // Stored Procedure will return a String containing a
-    // comma seperated list of all the supported result Set types
-    private final static int ownUpdatesAreVisible__ = 97;
-
-    public boolean ownUpdatesAreVisible(int type) throws SQLException {
-        checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(ownUpdatesAreVisible__, type);
+        return getMetaDataInfoInt_SupportsResultSetConcurrency(supportsResultSetConcurrency__,type,concurrency);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all the supported result Set types
-    private final static int ownDeletesAreVisible__ = 98;
+    private final static int ownUpdatesAreVisible__=97;
 
-    public boolean ownDeletesAreVisible(int type) throws SQLException {
+    public boolean ownUpdatesAreVisible(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(ownDeletesAreVisible__, type);
+        return getMetaDataInfoBooleanWithType(ownUpdatesAreVisible__,type);
+    }
+
+    // Stored Procedure will return a String containing a
+    // comma seperated list of all the supported result Set types
+    private final static int ownDeletesAreVisible__=98;
+
+    public boolean ownDeletesAreVisible(int type) throws SQLException{
+        checkForClosedConnection();
+        return getMetaDataInfoBooleanWithType(ownDeletesAreVisible__,type);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list all the supported result Set types
-    private final static int ownInsertsAreVisible__ = 99;
+    private final static int ownInsertsAreVisible__=99;
 
-    public boolean ownInsertsAreVisible(int type) throws SQLException {
+    public boolean ownInsertsAreVisible(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(ownInsertsAreVisible__, type);
+        return getMetaDataInfoBooleanWithType(ownInsertsAreVisible__,type);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all the supported result Set types
-    private final static int othersUpdatesAreVisible__ = 100;
+    private final static int othersUpdatesAreVisible__=100;
 
-    public boolean othersUpdatesAreVisible(int type) throws SQLException {
+    public boolean othersUpdatesAreVisible(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(othersUpdatesAreVisible__, type);
+        return getMetaDataInfoBooleanWithType(othersUpdatesAreVisible__,type);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all the supported result Set types
-    private final static int othersDeletesAreVisible__ = 101;
+    private final static int othersDeletesAreVisible__=101;
 
-    public boolean othersDeletesAreVisible(int type) throws SQLException {
+    public boolean othersDeletesAreVisible(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(othersDeletesAreVisible__, type);
+        return getMetaDataInfoBooleanWithType(othersDeletesAreVisible__,type);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all the supported result Set types
-    private final static int othersInsertsAreVisible__ = 102;
+    private final static int othersInsertsAreVisible__=102;
 
-    public boolean othersInsertsAreVisible(int type) throws SQLException {
+    public boolean othersInsertsAreVisible(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(othersInsertsAreVisible__, type);
+        return getMetaDataInfoBooleanWithType(othersInsertsAreVisible__,type);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all the supported result Set types
-    private final static int updatesAreDetected__ = 103;
+    private final static int updatesAreDetected__=103;
 
-    public boolean updatesAreDetected(int type) throws SQLException {
+    public boolean updatesAreDetected(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(updatesAreDetected__, type);
+        return getMetaDataInfoBooleanWithType(updatesAreDetected__,type);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all the supported result Set types
-    private final static int deletesAreDetected__ = 104;
+    private final static int deletesAreDetected__=104;
 
-    public boolean deletesAreDetected(int type) throws SQLException {
+    public boolean deletesAreDetected(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(deletesAreDetected__, type);
+        return getMetaDataInfoBooleanWithType(deletesAreDetected__,type);
     }
 
     // Stored Procedure will return a String containing a
     // comma seperated list of all the supported result Set types
-    private final static int insertsAreDetected__ = 105;
+    private final static int insertsAreDetected__=105;
 
-    public boolean insertsAreDetected(int type) throws SQLException {
+    public boolean insertsAreDetected(int type) throws SQLException{
         checkForClosedConnection();
-        return getMetaDataInfoBooleanWithType(insertsAreDetected__, type);
+        return getMetaDataInfoBooleanWithType(insertsAreDetected__,type);
     }
 
-    private final static int supportsBatchUpdates__ = 106;
+    private final static int supportsBatchUpdates__=106;
 
-    public boolean supportsBatchUpdates() throws SQLException {
+    public boolean supportsBatchUpdates() throws SQLException{
         checkForClosedConnection();
         return getMetaDataInfoBoolean(supportsBatchUpdates__);
     }
 
-    public boolean supportsSavepoints() throws SQLException {
+    public boolean supportsSavepoints() throws SQLException{
         checkForClosedConnection();
-        if (productLevel_.greaterThanOrEqualTo(5, 2, 0)) {
-            return true;
-        }
+        return productLevel_.greaterThanOrEqualTo(5,2,0);
 
-        return false;
     }
 
     // start tagging all abstract methods with an underscore like this !!
     abstract public String getURL_() throws SqlException;
 
-    public String getURL() throws SQLException {
-        try
-        {
+    public String getURL() throws SQLException{
+        try{
             checkForClosedConnection();
             return getURL_();
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    public String getUserName() throws SQLException {
+    public String getUserName() throws SQLException{
         checkForClosedConnection();
         return connection_.user_;
     }
 
-    public boolean isReadOnly() throws SQLException {
+    public boolean isReadOnly() throws SQLException{
         return false;
     }
 
-    public String getDatabaseProductName() throws SQLException {
+    public String getDatabaseProductName() throws SQLException{
         checkForClosedConnection();
         return productLevel_.databaseProductName_;
     }
 
-    public String getDatabaseProductVersion() throws SQLException {
+    public String getDatabaseProductVersion() throws SQLException{
         checkForClosedConnection();
         return productLevel_.databaseProductVersion_;
     }
 
-    public String getDriverName() throws SQLException {
+    public String getDriverName() throws SQLException{
         checkForClosedConnection();
         return Configuration.dncDriverName;
     }
 
-    public String getDriverVersion() throws SQLException {
+    public String getDriverVersion() throws SQLException{
         checkForClosedConnection();
         return Version.getDriverVersion();
     }
 
     // JDBC signature also does not throw SqlException, so we don't check for closed connection.
-    public int getDriverMajorVersion() {
+    public int getDriverMajorVersion(){
         return Version.getMajorVersion();
     }
 
     // JDBC signature also does not throw SqlException, so we don't check for closed connection.
-    public int getDriverMinorVersion() {
+    public int getDriverMinorVersion(){
         return Version.getMinorVersion();
     }
 
     //All JDBC Drivers must return false for this method. For this reason we choose
     //to return FALSE
-    public boolean supportsMixedCaseIdentifiers() throws SQLException {
+    public boolean supportsMixedCaseIdentifiers() throws SQLException{
         checkForClosedConnection();
         return false;
     }
 
-    public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
+    public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public String getIdentifierQuoteString() throws SQLException {
+    public String getIdentifierQuoteString() throws SQLException{
         checkForClosedConnection();
         return "\"";
     }
 
-    public boolean supportsColumnAliasing() throws SQLException {
+    public boolean supportsColumnAliasing() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean nullPlusNonNullIsNull() throws SQLException {
+    public boolean nullPlusNonNullIsNull() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsTableCorrelationNames() throws SQLException {
+    public boolean supportsTableCorrelationNames() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsLikeEscapeClause() throws SQLException {
+    public boolean supportsLikeEscapeClause() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsNonNullableColumns() throws SQLException {
+    public boolean supportsNonNullableColumns() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsMinimumSQLGrammar() throws SQLException {
+    public boolean supportsMinimumSQLGrammar() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsANSI92EntryLevelSQL() throws SQLException {
+    public boolean supportsANSI92EntryLevelSQL() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsSubqueriesInExists() throws SQLException {
+    public boolean supportsSubqueriesInExists() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsSubqueriesInIns() throws SQLException {
+    public boolean supportsSubqueriesInIns() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsSubqueriesInQuantifieds() throws SQLException {
+    public boolean supportsSubqueriesInQuantifieds() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsCorrelatedSubqueries() throws SQLException {
+    public boolean supportsCorrelatedSubqueries() throws SQLException{
         checkForClosedConnection();
         return true;
     }
@@ -1061,18 +1067,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //
     public java.sql.ResultSet getProcedures(String catalog,
                                             String schemaPattern,
-                                            String procedureNamePattern) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getProcedures", catalog, schemaPattern, procedureNamePattern);
+                                            String procedureNamePattern) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getProcedures",catalog,schemaPattern,procedureNamePattern);
                 }
-                return getProceduresX(catalog, schemaPattern, procedureNamePattern);
+                return getProceduresX(catalog,schemaPattern,procedureNamePattern);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -1080,15 +1083,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     private ResultSet getProceduresX(String catalog,
                                      String schemaPattern,
-                                     String procedureNamePattern) throws SqlException {
+                                     String procedureNamePattern) throws SqlException{
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPROCEDURES(?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLPROCEDURES(?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schemaPattern);
-        cs.setStringX(3, procedureNamePattern);
-        cs.setStringX(4, getOptions());
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schemaPattern);
+        cs.setStringX(3,procedureNamePattern);
+        cs.setStringX(4,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -1104,40 +1107,37 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     public java.sql.ResultSet getProcedureColumns(String catalog,
                                                   String schemaPattern,
                                                   String procedureNamePattern,
-                                                  String columnNamePattern) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getProcedureColumns", catalog, schemaPattern, procedureNamePattern, columnNamePattern);
+                                                  String columnNamePattern) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getProcedureColumns",catalog,schemaPattern,procedureNamePattern,columnNamePattern);
                 }
-                return getProcedureColumnsX(catalog, schemaPattern, procedureNamePattern, columnNamePattern);
+                return getProcedureColumnsX(catalog,schemaPattern,procedureNamePattern,columnNamePattern);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
-        
+
     }
 
     private ResultSet getProcedureColumnsX(String catalog,
                                            String schemaPattern,
                                            String procedureNamePattern,
-                                           String columnNamePattern) throws SqlException {
+                                           String columnNamePattern) throws SqlException{
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPROCEDURECOLS(?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLPROCEDURECOLS(?,?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schemaPattern);
-        cs.setStringX(3, procedureNamePattern);
-        cs.setStringX(4, columnNamePattern);
-        cs.setStringX(5, getOptions());
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schemaPattern);
+        cs.setStringX(3,procedureNamePattern);
+        cs.setStringX(4,columnNamePattern);
+        cs.setStringX(5,getOptions());
         return executeCatalogQuery(cs);
     }
 
-    /** 
+    /**
      * Get the function names available in the database.  Calls stored
      * procedure <code>SYSIBM.SQLFunctions(CatalogName
      * varchar(128), SchemaName varchar(128), FuncName varchar(128),
@@ -1155,65 +1155,65 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      * (TransactionController,UUID)</code> so it will become available
      * in newly created databases and after <b>hard</b> upgrade.
      *
-     * @param catalog limit search to this catalog
-     * @param schemaPattern limit search to schemas matching this pattern
-     * @param functionNamePattern limit search to functions matching this 
-     * pattern
+     * @param catalog             limit search to this catalog
+     * @param schemaPattern       limit search to schemas matching this pattern
+     * @param functionNamePattern limit search to functions matching this
+     *                            pattern
      * @return a <code>ResultSet</code> listing the fucntions
-     * @exception SqlException if a database error occurs
-     * @see #getFunctionsX(String, String, String)
+     * @throws SqlException if a database error occurs
+     * @see #getFunctionsX(String,String,String)
      * @see org.apache.derby.impl.sql.catalog.DataDictionaryImpl#create_10_2_system_procedures(TransactionController,java.util.HashSet,UUID)
      * @see com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData#getFunctions(String,String,String)
      */
 
     public java.sql.ResultSet getFunctions(String catalog,
                                            String schemaPattern,
-                                           String functionNamePattern) 
-        throws SQLException {
-        try {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getFunctions", 
-                                                 catalog, schemaPattern, 
-                                                 functionNamePattern);
+                                           String functionNamePattern)
+            throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getFunctions",
+                            catalog,schemaPattern,
+                            functionNamePattern);
                 }
-                return getFunctionsX(catalog, schemaPattern, 
-                                     functionNamePattern);
+                return getFunctionsX(catalog,schemaPattern,
+                        functionNamePattern);
             }
-        }
-        catch (SqlException se) {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    /** 
+    /**
      * Untraced version of <code>getFunctions(String, String, String)</code>.
-     * @param catalog limit search to this catalog
-     * @param schemaPattern limit search to schemas matching this pattern
-     * @param functionNamePattern limit search to functions matching this 
-     * pattern
+     *
+     * @param catalog             limit search to this catalog
+     * @param schemaPattern       limit search to schemas matching this pattern
+     * @param functionNamePattern limit search to functions matching this
+     *                            pattern
      * @return a <code>ResultSet</code> listing the fucntions
-     * @exception SqlException if a database error occurs
-     * @see #getFunctions(String, String, String)
+     * @throws SqlException if a database error occurs
+     * @see #getFunctions(String,String,String)
      */
     private ResultSet getFunctionsX(String catalog,
                                     String schemaPattern,
-                                    String functionNamePattern) 
-        throws SqlException {
+                                    String functionNamePattern)
+            throws SqlException{
         checkForClosedConnectionX();
-        checkServerJdbcVersionX("getFunctions(String,String,String)", 4, 0); 
+        checkServerJdbcVersionX("getFunctions(String,String,String)",4,0);
 
-        PreparedStatement cs = 
-            prepareMetaDataQuery("SYSIBM.SQLFUNCTIONS(?,?,?,?)");
+        PreparedStatement cs=
+                prepareMetaDataQuery("SYSIBM.SQLFUNCTIONS(?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schemaPattern);
-        cs.setStringX(3, functionNamePattern);
-        cs.setStringX(4, getOptions());
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schemaPattern);
+        cs.setStringX(3,functionNamePattern);
+        cs.setStringX(4,getOptions());
         return executeCatalogQuery(cs);
     }
 
-    /** 
+    /**
      * Get the function names available in the database.  Calls stored
      * procedure <code>SYSIBM.SQLFunctionParams(CatalogName
      * varchar(128), SchemaName varchar(128), FuncName varchar(128),
@@ -1231,73 +1231,71 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      * (TransactionController,UUID)</code> so it will become available
      * in newly created databases and after <b>hard</b> upgrade.
      *
-     * @param catalog limit search to this catalog
-     * @param schemaPattern limit search to schemas matching this pattern
-     * @param functionNamePattern limit search to functions matching this 
-     * pattern
+     * @param catalog             limit search to this catalog
+     * @param schemaPattern       limit search to schemas matching this pattern
+     * @param functionNamePattern limit search to functions matching this
+     *                            pattern
      * @return a <code>ResultSet</code> listing the fucntions
-     * @exception SqlException if a database error occurs
-     * @see #getFunctionColumnsX(String, String, String,String)
-     * @see org.apache.derby.impl.sql.catalog.DataDictionaryImpl#create_10_2_system_procedures(TransactionController,java.util.HashSet,UUID)
+     * @throws SQLException if a database error occurs
+     * @see #getFunctionColumnsX(String,String,String,String)
+     * @see com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl#create_10_2_system_procedures(TransactionController,java.util.HashSet,UUID)
      * @see com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData#getFunctions(String,String,String)
      */
-    public java.sql.ResultSet 
-        getFunctionColumns(String catalog,
-                              String schemaPattern,
-                              String functionNamePattern,
-                              String parameterNamePattern) 
-        throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
+    public java.sql.ResultSet
+    getFunctionColumns(String catalog,
+                       String schemaPattern,
+                       String functionNamePattern,
+                       String parameterNamePattern)
+            throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
                     agent_.logWriter_.
-                        traceEntry(this, 
-                                   "getFunctionColumns", 
-                                   catalog, schemaPattern, 
-                                   functionNamePattern, parameterNamePattern);
+                            traceEntry(this,
+                                    "getFunctionColumns",
+                                    catalog,schemaPattern,
+                                    functionNamePattern,parameterNamePattern);
                 }
-                return getFunctionColumnsX(catalog, schemaPattern, 
-                                              functionNamePattern, 
-                                              parameterNamePattern);
+                return getFunctionColumnsX(catalog,schemaPattern,
+                        functionNamePattern,
+                        parameterNamePattern);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    /** 
+    /**
      * Untraced version of <code>getFunctionColumns(String, String,
      * String, String)</code>.
-     * @param catalog limit search to this catalog
-     * @param schemaPattern limit search to schemas matching this pattern
-     * @param functionNamePattern limit search to functions matching this 
-     * pattern
+     *
+     * @param catalog              limit search to this catalog
+     * @param schemaPattern        limit search to schemas matching this pattern
+     * @param functionNamePattern  limit search to functions matching this
+     *                             pattern
      * @param parameterNamePattern limit search to parameters mathing
-     * this pattern
+     *                             this pattern
      * @return a <code>ResultSet</code> listing the fucntions
-     * @exception SqlException if a database error occurs
-     * @see #getFunctionColumns(String, String, String, String)
+     * @throws SqlException if a database error occurs
+     * @see #getFunctionColumns(String,String,String,String)
      */
     private ResultSet getFunctionColumnsX(String catalog,
-                                             String schemaPattern,
-                                             String functionNamePattern,
-                                             String parameterNamePattern) 
-        throws SqlException {
+                                          String schemaPattern,
+                                          String functionNamePattern,
+                                          String parameterNamePattern)
+            throws SqlException{
         checkForClosedConnectionX();
         checkServerJdbcVersionX("getFunctionColumns"+
-                                "(String,String,String,String)", 4, 0);
- 
-        PreparedStatement cs = 
-            prepareMetaDataQuery("SYSIBM.SQLFUNCTIONPARAMS(?,?,?,?,?)");
+                "(String,String,String,String)",4,0);
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schemaPattern);
-        cs.setStringX(3, functionNamePattern);
-        cs.setStringX(4, parameterNamePattern);
-        cs.setStringX(5, getOptions());
+        PreparedStatement cs=
+                prepareMetaDataQuery("SYSIBM.SQLFUNCTIONPARAMS(?,?,?,?,?)");
+
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schemaPattern);
+        cs.setStringX(3,functionNamePattern);
+        cs.setStringX(4,parameterNamePattern);
+        cs.setStringX(5,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -1312,18 +1310,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     public java.sql.ResultSet getTables(String catalog,
                                         String schemaPattern,
                                         String tableNamePattern,
-                                        String types[]) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getTables", catalog, schemaPattern, tableNamePattern, types);
+                                        String types[]) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getTables",catalog,schemaPattern,tableNamePattern,types);
                 }
-                return getTablesX(catalog, schemaPattern, tableNamePattern, types);
+                return getTablesX(catalog,schemaPattern,tableNamePattern,types);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -1331,50 +1326,50 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     private ResultSet getTablesX(String catalog,
                                  String schemaPattern,
                                  String tableNamePattern,
-                                 String types[]) throws SqlException {
-        try {
+                                 String types[]) throws SqlException{
+        try{
             checkForClosedConnection();
-        } catch ( SQLException se ) {
+        }catch(SQLException se){
             throw new SqlException(se);
         }
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLES(?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLTABLES(?,?,?,?,?)");
 
-        if (catalog == null) {
-            cs.setNullX(1, java.sql.Types.VARCHAR);
-        } else {
-            cs.setStringX(1, catalog);
+        if(catalog==null){
+            cs.setNullX(1,java.sql.Types.VARCHAR);
+        }else{
+            cs.setStringX(1,catalog);
         }
 
-        if (schemaPattern == null) {
-            cs.setNullX(2, java.sql.Types.VARCHAR);
-        } else {
-            cs.setStringX(2, schemaPattern);
+        if(schemaPattern==null){
+            cs.setNullX(2,java.sql.Types.VARCHAR);
+        }else{
+            cs.setStringX(2,schemaPattern);
         }
 
-        if (tableNamePattern == null) {
-            cs.setNullX(3, java.sql.Types.VARCHAR);
-        } else {
-            cs.setStringX(3, tableNamePattern);
+        if(tableNamePattern==null){
+            cs.setNullX(3,java.sql.Types.VARCHAR);
+        }else{
+            cs.setStringX(3,tableNamePattern);
         }
 
-        String tableTypes = "";
-        int i = 0;
-        if (types == null) {
-            cs.setNullX(4, java.sql.Types.VARCHAR);
-        } else if (types.length == 1 && (types[0].trim()).equals("%")) {
-            cs.setStringX(4, types[0]);
-        } else {
-            while (i < types.length) {
-                if (i > 0) {
-                    tableTypes = tableTypes.concat(",");
+        String tableTypes="";
+        int i=0;
+        if(types==null){
+            cs.setNullX(4,java.sql.Types.VARCHAR);
+        }else if(types.length==1 && (types[0].trim()).equals("%")){
+            cs.setStringX(4,types[0]);
+        }else{
+            while(i<types.length){
+                if(i>0){
+                    tableTypes=tableTypes.concat(",");
                 }
-                tableTypes = tableTypes.concat("'" + types[i] + "'");
+                tableTypes=tableTypes.concat("'"+types[i]+"'");
                 i++;
             }
-            cs.setStringX(4, tableTypes);
+            cs.setStringX(4,tableTypes);
         }
-        cs.setStringX(5, getOptions());
+        cs.setStringX(5,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -1386,56 +1381,50 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //              TaleType    varchar(4000),
     //              Options     varchar(4000))
     //
-    public java.sql.ResultSet getSchemas() throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getSchemas");
+    public java.sql.ResultSet getSchemas() throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getSchemas");
                 }
                 return getSchemasX();
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private ResultSet getSchemasX() throws SqlException {
-        try {
+    private ResultSet getSchemasX() throws SqlException{
+        try{
             checkForClosedConnection();
-        } catch ( SQLException se ) {
+        }catch(SQLException se){
             throw new SqlException(se);
         }
-        
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLES('', '', '', '', 'GETSCHEMAS=1')");
-        return (ResultSet) cs.executeQueryX();
+
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLTABLES('', '', '', '', 'GETSCHEMAS=1')");
+        return cs.executeQueryX();
     }
 
 
     // DERBY does not have the notion of a catalog, so we return a result set with no rows.
-    public java.sql.ResultSet getCatalogs() throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getCatalogs");
+    public java.sql.ResultSet getCatalogs() throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getCatalogs");
                 }
                 return getCatalogsX();
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private ResultSet getCatalogsX() throws SqlException {
+    private ResultSet getCatalogsX() throws SqlException{
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLES('', '', '', '', 'GETCATALOGS=1')");
-        return (ResultSet) cs.executeQueryX();
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLTABLES('', '', '', '', 'GETCATALOGS=1')");
+        return cs.executeQueryX();
     }
 
     // call stored procedure SQLTables
@@ -1445,39 +1434,36 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //              TableName   varchar(128),
     //              TableType   varchar(4000),
     //              Options     varchar(4000))
-    public java.sql.ResultSet getTableTypes() throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getTableTypes");
+    public java.sql.ResultSet getTableTypes() throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getTableTypes");
                 }
                 return getTableTypesX();
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private ResultSet getTableTypesX() throws SqlException {
+    private ResultSet getTableTypesX() throws SqlException{
         checkForClosedConnectionX();
 
-        PreparedStatement cs = null;
-        cs = prepareMetaDataQuery("SYSIBM.SQLTABLES(?,?,?,?,?)");
+        PreparedStatement cs;
+        cs=prepareMetaDataQuery("SYSIBM.SQLTABLES(?,?,?,?,?)");
 
-        cs.setStringX(1, "");
-        cs.setStringX(2, "");
-        cs.setStringX(3, "");
-        cs.setStringX(4, "%");
+        cs.setStringX(1,"");
+        cs.setStringX(2,"");
+        cs.setStringX(3,"");
+        cs.setStringX(4,"%");
         int cursorHold;
-        if (connection_.holdability() == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            cursorHold = 1;
-        } else {
-            cursorHold = 0;
+        if(connection_.holdability()==ResultSet.HOLD_CURSORS_OVER_COMMIT){
+            cursorHold=1;
+        }else{
+            cursorHold=0;
         }
-        cs.setStringX(5, "DATATYPE='JDBC';GETTABLETYPES=1; CURSORHOLD=" + cursorHold);
+        cs.setStringX(5,"DATATYPE='JDBC';GETTABLETYPES=1; CURSORHOLD="+cursorHold);
         return executeCatalogQuery(cs);
     }
 
@@ -1493,19 +1479,16 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     public java.sql.ResultSet getColumns(String catalog,
                                          String schemaPattern,
                                          String tableNamePattern,
-                                         String columnNamePattern) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getColumns", catalog, schemaPattern, tableNamePattern, columnNamePattern);
+                                         String columnNamePattern) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getColumns",catalog,schemaPattern,tableNamePattern,columnNamePattern);
                 }
                 checkForClosedConnection();
-                return getColumnsX(catalog, schemaPattern, tableNamePattern, columnNamePattern);
+                return getColumnsX(catalog,schemaPattern,tableNamePattern,columnNamePattern);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -1513,16 +1496,16 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     private ResultSet getColumnsX(String catalog,
                                   String schemaPattern,
                                   String tableNamePattern,
-                                  String columnNamePattern) throws SqlException {
+                                  String columnNamePattern) throws SqlException{
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLCOLUMNS(?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLCOLUMNS(?,?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schemaPattern);
-        cs.setStringX(3, tableNamePattern);
-        cs.setStringX(4, columnNamePattern); //Always null  for JDBC
-        cs.setStringX(5, getOptions());
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schemaPattern);
+        cs.setStringX(3,tableNamePattern);
+        cs.setStringX(4,columnNamePattern); //Always null  for JDBC
+        cs.setStringX(5,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -1538,18 +1521,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     public java.sql.ResultSet getColumnPrivileges(String catalog,
                                                   String schema,
                                                   String table,
-                                                  String columnNamePattern) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getColumnPrivileges", catalog, schema, table, columnNamePattern);
+                                                  String columnNamePattern) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getColumnPrivileges",catalog,schema,table,columnNamePattern);
                 }
-                return getColumnPrivilegesX(catalog, schema, table, columnNamePattern);
+                return getColumnPrivilegesX(catalog,schema,table,columnNamePattern);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -1557,22 +1537,22 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     private ResultSet getColumnPrivilegesX(String catalog,
                                            String schema,
                                            String table,
-                                           String columnNamePattern) throws SqlException {
+                                           String columnNamePattern) throws SqlException{
         checkForClosedConnectionX();
         // check input params, table and columnNamePattern cannot be null
-        if (table == null) {
+        if(table==null){
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
+                    new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL));
 
         }
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLCOLPRIVILEGES(?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLCOLPRIVILEGES(?,?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schema);
-        cs.setStringX(3, table);
-        cs.setStringX(4, columnNamePattern);
-        cs.setStringX(5, getOptions());
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schema);
+        cs.setStringX(3,table);
+        cs.setStringX(4,columnNamePattern);
+        cs.setStringX(5,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -1586,33 +1566,30 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //
     public java.sql.ResultSet getTablePrivileges(String catalog,
                                                  String schemaPattern,
-                                                 String tableNamePattern) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getTablePrivileges", catalog, schemaPattern, tableNamePattern);
+                                                 String tableNamePattern) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getTablePrivileges",catalog,schemaPattern,tableNamePattern);
                 }
-                return getTablePrivilegesX(catalog, schemaPattern, tableNamePattern);
+                return getTablePrivilegesX(catalog,schemaPattern,tableNamePattern);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
     private ResultSet getTablePrivilegesX(String catalog,
                                           String schemaPattern,
-                                          String tableNamePattern) throws SqlException {
+                                          String tableNamePattern) throws SqlException{
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLEPRIVILEGES(?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLTABLEPRIVILEGES(?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schemaPattern);
-        cs.setStringX(3, tableNamePattern);
-        cs.setStringX(4, getOptions());
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schemaPattern);
+        cs.setStringX(3,tableNamePattern);
+        cs.setStringX(4,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -1630,18 +1607,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                                    String schema,
                                                    String table,
                                                    int scope,
-                                                   boolean nullable) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getBestRowIdentifier", catalog, schema, table, scope, nullable);
+                                                   boolean nullable) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getBestRowIdentifier",catalog,schema,table,scope,nullable);
                 }
-                return getBestRowIdentifierX(catalog, schema, table, scope, nullable);
+                return getBestRowIdentifierX(catalog,schema,table,scope,nullable);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -1650,72 +1624,69 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                             String schema,
                                             String table,
                                             int scope,
-                                            boolean nullable) throws SqlException {
+                                            boolean nullable) throws SqlException{
         checkForClosedConnectionX();
 
         // check input params
         //
         // validate input table, which can not be null
-        if (table == null) {
+        if(table==null){
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
+                    new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL));
 
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLSPECIALCOLUMNS(?,?,?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLSPECIALCOLUMNS(?,?,?,?,?,?,?)");
 
-        cs.setIntX(1, SQL_BEST_ROWID);
-        cs.setStringX(2, catalog);
-        cs.setStringX(3, schema);
-        cs.setStringX(4, table);
-        cs.setIntX(5, scope);
-        if (nullable) {
-            cs.setShortX(6, (short) 1);
-        } else {
-            cs.setShortX(6, (short) 0);
+        cs.setIntX(1,SQL_BEST_ROWID);
+        cs.setStringX(2,catalog);
+        cs.setStringX(3,schema);
+        cs.setStringX(4,table);
+        cs.setIntX(5,scope);
+        if(nullable){
+            cs.setShortX(6,(short)1);
+        }else{
+            cs.setShortX(6,(short)0);
         }
-        cs.setStringX(7, getOptions());
+        cs.setStringX(7,getOptions());
         return executeCatalogQuery(cs);
     }
 
 
     public java.sql.ResultSet getVersionColumns(String catalog,
                                                 String schema,
-                                                String table) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getVersionColumns", catalog, schema, table);
+                                                String table) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getVersionColumns",catalog,schema,table);
                 }
-                return getVersionColumnsX(catalog, schema, table);
+                return getVersionColumnsX(catalog,schema,table);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
     private ResultSet getVersionColumnsX(String catalog,
                                          String schema,
-                                         String table) throws SqlException {
+                                         String table) throws SqlException{
         checkForClosedConnectionX();
 
         // validate input table, which can not be null
-        if (table == null) {
+        if(table==null){
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
+                    new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL));
 
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLSPECIALCOLUMNS(?,?,?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLSPECIALCOLUMNS(?,?,?,?,?,?,?)");
 
-        cs.setIntX(1, SQL_ROWVER);
-        cs.setStringX(2, catalog);
-        cs.setStringX(3, schema);
-        cs.setStringX(4, table);
-        cs.setIntX(5, 0);
-        cs.setShortX(6, (short) 0);
-        cs.setStringX(7, getOptions());
+        cs.setIntX(1,SQL_ROWVER);
+        cs.setStringX(2,catalog);
+        cs.setStringX(3,schema);
+        cs.setStringX(4,table);
+        cs.setIntX(5,0);
+        cs.setShortX(6,(short)0);
+        cs.setStringX(7,getOptions());
 
         return executeCatalogQuery(cs);
     }
@@ -1729,31 +1700,28 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //
     public java.sql.ResultSet getPrimaryKeys(String catalog,
                                              String schema,
-                                             String table) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getPrimaryKeys", catalog, schema, table);
+                                             String table) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getPrimaryKeys",catalog,schema,table);
                 }
-                return getPrimaryKeysX(catalog, schema, table);
+                return getPrimaryKeysX(catalog,schema,table);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
     private ResultSet getPrimaryKeysX(String catalog,
                                       String schema,
-                                      String table) throws SqlException {
+                                      String table) throws SqlException{
         checkForClosedConnectionX();
 
         // validate the input table name
-        if (table == null) {
+        if(table==null){
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
+                    new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL));
 
         }
 
@@ -1763,19 +1731,19 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         // can get tricky and impact performance. For example,
         // we don't want to have to convert T.TABLENAME to UPPER(T.TABLENAME)
         // in the metadata.properties external query.
-        
-        boolean storesUpper = false;
-        try {
-        	storesUpper = storesUpperCaseIdentifiers();
-        } catch (SQLException e) {
-        	// Ok to swallow this one. Assume false.
+
+        boolean storesUpper=false;
+        try{
+            storesUpper=storesUpperCaseIdentifiers();
+        }catch(SQLException e){
+            // Ok to swallow this one. Assume false.
         }
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPRIMARYKEYS(?,?,?,?)");
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, (storesUpper && schema != null ? schema.toUpperCase() : schema));
-        cs.setStringX(3, (storesUpper ? table.toUpperCase() : table));
-        cs.setStringX(4, getOptions());
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLPRIMARYKEYS(?,?,?,?)");
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,(storesUpper && schema!=null?schema.toUpperCase():schema));
+        cs.setStringX(3,(storesUpper?table.toUpperCase():table));
+        cs.setStringX(4,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -1792,46 +1760,43 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //
     public java.sql.ResultSet getImportedKeys(String catalog,
                                               String schema,
-                                              String table) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getImportedKeys", catalog, schema, table);
+                                              String table) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getImportedKeys",catalog,schema,table);
                 }
-                return getImportedKeysX(catalog, schema, table);
+                return getImportedKeysX(catalog,schema,table);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
     private ResultSet getImportedKeysX(String catalog,
                                        String schema,
-                                       String table) throws SqlException {
+                                       String table) throws SqlException{
         checkForClosedConnectionX();
 
         // validate the table name       
-        if (table == null) {
+        if(table==null){
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
+                    new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL));
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
 
-        cs.setStringX(1, "");
-        cs.setStringX(2, null);
-        cs.setStringX(3, "");
-        cs.setStringX(4, catalog);
-        cs.setStringX(5, schema);
-        cs.setStringX(6, table);
+        cs.setStringX(1,"");
+        cs.setStringX(2,null);
+        cs.setStringX(3,"");
+        cs.setStringX(4,catalog);
+        cs.setStringX(5,schema);
+        cs.setStringX(6,table);
         // We're passing the keyword EXPORTEDKEY, but this support may not be in the GA version of SPs.
         // As a workaround in getCrossReference(), we'll just "select * where 0=1" when primaryTable==""
-        if (connection_.holdability() == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            cs.setStringX(7, "DATATYPE='JDBC';IMPORTEDKEY=1; CURSORHOLD=1");
-        } else {
-            cs.setStringX(7, "DATATYPE='JDBC';IMPORTEDKEY=1; CURSORHOLD=0");
+        if(connection_.holdability()==ResultSet.HOLD_CURSORS_OVER_COMMIT){
+            cs.setStringX(7,"DATATYPE='JDBC';IMPORTEDKEY=1; CURSORHOLD=1");
+        }else{
+            cs.setStringX(7,"DATATYPE='JDBC';IMPORTEDKEY=1; CURSORHOLD=0");
         }
         return executeCatalogQuery(cs);
     }
@@ -1848,46 +1813,43 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //
     public java.sql.ResultSet getExportedKeys(String catalog,
                                               String schema,
-                                              String table) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getExportedKeys", catalog, schema, table);
+                                              String table) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getExportedKeys",catalog,schema,table);
                 }
-                return getExportedKeysX(catalog, schema, table);
+                return getExportedKeysX(catalog,schema,table);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
     private ResultSet getExportedKeysX(String catalog,
                                        String schema,
-                                       String table) throws SqlException {
+                                       String table) throws SqlException{
         checkForClosedConnectionX();
 
         // validate the table name
-        if (table == null) {
+        if(table==null){
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
-        }        
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
+                    new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL));
+        }
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schema);
-        cs.setStringX(3, table);
-        cs.setStringX(4, "");
-        cs.setStringX(5, null);
-        cs.setStringX(6, "");
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schema);
+        cs.setStringX(3,table);
+        cs.setStringX(4,"");
+        cs.setStringX(5,null);
+        cs.setStringX(6,"");
         // We're passing the keyword EXPORTEDKEY, but this support may not be in the GA version of SPs.
         // As a workaround in getCrossReference(), we'll just "select * where 0=1" when foreignTable==""
-        if (connection_.holdability() == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            cs.setStringX(7, "DATATYPE='JDBC';EXPORTEDKEY=1; CURSORHOLD=1");
-        } else {
-            cs.setStringX(7, "DATATYPE='JDBC';EXPORTEDKEY=1; CURSORHOLD=0");
+        if(connection_.holdability()==ResultSet.HOLD_CURSORS_OVER_COMMIT){
+            cs.setStringX(7,"DATATYPE='JDBC';EXPORTEDKEY=1; CURSORHOLD=1");
+        }else{
+            cs.setStringX(7,"DATATYPE='JDBC';EXPORTEDKEY=1; CURSORHOLD=0");
         }
         return executeCatalogQuery(cs);
     }
@@ -1907,19 +1869,16 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                                 String primaryTable,
                                                 String foreignCatalog,
                                                 String foreignSchema,
-                                                String foreignTable) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getCrossReference", primaryCatalog, primarySchema, primaryTable, foreignCatalog, foreignSchema, foreignTable);
+                                                String foreignTable) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getCrossReference",primaryCatalog,primarySchema,primaryTable,foreignCatalog,foreignSchema,foreignTable);
                 }
-                return getCrossReferenceX(primaryCatalog, primarySchema, primaryTable,
-                        foreignCatalog, foreignSchema, foreignTable);
+                return getCrossReferenceX(primaryCatalog,primarySchema,primaryTable,
+                        foreignCatalog,foreignSchema,foreignTable);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -1930,31 +1889,31 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                          String primaryTable,
                                          String foreignCatalog,
                                          String foreignSchema,
-                                         String foreignTable) throws SqlException {
+                                         String foreignTable) throws SqlException{
         checkForClosedConnectionX();
 
         // check input params, primaryTable and foreignTable cannot be null
-        if (primaryTable == null) {
+        if(primaryTable==null){
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.PRIMARY_TABLE_NAME_IS_NULL)); 
+                    new ClientMessageId(SQLState.PRIMARY_TABLE_NAME_IS_NULL));
 
         }
 
-        if (foreignTable == null) {
+        if(foreignTable==null){
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.FOREIGN_TABLE_NAME_IS_NULL)); 
+                    new ClientMessageId(SQLState.FOREIGN_TABLE_NAME_IS_NULL));
 
         }
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
 
-        cs.setStringX(1, primaryCatalog);
-        cs.setStringX(2, primarySchema);
-        cs.setStringX(3, primaryTable);
-        cs.setStringX(4, foreignCatalog);
-        cs.setStringX(5, foreignSchema);
-        cs.setStringX(6, foreignTable);
-        cs.setStringX(7, getOptions());
+        cs.setStringX(1,primaryCatalog);
+        cs.setStringX(2,primarySchema);
+        cs.setStringX(3,primaryTable);
+        cs.setStringX(4,foreignCatalog);
+        cs.setStringX(5,foreignSchema);
+        cs.setStringX(6,foreignTable);
+        cs.setStringX(7,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -1963,30 +1922,27 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //                        IN Options VARCHAR(4000))
     //
     //
-    public java.sql.ResultSet getTypeInfo() throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getTypeInfo");
+    public java.sql.ResultSet getTypeInfo() throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getTypeInfo");
                 }
                 return getTypeInfoX();
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private ResultSet getTypeInfoX() throws SqlException {
+    private ResultSet getTypeInfoX() throws SqlException{
         checkForClosedConnectionX();
 
         // check if the last call's resultset is closed or not.
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLGETTYPEINFO(?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLGETTYPEINFO(?,?)");
 
-        cs.setShortX(1, (short) 0);
-        cs.setStringX(2, getOptions());
+        cs.setShortX(1,(short)0);
+        cs.setStringX(2,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -2004,18 +1960,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                            String schema,
                                            String table,
                                            boolean unique,
-                                           boolean approximate) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getIndexInfo", catalog, schema, table, unique, approximate);
+                                           boolean approximate) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getIndexInfo",catalog,schema,table,unique,approximate);
                 }
-                return getIndexInfoX(catalog, schema, table, unique, approximate);
+                return getIndexInfoX(catalog,schema,table,unique,approximate);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -2024,28 +1977,28 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                     String schema,
                                     String table,
                                     boolean unique,
-                                    boolean approximate) throws SqlException {
+                                    boolean approximate) throws SqlException{
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLSTATISTICS(?,?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLSTATISTICS(?,?,?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schema);
-        cs.setStringX(3, table);
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schema);
+        cs.setStringX(3,table);
 
-        if (unique) {
-            cs.setShortX(4, SQL_INDEX_UNIQUE);
-        } else {
-            cs.setShortX(4, SQL_INDEX_ALL);
+        if(unique){
+            cs.setShortX(4,SQL_INDEX_UNIQUE);
+        }else{
+            cs.setShortX(4,SQL_INDEX_ALL);
         }
 
-        if (approximate) {
-            cs.setShortX(5, (short) 1);
-        } else {
-            cs.setShortX(5, (short) 0);
+        if(approximate){
+            cs.setShortX(5,(short)1);
+        }else{
+            cs.setShortX(5,(short)0);
         }
 
-        cs.setStringX(6, getOptions());
+        cs.setStringX(6,getOptions());
         return executeCatalogQuery(cs);
     }
 
@@ -2055,18 +2008,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     public java.sql.ResultSet getUDTs(String catalog,
                                       String schemaPattern,
                                       String typeNamePattern,
-                                      int[] types) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getUDTs", catalog, schemaPattern, typeNamePattern, types);
+                                      int[] types) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getUDTs",catalog,schemaPattern,typeNamePattern,types);
                 }
-                return getUDTsX(catalog, schemaPattern, typeNamePattern, types);
+                return getUDTsX(catalog,schemaPattern,typeNamePattern,types);
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -2074,142 +2024,136 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     private ResultSet getUDTsX(String catalog,
                                String schemaPattern,
                                String typeNamePattern,
-                               int[] types) throws SqlException {
+                               int[] types) throws SqlException{
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLUDTS(?,?,?,?,?)");
+        PreparedStatement cs=prepareMetaDataQuery("SYSIBM.SQLUDTS(?,?,?,?,?)");
 
-        cs.setStringX(1, catalog);
-        cs.setStringX(2, schemaPattern);
-        cs.setStringX(3, typeNamePattern);
-        int i = 0;
-        String udtTypes = "";
-        while (types != null && i < types.length) {
-            if (i > 0) {
-                udtTypes = udtTypes.concat(",");
+        cs.setStringX(1,catalog);
+        cs.setStringX(2,schemaPattern);
+        cs.setStringX(3,typeNamePattern);
+        int i=0;
+        String udtTypes="";
+        while(types!=null && i<types.length){
+            if(i>0){
+                udtTypes=udtTypes.concat(",");
             }
-            udtTypes = udtTypes.concat(String.valueOf(types[i]));
+            udtTypes=udtTypes.concat(String.valueOf(types[i]));
             i++;
         }
-        cs.setStringX(4, udtTypes);
-        cs.setStringX(5, getOptions());
+        cs.setStringX(4,udtTypes);
+        cs.setStringX(5,getOptions());
         return executeCatalogQuery(cs);
     }
 
 
     // helper method for the catalog queries only
-    private String getOptions() {
+    private String getOptions(){
         int cursorHold;
-        if (connection_.holdability() == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            cursorHold = 1;
-        } else {
-            cursorHold = 0;
+        if(connection_.holdability()==ResultSet.HOLD_CURSORS_OVER_COMMIT){
+            cursorHold=1;
+        }else{
+            cursorHold=0;
         }
-        return "DATATYPE='JDBC';DYNAMIC=0;REPORTPUBLICPRIVILEGES=1;CURSORHOLD=" + cursorHold;
+        return "DATATYPE='JDBC';DYNAMIC=0;REPORTPUBLICPRIVILEGES=1;CURSORHOLD="+cursorHold;
 
     }
 
     // Derby uses a PreparedStatement argument rather than a callable statement
-    private ResultSet executeCatalogQuery(PreparedStatement cs) 
-        throws SqlException {
-        try {
+    private ResultSet executeCatalogQuery(PreparedStatement cs)
+            throws SqlException{
+        try{
             return cs.executeQueryX();
-        } catch (SqlException e) {
-            if (e.getErrorCode() == -440) {
-                SqlException newException = new SqlException(agent_.logWriter_,
+        }catch(SqlException e){
+            if(e.getErrorCode()==-440){
+                SqlException newException=new SqlException(agent_.logWriter_,
                         new ClientMessageId(SQLState.STORED_PROC_NOT_INSTALLED));
                 newException.setNextException(e);
                 throw newException;
-            } else if (e.getErrorCode() == -444) {
-                SqlException newException = new SqlException(agent_.logWriter_,
-                    new ClientMessageId(SQLState.STORED_PROC_LOAD_MODULE_NOT_FOUND));
+            }else if(e.getErrorCode()==-444){
+                SqlException newException=new SqlException(agent_.logWriter_,
+                        new ClientMessageId(SQLState.STORED_PROC_LOAD_MODULE_NOT_FOUND));
                 newException.setNextException(e);
                 throw newException;
-            } else {
+            }else{
                 throw e;
             }
         }
     }
 
-    public java.sql.Connection getConnection() throws SQLException {
+    public java.sql.Connection getConnection() throws SQLException{
         checkForClosedConnection();
         return connection_;
     }
 
     // ------------------- JDBC 3.0 -------------------------
 
-    public boolean supportsNamedParameters() throws SQLException {
+    public boolean supportsNamedParameters() throws SQLException{
         checkForClosedConnection();
         return false;
     }
 
-    public boolean supportsMultipleOpenResults() throws SQLException {
+    public boolean supportsMultipleOpenResults() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsGetGeneratedKeys() throws SQLException {
+    public boolean supportsGetGeneratedKeys() throws SQLException{
         checkForClosedConnection();
         return false;
     }
 
     public java.sql.ResultSet getSuperTypes(String catalog,
                                             String schemaPattern,
-                                            String typeNamePattern) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getSuperTypes", catalog, schemaPattern, typeNamePattern);
+                                            String typeNamePattern) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getSuperTypes",catalog,schemaPattern,typeNamePattern);
                 }
                 return getSuperTypesX();
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private ResultSet getSuperTypesX() throws SqlException {
+    private ResultSet getSuperTypesX() throws SqlException{
         checkForClosedConnectionX();
-        String sql = "SELECT CAST(NULL AS VARCHAR(128)) AS TYPE_CAT," +
-                "CAST(NULL AS VARCHAR(128)) AS TYPE_SCHEM," +
-                "VARCHAR('', 128) AS TYPE_NAME," +
-                "CAST(NULL AS VARCHAR(128)) AS SUPERTYPE_CAT," +
-                "CAST(NULL AS VARCHAR(128)) AS SUPERTYPE_SCHEM," +
-                "VARCHAR('', 128) AS SUPERTYPE_NAME " +
+        String sql="SELECT CAST(NULL AS VARCHAR(128)) AS TYPE_CAT,"+
+                "CAST(NULL AS VARCHAR(128)) AS TYPE_SCHEM,"+
+                "VARCHAR('', 128) AS TYPE_NAME,"+
+                "CAST(NULL AS VARCHAR(128)) AS SUPERTYPE_CAT,"+
+                "CAST(NULL AS VARCHAR(128)) AS SUPERTYPE_SCHEM,"+
+                "VARCHAR('', 128) AS SUPERTYPE_NAME "+
                 "FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR ";
-        PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
+        PreparedStatement ps=connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
     }
 
     public java.sql.ResultSet getSuperTables(String catalog,
                                              String schemaPattern,
-                                             String tableNamePattern) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getSuperTables", catalog, schemaPattern, tableNamePattern);
+                                             String tableNamePattern) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getSuperTables",catalog,schemaPattern,tableNamePattern);
                 }
                 return getSuperTablesX();
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private ResultSet getSuperTablesX() throws SqlException {
+    private ResultSet getSuperTablesX() throws SqlException{
         checkForClosedConnectionX();
-        java.lang.String sql = "SELECT CAST(NULL AS VARCHAR(128)) AS TABLE_CAT," +
-                "CAST(NULL AS VARCHAR(128)) AS TABLE_SCHEM," +
-                "VARCHAR('', 128) AS TABLE_NAME," +
-                "VARCHAR('', 128) AS SUPERTABLE_NAME FROM SYSIBM.SYSDUMMY1 " +
+        java.lang.String sql="SELECT CAST(NULL AS VARCHAR(128)) AS TABLE_CAT,"+
+                "CAST(NULL AS VARCHAR(128)) AS TABLE_SCHEM,"+
+                "VARCHAR('', 128) AS TABLE_NAME,"+
+                "VARCHAR('', 128) AS SUPERTABLE_NAME FROM SYSIBM.SYSDUMMY1 "+
                 "WHERE 1=0 WITH UR";
-        PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
+        PreparedStatement ps=connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
     }
 
@@ -2217,91 +2161,88 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     public java.sql.ResultSet getAttributes(String catalog,
                                             String schemaPattern,
                                             String typeNamePattern,
-                                            String attributeNamePattern) throws SQLException {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getAttributes", catalog, schemaPattern, typeNamePattern, attributeNamePattern);
+                                            String attributeNamePattern) throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getAttributes",catalog,schemaPattern,typeNamePattern,attributeNamePattern);
                 }
                 return getAttributesX();
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private ResultSet getAttributesX() throws SqlException {
+    private ResultSet getAttributesX() throws SqlException{
         checkForClosedConnectionX();
-        java.lang.String sql = "SELECT CAST(NULL AS VARCHAR(128)) AS TYPE_CAT," +
-                "CAST(NULL AS VARCHAR(128)) AS TYPE_SCHEM," +
-                "VARCHAR('', 128) AS TYPE_NAME," +
-                "VARCHAR('',128) AS ATTR_NAME," +
-                "0 AS DATA_TYPE," +
-                "VARCHAR('',129) AS ATTR_TYPE_NAME," +
-                "0 AS ATTR_SIZE," +
-                "0 AS DECIMAL_DIGITS," +
-                "0 AS NUM_PREC_RADIX," +
-                "2 AS NULLABLE," +
-                "CAST(NULL AS VARCHAR(254)) AS REMARKS," +
-                "CAST(NULL AS VARCHAR(128)) AS ATTR_DEF," +
-                "0 AS SQL_DATA_TYPE," +
-                "0 AS SQL_DATETIME_SUB," +
-                "0 AS CHAR_OCTET_LENGTH," +
-                "0 AS ORDINAL_POSITION," +
-                "VARCHAR('',128) AS IS_NULLABLE," +
-                "CAST(NULL AS VARCHAR(128)) AS SCOPE_CATALOG," +
-                "CAST(NULL AS VARCHAR(128)) AS SCOPE_SCHEMA," +
-                "CAST(NULL AS VARCHAR(128)) AS SCOPE_TABLE," +
-                "CAST(NULL AS SMALLINT) AS SOURCE_DATA_TYPE " +
+        java.lang.String sql="SELECT CAST(NULL AS VARCHAR(128)) AS TYPE_CAT,"+
+                "CAST(NULL AS VARCHAR(128)) AS TYPE_SCHEM,"+
+                "VARCHAR('', 128) AS TYPE_NAME,"+
+                "VARCHAR('',128) AS ATTR_NAME,"+
+                "0 AS DATA_TYPE,"+
+                "VARCHAR('',129) AS ATTR_TYPE_NAME,"+
+                "0 AS ATTR_SIZE,"+
+                "0 AS DECIMAL_DIGITS,"+
+                "0 AS NUM_PREC_RADIX,"+
+                "2 AS NULLABLE,"+
+                "CAST(NULL AS VARCHAR(254)) AS REMARKS,"+
+                "CAST(NULL AS VARCHAR(128)) AS ATTR_DEF,"+
+                "0 AS SQL_DATA_TYPE,"+
+                "0 AS SQL_DATETIME_SUB,"+
+                "0 AS CHAR_OCTET_LENGTH,"+
+                "0 AS ORDINAL_POSITION,"+
+                "VARCHAR('',128) AS IS_NULLABLE,"+
+                "CAST(NULL AS VARCHAR(128)) AS SCOPE_CATALOG,"+
+                "CAST(NULL AS VARCHAR(128)) AS SCOPE_SCHEMA,"+
+                "CAST(NULL AS VARCHAR(128)) AS SCOPE_TABLE,"+
+                "CAST(NULL AS SMALLINT) AS SOURCE_DATA_TYPE "+
                 "FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR";
-        PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
+        PreparedStatement ps=connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
     }
 
-    public boolean supportsResultSetHoldability(int holdability) throws SQLException {
+    public boolean supportsResultSetHoldability(int holdability) throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public int getResultSetHoldability() throws SQLException {
+    public int getResultSetHoldability() throws SQLException{
         checkForClosedConnection();
         return java.sql.ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
-    public int getDatabaseMajorVersion() throws SQLException {
+    public int getDatabaseMajorVersion() throws SQLException{
         checkForClosedConnection();
         return productLevel_.versionLevel_;
     }
 
-    public int getDatabaseMinorVersion() throws SQLException {
+    public int getDatabaseMinorVersion() throws SQLException{
         checkForClosedConnection();
         return productLevel_.releaseLevel_;
     }
 
-    public int getJDBCMajorVersion() throws SQLException {
+    public int getJDBCMajorVersion() throws SQLException{
         checkForClosedConnection();
         return 3;
     }
 
-    public int getJDBCMinorVersion() throws SQLException {
+    public int getJDBCMinorVersion() throws SQLException{
         checkForClosedConnection();
         return 0;
     }
 
-    public int getSQLStateType() throws SQLException {
+    public int getSQLStateType() throws SQLException{
         checkForClosedConnection();
         return sqlStateSQL99;
     }
 
-    public boolean locatorsUpdateCopy() throws SQLException {
+    public boolean locatorsUpdateCopy() throws SQLException{
         checkForClosedConnection();
         return true;
     }
 
-    public boolean supportsStatementPooling() throws SQLException {
+    public boolean supportsStatementPooling() throws SQLException{
         checkForClosedConnection();
         return false;
     }
@@ -2327,35 +2268,31 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     // values. So, LEAVE INSTANCE VARIABLES UNINITIALIZED!
     //
     // END OF WARNING
-    protected void computeFeatureSet_() {
+    private void computeFeatureSet_(){
 
         // Support for QRYCLSIMP was added in 10.2.0
-        if (productLevel_.greaterThanOrEqualTo(10, 2, 0)) {
-            supportsQryclsimp_ = true;
-        } else {
-            supportsQryclsimp_ = false;
-        }
-        
-        supportsLayerBStreaming_ = 
-            productLevel_.greaterThanOrEqualTo(10, 3, 0);
+        supportsQryclsimp_=productLevel_.greaterThanOrEqualTo(10,2,0);
 
-        supportsSessionDataCaching_ =
-                productLevel_.greaterThanOrEqualTo(10, 4, 0);
+        supportsLayerBStreaming_=
+                productLevel_.greaterThanOrEqualTo(10,3,0);
 
-        supportsUDTs_ =
-                productLevel_.greaterThanOrEqualTo(10, 6, 0);
+        supportsSessionDataCaching_=
+                productLevel_.greaterThanOrEqualTo(10,4,0);
 
-        supportsTimestampNanoseconds_ =
-                productLevel_.greaterThanOrEqualTo(10, 6, 0);
+        supportsUDTs_=
+                productLevel_.greaterThanOrEqualTo(10,6,0);
 
-        supportsEXTDTAAbort_ =
-                productLevel_.greaterThanOrEqualTo(10, 6, 0);
+        supportsTimestampNanoseconds_=
+                productLevel_.greaterThanOrEqualTo(10,6,0);
 
-        supportsBooleanValues_ =
-                productLevel_.greaterThanOrEqualTo(10, 7, 0);
+        supportsEXTDTAAbort_=
+                productLevel_.greaterThanOrEqualTo(10,6,0);
 
-        supportsBooleanParameterTransport_ =
-                productLevel_.greaterThanOrEqualTo(10, 8, 0);
+        supportsBooleanValues_=
+                productLevel_.greaterThanOrEqualTo(10,7,0);
+
+        supportsBooleanParameterTransport_=
+                productLevel_.greaterThanOrEqualTo(10,8,0);
     }
 
     /**
@@ -2364,123 +2301,116 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      *
      * @return true if QRYCLSIMP is fully supported
      */
-    final public boolean serverSupportsQryclsimp() {
+    final public boolean serverSupportsQryclsimp(){
         return supportsQryclsimp_;
     }
 
-    final public boolean serverSupportsLayerBStreaming() {
+    final public boolean serverSupportsLayerBStreaming(){
         return supportsLayerBStreaming_;
     }
 
     /**
      * Check if server supports session data caching
+     *
      * @return true if the server supports this
      */
-    final public boolean serverSupportsSessionDataCaching() {
+    final public boolean serverSupportsSessionDataCaching(){
         return supportsSessionDataCaching_;
     }
 
     /**
      * Check if server supports UDTs
+     *
      * @return true if the server supports this
      */
-    final public boolean serverSupportsUDTs() {
+    final public boolean serverSupportsUDTs(){
         return supportsUDTs_;
     }
 
     /**
      * Check if server supports nanoseconds in timestamps
+     *
      * @return true if the server supports this
      */
-    final public boolean serverSupportsTimestampNanoseconds() {
+    final public boolean serverSupportsTimestampNanoseconds(){
         return supportsTimestampNanoseconds_;
     }
 
     /**
      * Check if server supports product specific EXTDTA abort protocol.
+     *
      * @return {@code true} if the server supports this.
      */
-    final public boolean serverSupportsEXTDTAAbort() {
+    final public boolean serverSupportsEXTDTAAbort(){
         return supportsEXTDTAAbort_;
     }
 
     /**
      * Check if server supports boolean values
+     *
      * @return true if the server supports this
      */
-    final public boolean serverSupportsBooleanValues() {
+    final public boolean serverSupportsBooleanValues(){
         return supportsBooleanValues_;
     }
 
     /**
      * Check if the server accepts receiving booleans as parameter values.
+     *
      * @return true if the server supports this
      */
-    final public boolean serverSupportsBooleanParameterTransport() {
+    final public boolean serverSupportsBooleanParameterTransport(){
         return supportsBooleanParameterTransport_;
     }
 
     //------------helper methods for meta data info call methods------------------
 
 
-    private boolean getMetaDataInfoBoolean(int infoCallIndex) throws SQLException {
-        try
-        {
-			if ( !metaDataInfoIsCached_) { metaDataInfoCall(); }
+    private boolean getMetaDataInfoBoolean(int infoCallIndex) throws SQLException{
+        try{
+            if(!metaDataInfoIsCached_){
+                metaDataInfoCall();
+            }
 
-            if ( serverSupportsBooleanValues() )
-            {
-                return ((Boolean) metaDataInfoCache_[infoCallIndex]).booleanValue();
+            if(serverSupportsBooleanValues()){
+                return (Boolean)metaDataInfoCache_[infoCallIndex];
+            }else{
+                return (Integer)metaDataInfoCache_[infoCallIndex]!=0;
             }
-            else
-            {
-                return ((Integer) metaDataInfoCache_[infoCallIndex]).intValue() != 0;
-            }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-	private int getMetaDataInfoInt(int infoCallIndex) throws SQLException {
-        try
-        {
-            if (metaDataInfoIsCached_) {
-                return ((Integer) metaDataInfoCache_[infoCallIndex]).intValue();
+    private int getMetaDataInfoInt(int infoCallIndex) throws SQLException{
+        try{
+            if(metaDataInfoIsCached_){
+                return (Integer)metaDataInfoCache_[infoCallIndex];
             }
             metaDataInfoCall();
-            return ((Integer) metaDataInfoCache_[infoCallIndex]).intValue();
-        }
-        catch ( SqlException se )
-        {
+            return (Integer)metaDataInfoCache_[infoCallIndex];
+        }catch(SqlException se){
             throw se.getSQLException();
         }
-            
+
     }
 
-    private String getMetaDataInfoString(int infoCallIndex) throws SQLException {
-        try
-        {
-            if (metaDataInfoIsCached_) {
-                return (String) metaDataInfoCache_[infoCallIndex];
+    private String getMetaDataInfoString(int infoCallIndex) throws SQLException{
+        try{
+            if(metaDataInfoIsCached_){
+                return (String)metaDataInfoCache_[infoCallIndex];
             }
             metaDataInfoCall();
-            return (String) metaDataInfoCache_[infoCallIndex];
-        }
-        catch ( SqlException se )
-        {
+            return (String)metaDataInfoCache_[infoCallIndex];
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
 
-    private boolean getMetaDataInfoBooleanWithType(int infoCallIndex, int type) 
-        throws SQLException {
+    private boolean getMetaDataInfoBooleanWithType(int infoCallIndex,int type)
+            throws SQLException{
 
-        boolean clientValue =
-            getMetaDataInfoBooleanWithTypeClient(infoCallIndex, type);
-        
         // DERBY-1252. In Derby <= 10.x, clients (incl JCC) do not have
         // logic to negotiate down these values with the server, so
         // for features introduced with 10.x, x >= 2 (e.g. SUR
@@ -2503,7 +2433,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         //
         //     return clientValue && serverValue;
 
-        return clientValue;
+        return getMetaDataInfoBooleanWithTypeClient(infoCallIndex,type);
     }
 
 
@@ -2523,99 +2453,85 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     // engine/com/splicemachine/db/impl/sql/catalog/metadata_net.properties.
     // 
     private boolean getMetaDataInfoBooleanWithTypeClient(int infoCallIndex,
-                                                         int type) 
-        throws SQLException {
+                                                         int type) throws SQLException{
 
-        switch (infoCallIndex) {
-        case updatesAreDetected__:
-        case deletesAreDetected__:
-        case ownUpdatesAreVisible__:
-        case ownDeletesAreVisible__:
-            
-            if (productLevel_.greaterThanOrEqualTo(10,2,0) && 
-                type == ResultSet.TYPE_SCROLL_INSENSITIVE) {
-                return true;
-            } else {
-                return getMetaDataInfoBooleanWithTypeServer(infoCallIndex, 
-                                                            type);
-            }
-        case insertsAreDetected__:
-        case ownInsertsAreVisible__:
-            if (productLevel_.greaterThanOrEqualTo(10,2,0) &&
-                type == ResultSet.TYPE_SCROLL_INSENSITIVE) {
-                return false;
-            } else {
-                return getMetaDataInfoBooleanWithTypeServer(infoCallIndex, 
-                                                            type);
-            }
-        default:
-            return getMetaDataInfoBooleanWithTypeServer(infoCallIndex, 
-                                                        type);
+        switch(infoCallIndex){
+            case updatesAreDetected__:
+            case deletesAreDetected__:
+            case ownUpdatesAreVisible__:
+            case ownDeletesAreVisible__:
+
+                return productLevel_.greaterThanOrEqualTo(10,2,0) && type==ResultSet.TYPE_SCROLL_INSENSITIVE
+                        || getMetaDataInfoBooleanWithTypeServer(infoCallIndex,type);
+            case insertsAreDetected__:
+            case ownInsertsAreVisible__:
+                if(productLevel_.greaterThanOrEqualTo(10,2,0) && type==ResultSet.TYPE_SCROLL_INSENSITIVE){
+                    return false;
+                }else{
+                    return getMetaDataInfoBooleanWithTypeServer(infoCallIndex, type);
+                }
+            default:
+                return getMetaDataInfoBooleanWithTypeServer(infoCallIndex, type);
         }
     }
 
 
-    private boolean getMetaDataInfoBooleanWithTypeServer(int infoCallIndex, 
-                                                     int type) 
-        throws SQLException {
+    private boolean getMetaDataInfoBooleanWithTypeServer(int infoCallIndex,
+                                                         int type) throws SQLException{
 
         // Stored Procedure will return a String containing a
         // comma seperated list of all the supported result Set types
         // not throwing any exception right now even if the the type is wrong as per the spec
-        try
-        {
-            String returnedFromSP = null;
-            if (metaDataInfoIsCached_) {
-                returnedFromSP = (String) metaDataInfoCache_[infoCallIndex];
-            } else {
+        try{
+            String returnedFromSP;
+            if(metaDataInfoIsCached_){
+                returnedFromSP=(String)metaDataInfoCache_[infoCallIndex];
+            }else{
                 metaDataInfoCall();
-                returnedFromSP = (String) metaDataInfoCache_[infoCallIndex];
+                returnedFromSP=(String)metaDataInfoCache_[infoCallIndex];
             }
-            java.util.StringTokenizer st = new java.util.StringTokenizer(returnedFromSP, ",");
-            while (st.hasMoreTokens()) {
-                if ((Integer.parseInt(st.nextToken())) == type) {
+            java.util.StringTokenizer st=new java.util.StringTokenizer(returnedFromSP,",");
+            while(st.hasMoreTokens()){
+                if((Integer.parseInt(st.nextToken()))==type){
                     return true;
                 }
             }
             return false;
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private boolean getMetaDataInfoInt_SupportsResultSetConcurrency(int infoCallIndex, int type, int concurrency) throws SQLException {
+    private boolean getMetaDataInfoInt_SupportsResultSetConcurrency(int infoCallIndex,int type,int concurrency) throws SQLException{
         // The stored procured will return a String containing a list
         // of lists: For each result set type in the outer list, an
         // inner list gives the allowed concurrencies for that type:
-	// The encoding syntax is reproduced here from the server file
-	// 'metadata_net.properties (please keep in synch!):  
-	//
+        // The encoding syntax is reproduced here from the server file
+        // 'metadata_net.properties (please keep in synch!):
+        //
         // String syntax:  
-	// <type> { "," <concurrency>}* { ";" <type> { "," <concurrency>}* }}*
-	//
-	// <type> ::= <the integer value for that type from interface java.sql.Resultset
-	//             i.e. TYPE_FORWARD_ONLY is 1003>
-	// <concurrency> ::= <the integer value for that concurrency
-	//                    from interface java.sql.Resultset, i.e.
-	//                    CONCUR_UPDATABLE is 1008>
-        try
-        {
-            String returnedFromSP = null;
-            if (metaDataInfoIsCached_) {
-                returnedFromSP = (String) metaDataInfoCache_[infoCallIndex];
-            } else {
+        // <type> { "," <concurrency>}* { ";" <type> { "," <concurrency>}* }}*
+        //
+        // <type> ::= <the integer value for that type from interface java.sql.Resultset
+        //             i.e. TYPE_FORWARD_ONLY is 1003>
+        // <concurrency> ::= <the integer value for that concurrency
+        //                    from interface java.sql.Resultset, i.e.
+        //                    CONCUR_UPDATABLE is 1008>
+        try{
+            String returnedFromSP;
+            if(metaDataInfoIsCached_){
+                returnedFromSP=(String)metaDataInfoCache_[infoCallIndex];
+            }else{
                 metaDataInfoCall();
-                returnedFromSP = (String) metaDataInfoCache_[infoCallIndex];
+                returnedFromSP=(String)metaDataInfoCache_[infoCallIndex];
             }
-            java.util.StringTokenizer st = new java.util.StringTokenizer(returnedFromSP, ";");
-            while (st.hasMoreTokens()) {
-                java.util.StringTokenizer stForConc = 
-		    new java.util.StringTokenizer(st.nextToken(), ",");
-                if ((Integer.parseInt(stForConc.nextToken())) == type) {
-                    while (stForConc.hasMoreTokens()) {
-                        if ((Integer.parseInt(stForConc.nextToken())) == concurrency) {
+            java.util.StringTokenizer st=new java.util.StringTokenizer(returnedFromSP,";");
+            while(st.hasMoreTokens()){
+                java.util.StringTokenizer stForConc=
+                        new java.util.StringTokenizer(st.nextToken(),",");
+                if((Integer.parseInt(stForConc.nextToken()))==type){
+                    while(stForConc.hasMoreTokens()){
+                        if((Integer.parseInt(stForConc.nextToken()))==concurrency){
                             return true;
                         }
                     }
@@ -2623,34 +2539,31 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 }
             }
             return false;
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
-        }            
+        }
     }
 
-    private boolean getMetaDataInfoBoolean_supportsConvert(int infoCallIndex, int fromType, int toType) throws SQLException {
+    private boolean getMetaDataInfoBoolean_supportsConvert(int infoCallIndex,int fromType,int toType) throws SQLException{
         // The Stored procedure will return a String contain a list of all the valid conversions it support
         // For eg. If the database conversion from char(1) to date(91), time(92) and
         // Decimal(3) to char(1) ,double(8)
         // then StoredProcedure string will return "1,91,92;3,1,8"
         // see how fromTypes are seperated by ";"
-        try
-        {
-            String returnedFromSP = null;
-            if (metaDataInfoIsCached_) {
-                returnedFromSP = (String) metaDataInfoCache_[infoCallIndex];
-            } else {
+        try{
+            String returnedFromSP;
+            if(metaDataInfoIsCached_){
+                returnedFromSP=(String)metaDataInfoCache_[infoCallIndex];
+            }else{
                 metaDataInfoCall();
-                returnedFromSP = (String) metaDataInfoCache_[infoCallIndex];
+                returnedFromSP=(String)metaDataInfoCache_[infoCallIndex];
             }
-            java.util.StringTokenizer st = new java.util.StringTokenizer(returnedFromSP, ";");
-            while (st.hasMoreTokens()) {
-                java.util.StringTokenizer stForType = new java.util.StringTokenizer(st.nextToken(), ",");
-                if ((Integer.parseInt(stForType.nextToken())) == fromType) {
-                    while (st.hasMoreTokens()) {
-                        if ((Integer.parseInt(st.nextToken())) == toType) {
+            java.util.StringTokenizer st=new java.util.StringTokenizer(returnedFromSP,";");
+            while(st.hasMoreTokens()){
+                java.util.StringTokenizer stForType=new java.util.StringTokenizer(st.nextToken(),",");
+                if((Integer.parseInt(stForType.nextToken()))==fromType){
+                    while(st.hasMoreTokens()){
+                        if((Integer.parseInt(st.nextToken()))==toType){
                             return true;
                         }
                     }
@@ -2658,9 +2571,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 }
             }
             return false;
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -2668,28 +2579,28 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     // We synchronize at this level so that we don't have to synchronize all
     // the meta data info methods.  If we just return hardwired answers we don't
     // need to synchronize at the higher level.
-    private void metaDataInfoCall() throws SqlException {
-        synchronized (connection_) {
+    private void metaDataInfoCall() throws SqlException{
+        synchronized(connection_){
             ResultSet rs;
 
             // These remote calls return a result set containing a single row.
             // Each column in the row corresponds to a particular get meta data info
             // method.
-            PreparedStatement ps = prepareMetaDataQuery("SYSIBM.MetaData()");
-            rs = (ResultSet) ps.executeQueryX();
+            PreparedStatement ps=prepareMetaDataQuery("SYSIBM.MetaData()");
+            rs=ps.executeQueryX();
             rs.nextX();
             int ColumnCount;
-            try {
-                ColumnCount = ((ColumnMetaData) rs.getMetaDataX()).getColumnCount();
-            } catch ( SQLException se ) {
+            try{
+                ColumnCount=rs.getMetaDataX().getColumnCount();
+            }catch(SQLException se){
                 throw new SqlException(se);
             }
-            for (int infoCallIndex = 0;
-                 (infoCallIndex < ColumnCount && infoCallIndex < metaDataInfoCache_.length);
-                 infoCallIndex++) {
-                metaDataInfoCache_[infoCallIndex] = rs.getObjectX(infoCallIndex + 1);
+            for(int infoCallIndex=0;
+                (infoCallIndex<ColumnCount && infoCallIndex<metaDataInfoCache_.length);
+                infoCallIndex++){
+                metaDataInfoCache_[infoCallIndex]=rs.getObjectX(infoCallIndex+1);
             }
-            metaDataInfoIsCached_ = true;
+            metaDataInfoIsCached_=true;
             rs.closeX();
         }
     }
@@ -2701,11 +2612,10 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      * or vendor functions using the stored procedure escape syntax.
      *
      * @return <code>true</code>, since Derby supports the escape syntax
-     * @exception SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public final boolean supportsStoredFunctionsUsingCallSyntax()
-        throws SQLException
-    {
+            throws SQLException{
         checkForClosedConnection();
         return true;
     }
@@ -2717,11 +2627,10 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      *
      * @return <code>false</code>, since Derby does not close all open
      * result sets when an error occurs
-     * @exception SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public final boolean autoCommitFailureClosesAllResultSets()
-        throws SQLException
-    {
+            throws SQLException{
         checkForClosedConnection();
         return false;
     }
@@ -2729,34 +2638,33 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     /**
      * Get the schema names available in this database. The results
      * are ordered by schema name.
-     *
+     * <p>
      * <p>The schema columns are:
-     *  <ol>
-     *  <li><strong>TABLE_SCHEM</strong> String =&gt; schema name</li>
-     *  <li><strong>TABLE_CATALOG</strong> String =&gt; catalog name
-     *  (may be <code>null</code>)</li>
-     *  </ol>
+     * <ol>
+     * <li><strong>TABLE_SCHEM</strong> String =&gt; schema name</li>
+     * <li><strong>TABLE_CATALOG</strong> String =&gt; catalog name
+     * (may be <code>null</code>)</li>
+     * </ol>
      *
-     * @param catalog catalog name used to narrow down the search; ""
-     * means no catalog, <code>null</code> means any catalog
+     * @param catalog       catalog name used to narrow down the search; ""
+     *                      means no catalog, <code>null</code> means any catalog
      * @param schemaPattern schema name used to narrow down the
-     * search, <code>null</code> means schema name should not be used
-     * to narrow down search
+     *                      search, <code>null</code> means schema name should not be used
+     *                      to narrow down search
      * @return a <code>ResultSet</code> object in which each row is a
      * schema description
-     * @exception SQLException if a database error occurs
+     * @throws SQLException if a database error occurs
      */
-    public java.sql.ResultSet getSchemas(String catalog, String schemaPattern)
-        throws SQLException
-    {
-        try {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceEntry(this, "getSchemas");
+    public java.sql.ResultSet getSchemas(String catalog,String schemaPattern)
+            throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
+                    agent_.logWriter_.traceEntry(this,"getSchemas");
                 }
-                return getSchemasX(catalog, schemaPattern);
+                return getSchemasX(catalog,schemaPattern);
             }
-        } catch (SqlException se) {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -2764,15 +2672,14 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     /**
      * Untraced version of <code>getSchemas(String, String)</code>.
      *
-     * @param catalog catalog name
+     * @param catalog       catalog name
      * @param schemaPattern pattern for schema name
      * @return a <code>ResultSet</code> value
-     * @exception SqlException if a database error occurs
-     * @see #getSchemas(String, String)
+     * @throws SqlException if a database error occurs
+     * @see #getSchemas(String,String)
      */
-    private ResultSet getSchemasX(String catalog, String schemaPattern)
-        throws SqlException
-    {
+    private ResultSet getSchemasX(String catalog,String schemaPattern)
+            throws SqlException{
         checkForClosedConnectionX();
 
         // If the server has not implemented support for JDBC 4.0,
@@ -2780,19 +2687,19 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         // option, and it will call getTables() instead of
         // getSchemas(). Therefore, check server version and throw an
         // exception if the server does not support JDBC 4.0.
-        checkServerJdbcVersionX("getSchemas(String, String)", 4, 0);
+        checkServerJdbcVersionX("getSchemas(String, String)",4,0);
 
-        String call = "SYSIBM.SQLTABLES(?, ?, '', '', 'GETSCHEMAS=2')";
-        PreparedStatement cs = prepareMetaDataQuery(call);
-        if (catalog == null) {
-            cs.setNullX(1, java.sql.Types.VARCHAR);
-        } else {
-            cs.setStringX(1, catalog);
+        String call="SYSIBM.SQLTABLES(?, ?, '', '', 'GETSCHEMAS=2')";
+        PreparedStatement cs=prepareMetaDataQuery(call);
+        if(catalog==null){
+            cs.setNullX(1,java.sql.Types.VARCHAR);
+        }else{
+            cs.setStringX(1,catalog);
         }
-        if (schemaPattern == null) {
-            cs.setNullX(2, java.sql.Types.VARCHAR);
-        } else {
-            cs.setStringX(2, schemaPattern);
+        if(schemaPattern==null){
+            cs.setNullX(2,java.sql.Types.VARCHAR);
+        }else{
+            cs.setStringX(2,schemaPattern);
         }
         return cs.executeQueryX();
     }
@@ -2800,32 +2707,32 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     /**
      * Returns a list of the client info properties supported by the
      * driver. The result set contains the following columns:
-     *
+     * <p>
      * <p>
      * <ol>
-     *  <li>NAME String=&gt; The name of the client info property.</li>
-     *  <li>MAX_LEN int=&gt; The maximum length of the value for the
-     *      property.</li>
-     *  <li>DEFAULT_VALUE String=&gt; The default value of the property.</li>
-     *  <li>DESCRIPTION String=&gt; A description of the property.</li>
+     * <li>NAME String=&gt; The name of the client info property.</li>
+     * <li>MAX_LEN int=&gt; The maximum length of the value for the
+     * property.</li>
+     * <li>DEFAULT_VALUE String=&gt; The default value of the property.</li>
+     * <li>DESCRIPTION String=&gt; A description of the property.</li>
      * </ol>
-     *
+     * <p>
      * <p>The <code>ResultSet</code> is sorted by the NAME column.
      *
      * @return A <code>ResultSet</code> object; each row is a
      * supported client info property
-     * @exception SQLException if an error occurs
+     * @throws SQLException if an error occurs
      */
-    public java.sql.ResultSet getClientInfoProperties() throws SQLException {
-        try {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
+    public java.sql.ResultSet getClientInfoProperties() throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
                     agent_.logWriter_.traceEntry(this,
-                                                 "getClientInfoProperties");
+                            "getClientInfoProperties");
                 }
                 return getClientInfoPropertiesX();
             }
-        } catch (SqlException se) {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
@@ -2836,106 +2743,101 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      * names.
      *
      * @return a <code>ResultSet</code> value
-     * @exception SqlException if a database error occurs
+     * @throws SqlException if a database error occurs
      * @see #getClientInfoProperties
      */
-    private ResultSet getClientInfoPropertiesX() throws SqlException {
+    private ResultSet getClientInfoPropertiesX() throws SqlException{
         checkForClosedConnectionX();
-        final String sql =
-            "SELECT CAST(NULL AS VARCHAR(128)) AS NAME, " +
-            "CAST(NULL AS INT) AS MAX_LEN, " +
-            "CAST(NULL AS VARCHAR(128)) AS DEFAULT_VALUE, " +
-            "CAST(NULL AS VARCHAR(128)) AS DESCRIPTION " +
-            "FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR";
-        PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
+        final String sql=
+                "SELECT CAST(NULL AS VARCHAR(128)) AS NAME, "+
+                        "CAST(NULL AS INT) AS MAX_LEN, "+
+                        "CAST(NULL AS VARCHAR(128)) AS DEFAULT_VALUE, "+
+                        "CAST(NULL AS VARCHAR(128)) AS DESCRIPTION "+
+                        "FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR";
+        PreparedStatement ps=connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
     }
 
     // ------------------- JDBC 4.1 -------------------------
 
-    /** See DatabaseMetaData javadoc */
-    public  boolean generatedKeyAlwaysReturned() { return true; }
+    /**
+     * See DatabaseMetaData javadoc
+     */
+    public boolean generatedKeyAlwaysReturned(){
+        return true;
+    }
 
     public java.sql.ResultSet getPseudoColumns
-        ( String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern )
-        throws SQLException
-    {
-        try
-        {
-            synchronized (connection_) {
-                if (agent_.loggingEnabled()) {
+            (String catalog,String schemaPattern,String tableNamePattern,String columnNamePattern)
+            throws SQLException{
+        try{
+            synchronized(connection_){
+                if(agent_.loggingEnabled()){
                     agent_.logWriter_.traceEntry
-                        ( this, "getPseudoColumns", catalog, schemaPattern, tableNamePattern, columnNamePattern );
+                            (this,"getPseudoColumns",catalog,schemaPattern,tableNamePattern,columnNamePattern);
                 }
                 return getPseudoColumnsX();
             }
-        }
-        catch ( SqlException se )
-        {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
 
-    private ResultSet getPseudoColumnsX() throws SqlException
-    {
+    private ResultSet getPseudoColumnsX() throws SqlException{
         checkForClosedConnectionX();
-        String sql =
-            "SELECT \n" +
-            "        CAST(NULL AS VARCHAR(128)) AS TABLE_CAT, \n" +
-            "        CAST(NULL AS VARCHAR(128)) AS TABLE_SCHEM, \n" +
-            "        VARCHAR('', 128) AS TABLE_NAME, \n" +
-            "        VARCHAR('',128) AS COLUMN_NAME, \n" +
-            "        CAST(1 AS INT) AS DATA_TYPE, \n" +
-            "        CAST(1 AS INT) AS COLUMN_SIZE, \n" +
-            "        CAST(NULL AS INT) AS DECIMAL_DIGITS, \n" +
-            "        CAST(NULL AS INT) AS NUM_PREC_RADIX, \n" +
-            "        VARCHAR('',128) AS COLUMN_USAGE, \n" +
-            "        CAST(NULL AS VARCHAR(32672)) AS REMARKS, \n" +
-            "        CAST(NULL AS INT) AS CHAR_OCTET_LENGTH, \n" +
-            "        VARCHAR('NO',128) AS IS_NULLABLE \n" +
-            "    FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR"
-            ;
-        PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
+        String sql=
+                "SELECT \n"+
+                        "        CAST(NULL AS VARCHAR(128)) AS TABLE_CAT, \n"+
+                        "        CAST(NULL AS VARCHAR(128)) AS TABLE_SCHEM, \n"+
+                        "        VARCHAR('', 128) AS TABLE_NAME, \n"+
+                        "        VARCHAR('',128) AS COLUMN_NAME, \n"+
+                        "        CAST(1 AS INT) AS DATA_TYPE, \n"+
+                        "        CAST(1 AS INT) AS COLUMN_SIZE, \n"+
+                        "        CAST(NULL AS INT) AS DECIMAL_DIGITS, \n"+
+                        "        CAST(NULL AS INT) AS NUM_PREC_RADIX, \n"+
+                        "        VARCHAR('',128) AS COLUMN_USAGE, \n"+
+                        "        CAST(NULL AS VARCHAR(32672)) AS REMARKS, \n"+
+                        "        CAST(NULL AS INT) AS CHAR_OCTET_LENGTH, \n"+
+                        "        VARCHAR('NO',128) AS IS_NULLABLE \n"+
+                        "    FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR";
+        PreparedStatement ps=connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
     }
 
     //----------------------------helper methods----------------------------------
 
 
-    private PreparedStatement prepareMetaDataQuery(String cmd) throws SqlException {
+    private PreparedStatement prepareMetaDataQuery(String cmd) throws SqlException{
         PreparedStatement ps;
 
-        ps = (com.splicemachine.db.client.am.PreparedStatement)
-                connection_.prepareStatementX("CALL " + cmd,
-                        java.sql.ResultSet.TYPE_FORWARD_ONLY,
-                        java.sql.ResultSet.CONCUR_READ_ONLY,
-                        connection_.holdability(),
-                        java.sql.Statement.NO_GENERATED_KEYS,
-                        null, null);
+        ps=connection_.prepareStatementX("CALL "+cmd,
+                java.sql.ResultSet.TYPE_FORWARD_ONLY,
+                java.sql.ResultSet.CONCUR_READ_ONLY,
+                connection_.holdability(),
+                java.sql.Statement.NO_GENERATED_KEYS,
+                null,null);
         return ps;
     }
 
-    /** 
+    /**
      * A "public" version of checkForClosedConnection() that throws
      * SQLException instead of SqlException.  In particular this is used
      * by all the DatabaseMetadata methods
      */
-    protected void checkForClosedConnection() throws SQLException
-    {
-        try {
+    protected void checkForClosedConnection() throws SQLException{
+        try{
             checkForClosedConnectionX();
-        } catch ( SqlException se ) {
+        }catch(SqlException se){
             throw se.getSQLException();
         }
     }
-    
-    private void checkForClosedConnectionX() throws SqlException {
-        if (connection_.isClosedX()) {
-            agent_.checkForDeferredExceptions();
-            throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.NO_CURRENT_CONNECTION)); 
 
-        } else {
+    private void checkForClosedConnectionX() throws SqlException{
+        if(connection_.isClosedX()){
+            agent_.checkForDeferredExceptions();
+            throw new SqlException(agent_.logWriter_, new ClientMessageId(SQLState.NO_CURRENT_CONNECTION));
+
+        }else{
             agent_.checkForDeferredExceptions();
         }
     }
@@ -2946,20 +2848,18 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      * thrown.
      *
      * @param method name of the method for which support is needed on
-     * the server (used in exception message)
-     * @param major minimum JDBC major version
-     * @param minor minimum JDBC minor version if major version matches
-     * @exception SqlException if the server does not support the
-     * specified JDBC version
+     *               the server (used in exception message)
+     * @param major  minimum JDBC major version
+     * @param minor  minimum JDBC minor version if major version matches
+     * @throws SqlException if the server does not support the
+     *                      specified JDBC version
      */
-    protected void checkServerJdbcVersionX(String method, int major, int minor)
-        throws SqlException
-    {
-        if (serverJdbcMajorVersion < major ||
-            (serverJdbcMajorVersion == major &&
-             serverJdbcMinorVersion < minor)) {
-            throw new SqlException(agent_.logWriter_, 
-                new ClientMessageId(SQLState.JDBC_METHOD_NOT_SUPPORTED_BY_SERVER), method);
+    private void checkServerJdbcVersionX(String method,int major,int minor) throws SqlException{
+        if(serverJdbcMajorVersion<major ||
+                (serverJdbcMajorVersion==major &&
+                        serverJdbcMinorVersion<minor)){
+            throw new SqlException(agent_.logWriter_,
+                    new ClientMessageId(SQLState.JDBC_METHOD_NOT_SUPPORTED_BY_SERVER),method);
         }
     }
 }

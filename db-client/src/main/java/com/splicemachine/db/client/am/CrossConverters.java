@@ -49,7 +49,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 // java.sql.Types.BLOB;
 //
 
-final class CrossConverters {
+public final class CrossConverters {
 
     /**
      * Value used to signal unknown length of data.

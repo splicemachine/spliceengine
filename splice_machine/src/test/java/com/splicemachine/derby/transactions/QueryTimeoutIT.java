@@ -93,10 +93,10 @@ public class QueryTimeoutIT extends SpliceUnitTest {
     private static final String UPDATE_WITH_TIMEOUT_BEFORE = "CALL " + schemaWatcher.schemaName +
         ".UPDATE_WITH_TIMEOUT_BEFORE('%s', %d)";
 
-    @Before
-    public void setUpClass() throws Exception {
+    @BeforeClass
+    public static void setUpClass() throws Exception {
         // Install the jar file of user-defined stored procedures.
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/sql-it/sql-it.jar";;
+        String STORED_PROCS_JAR_FILE = SpliceUnitTest.getArchitectureSqlDirectory()+"/target/sql-it/sql-it.jar";;
         assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
                 STORED_PROCS_JAR_FILE.endsWith("jar"));
         classWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_STRING, STORED_PROCS_JAR_FILE, DERBY_JAR_NAME));
@@ -105,8 +105,8 @@ public class QueryTimeoutIT extends SpliceUnitTest {
         classWatcher.executeUpdate(CREATE_PROC_UPDATE_TIMEOUT_AFTER);
     }
 
-    @After
-    public void tearDownClass() throws Exception {
+    @AfterClass
+    public static void tearDownClass() throws Exception {
         try {
             classWatcher.executeUpdate(getDropProc(UPDATE_WITH_TIMEOUT_BEFORE_PROC));
         } catch (Exception e) {

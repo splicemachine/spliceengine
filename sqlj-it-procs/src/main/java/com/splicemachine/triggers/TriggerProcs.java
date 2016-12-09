@@ -31,6 +31,7 @@ import java.sql.Statement;
  *
  */
 public class TriggerProcs {
+    private static final String url="jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;clustered=false";
 
     /**
      * A stored procedure which gets called from a trigger.<br/>
@@ -44,7 +45,7 @@ public class TriggerProcs {
         Connection conn = null;
         Statement statement = null;
         try {
-            conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+            conn = DriverManager.getConnection(url);
             String username = conn.getMetaData().getUserName();
             statement = conn.createStatement();
             statement.execute(String.format("insert into %s.%s (username,insert_time) values ('%s', CURRENT_TIMESTAMP)",
@@ -71,7 +72,7 @@ public class TriggerProcs {
         Connection conn = null;
         Statement statement = null;
         try {
-            conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+            conn = DriverManager.getConnection(url);
             String username = conn.getMetaData().getUserName();
             statement = conn.createStatement();
             statement.execute(
@@ -96,7 +97,7 @@ public class TriggerProcs {
         Connection conn = null;
         Statement statement = null;
         try {
-            conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+            conn = DriverManager.getConnection(url);
             String username = conn.getMetaData().getUserName();
             statement = conn.createStatement();
             statement.execute(String.format("insert into %s.%s (username,insert_time) values ('%s', CURRENT_TIMESTAMP)",
@@ -119,7 +120,7 @@ public class TriggerProcs {
         Connection conn = null;
         Statement statement = null;
         try {
-            conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+            conn = DriverManager.getConnection(url);
             statement = conn.createStatement();
             statement.execute(sqlText);
             rs[0] = statement.getResultSet();

@@ -268,11 +268,11 @@ public abstract class Sqlca {
                 // Locale: language preference requested for the return error message.
                 cs.setStringX(14, java.util.Locale.getDefault().toString());
                 // server could return a locale different from what we requested
-                cs.registerOutParameterX(14, java.sql.Types.VARCHAR);
+                cs.registerOutParameterX(14);
                 // Message: error message returned from SQLCAMessage stored procedure.
-                cs.registerOutParameterX(15, java.sql.Types.LONGVARCHAR);
+                cs.registerOutParameterX(15);
                 // RCode: return code from SQLCAMessage stored procedure.
-                cs.registerOutParameterX(16, java.sql.Types.INTEGER);
+                cs.registerOutParameterX(16);
                 cs.executeX();
 
                 if (cs.getIntX(16) == 0) {

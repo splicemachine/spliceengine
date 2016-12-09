@@ -18,6 +18,7 @@ package com.splicemachine.derby.impl.sql.actions.index;
 import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SchemaRule;
 import com.splicemachine.derby.test.framework.TableRule;
+import com.splicemachine.derby.test.framework.TestConnectionPool;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,9 +35,10 @@ import java.sql.Statement;
  *         Date: 6/29/16
  */
 public class PreparedIndexIT{
+    private static final TestConnectionPool connPool = new TestConnectionPool();
     private static final String SCHEMA = PreparedIndexIT.class.getSimpleName();
 
-    private final RuledConnection conn = new RuledConnection(null,false);
+    private final RuledConnection conn = new RuledConnection(connPool,false);
 
     private final TableRule table =new TableRule(conn,"T","(C INTEGER, LCK_NUM SMALLINT)");
     @Rule public TestRule ruleChain =RuleChain.outerRule(conn)

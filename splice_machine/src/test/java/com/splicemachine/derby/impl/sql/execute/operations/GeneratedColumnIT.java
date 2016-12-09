@@ -125,27 +125,32 @@ public class GeneratedColumnIT {
 
     private TableDAO tableDAO;
 
+    private TestConnection conn;
     @Before
     public void setUp() throws Exception {
-        tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+        conn = methodWatcher.getOrCreateConnection();
+        tableDAO = new TableDAO(conn);
     }
 
     @Test
     public void testCanInsertDefaultGeneratedData() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s", generatedDefaultTable));
-        List<String> results = Lists.newArrayList();
-        while(rs.next()){
-            Integer adrId = rs.getInt(1);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(String.format("select * from %s",generatedDefaultTable))){
+                List<String> results=Lists.newArrayList();
+                while(rs.next()){
+                    Integer adrId=rs.getInt(1);
 
-            Assert.assertTrue("No adr_id specified!",!rs.wasNull());
+                    Assert.assertTrue("No adr_id specified!",!rs.wasNull());
 //            Assert.assertTrue("adrId falls in incorrect range! adrId = "+ adrId,size <= adrId || size/2 >= adrId);
-            int addrCatId = rs.getInt(2);
-            results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
+                    int addrCatId=rs.getInt(2);
+                    results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
+                }
+                for(String result : results){
+                    LOG.warn(result);
+                }
+                assertEquals("Incorrect number of rows returned!",size,results.size());
+            }
         }
-        for(String result:results){
-            LOG.warn(result);
-        }
-        assertEquals("Incorrect number of rows returned!", size, results.size());
     }
 
 
@@ -154,20 +159,23 @@ public class GeneratedColumnIT {
        /*
         * Regression test for Bug 315. Make sure that the insertion which occurred during initialization is correct
         */
-        ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s", generatedAlwaysTableStartsWith10));
-        List<String> results = Lists.newArrayList();
-        while(rs.next()){
-            Integer adrId = rs.getInt(1);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(String.format("select * from %s",generatedAlwaysTableStartsWith10))){
+                List<String> results=Lists.newArrayList();
+                while(rs.next()){
+                    Integer adrId=rs.getInt(1);
 
-            Assert.assertTrue("No adr_id specified!",!rs.wasNull());
-            Assert.assertTrue("adr_id outside correct range!adrId = "+ adrId,10<=adrId);
-            int addrCatId = rs.getInt(2);
-            results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
+                    Assert.assertTrue("No adr_id specified!",!rs.wasNull());
+                    Assert.assertTrue("adr_id outside correct range!adrId = "+adrId,10<=adrId);
+                    int addrCatId=rs.getInt(2);
+                    results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
+                }
+                for(String result : results){
+                    LOG.debug(result);
+                }
+                assertEquals("Incorrect number of rows returned!",size+1,results.size());
+            }
         }
-        for(String result:results){
-            LOG.debug(result);
-        }
-        assertEquals("Incorrect number of rows returned!", size + 1, results.size());
     }
 
     @Test
@@ -175,20 +183,23 @@ public class GeneratedColumnIT {
        /*
         * Regression test for Bug 315. Make sure that the insertion which occurred during initialization is correct
         */
-        ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s", generatedAlwaysTableIncBy10));
-        List<String> results = Lists.newArrayList();
-        while(rs.next()){
-            Integer adrId = rs.getInt(1);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=methodWatcher.executeQuery(String.format("select * from %s",generatedAlwaysTableIncBy10))){
+                List<String> results=Lists.newArrayList();
+                while(rs.next()){
+                    Integer adrId=rs.getInt(1);
 
-            Assert.assertTrue("No adr_id specified!",!rs.wasNull());
-            Assert.assertTrue("(adrId-1)%10!=0, adrId="+adrId,(adrId-1)%10==0);
-            int addrCatId = rs.getInt(2);
-            results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
+                    Assert.assertTrue("No adr_id specified!",!rs.wasNull());
+                    Assert.assertTrue("(adrId-1)%10!=0, adrId="+adrId,(adrId-1)%10==0);
+                    int addrCatId=rs.getInt(2);
+                    results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
+                }
+                for(String result : results){
+                    LOG.debug(result);
+                }
+                assertEquals("Incorrect number of rows returned!",size,results.size());
+            }
         }
-        for(String result:results){
-            LOG.debug(result);
-        }
-        assertEquals("Incorrect number of rows returned!", size, results.size());
     }
 
     @Test
@@ -196,19 +207,22 @@ public class GeneratedColumnIT {
        /*
         * Regression test for Bug 315. Make sure that the insertion which occurred during initialization is correct
         */
-        ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s", generatedAlwaysTable));
-        List<String> results = Lists.newArrayList();
-        while(rs.next()){
-            Integer adrId = rs.getInt(1);
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(String.format("select * from %s",generatedAlwaysTable))){
+                List<String> results=Lists.newArrayList();
+                while(rs.next()){
+                    Integer adrId=rs.getInt(1);
 
-            Assert.assertTrue("No adr_id specified!",!rs.wasNull());
-            int addrCatId = rs.getInt(2);
-            results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
+                    Assert.assertTrue("No adr_id specified!",!rs.wasNull());
+                    int addrCatId=rs.getInt(2);
+                    results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
+                }
+                for(String result : results){
+                    LOG.debug(result);
+                }
+                assertEquals("Incorrect number of rows returned!",size,results.size());
+            }
         }
-        for(String result:results){
-            LOG.debug(result);
-        }
-        assertEquals("Incorrect number of rows returned!", size, results.size());
     }
 
     @Test
@@ -216,18 +230,21 @@ public class GeneratedColumnIT {
         // DB-3656: generated column does not get updated for insert
         String tableName = "words".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
-        tableDAO.drop(schemaWatcher.schemaName, tableName);
+        try(Statement s = conn.createStatement()){
+            tableDAO.drop(schemaWatcher.schemaName,tableName);
 
-        methodWatcher.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD GENERATED ALWAYS AS (UPPER(WORD)))",
-                                            tableRef));
-        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', " +
-                                                "'carrot'",
-                                            tableRef));
+            s.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD GENERATED ALWAYS AS (UPPER(WORD)))",
+                    tableRef));
+            s.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', "+
+                            "'carrot'",
+                    tableRef));
 
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
-        while (rs.next()) {
-            assertNotNull(rs.getString(2));
-            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s",tableRef))){
+                while(rs.next()){
+                    assertNotNull(rs.getString(2));
+                    assertEquals(rs.getString(1).toUpperCase(),rs.getString(2));
+                }
+            }
         }
 
     }
@@ -239,29 +256,34 @@ public class GeneratedColumnIT {
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
-        methodWatcher.execute(String.format("CREATE TABLE %s(COL1 INT, COL2 INT, COL3 GENERATED ALWAYS AS (COL1+COL2))",
-                                            tableRef));
-        methodWatcher.execute(String.format("INSERT INTO %s (COL1, COL2) VALUES (1,2), (3,4), (5,6)",
-                                            tableRef));
+        try(Statement s = conn.createStatement()){
+            s.execute(String.format("CREATE TABLE %s(COL1 INT, COL2 INT, COL3 GENERATED ALWAYS AS (COL1+COL2))",
+                    tableRef));
+            s.execute(String.format("INSERT INTO %s (COL1, COL2) VALUES (1,2), (3,4), (5,6)",
+                    tableRef));
 
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
-        while (rs.next()) {
-            int col3expected = rs.getInt(1) + rs.getInt(2);
-            assertEquals(col3expected, rs.getInt(3));
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s",tableRef))){
+                while(rs.next()){
+                    int col3expected=rs.getInt(1)+rs.getInt(2);
+                    assertEquals(col3expected,rs.getInt(3));
+                }
+            }
+
+            s.execute(String.format("UPDATE %s SET COL2 = 100 WHERE COL1 = 1",tableRef));
+
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s",tableRef))){
+                while(rs.next()){
+                    int col3expected=rs.getInt(1)+rs.getInt(2);
+                    assertEquals(col3expected,rs.getInt(3));
+                }
+            }
+
+            try(ResultSet rs=s.executeQuery(String.format("select col3 from %s where col2 = 100",tableRef))){
+                assertTrue(rs.next());
+                assertNotNull(rs.getInt(1));
+                assertEquals(101,rs.getInt(1));
+            }
         }
-
-        methodWatcher.execute(String.format("UPDATE %s SET COL2 = 100 WHERE COL1 = 1", tableRef));
-
-        rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
-        while (rs.next()) {
-            int col3expected = rs.getInt(1) + rs.getInt(2);
-            assertEquals(col3expected, rs.getInt(3));
-        }
-
-        rs = methodWatcher.executeQuery(String.format("select col3 from %s where col2 = 100",tableRef));
-        assertTrue(rs.next());
-        assertNotNull(rs.getInt(1));
-        assertEquals(101, rs.getInt(1));
     }
 
     @Test
@@ -271,30 +293,33 @@ public class GeneratedColumnIT {
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
-        methodWatcher.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) GENERATED ALWAYS AS (UPPER(WORD)))",
-                                            tableRef));
-        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', " +
-                                                "'carrot'",
-                                            tableRef));
+        try(Statement s = conn.createStatement()){
+            s.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) GENERATED ALWAYS AS (UPPER(WORD)))",
+                    tableRef));
+            s.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', "+
+                            "'carrot'",
+                    tableRef));
 
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
-        while (rs.next()) {
-            assertNotNull(rs.getString(2));
-            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
-        }
-        SpliceIndexWatcher.createIndex(methodWatcher.getOrCreateConnection(), schemaWatcher.schemaName, tableName,
-                                       "uword_idx", "(uword)", true);
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s",tableRef))){
+                while(rs.next()){
+                    assertNotNull(rs.getString(2));
+                    assertEquals(rs.getString(1).toUpperCase(),rs.getString(2));
+                }
+            }
+            SpliceIndexWatcher.createIndex(conn,schemaWatcher.schemaName,tableName, "uword_idx","(uword)",true);
 
-        rs = methodWatcher.executeQuery(String.format("select * from %s --SPLICE-PROPERTIES index = uword_idx \n" +
-                                                          "where uword = 'CARROT'", tableRef));
-        int n = 0;
-        while (rs.next()) {
-            assertNotNull(rs.getString(2));
-            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
-            assertEquals("CARROT", rs.getString(2));
-            n++;
+            try(ResultSet rs=s.executeQuery(String.format("select * from %s --SPLICE-PROPERTIES index = uword_idx \n"+
+                    "where uword = 'CARROT'",tableRef))){
+                int n=0;
+                while(rs.next()){
+                    assertNotNull(rs.getString(2));
+                    assertEquals(rs.getString(1).toUpperCase(),rs.getString(2));
+                    assertEquals("CARROT",rs.getString(2));
+                    n++;
+                }
+                assertEquals(1,n);
+            }
         }
-        assertEquals(1, n);
     }
 
     @Test
@@ -304,23 +329,25 @@ public class GeneratedColumnIT {
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
-        methodWatcher.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) unique not null GENERATED ALWAYS AS (UPPER(WORD)))",
-                                            tableRef));
-        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', 'carrot'",
-                                            tableRef));
+        try(Statement s = conn.createStatement()){
+            s.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) unique not null GENERATED ALWAYS AS (UPPER(WORD)))", tableRef));
+            s.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', 'carrot'",
+                    tableRef));
 
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
-        while (rs.next()) {
-            assertNotNull(rs.getString(2));
-            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
-        }
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s",tableRef))){
+                while(rs.next()){
+                    assertNotNull(rs.getString(2));
+                    assertEquals(rs.getString(1).toUpperCase(),rs.getString(2));
+                }
 
-        try {
-            methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'Chocolate'", tableRef));
-            fail("Expected unique constraint violation");
-        } catch (SQLException e) {
-            // expected
-            assertEquals("23505", e.getSQLState());
+                try{
+                    s.execute(String.format("INSERT INTO %s(WORD) VALUES 'Chocolate'",tableRef));
+                    fail("Expected unique constraint violation");
+                }catch(SQLException e){
+                    // expected
+                    assertEquals("23505",e.getSQLState());
+                }
+            }
         }
     }
 
@@ -331,23 +358,26 @@ public class GeneratedColumnIT {
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
-        methodWatcher.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) primary key GENERATED ALWAYS AS (UPPER(WORD)))",
-                                            tableRef));
-        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', 'carrot'",
-                                            tableRef));
+        try(Statement s = conn.createStatement()){
+            s.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) primary key GENERATED ALWAYS AS (UPPER(WORD)))",
+                    tableRef));
+            s.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', 'carrot'",
+                    tableRef));
 
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
-        while (rs.next()) {
-            assertNotNull(rs.getString(2));
-            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
-        }
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s",tableRef))){
+                while(rs.next()){
+                    assertNotNull(rs.getString(2));
+                    assertEquals(rs.getString(1).toUpperCase(),rs.getString(2));
+                }
+            }
 
-        try {
-            methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'Chocolate'", tableRef));
-            fail("Expected unique constraint violation");
-        } catch (SQLException e) {
-            // expected
-            assertEquals("23505", e.getSQLState());
+            try{
+                s.execute(String.format("INSERT INTO %s(WORD) VALUES 'Chocolate'",tableRef));
+                fail("Expected unique constraint violation");
+            }catch(SQLException e){
+                // expected
+                assertEquals("23505",e.getSQLState());
+            }
         }
     }
 
@@ -364,24 +394,27 @@ public class GeneratedColumnIT {
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
-        methodWatcher.execute(String.format("create table %s(c1 int generated always as identity(start with 1, increment by 1), c2 int)",
-                                            tableRef));
-        for (int i=0; i<15; i++) {
-            methodWatcher.execute(String.format("insert into %s(c2) values (8),(9)", tableRef));
-            methodWatcher.execute(String.format("insert into %s(c2) select c1 from %s", tableRef,tableRef));
-        }
-
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
-        Set<Integer> uniques = new HashSet<>();
-        int i=0;
-        while (rs.next()) {
-            i++;
-            if (uniques.contains(rs.getInt(1))) {
-                fail("Duplicate identity values at "+i+": "+rs.getInt(1));
+        try(Statement s = conn.createStatement()){
+            s.execute(String.format("create table %s(c1 int generated always as identity(start with 1, increment by 1), c2 int)",
+                    tableRef));
+            for(int i=0;i<15;i++){
+                s.execute(String.format("insert into %s(c2) values (8),(9)",tableRef));
+                s.execute(String.format("insert into %s(c2) select c1 from %s",tableRef,tableRef));
             }
-            uniques.add(rs.getInt(1));
+
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s",tableRef))){
+                Set<Integer> uniques=new HashSet<>();
+                int i=0;
+                while(rs.next()){
+                    i++;
+                    if(uniques.contains(rs.getInt(1))){
+                        fail("Duplicate identity values at "+i+": "+rs.getInt(1));
+                    }
+                    uniques.add(rs.getInt(1));
+                }
+                assertEquals("Expected "+i+" unique values but got "+uniques.size(),i,uniques.size());
+            }
         }
-        assertEquals("Expected "+i+" unique values but got "+ uniques.size(), i, uniques.size());
     }
 
     @Test
@@ -397,7 +430,6 @@ public class GeneratedColumnIT {
         // sequence.
         String tableName = "t2".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
-        TestConnection conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
         try(Statement s = conn.createStatement()){
             s.execute(String.format("create table %s(c1 int generated always as identity(start with 1,increment by 1), c2 int)", tableRef));
@@ -433,8 +465,9 @@ public class GeneratedColumnIT {
     }
 
     @Test
+    @Ignore("-sf- temporary")
     public void repeatedInsertUniqueSequence() throws Exception{
-        for(int i=0;i<10;i++){
+        for(int i=0;i<100;i++){
             testInsertGenerateUniqueSequencedData();
         }
     }
@@ -442,13 +475,16 @@ public class GeneratedColumnIT {
     @Test
     // DERBY-6346
     public void leftJoinGeneratedColumn() throws Exception {
-        methodWatcher.executeUpdate(String.format("insert into %s( c1 ) values ( 2 ), ( 20 )",tableE));
-        methodWatcher.executeUpdate(String.format("insert into %s( c1 ) values ( 2 ), ( 200 )",tableF));
-        ResultSet rs = methodWatcher.executeQuery(String.format("select * from %s left join %s on %s.c1 = %s.c1",tableF,tableE,tableE,tableF));
-        int i = 0;
-        while (rs.next())
-            i++;
-        Assert.assertEquals("Missing Rows",2,i);
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate(String.format("insert into %s( c1 ) values ( 2 ), ( 20 )",tableE));
+            s.executeUpdate(String.format("insert into %s( c1 ) values ( 2 ), ( 200 )",tableF));
+            try(ResultSet rs=s.executeQuery(String.format("select * from %s left join %s on %s.c1 = %s.c1",tableF,tableE,tableE,tableF))){
+                int i=0;
+                while(rs.next())
+                    i++;
+                Assert.assertEquals("Missing Rows",2,i);
+            }
+        }
     }
 
 }

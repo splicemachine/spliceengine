@@ -18,6 +18,7 @@ package com.splicemachine.management;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.mbeans.drda.NetworkServerMBean;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.utils.DatabasePropertyManagement;
 import com.splicemachine.hbase.jmx.JMXUtils;
@@ -39,6 +40,38 @@ import java.util.*;
  *         Date: 2/17/16
  */
 public class JmxDatabaseAdminstrator implements DatabaseAdministrator{
+    @Override
+    public Map<String, Collection<Integer>> getJDBCHostPortInfo() throws SQLException{
+        final Map<String,Collection<Integer>> retMap = new HashMap<>();
+        try(PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin()){
+            Collection<PartitionServer> partitionServers=admin.allServers();
+            Map<String,PartitionServer> serverHostMap = new HashMap<>(partitionServers.size());
+            for(PartitionServer ps:partitionServers){
+                serverHostMap.put(ps.getHostAndPort(),ps);
+            }
+            List<Pair<String,JMXConnector>> connections = null;
+            try{
+                connections = getConnections(partitionServers);
+                Map<String, Collection<NetworkServerMBean>> networkServer=JMXUtils.getNetworkServer(connections);
+                for(Map.Entry<String, Collection<NetworkServerMBean>> entry : networkServer.entrySet()){
+                    Collection<Integer> ports=new ArrayList<>(entry.getValue().size());
+                    for(NetworkServerMBean nsmb : entry.getValue()){
+                        ports.add(nsmb.getDrdaPortNumber());
+                    }
+
+                    retMap.put(serverHostMap.get(entry.getKey()).getHostname(),ports);
+                }
+            }finally{
+                if(connections!=null)
+                    close(connections);
+            }
+
+        }catch(IOException | MalformedObjectNameException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+        return retMap;
+    }
+
     @Override
     public void setLoggerLevel(final String loggerName,final String logLevel) throws SQLException{
         operate(new JMXServerOperation(){

@@ -15,11 +15,13 @@
 
 package com.splicemachine.derby.transactions;
 
+import com.splicemachine.db.client.cluster.Debuggable;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.Transactions;
+import com.splicemachine.util.StatementUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -79,53 +81,88 @@ public class DropTableTransactionIT{
     }
 
     @Test
+    @Ignore
+    public void repeatedTestDropTableIgnoredByOtherTransactions() throws Exception{
+        for(int i=0;i<100;i++){
+            System.out.println(i);
+            testDropTableIgnoredByOtherTransactions();
+        }
+    }
+
+    @Test
+//    @Ignore("SPLICE-1173")
     public void testDropTableIgnoredByOtherTransactions() throws Exception{
         //create the table here to make sure that it exists
 //        String table=schemaWatcher.schemaName+"."+createTable(conn1,1);
-        String table=createTable(conn1,1);
-        //roll forward the transactions in case they were created before the creation
-        conn1.commit();
-        conn2.commit();
+        String table="t1";
 
         //verify that the table is present for both --these will blow up if the create didn't work propertly
-        try(Statement s = conn1.createStatement()){
-            assertEquals("Data is mysteriously present!",0l,conn1.count(s,"select * from " + table));
-        }
+        try(Statement s1 = conn1.createStatement();
+            Statement s2 = conn2.createStatement() ){
+//            conn1.unwrap(Debuggable.class).logDebugInfo(java.util.logging.Level.INFO);
+//            conn2.unwrap(Debuggable.class).logDebugInfo(java.util.logging.Level.INFO);
+            s1.executeUpdate("drop table if exists "+table);
+            s1.executeUpdate("create table "+table+tableStructure);
+            //roll forward the transactions in case they were created before the creation
+            conn1.commit();
+            conn2.commit();
 
-        try(Statement s = conn2.createStatement()){
-            assertEquals("Data is mysteriously present!",0l,conn2.count(s,"select * from " + table));
+            assertEquals("Data is mysteriously present!",0L,StatementUtils.onlyLong(s1,"select count(*) from "+table));
+
+
+            assertEquals("Data is mysteriously present!",0L,conn2.count(s2,"select * from " + table));
 
             //make sure we can insert data BEFORE we drop the table
-            s.execute("insert into "+table+" values (1, 1)");
-            assertEquals("Unable to read data from dropped table!",1L,conn2.count(s,"select * from "+table));//+" where a=1"));
+            Assert.assertEquals("Incorrect row count!",1L,s2.executeUpdate("insert into "+table+" values (1, 1)"));
+            long count = StatementUtils.onlyLong(s2,"select count(*) from "+ table);
+            assertEquals("Unable to read data from dropped table!",1L,count);
+
+            conn2.commit();
+
+            // CONN1: issue the drop statement
+            s1.execute("drop table "+table);
+
+            // CONN2: now confirm that you can keep writing and reading data from the table
+            s2.execute("insert into "+table+" values (1, 1)");
+            count = StatementUtils.onlyLong(s2,"select count(*) from "+ table);
+            assertEquals("Unable to read data from dropped table!",2L,count);
+
+            // CONN1: commit
+            conn1.commit();
+
+            // CONN2: confirm we still can write and read from it
+            s2.execute("insert into "+table+" values (1, 1)");
+            count = StatementUtils.onlyLong(s2,"select count(*) from "+ table);
+            assertEquals("Unable to read data from dropped table!",3L,count);
+
+            conn2.commit();
         }
 
-        // CONN1: issue the drop statement
-        try(Statement s=conn1.createStatement()){
-            s.execute("drop table "+table);
-        }
 
-        // CONN2: now confirm that you can keep writing and reading data from the table
-        try(Statement s=conn2.createStatement()){
-            s.execute("insert into "+table+" values (1, 1)");
-            assertEquals("Unable to read data from dropped table!",2L,conn2.count(s,"select * from "+table+" where a=1"));
-        }
+//            assertEquals("Unable to read data from dropped table!",3L,conn2.count("select * from "+table+" where a=1"));
 //
-//        // CONN1: commit
-        conn1.commit();
 //
-//        // CONN2: confirm we still can write and read from it
-        try(Statement s=conn2.createStatement()){
-            s.execute("insert into "+table+" values (1, 1)");
-            assertEquals("Unable to read data from dropped table!",3L,conn2.count("select * from "+table+" where a=1"));
-        }
+//        try(Statement s=conn2.createStatement()){
+//        }
+//        conn2.rollback();
 //
 //        // CONN2: Commit. Table should be dropped to conn2 now
-        conn2.commit();
+//        conn2.commit();
 //
 //        // CONN2: we shouldn't be able to see the table now
         assertQueryFail(conn2,"insert into "+table+" values (1,1)",SQLState.LANG_TABLE_NOT_FOUND);
         assertQueryFail(conn2,"select * from "+table,SQLState.LANG_TABLE_NOT_FOUND);
+    }
+
+    private String safeCreateTable(TestConnection conn, int tableNumber) throws SQLException{
+        try(Statement s = conn.createStatement()){
+           s.executeUpdate("create table t"+tableNumber+tableStructure);
+        }catch(SQLException se){
+            if(!"X0Y32".equals(se.getSQLState())){
+               throw se;
+            }
+        }
+        return "t"+tableNumber;
     }
 
     private String createTable(TestConnection conn,int initialTableNumber) throws SQLException{
@@ -138,7 +175,7 @@ public class DropTableTransactionIT{
                     s.executeUpdate("create table "+tableName+tableStructure);
                     return tableName;
                 }catch(SQLException se){
-                    if("X0Y68".equals(se.getSQLState())){
+                    if("X0Y32".equals(se.getSQLState()) || "X0Y68".equals(se.getSQLState())){
                         tn+=7;
                     }else throw se;
                 }
@@ -149,7 +186,7 @@ public class DropTableTransactionIT{
     @Test
     public void testDropTableRollback() throws Exception{
         //create the table here to make sure that it exists
-        String table=createTable(conn1,2);
+        String table=safeCreateTable(conn1,2);
         //roll forward the transactions in case they were created before the creation
         conn1.commit();
         conn2.commit();
@@ -170,13 +207,13 @@ public class DropTableTransactionIT{
         }
 
         long count=conn1.count("select * from "+table+" where a="+aInt);
-        assertEquals("Unable to read data from dropped table!",1l,count);
+        assertEquals("Unable to read data from dropped table!",1L,count);
     }
 
     @Test
     public void testCanDropUnrelatedTablesConcurrently() throws Exception{
-        String t1=createTable(conn1,3);
-        String t2=createTable(conn1,4);
+        String t1=safeCreateTable(conn1,3);
+        String t2=safeCreateTable(conn1,4);
 //        new SpliceTableWatcher("t",schemaWatcher.schemaName,"(a int unique not null, b int)").start();
 //        new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(a int unique not null, b int)").start();
         conn1.commit();
@@ -201,7 +238,7 @@ public class DropTableTransactionIT{
 
     @Test
     public void testDroppingSameTableGivesWriteWriteConflict() throws Exception{
-        String t=createTable(conn1,5);
+        String t=safeCreateTable(conn1,5);
 //        new SpliceTableWatcher("t3",schemaWatcher.schemaName,"(a int unique not null, b int)").start();
         conn1.commit();
         conn2.commit(); //roll both connections forward to ensure visibility
@@ -239,7 +276,7 @@ public class DropTableTransactionIT{
          *
          * and make sure that there is no error.
          */
-        String table= createTable(conn1,9);
+        String table= safeCreateTable(conn1,9);
         conn1.commit();
 
         try(Statement s =conn1.createStatement()){
@@ -266,7 +303,7 @@ public class DropTableTransactionIT{
          *
          * and make sure that there is no error.
          */
-        String table= createTable(conn1,10);
+        String table= safeCreateTable(conn1,10);
 
         try(Statement s =conn1.createStatement()){
             s.execute("drop table "+ table);

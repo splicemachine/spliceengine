@@ -85,11 +85,6 @@ public class NetStatement implements com.splicemachine.db.client.am.MaterialStat
                 netConnection);
     }
 
-    void netReset(NetAgent netAgent, NetConnection netConnection) throws SqlException {
-        statement_.resetStatement(netAgent, netConnection);
-        resetNetStatement(statement_, netAgent, netConnection);
-    }
-
     public void reset_() {
         qryrowsetSentOnOpnqry_ = false;
     }

@@ -15,7 +15,9 @@
 
 package com.splicemachine.derby.test.framework;
 
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -24,28 +26,44 @@ import java.sql.SQLException;
 public class TestConnectionPool{
     private ConnectionHolder currentConnection;
 
+    public TestConnection getConnection() throws SQLException{
+        return getConnection(SpliceNetConnection.DEFAULT_USER,SpliceNetConnection.DEFAULT_USER_PASSWORD);
+    }
+
     public TestConnection getConnection(String user, String pwd) throws SQLException{
+        String url = String.format(SpliceNetConnection.DB_URL_LOCAL,user,pwd);
+        return getConnection(url);
+    }
+
+    public TestConnection getConnection(String url) throws SQLException{
         if(currentConnection!=null){
-            if(currentConnection.isValid() && currentConnection.matches(user))
+            if(currentConnection.isValid() && currentConnection.matches(url))
                 return currentConnection.conn;
 
             currentConnection.conn.close();
         }
-        currentConnection = new ConnectionHolder(user,pwd);
+        currentConnection = new ConnectionHolder(url);
         return currentConnection.conn;
+    }
+
+    public void close() throws SQLException{
+        if(currentConnection!=null){
+            currentConnection.conn.close();
+        }
+
     }
 
     private static class ConnectionHolder{
         final TestConnection conn;
-        private final String  user;
+        private final String url;
 
-        public ConnectionHolder(String user,String pwd) throws SQLException{
-            this.user=user;
-            this.conn = new TestConnection(SpliceNetConnection.getConnectionAs(user,pwd));
+        ConnectionHolder(String url) throws SQLException{
+            this.url = url;
+            this.conn = new TestConnection(DriverManager.getConnection(url,new Properties()));
         }
 
-        public boolean matches(String user){
-            return this.user.equals(user);
+        boolean matches(String url){
+            return this.url.equals(url);
         }
 
         boolean isValid() throws SQLException{

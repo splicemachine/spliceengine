@@ -82,7 +82,7 @@ public interface NetworkServerMBean {
      * @return the the network interface address on which the Network Server is 
      *         listening (<code>db.drda.host</code>)
      */
-    public String getDrdaHost();
+    String getDrdaHost();
     
     /**
      * <p>
@@ -107,7 +107,7 @@ public interface NetworkServerMBean {
      *         probes and attempt to clean up connections for disconnected 
      *         clients (<code>db.drda.keepAlive</code>)
      */
-    public boolean getDrdaKeepAlive();
+    boolean getDrdaKeepAlive();
     
     /**
      * <p>
@@ -122,7 +122,7 @@ public interface NetworkServerMBean {
      *         Server will allocate at any given time 
      *         (<code>db.drda.maxThreads</code>)
      */
-    public int getDrdaMaxThreads();
+    int getDrdaMaxThreads();
     //public void setDrdaMaxThreads(int max) throws Exception;
     
     /**
@@ -137,7 +137,7 @@ public interface NetworkServerMBean {
      * @return the port number on which the Network Server is listening
      *         for client connections.
      */
-    public int getDrdaPortNumber();
+    int getDrdaPortNumber();
     
     /**
      * <p>

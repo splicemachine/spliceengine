@@ -3,6 +3,7 @@ package com.splicemachine.subquery;
 import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SchemaRule;
 import com.splicemachine.derby.test.framework.TableRule;
+import com.splicemachine.derby.test.framework.TestConnectionPool;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,7 +21,8 @@ import java.sql.Statement;
  */
 public class Subquery_Flattening_Join_IT{
 
-    public RuledConnection conn = new RuledConnection(null,true);
+    private static final TestConnectionPool connPool = new TestConnectionPool();
+    private final RuledConnection conn = new RuledConnection(connPool,true);
 
     public SchemaRule schema = new SchemaRule(conn,Subquery_Flattening_Join_IT.class.getSimpleName().toUpperCase());
 

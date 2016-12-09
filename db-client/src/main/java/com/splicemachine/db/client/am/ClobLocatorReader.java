@@ -40,7 +40,8 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
  * this.  A more efficient skip implementation should also be
  * straight-forward.
  */
-public class ClobLocatorReader extends java.io.Reader {
+@SuppressWarnings("NullableProblems")
+class ClobLocatorReader extends java.io.Reader {
     /**
      * Connection used to read Clob from server.
      */
@@ -79,8 +80,7 @@ public class ClobLocatorReader extends java.io.Reader {
      * @param clob <code>Clob</code> object that contains locator for
      *        the <code>Clob</code> value on the server.
      */
-    public ClobLocatorReader(Connection connection, Clob clob)
-    throws SqlException {
+    ClobLocatorReader(Connection connection,Clob clob) throws SqlException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(clob.isLocator());
         }
@@ -109,8 +109,7 @@ public class ClobLocatorReader extends java.io.Reader {
      *            retrieved.
      * @param len The length in characters of the partial value to be retrieved.
      */
-    public ClobLocatorReader(Connection connection, Clob clob, 
-            long pos, long len) throws SqlException {
+    ClobLocatorReader(Connection connection,Clob clob, long pos,long len) throws SqlException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(clob.isLocator());
         }
@@ -207,7 +206,7 @@ public class ClobLocatorReader extends java.io.Reader {
             //based on the value of the current position
             //in the stream(currentPos) and the length of
             //the stream.
-            int actualLength = -1;
+            int actualLength;
             //check if maxPos has been set and calculate actualLength
             //based on that.
             if(maxPos != -1) {
@@ -230,9 +229,7 @@ public class ClobLocatorReader extends java.io.Reader {
             currentPos += result.length;
             return result;
         } catch (SqlException ex) {
-            IOException ioEx = new IOException();
-            ioEx.initCause(ex);
-            throw ioEx;
+            throw new IOException(ex);
         }
     }
 }

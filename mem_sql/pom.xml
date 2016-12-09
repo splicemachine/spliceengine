@@ -191,6 +191,9 @@
                                 <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
+                            <systemProperties>
+                                <property><name>architecture.name</name><value>mem</value></property>
+                            </systemProperties>
                         </configuration>
                     </execution>
                     <execution>
@@ -219,6 +222,9 @@
                                 <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
+                            <systemProperties>
+                                <property><name>architecture.name</name><value>mem</value></property>
+                            </systemProperties>
                         </configuration>
                     </execution>
                 </executions>

@@ -15,6 +15,7 @@
 
 package com.splicemachine.management;
 
+import com.splicemachine.access.api.SConfiguration;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -32,6 +33,13 @@ import java.util.*;
  */
 public class DirectDatabaseAdministrator implements DatabaseAdministrator{
     private final Logging logging = new LogManager();
+
+    @Override
+    public Map<String, Collection<Integer>> getJDBCHostPortInfo() throws SQLException{
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        int port =configuration.getNetworkBindPort();
+        return Collections.singletonMap("localhost",Collections.singleton(port));
+    }
 
     @Override
     public void setLoggerLevel(String loggerName,String logLevel) throws SQLException{

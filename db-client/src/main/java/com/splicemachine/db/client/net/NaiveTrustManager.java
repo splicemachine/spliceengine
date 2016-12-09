@@ -89,11 +89,11 @@ public class NaiveTrustManager
                 System.getProperty("javax.net.ssl.keyStorePassword");
             
             KeyStore ks = KeyStore.getInstance("JKS");
-            ks.load(new FileInputStream(keyStore),
-                    keyStorePassword.toCharArray());
+            try(FileInputStream fis = new FileInputStream(keyStore)){
+                ks.load(fis, keyStorePassword.toCharArray());
+            }
             
-            KeyManagerFactory kmf = 
-                KeyManagerFactory.getInstance("SunX509", "SunJSSE");
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509", "SunJSSE");
             kmf.init(ks, keyStorePassword.toCharArray());
 
             ctx.init(kmf.getKeyManagers(),
@@ -115,10 +115,7 @@ public class NaiveTrustManager
      * @param chain The client's certificate chain
      * @param authType authorization type (e.g. "RSA" or "DHE_DSS")
      **/
-    public void checkClientTrusted(X509Certificate[] chain, 
-                                   String authType)
-        throws CertificateException
-    {
+    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         // Reject all attemtpts to trust a client. We should never end
         // up here.
         throw new CertificateException();

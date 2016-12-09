@@ -21,6 +21,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.utils.Pair;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -114,20 +115,38 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_GET_ACTIVE_SERVERS(ResultSet[] resultSet) throws SQLException{
-        StringBuilder sb=new StringBuilder("select * from (values ");
-        int i=0;
-        for(PartitionServer serverName : getLoad()){
-            if(i!=0){
-                sb.append(", ");
+
+        ResultSetBuilder rsBuilder;
+        try{
+            rsBuilder = new ResultSetBuilder();
+            rsBuilder.getColumnBuilder()
+                    .addColumn("HOST",Types.VARCHAR,1024)
+                    .addColumn("JDBC_PORT",Types.BIGINT)
+                    .addColumn("HBASE_PORT",Types.VARCHAR,1024)
+                    .addColumn("STARTCODE",Types.BIGINT);
+
+            RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+            Map<String,Collection<Integer>> jdbcInfo = EngineDriver.driver().dbAdministrator().getJDBCHostPortInfo();
+            Collection<PartitionServer> load=getLoad();
+            Map<String,Pair<PartitionServer,Integer>> rows = new HashMap<>(jdbcInfo.size());
+            for(PartitionServer ps :load){
+                String host = ps.getHostname();
+                Collection<Integer> post = jdbcInfo.get(host);
+                if(post==null) continue; //skip hbase servers which do not have JDBC running
+                rowBuilder.getDvd(0).setValue(host);
+                rowBuilder.getDvd(2).setValue(ps.getPort());
+                rowBuilder.getDvd(3).setValue(ps.getStartupTimestamp());
+                for(int i:post){
+                    rowBuilder.getDvd(1).setValue(i);
+                    rowBuilder.addRow();
+                }
             }
-            sb.append(String.format("('%s',%d,%d)",
-                    serverName.getHostname(),
-                    serverName.getPort(),
-                    serverName.getStartupTimestamp()));
-            i++;
+
+            resultSet[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+
+        }catch(StandardException e){
+            throw PublicAPI.wrapStandardException(e);
         }
-        sb.append(") foo (hostname, port, startcode)");
-        resultSet[0]=executeStatement(sb);
     }
 
     public static void SYSCS_GET_VERSION_INFO(final ResultSet[] resultSet) throws SQLException{

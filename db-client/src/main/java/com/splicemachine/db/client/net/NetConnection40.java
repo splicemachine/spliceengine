@@ -42,6 +42,7 @@ import java.util.concurrent.Executor;
 import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.am.ClientMessageId;
 import com.splicemachine.db.client.am.FailedProperties40;
+import com.splicemachine.db.client.cluster.ClientErrors;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnection {
@@ -174,7 +175,7 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
         if (timeout < 0) {
             throw new SqlException(agent_.logWriter_,
                                new ClientMessageId(SQLState.INVALID_API_PARAMETER),
-                               new Integer(timeout), "timeout",
+                    timeout, "timeout",
                                "java.sql.Connection.isValid" ).getSQLException();
         }
 
@@ -185,10 +186,9 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
 
         // Do a simple query against the database
         synchronized(this) {
+            // Save the current network timeout value
+            int oldTimeout = netAgent_.getTimeout();
             try {
-                // Save the current network timeout value
-                int oldTimeout = netAgent_.getTimeout();
-
                 // Set the required timeout value on the network connection
                 netAgent_.setTimeout(timeout);
 
@@ -205,14 +205,19 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
                 ResultSet rs = isValidStmt.executeQuery();
                 rs.close();
 
-                // Restore the previous timeout value
-                netAgent_.setTimeout(oldTimeout);
             } catch(SQLException e) {
                 // If an SQL exception is thrown the connection is not valid,
                 // we ignore the exception and return false.
-                return false;
+                if(!ClientErrors.isNetworkError(e)){
+                    isValidStmt.close();
+                    isValidStmt = null;
+                    return isValid(timeout);
+                }
+            }finally{
+                // Restore the previous timeout value
+                netAgent_.setTimeout(oldTimeout);
             }
-	 }
+        }
 
         return true;  // The connection is valid
     }
