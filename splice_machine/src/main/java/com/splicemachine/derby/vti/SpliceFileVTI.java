@@ -17,6 +17,7 @@ package com.splicemachine.derby.vti;
 
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
@@ -35,6 +36,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -91,10 +93,12 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         this.timestampFormat = timestampFormat;
     }
 
-    public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex, String timeFormat, String dateTimeFormat, String timestampFormat, String oneLineRecords, String charset) {
+    public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex, String timeFormat, String dateTimeFormat, String timestampFormat, String oneLineRecords, String charset) throws StandardException {
         this(fileName, characterDelimiter, columnDelimiter,columnIndex,timeFormat,dateTimeFormat,timestampFormat);
         this.oneLineRecords = Boolean.parseBoolean(oneLineRecords);
         this.charset = charset;
+        if (!Charset.isSupported(charset))
+            throw StandardException.newException(SQLState.UNSUPPORTED_ENCODING_EXCEPTION,charset);
     }
 
     public static DatasetProvider getSpliceFileVTI(String fileName) {
