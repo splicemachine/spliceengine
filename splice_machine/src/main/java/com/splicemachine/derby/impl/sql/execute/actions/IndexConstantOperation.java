@@ -16,10 +16,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
+import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.storage.PartitionLoad;
 import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
@@ -41,6 +43,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.concurrent.TimeoutException;
 import java.util.List;
 
@@ -145,9 +148,19 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 					rowDecodingMap[i] = baseColumnMap[i];
 			}
 
-            DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
 
-
+			String table = Long.toString(tentativeIndex.getTable().getConglomerate());
+			Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,false);
+			boolean distributed = false;
+			for (PartitionLoad load: partitionLoadCollection) {
+				if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
+					distributed = true;
+			}
+			DataSetProcessor dsp;
+			if (distributed)
+	            dsp =EngineDriver.driver().processorFactory().distributedProcessor();
+			else
+				dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
 
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
 			ScanSetBuilder<LocatedRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
@@ -172,7 +185,10 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			String prefix = StreamUtils.getScopeString(this);
 			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 			String jobGroup = userId + " <" +indexTransaction.getTxnId() +">";
-			EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix, tentativeIndex, indexFormatIds));
+			if (distributed)
+				EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix, tentativeIndex, indexFormatIds));
+			else
+				PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,indexFormatIds,scope,childTxn);
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
