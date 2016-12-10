@@ -1491,9 +1491,10 @@ class DDMWriter
 		// the 6 byte dss header located at the beginning of the dss.	It does not
 		// include the length of any continuation headers.
 		int totalSize = offset - dssLengthLocation;
-		
-		SanityManager.DEBUG_PRINT("COMPRESS", "agent.canCompress() " + agent.canCompress());
-		SanityManager.DEBUG_PRINT("COMPRESS", "totalSize " + totalSize);
+		if (SanityManager.DEBUG) {
+			SanityManager.DEBUG_PRINT("COMPRESS", "agent.canCompress() " + agent.canCompress());
+			SanityManager.DEBUG_PRINT("COMPRESS", "totalSize " + totalSize);
+		}
 		if(agent.canCompress() && (totalSize > DssConstants.MAX_DSS_LENGTH)) 
 		{
 			// use snappy compression
