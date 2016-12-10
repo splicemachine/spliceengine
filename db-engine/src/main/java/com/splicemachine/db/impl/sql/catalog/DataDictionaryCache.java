@@ -132,6 +132,7 @@ public class DataDictionaryCache {
         if (LOG.isDebugEnabled())
             LOG.debug("nameTdCacheAdd " + tableKey + " : " + td);
         nameTdCache.put(tableKey,td);
+        oidTdCache.put(td.getUUID(),td);
     }
 
     public TableDescriptor nameTdCacheRemove(TableKey tableKey) throws StandardException {
