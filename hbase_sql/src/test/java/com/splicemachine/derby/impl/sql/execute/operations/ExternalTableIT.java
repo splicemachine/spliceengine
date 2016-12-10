@@ -223,7 +223,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadNullValues() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"simple_parquet";
+        String tablePath = getExternalResourceDirectory()+"null_test";
         methodWatcher.executeUpdate(String.format("create external table null_test (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into null_test values (1,null)," +
