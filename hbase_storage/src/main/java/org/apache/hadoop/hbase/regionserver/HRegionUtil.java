@@ -47,7 +47,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 /**
  * Class for accessing protected methods in HBase.
  *
- * @author johnleach
  */
 public class HRegionUtil extends BaseHRegionUtil{
     private static final Logger LOG=Logger.getLogger(HRegionUtil.class);

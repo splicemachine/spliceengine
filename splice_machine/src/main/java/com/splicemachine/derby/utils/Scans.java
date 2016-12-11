@@ -37,7 +37,6 @@ import com.carrotsearch.hppc.BitSet;
  * Utility methods and classes related to building HBase Scans
  *
  * @author jessiezhang
- * @author johnleach
  * @author Scott Fines
  *         Created: 1/24/13 10:50 AM
  */

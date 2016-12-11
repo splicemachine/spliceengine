@@ -24,8 +24,7 @@ import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 /**
- * TODO
- * @author johnleach
+ *
  *
  */
 public class SpliceIndexWatcher extends TestWatcher {

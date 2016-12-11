@@ -55,7 +55,6 @@ import java.util.*;
  * Class utilized to serialize the Activation and related elments for Spark.  It attaches the
  * GenericStorablePreparedStatement and the Top Operation.
  *
- * @author johnleach
  */
 public class SpliceObserverInstructions implements Externalizable{
     private static final long serialVersionUID=4l;

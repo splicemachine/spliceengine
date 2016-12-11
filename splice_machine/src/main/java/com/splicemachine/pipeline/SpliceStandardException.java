@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.error.StandardException;
  * 
  * Serializes the key elements of a Derby Standard Exception
  * 
- * @author John Leach
  * @see com.splicemachine.db.iapi.error.StandardException
  *
  */
