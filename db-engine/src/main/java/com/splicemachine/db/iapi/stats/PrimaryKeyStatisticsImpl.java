@@ -101,7 +101,7 @@ public class PrimaryKeyStatisticsImpl implements ItemStatistics<ExecRow> {
 
     @Override
     public String toString() {
-        return String.format("PrimaryKeyStatistics{quantiles=%s}",nullCount,quantilesSketch.toString(true,false));
+        return String.format("PrimaryKeyStatistics{quantiles=%s}",quantilesSketch.toString(true,false));
     }
 
     @Override
