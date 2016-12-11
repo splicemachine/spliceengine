@@ -296,7 +296,7 @@ class BinaryRelationalOperatorNodeUtil {
     /**
      * Indicates which side the column reference is on
      */
-    private static enum ColumnSide {
+    private enum ColumnSide {
         LEFT,
         RIGHT
     }

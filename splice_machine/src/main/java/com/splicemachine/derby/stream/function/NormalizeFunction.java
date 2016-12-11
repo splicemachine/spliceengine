@@ -42,16 +42,6 @@ public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation,
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-    }
-
-    @Override
     public Iterator<LocatedRow> call(LocatedRow sourceRow) throws Exception {
 
         NormalizeOperation normalize = operationContext.getOperation();

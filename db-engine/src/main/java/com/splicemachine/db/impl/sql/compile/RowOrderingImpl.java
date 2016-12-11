@@ -31,7 +31,6 @@ import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class RowOrderingImpl implements RowOrdering{

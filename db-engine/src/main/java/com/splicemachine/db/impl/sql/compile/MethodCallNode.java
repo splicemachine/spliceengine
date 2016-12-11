@@ -38,7 +38,6 @@ import com.splicemachine.db.iapi.types.JSQLType;
 
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 

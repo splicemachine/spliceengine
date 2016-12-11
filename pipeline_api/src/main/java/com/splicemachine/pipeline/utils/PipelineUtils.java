@@ -28,7 +28,6 @@ import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
 
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author Scott Fines

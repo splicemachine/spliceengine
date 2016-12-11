@@ -16,16 +16,11 @@
 package com.splicemachine.stream;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;

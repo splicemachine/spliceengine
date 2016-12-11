@@ -42,16 +42,6 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-    }
-
-    @Override
     public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
         if (!initialized) {
             op = (GenericAggregateOperation) getOperation();

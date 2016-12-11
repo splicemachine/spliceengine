@@ -1228,7 +1228,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 
             private final int storedFormatId;
 
-            private Format(int storedFormatId) {
+            Format(int storedFormatId) {
                 this.storedFormatId = storedFormatId;
             }
             

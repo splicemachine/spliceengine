@@ -1,7 +1,6 @@
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.backup.BackupSystemProcedures;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;

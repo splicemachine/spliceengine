@@ -25,24 +25,6 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.i18n.MessageService;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import org.joda.time.DateTime;
-import java.io.InputStream;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.ResultSet;
-import java.sql.RowId;
-import java.util.Calendar;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-
 /**
  *
  * NullValueData provides a standard way for data types and number types

@@ -46,6 +46,8 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.catalog.UUID;
 
+import java.util.Collections;
+
 /**
  * A CreateViewNode is the root of a QueryTree that represents a CREATE VIEW
  * statement.
@@ -483,8 +485,7 @@ public class CreateViewNode extends DDLStatementNode
 
 		// add columns to the column descriptor list.
 		ColumnDescriptorList cdl = td.getColumnDescriptorList();
-		for (int i = 0; i < cdlArray.length; i++)
-			cdl.add(cdlArray[i]);
+		Collections.addAll(cdl, cdlArray);
 
 		ViewDescriptor vd = ddg.newViewDescriptor(toid, getRelativeName(), "create view " + getRelativeName() + " " + qeText, checkOption, sd.getUUID());
 		td.setViewDescriptor(vd);

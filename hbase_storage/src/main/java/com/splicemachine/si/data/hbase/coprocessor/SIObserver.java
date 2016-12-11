@@ -24,10 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
-import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;

@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.error.StandardException;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Collections;
 import java.util.Vector;
 import java.util.HashSet;
 import java.util.Properties;
@@ -534,7 +535,7 @@ public abstract class IdUtil
 	{
 		if (l1 == null || l2 == null) return null;
 		HashSet h = new HashSet();
-		for(int ix=0;ix<l2.length;ix++) h.add(l2[ix]); 
+		Collections.addAll(h, l2);
 		Vector v = new Vector();
 		for(int ix=0;ix<l1.length;ix++) if (h.contains(l1[ix])) v.add(l1[ix]);
 		return vectorToIdList(v,true); 

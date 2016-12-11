@@ -46,16 +46,6 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-    }
-
-    @Override
     public Iterator<LocatedRow> call(Tuple2<ExecRow, Iterable<LocatedRow>> tuple) throws Exception {
         Iterable<LocatedRow> locatedRows = tuple._2();
         List<LocatedRow> partitionRows =new ArrayList<>();

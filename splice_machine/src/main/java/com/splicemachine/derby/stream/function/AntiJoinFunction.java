@@ -36,16 +36,6 @@ public class AntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinFunc
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-    }
-
-    @Override
     public LocatedRow call(LocatedRow inputRow) throws Exception {
         checkInit();
         LocatedRow lr = new LocatedRow(inputRow.getRowLocation(),JoinUtils.getMergedRow(inputRow.getRow(),

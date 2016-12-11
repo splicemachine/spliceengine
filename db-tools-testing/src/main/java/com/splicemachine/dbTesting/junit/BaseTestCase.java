@@ -49,6 +49,7 @@ import java.security.PrivilegedExceptionAction;
 
 import java.security.PrivilegedActionException;
 import java.util.ArrayList;
+import java.util.Collections;
 
 
 /**
@@ -565,9 +566,7 @@ public abstract class BaseTestCase
 
 	    cmdlist.add("-classpath");
 	    cmdlist.add(getSystemProperty("java.class.path"));
-	    for (int i =0; i < cmd.length;i++) {
-	        cmdlist.add(cmd[i]);
-	    }
+        Collections.addAll(cmdlist, cmd);
 	    final String[] command = (String[]) cmdlist.toArray(cmd);
 	    println("execute java command:");
 	    for (int i = 0; i < command.length; i++) {

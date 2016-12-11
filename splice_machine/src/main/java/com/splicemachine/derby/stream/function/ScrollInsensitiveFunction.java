@@ -36,15 +36,7 @@ public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, L
         public ScrollInsensitiveFunction(OperationContext<SpliceOperation> operationContext) {
             super(operationContext);
         }
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            super.writeExternal(out);
-        }
 
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            super.readExternal(in);
-        }
         @Override
         public LocatedRow call(LocatedRow locatedRow) throws Exception {
             if (!initialized) {

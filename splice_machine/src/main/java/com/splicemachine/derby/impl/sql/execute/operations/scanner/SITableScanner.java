@@ -40,7 +40,6 @@ import com.splicemachine.si.impl.txn.DDLTxnView;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.storage.*;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

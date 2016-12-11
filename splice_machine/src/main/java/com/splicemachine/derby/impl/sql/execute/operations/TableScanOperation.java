@@ -41,7 +41,7 @@ import com.splicemachine.db.impl.sql.compile.FromTable;
 
 /**
  *
- * Base Operation for scanning either and index or a base table.
+ * Base Operation for scanning either and index, base table, or an external table.
  *
  */
 public class TableScanOperation extends ScanOperation{
@@ -109,6 +109,13 @@ public class TableScanOperation extends ScanOperation{
      * @param optimizerEstimatedRowCount
      * @param optimizerEstimatedCost
      * @param tableVersion
+     * @param delimited
+     * @param escaped
+     * @param lines
+     * @param location
+     * @param pin
+     * @param storedAs
+     *
      * @throws StandardException
      */
     @SuppressWarnings("UnusedParameters")
@@ -168,8 +175,6 @@ public class TableScanOperation extends ScanOperation{
      *
      * Serialization/Deserialization
      *
-     * TODO SPLICE-716
-     *
      * @param in
      * @throws IOException
      * @throws ClassNotFoundException
@@ -188,8 +193,6 @@ public class TableScanOperation extends ScanOperation{
     /**
      *
      * Serialization/Deserialization
-     *
-     * TODO SPLICE-716
      *
      * @param out
      * @throws IOException

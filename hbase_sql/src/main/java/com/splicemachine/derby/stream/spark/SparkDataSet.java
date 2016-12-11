@@ -46,6 +46,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.Column;
@@ -81,12 +82,29 @@ public class SparkDataSet<V> implements DataSet<V> {
         this.rdd = rdd;
         if (rdd != null && rddname != null) this.rdd.setName(rddname);
     }
-
+    /**
+     *
+     * Execute the job and materialize the results as a List.  Be careful, all
+     * data must be held in memory.
+     *
+     * @return
+     */
     @Override
     public List<V> collect() {
         return rdd.collect();
     }
 
+    /**
+     *
+     * Perform the execution asynchronously and returns a Future<List>.  Be careful, all
+     * data must be held in memory.
+     *
+     * @param isLast
+     * @param context
+     * @param pushScope
+     * @param scopeDetail
+     * @return
+     */
     @Override
     public Future<List<V>> collectAsync(boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         if (pushScope) SpliceSpark.pushScope(scopeDetail);
@@ -97,11 +115,32 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
     }
 
+    /**
+     *
+     * Wraps a function on an entire partition.
+     *
+     * @see JavaRDD#mapPartitions(FlatMapFunction)
+     *
+     * @param f
+     * @param <Op>
+     * @param <U>
+     * @return
+     */
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
         return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)),f.getSparkName());
     }
 
+    /**
+     *
+     * Wraps a function on an entire partition.  IsLast is used for visualizing results.
+     *
+     * @param f
+     * @param isLast
+     * @param <Op>
+     * @param <U>
+     * @return
+     */
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
         return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)), planIfLast(f, isLast));
@@ -117,6 +156,13 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
     }
 
+    /**
+     *
+     *
+     * @see JavaRDD#distinct()
+     *
+     * @return
+     */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct() {

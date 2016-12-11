@@ -19,7 +19,6 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.pipeline.client.BulkWrites;
-import com.splicemachine.pipeline.client.BulkWritesResult;
 import com.splicemachine.pipeline.client.PipelineEncoding;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.utils.kryo.KryoPool;

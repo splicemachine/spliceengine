@@ -42,6 +42,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import java.util.Collections;
+
 /**
  *	This class  describes actions that are ALWAYS performed for a
  *	CREATE VIEW Statement at Execution time.
@@ -183,8 +185,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 
 		// add columns to the column descriptor list.
 		ColumnDescriptorList cdl = td.getColumnDescriptorList();
-		for (int i = 0; i < cdlArray.length; i++)
-			cdl.add(cdlArray[i]);
+		Collections.addAll(cdl, cdlArray);
 
 		/* Get and add a view descriptor */
 		vd = ddg.newViewDescriptor(toid, tableName, viewText, 

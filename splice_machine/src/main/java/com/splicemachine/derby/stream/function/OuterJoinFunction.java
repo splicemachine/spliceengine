@@ -40,16 +40,6 @@ public class OuterJoinFunction<Op extends SpliceOperation> extends SpliceJoinFun
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-    }
-
-    @Override
     public LocatedRow call(Tuple2<LocatedRow, Optional<LocatedRow>> tuple) throws Exception {
         checkInit();
         LocatedRow lr;

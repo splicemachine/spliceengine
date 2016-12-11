@@ -145,7 +145,7 @@ public class TruncateFunctionUtil {
     /**
      * Possible truncate constants.
      */
-    public static enum DateTruncValue {
+    public enum DateTruncValue {
         YEAR,
         YR,
 

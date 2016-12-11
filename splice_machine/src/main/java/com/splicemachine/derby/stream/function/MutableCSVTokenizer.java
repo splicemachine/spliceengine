@@ -16,7 +16,6 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.stream.utils.BooleanList;
-import org.supercsv.io.Tokenizer;
 import org.supercsv.prefs.CsvPreference;
 
 import java.io.IOException;

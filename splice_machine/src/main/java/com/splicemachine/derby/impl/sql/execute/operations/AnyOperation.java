@@ -126,12 +126,11 @@ public class AnyOperation extends SpliceBaseOperation {
     @Override
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t",indentLevel);
-        return new StringBuilder("Any:")
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
-                .append(indent).append("Source:").append(source.prettyPrint(indentLevel+1))
-                .append(indent).append("emptyRowFunName:").append(emptyRowFunName)
-                .append(indent).append("subqueryNumber:").append(subqueryNumber)
-                .toString();
+        return "Any:" +
+                indent + "resultSetNumber:" + resultSetNumber +
+                indent + "Source:" + source.prettyPrint(indentLevel + 1) +
+                indent + "emptyRowFunName:" + emptyRowFunName +
+                indent + "subqueryNumber:" + subqueryNumber;
     }
 
     @Override

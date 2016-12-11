@@ -25,7 +25,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 
@@ -48,7 +47,6 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.StringUtil;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
 /**

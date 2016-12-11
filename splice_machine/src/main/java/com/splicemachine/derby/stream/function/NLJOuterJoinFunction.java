@@ -38,16 +38,6 @@ public class NLJOuterJoinFunction<Op extends SpliceOperation> extends NLJoinFunc
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-    }
-
-    @Override
     public Iterator<LocatedRow> call(Iterator<LocatedRow> from) throws Exception {
         if (!initialized) {
             init(from);
