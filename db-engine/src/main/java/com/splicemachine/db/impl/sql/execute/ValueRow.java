@@ -416,7 +416,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	@Override
 	public Object get(int i) {
 		try {
-			return column[i].getObject();
+			return column[i].getSparkObject();
 		} catch (StandardException se) {
 			throw new RuntimeException(se);
 		}
