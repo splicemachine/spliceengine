@@ -143,17 +143,17 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 
 	@Override
 	public <T> Seq<T> getSeq(int i) {
-		return getSeq(i);
+		return valueRow.getSeq(i);
 	}
 
 	@Override
 	public <T> List<T> getList(int i) {
-		return getList(i);
+		return valueRow.getList(i);
 	}
 
 	@Override
 	public <K, V> Map<K, V> getMap(int i) {
-		return getMap(i);
+		return valueRow.getMap(i);
 	}
 
 	@Override
