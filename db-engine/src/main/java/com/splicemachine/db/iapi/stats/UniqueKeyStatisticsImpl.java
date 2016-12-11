@@ -101,7 +101,7 @@ public class UniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
 
     @Override
     public String toString() {
-        return String.format("UniqueKeyStatistics{quantiles=%s}",nullCount,quantilesSketch.toString(true,false));
+        return String.format("UniqueKeyStatistics{quantiles=%s}",quantilesSketch.toString(true,false));
     }
 
     @Override
