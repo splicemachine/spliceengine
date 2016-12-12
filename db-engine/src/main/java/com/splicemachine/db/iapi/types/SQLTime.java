@@ -28,7 +28,6 @@ package com.splicemachine.db.iapi.types;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.db.DatabaseContext;
@@ -59,7 +58,6 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.Platform;
-import org.apache.spark.unsafe.types.CalendarInterval;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 /**

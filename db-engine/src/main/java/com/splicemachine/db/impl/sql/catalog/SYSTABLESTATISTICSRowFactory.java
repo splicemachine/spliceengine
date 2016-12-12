@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Properties;
 
 /**
  * @author Scott Fines

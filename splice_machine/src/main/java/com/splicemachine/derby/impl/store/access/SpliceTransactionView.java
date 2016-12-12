@@ -19,7 +19,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.TransactionImpl;
 import com.splicemachine.si.impl.TransactionViewImpl;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;

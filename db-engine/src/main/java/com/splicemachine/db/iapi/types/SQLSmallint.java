@@ -30,7 +30,6 @@ import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;

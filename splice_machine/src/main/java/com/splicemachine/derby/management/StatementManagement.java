@@ -18,8 +18,6 @@ package com.splicemachine.derby.management;
 import javax.management.MXBean;
 
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Set;
 
 /**
  * @author Scott Fines
