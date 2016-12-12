@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import com.splicemachine.compactions.CompactionProcessor;
 import com.splicemachine.compactions.SparkAccumulator;
 import org.apache.commons.collections.iterators.EmptyListIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
@@ -37,7 +37,6 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
@@ -137,7 +136,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     @Override
     public Iterator<String> call(Iterator it) throws Exception {
 
-        ArrayList<StoreFile> readersToClose = new ArrayList<StoreFile>();
+        ArrayList<StoreFile> readersToClose =new ArrayList<>();
         Configuration conf = HConfiguration.unwrapDelegate();
         TableName tn = TableName.valueOf(namespace, tableName);
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
@@ -172,9 +171,9 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
             );
         }
 
-        SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint,mat);
-        CompactionRequest cr = new SpliceCompactionRequest(readersToClose,accumulator);
-        List<Path> paths = sdc.sparkCompact(cr);
+        SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store);
+        CompactionProcessor processor = new CompactionProcessor(mat,store);
+        List<Path> paths = processor.compact(sdc.newContext(readersToClose,accumulator));
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);

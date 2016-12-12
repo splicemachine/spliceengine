@@ -37,6 +37,10 @@ public interface Compactor{
         void rowDeleted();
         void cellCommitted();
         void cellRolledback();
+
+        void kvCompacted();
+
+        void incrementCompactionSize(long add);
     }
 
     Accumulator NoOpAccumulator = new Accumulator(){
@@ -46,5 +50,7 @@ public interface Compactor{
         @Override public void rowDeleted(){ }
         @Override public void cellCommitted(){ }
         @Override public void cellRolledback(){ }
+        @Override public void kvCompacted(){ }
+        @Override public void incrementCompactionSize(long add){ }
     };
 }

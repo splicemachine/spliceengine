@@ -37,6 +37,8 @@ public class SparkAccumulator implements Compactor.Accumulator,Externalizable{
     private LongAccumulator cellsCommitted;
     private LongAccumulator cellsRolledback;
 
+    private LongAccumulator compactionSize;
+
     public SparkAccumulator(){
     }
 
@@ -47,6 +49,7 @@ public class SparkAccumulator implements Compactor.Accumulator,Externalizable{
         this.rowsDeleted = sparkContext.sc().longAccumulator("rows deleted");
         this.cellsCommitted = sparkContext.sc().longAccumulator("cells committed");
         this.cellsRolledback = sparkContext.sc().longAccumulator("cells rolled back");
+        this.compactionSize = sparkContext.sc().longAccumulator("Compaction size");
     }
 
     @Override public void cellDeleted(){ cellsDeleted.add(1L); }
@@ -56,14 +59,22 @@ public class SparkAccumulator implements Compactor.Accumulator,Externalizable{
     @Override public void cellCommitted(){ cellsCommitted.add(1L); }
     @Override public void cellRolledback(){ cellsRolledback.add(1L); }
 
+    @Override public void kvCompacted(){ } //same as cellProcessed
+
+    @Override
+    public void incrementCompactionSize(long add){
+        compactionSize.add(add);
+    }
+
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
-       out.writeObject(cellsProcessed);
+        out.writeObject(cellsProcessed);
         out.writeObject(cellsDeleted);
         out.writeObject(rowsProcessed);
         out.writeObject(rowsDeleted);
         out.writeObject(cellsCommitted);
         out.writeObject(cellsRolledback);
+        out.writeObject(compactionSize);
     }
 
     @Override
@@ -74,5 +85,6 @@ public class SparkAccumulator implements Compactor.Accumulator,Externalizable{
         this.rowsDeleted = (LongAccumulator)in.readObject();
         this.cellsCommitted = (LongAccumulator)in.readObject();
         this.cellsRolledback = (LongAccumulator)in.readObject();
+        this.compactionSize = (LongAccumulator)in.readObject();
     }
 }

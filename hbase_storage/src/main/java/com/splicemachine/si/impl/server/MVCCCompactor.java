@@ -85,7 +85,7 @@ public class MVCCCompactor implements Compactor{
         this.minimumActiveTxn=minimumActiveTxn;
         this.matApplicationThreshold = matApplicationThreshold;
         this.txnCache = new ActiveTxnCacheSupplier(txnStore,activeTxnCacheSize);
-        this.accumulator = accumulator;
+        this.accumulator = accumulator==null?NoOpAccumulator:accumulator;
     }
 
     @Override
