@@ -116,7 +116,7 @@ public class BroadcastJoinIT{
 
     @Test
     public void testInClauseBroadCastJoin() throws Exception {
-        String sqlText = "select count(*) from " + date_dim + " d --SPLICE-PROPERTIES useSpark = true " +
+        String sqlText = "select count(*) from " + date_dim + " d --SPLICE-PROPERTIES useSpark = true \n" +
                 "where d.d_qoy in (select d_qoy from " + date_dim + " )" ;
         ResultSet rs = classWatcher.executeQuery(sqlText);
 
@@ -128,13 +128,13 @@ public class BroadcastJoinIT{
         sqlText = "with ws_wh as (select * from " + date_dim + " dim " +
         " where dim.d_qoy > 2 ) " +
         " select count(*) " +
-        "   from  "+ date_dim + " d --SPLICE-PROPERTIES useSpark = true " +
+        "   from  "+ date_dim + " d --SPLICE-PROPERTIES useSpark = true \n" +
         "   where d.d_qoy in (select d_qoy from ws_wh)";
 
         rs = classWatcher.executeQuery(sqlText);
         Assert.assertTrue("rs.next() failed", rs.next());
         c = rs.getInt(1);
-        Assert.assertTrue("count(*) returned incorrect number of rows:", (c == 12));
+        Assert.assertTrue("count(*) returned incorrect number of rows:", (c == 6));
         rs.close();
     }
 }

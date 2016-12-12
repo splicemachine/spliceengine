@@ -198,7 +198,9 @@ public class BroadcastJoinOperation extends JoinOperation{
                     result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
                             .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
                 } else {
-                    result = leftDataSet.join(operationContext, rightDataSet, DataSet.JoinType.INNER, true);
+                    result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true)
+                            .filter(new JoinRestrictionPredicateFunction(operationContext));
+
                 }
             }
         }
