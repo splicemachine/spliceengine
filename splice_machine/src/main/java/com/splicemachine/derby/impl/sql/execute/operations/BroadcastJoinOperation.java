@@ -192,8 +192,15 @@ public class BroadcastJoinOperation extends JoinOperation{
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTANTI,true);
-            else
-                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true);
+
+            else { // Inner Join
+                if (isOneRowRightSide()) {
+                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                            .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
+                } else {
+                    result = leftDataSet.join(operationContext, rightDataSet, DataSet.JoinType.INNER, true);
+                }
+            }
         }
         else {
             if (isOuterJoin) { // Outer Join with and without restriction

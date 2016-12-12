@@ -34,6 +34,7 @@ public class BroadcastJoinIT{
 
     public static final SpliceTableWatcher a= new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c1 int, c2 int)");
     public static final SpliceTableWatcher b= new SpliceTableWatcher("B",schemaWatcher.schemaName,"(c2 int,c3 int)");
+    public static final SpliceTableWatcher date_dim= new SpliceTableWatcher("date_dim",schemaWatcher.schemaName,"(d_year int, d_qoy int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
     @ClassRule
@@ -41,6 +42,7 @@ public class BroadcastJoinIT{
             .around(schemaWatcher)
             .around(a)
             .around(b)
+            .around(date_dim)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description){
@@ -60,6 +62,26 @@ public class BroadcastJoinIT{
                         ps.setInt(1,2);ps.setInt(2,2);ps.execute();
                         ps.setInt(1,3);ps.setInt(2,3);ps.execute();
                     }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + date_dim + "(d_year, d_qoy) values (?,?)")) {
+                        ps.setInt(1,1999);ps.setInt(2,1);ps.execute();
+                        ps.setInt(1,1999);ps.setInt(2,2);ps.execute();
+                        ps.setInt(1,1999);ps.setInt(2,3);ps.execute();
+                        ps.setInt(1,1999);ps.setInt(2,4);ps.execute();
+                        ps.setInt(1,2000);ps.setInt(2,1);ps.execute();
+                        ps.setInt(1,2000);ps.setInt(2,2);ps.execute();
+                        ps.setInt(1,2000);ps.setInt(2,3);ps.execute();
+                        ps.setInt(1,2000);ps.setInt(2,4);ps.execute();
+                        ps.setInt(1,2001);ps.setInt(2,1);ps.execute();
+                        ps.setInt(1,2001);ps.setInt(2,2);ps.execute();
+                        ps.setInt(1,2001);ps.setInt(2,3);ps.execute();
+                        ps.setInt(1,2001);ps.setInt(2,4);ps.execute();
+                    } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -90,5 +112,29 @@ public class BroadcastJoinIT{
                 }
             }
         }
+    }
+
+    @Test
+    public void testInClauseBroadCastJoin() throws Exception {
+        String sqlText = "select count(*) from " + date_dim + " d --SPLICE-PROPERTIES useSpark = true " +
+                "where d.d_qoy in (select d_qoy from " + date_dim + " )" ;
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        int c = rs.getInt(1);
+        Assert.assertTrue("count(*) returned incorrect number of rows:", (c == 12));
+        rs.close();
+
+        sqlText = "with ws_wh as (select * from " + date_dim + " dim " +
+        " where dim.d_qoy > 2 ) " +
+        " select count(*) " +
+        "   from  "+ date_dim + " d --SPLICE-PROPERTIES useSpark = true " +
+        "   where d.d_qoy in (select d_qoy from ws_wh)";
+
+        rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("rs.next() failed", rs.next());
+        c = rs.getInt(1);
+        Assert.assertTrue("count(*) returned incorrect number of rows:", (c == 12));
+        rs.close();
     }
 }
