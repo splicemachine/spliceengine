@@ -597,6 +597,7 @@ public class TypeId{
     private boolean isRealTypeId;
     private boolean isDateTimeTimeStampTypeId;
     private boolean isUserDefinedTypeId;
+    private boolean isScalar;
     private int maxPrecision;
     private int maxScale;
     private int typePrecedence;
@@ -652,6 +653,7 @@ public class TypeId{
                 maxMaxWidth=TypeId.BIT_MAXWIDTH;
                 isBitTypeId=true;
                 isConcatableTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.BOOLEAN_TYPE_ID:
@@ -660,6 +662,7 @@ public class TypeId{
                 javaTypeName="java.lang.Boolean";
                 maxMaxWidth=TypeId.BOOLEAN_MAXWIDTH;
                 isBooleanTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.CHAR_TYPE_ID:
@@ -668,6 +671,7 @@ public class TypeId{
                 maxMaxWidth=TypeId.CHAR_MAXWIDTH;
                 isStringTypeId=true;
                 isConcatableTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.DATE_TYPE_ID:
@@ -686,6 +690,7 @@ public class TypeId{
                 maxMaxWidth=TypeId.DECIMAL_MAXWIDTH;
                 isDecimalTypeId=true;
                 isNumericTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.DOUBLE_TYPE_ID:
@@ -696,6 +701,7 @@ public class TypeId{
                 maxMaxWidth=TypeId.DOUBLE_MAXWIDTH;
                 isNumericTypeId=true;
                 isFloatingPointTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.INT_TYPE_ID:
@@ -705,6 +711,7 @@ public class TypeId{
                 javaTypeName="java.lang.Integer";
                 maxMaxWidth=TypeId.INT_MAXWIDTH;
                 isNumericTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.LONGINT_TYPE_ID:
@@ -714,6 +721,7 @@ public class TypeId{
                 javaTypeName="java.lang.Long";
                 maxMaxWidth=TypeId.LONGINT_MAXWIDTH;
                 isNumericTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.LONGVARBIT_TYPE_ID:
@@ -732,6 +740,7 @@ public class TypeId{
                 isStringTypeId=true;
                 isConcatableTypeId=true;
                 isLongConcatableTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.REAL_TYPE_ID:
@@ -743,6 +752,7 @@ public class TypeId{
                 isNumericTypeId=true;
                 isRealTypeId=true;
                 isFloatingPointTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.REF_TYPE_ID:
@@ -758,6 +768,7 @@ public class TypeId{
                 javaTypeName="java.lang.Integer";
                 maxMaxWidth=TypeId.SMALLINT_MAXWIDTH;
                 isNumericTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.TIME_TYPE_ID:
@@ -785,6 +796,7 @@ public class TypeId{
                 javaTypeName="java.lang.Integer";
                 maxMaxWidth=TypeId.TINYINT_MAXWIDTH;
                 isNumericTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
@@ -813,6 +825,7 @@ public class TypeId{
                 isConcatableTypeId=true;
                 isLongConcatableTypeId=true; // ??
                 isLOBTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.VARCHAR_TYPE_ID:
@@ -821,6 +834,7 @@ public class TypeId{
                 maxMaxWidth=TypeId.VARCHAR_MAXWIDTH;
                 isStringTypeId=true;
                 isConcatableTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.CLOB_TYPE_ID:
@@ -831,6 +845,7 @@ public class TypeId{
                 isConcatableTypeId=true;
                 isLongConcatableTypeId=true; // ??
                 isLOBTypeId=true;
+                isScalar=true;
                 break;
 
             case StoredFormatIds.XML_TYPE_ID:
@@ -1038,6 +1053,14 @@ public class TypeId{
         return (formatId==StoredFormatIds.XML_TYPE_ID);
     }
 
+
+    /**
+     * return true if it is a scalar
+     * @return
+     */
+    public boolean isScalar() {
+        return isScalar;
+    }
 
     /**
      * Tell whether this type is orderable, that is, can participate
