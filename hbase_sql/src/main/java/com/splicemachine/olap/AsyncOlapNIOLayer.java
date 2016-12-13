@@ -54,6 +54,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class AsyncOlapNIOLayer implements JobExecutor{
     private static final Logger LOG=Logger.getLogger(AsyncOlapNIOLayer.class);
 
+    private static final int MAX_RETRIES = 10;
     private final ChannelPool channelPool;
     private final ScheduledExecutorService executorService;
     private final ProtobufDecoder decoder=new ProtobufDecoder(OlapMessage.Response.getDefaultInstance(),buildExtensionRegistry());
@@ -161,6 +162,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         private volatile boolean cancelled=false;
         private volatile boolean failed=false;
         private volatile boolean submitted=false;
+        private volatile int notFound;
         private volatile Throwable cause=null;
         private volatile long tickTimeNanos=TimeUnit.MILLISECONDS.toNanos(1000L);
         private ScheduledFuture<?> keepAlive;
@@ -440,16 +442,24 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         @Override
         protected void channelRead0(ChannelHandlerContext ctx,OlapMessage.Response olapResult) throws Exception{
             OlapResult or=parseFromResponse(olapResult);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Received " + or);
+            }
             //TODO -sf- deal with a OlapServer failover here (i.e. a move to NOT_SUBMITTED from any other state
             if(or instanceof SubmittedResult) {
                 future.tickTimeNanos = TimeUnit.MILLISECONDS.toNanos(((SubmittedResult) or).getTickTime());
                 future.lastStatus = System.currentTimeMillis();
             } else if(future.submitted && !future.isDone() && or instanceof NotSubmittedResult) {
-                // The job is no longer submitted, assume aborted
+                // Server says the job is no longer submitted, give it a couple of tries in case messages are out of order
                 long millisSinceLastStatus = System.currentTimeMillis() - future.lastStatus;
-                LOG.error("Status not available for job " + future.job.getUniqueName() +
+                LOG.warn("Status not available for job " + future.job.getUniqueName() +
                         ", millis since last status " + millisSinceLastStatus);
-                future.fail(new IOException("Status not available, assuming aborted due to client timeout"));
+                if (future.notFound++ > MAX_RETRIES) {
+                    // The job is no longer submitted, assume aborted
+                    LOG.error("Failing job " + future.job.getUniqueName() + " after " + MAX_RETRIES +
+                            " status not available responses");
+                    future.fail(new IOException("Status not available, assuming aborted due to client timeout"));
+                }
             }else if(or.isSuccess()){
                 future.success(or);
             }else{
