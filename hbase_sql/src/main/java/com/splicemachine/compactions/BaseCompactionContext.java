@@ -81,10 +81,6 @@ public abstract class BaseCompactionContext implements CompactionContext{
         return maxSeqId;
     }
 
-    @Override
-    public boolean retainDeleteMarkers(){
-        return request.isRetainDeleteMarkers();
-    }
 
     @Override
     public long earliestPutTs(){

@@ -81,7 +81,7 @@ public class CompactionProcessor{
                             64,
                             driver.getConfiguration().getActiveTransactionCacheSize(),
                             sparkAccumulator);
-                    scanner = new SICompactionScanner(state,scanner,sparkAccumulator);
+                    scanner = new SICompactionScanner(state,scanner);
                 }
                 if (scanner == null) {
                     // NULL scanner returned from coprocessor hooks means skip normal processing.

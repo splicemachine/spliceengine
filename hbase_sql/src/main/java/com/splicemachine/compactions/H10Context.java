@@ -17,7 +17,6 @@
 package com.splicemachine.compactions;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFileScanner;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
  *         Date: 12/8/16
  */
 public class H10Context extends BaseCompactionContext{
-    private final Store store;
     private final SpliceDefaultCompactor sourceCompactor;
     private final Configuration conf;
 
@@ -47,30 +45,26 @@ public class H10Context extends BaseCompactionContext{
     public H10Context(Configuration conf,
                       CompactionRequest request,
                       SpliceDefaultCompactor sourceCompactor,
-                      Store store,
                       com.splicemachine.si.impl.server.Compactor.Accumulator accumulator){
-        this(conf,request,sourceCompactor,store,-1,-1L,-1L,accumulator);
+        this(conf,request,sourceCompactor,-1,-1L,-1L,accumulator);
     }
 
     public H10Context(Configuration conf,
                       CompactionRequest request,
                       SpliceDefaultCompactor sourceCompactor,
-                      Store store,
                       int compactionKVMax,
                       long maxSeqId,
                       long earliestPutTs,
                       com.splicemachine.si.impl.server.Compactor.Accumulator accumulator){
         super(request,compactionKVMax,maxSeqId,earliestPutTs,accumulator);
         this.conf = conf;
-        this.store = store;
         this.sourceCompactor = sourceCompactor;
     }
 
     public H10Context(Configuration conf,
                       CompactionRequest request,
-                      SpliceDefaultCompactor sourceCompactor,
-                      Store store){
-        this(conf,request,sourceCompactor,store,null);
+                      SpliceDefaultCompactor sourceCompactor){
+        this(conf,request,sourceCompactor,null);
     }
 
     @Override
@@ -143,6 +137,12 @@ public class H10Context extends BaseCompactionContext{
         }
 
         return watcher;
+    }
+
+    @Override
+    public boolean retainDeleteMarkers(){
+        //-sf- this may not be correct in all cases...
+        return !request.isAllFiles();
     }
 
     @Override
