@@ -1552,7 +1552,7 @@ public class TableElementList extends QueryTreeNodeVector {
      * @return Reference to column definition node or null if the column is
      * not in the list.
      */
-    private ColumnDefinitionNode findColumnDefinition(String colName) {
+    public ColumnDefinitionNode findColumnDefinition(String colName) {
         int size = size();
         for (int index = 0; index < size; index++) {
             TableElementNode tableElement = (TableElementNode) elementAt(index);
@@ -1581,5 +1581,7 @@ public class TableElementList extends QueryTreeNodeVector {
 	{
         return findColumnDefinition(colName) != null;
 	}
+
+
 }
 

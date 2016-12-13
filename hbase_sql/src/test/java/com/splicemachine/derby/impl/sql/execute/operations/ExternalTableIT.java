@@ -95,6 +95,16 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
     }
 
+    @Test
+    public void testCannotUsePartitionUndefined() throws Exception {
+        try {
+            methodWatcher.executeUpdate("create external  table table_without_defined_partition (col1 int, col2 varchar(24))" +
+                    " PARTITIONED BY (col3) STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT21",e.getSQLState());
+        }
+    }
 
     @Test
     public void testNoPrimaryKeysOnExternalTables() throws Exception {
@@ -223,7 +233,8 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadNullValues() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"null_test";
+
+        String tablePath = getExternalResourceDirectory()+"null_test_location";
         methodWatcher.executeUpdate(String.format("create external table null_test (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into null_test values (1,null)," +
@@ -275,6 +286,25 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
+    public void testWriteReadWithPartitionedByFloatTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
+        methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
+                "partitioned  by (col3) STORED AS PARQUET LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_parquet_with_partition values (1,'XXXX',3.4567)," +
+                "(2,'YYYY',540.3434)," +
+                "(3,'ZZZZ',590.3434654)"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from simple_parquet_with_partition");
+        Assert.assertEquals("COL1 |COL2 |  COL3    |\n" +
+                "-----------------------\n" +
+                "  1  |XXXX | 3.4567   |\n" +
+                "  2  |YYYY |540.3434  |\n" +
+                "  3  |ZZZZ |590.34344 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+
+    }
+
+    @Test
     // SPLICE-1219
     public void testLocalBroadcastColumnar() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table left_side_bcast (col1 int, col2 int)" +
@@ -304,7 +334,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     public void testWriteReadFromPartitionedParquetExternalTable() throws Exception {
         String tablePath =  getExternalResourceDirectory()+"partitioned_parquet";
                 methodWatcher.executeUpdate(String.format("create external table partitioned_parquet (col1 int, col2 varchar(24))" +
-                "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"partitioned_parquet"));
+                "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"partitioned_parquet"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_parquet values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -418,7 +448,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     public void testExternalTableDescriptorCompression() throws Exception {
         //with no compression token
         methodWatcher.executeUpdate(String.format("create external table simple_table_none_orc (col1 int, col2 varchar(24))" +
-                "partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_table_none_orc"));
+                "partitioned by (col1) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_table_none_orc"));
         ResultSet rs = methodWatcher.executeQuery("select COMPRESSION from SYS.SYSTABLES where tablename='SIMPLE_TABLE_NONE_ORC'");
         Assert.assertEquals("COMPRESSION |\n" +
                 "--------------\n" +
