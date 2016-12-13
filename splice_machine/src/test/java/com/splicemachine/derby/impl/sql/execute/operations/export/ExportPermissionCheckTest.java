@@ -47,16 +47,6 @@ public class ExportPermissionCheckTest {
     }
 
     @Test
-    public void verify() throws IOException, StandardException {
-        ExportParams exportParams = ExportParams.withDirectory(temporaryFolder.getRoot().getAbsolutePath());
-        ExportPermissionCheck permissionCheck = new ExportPermissionCheck(exportParams,dfs);
-
-        // No exception, we can write to the temp folder
-        permissionCheck.verify();
-        assertEquals("export dir should be empty after check", 0, temporaryFolder.getRoot().listFiles().length);
-    }
-
-    @Test
     public void verify_failCase() throws IOException, StandardException {
         expectedException.expect(StandardException.class);
         expectedException.expectMessage("Invalid parameter 'cannot create export directory'='/ExportPermissionCheckTest'.");
