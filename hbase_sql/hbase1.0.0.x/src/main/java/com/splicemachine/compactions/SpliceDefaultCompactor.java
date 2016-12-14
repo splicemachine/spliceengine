@@ -52,7 +52,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
         this.progress = new CompactionProgress(fd.maxKeyCount);
-        CompactionContext compactionContext=new H10Context(conf,request,this,store);
+        CompactionContext compactionContext=new H10Context(conf,request,this);
         long mat = 0L;
         SIDriver driver = SIDriver.driver();
         if(driver!=null && request.isAllFiles()){
@@ -82,7 +82,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     public CompactionContext newContext(Collection<StoreFile> readersToClose,SparkAccumulator accumulator) throws IOException{
         CompactionRequest cr = new com.splicemachine.derby.stream.compaction.SpliceCompactionRequest(readersToClose,accumulator);
         FileDetails fd = getFileDetails(cr.getFiles(),cr.isAllFiles());
-        return new H10Context(conf,cr,this,store,compactionKVMax,fd.maxSeqId,fd.earliestPutTs,accumulator);
+        return new H10Context(conf,cr,this,compactionKVMax,fd.maxSeqId,fd.earliestPutTs,accumulator);
     }
 
     /* ****************************************************************************************************************/

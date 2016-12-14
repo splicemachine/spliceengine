@@ -36,6 +36,7 @@ import com.splicemachine.derby.impl.stats.StoreCostControllerImpl;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
@@ -662,6 +663,18 @@ public class SpliceTransactionManager implements XATransactionController,
                 tempCongloms.remove(conglomId);
         } else {
             accessmanager.conglomCacheRemoveEntry(conglomId);
+            /*
+             * Make a best-effort attempt to remove this conglomerate once the minimum active
+             * transaction passes this.
+             */
+            long txnId=getActiveStateTxn().getTxnId();
+            SIDriver.driver().getTxnRegistry().watcher().registerAction(txnId,true,()->{
+                try{
+                    conglom.drop(this);
+                }catch(StandardException e){
+                    LOG.warn("Unable to drop conglomerate "+conglomId+":",e);
+                }
+            });
         }
     }
 

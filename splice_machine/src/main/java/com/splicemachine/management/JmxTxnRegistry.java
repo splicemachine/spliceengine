@@ -23,6 +23,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnRegistry;
 import com.splicemachine.si.api.txn.TxnRegistryWatcher;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.txn.BestEffortRegistryWatcher;
 import com.splicemachine.storage.PartitionServer;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
@@ -50,22 +51,26 @@ class JmxTxnRegistry implements TxnRegistryWatcher{
 
     private final ScheduledExecutorService backgroundUpdater;
     private final long updateTimeMillis;
+    private final BestEffortRegistryWatcher actionHolder;
 
     JmxTxnRegistry(long updateTimeMillis){
         this.updateTimeMillis=updateTimeMillis;
         ThreadFactory tf=new ThreadFactoryBuilder().setDaemon(true).setNameFormat("txnRegistryWatcher").build();
 
         this.backgroundUpdater =Executors.newSingleThreadScheduledExecutor(tf);
+        this.actionHolder = new BestEffortRegistryWatcher(this);
     }
 
     @Override
     public void start(){
         backgroundUpdater.scheduleWithFixedDelay(new Updater(),updateTimeMillis,updateTimeMillis,TimeUnit.MILLISECONDS);
+        actionHolder.start();
     }
 
     @Override
     public void shutdown(){
         backgroundUpdater.shutdownNow();
+        actionHolder.shutdown();
     }
 
     @Override
@@ -79,7 +84,7 @@ class JmxTxnRegistry implements TxnRegistryWatcher{
 
     @Override
     public void registerAction(long minTxnId,boolean requiresCommit,Runnable action){
-
+        actionHolder.registerAction(minTxnId, requiresCommit, action);
     }
 
     /* ****************************************************************************************************************/
