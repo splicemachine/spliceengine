@@ -27,6 +27,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -39,7 +40,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 
 public class IndexController extends SpliceController{
@@ -63,6 +67,51 @@ public class IndexController extends SpliceController{
         System.arraycopy(row,0,uniqueRow,0,nKeyFields);
         return DerbyBytesUtil.generateIndexKey(uniqueRow,order,"1.0",false);
     }
+
+    @Override
+    public int batchInsert(List<ExecRow> rows) throws StandardException {
+        int i = 0;
+        List<DataPut> puts = new ArrayList<>();
+        boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
+        List<byte[]> rowKeys = new ArrayList<>();
+        DataGet get = null;
+        for (ExecRow row: rows) {
+            assert row != null : "Cannot insert a null row!";
+            if (LOG.isTraceEnabled())
+                LOG.trace(String.format("batchInsert conglomerate: %s, row: %s", this.getConglomerate(), (Arrays.toString(row.getRowArray()))));
+            try {
+                byte[] rowKey = generateIndexKey(row.getRowArray(), order);
+                rowKeys.add(rowKey);
+                TxnView txn = trans.getTxnInformation();
+                if (get == null)
+                    get = opFactory.newDataGet(txn, rowKey, null);
+                DataPut put=opFactory.newDataPut(txn,rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
+                encodeRow(row.getRowArray(), put, null, null);
+                puts.add(put);
+            } catch (Exception e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+        try {
+            if (rows.size() ==0) {
+                return 0;
+            }
+            Partition htable = getTable();
+            Iterator<DataResult> results = htable.batchGet(get, rowKeys);
+            while (results.hasNext()) {
+                DataResult result = results.next();
+                if(result!=null && result.size()>0) {
+                    return ConglomerateController.ROWISDUPLICATE;
+                }
+            }
+            htable.writeBatch(puts.toArray(new DataPut[puts.size()]));
+            return 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw Exceptions.parseException(e);
+        }
+    }
+
 
     @Override
     public int insert(DataValueDescriptor[] row) throws StandardException{
@@ -93,6 +142,34 @@ public class IndexController extends SpliceController{
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
             throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public void batchInsertAndFetchLocation(ExecRow[] rows, RowLocation[] rowLocations) throws StandardException {
+        List<DataPut> puts = new ArrayList();
+        boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
+        int i = 0;
+        for (ExecRow row: rows) {
+            assert row != null : "Cannot insert into a null row!";
+            if(LOG.isTraceEnabled())
+                LOG.trace(String.format("insertAndFetchLocation into conglomerate: %s, row: %s, rowLocation: %s",this.getConglomerate(),(Arrays.toString(row.getRowArray())),rowLocations[i]));
+            try {
+                byte[] rowKey=generateIndexKey(row.getRowArray(),order);
+                DataPut put=opFactory.newDataPut(trans.getTxnInformation(),rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
+                encodeRow(row.getRowArray(),put,null,null);
+                rowLocations[i].setValue(put.key());
+                i++;
+                puts.add(put);
+            } catch (Exception e) {
+                throw StandardException.newException("insert and fetch location error", e);
+            }
+        }
+        Partition htable = getTable(); //-sf- don't want to close the htable here, it might break stuff
+        try {
+            htable.writeBatch(puts.toArray(new DataPut[puts.size()]));
+        } catch (Exception e) {
+            throw StandardException.newException("insert and fetch location error", e);
         }
     }
 
