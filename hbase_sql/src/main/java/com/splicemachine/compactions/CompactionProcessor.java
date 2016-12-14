@@ -65,7 +65,7 @@ public class CompactionProcessor{
 
         List<StoreFileScanner> scanners=context.createFileScanners();
 
-        List<Path> newFiles =new ArrayList<>();
+        List<Path> newFiles =new ArrayList<>(1);
         try {
             /* Include deletes, unless we are doing a compaction of all files */
             ScanType scanType = context.retainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
@@ -96,6 +96,8 @@ public class CompactionProcessor{
                         throw new InterruptedIOException("Aborting compaction of store "+store+
                                 " in region "+store.getRegionInfo().getRegionNameAsString()+
                                 " because it was interrupted.");
+                    }else{
+                        newFiles.add(writer.getPath());
                     }
                 }
             }
