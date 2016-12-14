@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.EngineUtils;
+import com.splicemachine.derby.utils.Vacuum;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnRegistryWatcher;
@@ -40,6 +41,8 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+
+import static com.splicemachine.derby.utils.BaseAdminProcedures.getDefaultConn;
 
 /**
  * @author Scott Fines
@@ -60,13 +63,6 @@ public class VacuumAdmin{
             EmbedConnection embedConn = (EmbedConnection)internalConn;
             LanguageConnectionContext lcc=embedConn.getLanguageConnection();
             TransactionController tc=lcc.getTransactionExecute();
-            long myBeginTxn = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getBeginTimestamp();
-
-            TxnRegistryWatcher registryWatcher=EngineDriver.driver()
-                    .dbAdministrator()
-                    .getGlobalTransactionRegistryWatcher();
-
-//            waitForMat(myBeginTxn,registryWatcher);
 
             SchemaDescriptor schemaDescriptor=lcc.getDataDictionary().getSchemaDescriptor(schemaName,tc,true);
             TableDescriptor td = lcc.getDataDictionary().getTableDescriptor(tableName,schemaDescriptor,tc);
@@ -85,13 +81,6 @@ public class VacuumAdmin{
             EmbedConnection embedConn = (EmbedConnection)internalConn;
             LanguageConnectionContext lcc=embedConn.getLanguageConnection();
             TransactionController tc=lcc.getTransactionExecute();
-            long myBeginTxn = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getBeginTimestamp();
-
-            TxnRegistryWatcher registryWatcher=EngineDriver.driver()
-                    .dbAdministrator()
-                    .getGlobalTransactionRegistryWatcher();
-
-//            waitForMat(myBeginTxn,registryWatcher);
 
             SchemaDescriptor schemaDescriptor=lcc.getDataDictionary().getSchemaDescriptor(schemaName,tc,true);
             List<TableDescriptor> alltables = EngineUtils.getAllTableDescriptors(schemaDescriptor,embedConn);
@@ -101,6 +90,38 @@ public class VacuumAdmin{
         }catch(StandardException e){
             throw PublicAPI.wrapStandardException(e);
         }
+    }
+
+    public static void VACUUM_CONGLOMERATES() throws SQLException{
+        /*
+         * Here we wait for the MAT to catch up to our transaction. This will ensure
+         * that our reading of the data dictionary lines up with the reading of all other active
+         * transactions and thus ensure that we can safely remove old conglomerates.
+         */
+        try(Connection internalConn = DriverManager.getConnection("jdbc:default:connection")){
+            EmbedConnection embedConn = (EmbedConnection)internalConn;
+            LanguageConnectionContext lcc = embedConn.getLanguageConnection();
+            TransactionController tc = lcc.getTransactionExecute();
+            long myBeginTxn = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getBeginTimestamp();
+
+            TxnRegistryWatcher registryWatcher=EngineDriver.driver()
+                    .dbAdministrator()
+                    .getGlobalTransactionRegistryWatcher();
+
+            try{
+                waitForMat(myBeginTxn,registryWatcher);
+            }catch(StandardException e){
+                throw PublicAPI.wrapStandardException(e);
+            }
+        }
+
+        Vacuum vacuum=new Vacuum(getDefaultConn());
+        try{
+            vacuum.vacuumDatabase();
+        }finally{
+            vacuum.shutdown();
+        }
+
     }
 
     /* ****************************************************************************************************************/

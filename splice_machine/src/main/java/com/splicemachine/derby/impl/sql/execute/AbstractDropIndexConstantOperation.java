@@ -148,6 +148,8 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
         SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
         dd.dropConglomerateDescriptor(cd,userTxnManager);
         td.removeConglomerateDescriptor(cd);
+        //drop the conglomerate
+        lcc.getTransactionExecute().dropConglomerate(cd.getConglomerateNumber());
     }
 
     public String getScopeName() {

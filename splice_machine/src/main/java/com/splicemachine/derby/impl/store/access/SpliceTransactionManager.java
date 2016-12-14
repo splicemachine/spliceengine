@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -33,8 +34,10 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.stats.StoreCostControllerImpl;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnRegistryWatcher;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
@@ -43,6 +46,7 @@ import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.Serializable;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -668,13 +672,19 @@ public class SpliceTransactionManager implements XATransactionController,
              * transaction passes this.
              */
             long txnId=getActiveStateTxn().getTxnId();
-            SIDriver.driver().getTxnRegistry().watcher().registerAction(txnId,true,()->{
-                try{
-                    conglom.drop(this);
-                }catch(StandardException e){
-                    LOG.warn("Unable to drop conglomerate "+conglomId+":",e);
-                }
-            });
+            try{
+                TxnRegistryWatcher registryWatcher=EngineDriver.driver().dbAdministrator().getGlobalTransactionRegistryWatcher();
+                registryWatcher.registerAction(txnId,true,()->{
+                    try{
+                        conglom.drop(this);
+                    }catch(StandardException e){
+                        LOG.warn("Unable to drop conglomerate "+conglomId+":",e);
+                    }
+                });
+            }catch(SQLException e){
+                throw Exceptions.parseException(e);
+            }
+
         }
     }
 

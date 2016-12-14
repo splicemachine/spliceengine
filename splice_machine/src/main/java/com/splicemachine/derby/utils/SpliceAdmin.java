@@ -21,6 +21,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.vacuum.VacuumAdmin;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -383,12 +384,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void VACUUM() throws SQLException{
-        Vacuum vacuum=new Vacuum(getDefaultConn());
-        try{
-            vacuum.vacuumDatabase();
-        }finally{
-            vacuum.shutdown();
-        }
+        VacuumAdmin.VACUUM_CONGLOMERATES()
+        ;
     }
 
     private static final ResultColumnDescriptor[] SCHEMA_INFO_COLUMNS=new GenericColumnDescriptor[]{
