@@ -337,9 +337,8 @@ public class HdfsImportIT extends SpliceUnitTest {
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
 
-                // TODO SPLICE-1177 check for exact number of failed rows
-//                int failed = rs.getInt(2);
-//                assertEquals("Failed rows don't match", 4, failed);
+                int failed = rs.getInt(2);
+                assertEquals("Failed rows don't match", 4, failed);
 
                 boolean exists = existsBadFile(BADDIR, "multiFilePKViolation.bad");
                 List<String> badFiles = getAllBadFiles(BADDIR, "multiFilePKViolation.bad");
@@ -348,8 +347,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 for(String badFile : badFiles) {
                     badLines.addAll(Files.readAllLines((new File(BADDIR, badFile)).toPath(), Charset.defaultCharset()));
                 }
-                // TODO SPLICE-1177 expect exactly 4 lines
-                assertTrue("Expected some lines in bad files "+badFiles, badLines.size() > 0);
+                assertEquals("Expected some lines in bad files "+badFiles, 4, badLines.size());
             }
         }
         try(ResultSet rs = methodWatcher.executeQuery("select count(*) from "+multiPK)){
