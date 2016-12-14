@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.IntArrays;
 
@@ -46,7 +47,13 @@ public class CreateExternalTableJob implements Callable<Void> {
 
         // look at the file, if it doesn't exist create it.
         if(!SIDriver.driver().fileSystem().getPath(request.getLocation()).toFile().exists()){
-            dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation());
+
+            //throws a error if the parent doesn't have the permission.
+            if(!SIDriver.driver().fileSystem().getPath(request.getLocation()).getParent().toFile().canWrite()){
+                throw  ErrorState.CANNOT_WRITE_AT_LOCATION.newException(request.getLocation());
+            }
+
+            dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
         }
 
         jobStatus.markCompleted(new SuccessfulOlapResult());
