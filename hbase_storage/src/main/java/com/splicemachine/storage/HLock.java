@@ -28,18 +28,6 @@ import java.util.concurrent.locks.Lock;
  *         Date: 12/15/15
  */
 public class HLock implements Lock{
-    protected static boolean HAS_READ_LOCK_IMPL = false;
-
-    static {
-        try {
-            Class rowLockContextClass = Class.forName("org.apache.hadoop.hbase.regionserver.HRegion$RowLockContext");
-            rowLockContextClass.getDeclaredMethod("newReadLock", new Class[]{});
-            HAS_READ_LOCK_IMPL = true;
-        } catch (Exception e) {
-
-        }
-    }
-
 
     private final byte[] key;
 
@@ -73,7 +61,7 @@ public class HLock implements Lock{
     @Override
     public boolean tryLock(){
         try{
-            delegate = region.getRowLock(key,HAS_READ_LOCK_IMPL?true:false); // Null Lock Delegate means not run...
+            delegate = region.getRowLock(key); // Null Lock Delegate means not run...
             return delegate!=null;
         }catch(IOException e){
             return false;
