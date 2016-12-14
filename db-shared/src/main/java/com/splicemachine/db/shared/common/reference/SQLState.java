@@ -1966,6 +1966,7 @@ public interface SQLState {
 	String NOT_AN_EXTERNAL_TABLE					   				= "EXT19";
     String UNSUPPORTED_ENCODING_EXCEPTION							= "EXT20";
     String EXTERNAL_TABLES_PARTITIONS_REQUIRED 						= "EXT21";
+    String CANNOT_WRITE_AT_LOCATION				    				= "EXT22";
 
 
 }
