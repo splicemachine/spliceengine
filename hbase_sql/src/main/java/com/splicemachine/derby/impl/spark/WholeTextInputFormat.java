@@ -94,9 +94,7 @@ public class WholeTextInputFormat extends CombineFileInputFormat<String, InputSt
             key = path.toString();
             FSDataInputStream fileIn = fs.open(path);
 
-            InputStream decodedStream = codec!=null?codec.createInputStream(fileIn):fileIn;
-
-            value = decodedStream;
+            value = codec!=null?codec.createInputStream(fileIn):fileIn;
             return true;
         }
 

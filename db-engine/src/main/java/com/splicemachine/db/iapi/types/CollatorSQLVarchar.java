@@ -131,16 +131,14 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
 	 */
 	public DataValueDescriptor getNewNull()
 	{
-		CollatorSQLVarchar result = new CollatorSQLVarchar(
+		return new CollatorSQLVarchar(
 				holderForCollationSensitiveInfo.getCollatorForCollation());
-		return result;
 	}
 
 	protected StringDataValue getNewVarchar() throws StandardException
 	{
-		CollatorSQLVarchar result = new CollatorSQLVarchar(
+		return new CollatorSQLVarchar(
 				holderForCollationSensitiveInfo.getCollatorForCollation());
-		return result;
 	}
 
 	/**

@@ -185,9 +185,8 @@ public final class JarLoader extends SecureClassLoader {
                 )
 
         {
-            ClassNotFoundException cnfe = new ClassNotFoundException(className);
-            //cnfe.printStackTrace(System.out);
-            throw cnfe;
+			//cnfe.printStackTrace(System.out);
+            throw new ClassNotFoundException(className);
         }
 
 		// we attempt the system class load even if we

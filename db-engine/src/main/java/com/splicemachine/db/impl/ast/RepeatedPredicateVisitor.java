@@ -181,12 +181,11 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
                 if (foundInPath(me.getKey(), newNode)) {
                     AndOrReplacementVisitor aor = new AndOrReplacementVisitor(me.getKey());
                     newNode.accept(new SpliceDerbyVisitorAdapter(aor));
-                    AndNode newAndNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
+                    newNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             me.getKey(),
                             newNode,
                             ((ValueNode) node).getContextManager());
-                    newNode = newAndNode;
                 }
 
             }

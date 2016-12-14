@@ -155,8 +155,7 @@ public class XADataSourceConnector implements Connector {
      */
     private XADataSource singleUseDS( HashMap hm )
        throws SQLException {
-        XADataSource sds = J2EEDataSource.getXADataSource(config, hm);
-        return sds;
+        return J2EEDataSource.getXADataSource(config, hm);
     }
 
 }

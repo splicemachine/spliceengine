@@ -358,8 +358,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             // Deserialize activation to clone it
             InputStream is = bs.newInput();
             ObjectInputStream ois = new ObjectInputStream(is);
-            OperationContext operationContext = (OperationContext) ois.readObject();
-            return operationContext;
+        return (OperationContext) ois.readObject();
 
     }
 }

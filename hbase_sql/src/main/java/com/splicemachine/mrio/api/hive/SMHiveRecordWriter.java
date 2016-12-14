@@ -169,9 +169,8 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
             tableName = s[1];
         }
         ColumnInfo columnInfo = new ColumnInfo(util.getStaticConnection(), schemaName, tableName, null);
-        String sql = "insert into " + fullTableName +
-                " select * from new com.splicemachine.derby.vti.SpliceIteratorVTI() as b (" + columnInfo.getImportAsColumns() + ")";
 
-        return sql;
+        return "insert into " + fullTableName +
+                " select * from new com.splicemachine.derby.vti.SpliceIteratorVTI() as b (" + columnInfo.getImportAsColumns() + ")";
     }
 }

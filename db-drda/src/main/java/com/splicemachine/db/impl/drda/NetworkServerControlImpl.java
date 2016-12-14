@@ -2571,11 +2571,10 @@ public final class NetworkServerControlImpl {
                                         
 										switch(getSSLMode()) {
 										case SSL_BASIC:
-											SSLSocket s1 = (SSLSocket)NaiveTrustManager.getSocketFactory().
-												createSocket(hostAddress, portNumber);
 											// Need to handshake now to get proper error reporting.
 //											s1.startHandshake();
-											return s1;
+											return (SSLSocket)NaiveTrustManager.getSocketFactory().
+												createSocket(hostAddress, portNumber);
 
 										case SSL_PEER_AUTHENTICATION:
 											SSLSocket s2 = (SSLSocket)SSLSocketFactory.getDefault().

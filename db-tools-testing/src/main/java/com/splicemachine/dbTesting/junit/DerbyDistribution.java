@@ -253,13 +253,12 @@ public class DerbyDistribution
     }
 
     public static File[] getJars(File libDir) {
-        File[] jars = libDir.listFiles(new FilenameFilter() {
+        return libDir.listFiles(new FilenameFilter() {
 
             public boolean accept(File dir, String name) {
                 return name.toUpperCase().endsWith(".JAR");
             }
         });
-        return jars;
     }
 
     /**

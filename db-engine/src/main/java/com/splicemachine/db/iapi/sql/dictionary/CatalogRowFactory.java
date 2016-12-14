@@ -253,8 +253,7 @@ public abstract	class CatalogRowFactory
 	 */
 	public Properties getCreateHeapProperties()
 	{
-		Properties properties = new Properties();
-		return properties;
+		return new Properties();
 	}
 
 	/**
@@ -266,8 +265,7 @@ public abstract	class CatalogRowFactory
 	 */
 	public Properties getCreateIndexProperties(int indexNumber)
 	{
-		Properties properties = new Properties();
-		return properties;
+		return new Properties();
 	}
 
 	/**

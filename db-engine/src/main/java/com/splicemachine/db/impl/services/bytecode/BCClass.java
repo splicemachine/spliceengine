@@ -254,14 +254,12 @@ class BCClass extends GClass {
 			SanityManager.ASSERT(returnType!=null);
 		}
 
-		BCMethod m = new BCMethod(this,
+		return new BCMethod(this,
 									returnType,
 									methodName,
 									modifiers,
 									parms,
 									factory);
-
-		return m;
 		
 	}
 
@@ -290,12 +288,10 @@ class BCClass extends GClass {
 	 */
 	public MethodBuilder newConstructorBuilder(int modifiers) {
 
-		BCMethod m = new BCMethod(this, "void", "<init>", 
+		return new BCMethod(this, "void", "<init>",
 									modifiers,
 									(String []) null,
 									factory);
-
-		return m;
 	}
   	//
 	// class interface

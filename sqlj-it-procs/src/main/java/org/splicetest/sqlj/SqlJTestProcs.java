@@ -94,11 +94,10 @@ public class SqlJTestProcs {
 		 */
 		String catalog = null;
 		String schemaPattern = null;
-		String procedureNamePattern = procName;
 		String columnNamePattern = null;
 		Connection conn = DriverManager.getConnection("jdbc:default:connection");
 		DatabaseMetaData dbMeta = conn.getMetaData();
-		ResultSet rsProcCols = dbMeta.getProcedureColumns(catalog, schemaPattern, procedureNamePattern, columnNamePattern);
+		ResultSet rsProcCols = dbMeta.getProcedureColumns(catalog, schemaPattern, procName, columnNamePattern);
 		rs[0] = rsProcCols;
 		conn.close();
 	}

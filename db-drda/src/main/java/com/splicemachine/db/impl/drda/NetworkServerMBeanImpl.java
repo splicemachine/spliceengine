@@ -105,8 +105,7 @@ class NetworkServerMBeanImpl implements NetworkServerMBean {
         // Since this is sensitive information require control permission.
         checkControl();
 
-        String host = getServerProperty(Property.DRDA_PROP_HOSTNAME);
-        return host;
+        return getServerProperty(Property.DRDA_PROP_HOSTNAME);
     }
     
     public boolean getDrdaKeepAlive() {
@@ -173,8 +172,7 @@ class NetworkServerMBeanImpl implements NetworkServerMBean {
         checkControl();
 
         // may be null if not set (?)
-        String SSLMode = getServerProperty(Property.DRDA_PROP_SSL_MODE);
-        return SSLMode;
+        return getServerProperty(Property.DRDA_PROP_SSL_MODE);
     }
     
     
@@ -184,9 +182,8 @@ class NetworkServerMBeanImpl implements NetworkServerMBean {
         // TODO - Fix NetworkServerControlImpl so that this setting is included
         //        in the property values returned by getPropertyValues()?
         //String size = getServerProperty(Property.DRDA_PROP_STREAMOUTBUFFERSIZE);
-        int size = PropertyUtil.getSystemInt(
+        return PropertyUtil.getSystemInt(
                 Property.DRDA_PROP_STREAMOUTBUFFERSIZE, 0);
-        return size;
     }
 
        

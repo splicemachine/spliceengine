@@ -368,9 +368,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		for (int i = 0; i < digest.length; i++)
 			condenseDigest[i%2] ^= digest[i];
 
-		int retval = (condenseDigest[0] & 0xFF) | ((condenseDigest[1] << 8) & 0xFF00);
-
-		return retval;
+		return (condenseDigest[0] & 0xFF) | ((condenseDigest[1] << 8) & 0xFF00);
 	}
 
 	public SecureRandom getSecureRandom() {
@@ -1022,8 +1020,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 	private StorageRandomAccessFile privAccessFile(StorageFactory storageFactory,String fileName,String filePerms)
 		throws java.io.IOException
 	{
-		StorageFile verifyKeyFile = storageFactory.newStorageFile("",fileName);
-		activeFile  = verifyKeyFile;
+		activeFile  = storageFactory.newStorageFile("",fileName);
 		this.action = 2;
 		activePerms = filePerms;
 	    try
@@ -1046,8 +1043,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 	private InputStream privAccessGetInputStream(StorageFactory storageFactory,String fileName)
 	throws StandardException
 	{
-	    StorageFile verifyKeyFile = storageFactory.newStorageFile("",fileName);
-	    activeFile  = verifyKeyFile;
+		activeFile  = storageFactory.newStorageFile("",fileName);
 	    this.action = 3;
 	    try
 	    {

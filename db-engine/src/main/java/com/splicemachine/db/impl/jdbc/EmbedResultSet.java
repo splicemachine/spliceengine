@@ -5426,8 +5426,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 			throws SQLException
 	{
 		String sourceTypeName = getMetaData().getColumnTypeName( columnIndex );
-		SQLException se = newSQLException( SQLState.LANG_DATA_TYPE_GET_MISMATCH, targetTypeName, sourceTypeName );
 
-		return se;
+		return newSQLException( SQLState.LANG_DATA_TYPE_GET_MISMATCH, targetTypeName, sourceTypeName );
 	}
 }

@@ -813,9 +813,8 @@ public class NetworkServerControl{
         //
         // Otherwise, we have the directory prefix for our url.
         //
-        String  directoryPrefix = derbyNetURL.substring( 0, idx );
 
-        return directoryPrefix;
+		return derbyNetURL.substring( 0, idx );
     }
 
     /**
@@ -832,9 +831,8 @@ public class NetworkServerControl{
             '/' +
             POLICY_FILENAME;
         URL         resourceURL = NetworkServerControl.class.getClassLoader().getResource( resourceName );
-        String      stringForm = resourceURL.toExternalForm();
 
-        return stringForm;
+		return resourceURL.toExternalForm();
     }
 
 	public void setLogConnections(boolean logConnections) {

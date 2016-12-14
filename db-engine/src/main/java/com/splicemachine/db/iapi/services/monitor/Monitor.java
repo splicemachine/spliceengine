@@ -399,10 +399,9 @@ public class Monitor {
         ModuleFactory monitor = getMonitor();
         if (monitor == null)
             return null;
-        
-		Object module = monitor.findModule((Object) null,
+
+		return monitor.findModule((Object) null,
 									  factoryInterface, (String) null);
-		return module;
 	}
 
 	/**
@@ -485,8 +484,7 @@ public class Monitor {
 	}
 	public static Object getServiceModule(Object serviceModule, String factoryInterface)
 	{
-		Object module = getMonitor().findModule(serviceModule, factoryInterface, (String) null);
-		return module;
+		return getMonitor().findModule(serviceModule, factoryInterface, (String) null);
 	}
 
 	/**
@@ -783,9 +781,7 @@ public class Monitor {
 		{
 			String etp = startParams.getProperty(EngineType.PROPERTY);
 
-			int engineType = etp == null ? EngineType.STANDALONE_DB : Integer.parseInt(etp.trim());
-
-			return engineType;
+			return etp == null ? EngineType.STANDALONE_DB : Integer.parseInt(etp.trim());
 		}
 
 		return EngineType.STANDALONE_DB;

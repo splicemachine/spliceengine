@@ -379,9 +379,8 @@ public class EmbedCallableStatement40
         throws SQLException
     {
         String sourceTypeName = getParameterMetaData().getParameterTypeName( parameterIndex );
-        SQLException se = newSQLException( SQLState.LANG_DATA_TYPE_GET_MISMATCH, targetTypeName, sourceTypeName );
 
-        return se;
+        return newSQLException( SQLState.LANG_DATA_TYPE_GET_MISMATCH, targetTypeName, sourceTypeName );
     }
 
     public <T> T getObject(String parameterName, Class<T> type)

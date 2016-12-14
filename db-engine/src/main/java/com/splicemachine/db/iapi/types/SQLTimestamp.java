@@ -124,8 +124,7 @@ public final class SQLTimestamp extends DataType
 
     public int estimateMemoryUsage()
     {
-        int sz = BASE_MEMORY_USAGE;
-        return sz;
+		return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
 	public String getString()
@@ -1019,8 +1018,7 @@ public final class SQLTimestamp extends DataType
 	}
 
     public DateTime getDateTime() {
-        DateTime dt = createDateTime();
-        return dt;
+		return createDateTime();
     }
 
     /**

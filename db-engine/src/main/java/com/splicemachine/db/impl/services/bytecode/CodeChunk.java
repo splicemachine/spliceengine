@@ -1018,9 +1018,7 @@ final class CodeChunk {
         int descriptor = cii.getI2();
         CONSTANT_Utf8_info type = (CONSTANT_Utf8_info) ch.getEntry(descriptor);
 
-        String vmDescriptor = type.toString();
-
-        return vmDescriptor;
+		return type.toString();
     }
 
     /**

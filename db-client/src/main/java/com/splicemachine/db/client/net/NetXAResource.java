@@ -985,8 +985,7 @@ public class NetXAResource implements XAResource {
         if (serverName.equalsIgnoreCase("localhost")) { // this is a localhost, find hostname
             try {
                 InetAddress localhostNameIA = InetAddress.getLocalHost();
-                String localhostName = localhostNameIA.getHostName();
-                return localhostName;
+                return localhostNameIA.getHostName();
             } catch (SecurityException se) {
                 return serverName;
             } catch (UnknownHostException ue) {

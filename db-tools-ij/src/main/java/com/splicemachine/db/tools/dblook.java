@@ -1215,9 +1215,7 @@ public final class dblook {
             if ( actualMajor > major ) { return true; }
             if ( actualMajor < major ) { return false; }
 
-            boolean result = ( actualMinor >= minor );
-            
-            return result;
+			return ( actualMinor >= minor );
         }
         finally
         {

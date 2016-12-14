@@ -541,15 +541,13 @@ class EmbedXAResource implements XAResource {
             LanguageConnectionContext lcc = con.getLanguageConnection();
             TransactionController tc = lcc.getTransactionExecute();
 
-            long timeoutMillis = 1000 * (long) PropertyUtil.getServiceInt(
+            return 1000 * (long) PropertyUtil.getServiceInt(
                 tc,
                 Property.PROP_XA_TRANSACTION_TIMEOUT,
                 0,
                 Integer.MAX_VALUE,
                 Property.DEFAULT_XA_TRANSACTION_TIMEOUT
                 );
-
-            return timeoutMillis;
         } catch (SQLException sqle) {
             throw wrapInXAException(sqle);
         } catch (StandardException se) {

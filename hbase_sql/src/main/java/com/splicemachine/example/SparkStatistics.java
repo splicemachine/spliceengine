@@ -80,8 +80,7 @@ public class SparkStatistics {
     private static MultivariateStatisticalSummary getColumnStatisticsSummary(JavaRDD<LocatedRow> resultSetRDD,
                                                                      int[] fieldsToConvert) throws StandardException{
         JavaRDD<Vector> vectorJavaRDD = SparkMLibUtils.locatedRowRDDToVectorRDD(resultSetRDD, fieldsToConvert);
-        MultivariateStatisticalSummary summary = Statistics.colStats(vectorJavaRDD.rdd());
-        return summary;
+        return Statistics.colStats(vectorJavaRDD.rdd());
     }
 
 
@@ -92,9 +91,8 @@ public class SparkStatistics {
         EmbedResultSet40 ers = (EmbedResultSet40)resultSet;
 
         com.splicemachine.db.iapi.sql.ResultSet rs = ers.getUnderlyingResultSet();
-        JavaRDD<LocatedRow> resultSetRDD = SparkMLibUtils.resultSetToRDD(rs);
 
-        return resultSetRDD;
+        return SparkMLibUtils.resultSetToRDD(rs);
     }
 
 

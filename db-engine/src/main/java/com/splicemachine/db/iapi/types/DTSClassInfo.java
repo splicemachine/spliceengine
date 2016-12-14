@@ -35,8 +35,7 @@ public class DTSClassInfo extends FormatableInstanceGetter {
         	// implementations are required for different VMs.
 
         	//The format id for DVDs are handled first.  
-        	Object returnObject = DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(fmtId);
-        	return returnObject;
+            return DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(fmtId);
 
 
         }

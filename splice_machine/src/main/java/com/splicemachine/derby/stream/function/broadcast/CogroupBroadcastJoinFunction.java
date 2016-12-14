@@ -39,7 +39,7 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
 
     @Override
     protected Iterable<Tuple2<LocatedRow, Iterable<LocatedRow>>> call(final Iterator<LocatedRow> locatedRows, final JoinTable joinTable) {
-        Iterable<Tuple2<LocatedRow, Iterable<LocatedRow>>> result = FluentIterable.from(new Iterable<LocatedRow>() {
+        return FluentIterable.from(new Iterable<LocatedRow>() {
             @Override
             public Iterator<LocatedRow> iterator() {
                 return locatedRows;
@@ -68,6 +68,5 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
                         return new Tuple2<LocatedRow,Iterable<LocatedRow>>(left, inner);
                     }
                 });
-        return result;
     }
 }

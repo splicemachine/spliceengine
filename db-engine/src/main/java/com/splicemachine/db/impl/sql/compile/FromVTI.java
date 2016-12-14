@@ -1732,9 +1732,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             }
 
             Constructor         constructor = vtiClass.getConstructor( new Class[] {} );
-            VTICosting          result = (VTICosting) constructor.newInstance( null );
 
-            return result;
+            return (VTICosting) constructor.newInstance( null );
         }
         catch (Throwable t)
         {

@@ -400,9 +400,7 @@ public class ColumnInfo {
     {
         if ( stringVersion == null ) { return null; }
 
-        HashMap retval = (HashMap) ImportAbstract.destringifyObject( stringVersion );
-
-        return retval;
+		return (HashMap) ImportAbstract.destringifyObject( stringVersion );
     }
     
 }

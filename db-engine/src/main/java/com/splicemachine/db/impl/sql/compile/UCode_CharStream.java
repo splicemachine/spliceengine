@@ -178,9 +178,8 @@ public final class UCode_CharStream implements CharStream
 
      tokenBegin = 0;
 	 bufpos = -1;
-     char c = readChar();
 
-     return c;
+      return readChar();
   }     
 
   private final void UpdateLineColumn(char c)

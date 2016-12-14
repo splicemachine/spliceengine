@@ -5238,8 +5238,7 @@ class DRDAConnThread extends Thread {
             statement.setQueryTimeout(pendingStatementTimeout);
             pendingStatementTimeout = -1;
         }
-		int updCount = statement.executeUpdate(sqlStmt);
-		return updCount;
+		return statement.executeUpdate(sqlStmt);
 	}
 
 	/**
@@ -5467,9 +5466,8 @@ class DRDAConnThread extends Thread {
 		// note this in the SQLCARD reply object (but DON'T cause the
 		// EXCSQLSET statement to fail).
 		if (hadUnrecognizedStmt) {
-			SQLWarning warn = new SQLWarning("One or more SET statements " +
+			throw new SQLWarning("One or more SET statements " +
 				"not recognized.", "01000");
-			throw warn;
 		} // end if.
 
 		return;

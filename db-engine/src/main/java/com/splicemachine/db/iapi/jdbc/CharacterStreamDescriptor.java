@@ -427,14 +427,13 @@ public class CharacterStreamDescriptor {
          * @return The textual representation of the builder.
          */
         public String toString() {
-            String str = "CharacterStreamBuiler@"  + hashCode() +
+            return "CharacterStreamBuiler@"  + hashCode() +
                     ":bufferable=" + bufferable + ", isPositionAware=" +
                     positionAware + ", curBytePos=" + curBytePos +
                     ", curCharPos=" + curCharPos + ", dataOffset=" +
                     dataOffset + ", byteLength=" + byteLength +
                     ", charLength=" + charLength + ", maxCharLength=" +
                     maxCharLength + ", stream=" + stream.getClass();
-            return str;
         }
     }
 }

@@ -585,18 +585,17 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
 		 * the same list.  See d3494_npe_writeup-4.html in DERBY-3494 for a
 		 * detailed explanation of how this works.
 		 */
-		ResultColumnList prRCList = rcl;
 		rsn.setResultColumns(rcl.copyListAndObjects());
 		// Remove any columns that were generated.
-		prRCList.removeGeneratedGroupingColumns();
+		rcl.removeGeneratedGroupingColumns();
 
 		/* Replace ResultColumn.expression with new VirtualColumnNodes
 		 * in the NormalizeResultSetNode's ResultColumnList.  (VirtualColumnNodes include
 		 * pointers to source ResultSetNode, rsn, and source ResultColumn.)
 		 */
-		prRCList.genVirtualColumnNodes(rsn, rsn.getResultColumns());
+		rcl.genVirtualColumnNodes(rsn, rsn.getResultColumns());
         
-		this.resultColumns = prRCList;
+		this.resultColumns = rcl;
 		// Propagate the referenced table map if it's already been created
 		if (rsn.getReferencedTableMap() != null)
 		    {

@@ -167,8 +167,7 @@ class ControlInfo
     return hasDelimeterAtEnd.equals(INTERNAL_TRUE);
   }
   String getHasDelimeterAtEndString() throws Exception {
-    String hasDelimeterAtEnd = getCurrentProperties().getProperty(HAS_DELIMETER_AT_END);
-    return hasDelimeterAtEnd;
+      return getCurrentProperties().getProperty(HAS_DELIMETER_AT_END);
   }
   //if at the time of export, the column has null into it, we will spit
   //nullString in the output file.

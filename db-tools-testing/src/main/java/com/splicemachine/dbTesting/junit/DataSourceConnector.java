@@ -152,8 +152,7 @@ public class DataSourceConnector implements Connector {
      */
     private DataSource singleUseDS( HashMap hm )
        throws SQLException {
-        DataSource sds = JDBCDataSource.getDataSource(config, hm);
-        return sds;
+        return JDBCDataSource.getDataSource(config, hm);
     }
 
     static  HashMap makeCreateDBAttributes( TestConfiguration configuration )

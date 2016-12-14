@@ -169,20 +169,18 @@ public class PropertyConglomerate {
             gsq.setQualifier(0, new SQLVarchar(key),DataValueDescriptor.ORDER_OP_EQUALS, false, false, false);
 			qualifiers[0][0] = gsq;
 		}
-		ScanController scan =         // open the scan, clients will do the fetches and close.
-            tc.openScan(
-                propertiesConglomId,
-                false, // don't hold over the commit
-                open_mode,
-                TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_SERIALIZABLE,
-                (FormatableBitSet) null,
-                (DataValueDescriptor[]) null,	// start key
-                ScanController.NA,
-                qualifiers,
-                (DataValueDescriptor[]) null,	// stop key
-                ScanController.NA);
-		return(scan);
+		return(tc.openScan(
+            propertiesConglomId,
+            false, // don't hold over the commit
+            open_mode,
+            TransactionController.MODE_TABLE,
+            TransactionController.ISOLATION_SERIALIZABLE,
+            (FormatableBitSet) null,
+            (DataValueDescriptor[]) null,	// start key
+            ScanController.NA,
+            qualifiers,
+            (DataValueDescriptor[]) null,	// stop key
+            ScanController.NA));
 	}
     /* Package Methods of This class: */
 

@@ -77,8 +77,7 @@ public class NetSqlca extends Sqlca {
 
     public long getRowCount(Typdef typdef) throws com.splicemachine.db.client.am.DisconnectException {
         int byteOrder = typdef.getByteOrder();
-        long num = (byteOrder == com.splicemachine.db.client.am.SignedBinary.BIG_ENDIAN) ?
+        return (byteOrder == com.splicemachine.db.client.am.SignedBinary.BIG_ENDIAN) ?
                 super.getRowCount() : ((long) sqlErrd_[1] << 32) + sqlErrd_[0];
-        return num;
     }
 }

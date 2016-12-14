@@ -38,8 +38,7 @@ public class NetPackageReply extends NetConnectionReply {
     NetSqlca parseSqlErrorCondition() throws DisconnectException {
         parseSQLERRRM();
         parseTypdefsOrMgrlvlovrs();
-        NetSqlca netSqlca = parseSQLCARD(null);
-        return netSqlca;
+        return parseSQLCARD(null);
     }
 
 

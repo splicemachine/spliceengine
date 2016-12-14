@@ -1154,7 +1154,6 @@ public class SQLToJUnit
         int c = 0;
         boolean done = false;
 
-        StringBuffer targetBuf = aLine;
         String nextline = null;
         boolean insideRS = false;
         boolean gotFirstComment = false;
@@ -1203,7 +1202,7 @@ public class SQLToJUnit
             if (!insideRS && (nextline.charAt(nextline.length() - 1) == ';'))
         	{
                 // most likely a single-line command, chomp the semicolon and return
-  			    targetBuf.append(nextline.substring(0, nextline.length() - 1));
+  			    aLine.append(nextline.substring(0, nextline.length() - 1));
   			    // if we're getting runtime statistics, skip the next command inside a 
   			    // result set, it will be the command that we're getting RS for.
   			    if (nextline.indexOf("GET_RUNTIMESTATISTICS()") > 0)
@@ -1217,8 +1216,8 @@ public class SQLToJUnit
         			if (linetype == UNKNOWN_LINE || (linetype == COMMENT && !gotFirstComment && insideRS)) {
             			insideRS = true;
             			if (linetype == COMMENT) gotFirstComment = true;
-      			        targetBuf.append(nextline);
-      			        targetBuf.append("\n");
+      			        aLine.append(nextline);
+      			        aLine.append("\n");
       			        continue;
         			}
         	    }
@@ -1232,8 +1231,8 @@ public class SQLToJUnit
         				// RuntimeStatistics resultset.
             			if (gotRuntimeStatistics) {
             				gotRuntimeStatistics = false;
-              			    targetBuf.append(nextline);
-              			    targetBuf.append("\n");
+              			    aLine.append(nextline);
+              			    aLine.append("\n");
             				continue;
             			}
             			
@@ -1241,16 +1240,16 @@ public class SQLToJUnit
             			break;
             		} else {
             			// got a row count or error, return it with the result set.
-          			    targetBuf.append(nextline);
+          			    aLine.append(nextline);
           			    break;
             		}
         		}  else {
-      			    targetBuf.append(nextline);
+      			    aLine.append(nextline);
       			    if (gotCommand){
             			// multi-line command or comment, keep going till
             			// we get a semicolon. Add a space to avoid glomming
       			    	// multiple trimmed strings together.
-      			    	targetBuf.append(" ");
+      			    	aLine.append(" ");
       			    	continue;
       			    } else{
       			    	// single line warning or error, finished

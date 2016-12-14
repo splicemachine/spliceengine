@@ -145,8 +145,7 @@ public class OptimizerFactoryImpl
 		 */
 		if (joinStrategySet == null)
 		{
-			JoinStrategy[] jss = new JoinStrategy[0];
-			joinStrategySet = jss;
+			joinStrategySet = new JoinStrategy[0];
 		}
 
 		return getOptimizerImpl(optimizableList,

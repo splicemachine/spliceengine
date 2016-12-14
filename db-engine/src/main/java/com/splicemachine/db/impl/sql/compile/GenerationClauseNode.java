@@ -185,12 +185,11 @@ public class GenerationClauseNode extends ValueNode
 	}
 
 	public List getChildren() {
-		List children = new LinkedList(){{
+
+		return new LinkedList(){{
 			add(_generationExpression);
 			add(_boundExpression);
 		}};
-		
-		return children;
 	}
 
     ///////////////////////////////////////////////////////////////////////////////////

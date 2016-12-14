@@ -202,8 +202,7 @@ public abstract class DataTypeUtilities  {
 				break;
 			default: 
 				// MaximumWidth is -1 when it is unknown.
-				int w = storageLength;
-				size = (w > 0 ? w : JDBC30Translation.DEFAULT_COLUMN_DISPLAY_SIZE);
+				size = (storageLength > 0 ? storageLength : JDBC30Translation.DEFAULT_COLUMN_DISPLAY_SIZE);
 				break;
 		}
 		return size;

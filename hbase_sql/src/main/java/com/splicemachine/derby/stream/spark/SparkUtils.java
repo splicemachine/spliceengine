@@ -62,8 +62,7 @@ public class SparkUtils {
 
     public static JavaPairRDD<ExecRow, LocatedRow> getKeyedRDD(JavaRDD<LocatedRow> rdd, final int[] keyColumns)
             throws StandardException {
-        JavaPairRDD<ExecRow, LocatedRow> keyed = rdd.keyBy(new Keyer(keyColumns));
-        return keyed;
+        return rdd.keyBy(new Keyer(keyColumns));
     }
 
     private static void printRDD(String title, @SuppressWarnings("rawtypes") Iterable it) {

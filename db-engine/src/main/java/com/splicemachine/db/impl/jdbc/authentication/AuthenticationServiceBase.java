@@ -581,9 +581,8 @@ public abstract class AuthenticationServiceBase
         bytePasswd = toHexByte(plainTxtUserPassword);
 		algorithm.update(bytePasswd);
 		byte[] hashedVal = algorithm.digest();
-        String hexString = PasswordHasher.ID_PATTERN_SHA1_SCHEME +
-                StringUtil.toHexString(hashedVal, 0, hashedVal.length);
-		return (hexString);
+		return (PasswordHasher.ID_PATTERN_SHA1_SCHEME +
+                StringUtil.toHexString(hashedVal, 0, hashedVal.length));
 
 	}
 

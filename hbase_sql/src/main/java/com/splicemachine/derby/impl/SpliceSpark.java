@@ -215,11 +215,10 @@ public class SpliceSpark {
             printConfigProps(conf);
         }
 
-        SparkSession s = SparkSession.builder()
+        return SparkSession.builder()
                 .appName("Splice Spark Session")
                 .config(conf)
                 .getOrCreate();
-        return s;
     }
 
     private static void printConfigProps(SparkConf conf) {

@@ -94,8 +94,7 @@ public final class FormatIdInputStream extends DataInputStream
 			{
 				ObjectInputStream ois = getObjectStream();
 				try {
-					Object result = ois.readObject();
-					return result;
+					return ois.readObject();
 				} catch (IOException ioe) {
 					setErrorInfo((ErrorInfo) ois);
 					throw ioe;

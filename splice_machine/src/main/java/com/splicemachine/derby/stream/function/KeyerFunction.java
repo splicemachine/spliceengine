@@ -60,8 +60,7 @@ public class KeyerFunction<T extends KeyableRow, Op extends SpliceOperation> ext
 
     @Override
      public ExecRow call(T row) throws Exception {
-        ExecRow returnRow = row.getKeyedExecRow(keyColumns);
-        return returnRow;
+        return row.getKeyedExecRow(keyColumns);
     }
     
 }

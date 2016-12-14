@@ -231,14 +231,12 @@ public class GroupByNode extends SingleChildResultSetNode{
                 outerCost,
                 rowOrdering);
 
-        CostEstimate retval=super.optimizeIt(
+        return super.optimizeIt(
                 optimizer,
                 predList,
                 outerCost,
                 rowOrdering
         );
-
-        return retval;
     }
 
     @Override

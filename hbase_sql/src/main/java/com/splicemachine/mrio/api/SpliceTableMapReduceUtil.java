@@ -232,8 +232,7 @@ public class SpliceTableMapReduceUtil{
         ObjectOutput dos=null;
         try{
             byte[] bytes=ProtobufUtil.toScan(scan).toByteArray();
-            String stringy=Base64.encodeBytes(bytes);
-            return stringy;
+            return Base64.encodeBytes(bytes);
         }finally{
             if(dos!=null)
                 dos.close();

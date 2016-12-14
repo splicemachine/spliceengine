@@ -1096,12 +1096,11 @@ public class TableElementList extends QueryTreeNodeVector {
 
                     // Only use a "unique with duplicate nulls" backing index
                     // for constraints with nullable columns.
-                    boolean uniqueWithDuplicateNulls = contains_nullable_columns;
 
 					indexAction = genIndexAction(
 						forCreateTable,
 						unique,
-                        uniqueWithDuplicateNulls,
+							contains_nullable_columns,
 						null, constraintDN,
 						columnNames, true, tableSd, tableName,
 						constraintType, dd);

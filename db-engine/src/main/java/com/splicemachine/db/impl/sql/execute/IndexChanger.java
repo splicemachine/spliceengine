@@ -498,12 +498,10 @@ public class IndexChanger
 				ConstraintDescriptor conDesc = dd.getConstraintDescriptor(td,
                                                                       cd.getUUID());
 				indexOrConstraintName = conDesc.getConstraintName();
-			}		
+			}
 
-			StandardException se = 
-				StandardException.newException(
-				SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, indexOrConstraintName, tableName);
-			throw se;
+			throw StandardException.newException(
+            SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, indexOrConstraintName, tableName);
 		}
 		if (SanityManager.DEBUG)
 		{

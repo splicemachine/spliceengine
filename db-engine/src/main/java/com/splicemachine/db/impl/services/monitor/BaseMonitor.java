@@ -667,8 +667,7 @@ abstract class BaseMonitor
 
 		Throwable t;
 		try {
-			Object result = ci.getNewInstance();
-/*
+			/*
 				if (SanityManager.DEBUG) {
 					if(SanityManager.DEBUG_ON(Monitor.NEW_INSTANCE_FROM_ID_TRACE_DEBUG_FLAG))
 					{
@@ -685,7 +684,7 @@ abstract class BaseMonitor
 					}
 				}
 */
-			return result;
+			return ci.getNewInstance();
 		}
 		catch (InstantiationException ie) {
 			t = ie;

@@ -37,7 +37,7 @@ public class SubtractByKeyBroadcastJoinFunction extends AbstractBroadcastJoinFla
 
     @Override
     protected Iterable<LocatedRow> call(final Iterator<LocatedRow> locatedRows, final JoinTable joinTable) {
-        Iterable<LocatedRow> result = FluentIterable.from(new Iterable<LocatedRow>(){
+        return FluentIterable.from(new Iterable<LocatedRow>(){
             @Override
             public Iterator<LocatedRow> iterator(){
                 return locatedRows;
@@ -53,6 +53,5 @@ public class SubtractByKeyBroadcastJoinFunction extends AbstractBroadcastJoinFla
                 }
             }
         });
-        return result;
     }
 }

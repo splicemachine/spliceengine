@@ -142,8 +142,7 @@ public class EmbedConnection30 extends EmbedConnection
 					throw newSQLException(SQLState.LANG_IDENTIFIER_TOO_LONG, name, String.valueOf(Limits.MAX_IDENTIFIER_LENGTH));
 				if (userSuppliedSavepointName && name.startsWith("SYS")) //to enforce DB2 restriction which is savepoint name can't start with SYS
 					throw newSQLException(SQLState.INVALID_SCHEMA_SYS, "SYS");
-				Savepoint savePt = new EmbedSavepoint30(this, name);
-				return savePt;
+				return new EmbedSavepoint30(this, name);
 			} catch (StandardException e) {
 				throw handleException(e);
 			} finally {

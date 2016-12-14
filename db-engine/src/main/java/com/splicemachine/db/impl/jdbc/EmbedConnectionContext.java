@@ -132,9 +132,8 @@ public class EmbedConnectionContext extends ContextImpl
 	{
 		EmbedConnection conn = (EmbedConnection) connRef.get();
 
-		EmbedResultSet rs = conn.getLocalDriver().newEmbedResultSet(conn, executionResultSet, 
+		return conn.getLocalDriver().newEmbedResultSet(conn, executionResultSet,
 							false, (EmbedStatement) null, true);
-		return rs;
 	}
 
     /**

@@ -393,9 +393,7 @@ public	class	DerbyJUnitTest	extends	TestCase
     {
         println( "Preparing procedure call: '" + text + "'" );
 
-        CallableStatement	cs = conn.prepareCall( text );
-
-        return cs;
+        return conn.prepareCall( text );
     }
 
     /**
