@@ -108,6 +108,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private OlapClient initializeOlapClient(SConfiguration config,Clock clock) {
         int timeoutMillis = config.getOlapClientWaitTime();
         int port = config.getOlapServerBindPort();
+        int retries = config.getOlapClientRetries();
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
         String host;
         try {
@@ -115,7 +116,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        JobExecutor onl = new AsyncOlapNIOLayer(host,port);
+        JobExecutor onl = new AsyncOlapNIOLayer(host,port,retries);
         return new TimedOlapClient(onl,timeoutMillis);
     }
 
