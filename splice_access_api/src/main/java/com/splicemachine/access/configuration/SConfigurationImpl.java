@@ -100,15 +100,18 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapCompactionMaximumWait;
     private final int reservedSlotsTimeout;
 
-    // SIConfigurations
-    private final  int activeTransactionCacheSize;
-    private final  int completedTxnCacheSize;
-    private final  int completedTxnConcurrency;
+    // OLAP client/server configurations
     private final int olapClientWaitTime;
     private final int olapClientTickTime;
     private final int olapServerBindPort;
     private final int olapServerThreads;
     private final int olapServerTickLimit;
+    private final int olapClientRetries;
+
+    // SIConfigurations
+    private final  int activeTransactionCacheSize;
+    private final  int completedTxnCacheSize;
+    private final  int completedTxnConcurrency;
     private final  int readResolverQueueSize;
     private final  int readResolverThreads;
     private final  int timestampClientWaitTime;
@@ -388,6 +391,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapServerThreads() {
         return olapServerThreads;
+    }
+    @Override
+    public int getOlapClientRetries() {
+        return olapClientRetries;
     }
     @Override
     public int getTimestampClientWaitTime() {
@@ -671,6 +678,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerBindPort = builder.olapServerBindPort;
         olapServerThreads = builder.olapServerThreads;
         olapServerTickLimit = builder.olapServerTickLimit;
+        olapClientRetries = builder.olapClientRetries;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;

@@ -53,7 +53,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class AsyncOlapNIOLayer implements JobExecutor{
     private static final Logger LOG=Logger.getLogger(AsyncOlapNIOLayer.class);
 
-    private static final int MAX_RETRIES = 10;
+    private final int maxRetries;
     private final ChannelPool channelPool;
     private final ScheduledExecutorService executorService;
     private final ProtobufDecoder decoder=new ProtobufDecoder(OlapMessage.Response.getDefaultInstance(),buildExtensionRegistry());
@@ -68,7 +68,8 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     }
 
 
-    public AsyncOlapNIOLayer(String host,int port){
+    public AsyncOlapNIOLayer(String host, int port, int retries){
+        maxRetries = retries;
         InetSocketAddress socketAddr=new InetSocketAddress(host,port);
         Bootstrap bootstrap=new Bootstrap();
         NioEventLoopGroup group=new NioEventLoopGroup(5,
@@ -453,9 +454,9 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 long millisSinceLastStatus = System.currentTimeMillis() - future.lastStatus;
                 LOG.warn("Status not available for job " + future.job.getUniqueName() +
                         ", millis since last status " + millisSinceLastStatus);
-                if (future.notFound++ > MAX_RETRIES) {
+                if (future.notFound++ > maxRetries) {
                     // The job is no longer submitted, assume aborted
-                    LOG.error("Failing job " + future.job.getUniqueName() + " after " + MAX_RETRIES +
+                    LOG.error("Failing job " + future.job.getUniqueName() + " after " + maxRetries +
                             " status not available responses");
                     future.fail(new IOException("Status not available, assuming aborted due to client timeout"));
                 }

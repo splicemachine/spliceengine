@@ -343,7 +343,7 @@ public class OlapClientTest {
         Clock clock=new SystemClock();
         olapServer = new OlapServer(0,clock); // any port
         olapServer.startServer(HConfiguration.getConfiguration());
-        JobExecutor nl = new AsyncOlapNIOLayer(olapServer.getBoundHost(),olapServer.getBoundPort());
+        JobExecutor nl = new AsyncOlapNIOLayer(olapServer.getBoundHost(),olapServer.getBoundPort(), 10);
         olapClient = new TimedOlapClient(nl,10000);
     }
 }
