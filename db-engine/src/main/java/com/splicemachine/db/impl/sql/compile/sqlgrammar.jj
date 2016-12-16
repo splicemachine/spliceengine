@@ -166,6 +166,7 @@ import java.util.Hashtable;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.Arrays;
 import java.lang.Character;
 
 public class SQLParser
@@ -11622,7 +11623,7 @@ tableDefinition() throws StandardException :
 	char				lockGranularity = TableDescriptor.DEFAULT_LOCK_GRANULARITY;
 	Properties			properties = null;
 	TableName			tableName;
-	TableElementList	tableElementList;
+	TableElementList	tableElementList = null;
 	ResultColumnList	resultColumns = null;
 	QueryTreeNode		queryExpression;
 	boolean				withData = true;
@@ -11668,7 +11669,7 @@ tableDefinition() throws StandardException :
             [<LOCATION> {location = literal();}]
 			{
 			validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
-                        linesTerminatedByChar, location,compression);
+                        linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
 				return (StatementNode) nodeFactory.getNode(
 										C_NodeTypes.CREATE_TABLE_NODE,
 										tableName,
@@ -11725,7 +11726,7 @@ tableDefinition() throws StandardException :
 						SQLState.LANG_NO_PARAMS_IN_TABLES);
 				}
 				validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
-                linesTerminatedByChar, location, compression);
+                linesTerminatedByChar, location, compression, partitionedResultColumns, tableElementList);
 				StatementNode node = (StatementNode)nodeFactory.getNode(
 										C_NodeTypes.CREATE_TABLE_NODE,
 										tableName,
@@ -11749,11 +11750,22 @@ tableDefinition() throws StandardException :
 
 void
 validateParameters(boolean isExternal, String storageFormat, ValueNode terminationChar, ValueNode escapedByChar,
-            ValueNode linesTerminatedByChar, ValueNode location, String compression) throws StandardException :
+            ValueNode linesTerminatedByChar, ValueNode location, String compression, ResultColumnList partitionedResultColumns, TableElementList tableElementList) throws StandardException :
 {
 }
 {
     {
+                if (isExternal && partitionedResultColumns != null){
+                     List<String> columnsPartitions = Arrays.asList(partitionedResultColumns.getColumnNames());
+
+                     for(String columnPartititon : columnsPartitions){
+                        ColumnDefinitionNode definition = tableElementList.findColumnDefinition(columnPartititon);
+                        if(definition ==  null){
+                                throw StandardException.newException(SQLState.EXTERNAL_TABLES_PARTITIONS_REQUIRED, columnPartititon);
+                            }
+                     }
+                }
+
                 if (isExternal && storageFormat == null)
                         throw StandardException.newException(
                         						SQLState.STORED_AS_REQUIRED_WITH_EXTERNAL_TABLES);
