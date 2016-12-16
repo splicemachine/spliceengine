@@ -449,12 +449,12 @@ class RowChangerImpl	implements	RowChanger
 		{
 			if (isc != null)
 			{
-				baseCC.insertAndFetchLocation(baseRow.getRowArray(), baseRowLocation);
+				baseCC.insertAndFetchLocation(baseRow, baseRowLocation);
 				isc.insert(baseRow, baseRowLocation);
 			}
 			else
 			{
-				baseCC.insert(baseRow.getRowArray());
+				baseCC.insert(baseRow);
 			}
 		}
 	}

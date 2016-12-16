@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.spark_project.guava.base.Function;
 import com.google.common.base.Optional;
 import com.splicemachine.db.catalog.AliasInfo;
@@ -2581,7 +2582,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             while(sc.fetchNext(indexRow.getRowArray())){
                 RowLocation baseRowLocation=(RowLocation)indexRow.getColumn(indexRow.nColumns());
 
-                boolean base_row_exists=heapCC.fetch(baseRowLocation,outRow.getRowArray(),null);
+                boolean base_row_exists=heapCC.fetch(baseRowLocation,outRow,null);
 
                 if(SanityManager.DEBUG){
                     // it can not be possible for heap row to
@@ -4485,7 +4486,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             baseRowLocation=(RowLocation)indexRow1.getColumn(
                     indexRow1.nColumns());
 
-            boolean base_row_exists=heapCC.fetch(baseRowLocation,outRow.getRowArray(),null);
+            boolean base_row_exists=heapCC.fetch(baseRowLocation,outRow,null);
 
             // it can not be possible for heap row to disappear while
             // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
@@ -4750,11 +4751,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     keyRow.getRowArray(),            // stop position - exact key match.
                     ScanController.GT);                // stopSearchOperation
 
+            ValueRow row = new ValueRow();
+            row.setRowArray(rowTemplate);
+
             while(scanController.fetchNext(indexRow1.getRowArray())){
                 baseRowLocation=(RowLocation)indexRow1.getColumn(indexRow1.nColumns());
 
                 // get the row and grab the uuid
-                boolean base_row_exists=heapCC.fetch(baseRowLocation,rowTemplate,columnToGetSet);
+                boolean base_row_exists=heapCC.fetch(baseRowLocation,row,columnToGetSet);
 
                 assert base_row_exists:"base row not found"; //SI reads should see the row
 
@@ -6560,7 +6564,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     TransactionController.ISOLATION_REPEATABLE_READ);
 
             // fetch the current value
-            boolean baseRowExists=heapCC.fetch(rl,row.getRowArray(),columnToRead,wait);
+            boolean baseRowExists=heapCC.fetch(rl,row,columnToRead,wait);
             // We're not prepared for a non-existing base row.
             assert baseRowExists:"base row not found";
 
@@ -7762,7 +7766,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     TransactionController.MODE_RECORD,
                     TransactionController.ISOLATION_REPEATABLE_READ);
 
-            boolean baseRowExists=heapCC.fetch(rowLocation,row.getRowArray(),columnToUpdate,wait);
+            boolean baseRowExists=heapCC.fetch(rowLocation,row,columnToUpdate,wait);
             // We're not prepared for a non-existing base row.
             assert baseRowExists:"base row not found";
 

@@ -328,7 +328,7 @@ class TemporaryRowHolderImpl implements TemporaryRowHolder
 		int status = 0;
 		if(isUniqueStream)
 		{
-			cc.insertAndFetchLocation(inputRow.getRowArray(), destRowLocation);
+			cc.insertAndFetchLocation(inputRow, destRowLocation);
 			insertToPositionIndex(numRowsIn -1, destRowLocation);
 			//create the unique index based on input row ROW Location
 			if(!uniqueIndexCreated)
@@ -336,7 +336,7 @@ class TemporaryRowHolderImpl implements TemporaryRowHolder
 
 		}else
 		{
-			status = cc.insert(inputRow.getRowArray());
+			status = cc.insert(inputRow);
 			if (isVirtualMemHeap)
 				state = STATE_INSERT;
 		}
@@ -399,12 +399,13 @@ class TemporaryRowHolderImpl implements TemporaryRowHolder
 								TransactionController.ISOLATION_SERIALIZABLE);
 				uniqueIndexCreated = true;
 			}
-
+			ValueRow row = new ValueRow();
+			row.setRowArray(uniqueIndexRow);
 			uniqueIndexRow[0] = baseRowLocation;
 			uniqueIndexRow[1] = baseRowLocation;
 			// Insert the row into the secondary index.
 			int status;
-			if ((status = uniqueIndex_cc.insert(uniqueIndexRow))!= 0)
+			if ((status = uniqueIndex_cc.insert(row))!= 0)
 			{
 				if(status == ConglomerateController.ROWISDUPLICATE)
 				{
@@ -473,7 +474,9 @@ class TemporaryRowHolderImpl implements TemporaryRowHolder
 		positionIndexRow[0] = position_sqllong;
 		positionIndexRow[1] = rl;
 		//insert the row location to position index
-		positionIndex_cc.insert(positionIndexRow);
+		ValueRow row = new ValueRow();
+		row.setRowArray(positionIndexRow);
+		positionIndex_cc.insert(row);
 	}
 
 	/**

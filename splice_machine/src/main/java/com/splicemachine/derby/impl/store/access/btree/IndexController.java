@@ -27,6 +27,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -39,7 +40,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.*;
 
 
 public class IndexController extends SpliceController{
@@ -65,53 +66,85 @@ public class IndexController extends SpliceController{
     }
 
     @Override
-    public int insert(DataValueDescriptor[] row) throws StandardException{
-        assert row!=null: "Cannot insert a null row";
-        if(LOG.isTraceEnabled())
-            LOG.trace(String.format("insert row into conglomerate: %s, row: %s",this.getConglomerate(),(Arrays.toString(row))));
-        Partition htable = getTable();
-        try{
-            boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
-            byte[] rowKey=generateIndexKey(row,order);
-            /*
-			 * Check if the rowKey already exists.
-			 * TODO: An optimization would be to not check for existence of a rowKey if the index is non-unique.
-			 *		 Unfortunately, this information is not available here and would need to be passed down from
-			 *		 DataDictionaryImpl through TabInfoImpl.  Something worth looking into in the future.
-			 */
-            TxnView txn=trans.getTxnInformation();
-            DataGet get=opFactory.newDataGet(txn,rowKey,null);
-            DataResult result=htable.get(get,null);
-            if(result==null||result.size()<=0){
+    public int batchInsert(List<ExecRow> rows) throws StandardException {
+        int i = 0;
+        List<DataPut> puts = new ArrayList<>();
+        boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
+        List<byte[]> rowKeys = new ArrayList<>();
+        DataGet get = null;
+        for (ExecRow row: rows) {
+            assert row != null : "Cannot insert a null row!";
+            if (LOG.isTraceEnabled())
+                LOG.trace(String.format("batchInsert conglomerate: %s, row: %s", this.getConglomerate(), (Arrays.toString(row.getRowArray()))));
+            try {
+                byte[] rowKey = generateIndexKey(row.getRowArray(), order);
+                rowKeys.add(rowKey);
+                TxnView txn = trans.getTxnInformation();
+                if (get == null)
+                    get = opFactory.newDataGet(txn, rowKey, null);
                 DataPut put=opFactory.newDataPut(txn,rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
-                encodeRow(row,put,null,null);
-                htable.put(put);
-                return 0;
-            }else{
-                return ConglomerateController.ROWISDUPLICATE;
+                encodeRow(row.getRowArray(), put, null, null);
+                puts.add(put);
+            } catch (Exception e) {
+                throw Exceptions.parseException(e);
             }
-        }catch(Exception e){
-            LOG.error(e.getMessage(),e);
+        }
+        try {
+            if (rows.size() ==0) {
+                return 0;
+            }
+            Partition htable = getTable();
+            Iterator<DataResult> results = htable.batchGet(get, rowKeys);
+            while (results.hasNext()) {
+                DataResult result = results.next();
+                if(result!=null && result.size()>0) {
+                    return ConglomerateController.ROWISDUPLICATE;
+                }
+            }
+            htable.writeBatch(puts.toArray(new DataPut[puts.size()]));
+            return 0;
+        } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
     }
 
-    @Override
-    public void insertAndFetchLocation(DataValueDescriptor[] row,RowLocation destRowLocation) throws StandardException{
-        assert row!=null: "Cannot insert a null row!";
-        if(LOG.isTraceEnabled())
-            LOG.trace(String.format("insertAndFetchLocation into conglomerate: %s, row: %s, rowLocation: %s",this.getConglomerate(),(Arrays.toString(row)),destRowLocation));
-        try(Partition htable = getTable()){
-            boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
-            byte[] rowKey=generateIndexKey(row,order);
-            DataPut put=opFactory.newDataPut(trans.getTxnInformation(),rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
-            encodeRow(row,put,null,null);
 
-            destRowLocation.setValue(put.key());
-            htable.put(put);
-        }catch(Exception e){
-            throw StandardException.newException("insert and fetch location error",e);
+    @Override
+    public int insert(ExecRow row) throws StandardException{
+        return batchInsert(Collections.singletonList(row));
+    }
+
+    @Override
+    public void batchInsertAndFetchLocation(ExecRow[] rows, RowLocation[] rowLocations) throws StandardException {
+        List<DataPut> puts = new ArrayList();
+        boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
+        int i = 0;
+        for (ExecRow row: rows) {
+            assert row != null : "Cannot insert into a null row!";
+            if(LOG.isTraceEnabled())
+                LOG.trace(String.format("insertAndFetchLocation into conglomerate: %s, row: %s, rowLocation: %s",this.getConglomerate(),(Arrays.toString(row.getRowArray())),rowLocations[i]));
+            try {
+                byte[] rowKey=generateIndexKey(row.getRowArray(),order);
+                DataPut put=opFactory.newDataPut(trans.getTxnInformation(),rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
+                encodeRow(row.getRowArray(),put,null,null);
+                rowLocations[i].setValue(put.key());
+                i++;
+                puts.add(put);
+            } catch (Exception e) {
+                throw StandardException.newException("insert and fetch location error", e);
+            }
         }
+        Partition htable = getTable(); //-sf- don't want to close the htable here, it might break stuff
+        try {
+            htable.writeBatch(puts.toArray(new DataPut[puts.size()]));
+        } catch (Exception e) {
+            throw StandardException.newException("insert and fetch location error", e);
+        }
+    }
+
+    @Override
+    public void insertAndFetchLocation(ExecRow row,RowLocation destRowLocation) throws StandardException{
+        batchInsertAndFetchLocation(new ExecRow[]{row},new RowLocation[]{destRowLocation});
     }
 
     @Override

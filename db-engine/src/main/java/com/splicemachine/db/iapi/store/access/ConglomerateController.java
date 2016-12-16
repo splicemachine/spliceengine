@@ -183,7 +183,7 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      **/
     boolean fetch(
     RowLocation             loc, 
-    DataValueDescriptor[]   destRow, 
+    ExecRow   destRow,
     FormatableBitSet                 validColumns) 
 		throws StandardException;
 
@@ -244,8 +244,8 @@ public interface ConglomerateController extends ConglomPropertyQueryable
 	 * @see RowUtil
      **/
     boolean fetch(
-    RowLocation loc, 
-    DataValueDescriptor[]   destRow, 
+    RowLocation loc,
+	ExecRow   destRow,
     FormatableBitSet     validColumns,
     boolean     waitForLock) 
 		throws StandardException;
@@ -285,48 +285,6 @@ public interface ConglomerateController extends ConglomPropertyQueryable
 			throws StandardException;
 
 
-	/**
-     * Fetch the (partial) row at the given location.
-     * <p>
-     * RESOLVE - interface NOT SUPPORTED YET!!!!!
-     *
-     * @param loc             The "RowLocation" which describes the exact row
-     *                        to fetch from the table.
-     * @param destRow         The row to read the data into.
-     * @param validColumns    A description of which columns to return from
-     *                        row on the page into "destRow."  destRow,
-     *                        and validColumns work together to
-     *                        describe the row to be returned by the fetch -
-     *                        see RowUtil for description of how these three
-     *                        parameters work together to describe a fetched
-     *                        "row".
-     * @param qualifier       An array of qualifiers which,
-     *                        applied to each key, restrict the rows returned
-     *                        by the scan.  Rows for which any one of the
-     *                        qualifiers returns false are not returned by
-     *                        the scan. If null, all rows are returned.
-     *                        Qualifiers can only reference columns which are
-     *                        included in the scanColumnList.  The column id
-     *                        that a qualifier returns in the column id the
-     *                        table, not the column id in the partial row being
-     *                        returned.  See openScan() for description of how
-     *                        qualifiers are applied.
-     *
-     * @return Returns true if fetch was successful, false if the record
-     *         pointed at no longer represents a valid record.
-     *
-     * @exception  StandardException  Standard exception policy.
-     *
-     * @see RowUtil
-     **/
-    /*
-    boolean fetch(
-    RowLocation             loc, 
-    DataValueDescriptor[]   destRow, 
-    FormatableBitSet                 validColumns, 
-    Qualifier[][]           qualifier)
-		throws StandardException;
-    */
 
 	/**
     Insert a row into the conglomerate.
@@ -344,10 +302,33 @@ public interface ConglomerateController extends ConglomPropertyQueryable
 	@exception StandardException Standard exception policy.
 	@see RowUtil
     **/
-	int insert(DataValueDescriptor[]    row) 
+	int insert(ExecRow    row)
 		throws StandardException;
 
-    /**
+
+	/**
+	 insert rows into the conglomerate.
+
+	 @param row the row to insert into the conglomerate.  the stored
+	 representations of the row's columns are copied into a new row
+	 somewhere in the conglomerate.
+
+	 @return returns 0 if insert succeeded.  returns
+	 conglomeratecontroller.rowisduplicate if conglomerate supports uniqueness
+	 checks and has been created to disallow duplicates, and the row inserted
+	 had key columns which were duplicate of a row already in the table.  other
+	 insert failures will raise standardexception's.
+
+	 @exception standardexception standard exception policy.
+	 @see rowutil
+	 **/
+	int batchInsert(List<ExecRow>    rows)
+			throws StandardException;
+
+
+
+
+	/**
      * insert row and fetch it's row location in one operation.
      * <p>
      * Insert a row into the conglomerate, and store its location in 
@@ -367,9 +348,35 @@ public interface ConglomerateController extends ConglomPropertyQueryable
 	 * @see RowUtil
      **/
 	void insertAndFetchLocation(
-    DataValueDescriptor[]   row, 
+    ExecRow   row,
     RowLocation             destRowLocation)
 		throws StandardException;
+
+	/**
+	 * insert rows and fetch there row location in one batchPut operation.
+	 * <p>
+	 * Insert a row into the conglomerate, and store its location in
+	 * the provided destination row location.  The row location must be of the
+	 * correct type for this conglomerate (a new row location of the correct
+	 * type can be obtained from newRowLocationTemplate()).
+	 *
+	 * @param row           The row to insert into the conglomerate.  The
+	 *                      stored representations of the row's columns are
+	 *                      copied into a new row somewhere in the conglomerate.
+	 *
+	 * @param rowLocations The rowlocation to read the inserted row location
+	 *                      into.
+	 *
+	 * @exception  StandardException  Standard exception policy.
+	 *
+	 * @see RowUtil
+	 **/
+
+	void batchInsertAndFetchLocation(
+			ExecRow[]			rows,
+			RowLocation[]       rowLocations
+	) throws StandardException;
+
 
     /**
 	Return whether this is a keyed conglomerate.

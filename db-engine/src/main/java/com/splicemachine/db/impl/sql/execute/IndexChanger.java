@@ -474,7 +474,7 @@ public class IndexChanger
 	{
 		openIndexCC();
 
-		int insertStatus = indexCC.insert(row.getRowArray());
+		int insertStatus = indexCC.insert(row);
 
 		if (insertStatus == ConglomerateController.ROWISDUPLICATE)
 		{

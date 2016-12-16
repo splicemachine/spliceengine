@@ -261,11 +261,13 @@ public class RIBulkChecker
 				firstRowToFail.setRowArray(firstRowToFail.getRowArrayClone());
 			}
 		}
-			
+
 		failedCounter++;
 		if (unreferencedCC != null)
 		{
-			unreferencedCC.insert(foreignKeyRow);
+			ValueRow row = new ValueRow();
+			row.setRowArray(foreignKeyRow);
+			unreferencedCC.insert(row);
 		}
 	}	
 	/*

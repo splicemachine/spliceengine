@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
@@ -34,6 +35,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.iapi.types.UserType;
 import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.PropertyManagerService;
@@ -253,8 +255,9 @@ public class PropertyConglomerate {
                         TransactionController.OPENMODE_FORUPDATE, 
                         TransactionController.MODE_TABLE,
                         TransactionController.ISOLATION_SERIALIZABLE);
-
-                cc.insert(row);
+				ExecRow vRow = new ValueRow();
+				vRow.setRowArray(row);
+                cc.insert(vRow);
                 cc.close();
             }
         }

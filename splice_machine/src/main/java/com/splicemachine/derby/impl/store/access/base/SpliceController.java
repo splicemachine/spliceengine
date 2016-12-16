@@ -47,6 +47,7 @@ import org.apache.parquet.Closeables;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -156,34 +157,13 @@ public abstract class SpliceController implements ConglomerateController{
             throw Exceptions.parseException(e);
         }
     }
-
-    public boolean fetch(RowLocation loc,DataValueDescriptor[] destRow,FormatableBitSet validColumns) throws StandardException{
+    @Override
+    public boolean fetch(RowLocation loc,ExecRow destRow,FormatableBitSet validColumns) throws StandardException{
         return fetch(loc,destRow,validColumns,false);
     }
-
-    public boolean fetch(RowLocation loc,DataValueDescriptor[] destRow,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
-        Partition htable = getTable();
-        try{
-            DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),loc.getBytes(),null);
-            baseGet.returnAllVersions();
-            DataGet get=createGet(baseGet,destRow,validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
-            DataResult result=htable.get(get,null);
-            if(result==null || result.size()<=0) return false;
-
-            int[] cols=FormatableBitSetUtils.toIntArray(validColumns);
-            DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(destRow);
-            try(KeyHashDecoder rowDecoder=new EntryDataDecoder(cols,null,serializers)){
-                ExecRow row=new ValueRow(destRow.length);
-                row.setRowArray(destRow);
-                row.resetRowArray();
-                DataCell keyValue=result.userData();
-                rowDecoder.set(keyValue.valueArray(),keyValue.valueOffset(),keyValue.valueLength());
-                rowDecoder.decode(row);
-            }
-            return true;
-        }catch(Exception e){
-            throw Exceptions.parseException(e);
-        }
+    @Override
+    public boolean fetch(RowLocation loc,ExecRow destRow,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
+        return batchFetch(Collections.singletonList(loc),Collections.singletonList(destRow),validColumns,waitForLock);
     }
     @Override
     public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows, FormatableBitSet validColumns) throws StandardException{
@@ -221,6 +201,7 @@ public abstract class SpliceController implements ConglomerateController{
             }
             return true;
         }catch(Exception e){
+            e.printStackTrace();
             throw Exceptions.parseException(e);
         } finally {
             if (rowDecoder !=null)
