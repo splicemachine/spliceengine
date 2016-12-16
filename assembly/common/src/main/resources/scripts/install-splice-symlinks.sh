@@ -95,19 +95,32 @@ for platform in ${platforms[@]} ; do
       chmod 644 ${splicejar}
     done
 
-    # XXX - any CDH platform-specific steps?
-
-    # platform-specific stuff for hdp, mapr
+    # platform-specific stuff
     # we need a list of lib directories where we can symlink our files so yarn can use them
     yarnlibdirs=""
     if [[ ${platform} =~ ^hdp$ ]] ; then
       yarnlibdirs="$(ls -d ${topdir[${platform}]}/*/hadoop-yarn/lib/)"
     elif [[ ${platform} =~ ^mapr$ ]] ; then
       yarnlibdirs="$(ls -d ${topdir[${platform}]}/hadoop/*/share/hadoop/yarn/)"
+    elif [[ ${platform} =~ ^cdh$ ]] ; then
+      yarnlibdirs="$(ls -d ${topdir[${platform}]}/parcels/CDH/lib/hadoop-yarn/ ${topdir[${platform}]}/parcels/CDH/lib/hadoop-yarn/lib/)"
+    fi
+
+    # on cdh, we need to move spark 1.x jars out of the way
+    # XXX - will this break Spark 2 (beta) parcel/CSD? probably
+    # XXX - already breaks everything else, so...
+    if [[ ${platform} =~ ^cdh$ ]] ; then
+      jardir="${topdir[${platform}]}/parcels/CDH/jars/"
+      disjardir="${topdir[${platform}]}/parcels/CDH/jars.OFF/"
+      test -e ${disjardir} || mkdir -p ${disjardir}
+      for cdhsparkjar in $(find ${jardir} -type f | egrep '/(spark|hbase-spark).*\.jar$') ; do
+        echo "moving ${cdhsparkjar} to ${disjardir}"
+        mv ${cdhsparkjar} ${disjardir}
+      done
     fi
 
     # loop through our list, clean up and re-link everything.
-    if [[ ${platform} =~ ^hdp$ || ${platform} =~ ^mapr$ ]] ; then
+    if [[ ${platform} =~ ^hdp$ || ${platform} =~ ^mapr$ || ${platform} =~ ^cdh$ ]] ; then
       for yarnlibdir in ${yarnlibdirs} ; do
         # clean up first
         echo "finding and removing any Splice Machine symlinks from ${yarnlibdir}"
