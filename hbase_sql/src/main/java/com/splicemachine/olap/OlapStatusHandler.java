@@ -16,6 +16,7 @@
 package com.splicemachine.olap;
 
 import com.splicemachine.olap.OlapMessage;
+import org.apache.log4j.Logger;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 
@@ -24,6 +25,7 @@ import org.jboss.netty.channel.MessageEvent;
  *         Date: 4/1/16
  */
 public class OlapStatusHandler extends AbstractOlapHandler{
+    private static final Logger LOG = Logger.getLogger(OlapStatusHandler.class);
 
     public OlapStatusHandler(OlapJobRegistry registry){
         super(registry);
@@ -32,12 +34,19 @@ public class OlapStatusHandler extends AbstractOlapHandler{
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception{
         OlapMessage.Command cmd = (OlapMessage.Command)e.getMessage();
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Received " + cmd);
+        }
         if(cmd.getType()!=OlapMessage.Command.Type.STATUS){
             ctx.sendUpstream(e);
             return;
         }
         OlapJobStatus status = jobRegistry.getStatus(cmd.getUniqueName());
         writeResponse(e,cmd.getUniqueName(),status);
+
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Status " + status);
+        }
 
         super.messageReceived(ctx,e);
     }

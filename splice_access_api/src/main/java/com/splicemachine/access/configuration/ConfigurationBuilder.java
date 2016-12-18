@@ -138,6 +138,7 @@ public class ConfigurationBuilder {
     public int compactionReservedSlots;
     public int reservedSlotsTimeout;
     public int olapCompactionMaximumWait;
+    public int olapClientRetries;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>
