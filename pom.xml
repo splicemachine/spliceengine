@@ -17,7 +17,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>2.0.1.37-SNAPSHOT</version>
+    <version>2.0.1.40-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -74,6 +74,7 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <spark.version>1.6.2</spark.version>
+	    <databind.version>2.2.2</databind.version>
         <!-- Dependency added so Splice Machine will use the shaded libraries for Guava and Netty -->
         <!-- TODO: Remove CDH version dependency in favor of generic apache hbase spark assembly -->
         <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.2</spark-assembly-id>
@@ -1115,6 +1116,32 @@
                 <zookeeper.version>3.4.5-cdh5.8.2</zookeeper.version>
                 <spark.version>1.6.2</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.8.2</spark-assembly-id>
+                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.8.3</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.8.3</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.8.3</cdh.parcel.version>
+                <envClassifier>cdh5.8.3</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.8.3</hadoop.version>
+                <hbase.version>1.2.0-cdh5.8.3</hbase.version>
+                <hive.version>1.1.0-cdh5.8.3</hive.version>
+                <zookeeper.version>3.4.5-cdh5.8.3</zookeeper.version>
+                <spark.version>1.6.2</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.8.3</spark-assembly-id>
                 <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
             </properties>
             <modules>

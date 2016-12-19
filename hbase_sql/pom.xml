@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.0.1.37-SNAPSHOT</version>
+        <version>2.0.1.40-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -45,6 +45,11 @@
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-core</artifactId>
             <version>1.9</version>
+        </dependency>
+	    <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${databind.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -365,12 +370,12 @@
                     <dependency>
                         <groupId>org.splicetest.txn</groupId>
                         <artifactId>txn-it-procs</artifactId>
-                        <version>2.0.1.37-SNAPSHOT</version>
+                        <version>2.0.1.40-SNAPSHOT</version>
                     </dependency>
                     <dependency>
                         <groupId>org.splicetest.sqlj</groupId>
                         <artifactId>sqlj-it-procs</artifactId>
-                        <version>2.0.1.37-SNAPSHOT</version>
+                        <version>2.0.1.40-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -395,7 +400,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.txn</groupId>
                                     <artifactId>txn-it-procs</artifactId>
-                                    <version>2.0.1.37-SNAPSHOT</version>
+                                    <version>2.0.1.40-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/txn-it</outputDirectory>
@@ -404,7 +409,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.sqlj</groupId>
                                     <artifactId>sqlj-it-procs</artifactId>
-                                    <version>2.0.1.37-SNAPSHOT</version>
+                                    <version>2.0.1.40-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sql-it</outputDirectory>
@@ -450,7 +455,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest,${excluded.categories}</excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
@@ -478,7 +483,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <groups>com.splicemachine.test.BackupTest</groups>
+                            <groups>com.splicemachine.test.RestoreTest</groups>
                             <argLine>-Xmx3g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>

@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
@@ -70,9 +71,13 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
             operation.fireBeforeStatementTriggers();
             pipelineWriter.open(operation.getTriggerHandler(),operation);
             pipelineWriter.write(dataSet.values().toLocalIterator());
-            ValueRow valueRow=new ValueRow(1);
-            valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
+
+            long recordsWritten = operationContext.getRecordsWritten();
             operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
+            txn.commit();
+            if(pipelineWriter!=null)
+                pipelineWriter.close();
+            long badRecords = 0;
             if(operation instanceof InsertOperation){
                 InsertOperation insertOperation = (InsertOperation)operation;
                 BadRecordsRecorder brr = operationContext.getBadRecordsRecorder();
@@ -91,7 +96,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                         brr = op.getOperationContext().getBadRecordsRecorder();
                     }
                 }
-                long badRecords = (brr != null ? brr.getNumberOfBadRecords() : 0);
+                badRecords = (brr != null ? brr.getNumberOfBadRecords() : 0);
                 operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
                 if(badRecords > 0){
                     String fileName = operationContext.getBadRecordFileName();
@@ -101,7 +106,16 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                     }
                 }
             }
-            txn.commit();
+            ValueRow valueRow=null;
+            if (badRecords > 0) {
+                valueRow = new ValueRow(3);
+                valueRow.setColumn(2, new SQLLongint(badRecords));
+                valueRow.setColumn(3, new SQLVarchar(operationContext.getBadRecordFileName()));
+            }
+            else {
+                valueRow = new ValueRow(1);
+            }
+            valueRow.setColumn(1,new SQLLongint(recordsWritten));
             return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
         }catch(Exception e){
             if(txn!=null){
@@ -112,15 +126,9 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                 }
             }
             throw Exceptions.parseException(e);
-        }finally{
-            try{
-                if(pipelineWriter!=null)
-                    pipelineWriter.close();
-                operation.fireAfterStatementTriggers();
-            }catch(Exception e){
-                throw Exceptions.parseException(e);
-            }
-
+        }
+        finally {
+            operation.fireAfterStatementTriggers();
         }
     }
 
