@@ -101,13 +101,15 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     public JavaRDD<V> rdd;
     private Map<String,String> attributes;
+    private int defaultPartitions;
     public SparkDataSet(JavaRDD<V> rdd) {
         this.rdd = rdd;
+        this.defaultPartitions = SparkUtils.getDefaultPartitions();
     }
 
     public SparkDataSet(JavaRDD<V> rdd, String rddname) {
-  //      Dataset<V> set;
         this.rdd = rdd;
+        this.defaultPartitions = SparkUtils.getDefaultPartitions();
         if (rdd != null && rddname != null) this.rdd.setName(rddname);
     }
 
@@ -208,6 +210,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
+            int numPartitions = SparkUtils.getPartitions(rdd, defaultPartitions);
             Dataset<Row> result = toSparkRow(this,context)
                            .distinct();
 

@@ -162,6 +162,8 @@ public interface SConfiguration {
 
     int getOlapClientRetries();
 
+    int getOlapShufflePartitions();
+
     int getTimestampClientWaitTime();
 
     int getTimestampServerBindPort();
