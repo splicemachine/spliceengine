@@ -26,6 +26,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteDataInput;
 
 import org.apache.commons.codec.binary.Base64;
@@ -59,12 +60,14 @@ import java.util.zip.GZIPOutputStream;
 public class SparkDataSet<V> implements DataSet<V> {
     public JavaRDD<V> rdd;
     private Map<String,String> attributes;
+    private int defaultPartitions;
     public SparkDataSet(JavaRDD<V> rdd) {
         this.rdd = rdd;
+        this.defaultPartitions = SIDriver.driver().getConfiguration().getOlapShufflePartitions();
     }
 
     public SparkDataSet(JavaRDD<V> rdd, String rddname) {
-        this.rdd = rdd;
+        this(rdd);
         if (rdd != null && rddname != null) this.rdd.setName(rddname);
     }
 
@@ -114,7 +117,8 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
-            JavaRDD rdd1 = rdd.distinct();
+            int numPartitions = RDDUtils.getPartitions(rdd, defaultPartitions);
+            JavaRDD rdd1 = rdd.distinct(numPartitions);
             rdd1.setName(name /* MapPartitionsRDD */);
             RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */}, null);
             return new SparkDataSet(rdd1);
@@ -238,7 +242,8 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet< V> subtract(DataSet< V> dataSet) {
-        return new SparkDataSet<>(rdd.subtract( ((SparkDataSet<V>) dataSet).rdd));
+        int numPartitions = RDDUtils.getPartitions(rdd, ((SparkDataSet<V>) dataSet).rdd, defaultPartitions);
+        return new SparkDataSet<>(rdd.subtract( ((SparkDataSet<V>) dataSet).rdd, numPartitions));
     }
 
     @Override

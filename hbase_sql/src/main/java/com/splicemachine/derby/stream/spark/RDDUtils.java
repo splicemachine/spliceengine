@@ -23,6 +23,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaRDDLike;
 import org.apache.spark.api.java.function.Function;
 
 import java.util.Iterator;
@@ -134,6 +135,18 @@ public class RDDUtils {
             }
             currentRDD = rddAnc;
         }
+    }
+
+    public static int getPartitions(JavaRDDLike<?,?> rdd, int defaultPartitions) {
+        int rddPartitions = rdd.getNumPartitions();
+        return Math.max(rddPartitions, defaultPartitions);
+    }
+
+    public static int getPartitions(JavaRDDLike<?,?> rdd1, JavaRDDLike<?,?> rdd2, int defaultPartitions) {
+        int rddPartitions1 = rdd1.getNumPartitions();
+        int rddPartitions2 = rdd2.getNumPartitions();
+        int max = Math.max(rddPartitions1, rddPartitions2);
+        return Math.max(max, defaultPartitions);
     }
 
     public static class SparkRowsIterable implements Iterable<LocatedRow>, Iterator<LocatedRow> {
