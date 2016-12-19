@@ -15,13 +15,10 @@
 
 package com.splicemachine.si.api.filter;
 
-import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.storage.DataGet;
 import com.splicemachine.storage.DataScan;
-import com.splicemachine.storage.EntryPredicateFilter;
-
 import java.io.IOException;
 
 /**
@@ -35,12 +32,6 @@ public interface TransactionReadController{
     void preProcessGet(DataGet get) throws IOException;
 
     void preProcessScan(DataScan scan) throws IOException;
-
-    TxnFilter newFilterState(ReadResolver readResolver,TxnView txn) throws IOException;
-
-    TxnFilter newFilterStatePacked(ReadResolver readResolver,
-                                   EntryPredicateFilter predicateFilter,
-                                   TxnView txn,boolean countStar) throws IOException;
 
     /**
      * Create a DDLFilter for tracking the visibility of (tentative) DDL operations for DML operations

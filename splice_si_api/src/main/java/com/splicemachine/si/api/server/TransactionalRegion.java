@@ -16,13 +16,9 @@
 package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
@@ -37,22 +33,6 @@ import java.util.Collection;
  *         Date: 7/1/14
  */
 public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
-
-    /**
-     * Create a new Transactional Filter for the region.
-     *
-     * This filter is "Unpacked", in the sense that it will not attempt to deal with packed
-     * data.
-     *
-     * @param txn the transaction to create a filter for
-     * @return a new transactional filter for the region
-     * @throws IOException if something goes wrong.
-     */
-    TxnFilter unpackedFilter(TxnView txn) throws IOException;
-
-    TxnFilter packedFilter(TxnView txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException;
-
-    //    SICompactionState compactionFilter() throws IOException;
 
     /**
      * @return true if the underlying region is either closed or is closing

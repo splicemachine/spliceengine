@@ -22,7 +22,6 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
-import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.Transactor;

@@ -23,7 +23,6 @@ import java.io.IOException;
 /**
  * Factory for creating the proper MutationStatus for the given architecture.
  *
- * Created by jleach on 12/9/15.
  */
 public interface OperationStatusFactory{
 

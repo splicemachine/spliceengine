@@ -1146,7 +1146,7 @@ public final class SQLTime extends DataType
 			Platform.putInt(holder.buffer, holder.cursor, encodedTime);
 			Platform.putInt(holder.buffer, holder.cursor + 4, encodedTimeFraction);
 			unsafeRowWriter.setOffsetAndSize(ordinal, 8);
-			holder.cursor = 8;
+			holder.cursor += 8;
 		}
 	}
 

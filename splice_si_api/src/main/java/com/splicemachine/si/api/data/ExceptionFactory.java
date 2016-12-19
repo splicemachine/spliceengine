@@ -21,7 +21,6 @@ import java.io.IOException;
 
 /**
  *
- * Created by jleach on 12/11/15.
  */
 public interface ExceptionFactory{
     IOException writeWriteConflict(long txn1,long txn2);
