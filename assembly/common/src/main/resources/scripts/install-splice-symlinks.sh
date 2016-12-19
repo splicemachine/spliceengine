@@ -19,6 +19,9 @@ for platform in ${platforms[@]} ; do
   thishost[${platform}]=""
 done
 
+# where we link sqlshell.sh to
+sqlshellshdir="/usr/bin"
+
 # top-level directories to check
 #   these are true for now
 #   cm/cdh assumes installation from parcels *only*
@@ -68,6 +71,16 @@ for platform in ${platforms[@]} ; do
     fi
     echo "Splice Machine YARN jar is ${spliceyarnjar}"
 
+    # sqlshell.sh - needed for hdp/mapr
+    sqlshellsh=""
+    sqlshellsh="$(find ${splicedir[${platform}]} -xdev -type f -name sqlshell.sh | head -1)"
+    # bail if we don't find one
+    if [[ -z "${sqlshellsh}" ]] ; then
+      echo "did not find a Splice Machine sqlshell.sh under ${splicedir[${platform}]}"
+      continue
+    fi
+    echo "Splice Machine sqlshell.sh is ${sqlshellsh}"
+
     # and servlet-api >= 3.1.0
     spliceservletapijar=""
     spliceservletapijar="$(find ${splicedir[${platform}]} -xdev -type f -name \*servlet-api\*.jar | head -1)"
@@ -95,6 +108,12 @@ for platform in ${platforms[@]} ; do
       chmod 644 ${splicejar}
     done
 
+    # make sure all scripts are executable
+    for splicescript in $(find ${splicedir[${platform}]} -xdev -type f -name \*.sh) ; do
+      echo "setting full execute permissions (755) for ${splicescript}"
+      chmod 755 ${splicescript}
+    done
+
     # platform-specific stuff
     # we need a list of lib directories where we can symlink our files so yarn can use them
     yarnlibdirs=""
@@ -119,7 +138,14 @@ for platform in ${platforms[@]} ; do
       done
     fi
 
+    # symlink sqlshell.sh to the right place
+    if [[ ${platform} =~ ^hdp$ || ${platform} =~ ^mapr$ ]] ; then
+      echo "symlinking ${sqlshellsh} tp ${sqlshellshdir}"
+      ln -sf ${sqlshellsh} ${sqlshellshdir}
+    fi
+
     # loop through our list, clean up and re-link everything.
+    # XXX - can likely remove platform check conditional here
     if [[ ${platform} =~ ^hdp$ || ${platform} =~ ^mapr$ || ${platform} =~ ^cdh$ ]] ; then
       for yarnlibdir in ${yarnlibdirs} ; do
         # clean up first
