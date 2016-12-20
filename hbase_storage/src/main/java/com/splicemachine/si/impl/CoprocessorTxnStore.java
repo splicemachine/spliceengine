@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.txn.TransactionStore;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
@@ -27,7 +28,6 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *         Date: 6/27/14
  */
 @ThreadSafe
-public class CoprocessorTxnStore implements TxnStore {
+public class CoprocessorTxnStore implements TransactionStore {
     private final TxnNetworkLayerFactory tableFactory;
     private TxnSupplier cache; //a transaction store which uses a global cache for us
     @ThreadSafe

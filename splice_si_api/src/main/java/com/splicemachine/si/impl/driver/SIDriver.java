@@ -32,7 +32,7 @@ import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.ClientTxnLifecycleManager;
 import com.splicemachine.si.impl.TxnRegion;
@@ -74,7 +74,7 @@ public class SIDriver {
     private final PartitionFactory tableFactory;
     private final ExceptionFactory exceptionFactory;
     private final SConfiguration config;
-    private final TxnStore txnStore;
+    private final TransactionStore txnStore;
     private final OperationStatusFactory operationStatusFactory;
     private final TimestampSource timestampSource;
     private final TxnSupplier txnSupplier;
@@ -148,7 +148,7 @@ public class SIDriver {
         return config;
     }
 
-    public TxnStore getTxnStore() {
+    public TransactionStore getTxnStore() {
         return txnStore;
     }
 

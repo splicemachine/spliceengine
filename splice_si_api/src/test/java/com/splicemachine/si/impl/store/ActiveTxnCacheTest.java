@@ -46,7 +46,7 @@ public class ActiveTxnCacheTest{
         Txn txn=new WritableTxn(1,1,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,null);
 
         final boolean[] called=new boolean[]{false};
-        TxnStore backStore=new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),null,Long.MAX_VALUE){
+        TransactionStore backStore=new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),null,Long.MAX_VALUE){
             @Override
             public Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException{
                 Assert.assertFalse("Item should have been fed from cache!",called[0]);
@@ -77,7 +77,7 @@ public class ActiveTxnCacheTest{
         Txn txn=new WritableTxn(1,1,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,null);
 
         final AtomicInteger accessCount=new AtomicInteger(0);
-        TxnStore backStore=new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),null,Long.MAX_VALUE){
+        TransactionStore backStore=new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),null,Long.MAX_VALUE){
             @Override
             public Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException{
                 accessCount.incrementAndGet();

@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Scott Fines
  *         Date: 6/23/14
  */
-public class TestingTxnStore implements TxnStore{
+public class TestingTxnStore implements TransactionStore {
     private final Map<Long, TxnHolder> txnMap;
     private final TimestampSource commitTsGenerator;
     private final Clock clock;

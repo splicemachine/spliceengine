@@ -24,7 +24,7 @@ import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
-import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
@@ -44,7 +44,7 @@ public interface SIEnvironment{
 
     SConfiguration configuration();
 
-    TxnStore txnStore();
+    TransactionStore txnStore();
 
     OperationStatusFactory statusFactory();
 

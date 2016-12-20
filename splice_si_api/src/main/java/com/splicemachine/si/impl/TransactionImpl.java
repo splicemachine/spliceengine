@@ -17,12 +17,9 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Deque;
 import java.util.Iterator;

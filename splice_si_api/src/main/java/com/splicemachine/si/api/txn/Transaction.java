@@ -1,7 +1,8 @@
 package com.splicemachine.si.api.txn;
 
 /**
- * Created by jleach on 12/19/16.
+ *
+ *
  */
 public interface Transaction {
     /**
@@ -90,4 +91,11 @@ public interface Transaction {
      *
       */
     String getStatementId();
+    /**
+     *
+     *
+     *
+     */
+    TransactionStatus getTransactionStatus();
+
 }

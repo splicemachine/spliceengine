@@ -16,9 +16,9 @@
 package com.splicemachine.si;
 
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.SavePointNotFoundException;
@@ -50,7 +50,7 @@ public class SavepointsTest {
 
     private TxnLifecycleManager control;
     private final List<Txn> createdParentTxns= Lists.newArrayList();
-    private TxnStore txnStore;
+    private TransactionStore txnStore;
 
     @Before
     public void setUp() throws Exception{

@@ -15,7 +15,6 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
@@ -61,7 +60,7 @@ import static org.mockito.Mockito.*;
 public class SimpleTxnFilterTest{
 
     private ClientTxnLifecycleManager txnLifecycleManager;
-    private TxnStore txnStore;
+    private TransactionStore txnStore;
     private TxnSupplier txnSupplier;
     private TxnOperationFactory operationFactory;
     private ExceptionFactory exceptionFactory;

@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.si.api.txn.TransactionStore;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
@@ -37,7 +38,6 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
-import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
@@ -67,7 +67,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
 
     private final TimestampSource timestampSource;
     private final PartitionFactory<TableName> partitionFactory;
-    private final TxnStore txnStore;
+    private final TransactionStore txnStore;
     private final TxnSupplier txnSupplier;
     private final TxnOperationFactory txnOpFactory;
     private final PartitionInfoCache partitionCache;
@@ -163,7 +163,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public TxnStore txnStore(){
+    public TransactionStore txnStore(){
         return txnStore;
     }
 

@@ -44,7 +44,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
-import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -118,7 +118,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override public PartitionFactory tableFactory(){ return delegate.tableFactory(); }
     @Override public ExceptionFactory exceptionFactory(){ return delegate.exceptionFactory(); }
 
-    @Override public TxnStore txnStore(){ return delegate.txnStore(); }
+    @Override public TransactionStore txnStore(){ return delegate.txnStore(); }
     @Override public OperationStatusFactory statusFactory(){ return delegate.statusFactory(); }
     @Override public TimestampSource timestampSource(){ return delegate.timestampSource(); }
     @Override public TxnSupplier txnSupplier(){ return delegate.txnSupplier(); }

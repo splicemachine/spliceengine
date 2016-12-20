@@ -15,12 +15,12 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.txn.TransactionStore;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.concurrent.ThreadLocalRandom;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -42,13 +42,13 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler{
 
     private final
     @ThreadSafe
-    TxnStore txnStore;
+    TransactionStore txnStore;
 
     private volatile boolean shutdown=false;
 
 
     public QueuedKeepAliveScheduler(long maxWaitIntervalMs,long maxKeepAliveIntervalMs,
-                                    int numKeepers,TxnStore txnStore){
+                                    int numKeepers,TransactionStore txnStore){
         this.maxWaitIntervalMs=maxWaitIntervalMs;
         ThreadFactory factory=new ThreadFactoryBuilder().setNameFormat("keepAlive-thread-%d").setDaemon(true).build();
 

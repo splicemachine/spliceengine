@@ -17,7 +17,7 @@ package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.readresolve.RollForward;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Transaction;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
@@ -48,7 +48,7 @@ public interface Transactor{
                                     byte[] defaultFamilyBytes,
                                     byte[] packedColumnBytes,
                                     Collection<KVPair> toProcess,
-                                    TxnView txn,
+                                    Transaction txn,
                                     ConstraintChecker constraintChecker) throws IOException;
 
 }

@@ -25,15 +25,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class DDLFilter implements Comparable<DDLFilter> {
-    private final TxnView myTransaction;
+    private final Transaction myTransaction;
     private Cache<Long,Boolean> visibilityMap;
 
-		public DDLFilter(TxnView myTransaction) {
+		public DDLFilter(Transaction myTransaction) {
 				this.myTransaction = myTransaction;
 				visibilityMap = CacheBuilder.newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).maximumSize(10000).build();
 		}
 
-		public boolean isVisibleBy(final TxnView txn) throws IOException {
+		public boolean isVisibleBy(final Transaction txn) throws IOException {
         Boolean visible = visibilityMap.getIfPresent(txn.getTxnId());
         if(visible!=null) return visible;
 

@@ -37,8 +37,7 @@ import java.io.IOException;
 public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 
     @ThreadSafe private final TimestampSource timestampSource;
-    @ThreadSafe private TxnStore store;
-    @ThreadSafe private KeepAliveScheduler keepAliveScheduler;
+    @ThreadSafe private TransactionStore store;
     @ThreadSafe private final ExceptionFactory exceptionFactory;
 
     private volatile boolean restoreMode=false;
@@ -49,12 +48,8 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         this.exceptionFactory= exceptionFactory;
     }
 
-    public void setTxnStore(TxnStore store){
+    public void setTxnStore(TransactionStore store){
         this.store = store;
-    }
-
-    public void setKeepAliveScheduler(KeepAliveScheduler kas){
-        this.keepAliveScheduler = kas;
     }
 
     @Override

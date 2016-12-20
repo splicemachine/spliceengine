@@ -15,14 +15,13 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.impl.MockRegionUtils;
 import com.splicemachine.si.api.readresolve.ReadResolver;
+import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
@@ -66,7 +65,7 @@ public class SynchronousReadResolverTest {
         RegionPartition rp = new RegionPartition(region);
         TrafficControl control = GreenLight.INSTANCE;
 
-        final TxnStore store = new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),HExceptionFactory.INSTANCE,Long.MAX_VALUE);
+        final TransactionStore store = new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp, store, new RollForwardStatus(), control, false);
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
@@ -112,7 +111,7 @@ public class SynchronousReadResolverTest {
         RegionPartition rp = new RegionPartition(region);
 
         final TestingTimestampSource commitTsGenerator = new TestingTimestampSource();
-        final TxnStore store = new TestingTxnStore(new IncrementingClock(),commitTsGenerator,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
+        final TransactionStore store = new TestingTxnStore(new IncrementingClock(),commitTsGenerator,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Long>() {
@@ -162,7 +161,7 @@ public class SynchronousReadResolverTest {
         RegionPartition rp = new RegionPartition(region);
 
         TestingTimestampSource timestampSource = new TestingTimestampSource();
-        TxnStore store = new TestingTxnStore(new IncrementingClock(),timestampSource,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
+        TransactionStore store = new TestingTxnStore(new IncrementingClock(),timestampSource,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp, store, new RollForwardStatus(), GreenLight.INSTANCE, false);
 
         ClientTxnLifecycleManager tc = new ClientTxnLifecycleManager(timestampSource,HExceptionFactory.INSTANCE);

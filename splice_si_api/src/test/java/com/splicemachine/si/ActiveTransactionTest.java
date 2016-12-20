@@ -17,9 +17,9 @@ package com.splicemachine.si;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestEnv;
@@ -49,7 +49,7 @@ public class ActiveTransactionTest{
 
     private TxnLifecycleManager control;
     private final List<Txn> createdParentTxns= Lists.newArrayList();
-    private TxnStore txnStore;
+    private TransactionStore txnStore;
 
     @Before
     public void setUp() throws Exception{
@@ -284,7 +284,7 @@ public class ActiveTransactionTest{
      *
      * Further, the actual functionality that Splice uses involves the ActiveTransactionReader
      * logic, which submits tasks and does its own form of limiting; the only reason we
-     * expose the logic in the TxnStore as this class tests is to allow us visibility into
+     * expose the logic in the TransactionStore as this class tests is to allow us visibility into
      * a testable structure, and thus confirm that its working as we expect that way (and, hypothetically,
      * someone might want to use the coprocessor call directly because they don't have access to the task framework.
      * I don't recommend that approach, but you never know).

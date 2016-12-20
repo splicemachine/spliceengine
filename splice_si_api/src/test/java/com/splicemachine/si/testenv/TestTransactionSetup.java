@@ -22,7 +22,7 @@ import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.*;
@@ -54,7 +54,7 @@ public class TestTransactionSetup {
     public TimestampSource timestampSource;
     public TransactionReadController readController;
 
-    public final TxnStore txnStore;
+    public final TransactionStore txnStore;
     public TxnLifecycleManager txnLifecycleManager;
     private DataFilterFactory filterFactory;
 

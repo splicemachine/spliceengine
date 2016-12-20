@@ -35,35 +35,6 @@ public interface TxnSupplier {
 		Transaction getTransaction(long txnId) throws IOException;
 
 		/**
-		 * Determines whether this Store has the transaction in its local cache
-		 * or not.
-		 *
-		 * If the Store does not have a local cache, then this call should always
-		 * return false.
-		 *
-		 * This method only requires <em>best-guess</em> semantics--it does <em>not</em>
-		 * require absolute correctness, nor does it place any implicit guarantees on subsequent
-		 * {@link #getTransaction(long)} calls.
-		 *
-		 * This method returning true does <em>not</em> guarantee that subsequent
-		 * calls to {@link #getTransaction(long)} will not incur additional costs.
-		 * It is possible (particularly in concurrent stores) that the transaction may be evicted
-		 * from the cache between the time when this method returns and {@code getTransaction(long)}
-		 * is called.
-		 *
-		 * Similarly, just because this method returns {@code false} does <em>not</em> guarantee
-		 * that subsequent calls to {@code getTransaction(long)} will not find the element in its cache--
-		 * It is possible (particularly in concurrent stores) that the transaction may be loaded into
-		 * the cache between the time when this method returns and {@code getTransaction(long)} is called.
-		 *
-		 *
-		 * @param txnId the transaction id to fetch.
-		 * @return true if the transaction is held in the local cache (and is therefore
-		 * inexpensive to lookup).
-		 */
-		boolean transactionCached(long txnId);
-
-		/**
 		 * Add the transaction to the local cache (if such a cache exists).
 		 *
 		 * If the implementation does not cache Transactions, then this method does nothing.
@@ -74,7 +45,6 @@ public interface TxnSupplier {
 		 *
 		 * @param toCache the transaction to cache.
 		 */
-		void cache(TxnView toCache);
+		void cache(Transaction toCache);
 
-    TxnView getTransactionFromCache(long txnId);
 }

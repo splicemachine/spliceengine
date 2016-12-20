@@ -15,7 +15,7 @@
 
 package com.splicemachine.si.api.filter;
 
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Transaction;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.storage.DataGet;
 import com.splicemachine.storage.DataScan;
@@ -39,5 +39,5 @@ public interface TransactionReadController{
      * @param txn the ddl transaction
      * @return Object that tracks visibility
      */
-    DDLFilter newDDLFilter(TxnView txn) throws IOException;
+    DDLFilter newDDLFilter(Transaction txn) throws IOException;
 }

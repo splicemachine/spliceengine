@@ -3,16 +3,18 @@ package com.splicemachine.si.impl.store;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.si.api.txn.Transaction;
 import com.splicemachine.si.api.txn.TxnSupplier;
+
 import java.io.IOException;
 
 /**
  *
  *
+ *
  */
-public class GlobalTxnCacheSupplier implements TxnSupplier {
+public class ThreadTxnCacheSupplier implements TxnSupplier {
     private ConcurrentLinkedHashMap<Long, Transaction> cache; // autobox for now
 
-    public GlobalTxnCacheSupplier(long maxSize,int concurrencyLevel) {
+    public ThreadTxnCacheSupplier(long maxSize, int concurrencyLevel) {
         cache=new ConcurrentLinkedHashMap.Builder<Long, Transaction>()
                 .maximumWeightedCapacity(maxSize)
                 .concurrencyLevel(concurrencyLevel)

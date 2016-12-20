@@ -18,6 +18,7 @@ package com.splicemachine.si.testsetup;
 import java.io.IOException;
 import java.util.Random;
 
+import com.splicemachine.si.api.txn.TransactionStore;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
@@ -35,7 +36,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 
-import com.splicemachine.access.HBaseConfigurationSource;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -47,7 +47,6 @@ import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
@@ -75,7 +74,7 @@ public class HBaseSITestEnv implements SITestEnv{
     private final PartitionFactory<TableName> tableFactory;
     private MiniHBaseCluster testCluster;
     private Clock clock;
-    private TxnStore txnStore;
+    private TransactionStore txnStore;
     private TimestampSource timestampSource;
     private HBaseTestingUtility testUtility;
 
@@ -117,7 +116,7 @@ public class HBaseSITestEnv implements SITestEnv{
     @Override public OperationStatusFactory getOperationStatusFactory(){ return HOperationStatusFactory.INSTANCE; }
 
     @Override public Clock getClock(){ return clock; }
-    @Override public TxnStore getTxnStore(){ return txnStore; }
+    @Override public TransactionStore getTxnStore(){ return txnStore; }
     @Override public TimestampSource getTimestampSource(){ return timestampSource; }
     @Override public DataFilterFactory getFilterFactory(){ return HFilterFactory.INSTANCE; }
     @Override public PartitionFactory getTableFactory(){ return tableFactory; }

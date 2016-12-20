@@ -44,7 +44,7 @@ public class SITransactorTest {
     private TxnLifecycleManager control;
     private TransactorTestUtility testUtility;
     private final List<Txn> createdParentTxns = Lists.newArrayList();
-    private TxnStore txnStore;
+    private TransactionStore txnStore;
 
     @SuppressWarnings("unchecked")
     private void baseSetUp() {

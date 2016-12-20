@@ -22,8 +22,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
@@ -74,7 +74,7 @@ public class DDLWatchRefresherTest{
         TestChecker checker=getTestChecker();
         Clock clock = new IncrementingClock(0);
 
-        TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
+        TransactionStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,10l,supplier);
 
@@ -102,7 +102,7 @@ public class DDLWatchRefresherTest{
         TestChecker checker=getTestChecker();
         Clock clock = new IncrementingClock(0);
 
-        TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
+        TransactionStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
         DDLWatchRefresher refresher = new DDLWatchRefresher(checker,txnController,clock,ef,10l,supplier );
@@ -136,7 +136,7 @@ public class DDLWatchRefresherTest{
         TestChecker checker=getTestChecker();
         Clock clock = new IncrementingClock(0);
 
-        TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
+        TransactionStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
         DDLWatchRefresher refresher = new DDLWatchRefresher(checker,txnController,clock,ef,10l,supplier);
@@ -169,7 +169,7 @@ public class DDLWatchRefresherTest{
         TestChecker checker=getTestChecker();
         Clock clock = new IncrementingClock(0);
 
-        TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
+        TransactionStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
         DDLWatchRefresher refresher = new DDLWatchRefresher(checker,txnController,clock,ef,10l,supplier);
@@ -215,7 +215,7 @@ public class DDLWatchRefresherTest{
         TestChecker checker=getTestChecker();
         TickingClock clock = new IncrementingClock(0);
 
-        TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
+        TransactionStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         long timeoutMs=10l;
         DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,timeoutMs,supplier);
