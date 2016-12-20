@@ -85,6 +85,7 @@
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.trustStorePassword=mapr123"
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.protocol=TLSv1.2"
 +SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.enabledAlgorithms=TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
++SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.jars=${SPLICELIBDIR}/*"
 +# SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -enableassertions"
 +
 +### Java Configuration Options for HBase RegionServer

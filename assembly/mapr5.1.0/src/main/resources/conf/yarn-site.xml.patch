@@ -1,6 +1,6 @@
---- yarn-site.xml.orig	2016-07-19 04:35:11.008375295 +0000
-+++ yarn-site.xml	2016-07-19 04:36:56.775827000 +0000
-@@ -26,5 +26,24 @@
+--- yarn-site.xml.ORIG	2016-12-20 18:07:04.548115797 +0000
++++ yarn-site.xml	2016-12-20 18:08:08.497904283 +0000
+@@ -26,5 +26,23 @@
    </property>
  
    <!-- :::CAUTION::: DO NOT EDIT ANYTHING ON OR ABOVE THIS LINE -->
@@ -23,4 +23,3 @@
 +    <value>$HADOOP_CONF_DIR,$HADOOP_COMMON_HOME/share/hadoop/common/*,$HADOOP_COMMON_HOME/share/hadoop/common/lib/*,$HADOOP_HDFS_HOME/share/hadoop/hdfs/*,$HADOOP_HDFS_HOME/share/hadoop/hdfs/lib/*,$HADOOP_YARN_HOME/share/hadoop/yarn/*,$HADOOP_YARN_HOME/share/hadoop/yarn/lib/*,/opt/mapr/hbase/hbase-1.1.1/conf/*,/opt/mapr/hbase/hbase-1.1.1/lib/*,/opt/splice/default/lib/*</value>
 +  </property>
  </configuration>
- 
