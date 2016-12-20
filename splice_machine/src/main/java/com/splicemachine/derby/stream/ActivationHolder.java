@@ -15,21 +15,20 @@
 
 package com.splicemachine.derby.stream;
 
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.derby.TransactionContextUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.collect.Maps;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Externalizable;
@@ -58,8 +57,6 @@ public class ActivationHolder implements Externalizable {
     private SpliceObserverInstructions soi;
     private TxnView txn;
     private boolean initialized=false;
-    private SpliceTransactionResourceImpl impl;
-    private boolean prepared = false;
 
     public ActivationHolder() {
 
@@ -148,25 +145,23 @@ public class ActivationHolder implements Externalizable {
         if(initialized)
             return;
         initialized = true;
-        try {
-            impl = new SpliceTransactionResourceImpl();
-            prepared =  impl.marshallTransaction(txn);
-            activation = soi.getActivation(this, impl.getLcc());
+        TransactionContextUtils.operate(txn,txnImpl -> {
+            try{
+                activation=soi.getActivation(this,txnImpl.getLcc());
 
-            SpliceOperationContext context = SpliceOperationContext.newContext(activation);
-            for(SpliceOperation so: operationsList){
-                so.init(context);
+                SpliceOperationContext context=SpliceOperationContext.newContext(activation);
+                for(SpliceOperation so : operationsList){
+                    so.init(context);
+                }
+            }catch(StandardException | IOException se){
+                throw new RuntimeException(se);
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (prepared) {
-                impl.close();
-            }
-        }
+            return null;
+        });
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         operationsList = (List<SpliceOperation>) in.readObject();
         operationsMap = Maps.newHashMap();
@@ -191,27 +186,22 @@ public class ActivationHolder implements Externalizable {
 
     public void reinitialize(TxnView otherTxn, boolean reinit) {
         TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
-        initialized = true;
-        try {
-            impl = new SpliceTransactionResourceImpl();
-            prepared =  impl.marshallTransaction(txnView);
-            activation = soi.getActivation(this, impl.getLcc());
+        TransactionContextUtils.operate(txnView,txnImpl -> {
+            try{
+                activation=soi.getActivation(this,txnImpl.getLcc());
 
-            if (reinit) {
-                SpliceOperationContext context = SpliceOperationContext.newContext(activation);
-                for (SpliceOperation so : operationsList) {
-                    so.init(context);
+                if(reinit){
+                    SpliceOperationContext context=SpliceOperationContext.newContext(activation);
+                    for(SpliceOperation so : operationsList){
+                        so.init(context);
+                    }
                 }
+            }catch(StandardException | IOException se){
+                throw new RuntimeException(se);
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+            return null;
+        });
     }
 
-    public void close() {
-        if (prepared) {
-            impl.close();
-            prepared = false;
-        }
-    }
+    public void close() { }
 }
