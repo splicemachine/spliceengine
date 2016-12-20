@@ -20,6 +20,7 @@ import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -84,7 +85,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
         oldCm=csf.getCurrentContextManager();
         cm=csf.newContextManager();
-        lcc=database.generateLanguageConnectionContext(txn, cm, username, drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
+        lcc=database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname,CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
 
         return true;
     }
@@ -100,7 +101,9 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             if(oldCm!=null){
                 csf.forceRemoveContext(cm);
                 oldCm.setActiveThread();
-                csf.setCurrentContextManager(oldCm);
+                if(csf.getCurrentContextManager()!=oldCm)
+                    csf.setCurrentContextManager(oldCm);
+//                csf.setCurrentContextManager(oldCm);
             }
         }
     }

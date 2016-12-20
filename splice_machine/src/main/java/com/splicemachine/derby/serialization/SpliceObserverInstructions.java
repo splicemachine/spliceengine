@@ -259,10 +259,8 @@ public class SpliceObserverInstructions implements Externalizable{
                 statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
 
                 //EmbedConnection internalConnection=(EmbedConnection) new EmbedConnectionMaker().createNew(new Properties());
-                EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();
-                Context connectionContext = new EmbedConnectionContext(activation.getLanguageConnectionContext().getContextManager(),
-                        (EmbedConnection)internalConnection);
-                internalConnection.getContextManager().pushContext(statementContext);
+//                EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();
+//                internalConnection.getContextManager().pushContext(statementContext);
 
                 return activation;
             }catch(Exception e){

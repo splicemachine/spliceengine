@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.iapi.services.context;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -58,6 +59,7 @@ import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
 public class ContextManager
 {
+	private final IOException creationTrace;
 	/**
 	 * The CtxStack implement a stack on top of an ArrayList (to avoid
 	 * the inherent overhead associated with java.util.Stack which is
@@ -228,7 +230,7 @@ public class ContextManager
 	 * being traversed.
 	 * @param contextId the type of Context stack to return.
 	 * @return an unmodifiable "view" of the ArrayList backing the stack
-	 * @see org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext#resetSavepoints()
+//	 * @see org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext#resetSavepoints()
 	 * @see com.splicemachine.db.iapi.sql.conn.StatementContext#resetSavePoint()
 	 */
 	public final List<Context> getContextStack(String contextId) {
@@ -572,6 +574,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
                 Property.EXT_DIAG_SEVERITY_LEVEL,
                 ExceptionSeverity.SESSION_SEVERITY);
                 */
+		creationTrace = new IOException();
 	}
 
 	final ContextService owningCsf;
