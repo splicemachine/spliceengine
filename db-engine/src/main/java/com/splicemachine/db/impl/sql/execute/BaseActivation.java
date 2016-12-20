@@ -699,9 +699,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		getSetAutoincrementValue(int columnPosition, long increment)
 	       throws StandardException
 	{
-		DataValueDescriptor l =
-			((HasIncrement)resultSet).increment(columnPosition, increment);
-		return l;
+		return ((HasIncrement)resultSet).increment(columnPosition, increment);
 
 	}
 

@@ -364,8 +364,7 @@ public class EncryptionManager {
             if (secKey_ == null) {
                 //use this encryption key to initiate a SecretKeySpec object
                 secKey_ = generatePrivateKey(targetPublicKey);
-                javax.crypto.spec.SecretKeySpec desKey = new javax.crypto.spec.SecretKeySpec(secKey_, "DES");
-                key = desKey;
+                key = new javax.crypto.spec.SecretKeySpec(secKey_, "DES");
             } else {
                 //use this encryption key to initiate a SecretKeySpec object
                 javax.crypto.spec.DESKeySpec desKey = new javax.crypto.spec.DESKeySpec(secKey_);
@@ -434,8 +433,7 @@ public class EncryptionManager {
             if (secKey_ == null) {
                 //use this encryption key to initiate a SecretKeySpec object
                 secKey_ = generatePrivateKey(targetPublicKey);
-                javax.crypto.spec.SecretKeySpec desKey = new javax.crypto.spec.SecretKeySpec(secKey_, "DES");
-                key = desKey;
+                key = new javax.crypto.spec.SecretKeySpec(secKey_, "DES");
             } else {
                 //use this encryption key to initiate a SecretKeySpec object
                 javax.crypto.spec.DESKeySpec desKey = new javax.crypto.spec.DESKeySpec(secKey_);

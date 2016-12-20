@@ -42,7 +42,7 @@ class OpcodeDebug {
 			// we assign these to a temp var first because
 			// "Array constants can only be used in initializers"
 			// to quote the compiler.
-			String NameInit[] = { 
+			Name = new String[]{
 				"NOP",	// 0
 				"ACONST_NULL",	// 1
 				"ICONST_M1",	// 2
@@ -247,7 +247,6 @@ class OpcodeDebug {
 				"JSR_W",	// 201
 				"BREAKPOINT"		// 202
 			};
-			Name = NameInit;
 		}
 		else
 			Name = null;

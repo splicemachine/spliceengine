@@ -130,9 +130,8 @@ public final class CollatorSQLChar extends SQLChar implements CollationElementsI
 	 */
 	public DataValueDescriptor getNewNull()
 	{
-		CollatorSQLChar result = new CollatorSQLChar(
+		return new CollatorSQLChar(
 				holderForCollationSensitiveInfo.getCollatorForCollation());
-		return result;
 	}
 
 	/**

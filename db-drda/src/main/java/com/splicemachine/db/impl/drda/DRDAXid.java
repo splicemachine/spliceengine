@@ -83,12 +83,11 @@ class DRDAXid implements Xid
 
 	public String toString()
 	{
-		
-	   String s =  "{DRDAXid: " +
-		   "formatId("     + format_id   + "), " +
-		   "globalTransactionId(" +  convertToHexString(global_id) + ")" +
-		   "branchQualifier(" +  convertToHexString(branch_id) + ")";
-	   return s;
+
+		return "{DRDAXid: " +
+            "formatId("     + format_id   + "), " +
+            "globalTransactionId(" +  convertToHexString(global_id) + ")" +
+            "branchQualifier(" +  convertToHexString(branch_id) + ")";
 	}
 
 

@@ -132,9 +132,8 @@ class CollatorSQLLongvarchar extends SQLLongvarchar implements CollationElements
 	 */
 	public DataValueDescriptor getNewNull()
 	{
-		CollatorSQLLongvarchar result = new CollatorSQLLongvarchar(
+		return new CollatorSQLLongvarchar(
 				holderForCollationSensitiveInfo.getCollatorForCollation());
-		return result;
 	}
 
 	/**

@@ -376,9 +376,8 @@ abstract class AbstractPool implements LockFactory
 	public Enumeration makeVirtualLockTable()
 	{
 		// make a shallow copy of the locktable.
-		LockTableVTI myclone = new LockTableVTI(lockTable.shallowClone());
 
-		return myclone;
+		return new LockTableVTI(lockTable.shallowClone());
 	}
 //EXCLUDE-END-lockdiag- 
 

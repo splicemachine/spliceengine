@@ -327,8 +327,7 @@ public class classlister {
 
                         if (entry != null) {
                             InputStream is = zipfile.getInputStream(entry);
-                            DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
-                            return dis;
+                            return new DataInputStream(new BufferedInputStream(is));
                         }
                     } catch (IOException ioe) {
                         if (beVerbose) {

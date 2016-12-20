@@ -2478,9 +2478,6 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     private boolean getMetaDataInfoBooleanWithType(int infoCallIndex, int type) 
         throws SQLException {
 
-        boolean clientValue =
-            getMetaDataInfoBooleanWithTypeClient(infoCallIndex, type);
-        
         // DERBY-1252. In Derby <= 10.x, clients (incl JCC) do not have
         // logic to negotiate down these values with the server, so
         // for features introduced with 10.x, x >= 2 (e.g. SUR
@@ -2503,7 +2500,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         //
         //     return clientValue && serverValue;
 
-        return clientValue;
+        return getMetaDataInfoBooleanWithTypeClient(infoCallIndex, type);
     }
 
 

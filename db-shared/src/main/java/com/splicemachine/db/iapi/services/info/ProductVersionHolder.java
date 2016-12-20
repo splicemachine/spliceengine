@@ -198,17 +198,15 @@ public final class ProductVersionHolder implements java.security.PrivilegedActio
 						   String buildNumber,
 						   Boolean isBeta)
 	{
-		ProductVersionHolder pvh =
-			new ProductVersionHolder(productVendorName,
-									 productName,
-									 productTechnologyName,
-									 majorVersion,
-									 minorVersion,
-									 maintVersion,
-									 drdaMaintVersion,
-									 buildNumber,
-									 isBeta);
-		return pvh;
+		return new ProductVersionHolder(productVendorName,
+                                 productName,
+                                 productTechnologyName,
+                                 majorVersion,
+                                 minorVersion,
+                                 maintVersion,
+                                 drdaMaintVersion,
+                                 buildNumber,
+                                 isBeta);
 	}
 	
 	/**

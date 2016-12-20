@@ -152,9 +152,8 @@ class CollatorSQLClob extends SQLClob implements CollationElementsInterface
 	 */
 	public DataValueDescriptor getNewNull()
 	{
-		CollatorSQLClob result = new CollatorSQLClob((String) null,
+		return new CollatorSQLClob((String) null,
 				holderForCollationSensitiveInfo.getCollatorForCollation());
-		return result;
 	}
 
 	/**

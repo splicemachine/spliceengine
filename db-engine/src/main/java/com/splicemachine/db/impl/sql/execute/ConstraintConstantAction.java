@@ -226,10 +226,9 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 			int numFailures = riChecker.doCheck();
 			if (numFailures > 0)
 			{
-				StandardException se = StandardException.newException(SQLState.LANG_ADD_FK_CONSTRAINT_VIOLATION, 
-									fk.getConstraintName(), 
+				throw StandardException.newException(SQLState.LANG_ADD_FK_CONSTRAINT_VIOLATION,
+									fk.getConstraintName(),
 									fk.getTableDescriptor().getName());
-				throw se;
 			}
 		}
 		finally

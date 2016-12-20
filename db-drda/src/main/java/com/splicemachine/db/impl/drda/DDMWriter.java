@@ -1738,11 +1738,8 @@ class DDMWriter
         // Move current position to the end of the encoded decimal.
         buffer.position(offset + encodedLength);
 
-		int declaredPrecision = precision;
-		int declaredScale = scale;
-
 		// packed decimal may only be up to 31 digits.
-		if (declaredPrecision > 31) // this is a bugcheck only !!!
+		if (precision > 31) // this is a bugcheck only !!!
 		{
 			clearDdm ();
 			throw new java.sql.SQLException ("Packed decimal may only be up to 31 digits!");
@@ -1767,7 +1764,7 @@ class DDMWriter
   	    int bigWholeIntegerLength = bigPrecision - bigScale;
 	    if ( (bigWholeIntegerLength > 0) && (!unscaledStr.equals ("0")) ) {
             // if whole integer part exists, check if overflow.
-            int declaredWholeIntegerLength = declaredPrecision - declaredScale;
+            int declaredWholeIntegerLength = precision - scale;
             if (bigWholeIntegerLength > declaredWholeIntegerLength)
 			{
 				clearDdm ();
@@ -1785,19 +1782,19 @@ class DDMWriter
         int zeroBase = '0';
 
         // start index in target packed decimal.
-        int packedIndex = declaredPrecision-1;
+        int packedIndex = precision -1;
 
         // start index in source big decimal.
         int bigIndex;
 
         byte signByte = (byte) ((b.signum() >= 0) ? 12 : 13);
 
-        if (bigScale >= declaredScale) {
+        if (bigScale >= scale) {
           // If target scale is less than source scale,
           // discard excessive fraction.
 
           // set start index in source big decimal to ignore excessive fraction.
-          bigIndex = bigPrecision-1-(bigScale-declaredScale);
+          bigIndex = bigPrecision-1-(bigScale- scale);
 
           if (bigIndex >= 0) {
               // process the last nybble together with the sign nybble.
@@ -1812,7 +1809,7 @@ class DDMWriter
           // pad the fraction with zero.
 
           // set start index in source big decimal to pad fraction with zero.
-          bigIndex = declaredScale-bigScale-1;
+          bigIndex = scale -bigScale-1;
 
           // process the sign nybble.
           buffer.put(offset + (packedIndex+1)/2, signByte);

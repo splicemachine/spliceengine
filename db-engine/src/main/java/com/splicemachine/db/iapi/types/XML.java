@@ -1063,9 +1063,8 @@ public class XML
 
             Object factory = newFactory.invoke(null, new Object[0]);
             Object builder = newBuilder.invoke(factory, new Object[0]);
-            Object impl = getImpl.invoke(builder, new Object[0]);
 
-            return impl;
+            return getImpl.invoke(builder, new Object[0]);
 
         } catch (Throwable t) {
             // Oops... Couldn't get a DOMImplementation object for

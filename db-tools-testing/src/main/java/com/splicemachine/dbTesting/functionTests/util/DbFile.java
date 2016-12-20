@@ -102,8 +102,7 @@ public static String
 		//fully qualified name for the URL, any class will
 		//do.
 		Class c = resourceName.getClass();
-		URL url = c.getResource(resourceName);
-		return url;
+		return c.getResource(resourceName);
 	}
 
 	/**
@@ -126,8 +125,7 @@ public static String
 		//fully qualified name for the URL, any class will
 		//do.
 		Class c = resourceName.getClass();
-		InputStream result = c.getResourceAsStream(resourceName);
-		return result;
+		return c.getResourceAsStream(resourceName);
 	}
 
 	public	static	boolean	deleteFile( String outputFileName )

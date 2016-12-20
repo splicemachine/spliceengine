@@ -342,7 +342,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
     final   String unavailable = nullUnavailable ? null : Main.getTextMessage ("SIF01.H");
 
     try {
-        String  property = (String) AccessController.doPrivileged( new PrivilegedAction()
+        return (String) AccessController.doPrivileged(new PrivilegedAction()
             {
                 public  Object  run()
                 {
@@ -350,7 +350,6 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
                 }
             }
             );
-        return property;
     }
     catch (SecurityException se) {
 
@@ -452,9 +451,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
         	InputStream is = (InputStream) AccessController.doPrivileged
             (new PrivilegedAction() {
                   public Object run() {
-  		            InputStream locis =
-  		            	finalp.getClass().getResourceAsStream (finalLocaleResource);
-  					return locis;
+                      return finalp.getClass().getResourceAsStream (finalLocaleResource);
                   }
               }
            );      
@@ -885,9 +882,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
             InputStream is = (InputStream) AccessController.doPrivileged
             (new PrivilegedAction() {
                 public Object run() {
-			        InputStream locis =
-                        new Main().getClass().getResourceAsStream(resource);
-                            return locis;
+                    return new Main().getClass().getResourceAsStream(resource);
                     }
                 }
             );         
@@ -901,8 +896,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
                         URL locUrl = (URL) AccessController.doPrivileged
                         (new PrivilegedAction() {
                             public Object run() {
-                                URL realUrl = new Main().getClass().getResource(resource);
-                                return realUrl;
+                                return new Main().getClass().getResource(resource);
                             }
                         });
 
@@ -968,14 +962,12 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
                     if (f.isDirectory())
                     {
-                        ZipInfoProperties zip = checkDirectory(cpEntry);
-                        return zip;
+                        return checkDirectory(cpEntry);
                     }
 
                     if (f.isFile())
                     {
-                        ZipInfoProperties zip = checkFile(cpEntry);
-                        return zip;
+                        return checkFile(cpEntry);
                     }
                     return null;
                 }

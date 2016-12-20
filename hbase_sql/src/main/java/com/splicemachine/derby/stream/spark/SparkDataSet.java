@@ -661,14 +661,13 @@ public class SparkDataSet<V> implements DataSet<V> {
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     Dataset<Row> toSparkRow(DataSet< V> dataSet, OperationContext context) throws Exception{
-        Dataset<Row> result =  SpliceSpark.getSession()
+        return SpliceSpark.getSession()
                 .createDataFrame(
                         ((SparkDataSet)dataSet).rdd
                                 .map(new LocatedRowToRowFunction()),
                         context.getOperation()
                                 .getExecRowDefinition()
                                 .schema());
-        return result;
     }
 
     /**

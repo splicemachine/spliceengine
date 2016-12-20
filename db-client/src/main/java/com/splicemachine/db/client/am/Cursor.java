@@ -907,8 +907,7 @@ public abstract class Cursor {
         case java.sql.Types.BOOLEAN:
             return agent_.crossConverters_.getDoubleFromBoolean(get_BOOLEAN(column));
         case java.sql.Types.REAL:
-            double d = (double) get_FLOAT(column);
-            return d;
+            return (double) get_FLOAT(column);
             //return (double) get_FLOAT (column);
         case java.sql.Types.DOUBLE:
             return get_DOUBLE(column);
@@ -1095,8 +1094,7 @@ public abstract class Cursor {
                 return get_VARCHAR_FOR_BIT_DATA(column);
             case java.sql.Types.BLOB:
                 Blob b = getBlobColumn_(column, agent_, false);
-                byte[] bytes = b.getBytes(1, (int) b.length());
-                return bytes;
+                return b.getBytes(1, (int) b.length());
             default:
                 throw coercionError( "byte[]", column );
             }

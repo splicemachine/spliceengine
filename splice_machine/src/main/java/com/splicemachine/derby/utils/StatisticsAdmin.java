@@ -356,11 +356,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
         String scope = getScopeName(table);
 
-        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        String jobGroup = userId;
-
         try {
-            return EngineDriver.driver().getOlapClient().submit(new DistributedStatsCollection(scanSetBuilder, scope, jobGroup));
+            return EngineDriver.driver().getOlapClient().submit(new DistributedStatsCollection(scanSetBuilder, scope, activation.getLanguageConnectionContext().getCurrentUserId(activation)));
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }

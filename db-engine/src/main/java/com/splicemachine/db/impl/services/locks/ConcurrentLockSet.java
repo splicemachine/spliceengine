@@ -619,11 +619,9 @@ forever:	for (;;) {
                             }
                             else
                             {
-                                StandardException se = 
-                                    StandardException.newException(
-                                        SQLState.LOCK_TIMEOUT);
 
-                                throw se;
+                                throw StandardException.newException(
+                                    SQLState.LOCK_TIMEOUT);
                             }
                         }
                         else 

@@ -432,10 +432,9 @@ public abstract class CompressedNumber {
         else
 		{
             // value is stored in 8 bytes.  only use low 7 bits from 1st byte.
-            long value = int_value;
 
-            return(
-                (((long) (value & 0x7f)                      ) << 56) |
+			return(
+                (((long) ((long) int_value & 0x7f)                      ) << 56) |
                 (((long) InputStreamUtil.readUnsignedByte(in)) << 48) |
                 (((long) InputStreamUtil.readUnsignedByte(in)) << 40) |
                 (((long) InputStreamUtil.readUnsignedByte(in)) << 32) |

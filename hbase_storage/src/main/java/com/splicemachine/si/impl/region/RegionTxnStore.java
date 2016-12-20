@@ -109,10 +109,9 @@ public class RegionTxnStore implements TxnPartition{
         if(kv==null || kv.getValueLength()<=0){
             newBytes=Encoding.encodeBytesUnsorted(destinationTable);
         }else{
-            byte[] encodedTable=destinationTable;
-            newBytes=new byte[encodedTable.length+kv.getValueLength()+1];
-            System.arraycopy(encodedTable,0,newBytes,0,encodedTable.length);
-            System.arraycopy(kv.getValueArray(),kv.getValueOffset(),newBytes,encodedTable.length+1,kv.getValueLength());
+            newBytes=new byte[destinationTable.length+kv.getValueLength()+1];
+            System.arraycopy(destinationTable,0,newBytes,0, destinationTable.length);
+            System.arraycopy(kv.getValueArray(),kv.getValueOffset(),newBytes, destinationTable.length+1,kv.getValueLength());
         }
         Put put=new Put(get.getRow());
         put.add(FAMILY,destTableQualifier,newBytes);

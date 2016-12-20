@@ -1778,8 +1778,7 @@ clp.list(System.out);
     		        }
     		        else
     		        {
-    		            File multiDir = new File(mtestdir);
-						copyOutDir = multiDir;
+                        copyOutDir = new File(mtestdir);
     		        }
     		    }
                 else if ( outcopy == true )

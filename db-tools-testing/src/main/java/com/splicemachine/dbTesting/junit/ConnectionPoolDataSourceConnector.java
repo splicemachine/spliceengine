@@ -174,9 +174,7 @@ public class ConnectionPoolDataSourceConnector implements Connector {
     private ConnectionPoolDataSource singleUseDS( HashMap hm )
        throws SQLException
     {
-        ConnectionPoolDataSource sds =
-                J2EEDataSource.getConnectionPoolDataSource(config, hm);
-        return sds;
+        return J2EEDataSource.getConnectionPoolDataSource(config, hm);
     }
 
 }

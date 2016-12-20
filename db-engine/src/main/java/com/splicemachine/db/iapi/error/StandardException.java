@@ -607,9 +607,7 @@ public class StandardException extends Exception
 				}
 			}
 
-			StandardException se =
-				newException(SQLState.LANG_UNEXPECTED_USER_EXCEPTION, t, detailMessage);
-			return se;
+			return newException(SQLState.LANG_UNEXPECTED_USER_EXCEPTION, t, detailMessage);
 		}
 	}
 
@@ -647,10 +645,8 @@ public class StandardException extends Exception
 		} else {
 			detailMessage = detailMessage.trim();
 		}
-		
-		StandardException se =
-				newException(SQLState.JAVA_EXCEPTION, t, detailMessage, t.getClass().getName());
-		return se;
+
+		return newException(SQLState.JAVA_EXCEPTION, t, detailMessage, t.getClass().getName());
 	}
 
 	/**
@@ -729,8 +725,7 @@ public class StandardException extends Exception
 	}
 
 	public static StandardException interrupt(InterruptedException ie) {
-		StandardException se = StandardException.newException(SQLState.CONN_INTERRUPT, ie);
-		return se;
+		return StandardException.newException(SQLState.CONN_INTERRUPT, ie);
 	}
 	/*
 	** SQL warnings
@@ -764,9 +759,8 @@ public class StandardException extends Exception
 	{
 		String		message = MessageService.getCompleteMessage(messageId, oa);
 		String		state = StandardException.getSQLStateFromIdentifier(messageId);
-		SQLWarning	sqlw = new SQLWarning(message, state, ExceptionSeverity.WARNING_SEVERITY);
 
-		return sqlw;
+		return new SQLWarning(message, state, ExceptionSeverity.WARNING_SEVERITY);
 	}
 
     /**

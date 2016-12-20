@@ -471,8 +471,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 		return s;
 	}
 	public final Object run() {
-		String s = System.getProperty(resourceKey);
-		return s;
+		return System.getProperty(resourceKey);
 	}
 	public static boolean enableLocalization(boolean mode) {
 		getInstance().enableLocalized = mode;
@@ -511,7 +510,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 		return getInstance().getNumberAsString(o);
 	}
 	public String toString(){
-		String s = "toString(){\n" +
+		return "toString(){\n" +
 			"locale=" + (locale==null?"null":locale.toString()) + "\n" +
 			"encode=" + encode + "\n" +
 			"messageFile=" + messageFileName + "\n" +
@@ -520,6 +519,5 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			"dateSize=" + dateSize + "\n" +
 			"timeSize=" + timeSize + "\n" +
 			"timestampSize="+timestampSize+ "\n}";
-			return s;
 	}
 }

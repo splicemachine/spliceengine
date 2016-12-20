@@ -804,8 +804,7 @@ public class Clob extends Lob implements java.sql.Clob {
                 }
                 else {
                     //The Lob is not locator enabled.
-                    String newstr = string_.substring(0, (int) len);
-                    string_ = newstr;
+                    string_ = string_.substring(0, (int) len);
                     asciiStream_ = new java.io.StringBufferInputStream(string_);
                     unicodeStream_ = new java.io.StringBufferInputStream(string_);
                     characterStream_ = new java.io.StringReader(string_);

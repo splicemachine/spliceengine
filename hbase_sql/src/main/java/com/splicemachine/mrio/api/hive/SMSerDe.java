@@ -316,8 +316,7 @@ public class SMSerDe implements SerDe {
                     return dvd.getDouble();
                 case "decimal":
                     Double d = dvd.getDouble();
-                    HiveDecimal hiveDecimal = HiveDecimal.create(d.toString());
-                    return hiveDecimal;
+                    return HiveDecimal.create(d.toString());
 		        case "boolean":
 		        	return dvd.getBoolean();
 		        case "tinyint":

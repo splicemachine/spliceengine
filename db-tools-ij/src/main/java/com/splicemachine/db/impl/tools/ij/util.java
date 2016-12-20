@@ -188,10 +188,8 @@ public final class util implements java.security.PrivilegedAction {
 		if (resource == null) 
 			return null;
 		InputStream is = (InputStream) AccessController.doPrivileged(new PrivilegedAction() {
-            public Object run() { 
-                      InputStream locis = 
-                          c.getResourceAsStream(resource);
-                                  return locis;
+            public Object run() {
+				return c.getResourceAsStream(resource);
             }
         }
      );

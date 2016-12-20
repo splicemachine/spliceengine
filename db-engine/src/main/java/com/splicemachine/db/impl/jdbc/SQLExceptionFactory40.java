@@ -123,11 +123,9 @@ public class SQLExceptionFactory40 extends SQLExceptionFactory {
 	( String message, String messageId, SQLException next, int severity, Throwable t, Object[] args )
 	{
         // Generate an EmbedSQLException
-        SQLException e =
-            super.getSQLException(message, messageId,
-                (next == null ? null : getArgumentFerry(next)),
-                severity, t, args);
-        return e;
+        return super.getSQLException(message, messageId,
+            (next == null ? null : getArgumentFerry(next)),
+            severity, t, args);
 	}
 	
 }

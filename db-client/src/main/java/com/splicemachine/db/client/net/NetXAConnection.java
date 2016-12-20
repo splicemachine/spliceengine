@@ -147,8 +147,7 @@ public class NetXAConnection {
         if (indoubtTxn == null) {
             return null;
         }
-        byte[] uowid = indoubtTxn.getUOWID();
-        return uowid;
+        return indoubtTxn.getUOWID();
     }
 
     public int getPort(Xid xid) {

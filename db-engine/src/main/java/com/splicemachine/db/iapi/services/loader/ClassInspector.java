@@ -469,9 +469,8 @@ public class ClassInspector
 
 			if (!unknownParameters && (primParmTypes == null)) {
 				// look for an exact match for first pass
-				Member method = receiverClass.getConstructor(paramClasses);
 
-				return method;
+				return receiverClass.getConstructor(paramClasses);
 			}
 
 		} catch (NoSuchMethodException nsme) {

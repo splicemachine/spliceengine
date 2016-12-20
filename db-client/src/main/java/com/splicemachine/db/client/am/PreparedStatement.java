@@ -1813,9 +1813,8 @@ public class PreparedStatement extends Statement
     }
 
     private ParameterMetaData getParameterMetaDataX() throws SqlException {
-        ParameterMetaData pm = ClientDriver.getFactory().newParameterMetaData
+        return ClientDriver.getFactory().newParameterMetaData
             ( getColumnMetaDataX() );
-        return pm;
     }
 
     private ColumnMetaData getColumnMetaDataX() throws SqlException {
@@ -1956,8 +1955,7 @@ public class PreparedStatement extends Statement
 
     private Object[] expandObjectArray(Object[] array, int newLength) {
         if (array == null) {
-            Object[] newArray = new Object[newLength];
-            return newArray;
+            return new Object[newLength];
         }
         if (array.length < newLength) {
             Object[] newArray = new Object[newLength];
@@ -1969,8 +1967,7 @@ public class PreparedStatement extends Statement
 
     private boolean[] expandBooleanArray(boolean[] array, int newLength) {
         if (array == null) {
-            boolean[] newArray = new boolean[newLength];
-            return newArray;
+            return new boolean[newLength];
         }
         if (array.length < newLength) {
             boolean[] newArray = new boolean[newLength];

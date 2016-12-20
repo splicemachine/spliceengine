@@ -174,8 +174,7 @@ class EmbedPooledConnection implements javax.sql.PooledConnection, BrokeredConne
 
 		// now make a brokered connection wrapper and give this to the user
 		// we reuse the EmbedConnection(ie realConnection).
-		Connection c = getNewCurrentConnectionHandle();		
-		return c;
+		return getNewCurrentConnectionHandle();
 	}
 
 	final void openRealConnection() throws SQLException {

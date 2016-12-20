@@ -1361,13 +1361,12 @@ public final class TestConfiguration {
      */
     private static final Properties getSystemProperties() {
         // Fetch system properties in a privileged block.
-        Properties sysProps = (Properties)AccessController.doPrivileged(
+        return (Properties)AccessController.doPrivileged(
                 new PrivilegedAction() {
                     public Object run() {
                         return System.getProperties();
                     }
                 });
-        return sysProps;
     }
 
     /**

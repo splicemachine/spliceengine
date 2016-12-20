@@ -1851,10 +1851,8 @@ public class SystemProcedures{
 
         Timestamp currentTimestamp=new Timestamp((new java.util.Date()).getTime());
 
-        UserDescriptor userDescriptor=ddg.newUserDescriptor
+        return ddg.newUserDescriptor
                 (userName,hashingScheme,hashedPassword.toCharArray(),currentTimestamp);
-
-        return userDescriptor;
     }
 
     /**

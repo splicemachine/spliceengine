@@ -123,7 +123,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
             .values(null, false, operationContext, true, "Read Values");
         DataSet<LocatedRow> ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
         DataSet<LocatedRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
-        DataSet<LocatedRow> ds5 = ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
-        return ds5;
+        return ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
     }
 }

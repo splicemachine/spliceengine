@@ -41,7 +41,7 @@ public class BroadcastJoinFlatMapFunction extends AbstractBroadcastJoinFlatMapFu
 
     @Override
     public Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> call(final Iterator<LocatedRow> locatedRows, final JoinTable joinTable) {
-        Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> result = Iterables.concat(FluentIterable.from(new Iterable<LocatedRow>(){
+        return Iterables.concat(FluentIterable.from(new Iterable<LocatedRow>(){
             @Override
             public Iterator<LocatedRow> iterator(){
                 return locatedRows;
@@ -71,6 +71,5 @@ public class BroadcastJoinFlatMapFunction extends AbstractBroadcastJoinFlatMapFu
                                 });
                     }
                 }));
-        return result;
     }
 }

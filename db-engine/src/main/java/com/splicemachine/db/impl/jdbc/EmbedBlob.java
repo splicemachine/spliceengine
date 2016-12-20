@@ -565,8 +565,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             // if we have byte array, not a stream
             if (materialized)
             {
-                java.io.InputStream result = control.getInputStream(0);
-                return result;
+                return control.getInputStream(0);
             }
             else
             { 

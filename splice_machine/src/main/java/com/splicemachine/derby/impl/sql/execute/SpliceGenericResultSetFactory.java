@@ -1349,7 +1349,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
         ConvertedResultSet convertedSubqueryResultSet = (ConvertedResultSet) subqueryResultSet;
 
-        BatchOnceOperation batchOnceOperation = new BatchOnceOperation(
+        return new BatchOnceOperation(
                 convertedResultSet.getOperation(),
                 activation,
                 resultSetNumber,
@@ -1357,8 +1357,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 updateResultSetFieldName,
                 sourceCorrelatedColumnItem,
                 subqueryCorrelatedColumnItem);
-
-        return batchOnceOperation;
     }
 
     @Override

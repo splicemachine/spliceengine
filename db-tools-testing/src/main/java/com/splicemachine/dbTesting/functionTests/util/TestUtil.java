@@ -865,8 +865,7 @@ public class TestUtil {
     public static Connection getDataSourceConnection (Properties prop) throws SQLException {
         DataSource ds = TestUtil.getDataSource(prop);
         try {
-            Connection conn = ds.getConnection();
-            return conn;
+            return ds.getConnection();
         }
         catch (SQLException e) {
             throw e;

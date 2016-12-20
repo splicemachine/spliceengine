@@ -191,8 +191,7 @@ public class OnceResultSet extends NoPutResultSetImpl
 							if (secondRow != null)
 							{
 								close();
-								StandardException se = StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-								throw se;
+								throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
 							}
 						}
 						result = candidateRow;
@@ -208,8 +207,7 @@ public class OnceResultSet extends NoPutResultSetImpl
 							if (! (orderable1.compare(DataValueDescriptor.ORDER_OP_EQUALS, orderable2, true, true)))
 							{
 								close();
-								StandardException se = StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-								throw se;
+								throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
 							}
 							secondRow = source.getNextRowCore();
 						}

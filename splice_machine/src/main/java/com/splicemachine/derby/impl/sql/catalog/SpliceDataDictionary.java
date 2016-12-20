@@ -468,9 +468,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SIDriver siDriver =SIDriver.driver();
             PartitionFactory partFactory = siDriver.getTableFactory();
             TxnOperationFactory txnOpFactory = siDriver.getOperationFactory();
-            SpliceSequence sequence=EngineDriver.driver().sequencePool().
+            return EngineDriver.driver().sequencePool().
                     get(new SequenceKey(sequenceRowLocationBytes,useBatch?SIDriver.driver().getConfiguration().getSequenceBlockSize():1l,start,increment,partFactory,txnOpFactory));
-            return sequence;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

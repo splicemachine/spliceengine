@@ -390,10 +390,9 @@ public final class GenericParameterValueSet implements ParameterValueSet, Extern
      */
     @Override
     public short getParameterMode(int parameterIndex) {
-        short mode = parms[parameterIndex - 1].parameterMode;
         //if (mode == (short) JDBC30Translation.PARAMETER_MODE_UNKNOWN)
         //    mode = (short) JDBC30Translation.PARAMETER_MODE_IN;
-        return mode;
+        return parms[parameterIndex - 1].parameterMode;
     }
 
     /**

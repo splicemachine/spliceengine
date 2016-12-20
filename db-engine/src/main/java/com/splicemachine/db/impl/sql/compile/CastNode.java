@@ -127,11 +127,10 @@ public class CastNode extends ValueNode
 					ContextManager cm) throws StandardException {
 		super(cm);
 		this.castOperand = castOperand;
-		int charLen = charLength;
 		targetCharType = charType;
-		if (charLen < 0)	// unknown, figure out later
+		if (charLength < 0)	// unknown, figure out later
 			return;
-		setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLen));
+		setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLength));
 	}
 
 	public CastNode() {

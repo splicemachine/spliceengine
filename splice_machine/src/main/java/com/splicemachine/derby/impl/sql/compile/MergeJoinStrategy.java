@@ -269,18 +269,17 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         int lastInnerCol = -1;
         for(int i=0;i<innerToOuterJoinColumnMap.length;i++){
             int outerCol = innerToOuterJoinColumnMap[i];
-            int innerCol = i;
             if(outerCol==-1) continue;
             if(outerCol<lastOuterCol) return false; //we have a join out of order
             for (int j = lastOuterCol+1; j < outerCol; ++j) {
                 if (!outerColumns.get(j)) return false;
             }
 
-            for (int j = lastInnerCol+1; j < innerCol; ++j) {
+            for (int j = lastInnerCol+1; j < i; ++j) {
                 if (!innerColumns.get(j)) return false;
             }
             lastOuterCol = outerCol;
-            lastInnerCol = innerCol;
+            lastInnerCol = i;
         }
 
         /*

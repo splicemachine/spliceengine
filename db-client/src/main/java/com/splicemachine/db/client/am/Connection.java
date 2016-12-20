@@ -1394,8 +1394,7 @@ public abstract class Connection
     synchronized public CallableStatement prepareMessageProc(String sql) throws SqlException {
         checkForClosedConnection();
 
-        CallableStatement cs = prepareCallX(sql, java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY, holdability());
-        return cs;
+        return prepareCallX(sql, java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY, holdability());
     }
 
     // Per jdbc spec, when a result set type is unsupported, we downgrade and

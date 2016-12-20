@@ -186,7 +186,6 @@ public class Vacuum{
     }
 
     private String[] parseTableName(String name) {
-        String[] tableName = name.split(":");
-        return tableName;
+        return name.split(":");
     }
 }

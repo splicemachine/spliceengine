@@ -158,8 +158,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
         for (int i = 0; i < hTableDescriptors.length; ++i) {
             tableDescriptors[i] = new HBaseTableDescriptor(hTableDescriptors[i]);
         }
-        List<TableDescriptor> tableDescriptorList = Arrays.asList(tableDescriptors);
-        return tableDescriptorList;
+        return Arrays.asList(tableDescriptors);
     }
 
     @Override

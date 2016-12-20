@@ -96,8 +96,7 @@ public abstract class DDLConstantAction implements ConstantAction
 						String				statementType)
 		throws StandardException
 	{
-		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaId, null);
-		return sd;
+		return dd.getSchemaDescriptor(schemaId, null);
 	}
 
 	/**
