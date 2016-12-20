@@ -54,7 +54,7 @@ public interface ActiveConglomerate {
      * Tombstone Marker For Deletes
      *
      */
-    void setTombstone(boolean hasTombstone);
+    void setHasTombstone(boolean hasTombstone);
 
     /**
      *
@@ -63,7 +63,7 @@ public interface ActiveConglomerate {
      *
      * @return
      */
-    long getTransactionID2();
+    long getTransactionId2();
 
 
     /**
@@ -73,7 +73,7 @@ public interface ActiveConglomerate {
      *
      * @return
      */
-    void setTransactionID2(long transactionID2);
+    void setTransactionId2(long transactionId2);
 
     /**
      *

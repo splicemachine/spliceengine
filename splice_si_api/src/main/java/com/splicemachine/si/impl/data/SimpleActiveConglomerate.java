@@ -7,38 +7,81 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
  * Created by jleach on 12/20/16.
  */
 public class SimpleActiveConglomerate implements ActiveConglomerate {
+    private long transactionId1;
+    private long transactionId2;
+    private long version;
+    private boolean hasTombstone;
+    private long effectiveTimestamp;
+    private int numberOfColumns;
+    private UnsafeRow data;
+
+    
     @Override
-    public long getTransactionID1() {
-        return 0;
+    public long getTransactionId1() {
+        return transactionId1;
+    }
+    @Override
+    public long getTransactionId2() {
+        return transactionId2;
     }
 
     @Override
     public long getVersion() {
-        return 0;
+        return version;
     }
 
     @Override
     public boolean hasTombstone() {
-        return false;
+        return hasTombstone;
     }
 
-    @Override
-    public long getTransactionID2() {
-        return 0;
-    }
 
     @Override
     public long getEffectiveTimestamp() {
-        return 0;
+        return effectiveTimestamp;
     }
 
     @Override
     public int numberOfColumns() {
-        return 0;
+        return numberOfColumns;
     }
 
     @Override
     public UnsafeRow getData() {
-        return null;
+        return data;
+    }
+
+
+    @Override
+    public void setTransactionId1(long transactionId1) {
+        this.transactionId1 = transactionId1;
+    }
+    @Override
+    public void setTransactionId2(long transactionId2) {
+        this.transactionId2 = transactionId2;
+    }
+
+    @Override
+    public void setVersion(long version) {
+        this.version = version;
+    }
+    @Override
+    public void setHasTombstone(boolean hasTombstone) {
+        this.hasTombstone = hasTombstone;
+    }
+
+    @Override
+    public void setEffectiveTimestamp(long effectiveTimestamp) {
+        this.effectiveTimestamp = effectiveTimestamp;
+    }
+
+    @Override
+    public void setNumberOfColumns(int numberOfColumns) {
+        this.numberOfColumns = numberOfColumns;
+    }
+
+    @Override
+    public void setData(UnsafeRow data) {
+        this.data = data;
     }
 }
