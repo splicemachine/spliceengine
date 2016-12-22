@@ -46,7 +46,7 @@ class SITransactorUtil{
          * Each Put represents a single row, but a KVPair represents a single column. Each row
          * is written with a single transaction.
          *
-         * What we do here is we group up the puts by their Transaction id (just in case they are different),
+         * What we do here is we group up the puts by their Txn id (just in case they are different),
          * then we group them up by family and column to create proper KVPair groups. Then, we attempt
          * to write all the groups in sequence.
          *

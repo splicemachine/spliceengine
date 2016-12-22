@@ -40,7 +40,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Transaction Store which uses the TxnLifecycleEndpoint to manage and access transactions
+ * Txn Store which uses the TxnLifecycleEndpoint to manage and access transactions
  * remotely.
  * <p/>
  * This class has no local cache. Callers are responsible for caching returned transactions
@@ -380,7 +380,7 @@ public class CoprocessorTxnStore implements TransactionStore {
         /*
          * We only use this method if we are recording a new transaction. Because of that, we leave
          * off the effectiveCommitTimestamp(). Likely, we wouldn't use it anyway, because we don't have one
-         * yet, but on the off chance that we do, we'll let the Transaction Resolver on the coprocessor
+         * yet, but on the off chance that we do, we'll let the Txn Resolver on the coprocessor
          * side handle it.
          *
          * However, we need this in place because we use the same encoding/decoding strategy in multiple

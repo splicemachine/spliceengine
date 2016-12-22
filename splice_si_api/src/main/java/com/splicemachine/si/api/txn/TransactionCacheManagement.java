@@ -18,7 +18,7 @@ package com.splicemachine.si.api.txn;
 import javax.management.MXBean;
 
 /**
- * JMX Hook for monitoring the behavior of the Completed Transaction Cache.
+ * JMX Hook for monitoring the behavior of the Completed Txn Cache.
  *
  * @author Scott Fines
  * Date: 7/1/14

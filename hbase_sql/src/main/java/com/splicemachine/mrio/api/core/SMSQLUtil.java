@@ -177,7 +177,7 @@ public class SMSQLUtil  {
     /**
      *
      * Get TransactionID
-     * Each Transaction has a uniq ID
+     * Each Txn has a uniq ID
      * For every map job, there should be a different transactionID.
      *
      * */

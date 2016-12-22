@@ -297,7 +297,7 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
 
             connection2.commit();
             resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
+            Assert.assertTrue("New Txn cannot see created object",resultSet.next());
         } finally {
             // drop/delete the damn thing
             try {

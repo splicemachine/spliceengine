@@ -68,7 +68,7 @@ public class SchemaConstantIT extends SpliceUnitTest {
         Assert.assertTrue("Connection should see its own writes",resultSet.next());
         connection1.commit();
         resultSet = connection1.getMetaData().getSchemas(null, SCHEMA1_NAME);
-        Assert.assertTrue("New Transaction cannot see created schema",resultSet.next());
+        Assert.assertTrue("New Txn cannot see created schema",resultSet.next());
     }
 
     @Test(expected=SQLException.class)
@@ -100,7 +100,7 @@ public class SchemaConstantIT extends SpliceUnitTest {
         Assert.assertFalse("Read Timestamp Violated",resultSet.next());
         connection2.commit();
         resultSet = connection2.getMetaData().getSchemas(null, SCHEMA2_NAME);
-        Assert.assertTrue("New Transaction cannot see created schema",resultSet.next());
+        Assert.assertTrue("New Txn cannot see created schema",resultSet.next());
     }
 
     @Test
@@ -120,7 +120,7 @@ public class SchemaConstantIT extends SpliceUnitTest {
         Assert.assertFalse("Read Timestamp Violated",resultSet.next());
         connection2.commit();
         resultSet = connection2.getMetaData().getSchemas(null, SCHEMA3_NAME);
-        Assert.assertFalse("New Transaction cannot see rollbacked schema",resultSet.next());
+        Assert.assertFalse("New Txn cannot see rollbacked schema",resultSet.next());
     }
 
     @Test

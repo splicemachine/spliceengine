@@ -157,7 +157,7 @@ public class IndexRowReaderBuilder implements Externalizable{
     }
 
     public IndexRowReader build() throws StandardException{
-        assert txn!=null:"No Transaction specified!";
+        assert txn!=null:"No Txn specified!";
         assert mainTableRowDecodingMap!=null:"No Row decoding map specified!";
         assert mainTableConglomId>=0:"No Main table conglomerate id specified!";
         assert outputTemplate!=null:"No output template specified!";

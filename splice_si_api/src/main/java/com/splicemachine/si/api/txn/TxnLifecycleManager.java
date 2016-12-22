@@ -136,7 +136,7 @@ public interface TxnLifecycleManager{
      * <p/>
      * 1. transaction begins in read-only state
      * 2. when writes are desired, transaction is elevated to a writable state
-     * 3. Transaction writes
+     * 3. Txn writes
      * 4. transaction commits/rolls back
      *
      * @param txn              the transaction to elevate

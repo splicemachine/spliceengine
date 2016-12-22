@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Transaction operation test cases
+ * Txn operation test cases
  * 
  * @author jessiezhang
  */

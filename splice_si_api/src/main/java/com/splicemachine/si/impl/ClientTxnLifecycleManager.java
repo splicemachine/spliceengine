@@ -25,7 +25,7 @@ import com.splicemachine.timestamp.api.TimestampSource;
 import java.io.IOException;
 
 /**
- * Represents a Client Transaction Lifecycle Manager.
+ * Represents a Client Txn Lifecycle Manager.
  * <p/>
  * This class makes decisions like when a ReadOnly transaction is created instead of a writeable,
  * when a transaction is recorded to the transaction table, and so on.

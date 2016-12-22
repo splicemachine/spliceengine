@@ -4,10 +4,10 @@ package com.splicemachine.si.api.txn;
  *
  *
  */
-public interface Transaction {
+public interface Txn {
     /**
      *
-     * Unique Transaction Identifier
+     * Unique Txn Identifier
      *
      * @return
      */

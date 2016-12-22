@@ -17,7 +17,7 @@ package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.txn.Transaction;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
@@ -46,7 +46,7 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
 
     void updateWriteRequests(long writeRequests);
 
-    Iterable<MutationStatus> bulkWrite(Transaction txn,
+    Iterable<MutationStatus> bulkWrite(Txn txn,
                                 byte[] family, byte[] qualifier,
                                 ConstraintChecker constraintChecker,
                                 Collection<KVPair> data) throws IOException;

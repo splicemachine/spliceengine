@@ -18,7 +18,7 @@ package com.splicemachine.si.impl.txn;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.txn.Transaction;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
@@ -56,7 +56,7 @@ public class SITransactionReadController implements TransactionReadController{
     }
 
     @Override
-    public DDLFilter newDDLFilter(Transaction txn) throws IOException{
+    public DDLFilter newDDLFilter(Txn txn) throws IOException{
         return new DDLFilter(txn);
     }
 

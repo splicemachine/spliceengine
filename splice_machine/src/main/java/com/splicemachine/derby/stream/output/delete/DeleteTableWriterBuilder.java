@@ -76,7 +76,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
 
     @Override
     public DataSetWriterBuilder txn(TxnView txn) {
-        assert txn!=null: "Transaction cannot be null";
+        assert txn!=null: "Txn cannot be null";
         this.txn = txn;
         return this;
     }

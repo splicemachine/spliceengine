@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
- * Represents a Transaction.
+ * Represents a Txn.
  *
  * @author Scott Fines
  *         Date: 6/18/14

@@ -104,7 +104,7 @@ public interface WriteContext {
     boolean canRun(KVPair input);
 
     /**
-     * Retrieve Transaction
+     * Retrieve Txn
      */
     TxnView getTxn();
 

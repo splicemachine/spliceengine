@@ -395,7 +395,7 @@ public class TransactionInteractionTest {
      * 3. T1.parent = T2.parent (e.g. they are direct relatives)
      *
      *
-     * Write characteristics of an Additive Transaction:
+     * Write characteristics of an Additive Txn:
      *
      * For writes, we have the following cases:
      *

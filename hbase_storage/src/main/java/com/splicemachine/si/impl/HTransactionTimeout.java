@@ -19,7 +19,7 @@ import com.splicemachine.si.api.txn.lifecycle.TransactionTimeoutException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
 /**
- * Exception indicating that a Transaction has timed out,
+ * Exception indicating that a Txn has timed out,
  * and a specific action cannot be taken
  * @author Scott Fines
  * Date: 6/25/14
@@ -28,7 +28,7 @@ public class HTransactionTimeout extends DoNotRetryIOException implements Transa
 		public HTransactionTimeout() {
 		}
 		public HTransactionTimeout(long txnId) {
-				super("Transaction "+ txnId+" has timed out");
+				super("Txn "+ txnId+" has timed out");
 		}
 
 		public HTransactionTimeout(String message) {

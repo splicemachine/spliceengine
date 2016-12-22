@@ -45,7 +45,7 @@ public class SpliceTableOutputCommitter extends OutputCommitter {
 
 	@Override
 	public void setupTask(TaskAttemptContext taskAttemptContext) throws IOException {
-		// Create Sub Transaction
+		// Create Sub Txn
 	}
 
 }

@@ -77,7 +77,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
                         }
                     });
 
-            LongOpenHashSet txns=LongOpenHashSet.newInstance(); //TODO -sf- do we really need to check for duplicates? In case of Transaction table splits?
+            LongOpenHashSet txns=LongOpenHashSet.newInstance(); //TODO -sf- do we really need to check for duplicates? In case of Txn table splits?
             for(TxnMessage.ActiveTxnIdResponse response : data.values()){
                 int activeTxnIdsCount=response.getActiveTxnIdsCount();
                 for(int i=0;i<activeTxnIdsCount;i++){

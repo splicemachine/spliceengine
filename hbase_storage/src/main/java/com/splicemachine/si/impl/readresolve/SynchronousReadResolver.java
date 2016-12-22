@@ -56,7 +56,7 @@ public class SynchronousReadResolver implements KeyedReadResolver{
 
     /**
      * @param region      the region for the relevant read resolver
-     * @param txnSupplier a Transaction Supplier for fetching transaction information
+     * @param txnSupplier a Txn Supplier for fetching transaction information
      * @return a ReadResolver which uses Synchronous Read Resolution under the hood.
      */
     @ThreadSafe

@@ -129,7 +129,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
     @Override
     public ScanSetBuilder<V> transaction(TxnView txn){
-        assert txn!=null:"No Transaction specified";
+        assert txn!=null:"No Txn specified";
         this.txn=txn;
         return this;
     }

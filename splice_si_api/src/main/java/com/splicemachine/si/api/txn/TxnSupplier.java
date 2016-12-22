@@ -32,7 +32,7 @@ public interface TxnSupplier {
 		 *
 		 * @param txnId the transaction id to fetch.
 		 */
-		Transaction getTransaction(long txnId) throws IOException;
+		Txn getTransaction(long txnId) throws IOException;
 
 		/**
 		 * Add the transaction to the local cache (if such a cache exists).
@@ -45,6 +45,6 @@ public interface TxnSupplier {
 		 *
 		 * @param toCache the transaction to cache.
 		 */
-		void cache(Transaction toCache);
+		void cache(Txn toCache);
 
 }

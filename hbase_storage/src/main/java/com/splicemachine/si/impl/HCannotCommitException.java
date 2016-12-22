@@ -27,7 +27,7 @@ public class HCannotCommitException extends DoNotRetryIOException implements Can
     private long txnId=-1;
 
     public HCannotCommitException(long txnId,Txn.State actualState){
-        super(String.format("[%d]Transaction %d cannot be committed--it is in the %s state",txnId,txnId,actualState));
+        super(String.format("[%d]Txn %d cannot be committed--it is in the %s state",txnId,txnId,actualState));
     }
 
     public HCannotCommitException(String message){

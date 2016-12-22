@@ -10,7 +10,7 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 public interface ActiveConglomerate {
     /**
      *
-     * Transaction ID 1
+     * Txn ID 1
      *
      * @return
      */
@@ -18,7 +18,7 @@ public interface ActiveConglomerate {
 
     /**
      *
-     * Transaction ID 1
+     * Txn ID 1
      *
      * @return
      */
@@ -58,7 +58,7 @@ public interface ActiveConglomerate {
 
     /**
      *
-     * Transaction ID representing the parent timestamp of a hierarchical
+     * Txn ID representing the parent timestamp of a hierarchical
      * transaction or the increment plus node id of a collapsible transaction.
      *
      * @return
@@ -68,7 +68,7 @@ public interface ActiveConglomerate {
 
     /**
      *
-     * Transaction ID representing the parent timestamp of a hierarchical
+     * Txn ID representing the parent timestamp of a hierarchical
      * transaction or the increment plus node id of a collapsible transaction.
      *
      * @return

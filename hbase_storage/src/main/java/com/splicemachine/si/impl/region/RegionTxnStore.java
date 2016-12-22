@@ -45,7 +45,7 @@ import java.util.NoSuchElementException;
  * Uses an HRegion to access Txn information.
  * <p/>
  * Intended <em>only</em> to be used within a coprocessor on a
- * region of the Transaction table.
+ * region of the Txn table.
  *
  * @author Scott Fines
  *         Date: 6/19/14
@@ -103,7 +103,7 @@ public class RegionTxnStore implements TxnPartition{
         Result result=region.get(get);
         //should never happen, this is in place to protect against programmer error
         if(result==null||result==Result.EMPTY_RESULT)
-            throw new HReadOnlyModificationException("Transaction "+txnId+" is read-only, and was not properly elevated.");
+            throw new HReadOnlyModificationException("Txn "+txnId+" is read-only, and was not properly elevated.");
         Cell kv=result.getColumnLatestCell(FAMILY,destTableQualifier);
         byte[] newBytes;
         if(kv==null || kv.getValueLength()<=0){

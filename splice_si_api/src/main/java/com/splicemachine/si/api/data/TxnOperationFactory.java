@@ -15,7 +15,7 @@
 
 package com.splicemachine.si.api.data;
 
-import com.splicemachine.si.api.txn.Transaction;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.*;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -29,21 +29,21 @@ import java.io.ObjectOutput;
  */
 public interface TxnOperationFactory{
 
-    DataScan newDataScan(Transaction txn);
+    DataScan newDataScan(Txn txn);
 
-    DataGet newDataGet(Transaction txn,byte[] rowKey,DataGet previous);
+    DataGet newDataGet(Txn txn, byte[] rowKey, DataGet previous);
 
-    Transaction readTxn(ObjectInput oi) throws IOException;
+    Txn readTxn(ObjectInput oi) throws IOException;
 
-    void writeTxn(Transaction txn,ObjectOutput out) throws IOException;
+    void writeTxn(Txn txn, ObjectOutput out) throws IOException;
 
     void writeScan(DataScan scan, ObjectOutput out) throws IOException;
 
     DataScan readScan(ObjectInput in) throws IOException;
 
-    DataPut newDataPut(Transaction txn,byte[] key) throws IOException;
+    DataPut newDataPut(Txn txn, byte[] key) throws IOException;
 
-    DataMutation newDataDelete(Transaction txn,byte[] key) throws IOException;
+    DataMutation newDataDelete(Txn txn, byte[] key) throws IOException;
 
     DataCell newDataCell(byte[] key,byte[] family,byte[] qualifier,byte[] value);
 }

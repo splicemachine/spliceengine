@@ -251,7 +251,7 @@ public class DropTableTransactionIT{
         conn1.rollback();
         long txnId2 = conn1.getCurrentTransactionId();
 
-        Assert.assertNotEquals("Transaction id did not advance!",txnId,txnId2);
+        Assert.assertNotEquals("Txn id did not advance!",txnId,txnId2);
     }
 
     @Test

@@ -17,7 +17,7 @@ package com.splicemachine.si.api.txn;
 
 /**
  *
- * Transaction Status
+ * Txn Status
  *
  */
 public enum TransactionStatus {

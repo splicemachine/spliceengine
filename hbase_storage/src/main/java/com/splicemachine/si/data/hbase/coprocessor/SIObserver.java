@@ -186,7 +186,7 @@ public class SIObserver extends BaseRegionObserver{
             return;
         }
         byte[] attribute=put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
-        assert attribute!=null: "Transaction not specified!";
+        assert attribute!=null: "Txn not specified!";
 
 
         TxnView txn=txnOperationFactory.fromWrites(attribute,0,attribute.length);
@@ -260,7 +260,7 @@ public class SIObserver extends BaseRegionObserver{
     /*private helper methods*/
     private void addSIFilterToGet(Get get) throws IOException{
         byte[] attribute=get.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
-        assert attribute!=null: "Transaction information is missing";
+        assert attribute!=null: "Txn information is missing";
 
         TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
         final Filter newFilter=makeSIFilter(txn,get.getFilter(), getPredicateFilter(get),false);
@@ -269,7 +269,7 @@ public class SIObserver extends BaseRegionObserver{
 
     private void addSIFilterToScan(Scan scan) throws IOException{
         byte[] attribute=scan.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
-        assert attribute!=null: "Transaction information is missing";
+        assert attribute!=null: "Txn information is missing";
 
         TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
         final Filter newFilter=makeSIFilter(txn,scan.getFilter(),

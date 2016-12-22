@@ -30,7 +30,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Simple Transaction store useful for Unit testing. NOT TO BE USED OUTSIDE OF TESTING. This is not thread safe!
+ * Simple Txn store useful for Unit testing. NOT TO BE USED OUTSIDE OF TESTING. This is not thread safe!
  *
  * @author Scott Fines
  *         Date: 6/23/14
@@ -93,7 +93,7 @@ public class TestingTxnStore implements TransactionStore {
     @Override
     public void recordNewTransaction(Txn txn) throws IOException{
         TxnHolder txn1=txnMap.get(txn.getTxnId());
-        assert txn1==null:" Transaction "+txn.getTxnId()+" already existed!";
+        assert txn1==null:" Txn "+txn.getTxnId()+" already existed!";
         txnMap.put(txn.getTxnId(),new TxnHolder(txn,clock.currentTimeMillis()));
     }
 

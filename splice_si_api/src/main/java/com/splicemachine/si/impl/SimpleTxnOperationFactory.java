@@ -18,7 +18,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.txn.Transaction;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import java.io.IOException;
@@ -52,7 +52,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     }
 
     @Override
-    public DataScan newDataScan(Transaction txn){
+    public DataScan newDataScan(Txn txn){
         DataScan ds = operationFactory.newScan();
         if(txn!=null)
             encodeForReads(ds,txn,false);
@@ -62,7 +62,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     }
 
     @Override
-    public DataGet newDataGet(Transaction txn,byte[] rowKey,DataGet previous){
+    public DataGet newDataGet(Txn txn, byte[] rowKey, DataGet previous){
         DataGet dg = operationFactory.newGet(rowKey,previous);
         dg.returnAllVersions();
         dg.setTimeRange(0l,Long.MAX_VALUE);
@@ -75,7 +75,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     }
 
     @Override
-    public DataPut newDataPut(Transaction txn,byte[] key) throws IOException{
+    public DataPut newDataPut(Txn txn, byte[] key) throws IOException{
         DataPut dp = operationFactory.newPut(key);
         if(txn==null){
             makeNonTransactional(dp);
@@ -85,7 +85,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     }
 
     @Override
-    public DataMutation newDataDelete(Transaction txn,byte[] key) throws IOException{
+    public DataMutation newDataDelete(Txn txn, byte[] key) throws IOException{
         if(txn==null){
             return operationFactory.newDelete(key);
         }
@@ -102,7 +102,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     }
 
     @Override
-    public void writeTxn(Transaction txn,ObjectOutput out) throws IOException{
+    public void writeTxn(Txn txn, ObjectOutput out) throws IOException{
         byte[] eData= encode(txn);
         out.writeInt(eData.length);
         out.write(eData,0,eData.length);

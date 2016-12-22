@@ -70,7 +70,7 @@ public interface TransactorStatus {
     long getNumLoadedTxns();
 
     /**
-     * @return the total number of Transaction updates which were written
+     * @return the total number of Txn updates which were written
      */
     long getNumTxnUpdatesWritten();
 }

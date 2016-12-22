@@ -128,7 +128,7 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler{
                             "keep alive for transaction %d. This may be a sign that load will begin interfering"+
                             "with the transaction system",txn.getTxnId());
             }catch(HTransactionTimeout tte){
-                LOG.error("Transaction "+txn.getTxnId()+" has timed out");
+                LOG.error("Txn "+txn.getTxnId()+" has timed out");
 									/*
 									 * We attempted to keep alive a transaction that has already timed out for a different
 									 * reason. Ensure that the transaction is rolled back

@@ -247,7 +247,7 @@ public class DDLUtils {
 
     /**
      *
-     * Create a table scan for old conglomerate. Make sure to create a NonSI table scan. Transaction filtering
+     * Create a table scan for old conglomerate. Make sure to create a NonSI table scan. Txn filtering
      * will happen at client side
      * @return
      */

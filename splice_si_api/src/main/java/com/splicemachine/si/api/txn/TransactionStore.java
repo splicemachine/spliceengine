@@ -16,7 +16,6 @@
 package com.splicemachine.si.api.txn;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -25,18 +24,18 @@ import java.util.List;
 public interface TransactionStore extends TxnSupplier{
 
     /**
-     * Write the Transaction to underlying storage.
+     * Write the Txn to underlying storage.
      *
      * @param txn the transaction to write.
      * @throws IOException if something goes wrong trying to write it
      */
-    void recordNewTransaction(Transaction transaction) throws IOException;
+    void recordNewTransaction(Txn transaction) throws IOException;
 
-    void rollback(Transaction transaction) throws IOException;
+    void rollback(Txn transaction) throws IOException;
 
-    long commit(Transaction transaction) throws IOException;
+    long commit(Txn transaction) throws IOException;
 
-    void elevateTransaction(Transaction transaction) throws IOException;
+    void elevateTransaction(Txn transaction) throws IOException;
 
     /**
      * @return a count of the total number of store lookups made since the server last started

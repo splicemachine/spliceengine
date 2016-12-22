@@ -117,7 +117,7 @@ public class TransactionAdminIT {
         System.out.println("getCurrId");
         long txnId2 = conn1.getCurrentTransactionId();
 
-//        Assert.assertNotEquals("Transaction id did not advance!",txnId,txnId2);
+//        Assert.assertNotEquals("Txn id did not advance!",txnId,txnId2);
 //
 //        try(Statement s = conn1.createStatement()){
 //            s.execute("insert into "+table+" (a,b) values (1,1)");

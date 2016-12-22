@@ -138,7 +138,7 @@
  *
  * <h3>Commit/Rollback (Coordinator Commit/Rollback)</h3>
  *
- * Transaction Manager Activity (initiated via savepoint handling or parent transactional handling, not
+ * Txn Manager Activity (initiated via savepoint handling or parent transactional handling, not
  *          performed in the ConstantAction directly)
  * <ol>
  *  <li>Commit: Sends Commit Message to each node.  Perform whatever actions need to be performed on commit.

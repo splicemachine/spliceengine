@@ -123,9 +123,9 @@ import java.util.Properties;
  * <li>{@code Tp} created ({@code Tp = [bp,...)}).</li>
  * <li>Create transaction {@code Tc} is created ({@code Tc = [bc,...), Tc.parent = Tp})</li>
  * <li>Create transaction {@code Tc} is committed ({@code Tc = [bc,cc)})</li>
- * <li>Independent Transaction {@code To = [bo,...)} is created such that {@code cc < bo}</li>
- * <li>Independent Transaction {@code To} is committed ({@code To = [bo,co)})</li>
- * <li>Populate Transaction is created and committed.</li>
+ * <li>Independent Txn {@code To = [bo,...)} is created such that {@code cc < bo}</li>
+ * <li>Independent Txn {@code To} is committed ({@code To = [bo,co)})</li>
+ * <li>Populate Txn is created and committed.</li>
  *</ol>
  * In this scenario, the independent transaction was created <em>after</em> the create transaction
  * was committed--therefore, we should be able to make the guarantee that the write pipeline interceptor
@@ -135,7 +135,7 @@ import java.util.Properties;
  * before the start of the Populate phase, but in one the writes need to be visible, while in the other they <em>cannot</em>
  * be.
  *
- * We resolve this issue by <em>chaining</em> the create and populate transactions together. Transaction chaining
+ * We resolve this issue by <em>chaining</em> the create and populate transactions together. Txn chaining
  * is where we commit one transaction, then create a new transaction whose begin timestamp is the same as the
  * commit timestamp of the committed transaction. For example, we create a transaction at time {@code 1}, then chain
  * commit that transaction. In that case, the commit timestamp if {@code 2}, and the new transaction's begin

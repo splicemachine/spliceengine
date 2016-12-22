@@ -99,7 +99,7 @@ public class SpliceTransactionManager implements XATransactionController,
                       Transaction theRawTran, SpliceTransactionManager parent_tran) {
         if (LOG.isTraceEnabled()) {
             LOG.trace("SpliceAccessManager " + myaccessmanager);
-            LOG.trace("Transaction " + theRawTran);
+            LOG.trace("Txn " + theRawTran);
         }
 
         this.rawtran = theRawTran;
@@ -1170,7 +1170,7 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     public int setSavePoint(String name, Object kindOfSavepoint) throws StandardException {
-        assert rawtran instanceof SpliceTransaction : "Programmer error: cannot set a save point on a Transaction View";
+        assert rawtran instanceof SpliceTransaction : "Programmer error: cannot set a save point on a Txn View";
 	    if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before setSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
         int numSavePoints = rawtran.setSavePoint(name, kindOfSavepoint);
@@ -1180,7 +1180,7 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException {
-        assert rawtran instanceof SpliceTransaction : "Programmer error: cannot release a save point on a Transaction View";
+        assert rawtran instanceof SpliceTransaction : "Programmer error: cannot release a save point on a Txn View";
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "Before releaseSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
 	    int numSavePoints = rawtran.releaseSavePoint(name, kindOfSavepoint);
@@ -1190,7 +1190,7 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     public int rollbackToSavePoint(String name, boolean close_controllers, Object kindOfSavepoint) throws StandardException {
-        assert rawtran instanceof SpliceTransaction : "Programmer error: cannot rollback a save point on a Transaction View";
+        assert rawtran instanceof SpliceTransaction : "Programmer error: cannot rollback a save point on a Txn View";
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "Before rollbackSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
         if (close_controllers)
@@ -1603,9 +1603,9 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     /**
-     * Get the Transaction from the Transaction manager.
+     * Get the Txn from the Txn manager.
      * <p>
-     * Access methods often need direct access to the "Transaction" - ie. the
+     * Access methods often need direct access to the "Txn" - ie. the
      * raw store transaction, so give access to it.
      *
      * @return The raw store transaction.
@@ -1676,7 +1676,7 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     /**
-     * Get string id of the transaction that would be when the Transaction is IN
+     * Get string id of the transaction that would be when the Txn is IN
      * active state.
      **/
     public String getActiveStateTxIdString() {

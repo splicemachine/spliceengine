@@ -176,7 +176,7 @@ public class TransactionImpl extends BaseTransaction {
             return;
         }
         if(state==CLOSED){
-            throw new IOException("Transaction has already closed and cannot commit again");
+            throw new IOException("Txn has already closed and cannot commit again");
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"commit, state="+state+" for transaction "+(txnStack.peekLast()==null?"null":txnStack.getLast().getSecond()));

@@ -58,16 +58,16 @@ public class ForeignKey_Concurrent_IT {
         Connection connection1 = newNoAutoCommitConnection();
         Connection connection2 = newNoAutoCommitConnection();
 
-        // Transaction 1: insert child row referencing parent we will delete
+        // Txn 1: insert child row referencing parent we will delete
         connection1.createStatement().executeUpdate("insert into C values(4,4)");
 
-        // Transaction 2: verify cannot delete/update parent
+        // Txn 2: verify cannot delete/update parent
         assertQueryFail(connection2, "DELETE FROM P where a=4", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
         assertQueryFail(connection2, "UPDATE P set a=9 where a=4", "Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
         connection2.commit();
         connection2.close();
 
-        // Transaction 2: verify CAN update parent
+        // Txn 2: verify CAN update parent
         connection1.createStatement().executeUpdate("update P set b=-1 where a=4");
 
         connection1.commit();
@@ -82,11 +82,11 @@ public class ForeignKey_Concurrent_IT {
         Connection connection1 = newNoAutoCommitConnection();
         Connection connection2 = newNoAutoCommitConnection();
 
-        // Transaction 1: delete the parent row we will try to reference in another transaction
+        // Txn 1: delete the parent row we will try to reference in another transaction
         connection1.createStatement().executeUpdate("DELETE FROM P where a=2");
         connection1.createStatement().executeUpdate("UPDATE P set a=300 where a=3");
 
-        // Transaction 2: Gets a FK violation when I try to reference deleted parent.
+        // Txn 2: Gets a FK violation when I try to reference deleted parent.
         assertQueryFail(connection2, "insert into C values(2,2)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
         assertQueryFail(connection2, "insert into C values(3,3)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
 

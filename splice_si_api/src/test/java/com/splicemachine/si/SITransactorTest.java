@@ -566,7 +566,7 @@ public class SITransactorTest {
         Assert.assertEquals("joe2 age=20 job=null", testUtility.read(t1, "joe2"));
         t1.commit();
         error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
-        error.expectMessage(String.format("[%1$d]Transaction %1$d cannot be committed--it is in the %2$s state",t2.getTxnId(),Txn.State.ROLLEDBACK));
+        error.expectMessage(String.format("[%1$d]Txn %1$d cannot be committed--it is in the %2$s state",t2.getTxnId(),Txn.State.ROLLEDBACK));
         t2.commit();
         Assert.fail("Did not throw CannotCommit exception!");
     }
@@ -1294,7 +1294,7 @@ public class SITransactorTest {
         testUtility.insertAge(t2, "moe32", 21);
         t2.commit();
 
-//        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2.commit();
+//        final Txn transactionStatusA = transactorSetup.transactionStore.getTransaction(t2.commit();
         TxnView t2Check = txnStore.getTransaction(t2.getTxnId());
         Assert.assertNotEquals("committing a child does not set a local commit timestamp", -1l, t2Check.getCommitTimestamp());
         Assert.assertEquals("child has effective commit timestamp even though parent has not committed!", -1l, t2Check.getEffectiveCommitTimestamp());

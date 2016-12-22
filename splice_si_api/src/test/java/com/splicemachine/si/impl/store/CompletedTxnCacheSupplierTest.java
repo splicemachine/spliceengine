@@ -71,7 +71,7 @@ public class CompletedTxnCacheSupplierTest{
         Assert.assertFalse("Cache thinks it already has the item!",store.transactionCached(txn.getTxnId()));
 
         TxnView fromStore=store.getTransaction(txn.getTxnId());
-        assertTxnsMatch("Transaction from store is not correct!",txn,fromStore);
+        assertTxnsMatch("Txn from store is not correct!",txn,fromStore);
 
         Assert.assertFalse("Cache does not think it is present!",store.transactionCached(txn.getTxnId()));
     }
@@ -108,12 +108,12 @@ public class CompletedTxnCacheSupplierTest{
         Assert.assertFalse("Cache thinks it already has the item!",store.transactionCached(txn.getTxnId()));
 
         TxnView fromStore=store.getTransaction(txn.getTxnId());
-        assertTxnsMatch("Transaction from store is not correct!",txn,fromStore);
+        assertTxnsMatch("Txn from store is not correct!",txn,fromStore);
 
         Assert.assertTrue("Cache does not think it is present!",store.transactionCached(txn.getTxnId()));
 
         TxnView fromCache=store.getTransaction(txn.getTxnId());
-        assertTxnsMatch("Transaction from store is not correct!",txn,fromCache);
+        assertTxnsMatch("Txn from store is not correct!",txn,fromCache);
     }
 
     @Test
@@ -153,11 +153,11 @@ public class CompletedTxnCacheSupplierTest{
         Assert.assertFalse("Cache thinks it already has the item!",store.transactionCached(txn.getTxnId()));
 
         TxnView fromStore=store.getTransaction(txn.getTxnId());
-        assertTxnsMatch("Transaction from store is not correct!",txn,fromStore);
+        assertTxnsMatch("Txn from store is not correct!",txn,fromStore);
 
         Assert.assertTrue("Cache does not think it is present!",store.transactionCached(txn.getTxnId()));
 
         TxnView fromCache=store.getTransaction(txn.getTxnId());
-        assertTxnsMatch("Transaction from store is not correct!",txn,fromCache);
+        assertTxnsMatch("Txn from store is not correct!",txn,fromCache);
     }
 }

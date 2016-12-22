@@ -1,7 +1,7 @@
 package com.splicemachine.si.impl.functions;
 
 import com.splicemachine.si.api.data.ActiveConglomerate;
-import com.splicemachine.si.api.txn.Transaction;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import org.spark_project.guava.base.Function;
 import javax.annotation.Nullable;
@@ -28,12 +28,12 @@ public class ResolveTransaction implements Function<ActiveConglomerate[],ActiveC
     public ActiveConglomerate[] apply(ActiveConglomerate[] array) {
         try {
             for (ActiveConglomerate activeConglomerate : array) {
-                if (activeConglomerate == null || activeConglomerate.getEffectiveTimestamp() != 0) // Empty Array Element or Transaction Resolved
+                if (activeConglomerate == null || activeConglomerate.getEffectiveTimestamp() != 0) // Empty Array Element or Txn Resolved
                     break;
-                if (activeConglomerate.getTransactionID2() < 0) { // Collapsable Transaction
-                    Transaction txn = globableCache.getTransaction(activeConglomerate.getTransactionID1());
+                if (activeConglomerate.getTransactionID2() < 0) { // Collapsable Txn
+                    Txn txn = globableCache.getTransaction(activeConglomerate.getTransactionID1());
                 }
-                if (activeConglomerate.getTransactionID1() > activeConglomerate.getTransactionID2()) { // Hierarchical Transaction
+                if (activeConglomerate.getTransactionID1() > activeConglomerate.getTransactionID2()) { // Hierarchical Txn
 
                 }
             }

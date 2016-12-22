@@ -70,11 +70,11 @@ public class HBaseBulkLoadReducer extends Reducer<ImmutableBytesWritable,
         throwErrorOnDuplicates=context.getConfiguration().getBoolean("import.throwErrorOnDuplicate",true);
         String txnIdStr=context.getConfiguration().get("import.txnId");
         if(txnIdStr==null)
-            throw new IOException("No Transaction id found, unable to create data!");
+            throw new IOException("No Txn id found, unable to create data!");
         try{
             txnId=Long.parseLong(txnIdStr);
         }catch(NumberFormatException nfe){
-            throw new IOException("Unknown format for Transaction Id: "+txnIdStr);
+            throw new IOException("Unknown format for Txn Id: "+txnIdStr);
         }
     }
 }
