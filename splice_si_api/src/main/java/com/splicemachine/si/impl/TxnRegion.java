@@ -17,16 +17,11 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.filter.TxnFilter;
-import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.filter.HRowAccumulator;
-import com.splicemachine.si.impl.filter.PackedTxnFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import org.spark_project.guava.collect.Iterators;
@@ -59,21 +54,6 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
             this.tableName=region.getTableName();
         }
     }
-
-    @Override
-    public TxnFilter unpackedFilter(TxnView txn) throws IOException{
-        return new SimpleTxnFilter(tableName,txn,readResolver,txnSupplier);
-    }
-
-    @Override
-    public TxnFilter packedFilter(TxnView txn,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
-        return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
-    }
-
-//    @Override
-//    public SICompactionState compactionFilter() throws IOException{
-//        throw new UnsupportedOperationException("IMPLEMENT");
-//    }
 
     @Override
     public InternalScanner compactionScanner(InternalScanner internalScanner){
@@ -113,7 +93,7 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
         /*
          * Designed for subclasses. Override this if you want to bypass transactional writes
          */
-        final MutationStatus[] status = transactor.processKvBatch(region, rollForward, family, qualifier, data,txn,constraintChecker);
+        final MutationStatus[] status = transactor.processKvBatch(region, family, qualifier, data,txn,constraintChecker);
         return new Iterable<MutationStatus>(){
             @Override public Iterator<MutationStatus> iterator(){ return Iterators.forArray(status); }
         };

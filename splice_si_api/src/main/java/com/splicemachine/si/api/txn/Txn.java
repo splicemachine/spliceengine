@@ -4,7 +4,7 @@ package com.splicemachine.si.api.txn;
  *
  *
  */
-public interface Txn {
+public interface Txn extends Comparable<Txn>{
     /**
      *
      * Unique Txn Identifier

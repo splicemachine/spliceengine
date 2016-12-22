@@ -40,8 +40,6 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
     @ThreadSafe private final TxnFactory txnFactory;
     @ThreadSafe private final TxnLocationFactory txnLocationFactory;
     @ThreadSafe private final TxnSupplier globalTxnCache;
-
-
     private volatile boolean restoreMode=false;
 
     public ClientTxnLifecycleManager(TimestampSource logicalTimestampSource,
@@ -49,23 +47,21 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
                                      ExceptionFactory exceptionFactory,
                                      TxnFactory txnFactory,
                                      TxnLocationFactory txnLocationFactory,
-                                     TxnSupplier globalTxnCache){
+                                     TxnSupplier globalTxnCache,
+                                     TransactionStore transactionStore){
         assert logicalTimestampSource !=null:"logicalTimestampSource cannot be null";
         assert physicalTimestampSource !=null:"physicalTimestampSource cannot be null";
         assert exceptionFactory !=null:"exceptionFactory cannot be null";
         assert txnFactory !=null:"txnFactory cannot be null";
         assert txnLocationFactory !=null:"txnLocationFactory cannot be null";
+        assert transactionStore !=null:"transactionStore cannot be null";
         this.logicalTimestampSource = logicalTimestampSource;
         this.physicalTimestampSource = physicalTimestampSource;
         this.exceptionFactory= exceptionFactory;
         this.txnFactory = txnFactory;
         this.txnLocationFactory = txnLocationFactory;
         this.globalTxnCache = globalTxnCache;
-    }
-
-    public void setTxnStore(TransactionStore store){
-        assert store !=null:"store cannot be null";
-        this.store = store;
+        this.store = transactionStore;
     }
 
     @Override

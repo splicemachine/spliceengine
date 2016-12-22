@@ -25,27 +25,17 @@ import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
-import com.splicemachine.si.api.readresolve.AsyncReadResolver;
-import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
-import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TransactionStore;
-import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.impl.ClientTxnLifecycleManager;
 import com.splicemachine.si.impl.TxnRegion;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
-import com.splicemachine.utils.GreenLight;
 import org.apache.log4j.Logger;
 
 public class SIDriver {
@@ -76,20 +66,22 @@ public class SIDriver {
     private final SConfiguration config;
     private final TransactionStore txnStore;
     private final OperationStatusFactory operationStatusFactory;
-    private final TimestampSource timestampSource;
-    private final TxnSupplier txnSupplier;
+    private final TimestampSource logicalTimestampSource;
+    private final TxnLocationFactory txnLocationFactory;
+    private final TimestampSource physicalTimestampSource;
+    private final TxnSupplier globalTxnCache;
+
     private final Transactor transactor;
     private final TxnOperationFactory txnOpFactory;
-    private final RollForward rollForward;
     private final TxnLifecycleManager lifecycleManager;
     private final DataFilterFactory filterFactory;
     private final Clock clock;
-    private final AsyncReadResolver readResolver;
     private final DistributedFileSystem fileSystem;
     private final OperationFactory baseOpFactory;
     private final PartitionInfoCache partitionInfoCache;
     private final SnowflakeFactory snowflakeFactory;
     private final SIEnvironment env;
+    private final TxnFactory txnFactory;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -97,28 +89,34 @@ public class SIDriver {
         this.config = env.configuration();
         this.txnStore = env.txnStore();
         this.operationStatusFactory = env.statusFactory();
-        this.timestampSource = env.timestampSource();
-        this.txnSupplier = env.txnSupplier();
+        this.globalTxnCache = env.globalTxnCache();
+        this.logicalTimestampSource = env.logicalTimestampSource();
+        this.physicalTimestampSource = env.physicalTimestampSource();
+        this.txnLocationFactory = env.txnLocationFactory();
         this.txnOpFactory = env.operationFactory();
-        this.rollForward = env.rollForward();
         this.filterFactory = env.filterFactory();
         this.clock = env.systemClock();
         this.partitionInfoCache = env.partitionInfoCache();
         this.snowflakeFactory = env.snowflakeFactory();
-
+        this.txnFactory = env.txnFactory();
         //noinspection unchecked
         this.transactor = new SITransactor(
-                this.txnSupplier,
+                txnStore,
                 this.txnOpFactory,
                 env.baseOperationFactory(),
                 this.operationStatusFactory,
                 this.exceptionFactory);
-        ClientTxnLifecycleManager clientTxnLifecycleManager=new ClientTxnLifecycleManager(this.timestampSource,env.exceptionFactory());
-        clientTxnLifecycleManager.setTxnStore(this.txnStore);
-        clientTxnLifecycleManager.setKeepAliveScheduler(env.keepAliveScheduler());
+
+        ClientTxnLifecycleManager clientTxnLifecycleManager=new
+        ClientTxnLifecycleManager(logicalTimestampSource,
+                physicalTimestampSource,
+                exceptionFactory,
+                txnFactory,
+                txnLocationFactory,
+                globalTxnCache,
+                txnStore);
         this.lifecycleManager =clientTxnLifecycleManager;
-        readController = new SITransactionReadController(txnSupplier);
-        readResolver = initializedReadResolver(config,env.keyedReadResolver());
+        readController = new SITransactionReadController();
         this.fileSystem = env.fileSystem();
         this.baseOpFactory = env.baseOperationFactory();
         this.env = env;
@@ -152,19 +150,12 @@ public class SIDriver {
         return txnStore;
     }
 
-    public TxnSupplier getTxnSupplier(){
-        return txnSupplier;
-    }
-
     public OperationStatusFactory getOperationStatusLib() {
         return operationStatusFactory;
     }
 
     public PartitionInfoCache getPartitionInfoCache() { return partitionInfoCache; }
 
-    public TimestampSource getTimestampSource() {
-        return timestampSource;
-    }
 
     public Transactor getTransactor(){
         return transactor;
@@ -178,16 +169,6 @@ public class SIDriver {
         return txnOpFactory;
     }
 
-    public RollForward getRollForward(){
-        return rollForward;
-    }
-
-    public ReadResolver getReadResolver(Partition basePartition){
-        if(readResolver==null) return NoOpReadResolver.INSTANCE;
-        else
-        return readResolver.getResolver(basePartition,getRollForward());
-    }
-
     public TxnLifecycleManager lifecycleManager(){
         return lifecycleManager;
     }
@@ -199,16 +180,12 @@ public class SIDriver {
     public TransactionalRegion transactionalPartition(long conglomId,Partition basePartition){
         if(conglomId>=0){
             return new TxnRegion(basePartition,
-                    getRollForward(),
-                    getReadResolver(basePartition),
-                    getTxnSupplier(),
+                    txnStore, // Need to figure out caching...
                     getTransactor(),
                     getOperationFactory());
         }else{
             return new TxnRegion(basePartition,
-                    NoopRollForward.INSTANCE,
-                    NoOpReadResolver.INSTANCE,
-                    getTxnSupplier(),
+                    txnStore,
                     getTransactor(),
                     getOperationFactory());
         }
@@ -231,19 +208,4 @@ public class SIDriver {
         return baseOpFactory;
     }
 
-
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private AsyncReadResolver initializedReadResolver(SConfiguration config,KeyedReadResolver keyedResolver){
-        int maxThreads = config.getReadResolverThreads();
-        int bufferSize = config.getReadResolverQueueSize();
-        if(bufferSize<=0) return null;
-        final AsyncReadResolver asyncReadResolver=new AsyncReadResolver(maxThreads,
-                bufferSize,
-                txnSupplier,
-                new RollForwardStatus(),
-                GreenLight.INSTANCE,keyedResolver);
-        asyncReadResolver.start();
-        return asyncReadResolver;
-    }
 }

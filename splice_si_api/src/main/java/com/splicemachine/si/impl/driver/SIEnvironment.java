@@ -21,15 +21,13 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.*;
-import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
-import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TransactionStore;
+import com.splicemachine.si.api.txn.TxnFactory;
+import com.splicemachine.si.api.txn.TxnLocationFactory;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
 
@@ -46,13 +44,17 @@ public interface SIEnvironment{
 
     TransactionStore txnStore();
 
+    TxnFactory txnFactory();
+
     OperationStatusFactory statusFactory();
 
-    TimestampSource timestampSource();
+    TimestampSource logicalTimestampSource();
 
-    TxnSupplier txnSupplier();
+    TxnLocationFactory txnLocationFactory();
 
-    RollForward rollForward();
+    TimestampSource physicalTimestampSource();
+
+    TxnSupplier globalTxnCache();
 
     TxnOperationFactory operationFactory();
 
@@ -60,13 +62,9 @@ public interface SIEnvironment{
 
     PartitionInfoCache partitionInfoCache();
 
-    KeepAliveScheduler keepAliveScheduler();
-
     DataFilterFactory filterFactory();
 
     Clock systemClock();
-
-    KeyedReadResolver keyedReadResolver();
 
     DistributedFileSystem fileSystem();
 

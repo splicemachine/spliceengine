@@ -18,7 +18,6 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 
 /**
@@ -133,14 +132,12 @@ public abstract class BaseTransaction implements Transaction {
         }
     }
 
-    public abstract TxnView getTxnInformation();
+    public abstract Txn getTxnInformation();
 
-    public abstract void setActiveState(boolean nested,boolean additive,TxnView parentTxn,byte[] table);
+    public abstract void setActiveState(boolean nested, Txn parentTxn);
 
-    public abstract void setActiveState(boolean nested,boolean additive,TxnView parentTxn);
-
-    public TxnView getActiveStateTxn(){
-        setActiveState(false,false,null);
+    public Txn getActiveStateTxn(){
+        setActiveState(false,null);
         return getTxnInformation();
     }
 

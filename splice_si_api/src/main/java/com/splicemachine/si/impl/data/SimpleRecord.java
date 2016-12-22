@@ -18,11 +18,11 @@ public class SimpleRecord implements Record<UnsafeRow> {
 
     
     @Override
-    public long getTransactionId1() {
+    public long getTxnId1() {
         return transactionId1;
     }
     @Override
-    public long getTransactionId2() {
+    public long getTxnId2() {
         return transactionId2;
     }
 
@@ -54,11 +54,11 @@ public class SimpleRecord implements Record<UnsafeRow> {
 
 
     @Override
-    public void setTransactionId1(long transactionId1) {
+    public void setTxnId1(long transactionId1) {
         this.transactionId1 = transactionId1;
     }
     @Override
-    public void setTransactionId2(long transactionId2) {
+    public void setTxnId2(long transactionId2) {
         this.transactionId2 = transactionId2;
     }
 

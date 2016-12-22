@@ -62,7 +62,7 @@ public class TransactionImpl extends BaseTransaction {
             SpliceLogUtils.debug(LOG,"Before setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
         setActiveState(false,false,null); //make sure that we are active
         Txn currentTxn=getTxn();
-        Txn child=lifecycleManager.beginChildTransaction(currentTxn,null);
+        Txn child=lifecycleManager.beginChildTransaction(currentTxn);
         txnStack.push(Pair.newPair(name,child));
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"After setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
@@ -118,7 +118,7 @@ public class TransactionImpl extends BaseTransaction {
     }
 
     private void doCommit(Pair<String, Txn> savePoint) throws IOException{
-        savePoint.getSecond().commit();
+        lifecycleManager.commit(savePoint.getSecond());
     }
 
     @Override
@@ -152,7 +152,7 @@ public class TransactionImpl extends BaseTransaction {
         Pair<String, Txn> savePoint;
         do{
             savePoint=txnStack.pop();
-            savePoint.getSecond().rollback(); //rollback the child transaction
+            lifecycleManager.rollback(savePoint.getSecond());//rollback the child transaction
         }while(!savePoint.getFirst().equals(name));
 
         /*
@@ -202,7 +202,7 @@ public class TransactionImpl extends BaseTransaction {
         if(state!=ACTIVE)
             return;
         while(txnStack.size()>0){
-            txnStack.pop().getSecond().rollback();
+            lifecycleManager.rollback(txnStack.pop().getSecond());
         }
         state=IDLE;
         if(LOG.isDebugEnabled())
@@ -226,18 +226,14 @@ public class TransactionImpl extends BaseTransaction {
             return null;
     }
 
-    public final void setActiveState(boolean nested,boolean additive,TxnView parentTxn){
-        setActiveState(nested,additive,parentTxn,null);
-    }
-
-    public final void setActiveState(boolean nested,boolean additive,TxnView parentTxn,byte[] table){
+    public final void setActiveState(boolean nested,Txn parentTxn){
         if(state==IDLE){
             try{
                 synchronized(this){
                     SpliceLogUtils.trace(LOG,"setActiveState: parent "+parentTxn);
                     Txn txn;
                     if(nested)
-                        txn=lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),additive,table);
+                        txn=lifecycleManager.beginChildTransaction(parentTxn);
                     else
                         txn=lifecycleManager.beginTransaction();
 
@@ -264,7 +260,7 @@ public class TransactionImpl extends BaseTransaction {
         this.txnStack.peek().setSecond(txn);
     }
 
-    public Txn elevate(byte[] writeTable) throws IOException{
+    public Txn elevate() throws IOException{
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"Before elevate: state=%s, savePointStack=\n%s",getTransactionStatusAsString(),getSavePointStackString());
         /*
@@ -276,7 +272,7 @@ public class TransactionImpl extends BaseTransaction {
         Txn lastTxn=null;
         while(parents.hasNext()){
             Pair<String, Txn> next=parents.next();
-            Txn n=doElevate(writeTable,next.getSecond(),lastTxn);
+            Txn n=doElevate(next.getSecond(),lastTxn);
             next.setSecond(n);
             lastTxn=n;
         }
@@ -291,7 +287,7 @@ public class TransactionImpl extends BaseTransaction {
     }
 
     @Override
-    public TxnView getTxnInformation(){
+    public Txn getTxnInformation(){
         return getTxn();
     }
 
@@ -329,18 +325,14 @@ public class TransactionImpl extends BaseTransaction {
 
     public boolean allowsWrites(){
         Txn txn=getTxn();
-        return txn!=null && txn.allowsWrites();
+        return txn!=null && txn.isPersisted();
     }
 
     /*****************************************************************************************************************/
     /*private helper methods*/
-    private Txn doElevate(byte[] writeTable,Txn currentTxn,TxnView elevatedParent) throws IOException{
-        if(!currentTxn.allowsWrites()){
-            if(elevatedParent!=null){
-                assert currentTxn instanceof ReadOnlyTxn:"Programmer error: current transaction is not a ReadOnlyTxn";
-                ((ReadOnlyTxn)currentTxn).parentWritable(elevatedParent);
-            }
-            currentTxn=currentTxn.elevateToWritable(writeTable);
+    private Txn doElevate(Txn currentTxn,Txn elevatedParent) throws IOException{
+        if(!currentTxn.isPersisted()){
+            currentTxn=lifecycleManager.elevateTransaction(currentTxn);
         }
         return currentTxn;
     }

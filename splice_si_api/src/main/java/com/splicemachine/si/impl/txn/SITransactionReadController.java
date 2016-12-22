@@ -37,10 +37,8 @@ import java.io.IOException;
  *         Date: 2/13/14
  */
 public class SITransactionReadController implements TransactionReadController{
-    private final TxnSupplier txnSupplier;
 
-    public SITransactionReadController(TxnSupplier txnSupplier){
-        this.txnSupplier = txnSupplier;
+    public SITransactionReadController(){
     }
 
     @Override
