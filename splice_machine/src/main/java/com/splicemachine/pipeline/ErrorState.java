@@ -201,7 +201,7 @@ public enum ErrorState{
     STORE_XA_XAER_DUPID_SQLSTATE("XSAX1"),
 
     /*
-    ** Store - Conglomerate
+    ** Store - Record
     */
     CONGLOMERATE_TEMPLATE_CREATE_ERROR("XSCG0.S"),
 

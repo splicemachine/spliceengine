@@ -518,7 +518,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
   * Accessor to get the id of the temporary conglomerate. Temporary 
   * conglomerates have negative ids. An id equal to zero means that no 
   * temporary conglomerate has been created.
-  * @return Conglomerate ID of temporary conglomerate
+  * @return Record ID of temporary conglomerate
   */
 	public long getTemporaryConglomId()
 	{

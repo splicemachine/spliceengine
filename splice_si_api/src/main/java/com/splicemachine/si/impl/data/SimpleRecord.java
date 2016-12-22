@@ -1,12 +1,12 @@
 package com.splicemachine.si.impl.data;
 
-import com.splicemachine.si.api.data.ActiveConglomerate;
+import com.splicemachine.si.api.data.Record;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 
 /**
  * Created by jleach on 12/20/16.
  */
-public class SimpleActiveConglomerate implements ActiveConglomerate {
+public class SimpleRecord implements Record {
     private long transactionId1;
     private long transactionId2;
     private long version;

@@ -39,9 +39,9 @@ import java.io.IOException;
 public class TransactionViewImpl extends BaseTransaction {
     private static Logger LOG = Logger.getLogger(TransactionViewImpl.class);
 
-    private TxnView txn;
+    private Transaction txn;
 
-    public TransactionViewImpl(String transName, TxnView txn) {
+    public TransactionViewImpl(String transName, Transaction txn) {
         SpliceLogUtils.trace(LOG, "Instantiating Splice transaction");
         this.transName = transName;
         this.state = BaseTransaction.ACTIVE;
@@ -65,7 +65,7 @@ public class TransactionViewImpl extends BaseTransaction {
     }
 
     @Override protected void clearState() { txn = null; }
-    @Override public TxnView getTxnInformation() { return txn; }
+    @Override public Transaction getTxnInformation() { return txn; }
 
     @Override
     public String getActiveStateTxIdString() {

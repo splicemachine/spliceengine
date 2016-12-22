@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl.functions;
 
-import com.splicemachine.si.api.data.ActiveConglomerate;
+import com.splicemachine.si.api.data.Record;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import org.spark_project.guava.base.Function;
@@ -11,7 +11,7 @@ import javax.annotation.Nullable;
  * Utilize Global Cache to resolve transaction and place transactions seen into global cache
  * Modify record inline
  */
-public class ResolveTransaction implements Function<ActiveConglomerate[],ActiveConglomerate[]> {
+public class ResolveTransaction implements Function<Record[],Record[]> {
     private TxnSupplier globableCache;
     private TxnSupplier scanCache;
 
@@ -25,9 +25,9 @@ public class ResolveTransaction implements Function<ActiveConglomerate[],ActiveC
 
     @Nullable
     @Override
-    public ActiveConglomerate[] apply(ActiveConglomerate[] array) {
+    public Record[] apply(Record[] array) {
         try {
-            for (ActiveConglomerate activeConglomerate : array) {
+            for (Record activeConglomerate : array) {
                 if (activeConglomerate == null || activeConglomerate.getEffectiveTimestamp() != 0) // Empty Array Element or Txn Resolved
                     break;
                 if (activeConglomerate.getTransactionID2() < 0) { // Collapsable Txn

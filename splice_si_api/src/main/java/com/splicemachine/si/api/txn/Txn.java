@@ -11,7 +11,15 @@ public interface Txn {
      *
      * @return
      */
-    long getTransactionId();
+    long getTxnId();
+
+    /**
+     *
+     * Unique Txn Identifier
+     *
+     * @return
+     */
+    void setTxnId(long txnId);
 
     /**
      *
@@ -19,8 +27,15 @@ public interface Txn {
      *
      * @return
      */
-    long getParentTransactionId();
+    long getParentTxnId();
 
+    /**
+     *
+     * Unique ID for transaction Parent, or -1L if no parent
+     *
+     * @return
+     */
+    void setParentTxnId(long parentTxnId);
     /**
      *
      * The timestamp at which this transaction was committted,
@@ -35,21 +50,44 @@ public interface Txn {
 
     /**
      *
+     * The timestamp at which this transaction was committted,
+     *
+     * -1 if rolledback,
+     *  0 if in state of committing
+     *  -2 if active
+     *
+     * @return
+     */
+    void setCommitTimestamp(long commitTimestamp);
+
+    /**
+     *
      * The node from where the transaction initiated.  For top level
      * transactions, this will be the node where the JDBC client connected.  For
      * analytical operations, it will be the spark executors node id.
      *
      */
     int getNodeId();
-
+    /**
+     *
+     * The node from where the transaction initiated.  For top level
+     * transactions, this will be the node where the JDBC client connected.  For
+     * analytical operations, it will be the spark executors node id.
+     *
+     */
+    void setNodeId(int nodeId);
     /**
      *
      * The region from which the transaction was initiated.
      *
      */
-
     int getRegionId();
-
+    /**
+     *
+     * The region from which the transaction was initiated.
+     *
+     */
+    void setRegionId(int regionId);
     /**
      *
      * The number of milliseconds it took for this specific transactional piece to
@@ -57,6 +95,13 @@ public interface Txn {
      *
      */
     long getDuration();
+    /**
+     *
+     * The number of milliseconds it took for this specific transactional piece to
+     * go from begin to commit/rolledback.
+     *
+     */
+    void setDuration(long duration);
 
     /**
      *
@@ -65,14 +110,25 @@ public interface Txn {
      */
 
     long[] getRolledBackChildIds();
+    /**
+     *
+     * The child ids rolled back via the in-memory mechanism.
+     *
+     */
 
+    void setRolledBackChildIds(long[] rolledBackChildIds);
     /**
      *
      *
      *
      */
     ChildStatementDuration getChildStatementDuration();
-
+    /**
+     *
+     *
+     *
+     */
+    void setChildStatementDuration(ChildStatementDuration childStatementDuration);
     /**
      *
      *
@@ -84,18 +140,46 @@ public interface Txn {
      *
      *
      */
+    void setHLCTimestamp(long hlcTimestamp);
+    /**
+     *
+     *
+     *
+     */
     String getUserId();
     /**
      *
      *
      *
-      */
+     */
+    void setUserId(String userId);
+    /**
+     *
+     *
+     *
+     */
     String getStatementId();
     /**
      *
      *
      *
      */
+    void setStatementId(String statementId);
+    /**
+     *
+     *
+     *
+     */
     TransactionStatus getTransactionStatus();
+    /**
+     *
+     *
+     */
+    boolean isPersisted();
+    /**
+     *
+     *
+     */
+    void persist();
 
 }

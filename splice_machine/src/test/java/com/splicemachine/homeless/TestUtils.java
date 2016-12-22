@@ -158,7 +158,7 @@ public class TestUtils {
 
     public static List<Map> tableLookupByNumber(SpliceWatcher spliceWatcher) throws Exception{
         List<Map> results = tableLookupByNumberNoPrint(spliceWatcher);
-        System.out.println("Table ID\t\tConglomerate Number\t\tTable Name");
+        System.out.println("Table ID\t\tRecord Number\t\tTable Name");
         for( Map m : results){
             System.out.println(String.format("%s\t\t%s\t\t%s", m.get("TABLEID"), m.get("CONGLOMERATENUMBER"), m.get("TABLENAME")));
         }

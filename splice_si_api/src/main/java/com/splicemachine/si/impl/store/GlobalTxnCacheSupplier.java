@@ -27,6 +27,6 @@ public class GlobalTxnCacheSupplier implements TxnSupplier {
 
     @Override
     public void cache(Txn toCache) {
-        cache.put(toCache.getTransactionId(),toCache);
+        cache.put(toCache.getTxnId(),toCache);
     }
 }

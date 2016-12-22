@@ -85,6 +85,6 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
     }
 
     public Table getRawTable(TableName tableName) throws IOException{
-        return connection.getTable(tableName);
+        return connection.getTable(tableName).batch();
     }
 }

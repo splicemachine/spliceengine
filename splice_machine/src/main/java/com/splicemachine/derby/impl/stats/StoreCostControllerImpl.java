@@ -250,7 +250,7 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @Override
     public double conglomerateColumnSizeFactor(BitSet validColumns) {
-        assert conglomerateColumns > 0: "Conglomerate Columns cannot be 0";
+        assert conglomerateColumns > 0: "Record Columns cannot be 0";
         return ( (double) validColumns.cardinality())/ ((double) conglomerateColumns);
     }
 

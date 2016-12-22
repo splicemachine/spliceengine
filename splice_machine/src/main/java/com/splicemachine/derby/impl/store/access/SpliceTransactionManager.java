@@ -364,10 +364,10 @@ public class SpliceTransactionManager implements XATransactionController,
 
         conglom.addColumn(this, column_id, template_column, collation_id);
 
-        // remove the old entry in the Conglomerate directory, and add the
+        // remove the old entry in the Record directory, and add the
         // new one.
         if (is_temporary) {
-            // remove old entry in the Conglomerate directory, and add new one
+            // remove old entry in the Record directory, and add new one
             if (tempCongloms != null){
                 tempCongloms.remove(conglomId);
                 tempCongloms.put(conglomId, conglom);
@@ -823,7 +823,7 @@ public class SpliceTransactionManager implements XATransactionController,
             SanityManager.ASSERT(dynamic_info != null);
         }
 
-        // in the current implementation, only Conglomerate's are passed around
+        // in the current implementation, only Record's are passed around
         // as StaticCompiledOpenConglomInfo.
 
         //noinspection ConstantConditions
@@ -954,7 +954,7 @@ public class SpliceTransactionManager implements XATransactionController,
             throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("openCompiledScan static_info " + static_info);
-        // in the current implementation, only Conglomerate's are passed around
+        // in the current implementation, only Record's are passed around
         // as StaticCompiledOpenConglomInfo.
 
         if (SanityManager.DEBUG) {
@@ -1805,10 +1805,10 @@ public class SpliceTransactionManager implements XATransactionController,
                         null);
         conglom.dropColumn(this,column_id);
 
-        // remove the old entry in the Conglomerate directory, and add the
+        // remove the old entry in the Record directory, and add the
         // new one.
         if (is_temporary) {
-            // remove old entry in the Conglomerate directory, and add new one
+            // remove old entry in the Record directory, and add new one
             if (tempCongloms != null){
                 tempCongloms.remove(conglomId);
                 tempCongloms.put(conglomId, conglom);

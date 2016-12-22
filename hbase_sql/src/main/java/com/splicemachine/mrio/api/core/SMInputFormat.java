@@ -63,8 +63,8 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
             SpliceLogUtils.trace(LOG, "setConf tableName=%s, conglomerate=%s, tableScannerAsString=%s"
                     + "jdbcString=%s, rootDir=%s",tableName,conglomerate,tableScannerAsString,jdbcString, rootDir);
         if (conglomerate ==null && !spark) {
-            LOG.error("Conglomerate not provided when spark is activated");
-            throw new RuntimeException("Conglomerate not provided when spark is activated");
+            LOG.error("Record not provided when spark is activated");
+            throw new RuntimeException("Record not provided when spark is activated");
         }
         if (tableName == null && conglomerate == null) {
             LOG.error("Table Name Supplied is null");

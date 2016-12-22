@@ -1276,7 +1276,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             CreateIndexConstantOperation ca = (CreateIndexConstantOperation) newConglomAction;
 
             if (dd.getConglomerateDescriptor(ca.getCreatedUUID()) == null) {
-                /* Conglomerate descriptor was dropped after
+                /* Record descriptor was dropped after
                  * being selected as the source for a new
                  * conglomerate, so don't create the new
                  * conglomerate after all.  Either we found

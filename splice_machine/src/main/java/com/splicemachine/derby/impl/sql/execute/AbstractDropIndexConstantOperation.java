@@ -55,7 +55,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
      * Make the ConstantAction for a DROP INDEX statement.
      *
      * @param tableId             UUID for table
-     * @param tableConglomerateId heap Conglomerate Id for table
+     * @param tableConglomerateId heap Record Id for table
      * @param    fullIndexName        Fully qualified index name
      * @param    indexName            Index name.
      * @param    tableName            The table name

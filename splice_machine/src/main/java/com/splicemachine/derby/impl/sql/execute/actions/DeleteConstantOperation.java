@@ -56,10 +56,10 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation {
 	/**
 	 *	Make the ConstantAction for an DELETE statement.
 	 *
-	 *  @param conglomId	Conglomerate ID.
+	 *  @param conglomId	Record ID.
 	 *	@param heapSCOCI	StaticCompiledOpenConglomInfo for heap.
 	 *  @param irgs			Index descriptors
-	 *  @param indexCIDS	Conglomerate IDs of indices
+	 *  @param indexCIDS	Record IDs of indices
 	 *	@param indexSCOCIs	StaticCompiledOpenConglomInfos for indexes.
 	 *  @param emptyHeapRow	Template for heap row.
 	 *  @param deferred		True means process as a deferred insert.

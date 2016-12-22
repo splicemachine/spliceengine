@@ -171,8 +171,8 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     /**
      * Update a conglomerate directory entry.
      * <p>
-     * Update the Conglom column of the Conglomerate Directory.  The
-     * Conglomerate with id "conglomid" is replaced by "new_conglom".
+     * Update the Conglom column of the Record Directory.  The
+     * Record with id "conglomid" is replaced by "new_conglom".
      * <p>
      *
      * @param conglomid   The conglomid of conglomerate to replace.

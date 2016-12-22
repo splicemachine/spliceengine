@@ -44,7 +44,7 @@ public class DropPinConstantOperation extends DDLSingleTableConstantOperation {
      * @param fullTableName      Fully qualified table name
      * @param tableName          Table name.
      * @param sd                 Schema that table lives in.
-     * @param conglomerateNumber Conglomerate number for heap
+     * @param conglomerateNumber Record number for heap
      * @param tableId            UUID for table
      * @param behavior           drop behavior: RESTRICT, CASCADE or default
      */

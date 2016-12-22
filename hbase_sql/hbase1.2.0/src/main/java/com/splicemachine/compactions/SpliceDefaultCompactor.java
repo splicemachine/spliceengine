@@ -195,7 +195,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             sb.append(String.format("Table=%s", tableDisplayName));
             sb.append(delim);
         }
-        sb.append(String.format("Conglomerate=%s", conglomId));
+        sb.append(String.format("Record=%s", conglomId));
         return sb.toString();
     }
 

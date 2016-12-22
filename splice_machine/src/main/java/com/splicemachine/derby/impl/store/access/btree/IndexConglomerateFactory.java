@@ -77,9 +77,9 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 	}
 
     /**
-     * Return Conglomerate object for conglomerate with container_key.
+     * Return Record object for conglomerate with container_key.
      * <p>
-     * Return the Conglomerate Object.  This is implementation specific.
+     * Return the Record Object.  This is implementation specific.
      * Examples of what will be done is using the key to find the file where
      * the conglomerate is located, and then executing implementation specific
      * code to instantiate an object from reading a "special" row from a

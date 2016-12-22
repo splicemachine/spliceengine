@@ -35,7 +35,7 @@ public class LockTableConstantOperation implements ConstantAction {
 	 * Make the ConstantAction for a LOCK TABLE statement.
 	 *
 	 *  @param fullTableName		Full name of the table.
-	 *  @param conglomerateNumber	Conglomerate number for the heap
+	 *  @param conglomerateNumber	Record number for the heap
 	 *  @param exclusiveMode		Whether or not to get an exclusive lock.
 	 */
 	public LockTableConstantOperation(String fullTableName, long conglomerateNumber, boolean exclusiveMode) {

@@ -7,7 +7,7 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
  *
  *
  */
-public interface ActiveConglomerate {
+public interface Record<T> {
     /**
      *
      * Txn ID 1
@@ -115,7 +115,7 @@ public interface ActiveConglomerate {
      *
      * @return
      */
-    UnsafeRow getData();
+    T getData();
 
     /**
      *
@@ -123,7 +123,7 @@ public interface ActiveConglomerate {
      *
      * @return
      */
-    void setData(UnsafeRow data);
+    void setData(T data);
 
 
 

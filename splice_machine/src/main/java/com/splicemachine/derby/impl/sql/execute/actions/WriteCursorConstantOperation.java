@@ -93,10 +93,10 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	/**
 	 *	Make the ConstantAction for a DELETE, INSERT, or UPDATE statement.
 	 *
-	 *  @param conglomId	Conglomerate ID of heap.
+	 *  @param conglomId	Record ID of heap.
 	 *	@param heapSCOCI	StaticCompiledOpenConglomInfo for heap.
 	 *  @param irgs			Index descriptors
-	 *  @param indexCIDS	Conglomerate IDs of indices
+	 *  @param indexCIDS	Record IDs of indices
 	 *	@param indexSCOCIs	StaticCompiledOpenConglomInfos for indexes.
 	 *  @param indexNames   Names of indices on this table for error reporting.
 	 *  @param deferred		True means process as a deferred update

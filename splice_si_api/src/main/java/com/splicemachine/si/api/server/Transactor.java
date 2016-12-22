@@ -16,12 +16,10 @@
 package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
-
 import java.io.IOException;
 import java.util.Collection;
 
@@ -31,12 +29,11 @@ import java.util.Collection;
  */
 public interface Transactor{
 
-    boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException;
+    boolean processPut(Partition table,DataPut put) throws IOException;
 
-    MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations) throws IOException;
+    MutationStatus[] processPutBatch(Partition table,DataPut[] mutations) throws IOException;
 
     MutationStatus[] processKvBatch(Partition table,
-                                    RollForward rollForward,
                                     byte[] defaultFamilyBytes,
                                     byte[] packedColumnBytes,
                                     Collection<KVPair> toProcess,
@@ -44,7 +41,6 @@ public interface Transactor{
                                     ConstraintChecker constraintChecker) throws IOException;
 
     MutationStatus[] processKvBatch(Partition table,
-                                    RollForward rollForward,
                                     byte[] defaultFamilyBytes,
                                     byte[] packedColumnBytes,
                                     Collection<KVPair> toProcess,

@@ -161,7 +161,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private Properties		properties;
     private ExecRow indexTemplateRow;
 
-    /** Conglomerate number for the conglomerate created by this
+    /** Record number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
      * executed.  If this constant action doesn't actually create
      * a new conglomerate--which can happen if it finds an existing
@@ -171,7 +171,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
      */
     private long conglomId;
 
-    /** Conglomerate number of the physical conglomerate that we
+    /** Record number of the physical conglomerate that we
      * will "replace" using this constant action.  That is, if
      * the purpose of this constant action is to create a new physical
      * conglomerate to replace a dropped physical conglomerate, then

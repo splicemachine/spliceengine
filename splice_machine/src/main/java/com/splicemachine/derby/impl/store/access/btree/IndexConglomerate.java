@@ -164,14 +164,14 @@ public class IndexConglomerate extends SpliceConglomerate{
     }
 
 	/*
-    ** Methods of Conglomerate
+    ** Methods of Record
 	*/
 
     /**
      * Add a column to the hbase conglomerate.
      * <p/>
      * This routine update's the in-memory object version of the HBase
-     * Conglomerate to have one more column of the type described by the
+     * Record to have one more column of the type described by the
      * input template column.
      *
      * @param column_id       The column number to add this column at.
@@ -193,7 +193,7 @@ public class IndexConglomerate extends SpliceConglomerate{
      * Drops a column from the hbase conglomerate.
      * <p>
      * This routine update's the in-memory object version of the HBase
-     * Conglomerate to have one less column
+     * Record to have one less column
      *
      * @param column_id        The column number to add this column at.
      *
@@ -361,9 +361,9 @@ public class IndexConglomerate extends SpliceConglomerate{
      */
 
     /**
-     * return the "Conglomerate".
+     * return the "Record".
      * <p/>
-     * For hbase just return "this", which both implements Conglomerate and
+     * For hbase just return "this", which both implements Record and
      * StaticCompiledOpenConglomInfo.
      * <p/>
      *
@@ -376,7 +376,7 @@ public class IndexConglomerate extends SpliceConglomerate{
 
 
     /**************************************************************************
-     * Methods of Storable (via Conglomerate)
+     * Methods of Storable (via Record)
      * Storable interface, implies Externalizable, TypedFormat
      * *************************************************************************
      */

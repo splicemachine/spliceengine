@@ -16,7 +16,6 @@
 package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.storage.MutationStatus;
@@ -55,8 +54,6 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
     String getRegionName();
 
     TxnSupplier getTxnSupplier();
-
-    ReadResolver getReadResolver();
 
     void close();
 

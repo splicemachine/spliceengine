@@ -72,7 +72,7 @@ public abstract class SpliceConglomerateFactory implements ConglomerateFactory, 
 		return formatUUID;
 	}
 	public boolean canSupport(Properties startParams) {
-		String impl = startParams.getProperty("derby.access.Conglomerate.type");
+		String impl = startParams.getProperty("derby.access.Record.type");
 		if (impl == null)
 			return false;
 		return supportsImplementation(impl);

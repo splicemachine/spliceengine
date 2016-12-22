@@ -63,7 +63,7 @@ public class ConglomerateUtils{
     private static Logger LOG=Logger.getLogger(ConglomerateUtils.class);
 
     /**
-     * Reads stored Conglomerate information and returns it as an instance of {@code instanceClass}.
+     * Reads stored Record information and returns it as an instance of {@code instanceClass}.
      *
      * @param conglomId     the id of the conglomerate
      * @param instanceClass the type to return
@@ -127,14 +127,14 @@ public class ConglomerateUtils{
 				 * Therefore, we need to do the following:
 				 *
 				 * 1. set the serialVersionUID on Conglomerates
-				 * 2. NEVER CHANGE THEM or how they serialize/deserialize EVER AGAIN. If we want to change the Conglomerate that
+				 * 2. NEVER CHANGE THEM or how they serialize/deserialize EVER AGAIN. If we want to change the Record that
 				 * badly, we'll need to create a new class to hold the changes.
 				 * 3. avoid the serialVersionUID conflict by somehow hacking around Java's serialization mechanism to be prettier
 				 * about it.
 				 *
 				 * #3 is handled by this method. In essence it will
 				 * 1. skip the first few bytes (the stream header, a few type bytes, then the class string)
-				 * 2. put the same serialVersionUID in the field as the Conglomerate currently has
+				 * 2. put the same serialVersionUID in the field as the Record currently has
 				 * 3. re-attempt the read.
 				 *
 				 * Of course, java.io.* doesn't like us screwing around with their serialization format, so we have to
@@ -262,7 +262,7 @@ public class ConglomerateUtils{
                     partitionCreator = partitionCreator.withPartitionSize(partitionSize);
                 partitionCreator.create();
             } catch (Exception e) {
-                SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
+                SpliceLogUtils.logAndThrow(LOG, "Error Creating Record", Exceptions.parseException(e));
             }
         }
 
@@ -276,7 +276,7 @@ public class ConglomerateUtils{
             table.put(put);
         }
         catch(Exception e){
-            SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));
+            SpliceLogUtils.logAndThrow(LOG,"Error Creating Record",Exceptions.parseException(e));
         }finally{
             if(entryEncoder!=null)
                 entryEncoder.close();
@@ -304,7 +304,7 @@ public class ConglomerateUtils{
             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
             table.put(put);
         }catch(Exception e){
-            SpliceLogUtils.logAndThrow(LOG,"update Conglomerate Failed",Exceptions.parseException(e));
+            SpliceLogUtils.logAndThrow(LOG,"update Record Failed",Exceptions.parseException(e));
         }finally{
             if(entryEncoder!=null)
                 entryEncoder.close();

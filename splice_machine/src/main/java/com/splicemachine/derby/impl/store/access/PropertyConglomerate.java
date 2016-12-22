@@ -154,7 +154,7 @@ public class PropertyConglomerate {
      *
 	 * @return an open ScanController on the PropertyConglomerate. 
      *
-	 * @param tc        The transaction to do the Conglomerate work under.
+	 * @param tc        The transaction to do the Record work under.
      * @param key       The "key" of the property that is being requested.
      * @param open_mode Whether we are setting or getting the property.
      *
@@ -223,7 +223,7 @@ public class PropertyConglomerate {
 	
     public void saveProperty(TransactionController tc, String key, Serializable value) throws StandardException {
 		if (saveServiceProperty(key,value)) return;
-        // Do a scan to see if the property already exists in the Conglomerate.
+        // Do a scan to see if the property already exists in the Record.
 		ScanController scan = this.openScan(tc, key, TransactionController.OPENMODE_FORUPDATE);
 
         DataValueDescriptor[] row = makeNewTemplate();
@@ -240,7 +240,7 @@ public class PropertyConglomerate {
 			scan.close();
 		}
         else {
-            // The value does not exist in the Conglomerate.
+            // The value does not exist in the Record.
             scan.close();
             scan = null;
             if (value != null) {
@@ -368,7 +368,7 @@ public class PropertyConglomerate {
 	 * stored in the database by class name, which will cause problems in
 	 * obfuscated/non-obfuscated systems.
      *
-	 * @param	tc		The transaction to do the Conglomerate work under.
+	 * @param	tc		The transaction to do the Record work under.
 	 * @param	key		The key used to lookup this property.
 	 * @param	value	The value to be associated with this key. If null,
      *                  delete the property from the properties list.
@@ -463,7 +463,7 @@ public class PropertyConglomerate {
      * In this implementation a lookup is done on the PropertyConglomerate
      * conglomerate, using a scan with "key" as the qualifier.
      * <p>
-	 * @param tc      The transaction to do the Conglomerate work under.
+	 * @param tc      The transaction to do the Record work under.
      * @param key     The "key" of the property that is being requested.
      *
 	 * @return object The object associated with property key. n

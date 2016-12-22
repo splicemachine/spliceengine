@@ -22,18 +22,14 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
-import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ConflictResults;
-import com.splicemachine.si.impl.SimpleTxnFilter;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
@@ -79,16 +75,16 @@ public class SITransactor implements Transactor{
     // Process update operations
 
     @Override
-    public boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException{
+    public boolean processPut(Partition table,DataPut put) throws IOException{
         if(!isFlaggedForSITreatment(put)) return false;
         final DataPut[] mutations=new DataPut[]{put};
         mutations[0]=put;
-        MutationStatus[] operationStatuses=processPutBatch(table,rollForwardQueue,mutations);
+        MutationStatus[] operationStatuses=processPutBatch(table,mutations);
         return operationStatusLib.processPutStatus(operationStatuses[0]);
     }
 
     @Override
-    public MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations) throws IOException{
+    public MutationStatus[] processPutBatch(Partition table,DataPut[] mutations) throws IOException{
         if(mutations.length==0){
             //short-circuit special case of empty batch
             //noinspection unchecked
@@ -135,26 +131,24 @@ public class SITransactor implements Transactor{
 
     @Override
     public MutationStatus[] processKvBatch(Partition table,
-                                            RollForward rollForward,
                                             byte[] defaultFamilyBytes,
                                             byte[] packedColumnBytes,
                                             Collection<KVPair> toProcess,
                                             long txnId,
                                             ConstraintChecker constraintChecker) throws IOException{
-        TxnView txn=txnSupplier.getTransaction(txnId);
-        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker);
+        Txn txn=txnSupplier.getTransaction(txnId);
+        return processKvBatch(table,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker);
     }
 
     @Override
     public MutationStatus[] processKvBatch(Partition table,
-                                           RollForward rollForward,
                                            byte[] defaultFamilyBytes,
                                            byte[] packedColumnBytes,
                                            Collection<KVPair> toProcess,
-                                           TxnView txn,
+                                           Txn txn,
                                            ConstraintChecker constraintChecker) throws IOException{
         ensureTransactionAllowsWrites(txn);
-        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
+        return processInternal(table,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
     }
 
     private MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
@@ -162,8 +156,7 @@ public class SITransactor implements Transactor{
     }
 
     private MutationStatus[] processInternal(Partition table,
-                                             RollForward rollForwardQueue,
-                                             TxnView txn,
+                                             Txn txn,
                                              byte[] family,byte[] qualifier,
                                              Collection<KVPair> mutations,
                                              ConstraintChecker constraintChecker) throws IOException{
@@ -172,7 +165,7 @@ public class SITransactor implements Transactor{
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
         TxnFilter constraintState=null;
         if(constraintChecker!=null)
-            constraintState=new SimpleTxnFilter(null,txn,NoOpReadResolver.INSTANCE,txnSupplier);
+            constraintState=new SimpleTxnFilter(null,txn,txnSupplier);
         @SuppressWarnings("unchecked") final LongOpenHashSet[] conflictingChildren=new LongOpenHashSet[mutations.size()];
         try{
             lockRows(table,mutations,lockPairs,finalStatus);
@@ -182,7 +175,7 @@ public class SITransactor implements Transactor{
              * 1 of 2 paths (bulk write pipeline and SIObserver). Since both of those will externally ensure that
              * the region can't close until after this method is complete, we don't need the calls.
              */
-            IntObjectOpenHashMap<DataPut> writes=checkConflictsForKvBatch(table,rollForwardQueue,lockPairs,
+            IntObjectOpenHashMap<DataPut> writes=checkConflictsForKvBatch(table,lockPairs,
                     conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus);
 
             //TODO -sf- this can probably be made more efficient
@@ -224,10 +217,9 @@ public class SITransactor implements Transactor{
     }
 
     private IntObjectOpenHashMap<DataPut> checkConflictsForKvBatch(Partition table,
-                                                                   RollForward rollForwardQueue,
                                                                    Pair<KVPair, Lock>[] dataAndLocks,
                                                                    LongOpenHashSet[] conflictingChildren,
-                                                                   TxnView transaction,
+                                                                   Txn transaction,
                                                                    byte[] family,byte[] qualifier,
                                                                    ConstraintChecker constraintChecker,
                                                                    TxnFilter constraintStateFilter,
@@ -368,7 +360,7 @@ public class SITransactor implements Transactor{
 
     private DataPut getMutationToRun(Partition table,RollForward rollForwardQueue,KVPair kvPair,
                                      byte[] family,byte[] column,
-                                     TxnView transaction,ConflictResults conflictResults) throws IOException{
+                                     Txn transaction,ConflictResults conflictResults) throws IOException{
         long txnIdLong=transaction.getTxnId();
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("table = %s, kvPair = %s, txnId = %s", table.toString(), kvPair.toString(), txnIdLong));
         DataPut newPut;

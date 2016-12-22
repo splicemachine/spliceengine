@@ -41,8 +41,6 @@ import java.util.Iterator;
  *         Date: 7/1/14
  */
 public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalScanner>{
-    private final RollForward rollForward;
-    private final ReadResolver readResolver;
     private final TxnSupplier txnSupplier;
     private final Transactor transactor;
     private final TxnOperationFactory opFactory;
@@ -51,13 +49,9 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
 
 
     public TxnRegion(Partition region,
-                     RollForward rollForward,
-                     ReadResolver readResolver,
                      TxnSupplier txnSupplier,
                      Transactor transactor,TxnOperationFactory opFactory){
         this.region=region;
-        this.rollForward=rollForward;
-        this.readResolver=readResolver;
         this.txnSupplier=txnSupplier;
         this.transactor=transactor;
         this.opFactory=opFactory;
@@ -112,7 +106,7 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     }
 
     @Override
-    public Iterable<MutationStatus> bulkWrite(TxnView txn,
+    public Iterable<MutationStatus> bulkWrite(Txn txn,
                                        byte[] family,byte[] qualifier,
                                        ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
                                        Collection<KVPair> data) throws IOException{
@@ -133,11 +127,6 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     @Override
     public TxnSupplier getTxnSupplier(){
         return txnSupplier;
-    }
-
-    @Override
-    public ReadResolver getReadResolver(){
-        return readResolver;
     }
 
     @Override
