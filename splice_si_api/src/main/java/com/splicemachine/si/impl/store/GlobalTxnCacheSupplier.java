@@ -29,4 +29,18 @@ public class GlobalTxnCacheSupplier implements TxnSupplier {
     public void cache(Txn toCache) {
         cache.put(toCache.getTxnId(),toCache);
     }
+
+    @Override
+    public Txn[] getTransactions(long[] txnIds) throws IOException {
+        Txn[] txns = new Txn[txnIds.length];
+        for (int i =0;i<txnIds.length ;i++)
+            txns[i] = getTransaction(txnIds[i]);
+        return txns;
+    }
+
+    @Override
+    public void cache(Txn[] toCache) {
+        for (int i = 0; i< toCache.length; i++)
+            cache(toCache[i]);
+    }
 }

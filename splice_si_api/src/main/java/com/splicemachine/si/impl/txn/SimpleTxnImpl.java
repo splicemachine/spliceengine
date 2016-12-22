@@ -165,4 +165,29 @@ public class SimpleTxnImpl implements Txn {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
     }
+
+    @Override
+    public boolean isRolledback() {
+        return commitTimestamp == ROLLEDBACK;
+    }
+
+    @Override
+    public boolean isCommitted() {
+        return commitTimestamp >0;
+    }
+
+    @Override
+    public boolean isCommitting() {
+        return commitTimestamp == COMMITTING;
+    }
+
+    @Override
+    public boolean isActive() {
+        return commitTimestamp == ACTIVE;
+    }
+
+    @Override
+    public boolean isAbleToCommit() {
+        return isActive() || isCommitting();
+    }
 }
