@@ -67,7 +67,10 @@ class SITransactorUtil{
          */
         Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap= Maps.newHashMap();
         for(DataPut mutation : mutations){
-            long txnId=txnOperationFactory.fromWrites(mutation).getTxnId();
+            long txnId = 3;
+            //long txnId=txnOperationFactory.fromWrites(mutation).getTxnId();
+            // TODO JL - MUST FIX
+
             boolean isDelete=getDeletePutAttribute(mutation);
             byte[] row=mutation.key();
             Iterable<DataCell> dataValues=mutation.cells();

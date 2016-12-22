@@ -60,7 +60,7 @@ public class TransactionImpl extends BaseTransaction {
 
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"Before setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
-        setActiveState(false,false,null); //make sure that we are active
+        setActiveState(false,null); //make sure that we are active
         Txn currentTxn=getTxn();
         Txn child=lifecycleManager.beginChildTransaction(currentTxn);
         txnStack.push(Pair.newPair(name,child));
@@ -211,7 +211,7 @@ public class TransactionImpl extends BaseTransaction {
 
     public String getActiveStateTxIdString(){
         SpliceLogUtils.debug(LOG,"getActiveStateTxIdString");
-        setActiveState(false,false,null);
+        setActiveState(false,null);
         if(txnStack.size()>0)
             return txnStack.peek().getSecond().toString();
         else
@@ -219,7 +219,7 @@ public class TransactionImpl extends BaseTransaction {
     }
 
     public Txn getActiveStateTxn(){
-        setActiveState(false,false,null);
+        setActiveState(false,null);
         if(txnStack.size()>0)
             return txnStack.peek().getSecond();
         else
@@ -267,7 +267,7 @@ public class TransactionImpl extends BaseTransaction {
          * We want to elevate the transaction. HOWEVER, we need to ensure that the entire
          * stack has been elevated first.
          */
-        setActiveState(false,false,null);
+        setActiveState(false,null);
         Iterator<Pair<String, Txn>> parents=txnStack.descendingIterator();
         Txn lastTxn=null;
         while(parents.hasNext()){

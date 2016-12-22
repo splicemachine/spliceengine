@@ -17,11 +17,9 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 
 /**
@@ -39,9 +37,9 @@ import java.io.IOException;
 public class TransactionViewImpl extends BaseTransaction {
     private static Logger LOG = Logger.getLogger(TransactionViewImpl.class);
 
-    private Transaction txn;
+    private Txn txn;
 
-    public TransactionViewImpl(String transName, Transaction txn) {
+    public TransactionViewImpl(String transName, Txn txn) {
         SpliceLogUtils.trace(LOG, "Instantiating Splice transaction");
         this.transName = transName;
         this.state = BaseTransaction.ACTIVE;
@@ -50,7 +48,7 @@ public class TransactionViewImpl extends BaseTransaction {
 
     @Override
     public boolean allowsWrites(){
-        return txn.allowsWrites();
+        return txn.isPersisted();
     }
 
     @Override
@@ -65,7 +63,7 @@ public class TransactionViewImpl extends BaseTransaction {
     }
 
     @Override protected void clearState() { txn = null; }
-    @Override public Transaction getTxnInformation() { return txn; }
+    @Override public Txn getTxnInformation() { return txn; }
 
     @Override
     public String getActiveStateTxIdString() {
@@ -76,13 +74,7 @@ public class TransactionViewImpl extends BaseTransaction {
     }
 
     @Override
-    public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn,byte[] tableName) {
-        assert state==ACTIVE: "Cannot have an inactive SpliceTransactionView";
-        //otherwise, it's a no-op
-    }
-
-    @Override
-    public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn) {
+    public void setActiveState(boolean nested, Txn parentTxn) {
         assert state==ACTIVE: "Cannot have an inactive SpliceTransactionView";
         //otherwise, it's a no-op
     }
