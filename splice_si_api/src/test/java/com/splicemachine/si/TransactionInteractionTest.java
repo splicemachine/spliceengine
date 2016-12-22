@@ -18,9 +18,6 @@ package com.splicemachine.si;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.ForwardingLifecycleManager;
-import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.si.testenv.*;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -48,7 +45,8 @@ import java.util.List;
  */
 @Category(ArchitectureSpecific.class)
 public class TransactionInteractionTest {
-    @Rule public ExpectedException error = ExpectedException.none();
+    @Rule
+    public ExpectedException error = ExpectedException.none();
     private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
 
     private static SITestEnv testEnv;
@@ -59,6 +57,7 @@ public class TransactionInteractionTest {
 
     @SuppressWarnings("unchecked")
     private void baseSetUp() {
+    /*
         control = new ForwardingLifecycleManager(transactorSetup.txnLifecycleManager){
             @Override
             protected void afterStart(Txn txn) {
@@ -67,6 +66,8 @@ public class TransactionInteractionTest {
         };
         testUtility = new TransactorTestUtility(true,testEnv,transactorSetup);
     }
+    */
+}
 
     @Before
     public void setUp() throws IOException {
@@ -80,18 +81,19 @@ public class TransactionInteractionTest {
     @After
     public void tearDown() throws Exception {
         for(Txn id:createdParentTxns){
-            id.rollback();
+            control.rollback(id);
         }
     }
-
+/*
+JL-TODO
     @Test
     public void testCanElevateGrandchildCorrectly() throws Exception {
         Txn user = control.beginTransaction();
-        Txn child = control.beginChildTransaction(user, null);
-        Txn grandchild = control.beginChildTransaction(child,null);
+        Txn child = control.beginChildTransaction(user);
+        Txn grandchild = control.beginChildTransaction(child);
 
         //now elevate in sequence, and verify that the hierarchy remains correct
-        user = user.elevateToWritable(DESTINATION_TABLE);
+        user = control.elevateTransaction(user);
         ((ReadOnlyTxn)child).parentWritable(user);
         child = child.elevateToWritable(DESTINATION_TABLE);
         Assert.assertEquals("Incorrect parent transaction for child!",user,child.getParentTxnView());
@@ -107,16 +109,16 @@ public class TransactionInteractionTest {
         Assert.assertEquals("Incorrect parent transaction for grandchild!", childView, grandChildView.getParentTxnView());
         Assert.assertEquals("Incorrect grandparent transaction for grandchild!", userView, grandChildView.getParentTxnView().getParentTxnView());
     }
-
+*/
     @Test
     public void testCanReadDataWithACommittedTransaction() throws Exception {
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        Txn svp0Txn = control.beginChildTransaction(userTxn, DESTINATION_TABLE);
-        Txn svp1Txn = control.beginChildTransaction(svp0Txn, DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
+        Txn svp0Txn = control.beginChildTransaction(userTxn);
+        Txn svp1Txn = control.beginChildTransaction(svp0Txn);
         testUtility.insertAge(svp1Txn, "scott", 29);
-        svp1Txn.commit();
-        Txn selectTxn = control.beginChildTransaction(svp0Txn, null);
-        svp0Txn.commit();
+        control.commit(svp1Txn);
+        Txn selectTxn = control.beginChildTransaction(svp0Txn);
+        control.commit(svp0Txn);
         Assert.assertEquals("Incorrect results", "scott age=29 job=null", testUtility.read(selectTxn, "scott"));
     }
 
@@ -143,7 +145,7 @@ public class TransactionInteractionTest {
           * to test the behavior
           */
 
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
 
         //insert the row
         transactionalInsert("scott", userTxn, 29);
@@ -157,27 +159,27 @@ public class TransactionInteractionTest {
 
     @Test
     public void testInsertThenRollbackThenInsertNewRowThenScanWillOnlyReturnOneRow() throws Exception {
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
 
-        Txn child = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
+        Txn child = control.beginChildTransaction(userTxn);
 
-        Txn grandChild = control.beginChildTransaction(child,DESTINATION_TABLE);
+        Txn grandChild = control.beginChildTransaction(child);
         //insert the row
         transactionalInsert("scott10", grandChild, 29);
 
         Assert.assertEquals("Incorrect results", "scott10 age=29 job=null", testUtility.read(grandChild, "scott10"));
 
         //rollback
-        grandChild.rollback();
+        control.rollback(grandChild);
 
         //now insert a second row with a new grandChild
 
-        Txn grandChild2 = control.beginChildTransaction(child,DESTINATION_TABLE);
+        Txn grandChild2 = control.beginChildTransaction(child);
         transactionalInsert("scott11",grandChild2,29);
 
-        grandChild2.commit();
+        control.commit(grandChild2);
 
-        child.commit();
+        control.commit(child);
 
         String actual = testUtility.scanAll(userTxn, "scott10", "scott12", null).trim();
         String expected = "scott11 age=29 job=null[ V.age@~9=29 ] ".trim();
@@ -196,15 +198,15 @@ public class TransactionInteractionTest {
          */
 
         String name = "scott3";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
 
-        Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
+        Txn insertTxn = control.beginChildTransaction(userTxn);
+        Txn insertChild = control.beginChildTransaction(insertTxn);
         testUtility.insertAge(insertChild,name,29);
-        insertChild.commit();
+        control.commit(insertChild);
 
-        Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
+        Txn deleteTxn = control.beginChildTransaction(userTxn);
+        Txn deleteChild = control.beginChildTransaction(deleteTxn);
         try{
             testUtility.deleteRow(deleteChild,name);
         }catch(IOException re){
@@ -224,14 +226,14 @@ public class TransactionInteractionTest {
          */
 
         String name = "scott3";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
 
-        Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
+        Txn insertTxn = control.beginChildTransaction(userTxn);
+        Txn insertChild = control.beginChildTransaction(insertTxn);
         testUtility.insertAge(insertChild,name,29);
 
-        Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
+        Txn deleteTxn = control.beginChildTransaction(userTxn);
+        Txn deleteChild = control.beginChildTransaction(deleteTxn);
         try{
             testUtility.deleteRow(deleteChild,name);
         }catch(IOException re){
@@ -254,16 +256,16 @@ public class TransactionInteractionTest {
          */
 
         String name = "scott4";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
 
-        Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
+        Txn insertTxn = control.beginChildTransaction(userTxn);
+        Txn insertChild = control.beginChildTransaction(insertTxn);
         testUtility.insertAge(insertChild,name,29);
-        insertChild.commit();
+        control.commit(insertChild);
 
-        Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        insertTxn.commit();
-        Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
+        Txn deleteTxn = control.beginChildTransaction(userTxn);
+        control.commit(insertTxn);
+        Txn deleteChild = control.beginChildTransaction(deleteTxn);
         try{
             testUtility.deleteRow(deleteChild, name);
         }catch(IOException re){
@@ -287,11 +289,11 @@ public class TransactionInteractionTest {
     @Test
     public void testDeleteThenInsertWithinSameUserTransactionIsCorrect() throws Exception {
         String name = "scott2";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
         transactionalInsert(name, userTxn, 29);
-        userTxn.commit();
+        control.commit(userTxn);
 
-        userTxn = control.beginTransaction(DESTINATION_TABLE); //get a new transaction
+        userTxn = control.beginTransaction(); //get a new transaction
 
         Assert.assertEquals("Incorrect results",name+" age=29 job=null",testUtility.read(userTxn, name));
 
@@ -305,18 +307,18 @@ public class TransactionInteractionTest {
     @Test
     public void testDeleteAndInsertBeforeDeleteTransactionCommitsThrowsWriteWriteConflict() throws Throwable {
         String name = "scott5";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
         transactionalInsert(name, userTxn, 29);
-        userTxn.commit();
-        userTxn = control.beginTransaction(DESTINATION_TABLE);
+        control.commit(userTxn);
+        userTxn = control.beginTransaction();
 
-        Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
+        Txn deleteTxn = control.beginChildTransaction(userTxn);
+        Txn deleteChild = control.beginChildTransaction(deleteTxn);
         testUtility.deleteRow(deleteChild, name);
-        deleteChild.commit();
+        control.commit(deleteChild);
 
-        Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
+        Txn insertTxn = control.beginChildTransaction(userTxn);
+        Txn insertChild = control.beginChildTransaction(insertTxn);
         try{
             testUtility.insertAge(insertChild, name, 29);
         }catch(IOException re){
@@ -327,19 +329,19 @@ public class TransactionInteractionTest {
     @Test
     public void testDeleteAndInsertInterleavedCommitAndCreatedThrowsWriteWriteConflict() throws Throwable {
         String name = "scott6";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
         transactionalInsert(name, userTxn, 29);
-        userTxn.commit();
-        userTxn = control.beginTransaction(DESTINATION_TABLE);
+        control.commit(userTxn);
+        userTxn = control.beginTransaction();
 
-        Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
+        Txn deleteTxn = control.beginChildTransaction(userTxn);
+        Txn deleteChild = control.beginChildTransaction(deleteTxn);
         testUtility.deleteRow(deleteChild, name);
-        deleteChild.commit();
+        control.commit(deleteChild);
 
-        Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        deleteTxn.commit();
-        Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
+        Txn insertTxn = control.beginChildTransaction(userTxn);
+        control.commit(deleteTxn);
+        Txn insertChild = control.beginChildTransaction(insertTxn);
         try{
             testUtility.insertAge(insertChild,name,29);
         }catch(IOException re){
@@ -350,17 +352,17 @@ public class TransactionInteractionTest {
     @Test
     public void testDeleteAndInsertBeforeDeleteChildTransactionCommitsThrowsWriteWriteConflict() throws Throwable {
         String name = "scott6";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
         transactionalInsert(name, userTxn, 29);
-        userTxn.commit();
-        userTxn = control.beginTransaction(DESTINATION_TABLE);
+        control.commit(userTxn);
+        userTxn = control.beginTransaction();
 
-        Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
+        Txn deleteTxn = control.beginChildTransaction(userTxn);
+        Txn deleteChild = control.beginChildTransaction(deleteTxn);
         testUtility.deleteRow(deleteChild, name);
 
-        Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
+        Txn insertTxn = control.beginChildTransaction(userTxn);
+        Txn insertChild = control.beginChildTransaction(insertTxn);
         try{
             testUtility.insertAge(insertChild,name,29);
         }catch(IOException re){
@@ -436,14 +438,15 @@ public class TransactionInteractionTest {
     @Test
     public void testTwoAdditiveTransactionsDoNotConflict() throws Exception {
         String name = "scott7";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
-        Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
+        // TODO FIX JL
+        Txn child1 = control.beginChildTransaction(userTxn);
+        Txn child2 = control.beginChildTransaction(userTxn);
 
         testUtility.insertAge(child1,name,29);
         testUtility.insertJob(child2,name,"plumber");
-        child1.commit();
-        child2.commit();
+        control.commit(child1);
+        control.commit(child2);
 
         //parent txn can now operate
         Assert.assertEquals("Incorrectly written data!",name+" age=29 job=plumber",testUtility.read(userTxn,name));
@@ -467,21 +470,21 @@ public class TransactionInteractionTest {
          * during writes and so forth), but is necessary.
          */
         String name = "scott10";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
-        Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,null);
+        Txn userTxn = control.beginTransaction();
+        Txn child1 = control.beginChildTransaction(userTxn);
+        Txn child2 = control.beginChildTransaction(userTxn);
 
         testUtility.insertAge(child1,name,29);
-        child1.commit();
+        control.commit(child1);
         Assert.assertEquals("Additive transaction cannot see sibling's writes",name+" absent",testUtility.read(child2,name));
     }
 
     @Test
     public void testOnlyOneAdditiveTransactionConflicts() throws Throwable {
         String name = "scott9";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
-        Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
+        Txn child1 = control.beginChildTransaction(userTxn);
+        Txn child2 = control.beginChildTransaction(userTxn);
 
         testUtility.insertAge(child1,name,29);
         try{
@@ -494,10 +497,10 @@ public class TransactionInteractionTest {
     @Test
     public void testTwoAdditiveTransactionsWithDifferentParentsConflicts() throws Throwable {
         String name = "scott12";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
-        Txn u2 = control.beginTransaction(DESTINATION_TABLE);
-        Txn child2 = control.beginChildTransaction(u2,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
+        Txn child1 = control.beginChildTransaction(userTxn);
+        Txn u2 = control.beginTransaction();
+        Txn child2 = control.beginChildTransaction(u2);
 
         testUtility.insertAge(child1,name,29);
         try{
@@ -510,10 +513,11 @@ public class TransactionInteractionTest {
     @Test
     public void testAdditiveGrandchildConflictsWithAdditiveChild() throws Throwable {
         String name = "scott8";
-        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        Txn child1 = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
-        Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE);
-        Txn grandChild = control.beginChildTransaction(child2,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction();
+        // JL-TODO Fix
+        Txn child1 = control.beginChildTransaction(userTxn);
+        Txn child2 = control.beginChildTransaction(userTxn);
+        Txn grandChild = control.beginChildTransaction(child2);
 
         testUtility.insertAge(child1,name,29);
         try{
@@ -535,17 +539,17 @@ public class TransactionInteractionTest {
      */
     @Test
     public void testInsertThenScanWithinSameParentTransactionIsCorrect() throws Exception {
-    	Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+    	Txn userTxn = control.beginTransaction();
 
-    	Txn callTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE); //create the CallStatement Txn
-    	Txn insertTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the insert txn
+    	Txn callTxn = control.beginChildTransaction(userTxn); //create the CallStatement Txn
+    	Txn insertTxn = control.beginChildTransaction(callTxn); //create the insert txn
     	testUtility.insertAge(insertTxn,"scott",29); //insert the row
-    	insertTxn.commit();
+        control.commit(insertTxn);
 
-    	Txn selectTxn = control.beginChildTransaction(callTxn,null); //create the select savepoint
+    	Txn selectTxn = control.beginChildTransaction(callTxn); //create the select savepoint
     	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(selectTxn, "scott")); //validate it's visible
 
-    	callTxn.rollback();
+    	control.rollback(callTxn);
     }
 
     /**
@@ -559,16 +563,14 @@ public class TransactionInteractionTest {
      */
     @Test
     public void testInsertWithChildTransactionThenScanWithParentTransactionIsCorrect() throws Exception {
-    	Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+    	Txn userTxn = control.beginTransaction();
 
-    	Txn callTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE); //create the CallStatement Txn
-    	Txn insertTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the insert txn
+    	Txn callTxn = control.beginChildTransaction(userTxn); //create the CallStatement Txn
+    	Txn insertTxn = control.beginChildTransaction(callTxn); //create the insert txn
     	testUtility.insertAge(insertTxn,"scott",29); //insert the row
-    	insertTxn.commit();
-
+        control.commit(insertTxn);
     	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(callTxn, "scott")); //validate it's visible to the parent
-
-    	callTxn.rollback();
+        control.rollback(callTxn);
     }
 
     /**
@@ -591,18 +593,18 @@ public class TransactionInteractionTest {
      */
     @Test
     public void testInsertWithGrandchildTransactionThenScanWithParentTransactionIsCorrect() throws Exception {
-    	Txn rootTxn = control.beginTransaction(DESTINATION_TABLE);
+    	Txn rootTxn = control.beginTransaction();
 
-    	Txn callTxn = control.beginChildTransaction(rootTxn,DESTINATION_TABLE); //create the CallStatement Txn
-    	Txn selectTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the select savepoint
-    	Txn insertTxn = control.beginChildTransaction(selectTxn,DESTINATION_TABLE); //create the insert txn
+    	Txn callTxn = control.beginChildTransaction(rootTxn); //create the CallStatement Txn
+    	Txn selectTxn = control.beginChildTransaction(callTxn); //create the select savepoint
+    	Txn insertTxn = control.beginChildTransaction(selectTxn); //create the insert txn
     	testUtility.insertAge(insertTxn,"scott",29); //insert the row
-    	insertTxn.commit();
-    	selectTxn.commit();
+        control.commit(insertTxn);
+        control.commit(selectTxn);
 
     	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(selectTxn, "scott")); //validate it's visible
 
-    	callTxn.rollback();
+        control.rollback(callTxn);
     }
 
     @Test
@@ -615,17 +617,17 @@ public class TransactionInteractionTest {
          * an anti-tombstone or not, rather than "canSee()". Switching the two resolves the issue, and
          * this test proves the fix.
          */
-        Txn insert = control.beginTransaction(DESTINATION_TABLE);
+        Txn insert = control.beginTransaction();
 
         testUtility.insertAge(insert,"scott",29);
         Assert.assertEquals("Incorrect results","scott age=29 job=null",testUtility.read(insert,"scott"));
-        insert.commit();
+        control.commit(insert);
 
-        Txn delete = control.beginTransaction(DESTINATION_TABLE);
+        Txn delete = control.beginTransaction();
         testUtility.deleteRow(delete,"scott");
-        delete.rollback();
+        control.rollback(delete);
 
-        Txn update = control.beginTransaction(DESTINATION_TABLE);
+        Txn update = control.beginTransaction();
         testUtility.insertJob(update,"scott","baker");
 
         Assert.assertEquals("Incorrect results","scott age=29 job=baker",testUtility.read(update,"scott"));
@@ -634,19 +636,19 @@ public class TransactionInteractionTest {
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void transactionalDelete(String name, Txn userTxn) throws IOException {
-        Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
+        Txn deleteTxn = control.beginChildTransaction(userTxn);
+        Txn deleteChild = control.beginChildTransaction(deleteTxn);
         testUtility.deleteRow(deleteChild, name);
-        deleteChild.commit();
-        deleteTxn.commit();
+        control.commit(deleteChild);
+        control.commit(deleteTxn);
     }
 
     private void transactionalInsert(String name, Txn userTxn, int age) throws IOException {
         //insert the row
-        Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
-        Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
+        Txn insertTxn = control.beginChildTransaction(userTxn);
+        Txn insertChild = control.beginChildTransaction(insertTxn);
         testUtility.insertAge(insertChild, name, age);
-        insertChild.commit(); //make the data visible to the insert parent
-        insertTxn.commit();
+        control.commit(insertChild); //make the data visible to the insert parent
+        control.commit(insertTxn);
     }
 }

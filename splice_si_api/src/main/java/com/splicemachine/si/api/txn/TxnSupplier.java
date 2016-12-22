@@ -27,12 +27,17 @@ public interface TxnSupplier {
 		/**
 		 * Get the transaction associated with {@code txnId}.
 		 *
-		 * Functionally equivalent to {@link #getTransaction(long, boolean)} with
-		 * {@code getDestinationTables = false}.
+		 * @param txnId the transaction id to fetch.
+		 */
+		Txn getTransaction(long txnIds) throws IOException;
+
+
+		/**
+		 * Get the transaction associated with {@code txnId}.
 		 *
 		 * @param txnId the transaction id to fetch.
 		 */
-		Txn getTransaction(long txnId) throws IOException;
+		Txn[] getTransactions(long[] txnIds) throws IOException;
 
 		/**
 		 * Add the transaction to the local cache (if such a cache exists).
@@ -46,5 +51,18 @@ public interface TxnSupplier {
 		 * @param toCache the transaction to cache.
 		 */
 		void cache(Txn toCache);
+
+		/**
+		 * Add the transaction to the local cache (if such a cache exists).
+		 *
+		 * If the implementation does not cache Transactions, then this method does nothing.
+		 *
+		 * If a transaction with the same id already exists in the cache, this method does nothing.
+		 *
+		 * If the transaction specified is null, an exception may be thrown.
+		 *
+		 * @param toCache the transaction to cache.
+		 */
+		void cache(Txn[] toCache);
 
 }

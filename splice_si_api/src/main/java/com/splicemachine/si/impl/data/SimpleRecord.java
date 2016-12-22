@@ -1,29 +1,30 @@
 package com.splicemachine.si.impl.data;
 
 import com.splicemachine.si.api.data.Record;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 
 /**
  *
  *
  */
-public class SimpleRecord implements Record<UnsafeRow> {
-    private long transactionId1;
-    private long transactionId2;
+public class SimpleRecord implements Record<Object[]> {
+    private long txnId1;
+    private long txnId2;
     private long version;
     private boolean hasTombstone;
     private long effectiveTimestamp;
     private int numberOfColumns;
-    private UnsafeRow data;
+    private Object[] data;
 
+    public SimpleRecord() {
+    }
     
     @Override
     public long getTxnId1() {
-        return transactionId1;
+        return txnId1;
     }
     @Override
     public long getTxnId2() {
-        return transactionId2;
+        return txnId2;
     }
 
     @Override
@@ -48,18 +49,18 @@ public class SimpleRecord implements Record<UnsafeRow> {
     }
 
     @Override
-    public UnsafeRow getData() {
+    public Object[] getData() {
         return data;
     }
 
 
     @Override
-    public void setTxnId1(long transactionId1) {
-        this.transactionId1 = transactionId1;
+    public void setTxnId1(long txnId1) {
+        this.txnId1 = txnId1;
     }
     @Override
-    public void setTxnId2(long transactionId2) {
-        this.transactionId2 = transactionId2;
+    public void setTxnId2(long txnId2) {
+        this.txnId2 = txnId2;
     }
 
     @Override
@@ -82,7 +83,7 @@ public class SimpleRecord implements Record<UnsafeRow> {
     }
 
     @Override
-    public void setData(UnsafeRow data) {
+    public void setData(Object[] data) {
         this.data = data;
     }
 }

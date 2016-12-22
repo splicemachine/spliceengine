@@ -31,11 +31,17 @@ public interface TransactionStore extends TxnSupplier{
      */
     void recordNewTransaction(Txn transaction) throws IOException;
 
-    void rollback(Txn transaction) throws IOException;
+    Txn rollback(Txn transaction) throws IOException;
 
-    long commit(Txn transaction) throws IOException;
+    Txn commit(Txn transaction) throws IOException;
+
+    Txn[] rollback(Txn[] transaction) throws IOException;
+
+    Txn[] commit(Txn[] transaction) throws IOException;
 
     void elevateTransaction(Txn transaction) throws IOException;
+
+    void elevateTransaction(Txn[] transaction) throws IOException;
 
     /**
      * @return a count of the total number of store lookups made since the server last started

@@ -124,8 +124,6 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
-import com.splicemachine.si.impl.txn.ActiveWriteTxn;
-import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
@@ -813,10 +811,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 //                return new BulkWrites(bws,txn);
 //            }
 //        }, 206);
-        instance.register(ActiveWriteTxn.class,EXTERNALIZABLE_SERIALIZER,207);
         instance.register(WriteResult.class,EXTERNALIZABLE_SERIALIZER,209);
         instance.register(ConstraintContext.class,EXTERNALIZABLE_SERIALIZER,210);
-        instance.register(WritableTxn.class,EXTERNALIZABLE_SERIALIZER,211);
         // instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212);
         // 220 is open
         // 221 is open

@@ -26,10 +26,17 @@ public class HLCTimestampSource implements TimestampSource {
     public HLCTimestampSource() {
     }
 
-
     @Override
     public long nextTimestamp() {
         return hlc.sendOrLocalEvent();
+    }
+
+    @Override
+    public long[] nextTimestamps(int batch) {
+        long[] timestamps = new long[batch];
+        for (int i =0; i< batch;i++)
+            timestamps[i] = nextTimestamp();
+        return timestamps;
     }
 
     @Override

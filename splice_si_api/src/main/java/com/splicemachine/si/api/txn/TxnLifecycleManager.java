@@ -35,6 +35,19 @@ public interface TxnLifecycleManager{
     Txn beginTransaction() throws IOException;
 
     /**
+     * Begin a top-level read-only transaction.
+     * <p/>
+     * This is functionally equivalent to calling
+     * {@code beginTransaction(Txn.ROOT_TRANSACTION.getIsolationLevel(),false,false,Txn.ROOT_TRANSACTION,null)}
+     *
+     * @param batch
+     *
+     * @return a top-level read-only transaction.
+     * @throws java.io.IOException if something goes wrong in creating the transaction
+     */
+    Txn[] beginTransaction(int batch) throws IOException;
+
+    /**
      * Create a Child transaction of the parent, inheriting dependent, additive, and isolation level properties.
      * <p/>
      * this is functionally equivalent to calling
@@ -47,6 +60,21 @@ public interface TxnLifecycleManager{
      * @throws IOException if something goes wrong in creating the transaction
      */
     Txn beginChildTransaction(Txn parentTxn) throws IOException;
+
+    /**
+     * Create a Child transaction of the parent, inheriting dependent, additive, and isolation level properties.
+     * <p/>
+     * this is functionally equivalent to calling
+     * {@code beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),parentTxn.isDependent(),destinationTable,parentTxn.isAdditive())};
+     *
+     * @param parentTxn        the parent transaction, or {@code null} if this is a top-level transaction. If {@code null},
+     *                         then the default values supplied by {@link Txn#ROOT_TRANSACTION} will be used for isolation level,
+     *                         dependent, and additive properties.
+     * @param batch
+     * @return a new transaction with inherited properties
+     * @throws IOException if something goes wrong in creating the transaction
+     */
+    Txn[] beginChildTransactions(Txn parentTxn, int batch) throws IOException;
 
     /**
      * Elevate a transaction from a read-only transaction to one which allows writes. This
@@ -63,17 +91,44 @@ public interface TxnLifecycleManager{
     Txn elevateTransaction(Txn txn) throws IOException;
 
     /**
+     * Elevate a transaction from a read-only transaction to one which allows writes. This
+     * follows the lifecycle of
+     * <p/>
+     * 1. transaction begins in read-only state
+     * 2. when writes are desired, transaction is elevated to a writable state
+     * 3. Txn writes
+     * 4. transaction commits/rolls back
+     *
+     * @param txn              the transaction to elevate
+     * @throws IOException If something goes wrong during the elevation
+     */
+    Txn[] elevateTransaction(Txn[] txn) throws IOException;
+
+    /**
      * Commit the specified transaction id.
      * <p/>
      * If the transaction has already been rolled back or timedout, then this method will throw an exception.
      *
-     * @param txnId the id of the transaction to commit.
+     * @param txn the id of the transaction to commit.
      * @return the commit timestamp for the committed transaction.
      * @throws com.splicemachine.si.api.CannotCommitException if the transaction was already rolled back by
      *                                                        another process (e.g. timeout)
      * @throws IOException                                    if something goes wrong during the elevation
      */
-    long commit(Txn txn) throws IOException;
+    Txn commit(Txn txn) throws IOException;
+
+    /**
+     * Commit the specified transaction id.
+     * <p/>
+     * If the transaction has already been rolled back or timedout, then this method will throw an exception.
+     *
+     * @param txn[] the id of the transaction to commit.
+     * @return the commit timestamp for the committed transaction.
+     * @throws com.splicemachine.si.api.CannotCommitException if the transaction was already rolled back by
+     *                                                        another process (e.g. timeout)
+     * @throws IOException                                    if something goes wrong during the elevation
+     */
+    Txn[] commit(Txn[] txn) throws IOException;
 
     /**
      * Rollback the transaction identified with {@code txnId}.
@@ -83,7 +138,7 @@ public interface TxnLifecycleManager{
      * @param txnId the id of the transaction to rollback
      * @throws IOException If something goes wrong during the rollback
      */
-    void rollback(Txn txn) throws IOException;
+    Txn rollback(Txn txn) throws IOException;
 
     /**
      * "Chains" a new transaction to the old one.

@@ -1,10 +1,16 @@
 package com.splicemachine.si.api.txn;
 
+import java.io.Externalizable;
+
 /**
  *
  *
  */
-public interface Txn extends Comparable<Txn>{
+public interface Txn extends Comparable<Txn>, Externalizable{
+    public static final int ACTIVE = -2;
+    public static final int ROLLEDBACK = -1;
+    public static final int COMMITTING = 0;
+
     /**
      *
      * Unique Txn Identifier
@@ -182,4 +188,13 @@ public interface Txn extends Comparable<Txn>{
      */
     void persist();
 
+    boolean isRolledback();
+
+    boolean isCommitted();
+
+    boolean isCommitting();
+
+    boolean isActive();
+
+    boolean isAbleToCommit();
 }

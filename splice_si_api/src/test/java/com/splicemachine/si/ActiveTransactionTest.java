@@ -20,7 +20,6 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.SITestEnvironment;
@@ -41,7 +40,7 @@ import java.util.List;
  */
 @Category(ArchitectureSpecific.class)
 public class ActiveTransactionTest{
-
+/*
     private static final byte[] DESTINATION_TABLE=Bytes.toBytes("1216");
 
     private static SITestEnv testEnv;
@@ -275,7 +274,7 @@ public class ActiveTransactionTest{
 //        Assert.assertEquals(t0.getTxnId(), ids[0]);
 //        Assert.assertEquals(t1.getTxnId(), result.get(ids.length - 1).getId());
     }
-
+*/
     /*
      * The intent of the below test is to ensure that no more than a certain
      * number of transactions come back when you are fetching the active list--

@@ -20,12 +20,11 @@ import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * Represents a Client Txn Lifecycle Manager.
  * <p/>
- * This class makes decisions like when a ReadOnly transaction is created instead of a writeable,
- * when a transaction is recorded to the transaction table, and so on.
  *
  * @author Scott Fines
  *         Date: 6/20/14
@@ -67,37 +66,65 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
     @Override
     public Txn beginTransaction() throws IOException{
         Txn txn = txnFactory.getTxn();
-        txn.setHLCTimestamp(physicalTimestampSource.nextTimestamp());
         txn.setTxnId(logicalTimestampSource.nextTimestamp());
         txn.setRegionId(txnLocationFactory.getRegionId());
         txn.setNodeId(txnLocationFactory.getNodeId());
-        txn.setCommitTimestamp(-2L); // Active
+        txn.setCommitTimestamp(Txn.ACTIVE); // Active
         return txn;
     }
 
+    @Override
+    public Txn[] beginTransaction(int batch) throws IOException {
+        Txn[] txns = txnFactory.getTxn(batch);
+        long[] logTimes = logicalTimestampSource.nextTimestamps(batch);
+        for (int i =0; i< batch;i++) {
+            txns[i].setTxnId(logTimes[i]);
+            txns[i].setRegionId(txnLocationFactory.getRegionId());
+            txns[i].setNodeId(txnLocationFactory.getNodeId());
+            txns[i].setCommitTimestamp(Txn.ACTIVE);
+        }
+        return txns;
+    }
 
     @Override
     public Txn beginChildTransaction(Txn parentTxn) throws IOException{
-        return createChildTransaction(parentTxn,null);
-    }
-
-    public Txn createChildTransaction(Txn parentTxn, Txn txnToCommit) throws IOException {
-        assert parentTxn !=null:"Parent Txn cannot be null";
-        Txn txn = txnFactory.getTxn();
-        txn.setHLCTimestamp(physicalTimestampSource.nextTimestamp());
-        txn.setTxnId(txnToCommit !=null?store.commit(txnToCommit):logicalTimestampSource.nextTimestamp());
-        txn.setRegionId(txnLocationFactory.getRegionId());
-        txn.setNodeId(txnLocationFactory.getNodeId());
-        txn.setCommitTimestamp(-2L); // Active
-        txn.setParentTxnId(parentTxn.getTxnId());
-        return txn;
+        return createChildTransaction(parentTxn,logicalTimestampSource.nextTimestamp());
     }
 
     @Override
     public Txn chainTransaction(Txn parentTxn,
                                 Txn txnToCommit) throws IOException{
         assert txnToCommit!=null:"txnToCommit cannot be null";
-        return createChildTransaction(parentTxn,txnToCommit);
+        txnToCommit = store.commit(txnToCommit);
+        return createChildTransaction(parentTxn,txnToCommit.getTxnId());
+    }
+
+    public Txn createChildTransaction(Txn parentTxn,long logicalTs) throws IOException {
+        assert parentTxn !=null:"Parent Txn cannot be null";
+        Txn txn = txnFactory.getTxn();
+        txn.setTxnId(logicalTs);
+        txn.setRegionId(txnLocationFactory.getRegionId());
+        txn.setNodeId(txnLocationFactory.getNodeId());
+        txn.setCommitTimestamp(Txn.ACTIVE); // Active
+        txn.setParentTxnId(parentTxn.getTxnId());
+        return txn;
+    }
+
+    @Override
+    public Txn[] beginChildTransactions(Txn parentTxn, int batch) throws IOException {
+        long[] logicalTimestamps = logicalTimestampSource.nextTimestamps(batch);
+        Txn[] txns = new Txn[batch];
+        for (int i = 0; i< batch; i++)
+            txns[i] = createChildTransaction(parentTxn,logicalTimestamps[i]);
+        return txns;
+    }
+
+    @Override
+    public Txn[] elevateTransaction(Txn[] txn) throws IOException {
+        assert txn!=null:"elevateTransaction txn[] cannot be null";
+        for (int i = 0; i<txn.length;i++)
+            txn[i] = elevateTransaction(txn[i]);
+        return txn;
     }
 
     @Override
@@ -113,24 +140,39 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
     }
 
     @Override
-    public long commit(Txn txn) throws IOException{
+    public Txn commit(Txn txn) throws IOException{
         assert txn!=null:"txn cannot be null";
         if(restoreMode){
-            return -1; // we are in restore mode, don't try to access the store
+            return null; // we are in restore mode, don't try to access the store
         }
-        long commitTs = store.commit(txn);
+        txn = store.commit(txn);
         globalTxnCache.cache(txn);
-        return commitTs;
+        return txn;
     }
 
     @Override
-    public void rollback(Txn txn) throws IOException{
+    public Txn[] commit(Txn[] txn) throws IOException{
         assert txn!=null:"txn cannot be null";
         if(restoreMode){
-            return; // we are in restore mode, don't try to access the store
+            Txn[] ts = new Txn[txn.length];
+                    Arrays.fill(ts, null);
+            return ts; // we are in restore mode, don't try to access the store
         }
-        store.rollback(txn);
+        txn = store.commit(txn);
         globalTxnCache.cache(txn);
+        return txn;
+    }
+
+
+    @Override
+    public Txn rollback(Txn txn) throws IOException{
+        assert txn!=null:"txn cannot be null";
+        if(restoreMode){
+            return null; // we are in restore mode, don't try to access the store
+        }
+        txn = store.rollback(txn);
+        globalTxnCache.cache(txn);
+        return txn;
     }
 
 }

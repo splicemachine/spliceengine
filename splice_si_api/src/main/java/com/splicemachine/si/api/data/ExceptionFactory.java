@@ -27,7 +27,7 @@ public interface ExceptionFactory{
     IOException readOnlyModification(String message);
     IOException noSuchFamily(String message);
     IOException transactionTimeout(long tnxId);
-    IOException cannotCommit(long txnId,Txn.State actualState);
+    IOException cannotCommit(long txnId);
     IOException cannotCommit(String message);
     IOException additiveWriteConflict();
     IOException doNotRetry(String message);

@@ -4,6 +4,10 @@ import com.splicemachine.si.api.txn.ChildStatementDuration;
 import com.splicemachine.si.api.txn.TransactionStatus;
 import com.splicemachine.si.api.txn.Txn;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 /**
  * Created by jleach on 12/20/16.
  */
@@ -150,5 +154,15 @@ public class SimpleTxnImpl implements Txn {
     @Override
     public int compareTo(Txn o) {
         return Long.compare(txnId,o.getTxnId()); // Is this right? JL
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+
     }
 }
