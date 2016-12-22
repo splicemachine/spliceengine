@@ -16,7 +16,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
