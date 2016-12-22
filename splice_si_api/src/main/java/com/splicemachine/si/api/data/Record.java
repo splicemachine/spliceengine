@@ -14,7 +14,7 @@ public interface Record<T> {
      *
      * @return
      */
-    long getTransactionId1();
+    long getTxnId1();
 
     /**
      *
@@ -22,7 +22,7 @@ public interface Record<T> {
      *
      * @return
      */
-    void setTransactionId1(long transactionId1);
+    void setTxnId1(long transactionId1);
 
     /**
      *
@@ -63,7 +63,7 @@ public interface Record<T> {
      *
      * @return
      */
-    long getTransactionId2();
+    long getTxnId2();
 
 
     /**
@@ -73,7 +73,7 @@ public interface Record<T> {
      *
      * @return
      */
-    void setTransactionId2(long transactionId2);
+    void setTxnId2(long transactionId2);
 
     /**
      *

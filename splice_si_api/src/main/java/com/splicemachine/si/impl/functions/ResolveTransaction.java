@@ -30,10 +30,10 @@ public class ResolveTransaction implements Function<Record[],Record[]> {
             for (Record activeConglomerate : array) {
                 if (activeConglomerate == null || activeConglomerate.getEffectiveTimestamp() != 0) // Empty Array Element or Txn Resolved
                     break;
-                if (activeConglomerate.getTransactionID2() < 0) { // Collapsable Txn
-                    Txn txn = globableCache.getTransaction(activeConglomerate.getTransactionID1());
+                if (activeConglomerate.getTxnId2() < 0) { // Collapsable Txn
+                    Txn txn = globableCache.getTransaction(activeConglomerate.getTxnId1());
                 }
-                if (activeConglomerate.getTransactionID1() > activeConglomerate.getTransactionID2()) { // Hierarchical Txn
+                if (activeConglomerate.getTxnId1() > activeConglomerate.getTxnId2()) { // Hierarchical Txn
 
                 }
             }
