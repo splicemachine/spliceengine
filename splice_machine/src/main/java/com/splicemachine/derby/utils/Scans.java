@@ -74,22 +74,22 @@ public class Scans extends SpliceUtils {
      * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
      * filters aas specified by {@code qualifiers}
      */
-    public static DataScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
-                                 DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix, int stopSearchOperator,
-                                 Qualifier[][] qualifiers,
-                                 boolean[] sortOrder,
-                                 FormatableBitSet scanColumnList,
-                                 TxnView txn,
-                                 boolean sameStartStopPosition,
-                                 int[] formatIds,
-                                 int[] startScanKeys,
-                                 int[] keyDecodingMap,
-                                 int[] keyTablePositionMap,
-                                 DataValueFactory dataValueFactory,
-                                 String tableVersion,
-                                 boolean rowIdKey) throws StandardException {
+    public static RecordScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                       DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix, int stopSearchOperator,
+                                       Qualifier[][] qualifiers,
+                                       boolean[] sortOrder,
+                                       FormatableBitSet scanColumnList,
+                                       TxnView txn,
+                                       boolean sameStartStopPosition,
+                                       int[] formatIds,
+                                       int[] startScanKeys,
+                                       int[] keyDecodingMap,
+                                       int[] keyTablePositionMap,
+                                       DataValueFactory dataValueFactory,
+                                       String tableVersion,
+                                       boolean rowIdKey) throws StandardException {
         assert dataValueFactory != null;
-        DataScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
+        RecordScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
         scan.returnAllVersions();
         try {
             if (rowIdKey) {
@@ -121,19 +121,19 @@ public class Scans extends SpliceUtils {
         return scan;
     }
 
-    public static DataScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
-                                 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
-                                 Qualifier[][] qualifiers,
-                                 boolean[] sortOrder,
-                                 FormatableBitSet scanColumnList,
-                                 TxnView txn,
-                                 boolean sameStartStopPosition,
-                                 int[] formatIds,
-                                 int[] keyDecodingMap,
-                                 int[] keyTablePositionMap,
-                                 DataValueFactory dataValueFactory,
-                                 String tableVersion,
-                                 boolean rowIdKey) throws StandardException {
+    public static RecordScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                       DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+                                       Qualifier[][] qualifiers,
+                                       boolean[] sortOrder,
+                                       FormatableBitSet scanColumnList,
+                                       TxnView txn,
+                                       boolean sameStartStopPosition,
+                                       int[] formatIds,
+                                       int[] keyDecodingMap,
+                                       int[] keyTablePositionMap,
+                                       DataValueFactory dataValueFactory,
+                                       String tableVersion,
+                                       boolean rowIdKey) throws StandardException {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
                 sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, null, keyDecodingMap,
                 keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
@@ -143,14 +143,14 @@ public class Scans extends SpliceUtils {
                                             FormatableBitSet scanColumnList,
                                             int[] keyColumnEncodingMap,
                                             int[] columnTypes,
-                                            DataScan scan,
+                                            RecordScan scan,
                                             String tableVersion) throws StandardException, IOException {
         buildPredicateFilter(qualifiers, scanColumnList, scan, keyColumnEncodingMap);
     }
 
     public static void buildPredicateFilter(Qualifier[][] qualifiers,
                                             FormatableBitSet scanColumnList,
-                                            DataScan scan,
+                                            RecordScan scan,
                                             int[] keyColumnEncodingOrder) throws StandardException, IOException {
         EntryPredicateFilter pqf = getEntryPredicateFilter(qualifiers,
                 scanColumnList, keyColumnEncodingOrder);
@@ -186,7 +186,7 @@ public class Scans extends SpliceUtils {
         return new EntryPredicateFilter(colsToReturn, true);
     }
 
-    private static void attachScanKeys(DataScan scan,
+    private static void attachScanKeys(RecordScan scan,
                                        DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                        DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix,
                                        int stopSearchOperator,

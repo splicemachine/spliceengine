@@ -15,15 +15,14 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.coprocessor.TxnMessage;
 import org.junit.Assert;
 /**
  * @author Scott Fines
  *         Date: 7/1/14
  */
 public class TxnTestUtils{
-
+    /**
+     TODO JL : Wrong Place
     public TxnTestUtils(){
     }
 
@@ -81,5 +80,5 @@ public class TxnTestUtils{
         Assert.assertEquals(baseErrorMessage+" Isolation level differs",correct.getIsolationLevel(),actual.getIsolationLevel());
 //        Assert.assertEquals(baseErrorMessage+" Table buffer differs",correct.getDestinationTables(),actual.getDestinationTables());
     }
-
+    */
 }

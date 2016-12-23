@@ -29,7 +29,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.RecordScan;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -234,11 +234,11 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         try {
             TxnView txn = getCurrentTransaction();
-            List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
+            List<RecordScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
             DataSet<LocatedRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             int i = 0;
-            for (DataScan scan : scans) {
+            for (RecordScan scan : scans) {
                 deSiify(scan);
                 MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) operationContext.getClone().getOperation();
                 DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation, LocatedRow>newScanSet(this, tableName)

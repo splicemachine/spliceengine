@@ -31,7 +31,7 @@ import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataResultScanner;
+import com.splicemachine.storage.RecordScanner;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -53,7 +53,7 @@ public abstract class TransactionalSysTableWriter<T> {
     private final String tableName;
     protected volatile String conglomIdString;
 
-    protected DataResultScanner resultScanner = null;
+    protected RecordScanner resultScanner = null;
     protected DataValueDescriptor[] dvds;
     protected DescriptorSerializer[] serializers;
     protected EntryDecoder entryDecoder;

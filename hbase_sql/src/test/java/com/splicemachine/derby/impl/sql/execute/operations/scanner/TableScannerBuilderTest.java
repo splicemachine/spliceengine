@@ -23,7 +23,7 @@ import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.RecordScan;
 import com.splicemachine.storage.HScan;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
@@ -81,7 +81,7 @@ public class TableScannerBuilderTest{
         }
 
         @Override
-        protected DataScan readScan(ObjectInput in) throws IOException{
+        protected RecordScan readScan(ObjectInput in) throws IOException{
             byte[] bytes = new byte[in.readInt()];
             in.readFully(bytes);
             ClientProtos.Scan scan=ClientProtos.Scan.parseFrom(bytes);

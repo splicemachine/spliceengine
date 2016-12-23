@@ -15,30 +15,31 @@
 
 package com.splicemachine.storage;
 
-import com.splicemachine.metrics.TimeView;
-import com.splicemachine.storage.DataCell;
-
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.util.List;
-
 /**
  * @author Scott Fines
- *         Date: 12/14/15
+ *         Date: 12/15/15
  */
-public interface DataScanner extends AutoCloseable{
+public interface RecordScan<K> {
 
-    @Nonnull List<DataCell> next(int limit) throws IOException;
+    RecordScan startKey(K startKey);
 
-    TimeView getReadTime();
+    RecordScan stopKey(K stopKey);
 
-    long getBytesOutput();
+    /**
+     * Reverse the order in which this scan is operating.
+     *
+     * @return a scan which scans in reverse (i.e. descending order).
+     */
+    RecordScan reverseOrder();
 
-    long getRowsFiltered();
+    boolean isDescendingScan();
 
-    long getRowsVisited();
+    RecordScan cacheRows(int rowsToCache);
 
-    @Override void close() throws IOException;
+    RecordScan batchCells(int cellsToBatch);
 
-    Partition getPartition();
+    K getStartKey();
+
+    K getStopKey();
+
 }

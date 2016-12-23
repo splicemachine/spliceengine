@@ -25,7 +25,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.RecordScan;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
@@ -83,7 +83,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 
 	@Override
-    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<RecordScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */
@@ -94,10 +94,10 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                 colsToReturn.set(i);
             }
         }
-        List<DataScan> scans = new ArrayList<DataScan>(probeValues.length);
+        List<RecordScan> scans = new ArrayList<RecordScan>(probeValues.length);
         for (int i = 0; i < probeValues.length; i++) {
             probeValue = probeValues[i];
-            DataScan scan = getScan(txn, null, keyDecodingMap, null, null);
+            RecordScan scan = getScan(txn, null, keyDecodingMap, null, null);
             scans.add(scan);
         }
         return scans;

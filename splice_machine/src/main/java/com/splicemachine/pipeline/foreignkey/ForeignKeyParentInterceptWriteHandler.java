@@ -144,7 +144,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         private boolean hasReferences(Long indexConglomerateId, Partition table, KVPair kvPair, WriteContext ctx) throws IOException {
         byte[] startKey = kvPair.getRowKey();
         //make sure this is a transactional scan
-        DataScan scan = txnOperationFactory.newDataScan(null); // Non-Transactional, will resolve on this side
+        RecordScan scan = txnOperationFactory.newDataScan(null); // Non-Transactional, will resolve on this side
         scan =scan.startKey(startKey);
         byte[] endKey = Bytes.unsignedCopyAndIncrement(startKey);//new byte[startKey.length+1];
         scan = scan.stopKey(endKey);

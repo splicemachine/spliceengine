@@ -1,13 +1,11 @@
-package com.splicemachine.si.api.data;
-
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+package com.splicemachine.storage;
 
 /**
  *
- *
+ * Record Implementation
  *
  */
-public interface Record<T> {
+public interface Record<K,V> {
     /**
      *
      * Txn ID 1
@@ -115,7 +113,7 @@ public interface Record<T> {
      *
      * @return
      */
-    T getData();
+    V getData();
 
     /**
      *
@@ -123,8 +121,27 @@ public interface Record<T> {
      *
      * @return
      */
-    void setData(T data);
+    void setData(V data);
+
+    /**
+     *
+     * Set Actual Data
+     *
+     * @return
+     */
+    K getKey();
+
+    /**
+     *
+     * Set Actual Data
+     *
+     * @return
+     */
+    void setKey(K key);
 
 
+    RecordType getRecordType();
+
+    void setRecordType(RecordType recordType);
 
 }

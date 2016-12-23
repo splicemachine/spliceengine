@@ -28,7 +28,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.RecordScan;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -190,12 +190,12 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         SpliceLogUtils.trace(LOG, "initIsolationLevel");
     }
 
-    public DataScan getNonSIScan() throws StandardException{
+    public RecordScan getNonSIScan() throws StandardException{
         /*
 		 * Intended to get a scan which does NOT set up SI underneath us (since
 		 * we are doing it ourselves).
 		 */
-        DataScan s=getScan();
+        RecordScan s=getScan();
 
         if(oneRowScan){
             /*
@@ -216,7 +216,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return s;
     }
 
-    public DataScan getReversedNonSIScan() throws StandardException{
+    public RecordScan getReversedNonSIScan() throws StandardException{
         return getNonSIScan().reverseOrder();
     }
 
@@ -303,13 +303,13 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     /**
      * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
      */
-    public static void deSiify(DataScan scan){
+    public static void deSiify(RecordScan scan){
         //exclude this from SI treatment, since we're doing it internally
         scan.addAttribute(SIConstants.SI_NEEDED,null);
         scan.returnAllVersions();
     }
 
-    protected DataScan getScan() throws StandardException{
+    protected RecordScan getScan() throws StandardException{
 
         return scanInformation.getScan(getCurrentTransaction(),
                 ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),

@@ -64,7 +64,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private final Counter filterCounter;
     private DataScanner regionScanner;
     private final TransactionalRegion region;
-    private final DataScan scan;
+    private final RecordScan scan;
     protected final ExecRow template;
     private final boolean reuseRowLocation;
     private final String tableVersion;
@@ -92,7 +92,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
-                             DataScan scan,
+                             RecordScan scan,
                              final int[] rowDecodingMap,
                              final TxnView txn,
                              int[] keyColumnEncodingOrder,
@@ -132,7 +132,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
-                             DataScan scan,
+                             RecordScan scan,
                              final int[] rowDecodingMap,
                              final TxnView txn,
                              int[] keyColumnEncodingOrder,
@@ -156,7 +156,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
-                             DataScan scan,
+                             RecordScan scan,
                              final int[] rowDecodingMap,
                              final TxnView txn,
                              int[] keyColumnEncodingOrder,

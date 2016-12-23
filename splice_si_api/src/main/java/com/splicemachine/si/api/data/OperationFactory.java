@@ -30,7 +30,7 @@ import java.util.List;
  */
 public interface OperationFactory{
 
-    DataScan newScan();
+    RecordScan newScan();
 
     DataGet newGet(byte[] rowKey,DataGet previous);
 
@@ -44,9 +44,9 @@ public interface OperationFactory{
 
     DataCell newCell(byte[] key, byte[] family, byte[] qualifier, long timestamp,byte[] value);
 
-    void writeScan(DataScan scan, ObjectOutput out) throws IOException;
+    void writeScan(RecordScan scan, ObjectOutput out) throws IOException;
 
-    DataScan readScan(ObjectInput in) throws IOException;
+    RecordScan readScan(ObjectInput in) throws IOException;
 
     DataResult newResult(List<DataCell> visibleColumns);
 

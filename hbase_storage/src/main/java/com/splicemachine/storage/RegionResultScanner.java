@@ -28,7 +28,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 12/18/15
  */
-public class RegionResultScanner implements DataResultScanner{
+public class RegionResultScanner implements RecordScanner {
     private final MeasuredListScanner regionScanner;
     private final int batchSize;
 

@@ -99,24 +99,24 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
 
     /*Scan methods*/
     @Override
-    public DataScanner openScanner(DataScan scan) throws IOException{
+    public DataScanner openScanner(RecordScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
     }
 
     @Override
-    public DataResultScanner openResultScanner(DataScan scan) throws IOException{
+    public RecordScanner openResultScanner(RecordScan scan) throws IOException{
         return openResultScanner(scan,Metrics.noOpMetricFactory());
     }
 
     @Override
-    public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+    public DataScanner openScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
         MeasuredResultScanner scanner=new MeasuredResultScanner(getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
         return new ListingResultScanner(this,scanner);
     }
 
 
     @Override
-    public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+    public RecordScanner openResultScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
         MeasuredResultScanner scanner=new MeasuredResultScanner(getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
         return new ResultDataScanner(scanner);
     }

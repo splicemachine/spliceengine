@@ -1,12 +1,14 @@
 package com.splicemachine.si.impl.data;
 
-import com.splicemachine.si.api.data.Record;
+
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 
 /**
  *
  *
  */
-public class SimpleRecord implements Record<Object[]> {
+public class SimpleRecord implements Record<Object[],Object[]> {
     private long txnId1;
     private long txnId2;
     private long version;
@@ -14,6 +16,8 @@ public class SimpleRecord implements Record<Object[]> {
     private long effectiveTimestamp;
     private int numberOfColumns;
     private Object[] data;
+    private Object[] key;
+    private RecordType recordType;
 
     public SimpleRecord() {
     }
@@ -85,5 +89,25 @@ public class SimpleRecord implements Record<Object[]> {
     @Override
     public void setData(Object[] data) {
         this.data = data;
+    }
+
+    @Override
+    public Object[] getKey() {
+        return key;
+    }
+
+    @Override
+    public void setKey(Object[] key) {
+        this.key = key;
+    }
+
+    @Override
+    public RecordType getRecordType() {
+        return recordType;
+    }
+
+    @Override
+    public void setRecordType(RecordType recordType) {
+        this.recordType = recordType;
     }
 }

@@ -15,9 +15,6 @@
 
 package com.splicemachine.storage;
 
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.utils.Pair;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Iterator;
@@ -30,8 +27,9 @@ import java.util.concurrent.locks.Lock;
  *
  * A Partition represents the main storage abstraction in use. It encapsulates all logic for interacting
  * with the underlying storage interface.
+ *
  */
-public interface Partition extends AutoCloseable{
+public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
 
     String getTableName();
 
@@ -41,89 +39,53 @@ public interface Partition extends AutoCloseable{
     void close() throws IOException;
 
     /**
-     * Get a single row. Generally you'll want to re-use the DataGet object that you create in order
-     * to do many reads.
-     * @param get the get representing the row to fetch
-     * @param previous an object holder for previous fetches. Helps to save objects.
-     * @return the row result
+     *
+     * Attempts to get a single record.
+     *
+     * @param key
+     * @param txn
+     * @param isolationLevel
+     * @return
      * @throws IOException
      */
-    DataResult get(DataGet get,DataResult previous) throws IOException;
+    Record get(K key,Txn txn, IsolationLevel isolationLevel) throws IOException;
 
-    Iterator<DataResult> batchGet(Attributable attributes,List<byte[]>rowKeys) throws IOException;
+    Iterator<Record> batchGet(List<K>rowKeys, Txn txn, IsolationLevel isolationLevel) throws IOException;
 
-    DataScanner openScanner(DataScan scan) throws IOException;
+    RecordScanner openScanner(RecordScan scan, Txn txn, IsolationLevel isolationLevel) throws IOException;
 
-    DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException;
+    void write(Record record, Txn txn, IsolationLevel isolationLevel) throws IOException;
 
-    void put(DataPut put) throws IOException;
-
-    boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException;
+    boolean checkAndPut(K key, Record expectedValue, Record put) throws IOException;
 
     void startOperation() throws IOException;
 
     void closeOperation() throws IOException;
 
-    Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException;
+    Iterator<MutationStatus> writeBatch(Record[] toWrite) throws IOException;
 
     byte[] getStartKey();
 
     byte[] getEndKey();
 
-    long increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException;
+    // JL TODO
+    long increment(byte[] rowKey, long amount) throws IOException;
 
     boolean isClosed();
 
     boolean isClosing();
 
-    /**
-     * Get the latest value of the Foreign Key Counter specifically.
-     *
-     * @param key the key for the counter to fetch
-     * @param previous a holder object to save storage. If {@code null} is passed in, then a new RowResult
-     *                 is created. Otherwise, the previous value is used. This allows us to save on object creation
-     *                 when we wish to fetch a lot of these at the same time
-     * @return a DataResult containing the latest value of the Foreign Key Counter
-     * @throws IOException if something goes wrong
-     */
-    DataResult getFkCounter(byte[] key,DataResult previous) throws IOException;
+    Lock getRowLock(Record record) throws IOException;
 
-    /**
-     * Get the latest single value for all data types.
-     * <p>
-     *     This will fetch one and <em>only</em> one version of each possible cell, but it need not fetch
-     *     the <em>same</em> version for all cells--that is, it is possible to get a commit timestamp with version 2 and
-     *      a tombstone with version 10 in the same returned result.
-     * </p>
-     * @param key the row key to use during fetch
-     * @param previous a holder object to save storage. If {@code null} is passed in, then a new RowResult
-     *                 is created. Otherwise, the previous value is used. This allows us to save on object creation
-     *                 when we wish to fetch a lot of these at the same time
-     * @return a DataResult containing the latest value of all present cells for the specified key.
-     * @throws IOException if something goes wrong
-     */
-    DataResult getLatest(byte[] key,DataResult previous) throws IOException;
+    Record getLatest(K key) throws IOException;
 
-    Lock getRowLock(byte[] key,int keyOff,int keyLen) throws IOException;
+    void delete(K key, Txn txn, IsolationLevel isolationLevel) throws IOException;
 
-    DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException;
+    void mutate(Record record, Txn txn, IsolationLevel isolationLevel) throws IOException;
 
-    DataResultScanner openResultScanner(DataScan scan) throws IOException;
+    boolean containsKey(K key);
 
-    DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException;
-
-    void delete(DataDelete delete) throws IOException;
-
-    void mutate(DataMutation put) throws IOException;
-
-    boolean containsRow(byte[] row);
-
-    boolean containsRow(byte[] row, int offset, int length);
-
-    boolean overlapsRange(byte[] start,byte[] stop);
-
-    boolean overlapsRange(byte[] start,int startOff,int startLen,
-                          byte[] stop,int stopOff,int stopLen);
+    boolean overlapsKeyRange(K start,K stop);
 
     void writesRequested(long writeRequests);
 
@@ -135,9 +97,7 @@ public interface Partition extends AutoCloseable{
 
     PartitionServer owningServer();
 
-    List<Partition> subPartitions(byte[] startRow,byte[] stopRow);
-
-    List<Partition> subPartitions(byte[] startRow,byte[] stopRow, boolean refresh);
+    List<Partition> subPartitions(K startRow,K stopRow, boolean refresh);
 
     PartitionLoad getLoad() throws IOException;
 
@@ -157,7 +117,6 @@ public interface Partition extends AutoCloseable{
      */
     void flush() throws IOException;
 
-
     /**
      *
      * Return BitSet representing items possibly found in Bloom Filter/In Memory Structure
@@ -165,6 +124,6 @@ public interface Partition extends AutoCloseable{
      * @return
      * @throws IOException
      */
-    BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException;
+    BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Record[] records, Lock[] locks) throws IOException;
 
 }

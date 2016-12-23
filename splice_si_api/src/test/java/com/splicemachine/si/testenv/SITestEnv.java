@@ -18,6 +18,9 @@ package com.splicemachine.si.testenv;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.txn.TransactionStore;
+import com.splicemachine.si.api.txn.TxnFactory;
+import com.splicemachine.si.api.txn.TxnLocationFactory;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
 
@@ -42,4 +45,11 @@ public interface SITestEnv extends SITestDataEnv{
     PartitionFactory getTableFactory();
 
     void createTransactionalTable(byte[] tableNameBytes) throws IOException;
+
+    TxnFactory getTxnFactory();
+
+    TxnLocationFactory getTxnLocationFactory();
+
+    TxnSupplier getGlobalTxnCache();
+
 }

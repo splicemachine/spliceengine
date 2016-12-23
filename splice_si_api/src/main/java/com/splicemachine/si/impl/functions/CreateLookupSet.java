@@ -1,10 +1,8 @@
 package com.splicemachine.si.impl.functions;
 
-import com.splicemachine.si.api.data.Record;
-import com.splicemachine.si.api.txn.Txn;
+import com.google.common.base.Function;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.spark_project.guava.base.Function;
+import com.splicemachine.storage.Record;
 
 import javax.annotation.Nullable;
 

@@ -212,12 +212,12 @@ public class RegionPartition implements Partition{
 
     /*Multi-row access*/
     @Override
-    public DataScanner openScanner(DataScan scan) throws IOException{
+    public DataScanner openScanner(RecordScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
     }
 
     @Override
-    public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+    public DataScanner openScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
         assert scan instanceof HScan:"Programmer error: improper type!";
 
         Scan s=((HScan)scan).unwrapDelegate();
@@ -233,12 +233,12 @@ public class RegionPartition implements Partition{
     }
 
     @Override
-    public DataResultScanner openResultScanner(DataScan scan) throws IOException{
+    public RecordScanner openResultScanner(RecordScan scan) throws IOException{
         return openResultScanner(scan,Metrics.noOpMetricFactory());
     }
 
     @Override
-    public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+    public RecordScanner openResultScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
         assert scan instanceof HScan:"Programmer error: improper type!";
 
         Scan s=((HScan)scan).unwrapDelegate();

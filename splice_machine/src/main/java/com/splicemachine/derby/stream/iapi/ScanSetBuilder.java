@@ -23,8 +23,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.RecordScan;
 import com.splicemachine.storage.DataScanner;
+
 import java.io.IOException;
 
 /**
@@ -64,7 +65,7 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> operationContext(OperationContext operationContext);
 
-    ScanSetBuilder<V> scan(DataScan scan);
+    ScanSetBuilder<V> scan(RecordScan scan);
 
     ScanSetBuilder<V> transaction(TxnView txn);
 
@@ -112,7 +113,7 @@ public interface ScanSetBuilder<V>{
 
     String base64Encode() throws IOException, StandardException;
 
-    DataScan getScan();
+    RecordScan getScan();
 
     TxnView getTxn();
 

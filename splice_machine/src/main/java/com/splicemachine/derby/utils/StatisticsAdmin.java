@@ -57,7 +57,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.RecordScan;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -370,8 +370,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return String.format(OperationContext.Scope.COLLECT_STATS.displayName(), td.getName());
     }
 
-    private static DataScan createScan (TxnView txn) {
-        DataScan scan=SIDriver.driver().getOperationFactory().newDataScan(txn);
+    private static RecordScan createScan (TxnView txn) {
+        RecordScan scan=SIDriver.driver().getOperationFactory().newDataScan(txn);
         scan.returnAllVersions(); //make sure that we read all versions of the data
         return scan.startKey(new byte[0]).stopKey(new byte[0]);
     }
@@ -438,7 +438,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 }
             }
         }
-        DataScan scan = createScan(txn);
+        RecordScan scan = createScan(txn);
         ExecRow rowTemplate = new ValueRow(execRowFormatIds.length);
         DataValueDescriptor[] dvds = rowTemplate.getRowArray();
         DataValueFactory dataValueFactory=conn.getLanguageConnection().getDataValueFactory();

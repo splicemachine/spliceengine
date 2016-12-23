@@ -15,9 +15,7 @@
 
 package com.splicemachine.si.api.data;
 
-import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.storage.*;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -29,21 +27,6 @@ import java.io.ObjectOutput;
  *         Date: 7/8/14
  */
 public interface TxnOperationFactory{
-    DataScan newDataScan(Txn txn, IsolationLevel isolationLevel);
-
-    DataGet newDataGet(Txn txn, IsolationLevel isolationLevel, byte[] rowKey, DataGet previous);
-
     Txn readTxn(ObjectInput oi) throws IOException;
-
     void writeTxn(Txn txn, ObjectOutput out) throws IOException;
-
-    void writeScan(DataScan scan, ObjectOutput out) throws IOException;
-
-    DataScan readScan(ObjectInput in) throws IOException;
-
-    DataPut newDataPut(Txn txn, byte[] key, IsolationLevel isolationLevel) throws IOException;
-
-    DataMutation newDataDelete(Txn txn, byte[] key, IsolationLevel isolationLevel) throws IOException;
-
-    DataCell newDataCell(byte[] key,byte[] family,byte[] qualifier,byte[] value);
 }

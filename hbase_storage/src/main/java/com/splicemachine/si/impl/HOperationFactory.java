@@ -42,7 +42,7 @@ public class HOperationFactory implements OperationFactory{
     private HOperationFactory(){}
 
     @Override
-    public DataScan newScan(){
+    public RecordScan newScan(){
         return new HScan();
     }
 
@@ -92,7 +92,7 @@ public class HOperationFactory implements OperationFactory{
     }
 
     @Override
-    public void writeScan(DataScan scan,ObjectOutput out) throws IOException{
+    public void writeScan(RecordScan scan, ObjectOutput out) throws IOException{
         Scan delegate=((HScan)scan).unwrapDelegate();
 
         byte[] bytes=ProtobufUtil.toScan(delegate).toByteArray();
@@ -101,7 +101,7 @@ public class HOperationFactory implements OperationFactory{
     }
 
     @Override
-    public DataScan readScan(ObjectInput in) throws IOException{
+    public RecordScan readScan(ObjectInput in) throws IOException{
         byte[] bytes = new byte[in.readInt()];
         in.readFully(bytes);
         ClientProtos.Scan scan=ClientProtos.Scan.parseFrom(bytes);

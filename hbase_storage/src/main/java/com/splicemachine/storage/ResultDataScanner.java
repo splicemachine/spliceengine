@@ -27,7 +27,7 @@ import java.io.IOException;
  *         Date: 12/18/15
  */
 @NotThreadSafe
-public class ResultDataScanner implements DataResultScanner{
+public class ResultDataScanner implements RecordScanner {
     private final MeasuredResultScanner resultScanner;
 
     private HResult wrapper = new HResult();

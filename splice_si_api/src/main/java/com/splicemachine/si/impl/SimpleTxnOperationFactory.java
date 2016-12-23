@@ -33,67 +33,7 @@ import static com.splicemachine.si.constants.SIConstants.*;
  *         Date: 7/8/14
  */
 public class SimpleTxnOperationFactory implements TxnOperationFactory{
-    private final ExceptionFactory exceptionLib;
-    private final OperationFactory operationFactory;
-
-    public SimpleTxnOperationFactory(ExceptionFactory exceptionFactory,
-                                     OperationFactory baseFactory){
-        this.exceptionLib = exceptionFactory;
-        this.operationFactory = baseFactory;
-    }
-
-    @Override
-    public void writeScan(DataScan scan,ObjectOutput out) throws IOException{
-        operationFactory.writeScan(scan,out);
-    }
-
-    @Override
-    public DataScan readScan(ObjectInput in) throws IOException{
-        return operationFactory.readScan(in);
-    }
-
-    @Override
-    public DataScan newDataScan(Txn txn, IsolationLevel isolationLevel){
-        DataScan ds = operationFactory.newScan();
-        // JL TODO Determine Server side vs. client side...
-        makeNonTransactional(ds);
-        return ds;
-    }
-
-    @Override
-    public DataGet newDataGet(Txn txn, IsolationLevel isolationLevel, byte[] rowKey, DataGet previous){
-        DataGet dg = operationFactory.newGet(rowKey,previous);
-        // JL TODO Determine Server side vs. client side...
-        dg.returnAllVersions();
-        dg.setTimeRange(0l,Long.MAX_VALUE);
-        makeNonTransactional(dg);
-        return dg;
-    }
-
-    @Override
-    public DataPut newDataPut(Txn txn, byte[] key, IsolationLevel isolationLevel) throws IOException{
-        // JL TODO Determine Server side vs. client side...
-        DataPut dp = operationFactory.newPut(key);
-        makeNonTransactional(dp);
-        return dp;
-    }
-
-    @Override
-    public DataMutation newDataDelete(Txn txn, byte[] key,IsolationLevel isolationLevel) throws IOException{
-        // JL TODO Determine Server side vs. client side...
-        if(txn==null){
-            return operationFactory.newDelete(key);
-        }
-        DataPut put = operationFactory.newPut(key);
-        put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,txn.getTxnId(),SIConstants.EMPTY_BYTE_ARRAY);
-        put.addAttribute(SIConstants.SI_DELETE_PUT,SIConstants.TRUE_BYTES);
-//        encodeForWrites(put,txn);
-        return put;
-    }
-
-    @Override
-    public DataCell newDataCell(byte[] key,byte[] family,byte[] qualifier,byte[] value){
-        return operationFactory.newCell(key,family,qualifier,value);
+    public SimpleTxnOperationFactory(){
     }
 
     @Override
@@ -108,10 +48,6 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
         } catch (Exception e) {
             throw new IOException(e);
         }
-    }
-
-    protected void makeNonTransactional(Attributable op){
-        op.addAttribute(SI_EXEMPT,TRUE_BYTES);
     }
 
 

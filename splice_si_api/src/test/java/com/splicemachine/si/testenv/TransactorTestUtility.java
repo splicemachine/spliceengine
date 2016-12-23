@@ -85,11 +85,11 @@ public class TransactorTestUtility {
 
     public String scan(Txn txn, String name) throws IOException {
         byte[] key = newRowKey(name);
-        DataScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
+        RecordScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
         s = s.startKey(key).stopKey(key);
 
         try (Partition p = testEnv.getPersonTable(transactorSetup)){
-            try(DataResultScanner results = p.openResultScanner(s)){
+            try(RecordScanner results = p.openResultScanner(s)){
                 DataResult dr;
                 if((dr=results.next())!=null){
                     assertNull(results.next());
@@ -109,7 +109,7 @@ public class TransactorTestUtility {
 
         byte[] key = newRowKey(startKey);
         byte[] endKey = newRowKey(stopKey);
-        DataScan scan = transactorSetup.txnOperationFactory.newDataScan(txn);
+        RecordScan scan = transactorSetup.txnOperationFactory.newDataScan(txn);
         scan.startKey(key).stopKey(endKey);
         addPredicateFilter(scan);
 
@@ -124,7 +124,7 @@ public class TransactorTestUtility {
 //            scan.setFilter(filter);
         }
         try(Partition p = testEnv.getPersonTable(transactorSetup)){
-            try(DataResultScanner drs = p.openResultScanner(scan)){
+            try(RecordScanner drs = p.openResultScanner(scan)){
                 StringBuilder result=new StringBuilder();
                 DataResult dr;
                 while((dr = drs.next())!=null){
@@ -248,12 +248,12 @@ public class TransactorTestUtility {
     private static String scanNoColumnsDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                               Txn txn,String name,boolean deleted) throws IOException {
         byte[] endKey = newRowKey(name);
-        DataScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
+        RecordScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
         s = s.startKey(endKey).stopKey(endKey);
         addPredicateFilter(s);
         transactorSetup.readController.preProcessScan(s);
         try(Partition p = transactorSetup.getPersonTable(testEnv)){
-            try(DataResultScanner drs = p.openResultScanner(s)){
+            try(RecordScanner drs = p.openResultScanner(s)){
                 DataResult dr = null;
                 assertTrue(deleted ||(dr=drs.next())!=null);
                 assertNull(drs.next());
@@ -330,14 +330,6 @@ public class TransactorTestUtility {
             timestampDecoder.put(timestamp, timestampString);
             return timestampString;
         }
-    }
-
-    private static void addPredicateFilter(Attributable operation) throws IOException {
-        final BitSet bitSet = new BitSet(2);
-        bitSet.set(0);
-        bitSet.set(1);
-        EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, true);
-        operation.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
     }
 
     public static byte[] newRowKey(Object... args){

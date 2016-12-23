@@ -2,7 +2,7 @@
  *
  * Functional Flow for Iterable SI
  *
- * []records FetchActiveRecords (Iterable<KeyValue>)
+ * []records BatchFetchActiveRecords (Iterable<KeyValue>)
  *
  *
  *

@@ -24,7 +24,7 @@ import java.util.Map;
  * @author Scott Fines
  *         Date: 12/16/15
  */
-public class MScan implements DataScan{
+public class MScan implements RecordScan {
     private byte[] startKey;
     private byte[] stopKey;
     private DataFilter filter;
@@ -36,14 +36,14 @@ public class MScan implements DataScan{
 
     @Override
     @SuppressFBWarnings("EI_EXPOSE_REP2")
-    public DataScan startKey(byte[] startKey){
+    public RecordScan startKey(byte[] startKey){
         this.startKey =startKey;
         return this;
     }
 
     @Override
     @SuppressFBWarnings("EI_EXPOSE_REP2")
-    public DataScan stopKey(byte[] stopKey){
+    public RecordScan stopKey(byte[] stopKey){
         this.stopKey = stopKey;
         return this;
     }
@@ -59,13 +59,13 @@ public class MScan implements DataScan{
     }
 
     @Override
-    public DataScan filter(DataFilter df){
+    public RecordScan filter(DataFilter df){
         this.filter = df;
         return this;
     }
 
     @Override
-    public DataScan reverseOrder(){
+    public RecordScan reverseOrder(){
         this.descending= !descending; //swap the order
         return this;
     }
@@ -76,13 +76,13 @@ public class MScan implements DataScan{
     }
 
     @Override
-    public DataScan cacheRows(int rowsToCache){
+    public RecordScan cacheRows(int rowsToCache){
         //there is no caching in the in-memory version
         return this;
     }
 
     @Override
-    public DataScan batchCells(int cellsToBatch){
+    public RecordScan batchCells(int cellsToBatch){
         //there is no batching for in-memory (yet)
         return this;
     }

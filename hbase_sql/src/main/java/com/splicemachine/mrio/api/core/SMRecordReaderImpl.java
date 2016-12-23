@@ -20,7 +20,6 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -95,7 +94,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
 			TableSplit tSplit = ((SMSplit)split).getSplit();
-			DataScan scan = builder.getScan();
+			RecordScan scan = builder.getScan();
 			if (Bytes.startComparator.compare(scan.getStartKey(), tSplit.getStartRow()) < 0) {
 				// the split itself is more restrictive
 				scan.startKey(tSplit.getStartRow());

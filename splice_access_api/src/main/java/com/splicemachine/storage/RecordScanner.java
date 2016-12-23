@@ -23,9 +23,9 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 12/15/15
  */
-public interface DataResultScanner extends AutoCloseable{
+public interface RecordScanner extends AutoCloseable{
 
-    DataResult next() throws IOException;
+    Record next() throws IOException;
 
     TimeView getReadTime();
 

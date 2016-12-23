@@ -29,7 +29,7 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.RecordScan;
 import com.splicemachine.storage.DataScanner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
@@ -49,7 +49,7 @@ import java.util.Arrays;
 public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetBuilder<V>{
     protected DataScanner scanner;
     protected ExecRow template;
-    protected DataScan scan;
+    protected RecordScan scan;
     protected int[] rowColumnMap;
     protected TxnView txn;
     protected int[] keyColumnEncodingOrder;
@@ -121,7 +121,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
 
     @Override
-    public ScanSetBuilder<V> scan(DataScan scan){
+    public ScanSetBuilder<V> scan(RecordScan scan){
         assert scan!=null:"Null scans are not allowed!";
         this.scan=scan;
         return this;
@@ -525,7 +525,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return SIDriver.driver().getOperationFactory().readTxn(in);
     }
 
-    protected DataScan readScan(ObjectInput in) throws IOException{
+    protected RecordScan readScan(ObjectInput in) throws IOException{
         return SIDriver.driver().getOperationFactory().readScan(in);
     }
 
@@ -544,7 +544,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return Base64.encodeBase64String(SerializationUtils.serialize(this));
     }
 
-    public DataScan getScan(){
+    public RecordScan getScan(){
         return scan;
     }
 

@@ -36,7 +36,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.RecordScan;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -245,12 +245,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     }
 
     @Override
-    public DataScan getScan(TxnView txn) throws StandardException {
+    public RecordScan getScan(TxnView txn) throws StandardException {
         return getScan(txn, null, null, null, null);
     }
 
     @Override
-    public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
+    public RecordScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -345,7 +345,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
 
     @Override
-    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<RecordScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
         throw new RuntimeException("getScans is not supported");
     }
 

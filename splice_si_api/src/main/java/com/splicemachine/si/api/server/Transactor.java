@@ -20,6 +20,8 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.Record;
+
 import java.io.IOException;
 import java.util.Collection;
 
@@ -29,22 +31,13 @@ import java.util.Collection;
  */
 public interface Transactor{
 
-    boolean processPut(Partition table,DataPut put) throws IOException;
+    boolean processRecord(Partition table,Record record) throws IOException;
 
-    MutationStatus[] processPutBatch(Partition table,DataPut[] mutations) throws IOException;
-
-    MutationStatus[] processKvBatch(Partition table,
-                                    byte[] defaultFamilyBytes,
-                                    byte[] packedColumnBytes,
-                                    Collection<KVPair> toProcess,
-                                    long transactionId,
-                                    ConstraintChecker constraintChecker) throws IOException;
+    // Do we need this?
+    MutationStatus[] processPutBatch(Partition table,Record[] records) throws IOException;
 
     MutationStatus[] processKvBatch(Partition table,
-                                    byte[] defaultFamilyBytes,
-                                    byte[] packedColumnBytes,
-                                    Collection<KVPair> toProcess,
+                                    Collection<Record> records,
                                     Txn txn,
                                     ConstraintChecker constraintChecker) throws IOException;
-
 }

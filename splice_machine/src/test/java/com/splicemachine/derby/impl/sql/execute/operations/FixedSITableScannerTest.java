@@ -25,7 +25,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanne
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -304,7 +303,7 @@ public class FixedSITableScannerTest{
         //noinspection unchecked
 //        when(scanner.next(any(List.class))).thenAnswer(rowReturnAnswer);
 
-        DataScan scan=opFactory.newScan();
+        RecordScan scan=opFactory.newScan();
         ScanSetBuilder builder=new TableScannerBuilder(){
             @Override
             public DataSet buildDataSet() throws StandardException{

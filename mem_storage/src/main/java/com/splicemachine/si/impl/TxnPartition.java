@@ -102,12 +102,12 @@ public class TxnPartition implements Partition{
 
 
     @Override
-    public DataScanner openScanner(DataScan scan) throws IOException{
+    public DataScanner openScanner(RecordScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
     }
 
     @Override
-    public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+    public DataScanner openScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
         txnReadController.preProcessScan(scan);
         attachFilterIfNeeded(scan);
         return basePartition.openScanner(scan,metricFactory);
@@ -179,14 +179,14 @@ public class TxnPartition implements Partition{
     }
 
     @Override
-    public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+    public RecordScanner openResultScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
         attachFilterIfNeeded(scan);
         return basePartition.openResultScanner(scan,metricFactory);
     }
 
 
     @Override
-    public DataResultScanner openResultScanner(DataScan scan) throws IOException{
+    public RecordScanner openResultScanner(RecordScan scan) throws IOException{
         return openResultScanner(scan,Metrics.noOpMetricFactory());
     }
 
@@ -330,7 +330,7 @@ public class TxnPartition implements Partition{
         }
     }
 
-    private void attachFilterIfNeeded(DataScan scan) throws IOException{
+    private void attachFilterIfNeeded(RecordScan scan) throws IOException{
         if(scan.getAttribute(SIConstants.SI_NEEDED)!=null){
             TxnView txnView=txnOpFactory.fromReads(scan);
             if(txnView!=null){

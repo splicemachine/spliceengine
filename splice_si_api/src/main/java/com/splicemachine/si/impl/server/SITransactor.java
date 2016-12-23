@@ -30,7 +30,6 @@ import com.splicemachine.si.impl.ConflictResults;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Collections2;
@@ -228,7 +227,10 @@ public class SITransactor implements Transactor{
                                                                    MutationStatus[] finalStatus) throws IOException {
         IntObjectOpenHashMap<DataPut> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(dataAndLocks.length, 0.9f);
         DataResult possibleConflicts = null;
+
+        // Replace With Function Call...
         BitSet bloomInMemoryCheck  = table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
+
         for(int i=0;i<dataAndLocks.length;i++){
             Pair<KVPair, Lock> baseDataAndLock=dataAndLocks[i];
             if(baseDataAndLock==null) continue;

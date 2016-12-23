@@ -51,14 +51,14 @@ public class SpliceScan implements ScanManager, LazyScan{
     private static final Logger LOG=Logger.getLogger(SpliceScan.class);
     protected OpenSpliceConglomerate spliceConglomerate;
     private BaseSpliceTransaction trans;
-    protected DataScan scan;
+    protected RecordScan scan;
     protected FormatableBitSet scanColumnList;
     protected DataValueDescriptor[] startKeyValue;
     protected int startSearchOperator;
     protected Qualifier[][] qualifier;
     protected DataValueDescriptor[] stopKeyValue;
     protected int stopSearchOperator;
-    protected DataResultScanner scanner;
+    protected RecordScanner scanner;
     protected Partition table;
     protected boolean currentRowDeleted=false;
     protected HBaseRowLocation currentRowLocation;
@@ -374,7 +374,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         }
     }
 
-    public DataScan getScan(){
+    public RecordScan getScan(){
         if(LOG.isTraceEnabled())
             LOG.trace("getScan called from ParallelScan Interface");
         return scan;

@@ -15,7 +15,6 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.TransactionalRegion;
@@ -23,7 +22,6 @@ import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.storage.*;
-import com.splicemachine.utils.ByteSlice;
 import org.spark_project.guava.collect.Iterators;
 import java.io.IOException;
 import java.util.Collection;
@@ -35,7 +33,7 @@ import java.util.Iterator;
  * @author Scott Fines
  *         Date: 7/1/14
  */
-public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalScanner>{
+public class TxnRegion<InternalScanner,K> implements TransactionalRegion<InternalScanner,K>{
     private final TxnSupplier txnSupplier;
     private final Transactor transactor;
     private final TxnOperationFactory opFactory;
@@ -61,13 +59,8 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     }
 
     @Override
-    public boolean rowInRange(byte[] row){
-        return region.containsRow(row);
-    }
-
-    @Override
-    public boolean rowInRange(ByteSlice slice){
-        return region.containsRow(slice.array(),slice.offset(),slice.length());
+    public boolean keyInRange(K row){
+        return region.containsKey(row);
     }
 
     @Override
@@ -87,13 +80,12 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
 
     @Override
     public Iterable<MutationStatus> bulkWrite(Txn txn,
-                                       byte[] family,byte[] qualifier,
                                        ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
-                                       Collection<KVPair> data) throws IOException{
+                                       Collection<Record> data) throws IOException{
         /*
          * Designed for subclasses. Override this if you want to bypass transactional writes
          */
-        final MutationStatus[] status = transactor.processKvBatch(region, family, qualifier, data,txn,constraintChecker);
+        final MutationStatus[] status = transactor.processKvBatch(region,data,txn,constraintChecker);
         return new Iterable<MutationStatus>(){
             @Override public Iterator<MutationStatus> iterator(){ return Iterators.forArray(status); }
         };
@@ -122,4 +114,5 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     public String toString(){
         return region.getName();
     }
+
 }

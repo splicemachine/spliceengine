@@ -19,7 +19,6 @@ import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.ByteComparator;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
@@ -42,7 +41,7 @@ public class MOperationFactory implements OperationFactory{
     }
 
     @Override
-    public DataScan newScan(){
+    public RecordScan newScan(){
         return new MScan();
     }
 
@@ -94,12 +93,12 @@ public class MOperationFactory implements OperationFactory{
     }
 
     @Override
-    public void writeScan(DataScan scan,ObjectOutput out) throws IOException{
+    public void writeScan(RecordScan scan, ObjectOutput out) throws IOException{
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override
-    public DataScan readScan(ObjectInput in) throws IOException{
+    public RecordScan readScan(ObjectInput in) throws IOException{
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 

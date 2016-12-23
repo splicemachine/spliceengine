@@ -32,7 +32,4 @@ public interface PartitionServer extends Comparable<PartitionServer>{
 
     long getStartupTimestamp();
 
-//    ServerLogging getLogging();
-//
-//    DatabaseVersion getVersion();
 }

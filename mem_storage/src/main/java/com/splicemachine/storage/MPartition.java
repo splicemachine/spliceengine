@@ -143,12 +143,12 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataScanner openScanner(DataScan scan) throws IOException{
+    public DataScanner openScanner(RecordScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
     }
 
     @Override
-    public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+    public DataScanner openScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
         NavigableSet<DataCell> dataCells=getAscendingScanSet(scan);
         Iterator<DataCell> iter = scan.isDescendingScan()? dataCells.descendingIterator(): dataCells.iterator();
 
@@ -301,7 +301,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+    public RecordScanner openResultScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
         return new MappedDataResultScanner(openScanner(scan,metricFactory)){
             @Override
             protected DataResult newResult(){
@@ -316,7 +316,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataResultScanner openResultScanner(DataScan scan) throws IOException{
+    public RecordScanner openResultScanner(RecordScan scan) throws IOException{
         return openResultScanner(scan,Metrics.noOpMetricFactory());
     }
 
@@ -496,7 +496,7 @@ public class MPartition implements Partition{
         }
     }
 
-    private NavigableSet<DataCell> getAscendingScanSet(DataScan scan){
+    private NavigableSet<DataCell> getAscendingScanSet(RecordScan scan){
         NavigableSet<DataCell> dataCells;
         if(memstore.size()<=0)
             dataCells = EmptyNavigableSet.instance();

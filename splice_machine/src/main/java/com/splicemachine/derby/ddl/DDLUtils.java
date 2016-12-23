@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.storage.RecordScan;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.api.SConfiguration;
@@ -56,7 +57,6 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.LazyTxnView;
-import com.splicemachine.storage.DataScan;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -251,8 +251,8 @@ public class DDLUtils {
      * will happen at client side
      * @return
      */
-    public static DataScan createFullScan() {
-        DataScan scan = SIDriver.driver().getOperationFactory().newDataScan(null);
+    public static RecordScan createFullScan() {
+        RecordScan scan = SIDriver.driver().getOperationFactory().newDataScan(null);
         scan.startKey(SIConstants.EMPTY_BYTE_ARRAY).stopKey(SIConstants.EMPTY_BYTE_ARRAY).returnAllVersions();
         return scan;
     }

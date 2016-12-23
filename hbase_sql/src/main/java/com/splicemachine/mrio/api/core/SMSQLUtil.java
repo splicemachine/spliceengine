@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.storage.RecordScan;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 
@@ -52,7 +53,6 @@ import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HOperationFactory;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
-import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -455,7 +455,7 @@ public class SMSQLUtil  {
         }
 
         @Override
-        protected DataScan readScan(ObjectInput in) throws IOException {
+        protected RecordScan readScan(ObjectInput in) throws IOException {
             return HOperationFactory.INSTANCE.readScan(in);
         }
 
@@ -480,8 +480,8 @@ public class SMSQLUtil  {
             connect.close();
     }
 
-    public static DataScan createNewScan() {
-        DataScan scan = HOperationFactory.INSTANCE.newScan();
+    public static RecordScan createNewScan() {
+        RecordScan scan = HOperationFactory.INSTANCE.newScan();
         scan.returnAllVersions();
         return scan;
     }

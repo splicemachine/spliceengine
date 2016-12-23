@@ -31,7 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class TestingTxnStore implements TransactionStore {
     private final Map<Long, Txn> txnMap;
-    private final TimestampSource commitTsGenerator;
+    private final TimestampSource logicalTimestampSource;
+    private final TimestampSource physicalTimestampSource;
+
     private final Clock clock;
     private TxnLifecycleManager tc;
     private final ExceptionFactory exceptionFactory;
@@ -42,11 +44,13 @@ public class TestingTxnStore implements TransactionStore {
     private long commitCount = 0;
 
     public TestingTxnStore(Clock clock,
-                           TimestampSource commitTsGenerator,
+                           TimestampSource logicalTimestampSource,
+                           TimestampSource physicalTimestampSource,
                            ExceptionFactory exceptionFactory,
                            TxnSupplier GlobalTxnCacheSupplier){
         this.txnMap=new ConcurrentHashMap<>();
-        this.commitTsGenerator=commitTsGenerator;
+        this.logicalTimestampSource = logicalTimestampSource;
+        this.physicalTimestampSource = physicalTimestampSource;
         this.exceptionFactory=exceptionFactory;
         this.clock=clock;
     }
@@ -92,68 +96,42 @@ public class TestingTxnStore implements TransactionStore {
     }
 
     @Override
+    public Txn[] rollback(Txn[] transactions) throws IOException {
+        for (int i = 0; i< transactions.length; i++)
+            transactions[i] = rollback(transactions[i]);
+        return transactions;
+    }
+
+    @Override
     public Txn commit(Txn txn) throws IOException{
         commitCount++;
         Txn activeTxn=txnMap.get(txn.getTxnId());
-        if(activeTxn == null || !activeTxn.isAbleToCommit());
+        if(activeTxn == null || !activeTxn.isAbleToCommit())
             throw new IOException("Cannot commit txn txn: " + txn);
-        final long commitTs=commitTsGenerator.nextTimestamp();
+        txn.setCommitTimestamp(logicalTimestampSource.nextTimestamp());
+        txn.setHLCTimestamp(physicalTimestampSource.nextTimestamp());
+        txn.persist();
+        txnMap.put(txn.getTxnId(),txn);
+        return txn;
+    }
 
-        TxnView parentTransaction=txn.getParentTxnView();
-        final long globalCommitTs;
-        if(parentTransaction==null || parentTransaction.equals(Txn.ROOT_TRANSACTION))
-            globalCommitTs=commitTs;
-        else{
-            //see if the parent has committed yet
-            if(parentTransaction.getEffectiveState()==Txn.State.COMMITTED){
-                globalCommitTs=parentTransaction.getEffectiveCommitTimestamp();
-            }else
-                globalCommitTs=-1l;
-        }
-        txnHolder.txn=new ForwardingTxnView(txn){
-            @Override
-            public void commit() throws IOException{
-            } //do nothing
-
-            @Override
-            public void rollback() throws IOException{
-                throw new UnsupportedOperationException("Cannot rollback a committed transaction");
-            }
-
-            @Override
-            public Txn elevateToWritable(byte[] writeTable) throws IOException{
-                throw new UnsupportedOperationException("Txn is committed");
-            }
-
-            @Override
-            public long getCommitTimestamp(){
-                return commitTs;
-            }
-
-            @Override
-            public long getGlobalCommitTimestamp(){
-                return globalCommitTs;
-            }
-
-            @Override
-            public Txn.State getState(){
-                return Txn.State.COMMITTED;
-            }
-        };
-        return commitTs;
+    @Override
+    public Txn[] commit(Txn[] transactions) throws IOException {
+        for (int i = 0; i< transactions.length; i++)
+            transactions[i] = commit(transactions[i]);
+        return transactions;
     }
 
     @Override
     public void elevateTransaction(Txn txn) throws IOException{
-        long txnId=txn.getTxnId();
-        Txn writableTxnCopy=new WritableTxn(txn,tc,newDestinationTable,exceptionFactory);
-        TxnHolder oldTxn=txnMap.get(txnId);
-        if(oldTxn==null){
-            txnMap.put(txnId,new TxnHolder(writableTxnCopy,clock.currentTimeMillis()));
-        }else{
-            assert oldTxn.txn.getEffectiveState()==Txn.State.ACTIVE:"Cannot elevate transaction "+txnId+" because it is not active";
-            oldTxn.txn=writableTxnCopy;
-        }
+        elevationCount++;
+        txnMap.put(txn.getTxnId(),txn);
+    }
+
+    @Override
+    public void elevateTransaction(Txn[] transactions) throws IOException {
+        for (int i = 0; i< transactions.length; i++)
+            elevateTransaction(transactions[i]);
     }
 
     @Override

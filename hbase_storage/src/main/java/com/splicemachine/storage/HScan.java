@@ -25,7 +25,7 @@ import java.util.Map;
  * @author Scott Fines
  *         Date: 12/17/15
  */
-public class HScan implements DataScan{
+public class HScan implements RecordScan {
     private Scan scan;
 
     public HScan(){
@@ -42,19 +42,19 @@ public class HScan implements DataScan{
     }
 
     @Override
-    public DataScan startKey(byte[] startKey){
+    public RecordScan startKey(byte[] startKey){
         scan.setStartRow(startKey);
         return this;
     }
 
     @Override
-    public DataScan stopKey(byte[] stopKey){
+    public RecordScan stopKey(byte[] stopKey){
         scan.setStopRow(stopKey);
         return this;
     }
 
     @Override
-    public DataScan filter(DataFilter df){
+    public RecordScan filter(DataFilter df){
         assert df instanceof HFilterWrapper: "Programmer error! improper filter type!";
         Filter toAdd;
         Filter existingFilter=scan.getFilter();
@@ -136,18 +136,18 @@ public class HScan implements DataScan{
     }
 
     @Override
-    public DataScan reverseOrder(){
+    public RecordScan reverseOrder(){
         scan.setReversed(true);
         return this;
     }
 
     @Override
-    public DataScan cacheRows(int rowsToCache){
+    public RecordScan cacheRows(int rowsToCache){
         scan.setCaching(rowsToCache);
         /*
          * marking the scanner as "small" is a good idea when we are caching a relatively small number of records.
          *
-         * TODO -sf- is this exactly right? or should we expose this in the DataScan interface
+         * TODO -sf- is this exactly right? or should we expose this in the RecordScan interface
          */
         if(rowsToCache<=100)
             scan.setSmall(true);
@@ -155,7 +155,7 @@ public class HScan implements DataScan{
     }
 
     @Override
-    public DataScan batchCells(int cellsToBatch){
+    public RecordScan batchCells(int cellsToBatch){
         scan.setBatch(cellsToBatch);
         return this;
     }

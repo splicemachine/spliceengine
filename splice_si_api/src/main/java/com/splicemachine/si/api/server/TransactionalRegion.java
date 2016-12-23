@@ -15,12 +15,11 @@
 
 package com.splicemachine.si.api.server;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
-import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.storage.Record;
 import java.io.IOException;
 import java.util.Collection;
 
@@ -30,25 +29,22 @@ import java.util.Collection;
  * @author Scott Fines
  *         Date: 7/1/14
  */
-public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
+public interface TransactionalRegion<InternalScanner,K> extends AutoCloseable{
 
     /**
      * @return true if the underlying region is either closed or is closing
      */
     boolean isClosed();
 
-    boolean rowInRange(byte[] row);
-
-    boolean rowInRange(ByteSlice slice);
+    boolean keyInRange(K key);
 
     String getTableName();
 
     void updateWriteRequests(long writeRequests);
 
     Iterable<MutationStatus> bulkWrite(Txn txn,
-                                byte[] family, byte[] qualifier,
                                 ConstraintChecker constraintChecker,
-                                Collection<KVPair> data) throws IOException;
+                                Collection<Record> data) throws IOException;
 
 
     String getRegionName();

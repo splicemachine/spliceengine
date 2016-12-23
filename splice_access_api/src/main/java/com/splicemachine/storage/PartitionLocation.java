@@ -19,10 +19,10 @@ package com.splicemachine.storage;
  * @author Scott Fines
  *         Date: 12/22/15
  */
-public interface PartitionLocation{
+public interface PartitionLocation<K>{
     String partitionName();
 
-    byte[] startKey();
+    K startKey();
 
-    boolean containsRow(byte[] key);
+    boolean containsRow(K key);
 }

@@ -19,7 +19,6 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.SavePointNotFoundException;
 import com.splicemachine.si.impl.TransactionImpl;
@@ -33,7 +32,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
-
 import java.util.List;
 
 /**
@@ -69,14 +67,12 @@ public class SavepointsTest {
 
     @After
     public void tearDown() throws Exception{
-        for(Txn txn : createdParentTxns){
-            txn.rollback(); // rollback the transaction to prevent contamination
-        }
+        txnStore.rollback(createdParentTxns.toArray(new Txn[createdParentTxns.size()])); // rollback the transaction to prevent contamination
     }
 
     @Test
     public void testCreateSavepoint() throws Exception{
-        Txn parent=control.beginTransaction(DESTINATION_TABLE);
+        Txn parent=control.beginTransaction();
         TransactionImpl transaction = new TransactionImpl("user", parent, false, control);
 
         int res = transaction.setSavePoint("first", null);
@@ -95,7 +91,7 @@ public class SavepointsTest {
 
     @Test(expected = SavePointNotFoundException.class)
     public void testSavepointNotFound() throws Exception{
-        Txn parent=control.beginTransaction(DESTINATION_TABLE);
+        Txn parent=control.beginTransaction();
         TransactionImpl transaction = new TransactionImpl("user", parent, false, control);
 
         int res = transaction.setSavePoint("first", null);
@@ -104,18 +100,18 @@ public class SavepointsTest {
 
         transaction.rollbackToSavePoint("second", null);
     }
-
-
+    /*
+    JL-TODO Retest
     @Test
     public void testSavepointsAreActive() throws Exception{
-        Txn parent=control.beginTransaction(DESTINATION_TABLE);
+        Txn parent=control.beginTransaction();
         TransactionImpl transaction = new TransactionImpl("user", parent, false, control);
 
         int res = transaction.setSavePoint("first", null);
 
         Assert.assertEquals("Wrong txn stack size", 2, res);
 
-        transaction.elevate(DESTINATION_TABLE);
+        transaction.elevate();
 
 
         Txn parent2=control.beginTransaction();
@@ -134,23 +130,23 @@ public class SavepointsTest {
         Assert.assertEquals("Incorrect size",1,ids.length);
         Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId()},ids);
     }
-
+    */
 
     @Test
     public void testReleaseSavepoint() throws Exception{
-        Txn parent=control.beginTransaction(DESTINATION_TABLE);
+        Txn parent=control.beginTransaction();
         TransactionImpl transaction = new TransactionImpl("user", parent, false, control);
 
         int res = transaction.setSavePoint("first", null);
 
         Assert.assertEquals("Wrong txn stack size", 2, res);
-        transaction.elevate(DESTINATION_TABLE);
-        TxnView first = transaction.getTxn();
+        transaction.elevate();
+        Txn first = transaction.getTxn();
 
         res = transaction.setSavePoint("second", null);
 
         Assert.assertEquals("Wrong txn stack size", 3, res);
-        transaction.elevate(DESTINATION_TABLE);
+        transaction.elevate();
         Txn second = transaction.getTxn();
 
         // release first, should also commit second
@@ -158,26 +154,26 @@ public class SavepointsTest {
 
         Assert.assertEquals("Wrong txn stack size", 1, res);
 
-        Assert.assertEquals(Txn.State.COMMITTED, first.getState());
-        Assert.assertEquals(Txn.State.COMMITTED, second.getState());
+        Assert.assertTrue(first.isCommitted());
+        Assert.assertTrue(second.isCommitted());
     }
 
 
     @Test
     public void testRollbackSavepoint() throws Exception{
-        Txn parent=control.beginTransaction(DESTINATION_TABLE);
+        Txn parent=control.beginTransaction();
         TransactionImpl transaction = new TransactionImpl("user", parent, false, control);
 
         int res = transaction.setSavePoint("first", null);
 
         Assert.assertEquals("Wrong txn stack size", 2, res);
-        transaction.elevate(DESTINATION_TABLE);
-        TxnView first = transaction.getTxn();
+        transaction.elevate();
+        Txn first = transaction.getTxn();
 
         res = transaction.setSavePoint("second", null);
 
         Assert.assertEquals("Wrong txn stack size", 3, res);
-        transaction.elevate(DESTINATION_TABLE);
+        transaction.elevate();
         Txn second = transaction.getTxn();
 
         // rollback to first, should rollback second
@@ -185,34 +181,34 @@ public class SavepointsTest {
 
         Assert.assertEquals("Wrong txn stack size", 2, res);
 
-        Assert.assertEquals(Txn.State.ROLLEDBACK, first.getState());
-        Assert.assertEquals(Txn.State.ROLLEDBACK, second.getState());
+        Assert.assertTrue(first.isRolledback());
+        Assert.assertTrue(second.isRolledback());
     }
 
     @Test
     public void testElevateWholeStack() throws Exception{
         Txn parent=control.beginTransaction();
         TransactionImpl transaction = new TransactionImpl("user", parent, false, control);
-        Assert.assertFalse(transaction.getTxn().allowsWrites());
+        Assert.assertFalse(transaction.getTxn().isPersisted());
 
         int res = transaction.setSavePoint("first", null);
         Assert.assertEquals("Wrong txn stack size", 2, res);
-        Assert.assertFalse(transaction.getTxn().allowsWrites());
+        Assert.assertFalse(transaction.getTxn().isPersisted());
 
         res = transaction.setSavePoint("second", null);
         Assert.assertEquals("Wrong txn stack size", 3, res);
-        Assert.assertFalse(transaction.getTxn().allowsWrites());
+        Assert.assertFalse(transaction.getTxn().isPersisted());
 
-        transaction.elevate(DESTINATION_TABLE);
-        Assert.assertTrue(transaction.getTxn().allowsWrites());
+        transaction.elevate();
+        Assert.assertTrue(transaction.getTxn().isPersisted());
 
         res = transaction.releaseSavePoint("second", null);
         Assert.assertEquals("Wrong txn stack size", 2, res);
-        Assert.assertTrue(transaction.getTxn().allowsWrites());
+        Assert.assertTrue(transaction.getTxn().isPersisted());
 
         res = transaction.releaseSavePoint("first", null);
         Assert.assertEquals("Wrong txn stack size", 1, res);
-        Assert.assertTrue(transaction.getTxn().allowsWrites());
+        Assert.assertTrue(transaction.getTxn().isPersisted());
 
         transaction.commit();
     }
