@@ -21,18 +21,14 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.impl.ClientTxnLifecycleManager;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.server.SITransactor;
-import com.splicemachine.si.impl.txn.SITransactionReadController;
-import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -60,7 +56,6 @@ public class SIDriver {
         return siDriver;
     }
 
-    private final SITransactionReadController readController;
     private final PartitionFactory tableFactory;
     private final ExceptionFactory exceptionFactory;
     private final SConfiguration config;
@@ -70,14 +65,11 @@ public class SIDriver {
     private final TxnLocationFactory txnLocationFactory;
     private final TimestampSource physicalTimestampSource;
     private final TxnSupplier globalTxnCache;
-
     private final Transactor transactor;
     private final TxnOperationFactory txnOpFactory;
     private final TxnLifecycleManager lifecycleManager;
-    private final DataFilterFactory filterFactory;
     private final Clock clock;
     private final DistributedFileSystem fileSystem;
-    private final OperationFactory baseOpFactory;
     private final PartitionInfoCache partitionInfoCache;
     private final SnowflakeFactory snowflakeFactory;
     private final SIEnvironment env;
@@ -94,7 +86,6 @@ public class SIDriver {
         this.physicalTimestampSource = env.physicalTimestampSource();
         this.txnLocationFactory = env.txnLocationFactory();
         this.txnOpFactory = env.operationFactory();
-        this.filterFactory = env.filterFactory();
         this.clock = env.systemClock();
         this.partitionInfoCache = env.partitionInfoCache();
         this.snowflakeFactory = env.snowflakeFactory();
@@ -103,7 +94,6 @@ public class SIDriver {
         this.transactor = new SITransactor(
                 txnStore,
                 this.txnOpFactory,
-                env.baseOperationFactory(),
                 this.operationStatusFactory,
                 this.exceptionFactory);
 
@@ -116,15 +106,8 @@ public class SIDriver {
                 globalTxnCache,
                 txnStore);
         this.lifecycleManager =clientTxnLifecycleManager;
-        readController = new SITransactionReadController();
         this.fileSystem = env.fileSystem();
-        this.baseOpFactory = env.baseOperationFactory();
         this.env = env;
-    }
-
-
-    public TransactionReadController readController(){
-        return readController;
     }
 
     public PartitionFactory getTableFactory(){
@@ -173,10 +156,6 @@ public class SIDriver {
         return lifecycleManager;
     }
 
-    public DataFilterFactory filterFactory(){
-        return filterFactory;
-    }
-
     public TransactionalRegion transactionalPartition(long conglomId,Partition basePartition){
         if(conglomId>=0){
             return new TxnRegion(basePartition,
@@ -203,9 +182,5 @@ public class SIDriver {
         return fileSystem;
     }
 
-
-    public OperationFactory baseOperationFactory(){
-        return baseOpFactory;
-    }
 
 }

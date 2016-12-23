@@ -15,7 +15,10 @@
 
 package com.splicemachine.si.api.data;
 
+import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.storage.Record;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -29,4 +32,5 @@ import java.io.ObjectOutput;
 public interface TxnOperationFactory{
     Txn readTxn(ObjectInput oi) throws IOException;
     void writeTxn(Txn txn, ObjectOutput out) throws IOException;
+    ConflictType conflicts(Record potentialRecord, Record existingRecord);
 }

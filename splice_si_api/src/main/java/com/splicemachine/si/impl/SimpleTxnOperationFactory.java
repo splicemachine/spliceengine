@@ -15,17 +15,11 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.*;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import static com.splicemachine.si.constants.SIConstants.*;
 
 
 /**

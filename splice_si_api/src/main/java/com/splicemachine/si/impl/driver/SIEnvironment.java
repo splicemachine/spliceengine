@@ -25,7 +25,6 @@ import com.splicemachine.si.api.txn.TransactionStore;
 import com.splicemachine.si.api.txn.TxnFactory;
 import com.splicemachine.si.api.txn.TxnLocationFactory;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import java.io.IOException;
@@ -62,8 +61,6 @@ public interface SIEnvironment{
 
     PartitionInfoCache partitionInfoCache();
 
-    DataFilterFactory filterFactory();
-
     Clock systemClock();
 
     DistributedFileSystem fileSystem();
@@ -78,8 +75,6 @@ public interface SIEnvironment{
      * @throws URISyntaxException
      */
     DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException;
-
-    OperationFactory baseOperationFactory();
 
     SnowflakeFactory snowflakeFactory();
 

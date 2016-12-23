@@ -62,7 +62,7 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
 
     void closeOperation() throws IOException;
 
-    Iterator<MutationStatus> writeBatch(Record[] toWrite) throws IOException;
+    Iterator<MutationStatus> writeBatch(List<Record> toWrite) throws IOException;
 
     byte[] getStartKey();
 
@@ -124,6 +124,6 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
      * @return
      * @throws IOException
      */
-    BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Record[] records, Lock[] locks) throws IOException;
+    BitSet getBloomInMemoryCheck(Record[] records, Lock[] locks) throws IOException;
 
 }

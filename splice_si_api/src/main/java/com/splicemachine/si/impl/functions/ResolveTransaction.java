@@ -1,8 +1,8 @@
 package com.splicemachine.si.impl.functions;
 
-import com.splicemachine.si.api.data.Record;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.storage.Record;
 import org.spark_project.guava.base.Function;
 import javax.annotation.Nullable;
 

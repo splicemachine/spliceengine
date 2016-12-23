@@ -15,15 +15,12 @@
 
 package com.splicemachine.si.api.server;
 
-import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.Record;
-
 import java.io.IOException;
-import java.util.Collection;
 
 /**
  * The primary interface to the transaction module. This interface has the most burdensome generic signature so it is
@@ -34,10 +31,11 @@ public interface Transactor{
     boolean processRecord(Partition table,Record record) throws IOException;
 
     // Do we need this?
-    MutationStatus[] processPutBatch(Partition table,Record[] records) throws IOException;
+    MutationStatus[] processRecordBatch(Partition table,Record[] records) throws IOException;
 
-    MutationStatus[] processKvBatch(Partition table,
-                                    Collection<Record> records,
+    MutationStatus[] processRecordBatch(Partition table,
+                                    Record[] records,
                                     Txn txn,
+                                    IsolationLevel isolationLevel,
                                     ConstraintChecker constraintChecker) throws IOException;
 }
