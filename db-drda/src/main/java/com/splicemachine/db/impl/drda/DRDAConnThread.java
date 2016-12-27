@@ -247,13 +247,6 @@ class DRDAConnThread extends Thread {
     	String prdDTA = reader.convertBytes(prd);
     	if(prdDTA.compareTo(SPLICE_ODBC_NAME) == 0) 
     		session.enableCompress(true);
-
-		if (!appRequester.srvclsnm.equals("QDERBY/JVM")) {
-			// make sure this request is coming from the splice driver
-			if (!prdDTA.contains("Splice")) {
-				invalidClient(appRequester.prdid);
-            }
-		}
     }
 
 	// constructor
