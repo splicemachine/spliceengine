@@ -440,7 +440,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         String jobGroup = userId + " <" +txnId +">";
         try {
             if(storedAs != null)
-            EngineDriver.driver().getOlapClient().execute( new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, partitionby, jobGroup,  template));
+            EngineDriver.driver().getOlapClient().execute( new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup,  template));
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
