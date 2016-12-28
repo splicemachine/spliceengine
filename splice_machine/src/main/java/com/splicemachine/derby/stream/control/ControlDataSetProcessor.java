@@ -341,9 +341,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException {
+    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storageAs, String location) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        proc.createEmptyExternalFile(execRow,baseColumnMap,partitionBy,storageAs,location, compression);
+        proc.createEmptyExternalFile(execRow,baseColumnMap,partitionBy,storageAs,location);
     }
 
     @Override

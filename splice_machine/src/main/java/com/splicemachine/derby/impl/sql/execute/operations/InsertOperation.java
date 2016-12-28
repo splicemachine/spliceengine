@@ -309,11 +309,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {
-
-                if(!SIDriver.driver().fileSystem().getPath(location).toFile().canWrite()){
-                    throw  ErrorState.CANNOT_WRITE_AT_LOCATION.newException(location);
-                }
-
                 if (storedAs.toLowerCase().equals("p"))
                     return set.writeParquetFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
                 if (storedAs.toLowerCase().equals("o"))
