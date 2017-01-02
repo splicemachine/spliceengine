@@ -16,18 +16,21 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
-import org.spark_project.guava.base.Predicate;
+import com.splicemachine.si.api.txn.IsolationLevel;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.impl.data.SimpleRecord;
+import com.splicemachine.si.impl.functions.BatchFetchActiveRecords;
+import com.splicemachine.si.impl.functions.CreateLookupSet;
+import com.splicemachine.si.impl.functions.ResolveTransaction;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import org.spark_project.guava.collect.BiMap;
 import org.spark_project.guava.collect.HashBiMap;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.collections.EmptyNavigableSet;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.util.MappedDataResultScanner;
-import com.splicemachine.utils.Pair;
+import org.spark_project.guava.primitives.Longs;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
@@ -43,14 +46,32 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * @author Scott Fines
  *         Date: 12/16/15
+ *
+ *
+ *
  */
 @ThreadSafe
-public class MPartition implements Partition{
+public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
     private final String partitionName;
     private final String tableName;
     private final PartitionServer owner;
-
-    private final ConcurrentSkipListSet<DataCell> memstore=new ConcurrentSkipListSet<>();
+    // One record per key...
+    private final ConcurrentSkipListSet<Record<byte[],Object[]>> active =new ConcurrentSkipListSet<>(new Comparator<Record<byte[],Object[]>>() {
+        @Override
+        public int compare(Record<byte[],Object[]> o1, Record<byte[],Object[]> o2) {
+            return Bytes.basicByteComparator().compare(o1.getKey(),o2.getKey());
+        }
+    });
+    // N Records Per Key
+    private final ConcurrentSkipListSet<Record<byte[],Object[]>> redo = new ConcurrentSkipListSet<>(new Comparator<Record<byte[],Object[]>>() {
+        @Override
+        public int compare(Record<byte[],Object[]> o1, Record<byte[],Object[]> o2) {
+            int value = Bytes.basicByteComparator().compare(o1.getKey(),o2.getKey());
+            if (value != 0)
+                return value;
+            return Longs.compare(o1.getTxnId1(),o2.getTxnId1());
+        }
+    });
     private final BiMap<ByteBuffer, Lock> lockMap=HashBiMap.create();
     private AtomicLong writes=new AtomicLong(0l);
     private AtomicLong reads=new AtomicLong(0l);
@@ -85,7 +106,24 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataResult get(final DataGet get,DataResult previous) throws IOException{
+    public Record get(byte[] key, Txn txn, IsolationLevel isolationLevel) throws IOException {
+        Record<byte[],Object[]> record = active.floor(new MRecord(key));
+        if (record != null && Bytes.basicByteComparator().compare(record.getKey(),key) == 0) { // Active Match
+            Record[] baseRecords =
+                    new BatchFetchActiveRecords(1).apply(new SingletonIterator(record));
+            Record[] resolvedRecords =
+                    new ResolveTransaction(null,null).apply(baseRecords);
+
+            long[] recordsToLookup = new CreateLookupSet(null,null).apply(resolvedRecords);
+
+
+
+        }
+        // Active Miss
+        else {
+            return null;
+        }
+
         DataCell start=new MCell(get.key(),new byte[]{},new byte[]{},get.highTimestamp(),new byte[]{},CellType.USER_DATA);
 
         Set<DataCell> data=Sets.filter(memstore.tailSet(start,true),new Predicate<DataCell>(){
@@ -111,14 +149,13 @@ public class MPartition implements Partition{
         }
     }
 
-
     @Override
-    public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
+    public Iterator<Record> batchGet(List<byte[]>rowKeys, Txn txn, IsolationLevel isolationLevel) throws IOException{
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override
-    public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
+    public Record getLatest(byte[] rowKey) throws IOException{
         DataCell start=new MCell(rowKey,family,new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
         DataCell end=new MCell(rowKey,family,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
 
@@ -143,12 +180,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataScanner openScanner(RecordScan scan) throws IOException{
-        return openScanner(scan,Metrics.noOpMetricFactory());
-    }
-
-    @Override
-    public DataScanner openScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
+    public RecordScanner openScanner(RecordScan scan,Txn txn, IsolationLevel isolationLevel) throws IOException{
         NavigableSet<DataCell> dataCells=getAscendingScanSet(scan);
         Iterator<DataCell> iter = scan.isDescendingScan()? dataCells.descendingIterator(): dataCells.iterator();
 
@@ -158,13 +190,12 @@ public class MPartition implements Partition{
 
 
     @Override
-    public void put(DataPut put) throws IOException{
-        assert put instanceof MPut:"Programmer error: was not a memory put!";
-        put((MPut)put);
+    public void insert(Record record, Txn txn) throws IOException{
+
     }
 
     @Override
-    public boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException{
+    public boolean checkAndPut(byte[] key, Record expectedValue, Record record) throws IOException{
         Lock lock = getRowLock(key,0,key.length);
         lock.lock();
         try{
@@ -190,7 +221,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{
+    public Iterator<MutationStatus> writeBatch(List<Record> toWrite) throws IOException{
         List<MutationStatus> status=new ArrayList<>(toWrite.length);
         //noinspection ForLoopReplaceableByForEach
         for(int i=0;i<toWrite.length;i++){
@@ -213,7 +244,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public long increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
+    public long increment(byte[] rowKey, long amount) throws IOException{
         Lock lock=getRowLock(rowKey,0,rowKey.length);
         lock.lock();
         try{
@@ -245,29 +276,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
-        DataCell s=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,Long.MAX_VALUE,new byte[]{},CellType.FOREIGN_KEY_COUNTER);
-        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.FOREIGN_KEY_COUNTER);
-
-        NavigableSet<DataCell> dataCells=memstore.subSet(s,true,e,true);
-        List<DataCell> results=new ArrayList<>(dataCells.size());
-        DataCell lastResult=null;
-        for(DataCell dc : dataCells){
-            if(lastResult==null){
-                results.add(dc);
-                lastResult=dc;
-            }else if(!dc.matchesQualifier(lastResult.family(),lastResult.qualifier())){
-                results.add(dc);
-                lastResult=dc;
-            }
-        }
-//        if(results.size()<=0)
-//            results.add(new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,Long.MAX_VALUE,Bytes.toBytes(0l),CellType.FOREIGN_KEY_COUNTER));
-        return new MResult(results);
-    }
-
-    @Override
-    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
+    public Record getLatest(byte[] key) throws IOException{
         DataCell s=new MCell(key,new byte[]{},new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
         DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
 
@@ -287,7 +296,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public Lock getRowLock(byte[] key,int keyOff,int keyLen) throws IOException{
+    public Lock getRowLock(byte[] key) throws IOException{
         final ByteBuffer wrap=ByteBuffer.wrap(key,keyOff,keyLen);
         Lock lock;
         synchronized(lockMap){
@@ -301,56 +310,25 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public RecordScanner openResultScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
-        return new MappedDataResultScanner(openScanner(scan,metricFactory)){
-            @Override
-            protected DataResult newResult(){
-                return new MResult();
-            }
-
-            @Override
-            protected void setResultRow(List<DataCell> nextRow,DataResult resultWrapper){
-                ((MResult)resultWrapper).set(nextRow);
-            }
-        };
-    }
-
-    @Override
-    public RecordScanner openResultScanner(RecordScan scan) throws IOException{
-        return openResultScanner(scan,Metrics.noOpMetricFactory());
-    }
-
-
-    @Override
-    public void delete(DataDelete delete) throws IOException{
+    public void delete(byte[] rowKey, Txn txn) throws IOException{
         assert delete instanceof MDelete:"Programmer error: incorrect delete type for memory access!";
         delete((MDelete)delete,getRowLock(delete.key(),0,delete.key().length));
     }
 
     @Override
-    public void mutate(DataMutation put) throws IOException{
+    public void mutate(Record record, Txn txn) throws IOException{
         if(put instanceof DataPut)
             put((DataPut)put);
         else delete((DataDelete)put);
     }
 
     @Override
-    public boolean containsRow(byte[] row){
+    public boolean containsKey(byte[] row){
         return true;
     }
 
     @Override
-    public boolean containsRow(byte[] row,int offset,int length){
-        return true;
-    }
-
-    @Override
-    public boolean overlapsRange(byte[] start,byte[] stop){
-        return true;
-    }
-
-    @Override
-    public boolean overlapsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
+    public boolean overlapsKeyRange(byte[] start,byte[] stop){
         return true;
     }
 
@@ -377,11 +355,6 @@ public class MPartition implements Partition{
     @Override
     public PartitionServer owningServer(){
         return owner;
-    }
-
-    @Override
-    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow){
-        return subPartitions(); //we own everything
     }
 
     @Override
@@ -562,7 +535,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
+    public BitSet getBloomInMemoryCheck(Record[] records, Lock[] locks) throws IOException {
         return null;
     }
 }

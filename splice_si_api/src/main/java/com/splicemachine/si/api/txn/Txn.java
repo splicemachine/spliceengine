@@ -1,5 +1,8 @@
 package com.splicemachine.si.api.txn;
 
+import com.carrotsearch.hppc.LongSet;
+import com.splicemachine.storage.Record;
+
 import java.io.Externalizable;
 
 /**
@@ -197,4 +200,7 @@ public interface Txn extends Comparable<Txn>, Externalizable{
     boolean isActive();
 
     boolean isAbleToCommit();
+
+    void resolveCollapsibleTxn(Record record, Txn activeTxn, Txn txnToResolve);
+
 }

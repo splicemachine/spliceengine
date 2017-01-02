@@ -50,7 +50,6 @@ import com.splicemachine.derby.stream.spark.HBasePartitioner;
 import com.splicemachine.derby.stream.spark.RowPartition;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
@@ -487,7 +486,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(AggregateAliasInfo.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(UserDefinedAggregator.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(BulkWrite.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SpliceStddevPop.class);
         instance.register(SpliceStddevSamp.class);
         instance.register(Properties.class, new MapSerializer());

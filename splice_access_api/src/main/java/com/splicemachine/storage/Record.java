@@ -54,6 +54,7 @@ public interface Record<K,V> {
      */
     void setHasTombstone(boolean hasTombstone);
 
+
     /**
      *
      * Txn ID representing the parent timestamp of a hierarchical
@@ -143,5 +144,13 @@ public interface Record<K,V> {
     RecordType getRecordType();
 
     void setRecordType(RecordType recordType);
+
+    void setResolved();
+
+    boolean isResolved();
+
+    void setActive();
+
+    boolean isActive();
 
 }

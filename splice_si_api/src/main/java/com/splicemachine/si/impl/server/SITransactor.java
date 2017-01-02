@@ -97,13 +97,12 @@ public class SITransactor implements Transactor{
         try{
             // Apply Lock Function
             locks = new ObtainLocks(table,finalStatus,operationStatusLib).apply(toProcess);
-
             IntObjectOpenHashMap<Record> possibleConflicts = new PossibleConflictCheck(table, locks,constraintChecker!=null).apply(toProcess);
             IntObjectOpenHashMap<ConflictType> conflicts = new WriteWriteConflictCheck(table,toProcess,txnOperationFactory).apply(possibleConflicts);
             IntObjectOpenHashMap<MutationStatus> constraints = constraintChecker==null?null:new ConstraintCheck(toProcess, constraintChecker).apply(possibleConflicts);
-            
 
-            // Write Batch
+            List<Record>
+
             Iterator<MutationStatus> status = table.writeBatch(toProcess);
 
             return finalStatus;
@@ -113,7 +112,7 @@ public class SITransactor implements Transactor{
         }
     }
 
-    private IntObjectOpenHashMap<DataPut> checkConflictsForKvBatch(Partition table,
+    private IntObjectOpenHashMap<Record> checkConflictsForKvBatch(Partition table,
                                                                    Record[] records,
                                                                    Lock[] locks,
                                                                    LongOpenHashSet[] conflictingChildren,
@@ -127,7 +126,7 @@ public class SITransactor implements Transactor{
         IntObjectOpenHashMap<MutationStatus> constraints = new ConstraintCheck(records, constraintChecker).apply(possibleConflicts);
                 if (applyConstraint(constraintChecker, i, record, possibleConflicts, finalStatus, conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
                     continue;
-            }
+
             //TODO -sf- if type is an UPSERT, and conflict type is ADDITIVE_CONFLICT, then we
             //set the status on the row to ADDITIVE_CONFLICT_DURING_UPSERT
             if (KVPair.Type.UPSERT.equals(writeType)) {

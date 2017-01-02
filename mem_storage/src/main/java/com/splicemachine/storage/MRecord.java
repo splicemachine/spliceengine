@@ -1,14 +1,11 @@
-package com.splicemachine.si.impl.data;
+package com.splicemachine.storage;
 
-
-import com.splicemachine.storage.Record;
-import com.splicemachine.storage.RecordType;
 
 /**
  *
  *
  */
-public class SimpleRecord implements Record<Object[],Object[]> {
+public class MRecord implements Record<byte[],Object[]> {
     private long txnId1;
     private long txnId2;
     private long version;
@@ -16,13 +13,13 @@ public class SimpleRecord implements Record<Object[],Object[]> {
     private long effectiveTimestamp;
     private int numberOfColumns;
     private Object[] data;
-    private Object[] key;
+    private byte[] key;
     private RecordType recordType;
 
-    public SimpleRecord() {
+    public MRecord() {
     }
 
-    public SimpleRecord(Object[] key) {
+    public MRecord(byte[] key) {
         this.key = key;
     }
 
@@ -96,12 +93,12 @@ public class SimpleRecord implements Record<Object[],Object[]> {
     }
 
     @Override
-    public Object[] getKey() {
+    public byte[] getKey() {
         return key;
     }
 
     @Override
-    public void setKey(Object[] key) {
+    public void setKey(byte[] key) {
         this.key = key;
     }
 

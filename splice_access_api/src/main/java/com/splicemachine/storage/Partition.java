@@ -54,9 +54,7 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
 
     RecordScanner openScanner(RecordScan scan, Txn txn, IsolationLevel isolationLevel) throws IOException;
 
-    void write(Record record, Txn txn, IsolationLevel isolationLevel) throws IOException;
-
-    boolean checkAndPut(K key, Record expectedValue, Record put) throws IOException;
+    boolean checkAndPut(K key, Record expectedValue, Record record) throws IOException;
 
     void startOperation() throws IOException;
 
@@ -75,13 +73,15 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
 
     boolean isClosing();
 
-    Lock getRowLock(Record record) throws IOException;
+    Lock getRowLock(byte[] key) throws IOException;
 
     Record getLatest(K key) throws IOException;
 
-    void delete(K key, Txn txn, IsolationLevel isolationLevel) throws IOException;
+    void delete(K key, Txn txn) throws IOException;
 
-    void mutate(Record record, Txn txn, IsolationLevel isolationLevel) throws IOException;
+    void mutate(Record record, Txn txn) throws IOException;
+
+    void insert(Record record, Txn txn) throws IOException;
 
     boolean containsKey(K key);
 
