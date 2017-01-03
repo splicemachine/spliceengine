@@ -146,7 +146,7 @@
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.5.2</artifactId>
+                    <artifactId>spark-assembly-hadoop2.6.0-cdh5.6.0</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

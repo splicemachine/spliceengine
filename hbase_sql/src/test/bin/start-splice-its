@@ -13,7 +13,7 @@ SPLICELOG="${ROOT_DIR}"/splice_it.log
 KAFKALOG="${ROOT_DIR}"/kafka.log
 
 CHAOS="false"
-PROFILE="cdh5.5.2"  # default hbase platform profile
+PROFILE="cdh5.6.0"  # default hbase platform profile
 
 usage() {
     # $1 is an error, if any
@@ -26,8 +26,8 @@ usage() {
     echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
     echo "        grep 'task fail' splice_machine/splice.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
-    echo "  cdh5.4.10, cdh5.5.2, cdh5.6.0, cdh5.7.0, hdp2.4.2, mapr5.1.0"
-    echo "  Default is cdh5.5.2."
+    echo "  cdh5.6.0, cdh5.7.0, hdp2.4.2, hdp2.5.0, mapr5.1.0, mapr5.2.0"
+    echo "  Default is cdh5.6.0."
     echo "  -h => print this message"
 }
 
