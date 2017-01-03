@@ -15,19 +15,17 @@
 
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.LongSet;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.impl.data.SimpleRecord;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.functions.BatchFetchActiveRecords;
-import com.splicemachine.si.impl.functions.CreateLookupSet;
 import com.splicemachine.si.impl.functions.ResolveTransaction;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.spark_project.guava.collect.BiMap;
 import org.spark_project.guava.collect.HashBiMap;
-import org.spark_project.guava.collect.Sets;
 import com.splicemachine.collections.EmptyNavigableSet;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import org.spark_project.guava.primitives.Longs;
@@ -111,42 +109,14 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
         if (record != null && Bytes.basicByteComparator().compare(record.getKey(),key) == 0) { // Active Match
             Record[] baseRecords =
                     new BatchFetchActiveRecords(1).apply(new SingletonIterator(record));
-            Record[] resolvedRecords =
+            LongSet txnsToLookup =
                     new ResolveTransaction(null,null).apply(baseRecords);
-
-            long[] recordsToLookup = new CreateLookupSet(null,null).apply(resolvedRecords);
-
-
-
+            TxnSupplier supplier = null;
+            Txn[] txns = supplier.getTransactions(txnsToLookup.toArray());
+            TxnSupplier txnCacheSupplier = null;
+            txnCacheSupplier.cache(txns);
         }
-        // Active Miss
-        else {
-            return null;
-        }
-
-        DataCell start=new MCell(get.key(),new byte[]{},new byte[]{},get.highTimestamp(),new byte[]{},CellType.USER_DATA);
-
-        Set<DataCell> data=Sets.filter(memstore.tailSet(start,true),new Predicate<DataCell>(){
-            @Override
-            public boolean apply(DataCell dataCell){
-                byte[] key=get.key();
-                return Bytes.equals(dataCell.keyArray(),dataCell.keyOffset(),dataCell.keyLength(),key,0,key.length);
-            }
-        });
-        long curSeq = sequenceGen.get();
-        try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
-            List<DataCell> toReturn=ss.next(-1);
-            if(toReturn.size()<=0) return null;
-
-            filterByFamilies(toReturn,get.familyQualifierMap());
-            if(toReturn.size()<=0) return null;
-            if(previous==null)
-                previous=new MResult();
-            assert previous instanceof MResult:"Incorrect result type!";
-            ((MResult)previous).set(toReturn);
-
-            return previous;
-        }
+        return null;
     }
 
     @Override
@@ -156,27 +126,10 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
 
     @Override
     public Record getLatest(byte[] rowKey) throws IOException{
-        DataCell start=new MCell(rowKey,family,new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
-        DataCell end=new MCell(rowKey,family,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
-
-        Set<DataCell> data=memstore.subSet(start,true,end,true);
-        List<DataCell> toReturn=new ArrayList<>(data.size());
-        DataCell last=null;
-        for(DataCell d : data){
-            if(last==null){
-                toReturn.add(d);
-            }else if(d.dataType()!=last.dataType()){
-                toReturn.add(d);
-            }
-            last=d;
-        }
-
-        if(previous==null)
-            previous=new MResult();
-        assert previous instanceof MResult:"Incorrect result type!";
-        ((MResult)previous).set(toReturn);
-
-        return previous;
+        Record<byte[],Object[]> record = active.floor(new MRecord(key));
+        if (record != null && Bytes.basicByteComparator().compare(record.getKey(),key) == 0)
+            return record;
+        return null;
     }
 
     @Override
@@ -196,7 +149,7 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
 
     @Override
     public boolean checkAndPut(byte[] key, Record expectedValue, Record record) throws IOException{
-        Lock lock = getRowLock(key,0,key.length);
+        Lock lock = getRowLock(key);
         lock.lock();
         try{
             DataResult latest=getLatest(key,family,null);
@@ -222,12 +175,8 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
 
     @Override
     public Iterator<MutationStatus> writeBatch(List<Record> toWrite) throws IOException{
-        List<MutationStatus> status=new ArrayList<>(toWrite.length);
-        //noinspection ForLoopReplaceableByForEach
-        for(int i=0;i<toWrite.length;i++){
-            DataPut dp=toWrite[i];
-            assert dp instanceof MPut:"Incorrect put type";
-            put((MPut)dp);
+        List<MutationStatus> status=new ArrayList<>(toWrite.size());
+        for (Record record: toWrite) {
             status.add(MOperationStatus.success());
         }
         return status.iterator();
@@ -311,15 +260,12 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
 
     @Override
     public void delete(byte[] rowKey, Txn txn) throws IOException{
-        assert delete instanceof MDelete:"Programmer error: incorrect delete type for memory access!";
-        delete((MDelete)delete,getRowLock(delete.key(),0,delete.key().length));
+
     }
 
     @Override
     public void mutate(Record record, Txn txn) throws IOException{
-        if(put instanceof DataPut)
-            put((DataPut)put);
-        else delete((DataDelete)put);
+
     }
 
     @Override
@@ -436,39 +382,6 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
         }
     }
 
-    private void put(MPut mPut) throws IOException{
-        long seq = sequenceGen.incrementAndGet();
-        Lock lock=getRowLock(mPut.key(),0,mPut.key().length);
-        lock.lock();
-        try{
-            Iterable<DataCell> cells=mPut.cells();
-            for(DataCell dc : cells){
-                if(memstore.contains(dc)){
-                    memstore.remove(dc);
-                }
-                DataCell clone=dc.getClone();
-                ((MCell)clone).sequence(seq);
-                memstore.add(clone);
-            }
-        }finally{
-            lock.unlock();
-        }
-    }
-
-    private void delete(MDelete mDelete,Lock rowLock) throws IOException{
-        //remove elements from the row
-        rowLock.lock();
-        try{
-            Iterable<DataCell> exactCellsToDelete=mDelete.cells();
-            for(DataCell dc : exactCellsToDelete){
-                memstore.remove(dc);
-            }
-            //TODO -sf- make this also remove entire families and columns
-        }finally{
-            rowLock.unlock();
-        }
-    }
-
     private NavigableSet<DataCell> getAscendingScanSet(RecordScan scan){
         NavigableSet<DataCell> dataCells;
         if(memstore.size()<=0)
@@ -501,37 +414,6 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
             dataCells=memstore.subSet(start,true,stop,false);
         }
         return dataCells;
-    }
-
-
-    private void filterByFamilies(List<DataCell> toReturn,Map<byte[], ? extends Set<byte[]>> familyQualifierMap){
-        if(familyQualifierMap==null||familyQualifierMap.size()<=0) return;
-        Iterator<DataCell> dcIter = toReturn.iterator();
-        while(dcIter.hasNext()){
-            DataCell dc = dcIter.next();
-            boolean foundFamily = false;
-            for(Map.Entry<byte[],? extends Set<byte[]>> familyQuals:familyQualifierMap.entrySet()){
-               if(dc.matchesFamily(familyQuals.getKey())){
-                   foundFamily = true;
-                   Set<byte[]> quals = familyQuals.getValue();
-                   if(quals.size()>0){
-                       boolean foundQual = false;
-                       for(byte[] qual:quals){
-                           if(dc.matchesQualifier(familyQuals.getKey(),qual)){
-                               foundQual=true;
-                               break;
-                           }
-                       }
-                       if(!foundQual){
-                            dcIter.remove();
-                       }
-                   }
-                   break;
-               }
-            }
-            if(!foundFamily)
-                dcIter.remove();
-        }
     }
 
     @Override

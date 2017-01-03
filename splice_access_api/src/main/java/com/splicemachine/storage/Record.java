@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import java.util.Iterator;
+
 /**
  *
  * Record Implementation
@@ -10,7 +12,7 @@ public interface Record<K,V> {
      *
      * Txn ID 1
      *
-     * @return
+     * @return`
      */
     long getTxnId1();
 
@@ -153,4 +155,13 @@ public interface Record<K,V> {
 
     boolean isActive();
 
+    Record applyRollback(Iterator<Record<K,V>> recordIterator);
+
+    /**
+     * Position 0 active Record, Position 1 redo record
+     *
+     * @param updatedRecord
+     * @return
+     */
+    Record[] updateRecord(Record<K,V> updatedRecord);
 }

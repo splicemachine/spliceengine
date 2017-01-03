@@ -1,6 +1,8 @@
 package com.splicemachine.storage;
 
 
+import java.util.Iterator;
+
 /**
  *
  *
@@ -15,6 +17,10 @@ public class MRecord implements Record<byte[],Object[]> {
     private Object[] data;
     private byte[] key;
     private RecordType recordType;
+    private boolean resolved;
+    private boolean active;
+
+
 
     public MRecord() {
     }
@@ -110,5 +116,63 @@ public class MRecord implements Record<byte[],Object[]> {
     @Override
     public void setRecordType(RecordType recordType) {
         this.recordType = recordType;
+    }
+
+    @Override
+    public void setResolved() {
+        this.resolved = true;
+    }
+
+    @Override
+    public boolean isResolved() {
+        return resolved;
+    }
+
+    @Override
+    public void setActive() {
+        this.active = true;
+    }
+
+    @Override
+    public boolean isActive() {
+        return active;
+    }
+
+    @Override
+    public Record applyRollback(Iterator<Record<byte[],Object[]>> recordIterator) {
+        return null;
+    }
+
+    @Override
+    public Record[] updateRecord(Record<byte[],Object[]> updatedRecord) {
+        Record[] records = new Record[2];
+        Object[] currentData = this.getData();
+        Object[] updatedData = updatedRecord.getData();
+        Object[] redoRecord = new Object[updatedData.length];
+        Object[] newActiveRecord = new Object[Math.max(updatedData.length,currentData.length)];
+        // Generate Redo Record
+        for (int i = 0; i< updatedData.length; i++) {
+            if (updatedData[i] != null) {
+                if (currentData.length >= i) {
+
+                }
+                else {
+                    redoRecord[i] = null;
+                }
+            } else
+                redoRecord[i] = null;
+        }
+        for (Object column: updatedData) {
+
+        }
+
+
+        for (updatedRecord.getData())
+
+
+        updatedRecord.g
+
+
+        return new Record[0];
     }
 }

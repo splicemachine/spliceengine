@@ -48,21 +48,20 @@ public class ResolveTransaction implements Function<Record[],LongSet> {
                 if (record.getTxnId1() > record.getTxnId2()) {
                     Txn childTxn = txnSupplier.getTransaction(record.getTxnId1());
                     Txn parentTxn = txnSupplier.getTransaction(record.getTxnId2());
-                    if (parentTxn == null) {
-                        if (txnSet == null)
-                            txnSet = new LongOpenHashSet();
-                        txnSet.add(record.getTxnId2());
-                    } else {
-                        if (parentTxn.is)
-
-
-                    }
-
                     if (childTxn == null) {
                         if (txnSet == null)
                             txnSet = new LongOpenHashSet();
                         txnSet.add(record.getTxnId1());
                     }
+                    if (parentTxn == null) {
+                        if (txnSet == null)
+                            txnSet = new LongOpenHashSet();
+                        txnSet.add(record.getTxnId2());
+                    } else {
+
+
+                    }
+
 
                 }
             }
@@ -71,19 +70,5 @@ public class ResolveTransaction implements Function<Record[],LongSet> {
             throw new RuntimeException(e);
         }
     }
-
-
-    /**
-     *
-     // Collapsible
-     if (txn.getParentTxnId() == -1) { // Parent Level
-     if (txn.isActive() && (txn)) {
-     record.setActive(); // No Commit Timestamp is active
-     }
-     }
-
-
-     *
-     */
 
 }

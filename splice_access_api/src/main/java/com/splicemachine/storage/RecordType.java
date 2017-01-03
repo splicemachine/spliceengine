@@ -9,7 +9,6 @@ public enum RecordType {
     INSERT((byte)0x01),
     UPDATE((byte)0x02),
     DELETE((byte)0x03),
-    EMPTY_COLUMN((byte)0x04),
     UPSERT((byte)0x05),
     CANCEL((byte)0x08); /* For import process to cancel out an inserted row that violates a unique constraint */
 
