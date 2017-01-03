@@ -63,6 +63,7 @@ import com.splicemachine.storage.Partition;
  * @author jleach
  */
 public class ControlDataSetProcessor implements DataSetProcessor{
+    private static final String BAD_FILENAME = "unspecified_";
     private long badRecordThreshold=-1;
     private boolean permissive;
     private String statusDirectory;
@@ -160,6 +161,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         OperationContext<Op> operationContext=new ControlOperationContext<>(spliceOperation);
         spliceOperation.setOperationContext(operationContext);
         if(permissive){
+            if(importFileName == null)importFileName=BAD_FILENAME + System.currentTimeMillis();
             operationContext.setPermissive(statusDirectory, importFileName, badRecordThreshold);
         }
         return operationContext;
