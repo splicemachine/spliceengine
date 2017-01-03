@@ -56,8 +56,8 @@ public class TestMiniYARNClusterForHA {
     conf.set(YarnConfiguration.RM_WEBAPP_ADDRESS, "localhost:0");
     conf.set("yarn.resourcemanager.hostname.rm0","localhost");
     conf.set("yarn.resourcemanager.hostname.rm1","localhost");
-    conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "splice:///");
-    conf.set("fs.default.name", "splice:///");
+    conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+    conf.set("fs.default.name", "file:///");
     conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
     conf.set("fs.hdfs.client", "org.apache.hadoop.hdfs.DistributedFileSystem");
     conf.set("yarn.nodemanager.aux-services","");

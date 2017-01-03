@@ -46,7 +46,7 @@ public class BaseMRIOTest extends SpliceUnitTest{
 		config = HConfiguration.unwrapDelegate();
 		config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		config.set(HConstants.HBASE_DIR,getHbaseRootDirectory());
-        config.set("fs.default.name", "splice:///"); // MapR Hack, tells it local filesystem
+        config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
     	config.set(MRConstants.SPLICE_JDBC_STR, SpliceNetConnection.getDefaultLocalURL());
         System.setProperty(HConstants.HBASE_DIR, getHbaseRootDirectory());
     	System.setProperty("hive.metastore.warehouse.dir", getHiveWarehouseDirectory());
