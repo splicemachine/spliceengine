@@ -123,10 +123,10 @@ class SpliceTestPlatformConfig {
         //
         // File System
         //
-        config.set("fs.defaultFS", "file:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
-        config.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+        config.set("fs.defaultFS", "splice:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
+        config.set(FileSystem.FS_DEFAULT_NAME_KEY, "splice:///");
         config.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
-        config.set("fs.default.name", "file:///");
+        config.set("fs.default.name", "splice:///");
         config.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");
 
         // Must allow Cygwin instance to config its own rootURI
@@ -143,13 +143,14 @@ class SpliceTestPlatformConfig {
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
-        config.setLong("hbase.regionserver.handler.count", 200);
+        config.setLong("hbase.regionserver.handler.count", 64);
         config.setLong("hbase.regionserver.msginterval", 1000);
         config.setLong("hbase.master.event.waiting.time", 20);
-        config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
-//        config.setBoolean("hbase.master.loadbalance.bytable",true);
+        config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(1));
+        config.setLong("hbase.hconnection.threads.keepalivetime", 3);
+        config.setInt("hbase.hconnection.threads.max",32);
+        config.setInt("hbase.hconnection.threads.core",32);
         config.setInt("hbase.balancer.period",5000);
-
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
         config.setLong("hbase.client.pause", 100);
 

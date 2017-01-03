@@ -287,6 +287,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>SpliceFileSystem</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
             <version>${project.version}</version>
@@ -1131,6 +1136,9 @@
                                 <argument>
                                     -Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
+
+                                <argument>-Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
+
                                 <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
                                 <argument>-Dsplice.spark.driver.memory=1g</argument>
                                 <argument>-Dsplice.spark.enabled=true</argument>
@@ -1144,9 +1152,6 @@
                                 <argument>
                                     -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
                                 </argument>
-
-                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
-
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2g</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
@@ -1198,7 +1203,7 @@
                                 <argument>-Dderby.language.logStatementText=false</argument>
                                 <argument>-Dderby.infolog.append=true</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
-                                <argument>file://${project.build.directory}/hbase</argument>
+                                <argument>splice:///${project.build.directory}/hbase</argument>
                                 <argument>60000</argument>
                                 <argument>60010</argument>
                                 <argument>60020</argument>
@@ -1242,8 +1247,8 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
-                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
                                 <argument>-Xmx4g</argument>
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>
