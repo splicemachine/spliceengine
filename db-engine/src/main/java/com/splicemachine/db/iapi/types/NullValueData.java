@@ -58,7 +58,7 @@ public abstract class NullValueData
 {
 
 
-	protected boolean isNull = true;
+	protected volatile boolean isNull = true;
 
 	public boolean isNull()
 	{

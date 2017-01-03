@@ -165,7 +165,7 @@ public class SQLChar
 
     // Don't use value directly in most situations. Use getString()
     // OR use the rawData array if rawLength != -1.
-    private     String  value;
+    private volatile String  value;
 
     // rawData holds the reusable array for reading in SQLChars. It contains a
     // valid value if rawLength is greater than or equal to 0. See getString() 
@@ -173,21 +173,21 @@ public class SQLChar
     // object the rawData array remains for potential future use, unless 
     // rawLength is > 4096. In this case the rawData is set to null to avoid
     // huge memory use.
-    private     char[]  rawData;
-    private     int     rawLength = -1;
+    private volatile char[]  rawData;
+    private volatile int     rawLength = -1;
 
     // For null strings, cKey = null.
-    private CollationKey cKey; 
+    private volatile CollationKey cKey;
 
     /**
      * The value as a user-created Clob
      */
-    protected Clob _clobValue;
+    protected volatile Clob _clobValue;
     
     /**
      * The value as a stream in the on-disk format.
      */
-    InputStream stream;
+    volatile InputStream stream;
 
     /* Locale info (for International support) */
     private LocaleFinder localeFinder;
