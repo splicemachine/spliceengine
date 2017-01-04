@@ -337,7 +337,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location) throws StandardException {
+    public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
 
 
@@ -352,15 +352,20 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
             }
-
-            if(!SIDriver.driver().fileSystem().getPath(location).toFile().exists()) {
                 if (storedAs!=null) {
                     if (storedAs.toLowerCase().equals("p")) {
-                        empty.write().option("compression","none").partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                                 .mode(SaveMode.Append).parquet(location);
 
                     }
-                }
+                    if (storedAs.toLowerCase().equals("o")) {
+                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                                .mode(SaveMode.Append).orc(location);
+
+                    }
+                    if (storedAs.toLowerCase().equals("t")) {
+                        empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
+                    }
 
             }
 
