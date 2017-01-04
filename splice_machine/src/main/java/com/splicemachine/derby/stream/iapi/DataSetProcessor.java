@@ -151,7 +151,7 @@ public interface DataSetProcessor {
      * @param location
      * @throws StandardException
      */
-    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy,String storageAs,  String location) throws StandardException ;
+    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy,String storageAs,  String location, String compression) throws StandardException ;
 
     /**
      * This is used when someone modify the external table outside of Splice.
