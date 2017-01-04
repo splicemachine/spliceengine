@@ -396,7 +396,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return super.postCreateCoprocScanner(request, scanType, scanner, user);
     }
 
-    @Override
+    // FIXME: HDP 2.4.3+ uses HBase 1.1.2 with what appear to be behavior-changing cherry picks from newer code?
+    //@Override
     protected boolean performCompaction(Compactor.FileDetails fd, InternalScanner scanner, CellSink writer,
                                         long smallestReadPoint, boolean cleanSeqId,
                                         CompactionThroughputController throughputController, boolean major) throws IOException {
