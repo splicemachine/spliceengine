@@ -8963,6 +8963,13 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>encoding</arg>
            </msg>
 
+           <msg>
+               <name>EXT22</name>
+               <text>Cannot write at the location '{0}'</text>
+               <arg>location</arg>
+           </msg>
+
+
 
            <msg>
                <name>EXT21</name>
