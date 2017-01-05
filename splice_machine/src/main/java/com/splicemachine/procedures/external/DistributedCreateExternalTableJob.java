@@ -23,7 +23,6 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
     private String lines;
     private String storedAs;
     private String location;
-    private String compression;
 
     private String jobGroup;
     private ExecRow execRow;
@@ -39,7 +38,6 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
                                              String lines,
                                              String storedAs,
                                              String location,
-                                             String compression,
                                              int[] partitionBy,
                                              String jobGroup,
                                              ExecRow execRow) {
@@ -47,7 +45,6 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
         this.escaped = escaped;
         this.lines = lines;
         this.storedAs = storedAs;
-        this.compression = compression;
         this.location = location;
         this.partitionBy = partitionBy;
         this.jobGroup = jobGroup;
@@ -92,10 +89,6 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
         if (location!=null)
             out.writeUTF(location);
 
-        out.writeBoolean(compression!=null);
-        if (compression!=null)
-            out.writeUTF(compression);
-
         out.writeUTF(jobGroup);
         out.writeObject(execRow);
     }
@@ -113,7 +106,6 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
         lines       = in.readBoolean()?in.readUTF():null;
         storedAs    = in.readBoolean()?in.readUTF():null;
         location    = in.readBoolean()?in.readUTF():null;
-        compression    = in.readBoolean()?in.readUTF():null;
         jobGroup    = in.readUTF();
         execRow     = (ExecRow)in.readObject();
 
@@ -137,10 +129,6 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
 
     public String getLocation() {
         return location;
-    }
-
-    public String getCompression() {
-        return compression;
     }
 
     public String getJobGroup() {
