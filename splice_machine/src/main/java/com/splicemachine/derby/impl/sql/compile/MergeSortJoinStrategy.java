@@ -93,9 +93,10 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         innerCost.setLocalCostPerPartition(joinCost);
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
         innerCost.setRowOrdering(outerCost.getRowOrdering());
-        innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
+        innerCost.setRowOrdering(null);
+        innerCost.setNumPartitions(16);
     }
 
     @Override
