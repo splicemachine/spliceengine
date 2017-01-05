@@ -36,7 +36,7 @@ public class LazyChar extends LazyStringDataValueDescriptor{
     @Override
     public DataValueDescriptor cloneHolder(){
         forceDeserialization();
-        return new LazyChar(sdv);
+        return new LazyChar(dvd);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class LazyChar extends LazyStringDataValueDescriptor{
             return lsdv;
         }
         forceDeserialization();
-        return new LazyChar((StringDataValue)sdv.cloneValue(forceMaterialization));
+        return new LazyChar((StringDataValue)dvd.cloneValue(forceMaterialization));
     }
 
     @Override
@@ -56,9 +56,8 @@ public class LazyChar extends LazyStringDataValueDescriptor{
     }
 
     @Override
-    protected DataValueDescriptor newDescriptor(){
-        sdv = new SQLChar();
-        return sdv;
+    protected StringDataValue newDescriptor(){
+        return new SQLChar();
     }
 
     @Override

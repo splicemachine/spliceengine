@@ -28,9 +28,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.util.Calendar;
 
-public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDataValue{
-    protected DateTimeDataValue dtdv;
-
+public class LazyTimestamp extends LazyDataValueDescriptor<DateTimeDataValue> implements DateTimeDataValue{
     // Only for Kry to construct a LazyTimestampDataValueDescriptor instance
     public LazyTimestamp(){
     }
@@ -47,7 +45,6 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
      */
     protected void init(DateTimeDataValue dtdv){
         super.init(dtdv);
-        this.dtdv=dtdv;
     }
 
     @Override
@@ -56,90 +53,80 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
     }
 
     @Override
-    protected DataValueDescriptor newDescriptor(){
-        dtdv=new SQLTimestamp();
-        return dtdv;
-    }
-
-    protected void forceDeserialization(){
-        if(dvd==null)
-            dvd = newDescriptor();
-        if(!isDeserialized() && isSerialized()){
-            super.forceDeserialization();
-            this.dtdv=(DateTimeDataValue)this.dvd;
-        }
+    protected DateTimeDataValue newDescriptor(){
+        return new SQLTimestamp();
     }
 
     @Override
     public NumberDataValue getYear(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getYear(result);
+        return dvd.getYear(result);
     }
 
     @Override
     public NumberDataValue getQuarter(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getQuarter(result);
+        return dvd.getQuarter(result);
     }
 
     @Override
     public NumberDataValue getMonth(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getMonth(result);
+        return dvd.getMonth(result);
     }
 
     @Override
     public StringDataValue getMonthName(StringDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getMonthName(result);
+        return dvd.getMonthName(result);
     }
 
     @Override
     public NumberDataValue getWeek(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getWeek(result);
+        return dvd.getWeek(result);
     }
 
     @Override
     public NumberDataValue getWeekDay(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getWeekDay(result);
+        return dvd.getWeekDay(result);
     }
 
     @Override
     public StringDataValue getWeekDayName(StringDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getWeekDayName(result);
+        return dvd.getWeekDayName(result);
     }
 
     @Override
     public NumberDataValue getDate(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getDate(result);
+        return dvd.getDate(result);
     }
 
     @Override
     public NumberDataValue getDayOfYear(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getDayOfYear(result);
+        return dvd.getDayOfYear(result);
     }
 
     @Override
     public NumberDataValue getHours(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getHours(result);
+        return dvd.getHours(result);
     }
 
     @Override
     public NumberDataValue getMinutes(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getMinutes(result);
+        return dvd.getMinutes(result);
     }
 
     @Override
     public NumberDataValue getSeconds(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return dtdv.getSeconds(result);
+        return dvd.getSeconds(result);
     }
 
     @Override
@@ -151,10 +138,10 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
             lsdv.initForDeserialization(tableVersion,serializer,bytes,offset,length,descendingOrder);
             return lsdv;
         }else{
-            if(dtdv==null)
-                return new LazyTimestamp((DateTimeDataValue)newDescriptor());
+            if(dvd==null)
+                return new LazyTimestamp(newDescriptor());
             else{
-                return new LazyTimestamp((DateTimeDataValue)dtdv.cloneValue(forceMaterialization));
+                return new LazyTimestamp((DateTimeDataValue)dvd.cloneValue(forceMaterialization));
             }
         }
     }
@@ -164,7 +151,7 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
         if(isNull())
             return new LazyTimestamp();
         else if(isDeserialized())
-            return new LazyTimestamp(dtdv);
+            return new LazyTimestamp(dvd);
         else{
            /*
             * Return a shallow clone, so just point to the same bytes
@@ -181,7 +168,7 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
                                          java.sql.Date currentDate,
                                          NumberDataValue resultHolder) throws StandardException{
         forceDeserialization();
-        return dtdv.timestampDiff(intervalType,time1,currentDate,resultHolder);
+        return dvd.timestampDiff(intervalType,time1,currentDate,resultHolder);
 
     }
 
@@ -198,31 +185,31 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
                 resultHolder=(DateTimeDataValue)resultHolderObject.getObject();
             }
         }
-        return dtdv.timestampAdd(intervalType,intervalCount,currentDate,resultHolder);
+        return dvd.timestampAdd(intervalType,intervalCount,currentDate,resultHolder);
     }
 
     @Override
     public DateTimeDataValue plus(DateTimeDataValue leftOperand,NumberDataValue daysToAdd,DateTimeDataValue returnValue) throws StandardException{
         forceDeserialization();
-        return dtdv.plus(leftOperand,daysToAdd,returnValue);
+        return dvd.plus(leftOperand,daysToAdd,returnValue);
     }
 
     @Override
     public DateTimeDataValue minus(DateTimeDataValue leftOperand,NumberDataValue daysToAdd,DateTimeDataValue returnValue) throws StandardException{
         forceDeserialization();
-        return dtdv.minus(leftOperand,daysToAdd,returnValue);
+        return dvd.minus(leftOperand,daysToAdd,returnValue);
     }
 
     @Override
     public NumberDataValue minus(DateTimeDataValue leftOperand,DateTimeDataValue daysToAdd,NumberDataValue returnValue) throws StandardException{
         forceDeserialization();
-        return dtdv.minus(leftOperand,daysToAdd,returnValue);
+        return dvd.minus(leftOperand,daysToAdd,returnValue);
     }
 
     @Override
     public void setValue(String value,Calendar cal) throws StandardException{
-        if(dtdv==null) createNewDescriptor();
-        dtdv.setValue(value,cal);
+        if(dvd==null) createNewDescriptor();
+        dvd.setValue(value,cal);
         resetForSerialization();
     }
 
@@ -231,8 +218,7 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
 
         super.readExternal(in);
 
-        dtdv=(DateTimeDataValue)dvd;
-        init(dtdv);
+        init(dvd);
     }
 
     @Override

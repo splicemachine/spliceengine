@@ -44,13 +44,13 @@ import java.util.Calendar;
  * in the variables below and in the subclasses. See the specific variables below for
  * rationale.
  */
-public abstract class LazyDataValueDescriptor extends NullValueData implements DataValueDescriptor {
+public abstract class LazyDataValueDescriptor<DVD extends DataValueDescriptor> extends NullValueData implements DataValueDescriptor {
     private static final long serialVersionUID=3l;
     private static Logger LOG=Logger.getLogger(LazyDataValueDescriptor.class);
 
     //Same as the dvd used in the subclasses, another reference is kept here
     //to avoid a covariant getter call on the subclass (slows down performance)
-    DataValueDescriptor dvd=null;
+    DVD dvd=null;
 
     /*
      * One or the other is always non-null, but not both
@@ -60,7 +60,7 @@ public abstract class LazyDataValueDescriptor extends NullValueData implements D
     protected int length;
 
     //    protected DVDSerializer dvdSerializer;
-    protected boolean deserialized;
+    protected volatile boolean deserialized;
     protected boolean descendingOrder;
 
 //    //Sort of a cached return value for the isNull() call of the DataValueDescriptor
@@ -73,13 +73,16 @@ public abstract class LazyDataValueDescriptor extends NullValueData implements D
     protected String tableVersion;
     protected DescriptorSerializer serializer;
 
+    // Used to avoid concurrent attempts to deserialize
+    private Object deserLock = new Object();
+
     public LazyDataValueDescriptor(){
     }
 
-    public LazyDataValueDescriptor(DataValueDescriptor dvd){
+    public LazyDataValueDescriptor(DVD dvd){
         init(dvd);
     }
-    protected void init(DataValueDescriptor dvd){
+    protected void init(DVD dvd){
         this.dvd=dvd;
         deserialized=dvd!=null && !dvd.isNull();
         if (dvd == null) {
@@ -124,29 +127,41 @@ public abstract class LazyDataValueDescriptor extends NullValueData implements D
 
     protected void createNewDescriptor() {
         dvd = newDescriptor();
-        if(dvd==null||dvd.isNull())
-            isNull = bytes==null||length==0;
+        if (dvd == null || dvd.isNull())
+            isNull = bytes == null || length == 0;
         else isNull = false;
-
     }
+
+    private Object initLock = new Object();
+    private volatile boolean hasDescriptor = false;
 
     protected void forceDeserialization(){
-        if(dvd==null)
-            createNewDescriptor();
-
-        if(isSerialized()&&!isDeserialized()){
-            try{
-                serializer.decodeDirect(dvd,bytes,offset,length,descendingOrder);
-                deserialized=true;
-            }catch(Exception e){
-                SpliceLogUtils.error(LOG,String.format("Error lazily deserializing %s from bytes with serializer %s",
-                        this.getClass().getSimpleName(), serializer==null?"NULL": serializer.getClass().getSimpleName()),e);
+        if (!hasDescriptor) {
+            synchronized (initLock) {
+                if (!hasDescriptor && dvd == null) {
+                    createNewDescriptor();
+                    hasDescriptor = true;
+                }
             }
         }
-        isNull = evaluateNull();;
+        if(isSerialized()&&!isDeserialized()){
+            synchronized (deserLock) {
+                // double checked locking on volatile
+                if (!isDeserialized()) {
+                    try {
+                        serializer.decodeDirect(dvd, bytes, offset, length, descendingOrder);
+                        deserialized = true;
+                    } catch (Exception e) {
+                        SpliceLogUtils.error(LOG, String.format("Error lazily deserializing %s from bytes with serializer %s",
+                                this.getClass().getSimpleName(), serializer == null ? "NULL" : serializer.getClass().getSimpleName()), e);
+                    }
+                }
+            }
+        }
+        isNull = evaluateNull();
     }
 
-    protected abstract DataValueDescriptor newDescriptor();
+    protected abstract DVD newDescriptor();
 
     protected void forceSerialization(){
         forceSerialization(descendingOrder,tableVersion);

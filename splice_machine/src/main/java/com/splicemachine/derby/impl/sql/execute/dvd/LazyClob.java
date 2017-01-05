@@ -34,15 +34,14 @@ public class LazyClob extends LazyStringDataValueDescriptor{
     }
 
     @Override
-    protected DataValueDescriptor newDescriptor(){
-        sdv = new SQLClob();
-        return sdv;
+    protected StringDataValue newDescriptor(){
+        return new SQLClob();
     }
 
     @Override
     public DataValueDescriptor cloneHolder(){
         forceDeserialization();
-        return new LazyClob(sdv);
+        return new LazyClob(dvd);
     }
 
     @Override
@@ -53,7 +52,7 @@ public class LazyClob extends LazyStringDataValueDescriptor{
             return lsdv;
         }
         forceDeserialization();
-        return new LazyClob((StringDataValue)sdv.cloneValue(forceMaterialization));
+        return new LazyClob((StringDataValue)dvd.cloneValue(forceMaterialization));
     }
 
     @Override

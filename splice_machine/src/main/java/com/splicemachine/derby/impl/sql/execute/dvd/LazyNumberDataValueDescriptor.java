@@ -26,9 +26,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.math.BigDecimal;
 
-public abstract class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor implements NumberDataValue, VariableSizeDataValue{
-
-    NumberDataValue ndv;
+public abstract class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor<NumberDataValue> implements NumberDataValue, VariableSizeDataValue{
 
     public LazyNumberDataValueDescriptor(){
     }
@@ -39,135 +37,130 @@ public abstract class LazyNumberDataValueDescriptor extends LazyDataValueDescrip
 
     public void init(NumberDataValue ndv){
         super.init(ndv);
-        this.ndv=ndv;
     }
 
     @Override
     public DataValueFactoryImpl.Format getFormat(){
-        if(ndv==null){
-            dvd=ndv=(NumberDataValue)newDescriptor();
-        }
-        return ndv.getFormat();
+        forceDeserialization();
+        return dvd.getFormat();
     }
 
     public NumberDataValue plus(NumberDataValue addend1,NumberDataValue addend2,NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return ndv.plus(addend1,addend2,result);
+        return dvd.plus(addend1,addend2,result);
     }
 
     @Override
     public NumberDataValue minus(NumberDataValue left,NumberDataValue right,NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return ndv.minus(left,right,result);
+        return dvd.minus(left,right,result);
     }
 
     @Override
     public NumberDataValue times(NumberDataValue left,NumberDataValue right,NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return ndv.times(left,right,result);
+        return dvd.times(left,right,result);
     }
 
     @Override
     public NumberDataValue divide(NumberDataValue dividend,NumberDataValue divisor,NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return ndv.divide(dividend,divisor,result);
+        return dvd.divide(dividend,divisor,result);
     }
 
     @Override
     public NumberDataValue divide(NumberDataValue dividend,NumberDataValue divisor,NumberDataValue result,int scale) throws StandardException{
         forceDeserialization();
-        return ndv.divide(dividend,divisor,result);
+        return dvd.divide(dividend,divisor,result);
     }
 
     @Override
     public NumberDataValue mod(NumberDataValue dividend,NumberDataValue divisor,NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return ndv.mod(dividend,divisor,result);
+        return dvd.mod(dividend,divisor,result);
     }
 
     @Override
     public NumberDataValue minus(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return ndv.minus(result);
+        return dvd.minus(result);
     }
 
     @Override
     public NumberDataValue absolute(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return ndv.absolute(result);
+        return dvd.absolute(result);
     }
 
     @Override
     public NumberDataValue sqrt(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return ndv.sqrt(result);
+        return dvd.sqrt(result);
     }
 
     @Override
     public void setValue(Number theValue) throws StandardException{
-        if(ndv==null)
-            dvd = ndv = (NumberDataValue)newDescriptor();
-        ndv.setValue(theValue);
+        forceDeserialization();
+        dvd.setValue(theValue);
         resetForSerialization();
     }
 
     @Override
     public int getDecimalValuePrecision(){
         forceDeserialization();
-        return ndv.getDecimalValuePrecision();
+        return dvd.getDecimalValuePrecision();
     }
 
     @Override
     public int getDecimalValueScale(){
         forceDeserialization();
-        return ndv.getDecimalValueScale();
+        return dvd.getDecimalValueScale();
     }
 
     @Override
     public BigDecimal getBigDecimal() throws StandardException{
         forceDeserialization();
-        return ndv.getBigDecimal();
+        return dvd.getBigDecimal();
     }
 
     @Override
     public void setWidth(int desiredWidth,int desiredScale,boolean errorOnTrunc) throws StandardException{
-        if(ndv==null)
-            dvd = ndv = (NumberDataValue)newDescriptor();
-        if(ndv instanceof VariableSizeDataValue){
-            ((VariableSizeDataValue)ndv).setWidth(desiredWidth,desiredScale,errorOnTrunc);
+        forceDeserialization();
+        if(dvd instanceof VariableSizeDataValue){
+            ((VariableSizeDataValue)dvd).setWidth(desiredWidth,desiredScale,errorOnTrunc);
         }else{
-            throw new UnsupportedOperationException("Attempted to setWidth on wrapped "+ndv.getClass().getSimpleName()+" which does not implement VariableSizeDataValue");
+            throw new UnsupportedOperationException("Attempted to setWidth on wrapped "+dvd.getClass().getSimpleName()+" which does not implement VariableSizeDataValue");
         }
     }
 
     @Override
     public void decodeFromKey(PositionedByteRange builder) throws StandardException {
         forceDeserialization();
-        ndv.decodeFromKey(builder);
+        dvd.decodeFromKey(builder);
     }
 
     @Override
     public void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException {
         forceDeserialization();
-        ndv.encodeIntoKey(builder,order);
+        dvd.encodeIntoKey(builder,order);
     }
 
     @Override
     public int encodedKeyLength() throws StandardException {
         forceDeserialization();
-        return ndv.encodedKeyLength();
+        return dvd.encodedKeyLength();
     }
 
     @Override
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
         forceDeserialization();
-        ndv.read(unsafeRow, ordinal);
+        dvd.read(unsafeRow, ordinal);
     }
 
     @Override
     public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
         forceDeserialization();
-        ndv.write(unsafeRowWriter, ordinal);
+        dvd.write(unsafeRowWriter, ordinal);
     }
 
 }

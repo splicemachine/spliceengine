@@ -45,9 +45,8 @@ public class LazyVarchar extends LazyStringDataValueDescriptor{
     }
 
     @Override
-    protected DataValueDescriptor newDescriptor(){
-        sdv = new SQLVarchar();
-        return sdv;
+    protected StringDataValue newDescriptor(){
+        return new SQLVarchar();
     }
 
     @Override
@@ -55,7 +54,7 @@ public class LazyVarchar extends LazyStringDataValueDescriptor{
         if(isNull())
             return new LazyVarchar();
         else if(isDeserialized())
-            return new LazyVarchar(sdv);
+            return new LazyVarchar(dvd);
         else{
             /*
              * Return a shallow clone, so just point to the same bytes
@@ -75,10 +74,10 @@ public class LazyVarchar extends LazyStringDataValueDescriptor{
             lsdv.initForDeserialization(tableVersion,serializer,bytes,offset,length,descendingOrder);
             return lsdv;
         }else{
-            if(sdv==null)
-                return new LazyVarchar((StringDataValue)newDescriptor());
+            if(dvd==null)
+                return new LazyVarchar(newDescriptor());
             else{
-                return new LazyVarchar((StringDataValue)sdv.cloneValue(forceMaterialization));
+                return new LazyVarchar((StringDataValue)dvd.cloneValue(forceMaterialization));
             }
         }
     }
