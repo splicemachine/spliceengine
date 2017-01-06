@@ -37,7 +37,7 @@ public class LazyLongVarchar extends LazyStringDataValueDescriptor{
     @Override
     public DataValueDescriptor cloneHolder(){
         forceDeserialization();
-        return new LazyLongVarchar(sdv);
+        return new LazyLongVarchar(dvd);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class LazyLongVarchar extends LazyStringDataValueDescriptor{
             return lsdv;
         }
         forceDeserialization();
-        return new LazyLongVarchar((StringDataValue)sdv.cloneValue(forceMaterialization));
+        return new LazyLongVarchar((StringDataValue)dvd.cloneValue(forceMaterialization));
     }
 
     @Override
@@ -57,9 +57,8 @@ public class LazyLongVarchar extends LazyStringDataValueDescriptor{
     }
 
     @Override
-    protected DataValueDescriptor newDescriptor(){
-        sdv = new SQLLongvarchar();
-        return sdv;
+    protected StringDataValue newDescriptor(){
+        return new SQLLongvarchar();
     }
 
 

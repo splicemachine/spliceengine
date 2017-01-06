@@ -45,15 +45,14 @@ public class LazyDecimal extends LazyNumberDataValueDescriptor{
     }
 
     @Override
-    protected DataValueDescriptor newDescriptor(){
-        ndv = new SQLDecimal();
-        return ndv;
+    protected NumberDataValue newDescriptor(){
+        return new SQLDecimal();
     }
 
     @Override
     public DataValueDescriptor cloneHolder(){
         forceDeserialization();
-        return new LazyDecimal(ndv);
+        return new LazyDecimal(dvd);
     }
 
     @Override
@@ -64,7 +63,7 @@ public class LazyDecimal extends LazyNumberDataValueDescriptor{
             return lsdv;
         }
         forceDeserialization();
-        return new LazyDecimal((NumberDataValue)ndv.cloneValue(forceMaterialization));
+        return new LazyDecimal((NumberDataValue)dvd.cloneValue(forceMaterialization));
     }
 
     @Override

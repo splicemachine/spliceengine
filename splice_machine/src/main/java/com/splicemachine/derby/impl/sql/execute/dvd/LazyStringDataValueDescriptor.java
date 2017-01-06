@@ -31,25 +31,12 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.text.RuleBasedCollator;
 
-public abstract class LazyStringDataValueDescriptor extends LazyDataValueDescriptor implements StringDataValue{
-
-    protected StringDataValue sdv;
+public abstract class LazyStringDataValueDescriptor extends LazyDataValueDescriptor<StringDataValue> implements StringDataValue{
 
     public LazyStringDataValueDescriptor(){ }
 
     public LazyStringDataValueDescriptor(StringDataValue sdv){
         init(sdv);
-    }
-
-    /**
-     * Initializes the Lazy String DVD, needs to call super to make sure the dvd on
-     * the parent is set properly.
-     *
-     * @param sdv the string data value to initialize with.
-     */
-    protected void init(StringDataValue sdv){
-        super.init(sdv);
-        this.sdv=sdv;
     }
 
     protected StringDataValue unwrap(StringDataValue sdv){
@@ -58,7 +45,7 @@ public abstract class LazyStringDataValueDescriptor extends LazyDataValueDescrip
         if(sdv instanceof LazyStringDataValueDescriptor){
             LazyStringDataValueDescriptor ldvd=(LazyStringDataValueDescriptor)sdv;
             ldvd.forceDeserialization();
-            unwrapped=ldvd.sdv;
+            unwrapped=ldvd.dvd;
         }else{
             unwrapped=sdv;
         }
@@ -69,13 +56,13 @@ public abstract class LazyStringDataValueDescriptor extends LazyDataValueDescrip
     @Override
     public void normalize(DataTypeDescriptor dtd,DataValueDescriptor source) throws StandardException{
         if(!source.isLazy()){
-            if(dvd==null) dvd = newDescriptor();
+            forceDeserialization();
             dvd.normalize(dtd,source);
             resetForSerialization();
         }else{
             LazyStringDataValueDescriptor ldvd=(LazyStringDataValueDescriptor)source;
             if(ldvd.isDeserialized()){
-                if(dvd==null) dvd = newDescriptor();
+                forceDeserialization();
                 dvd.normalize(dtd,source);
                 resetForSerialization();
             }else{
@@ -98,97 +85,97 @@ public abstract class LazyStringDataValueDescriptor extends LazyDataValueDescrip
     @Override
     public StringDataValue concatenate(StringDataValue leftOperand,StringDataValue rightOperand,StringDataValue result) throws StandardException{
         forceDeserialization();
-        return sdv.concatenate(unwrap(leftOperand),unwrap(rightOperand),result);
+        return dvd.concatenate(unwrap(leftOperand),unwrap(rightOperand),result);
     }
 
     @Override
     public BooleanDataValue like(DataValueDescriptor pattern) throws StandardException{
         forceDeserialization();
-        return sdv.like(unwrap(pattern));
+        return dvd.like(unwrap(pattern));
     }
 
     @Override
     public BooleanDataValue like(DataValueDescriptor pattern,DataValueDescriptor escape) throws StandardException{
         forceDeserialization();
-        return sdv.like(unwrap(pattern),unwrap(escape));
+        return dvd.like(unwrap(pattern),unwrap(escape));
     }
 
     @Override
     public StringDataValue ansiTrim(int trimType,StringDataValue trimChar,StringDataValue result) throws StandardException{
         forceDeserialization();
-        return sdv.ansiTrim(trimType,trimChar,result);
+        return dvd.ansiTrim(trimType,trimChar,result);
     }
 
     @Override
     public StringDataValue upper(StringDataValue result) throws StandardException{
         forceDeserialization();
-        return sdv.upper(unwrap(result));
+        return dvd.upper(unwrap(result));
     }
 
     @Override
     public StringDataValue lower(StringDataValue result) throws StandardException{
         forceDeserialization();
-        return sdv.lower(unwrap(result));
+        return dvd.lower(unwrap(result));
     }
 
     @Override
     public NumberDataValue locate(StringDataValue searchFrom,NumberDataValue start,NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return sdv.locate(searchFrom,start,result);
+        return dvd.locate(searchFrom,start,result);
     }
 
     @Override
     public char[] getCharArray() throws StandardException{
         forceDeserialization();
-        return sdv.getCharArray();
+        return dvd.getCharArray();
     }
 
     @Override
     public StringDataValue getValue(RuleBasedCollator collatorForComparison){
         forceDeserialization();
-        return sdv.getValue(collatorForComparison);
+        return dvd.getValue(collatorForComparison);
     }
 
     @Override
     public StreamHeaderGenerator getStreamHeaderGenerator(){
         forceDeserialization();
-        return sdv.getStreamHeaderGenerator();
+        return dvd.getStreamHeaderGenerator();
     }
 
     @Override
     public void setStreamHeaderFormat(Boolean usePreTenFiveHdrFormat){
         forceDeserialization();
-        sdv.setStreamHeaderFormat(usePreTenFiveHdrFormat);
+        dvd.setStreamHeaderFormat(usePreTenFiveHdrFormat);
     }
 
     @Override
     public CharacterStreamDescriptor getStreamWithDescriptor() throws StandardException{
         forceDeserialization();
-        return sdv.getStreamWithDescriptor();
+        return dvd.getStreamWithDescriptor();
     }
 
     @Override
     public NumberDataValue charLength(NumberDataValue result) throws StandardException{
         forceDeserialization();
-        return sdv.charLength(result);
+        return dvd.charLength(result);
     }
 
     @Override
     public ConcatableDataValue substring(NumberDataValue start,NumberDataValue length,ConcatableDataValue result,int maxLen) throws StandardException{
         forceDeserialization();
-        return sdv.substring(start,length,result,maxLen);
+        return dvd.substring(start,length,result,maxLen);
     }
 
     @Override
     public ConcatableDataValue replace(StringDataValue fromStr,StringDataValue toStr,ConcatableDataValue result) throws StandardException{
         forceDeserialization();
-        return sdv.replace(fromStr,toStr,result);
+        return dvd.replace(fromStr,toStr,result);
     }
 
     @Override
     public void setWidth(int desiredWidth,int desiredScale,boolean errorOnTrunc) throws StandardException{
         forceDeserialization();
-        sdv.setWidth(desiredWidth,desiredScale,errorOnTrunc);
+        dvd.setWidth(desiredWidth,desiredScale,errorOnTrunc);
         resetForSerialization();
     }
 
@@ -203,8 +190,7 @@ public abstract class LazyStringDataValueDescriptor extends LazyDataValueDescrip
 
         super.readExternal(in);
 
-        sdv=(StringDataValue)dvd;
-        init(sdv);
+        init(dvd);
     }
 
     @Override
@@ -273,30 +259,30 @@ public abstract class LazyStringDataValueDescriptor extends LazyDataValueDescrip
     @Override
     public void decodeFromKey(PositionedByteRange builder) throws StandardException {
         forceDeserialization();
-        sdv.decodeFromKey(builder);
+        dvd.decodeFromKey(builder);
     }
 
     @Override
     public void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException {
         forceDeserialization();
-        sdv.encodeIntoKey(builder,order);
+        dvd.encodeIntoKey(builder,order);
     }
 
     @Override
     public int encodedKeyLength() throws StandardException {
         forceDeserialization();
-        return sdv.encodedKeyLength();
+        return dvd.encodedKeyLength();
     }
 
     @Override
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
         forceDeserialization();
-        sdv.read(unsafeRow, ordinal);
+        dvd.read(unsafeRow, ordinal);
     }
 
     @Override
     public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
         forceDeserialization();
-        sdv.write(unsafeRowWriter, ordinal);
+        dvd.write(unsafeRowWriter, ordinal);
     }
 }

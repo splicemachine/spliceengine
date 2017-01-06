@@ -42,16 +42,15 @@ public class LazyDouble extends LazyNumberDataValueDescriptor{
     }
 
     @Override
-    protected DataValueDescriptor newDescriptor(){
-        ndv = new SQLDouble();
-        return ndv;
+    protected NumberDataValue newDescriptor(){
+        return new SQLDouble();
     }
 
     @Override
     public DataValueDescriptor cloneHolder(){
         if(isNull()) return new LazyDouble();
         else if(isDeserialized())
-            return new LazyDouble(ndv);
+            return new LazyDouble(dvd);
         else{
             //return a shallow clone, pointing to the same bytes
             LazyDouble ld = new LazyDouble();
@@ -68,7 +67,7 @@ public class LazyDouble extends LazyNumberDataValueDescriptor{
             return lsdv;
         }
         forceDeserialization();
-        return new LazyDouble((NumberDataValue)ndv.cloneValue(forceMaterialization));
+        return new LazyDouble((NumberDataValue)dvd.cloneValue(forceMaterialization));
     }
 
     @Override
