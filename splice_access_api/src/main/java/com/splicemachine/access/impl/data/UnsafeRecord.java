@@ -34,6 +34,7 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
     protected static int NUM_COLS_INC = EFF_TS_INC+8;
     protected static int COLS_BS_INC = NUM_COLS_INC+4;
     protected static int UNSAFE_INC = COLS_BS_INC+4;
+    protected static int ASIZE = 16;
 
 
 
@@ -209,135 +210,115 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
     }
 
     @Override
-    public Record applyRollback(Iterator iterator) {
-        return null;
+    public Record applyRollback(Iterator<Record<byte[],ExecRow>> iterator, ExecRow rowDefinition) throws StandardException {
+        Record rolledBackRecord = this;
+        while (iterator.hasNext()) {
+            rolledBackRecord = rolledBackRecord.updateRecord(iterator.next(),rowDefinition)[0];
+        }
+        return rolledBackRecord;
     }
 
     @Override
     public Record[] updateRecord(Record updatedRecord, ExecRow rowDefinition) throws StandardException {
+        if (updatedRecord.hasTombstone()) { // deleting records
+            updatedRecord.setVersion(getVersion()+1);
+            return new Record[]{updatedRecord,this};
+        }
+
         UnsafeRecord uR = (UnsafeRecord) updatedRecord;
         UnsafeRow updateRow = uR.getUnsafeRow();
         UnsafeRow activeRow = getUnsafeRow();
-        // Function call
-        byte[] activeBitSetArray;
-        byte[] redoBitSetArray;
-        if (numberOfColumns() >= updatedRecord.numberOfColumns()) {
-            activeBitSetArray = new byte[bitSetWidth()];
-            redoBitSetArray = new byte[bitSetWidth()];
-            Platform.copyMemory(baseObject,baseOffset+COLS_BS_INC,activeBitSetArray,16,activeBitSetArray.length);
-            Platform.copyMemory(uR.baseObject,uR.baseOffset+COLS_BS_INC,redoBitSetArray,16,redoBitSetArray.length);
-            UnsafeRecordUtils.or(activeBitSetArray,16,activeBitSetArray.length/8,uR.baseObject,uR.baseOffset+COLS_BS_INC,numberOfWords());
-
-        } else {
-            activeBitSetArray = new byte[uR.bitSetWidth()];
-            redoBitSetArray = new byte[uR.bitSetWidth()];
-            Platform.copyMemory(uR.baseObject,uR.baseOffset+COLS_BS_INC,activeBitSetArray,16,activeBitSetArray.length);
-            Platform.copyMemory(uR.baseObject,uR.baseOffset+COLS_BS_INC,redoBitSetArray,16,redoBitSetArray.length);
-            UnsafeRecordUtils.or(activeBitSetArray,16,activeBitSetArray.length/8,baseObject,baseOffset+COLS_BS_INC,uR.numberOfWords());
-        }
-        System.out.println("active -> " + UnsafeRecordUtils.displayBitSet(activeBitSetArray,16,activeBitSetArray.length/8));
-        System.out.println("redo -> " + UnsafeRecordUtils.displayBitSet(redoBitSetArray,16,redoBitSetArray.length/8));
-
+        // Column Lengths are not guaranteed, especially with
+        int maximumColumns = Math.max(numberOfColumns(),updatedRecord.numberOfColumns());
+        int bitSetWidth = UnsafeRow.calculateBitSetWidthInBytes(maximumColumns);
+        int bitSetWords = bitSetWidth/8;
+        // Active Bit Set
+        byte[] newActiveBitSetArray = createZeroedOutBitSetArray(bitSetWidth);
+        Platform.copyMemory(baseObject,baseOffset+COLS_BS_INC,newActiveBitSetArray,16,bitSetWidth());
+        // Redo Bit Set
+        byte[] newRedoBitSetArray = createZeroedOutBitSetArray(bitSetWidth);
+        Platform.copyMemory(uR.baseObject,uR.baseOffset+COLS_BS_INC,newRedoBitSetArray,16,uR.bitSetWidth());
+        UnsafeRecordUtils.or(newActiveBitSetArray,16,bitSetWords,uR.baseObject,uR.baseOffset+COLS_BS_INC,bitSetWords);
+        // Global Or Bit Set
+        byte[] globalOrBitSetArray = createZeroedOutBitSetArray(bitSetWidth);
+        Platform.copyMemory(newActiveBitSetArray,16,globalOrBitSetArray,16,bitSetWidth);
         // Must Remove Nulls from the active bitset, no reason to waste 8 bytes
         if (updateRow.anyNull()) {
             int nextSetBit = UnsafeRecordUtils.nextSetBit(uR.baseObject,uR.baseOffset+COLS_BS_INC,0,uR.numberOfWords());
             int i = 0;
             while (nextSetBit != -1) {
                 if (updateRow.isNullAt(i)) {
-                    UnsafeRecordUtils.unset(activeBitSetArray, 16, nextSetBit);
+                    UnsafeRecordUtils.unset(newActiveBitSetArray, 16, nextSetBit); // Nulls are not transferred to active records
                     if (!UnsafeRecordUtils.isSet(baseObject,baseOffset+COLS_BS_INC,nextSetBit))
-                        UnsafeRecordUtils.unset(redoBitSetArray, 16, nextSetBit);
+                        UnsafeRecordUtils.unset(newRedoBitSetArray, 16, nextSetBit); // setting a null field to null does not generate a redo record (special case)
                 }
                 i++;
                 nextSetBit = UnsafeRecordUtils.nextSetBit(uR.baseObject,uR.baseOffset+COLS_BS_INC,nextSetBit+1,uR.numberOfWords());
             }
         }
-        System.out.println("active -> " + UnsafeRecordUtils.displayBitSet(activeBitSetArray,16,activeBitSetArray.length/8));
-        System.out.println("redo -> " + UnsafeRecordUtils.displayBitSet(redoBitSetArray,16,redoBitSetArray.length/8));
-        int activeColumns = UnsafeRecordUtils.cardinality(activeBitSetArray,16,activeBitSetArray.length/8);
-        int redoColumns = UnsafeRecordUtils.cardinality(redoBitSetArray,16,redoBitSetArray.length/8);
+        int activeColumns = UnsafeRecordUtils.cardinality(newActiveBitSetArray,16,bitSetWords);
+        int redoColumns = UnsafeRecordUtils.cardinality(newRedoBitSetArray,16,bitSetWords);
         UnsafeRow newActiveRow = new UnsafeRow(activeColumns);
         BufferHolder newActiveBuffer = new BufferHolder(newActiveRow);
         UnsafeRow newRedoRow = new UnsafeRow(redoColumns);
         BufferHolder newRedoBuffer = new BufferHolder(newRedoRow);
-
         newActiveBuffer.reset();
         newRedoBuffer.reset();
 
+        int fromIndex = UnsafeRecordUtils.nextSetBit(globalOrBitSetArray,16,0,bitSetWords);
 
-
-
-
-
-
-        int updatePosition = 0;
-        int activePosition = 0;
-        int totalPosition = 0;
-        int fromIndex = UnsafeRecordUtils.nextSetBit(activeBitSetArray,16,0,activeBitSetArray.length/8);
-        while(true) {
-            if (fromIndex== -1)
-                break;
-            if (UnsafeRecordUtils.isSet(uR.baseObject,uR.baseOffset+COLS_BS_INC,fromIndex)) { // update has value, copy
-                // remove from active record set field
-                if (updateRow.isNullAt(updatePosition)) {
-
-//                    throw new RuntimeException("Nulls should be removed already..");
+        int activePos = 0;
+        int updatePos = 0;
+        int newActivePos = 0;
+        int newRedoPos = 0;
+        while (fromIndex != -1) {
+            if (UnsafeRecordUtils.isSet(uR.baseObject,uR.baseOffset+COLS_BS_INC,fromIndex)) { // Has Update Entry
+                if (UnsafeRecordUtils.isSet(newActiveBitSetArray,ASIZE,fromIndex)) { // Required for Active write and we know nulls are already removed
+                    copyUnsafeData(rowDefinition, fromIndex, updateRow, updatePos, newActiveBuffer, newActiveRow, newActivePos);
+                    newActivePos++;
+                    if (UnsafeRecordUtils.isSet(baseObject,baseOffset+COLS_BS_INC,fromIndex)) { // Has Active Entry
+                        // write active to newRedo
+                        copyUnsafeData(rowDefinition, fromIndex, activeRow, activePos, newRedoBuffer, newRedoRow, newRedoPos);
+                        activePos++;
+                    } else {
+                        // Write Null to redo
+                        newRedoRow.setNullAt(newRedoPos);
+                    }
+                    newRedoPos++;
                 } else {
-                    // Variable length requires copying offset/size, growing the buffer and copying the byte[] values in the buffer
-                    if (rowDefinition.getColumn(fromIndex+1).isVariableLength()) {
-                        final long offsetAndSize = updateRow.getLong(updatePosition);
-                        final int offset = (int) (offsetAndSize >> 32);
-                        final int size = (int) offsetAndSize;
-                        newActiveBuffer.grow(size);
-                        Platform.putLong(newActiveBuffer.buffer, unsafeRowPosition(newActiveRow,totalPosition), ( (long) (newActiveBuffer.cursor - 16) << 32) | (long) size);
-                        Platform.copyMemory(updateRow.getBaseObject(), updateRow.getBaseOffset()+offset, newActiveBuffer.buffer, newActiveBuffer.cursor, size);
-                        newActiveBuffer.cursor += size;
+                    if (UnsafeRecordUtils.isSet(baseObject,baseOffset+COLS_BS_INC,fromIndex)) { // setting an existing value to null
+                        // write active to newRedo
+                        copyUnsafeData(rowDefinition, fromIndex, activeRow, activePos, newRedoBuffer, newRedoRow, newRedoPos);
+                        activePos++;
+                        newRedoPos++;
                     }
-                    else {
-                        Platform.copyMemory(updateRow.getBaseObject(), unsafeRowPosition(updateRow,updatePosition),
-                                newActiveBuffer.buffer, unsafeRowPosition(newActiveRow,totalPosition), 8);
-                    }
-                    totalPosition++;
+                    // NULL Active-NULL Update Write Corner Case (Ignore)
                 }
-                updatePosition++;
-                if (UnsafeRecordUtils.isSet(baseObject,baseOffset+COLS_BS_INC,fromIndex))
-                    activePosition++;
-            } else {
-                if (activeRow.isNullAt(activePosition)) {
-                    throw new UnsupportedOperationException("active records can never have null fields set!!!");
-                }
-                if (rowDefinition.getColumn(fromIndex+1).isVariableLength()) {
-                    final long offsetAndSize = activeRow.getLong(activePosition);
-                    final int offset = (int) (offsetAndSize >> 32);
-                    final int size = (int) offsetAndSize;
-                    newActiveBuffer.grow(size);
-                    Platform.putLong(newActiveBuffer.buffer, unsafeRowPosition(newActiveRow,totalPosition), ( (long)newActiveBuffer.cursor << 32) | (long) size);
-                    Platform.copyMemory(activeRow.getBaseObject(), offset, newActiveBuffer.buffer, newActiveBuffer.cursor, size);
-                    newActiveBuffer.cursor += size;
-                }
-                // 8 byte copy
-                else {
-                    Platform.copyMemory(activeRow.getBaseObject(), (int) unsafeRowPosition(activeRow,activePosition),
-                            newActiveBuffer.buffer, unsafeRowPosition(newActiveRow,totalPosition), 8);
-                }
-                totalPosition++;
-                activePosition++;
+                updatePos++;
+            } else { // Only Active Entry
+                // write active to newActive
+                copyUnsafeData(rowDefinition, fromIndex, activeRow, activePos, newActiveBuffer, newActiveRow, newActivePos);
+                activePos++;
+                newActivePos++;
             }
-            fromIndex = UnsafeRecordUtils.nextSetBit(activeBitSetArray,16,fromIndex+1,activeBitSetArray.length/8);
+            fromIndex = UnsafeRecordUtils.nextSetBit(globalOrBitSetArray,16,fromIndex+1,bitSetWords);
         }
-        UnsafeRecord activeRecord = new UnsafeRecord(this.key,this.version,new byte[COLS_BS_INC+activeBitSetArray.length+newActiveBuffer.cursor],16,true);
-        Platform.copyMemory(activeBitSetArray,16,activeRecord.baseObject,(long) (baseOffset+COLS_BS_INC),activeBitSetArray.length);
+        // Active Record Generation
+        UnsafeRecord activeRecord = new UnsafeRecord(this.key,this.version+1,new byte[COLS_BS_INC+newActiveBitSetArray.length+newActiveBuffer.cursor],16,true);
+        Platform.copyMemory(uR.baseObject, uR.baseOffset+TXN_ID1_INC,activeRecord.baseObject,activeRecord.baseOffset+TXN_ID1_INC,16); // txnid1 and txnid2
         activeRecord.setNumberOfColumns(newActiveRow.numFields());
+        Platform.copyMemory(newActiveBitSetArray,16,activeRecord.baseObject,(long) (activeRecord.baseOffset+COLS_BS_INC),newActiveBitSetArray.length);
         Platform.copyMemory(newActiveBuffer.buffer,16l,activeRecord.baseObject,
-                (long) (baseOffset+UNSAFE_INC+activeBitSetArray.length),(long) newActiveBuffer.cursor);
+                (long) (activeRecord.baseOffset+UNSAFE_INC+newActiveBitSetArray.length),(long) newActiveBuffer.cursor);
 
-
-
-
-
-
-
-        return new Record[]{activeRecord,null};
+        // Redo Record Generation
+        UnsafeRecord redoRecord = new UnsafeRecord(this.key,this.version,new byte[COLS_BS_INC+newRedoBitSetArray.length+newRedoBuffer.cursor],16,true);
+        Platform.copyMemory(baseObject, baseOffset+TXN_ID1_INC,redoRecord.baseObject,redoRecord.baseOffset+TXN_ID1_INC,24); // txnid1, txnid2, eff-ts
+        redoRecord.setNumberOfColumns(newRedoRow.numFields());
+        Platform.copyMemory(newRedoBitSetArray,16,redoRecord.baseObject,(long) (redoRecord.baseOffset+COLS_BS_INC),newRedoBitSetArray.length);
+        Platform.copyMemory(newRedoBuffer.buffer,16l,redoRecord.baseObject,
+                (long) (redoRecord.baseOffset+UNSAFE_INC+newRedoBitSetArray.length),(long) newRedoBuffer.cursor);
+        return new Record[]{activeRecord,redoRecord};
     }
 
     @Override
@@ -371,6 +352,61 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
 
     public static int unsafeRowPosition(UnsafeRow unsafeRow, int position) {
         return (int) (unsafeRow.getBaseOffset() + UnsafeRow.calculateBitSetWidthInBytes(unsafeRow.numFields()) + position * 8l);
+    }
+
+    private byte[] createZeroedOutBitSetArray(int nullBitsSize) {
+        byte[] zeroedOutArray = new byte[nullBitsSize];
+        for (int i = 0; i < nullBitsSize; i += 8) {
+            Platform.putLong(zeroedOutArray, 16 + i, 0L);
+        }
+        return zeroedOutArray;
+    }
+
+    /**
+     *
+     * Copy
+     *
+     * @param rowDefinition Represents the field definitions of the rows
+     * @param rowDefIndex pointer to the zero based representation in the exec row
+     * @param dataRow
+     * @param dataOrdinal
+     * @param newBuffer
+     * @param newDataRow
+     * @param newDataOrdinal
+     * @throws StandardException
+     */
+    public void copyUnsafeData(ExecRow rowDefinition, int rowDefIndex, UnsafeRow dataRow, int dataOrdinal, BufferHolder newBuffer, UnsafeRow newDataRow, int newDataOrdinal) throws StandardException{
+        if (rowDefinition.getColumn(rowDefIndex+1).isVariableLength()) {
+            final long offsetAndSize = dataRow.getLong(dataOrdinal);
+            final int offset = (int) (offsetAndSize >> 32);
+            final int size = (int) offsetAndSize;
+            newBuffer.grow(size);
+            Platform.putLong(newBuffer.buffer, unsafeRowPosition(newDataRow,newDataOrdinal), ( (long) (newBuffer.cursor - 16) << 32) | (long) size);
+            Platform.copyMemory(dataRow.getBaseObject(), dataRow.getBaseOffset()+offset, newBuffer.buffer, newBuffer.cursor, size);
+            newBuffer.cursor += size;
+        }
+        else {
+            Platform.copyMemory(dataRow.getBaseObject(), unsafeRowPosition(dataRow,dataOrdinal),
+                    newBuffer.buffer, unsafeRowPosition(newDataRow,newDataOrdinal), 8);
+        }
+    }
+
+    @Override
+    public Record[] deleteRecord(Record<byte[], ExecRow> deletedRecord, ExecRow recordDefinition) throws StandardException {
+        UnsafeRecord activeRecord = new UnsafeRecord(this.key,this.version+1,new byte[COLS_BS_INC],16,true);
+        //Platform.copyMemory(activeRecord.baseObject,activeRecord.baseOffset,);
+        return new Record[]{};
+    }
+
+    private void updateToActive(Record<byte[], ExecRow> updatedRecord, Record<byte[], ExecRow> activeRecord) {
+        activeRecord.setTxnId1(updatedRecord.getTxnId1());
+        activeRecord.setTxnId2(updatedRecord.getTxnId2());
+    }
+
+    private void activeToRedo(Record<byte[], ExecRow> activeRecord, Record<byte[], ExecRow> redoRecord) {
+        redoRecord.setTxnId1(activeRecord.getTxnId1());
+        redoRecord.setTxnId2(activeRecord.getTxnId2());
+        redoRecord.setEffectiveTimestamp(activeRecord.getEffectiveTimestamp());
     }
 
 }

@@ -158,7 +158,7 @@ public interface Record<K,V> {
 
     boolean isActive();
 
-    Record applyRollback(Iterator<Record<K,V>> recordIterator) throws StandardException;
+    Record applyRollback(Iterator<Record<K,V>> recordIterator, ExecRow rowDefinition) throws StandardException;
 
     /**
      * Position 0 active Record, Position 1 redo record
@@ -167,4 +167,13 @@ public interface Record<K,V> {
      * @return
      */
     Record[] updateRecord(Record<K,V> updatedRecord, ExecRow recordDefinition) throws StandardException;
+
+    /**
+     * Position 0 active Record, Position 1 redo record
+     *
+     * @param updatedRecord
+     * @return
+     */
+    Record[] deleteRecord(Record<K,V> deletedRecord, ExecRow recordDefinition) throws StandardException;
+
 }
