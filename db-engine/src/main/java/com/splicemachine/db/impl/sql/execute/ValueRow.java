@@ -639,4 +639,15 @@ public class ValueRow implements ExecRow, Externalizable {
 		return "c"+columnNumber;
 	}
 
+	@Override
+	public int getNonNullCount() throws StandardException {
+		if (column == null)
+				return 0;
+		int j = 0;
+		for (int i = 0; i< nColumns();i++) {
+			if (!column[i].isNull())
+				j++;
+		}
+		return j;
+	}
 }

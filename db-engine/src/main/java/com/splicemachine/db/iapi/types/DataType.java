@@ -1340,4 +1340,9 @@ public abstract class DataType extends NullValueData
 	public Object getSparkObject() throws StandardException {
 		return getObject();
 	}
+
+	@Override
+	public boolean isVariableLength() {
+		return false;
+	}
 }

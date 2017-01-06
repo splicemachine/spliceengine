@@ -1,5 +1,8 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+
 import java.util.Iterator;
 
 /**
@@ -116,7 +119,7 @@ public interface Record<K,V> {
      *
      * @return
      */
-    V getData();
+    V getData(int[] columns, V row) throws StandardException;
 
     /**
      *
@@ -124,7 +127,7 @@ public interface Record<K,V> {
      *
      * @return
      */
-    void setData(V data);
+    void setData(int[] columns, V row) throws StandardException;
 
     /**
      *
@@ -147,15 +150,15 @@ public interface Record<K,V> {
 
     void setRecordType(RecordType recordType);
 
-    void setResolved();
+    void setResolved(boolean resolved);
 
     boolean isResolved();
 
-    void setActive();
+    void setActive(boolean active);
 
     boolean isActive();
 
-    Record applyRollback(Iterator<Record<K,V>> recordIterator);
+    Record applyRollback(Iterator<Record<K,V>> recordIterator) throws StandardException;
 
     /**
      * Position 0 active Record, Position 1 redo record
@@ -163,5 +166,5 @@ public interface Record<K,V> {
      * @param updatedRecord
      * @return
      */
-    Record[] updateRecord(Record<K,V> updatedRecord);
+    Record[] updateRecord(Record<K,V> updatedRecord, ExecRow recordDefinition) throws StandardException;
 }

@@ -510,4 +510,9 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     public Object getSparkObject() throws StandardException {
         return dvd.getSparkObject();
     }
+
+    @Override
+    public boolean isVariableLength() {
+        return dvd.isVariableLength();
+    }
 }

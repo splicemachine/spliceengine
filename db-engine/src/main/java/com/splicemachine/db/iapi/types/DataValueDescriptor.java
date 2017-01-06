@@ -1095,4 +1095,6 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      */
 	Object getSparkObject() throws StandardException;
 
+	boolean isVariableLength();
+
 }

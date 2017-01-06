@@ -413,4 +413,9 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	public long getRowSize(BitSet validColumns) throws StandardException {
 		return valueRow.getRowSize(validColumns);
 	}
+
+	@Override
+	public int getNonNullCount() throws StandardException {
+		return valueRow.getNonNullCount();
+	}
 }

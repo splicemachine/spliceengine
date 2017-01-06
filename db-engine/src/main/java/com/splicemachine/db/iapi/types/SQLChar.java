@@ -3412,4 +3412,9 @@ public class SQLChar
     public void updateThetaSketch(UpdateSketch updateSketch) {
         updateSketch.update(value);
     }
+
+    @Override
+    public boolean isVariableLength() {
+        return true;
+    }
 }

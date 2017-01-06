@@ -113,4 +113,6 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 
 	public long getRowSize(BitSet validColumns) throws StandardException;
 
+	public int getNonNullCount() throws StandardException;
+
 }
