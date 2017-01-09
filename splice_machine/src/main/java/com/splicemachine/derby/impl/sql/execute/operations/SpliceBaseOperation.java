@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.si.api.txn.Txn;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -63,8 +64,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInforma
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
@@ -640,7 +639,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
-    public TxnView getCurrentTransaction() throws StandardException{
+    public Txn getCurrentTransaction() throws StandardException{
         return getTransaction();
     }
 
@@ -665,7 +664,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 "attempting to elevate an operation txn without specifying a destination table");
     }
 
-    private TxnView getTransaction() throws StandardException{
+    private Txn getTransaction() throws StandardException{
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
         Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
         return ((BaseSpliceTransaction)rawStoreXact).getActiveStateTxn();
