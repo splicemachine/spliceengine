@@ -25,7 +25,7 @@ import com.splicemachine.db.iapi.store.raw.*;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -191,11 +191,11 @@ public abstract class BaseSpliceTransaction<T extends BaseTransaction> implement
         }
     }
 
-    public abstract TxnView getTxnInformation();
+    public abstract Txn getTxnInformation();
 
-    public abstract void setActiveState(boolean nested,boolean additive,TxnView parentTxn);
+    public abstract void setActiveState(boolean nested,boolean additive,Txn parentTxn);
 
-    public TxnView getActiveStateTxn(){
+    public Txn getActiveStateTxn(){
         return transaction.getActiveStateTxn();
     }
 }

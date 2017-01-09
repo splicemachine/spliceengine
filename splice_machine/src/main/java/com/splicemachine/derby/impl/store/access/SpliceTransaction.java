@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TransactionImpl;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -90,11 +89,11 @@ public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
         return (tempxc==null)?null:tempxc.getIdName();
     }
 
-    public final void setActiveState(boolean nested,boolean additive,TxnView parentTxn){
+    public final void setActiveState(boolean nested,boolean additive,Txn parentTxn){
         transaction.setActiveState(nested,additive,parentTxn,null);
     }
 
-    public final void setActiveState(boolean nested,boolean additive,TxnView parentTxn,byte[] table){
+    public final void setActiveState(boolean nested,boolean additive,Txn parentTxn,byte[] table){
         transaction.setActiveState(nested, additive, parentTxn, table);
     }
 
@@ -120,7 +119,7 @@ public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
 
 
     @Override
-    public TxnView getTxnInformation(){
+    public Txn getTxnInformation(){
         return getTxn();
     }
 
