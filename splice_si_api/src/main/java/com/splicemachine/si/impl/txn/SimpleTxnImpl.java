@@ -26,6 +26,25 @@ public class SimpleTxnImpl implements Txn {
     private String statementId;
     private boolean persisted = false;
 
+    public SimpleTxnImpl() {
+
+    }
+
+    public SimpleTxnImpl(long txnId, long parentTxnId, long commitTimestamp, int nodeId, int regionId, long duration, long[] rolledBackChildIds,
+                         ChildStatementDuration childStatementDuration, long hlcTimestamp, String userId, String statementId) {
+        this.txnId = txnId;
+        this.parentTxnId = parentTxnId;
+        this.commitTimestamp = commitTimestamp;
+        this.nodeId = nodeId;
+        this.regionId = regionId;
+        this.duration = duration;
+        this.rolledBackChildIds = rolledBackChildIds;
+        this.childStatementDuration = childStatementDuration;
+        this.hlcTimestamp = hlcTimestamp;
+        this.userId = userId;
+        this.statementId = statementId;
+    }
+
 
     @Override
     public long getTxnId() {

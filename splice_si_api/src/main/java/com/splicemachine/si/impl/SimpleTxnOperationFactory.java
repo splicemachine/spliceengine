@@ -16,6 +16,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.ConflictType;
@@ -71,14 +72,14 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     }
 
     @Override
-    public Record newRecord(Txn txn, byte[] key, ExecRow data) {
+    public Record newRecord(Txn txn, byte[] key, int[] fields, ExecRow data) throws StandardException{
         Record record = newRecord(txn,key);
-        record.setData();
+        record.setData(fields,data);
         return null;
     }
 
     @Override
-    public Record newRecord(Txn txn, byte[] keyObject, byte[] keyOffset, byte[] keyLength, ExecRow data) {
+    public Record newRecord(Txn txn, byte[] keyObject, byte[] keyOffset, byte[] keyLength, int[] fields, ExecRow data) {
         return null;
     }
 

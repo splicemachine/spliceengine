@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.api.data;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
@@ -37,8 +38,8 @@ public interface TxnOperationFactory{
     ConflictType conflicts(Record potentialRecord, Record existingRecord);
     RecordScan newDataScan();
     Record newRecord(Txn txn, byte[] key);
-    Record newRecord(Txn txn, byte[] key, ExecRow data);
-    Record newRecord(Txn txn, byte[] keyObject, byte[] keyOffset, byte[] keyLength, ExecRow data);
+    Record newRecord(Txn txn, byte[] key, int[] fields, ExecRow data) throws StandardException;
+    Record newRecord(Txn txn, byte[] keyObject, byte[] keyOffset, byte[] keyLength, int[] fields, ExecRow data) throws StandardException;
     Record newUpdate(Txn txn, byte[] key);
     Record newDelete(Txn txn, byte[] key);
 }

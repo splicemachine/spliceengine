@@ -26,6 +26,7 @@ import com.splicemachine.pipeline.testsetup.PipelineTestDataEnv;
 import com.splicemachine.pipeline.testsetup.PipelineTestEnvironment;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.impl.txn.SimpleTxnImpl;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
@@ -54,7 +55,7 @@ public class BulkWriteActionTest{
     private static final KryoPool kp=new KryoPool(1);
 
     private PipelineExceptionFactory pef;
-
+/*
     @Before
     public void setUp() throws Exception{
         PipelineTestDataEnv pipelineTestDataEnv =PipelineTestEnvironment.loadTestDataEnvironment();
@@ -70,7 +71,8 @@ public class BulkWriteActionTest{
     @Test
     public void testDoesNotWriteDataWhenGivenAnEmptyBulkWrite() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        txn txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        Txn txn = new SimpleTxnImpl();
+        Txn txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
         Collection<BulkWrite> bwList=new ArrayList<>();
 
         BulkWrites bw=new BulkWrites(bwList,txn);
@@ -411,6 +413,7 @@ public class BulkWriteActionTest{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
+    /*
     private Collection<KVPair> addData(int startPoint,int size) throws IOException{
         Collection<KVPair> data=new ArrayList<>(size);
         for(int i=startPoint;i<startPoint+size;i++){
@@ -533,7 +536,7 @@ public class BulkWriteActionTest{
             return new BulkWritesResult(results);
         }
     }
-
+*/
     private static class TestRecordingContext implements RecordingContext {
         public int reads;
         public int filter;
