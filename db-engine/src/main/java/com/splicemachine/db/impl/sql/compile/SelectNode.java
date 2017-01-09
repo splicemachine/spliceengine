@@ -102,7 +102,7 @@ public class SelectNode extends ResultSetNode{
     /**
      * List of windowDefinitionList.
      */
-    private WindowList windowDefinitionList;
+    WindowList windowDefinitionList;
     /**
      * List of window function calls (e.g. ROW_NUMBER, AVG(i), DENSE_RANK).
      */

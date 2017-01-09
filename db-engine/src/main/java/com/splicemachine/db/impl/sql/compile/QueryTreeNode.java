@@ -560,15 +560,14 @@ public abstract class QueryTreeNode implements Node, Visitable{
     @Override
     public final Visitable accept(Visitor visitor, QueryTreeNode parent) throws StandardException{
         final boolean childrenFirst= visitor.visitChildrenFirst(this);
-        final boolean skipChildren= visitor.skipChildren(this);
 
-        if(childrenFirst && !skipChildren && !visitor.stopTraversal()){
+        if(childrenFirst && !visitor.skipChildren(this) && !visitor.stopTraversal()){
             acceptChildren(visitor);
         }
 
         final Visitable ret = visitor.stopTraversal() ? this : visitor.visit(this, parent);
 
-        if(!childrenFirst && !skipChildren && !visitor.stopTraversal()){
+        if(!childrenFirst && !visitor.skipChildren(this) && !visitor.stopTraversal()){
             acceptChildren(visitor);
         }
 

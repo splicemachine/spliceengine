@@ -80,7 +80,10 @@ public class CollectingVisitorBuilder<T> {
         return this;
     }
 
-
+    public CollectingVisitorBuilder<T> skipChildrenAfterCollect(boolean skip){
+        collector.skipChildrenAfterCollect(skip);
+        return this;
+    }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // static factory methods for building this builder.
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

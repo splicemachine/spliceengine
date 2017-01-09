@@ -66,6 +66,14 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         v.remove(qt);
     }
 
+    public final int indexOf(T qt) {
+        for (int i = 0; i < v.size(); ++i) {
+            if (qt == v.get(i)) {
+                return i;
+            }
+        }
+        return -1;
+    }
     final T remove(int index){
         return v.remove(index);
     }

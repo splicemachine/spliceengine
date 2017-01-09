@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import org.sparkproject.guava.collect.Lists;
@@ -220,5 +221,11 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
      public ResultColumn getGeneratedRC() {
          return aggregateFunction.getGeneratedRC();
      }
+
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
+        super.acceptChildren(v);
+        aggregateFunction.accept(v, this);
+    }
 
 }

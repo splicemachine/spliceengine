@@ -146,7 +146,6 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
                     resultColumn.getName(),
                     vnode,
                     ContextService.getService().getCurrentContextManager());
-            resultColumn.markGenerated();
             resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
             generatedRef.setSource(resultColumn);
             if (brop.getLeftOperand() == operand) {
@@ -197,7 +196,6 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
                             generatedRef.getColumnName(),
                             operand,
                             ContextService.getService().getCurrentContextManager());
-            resultColumn.markGenerated();
             resultColumn.setResultSetNumber(resultSetNode.getResultSetNumber());
             resultColumn.setVirtualColumnId(rcl.size());
             rcl.addResultColumn(resultColumn);

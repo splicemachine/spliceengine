@@ -45,7 +45,8 @@ public class CollectingVisitor<T> implements Visitor {
     private final Predicate<? super Visitable> parentPred;
 
     private final List<T> nodeList;
-
+    private boolean skipChildrenAfterCollect = false;
+    private boolean skipChildren = false;
     /**
      * Constructor: predicate on node and parent node
      */
@@ -76,17 +77,30 @@ public class CollectingVisitor<T> implements Visitor {
     public Visitable visit(Visitable node, QueryTreeNode parent) {
         if (nodePred.apply(node) && parentPred.apply(parent)) {
             nodeList.add((T) node);
+            if (skipChildrenAfterCollect) {
+                skipChildren = true;
+            }
         }
         return node;
     }
 
     @Override
     public boolean skipChildren(Visitable node) {
+        if (skipChildrenAfterCollect) {
+            if (skipChildren) {
+                skipChildren = false;
+                return true;
+            }
+        }
         return false;
+
     }
 
     public List<T> getCollected() {
         return nodeList;
     }
 
+    public void skipChildrenAfterCollect(boolean skip) {
+        skipChildrenAfterCollect = skip;
+    }
 }

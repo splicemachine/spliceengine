@@ -25,15 +25,19 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.clearspring.analytics.util.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -46,6 +50,7 @@ import java.util.*;
  */
 
 public abstract class DMLStatementNode extends StatementNode {
+    private static final Logger LOG = Logger.getLogger(DMLStatementNode.class);
 
     /**
      * The result set is the rows that result from running the statement.  What this means for SELECT statements is
@@ -130,6 +135,9 @@ public abstract class DMLStatementNode extends StatementNode {
         SubqueryFlattening.flatten(this);
 
         resultSet = resultSet.preprocess(getCompilerContext().getNumTables(), null, null);
+        if (this instanceof CursorNode) {
+            removeUnusedColumns(resultSet);
+        }
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
         // since the simpler tree may have more accurate information for
@@ -355,5 +363,472 @@ public abstract class DMLStatementNode extends StatementNode {
         tree.add(this);
         if (resultSet != null)
             resultSet.buildTree(tree, depth + 1);
+    }
+
+    /**
+     * Remove unused columns for all result set. A column is considered to be used if
+     * 1) a column is referenced by a columns from resultColumnList of top most result set
+     * 2) a column is referenced by a predicates
+     * 3) a column is in group by list
+     * 4) a column is in order by list
+     * 5) a column is in a distinct select node
+     * 6) a column is a generated column for aggregation
+     * 7) a column is referenced by having clause
+     * 8) a column is referenced by window definition
+     *
+     * @param resultSet
+     * @throws StandardException
+     */
+    private void removeUnusedColumns(ResultSetNode resultSet) throws StandardException {
+
+        ResultColumnList rcList = resultSet.getResultColumns();
+        Map<ResultColumn, Integer> refCountMap = new HashMap<>();
+        Map<ResultColumn, ResultColumn> referenceMap = new HashMap<>();
+        Map<ResultColumn, ResultColumnList> resultColumnListMap = new HashMap<>();
+        Map<String, BaseColumnNode> baseColumnNodes =  new HashMap<>();
+        Set<ResultColumnList> includeColumnLists = new HashSet<>();
+        Set<ResultColumnList> resultColumnLists = getResultColumnLists(resultSet, includeColumnLists);
+
+        processIncludeColumnList(rcList, includeColumnLists, baseColumnNodes);
+        processGroupByColumns(resultSet, refCountMap, baseColumnNodes);
+        processOrderByColumns(resultSet, refCountMap, baseColumnNodes);
+        processPredicates(resultSet, refCountMap, baseColumnNodes);
+        processAggregates(resultSet, refCountMap, baseColumnNodes);
+        processResultColumnLists(resultColumnLists, referenceMap, refCountMap, resultColumnListMap);
+
+        Set<ResultColumn> toRemove = collectUnusedColumns(refCountMap, resultColumnListMap, baseColumnNodes,
+                referenceMap, includeColumnLists);
+        if (toRemove.size() > 0) {
+            removeUnusedColumns(toRemove, resultColumnListMap);
+            RemoveUnusedBaseColumns(resultSet, baseColumnNodes, refCountMap);
+        }
+    }
+
+    private void RemoveUnusedBaseColumns(ResultSetNode resultSet,
+                                         Map<String, BaseColumnNode> baseColumnNodes,
+                                         Map<ResultColumn, Integer> refCountMap) throws StandardException {
+
+
+        Set<FromBaseTable> fromBaseTables = collectNodes(resultSet, FromBaseTable.class, false);
+
+        int total = 0;
+        for (FromBaseTable fromBaseTable : fromBaseTables) {
+            ResultColumnList resultColumnList = fromBaseTable.getResultColumns();
+            int count = 0;
+            for (int i = 0; i < resultColumnList.size(); ++i) {
+                ResultColumn resultColumn = resultColumnList.elementAt(i);
+                BaseColumnNode n = resultColumn.getBaseColumnNode();
+                String colName =  n.getTableName() + "." + n.getColumnName();
+
+                Integer refCount = refCountMap.get(resultColumn);
+                if (!baseColumnNodes.containsKey(colName) && (refCount == null || refCount ==0)) {
+                    resultColumn.setUnreferenced();
+                    count++;
+                    total++;
+                }
+            }
+            LOG.debug("removed " + count + " out of " + resultColumnList.size() + " base columns from " + fromBaseTable.getTableName());
+        }
+
+        LOG.debug("removed " + total + " columns from " + fromBaseTables.size() + " base tables");
+    }
+    private void processIncludeColumnList(ResultColumnList rcList,
+                                          Set<ResultColumnList> includeColumnLists,
+                                          Map<String, BaseColumnNode> baseColumnNodes) throws StandardException {
+        Set<ColumnReference> columnReferences = collectNodes(rcList, ColumnReference.class, false);
+        for (ColumnReference cr : columnReferences) {
+            ResultColumn resultColumn = cr.getSource();
+            if (resultColumn != null) {
+                BaseColumnNode baseColumnNode = resultColumn.getBaseColumnNode();
+                if (baseColumnNode != null) {
+                    String columnName = baseColumnNode.getTableName() + "." + baseColumnNode.getColumnName();
+                    baseColumnNodes.put(columnName, baseColumnNode);
+                }
+            }
+        }
+        for (ResultColumnList resultColumnList : includeColumnLists) {
+            for (int i = 0; i < resultColumnList.size(); ++i) {
+                ResultColumn resultColumn = resultColumnList.elementAt(i);
+                BaseColumnNode baseColumnNode = resultColumn.getBaseColumnNode();
+                if (baseColumnNode != null) {
+                    String columnName = baseColumnNode.getTableName() + "." + baseColumnNode.getColumnName();
+                    baseColumnNodes.put(columnName, baseColumnNode);
+                }
+            }
+
+        }
+        includeColumnLists.add(rcList);
+    }
+
+    /**
+     * Collect unused columns from all result set except child result set of set operators
+     * A column shouls be removed if
+     * 1) its reference count is 0
+     * 2) it's not from top most result set
+     * 3) it's not from a distinct select
+     * 4) it's not a generated column
+     * 5) its base column is not referenced
+     *
+     * @param refCountMap
+     * @param resultColumnListMap
+     * @param baseColumnNodes
+     * @param referenceMap
+     * @return
+     */
+    private Set<ResultColumn> collectUnusedColumns(Map<ResultColumn, Integer> refCountMap,
+                                                   Map<ResultColumn, ResultColumnList> resultColumnListMap,
+                                                   Map<String, BaseColumnNode> baseColumnNodes,
+                                                   Map<ResultColumn, ResultColumn> referenceMap,
+                                                   Set<ResultColumnList> includeColumnLists) {
+        Set<ResultColumn> toRemove = new HashSet<>();
+        boolean done = false;
+        while (!done) {
+            done = true;
+            Object[] columns = refCountMap.keySet().toArray();
+            for (Object o:columns) {
+                ResultColumn resultColumn = (ResultColumn)o;
+                Integer refCount = refCountMap.get(resultColumn);
+                if (refCount == 0 ) {
+                    BaseColumnNode baseColumnNode = resultColumn.getBaseColumnNode();
+                    String columnName = baseColumnNode !=null ?
+                            baseColumnNode.getTableName()+"."+baseColumnNode.getColumnName() : null;
+                    ResultColumnList resultColumnList = resultColumnListMap.get(resultColumn);
+                    if (!includeColumnLists.contains(resultColumnList) &&
+                            baseColumnNode != null && !baseColumnNodes.containsKey(columnName) &&
+                            !resultColumn.isGenerated()) {
+                        refCountMap.remove(resultColumn);
+                        toRemove.add(resultColumn);
+                        ResultColumn referenceColumn = referenceMap.get(resultColumn);
+                        if (referenceColumn != null) {
+                            refCountMap.put(referenceColumn, refCountMap.get(referenceColumn)-1);
+                            done = false;
+                        }
+                    }
+                }
+            }
+        }
+        return toRemove;
+    }
+
+    /**
+     * Remove all ununsed columns
+     * @param toRemove
+     * @param resultColumnListMap
+     * @throws StandardException
+     */
+    private void removeUnusedColumns(Set<ResultColumn> toRemove,
+                                     Map<ResultColumn, ResultColumnList> resultColumnListMap)
+            throws StandardException {
+
+        Map<SetOperatorNode, List<Integer>> removedSetOperatorColumns = new HashMap<>();
+
+        for (ResultColumn resultColumn:toRemove) {
+            ResultColumnList resultColumnList = resultColumnListMap.get(resultColumn);
+            if (resultColumnList != null) {
+                resultColumnList.removeElement(resultColumn);
+            }
+        }
+
+        // Adjust virtual column Ids
+        Set<ResultColumnList> allResultColumnList = collectNodes(resultSet, ResultColumnList.class, false);
+        for (ResultColumnList resultColumnList : allResultColumnList) {
+            for (int i = 0; i < resultColumnList.size(); ++i) {
+                ResultColumn resultColumn = resultColumnList.elementAt(i);
+                resultColumn.setVirtualColumnId(i+1);
+            }
+        }
+    }
+
+    /**
+     *  Get all result columns that are referenced
+     * @param node
+     * @return
+     * @throws StandardException
+     */
+    private List<ResultColumn> getTargetColumns(ValueNode node) throws StandardException{
+
+        List<ResultColumn> targetColumns = Lists.newArrayList();
+        if (node == null)
+            return targetColumns;
+
+        if (node instanceof VirtualColumnNode) {
+            targetColumns.add(((VirtualColumnNode) node).getSourceColumn());
+        }
+        if (targetColumns.size() == 0) {
+            targetColumns = CollectingVisitorBuilder
+                    .forClass(ResultColumn.class)
+                    .skipChildrenAfterCollect(true)
+                    .collect(node);
+        }
+
+        if (targetColumns.size() == 0) {
+            List<ColumnReference>  columnReferences = CollectingVisitorBuilder
+                    .forClass(ColumnReference.class)
+                    .skipChildrenAfterCollect(true)
+                    .collect(node);
+            for (ColumnReference cr:columnReferences) {
+                ResultColumn rc = cr.getSource();
+                if (cr != null) {
+                    targetColumns.add(rc);
+                }
+            }
+        }
+
+        return targetColumns;
+    }
+
+    /**
+     * Collect a set of specified nodes from parse tree
+     * @param node root node
+     * @param clazz class name
+     * @param skipChildrenAfterCollect whether skip all child when a node is collected
+     * @param <N>
+     * @return
+     * @throws StandardException
+     */
+    private <N> Set<N> collectNodes(Visitable node, Class<N> clazz, boolean skipChildrenAfterCollect) throws StandardException{
+        List<N> l = CollectingVisitorBuilder
+                .forClass(clazz)
+                .skipChildrenAfterCollect(skipChildrenAfterCollect)
+                .collect(node);
+        Set<N> s = new HashSet<>();
+        for (N e:l) {
+            s.add(e);
+        }
+        return s;
+    }
+
+    /**
+     * calculate reference count for each result column
+     * @param resultColumnLists
+     * @param referenceMap
+     * @param refCountMap
+     * @param resultColumnListMap
+     * @throws StandardException
+     */
+    private void processResultColumnLists(Set<ResultColumnList> resultColumnLists,
+                                          Map<ResultColumn, ResultColumn> referenceMap,
+                                          Map<ResultColumn, Integer> refCountMap,
+                                          Map<ResultColumn, ResultColumnList> resultColumnListMap) throws StandardException {
+
+        for (ResultColumnList resultColumnList : resultColumnLists) {
+            for (int i = 0; i < resultColumnList.size(); ++i) {
+                ResultColumn resultColumn = resultColumnList.elementAt(i);
+                resultColumnListMap.put(resultColumn, resultColumnList);
+
+                List<ResultColumn> targetColumns = getTargetColumns(resultColumn.getExpression());
+                for (ResultColumn rc : targetColumns) {
+                    if (refCountMap.get(resultColumn) == null) {
+                        refCountMap.put(resultColumn, 0);
+                    }
+                    referenceMap.put(resultColumn, rc);
+                    Integer refCount = refCountMap.get(rc);
+                    if (refCount == null) {
+                        refCountMap.put(rc, 1);
+                    }
+                    else {
+                        refCountMap.put(rc, refCount+1);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     *  Process where clause. Record referenced result column and base columns
+     * @param resultSet
+     * @param refCountMap
+     * @param baseColumnNodes
+     * @throws StandardException
+     */
+    private void processPredicates(ResultSetNode resultSet,
+                                    Map<ResultColumn, Integer> refCountMap,
+                                    Map<String, BaseColumnNode> baseColumnNodes) throws StandardException {
+
+        Set<Predicate> predicates = collectNodes(resultSet, Predicate.class, false);
+        for (Predicate predicate : predicates) {
+            Set<ColumnReference> columnReferences = collectNodes(predicate, ColumnReference.class, false);
+            for (ColumnReference cr : columnReferences) {
+                ResultColumn resultColumn = cr.getSource();
+                addColumnReferences(resultColumn, refCountMap, baseColumnNodes);
+            }
+        }
+    }
+
+    /**
+     * Process group by columns. Record referenced result column and base columns
+     * @param resultSet
+     * @param refCountMap
+     * @param baseColumnNodes
+     * @throws StandardException
+     */
+    private void processGroupByColumns(ResultSetNode resultSet,
+                                       Map<ResultColumn, Integer> refCountMap,
+                                       Map<String, BaseColumnNode> baseColumnNodes) throws StandardException {
+
+        Set<SelectNode> selectNodes = collectNodes(resultSet, SelectNode.class, false);
+        for (SelectNode selectNode: selectNodes) {
+            GroupByList groupByList = selectNode.getGroupByList();
+            if (groupByList != null) {
+                for (int i = 0; i < groupByList.size(); ++i) {
+                    GroupByColumn groupByColumn = groupByList.getGroupByColumn(i);
+                    Set<ColumnReference> columnReferences = collectNodes(groupByColumn, ColumnReference.class, false);
+                    for (ColumnReference cr : columnReferences) {
+                        ResultColumn resultColumn = cr.getSource();
+                        addColumnReferences(resultColumn, refCountMap, baseColumnNodes);
+                    }
+                }
+            }
+
+            WindowList windowNodes = selectNode.windowDefinitionList;
+            if (windowNodes != null) {
+                for (int i = 0; i <windowNodes.size(); ++i) {
+                    WindowDefinitionNode n = (WindowDefinitionNode) windowNodes.elementAt(i);
+                    List<OrderedColumn> keyColumns = n.getOverColumns();
+                    for (OrderedColumn col : keyColumns) {
+                        ValueNode vn = col.getColumnExpression();
+                        Set<ColumnReference> columnReferences = collectNodes(vn, ColumnReference.class, false);
+                        for (ColumnReference cr : columnReferences) {
+                            ResultColumn resultColumn = cr.getSource();
+                            addColumnReferences(resultColumn, refCountMap, baseColumnNodes);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Process order by columns. Record referenced result column and base columns
+     * @param resultSet
+     * @param refCountMap
+     * @param baseColumnNodes
+     * @throws StandardException
+     */
+    private void processOrderByColumns(ResultSetNode resultSet,
+                                       Map<ResultColumn, Integer> refCountMap,
+                                       Map<String, BaseColumnNode> baseColumnNodes) throws StandardException {
+        Set<SelectNode> selectNodes = collectNodes(resultSet, SelectNode.class, false);
+        for(SelectNode selectNode : selectNodes) {
+            OrderByList orderByList = selectNode.getOrderByList();
+            if (orderByList != null) {
+                for (int i = 0; i < orderByList.size(); ++i) {
+                    OrderByColumn orderByColumn = orderByList.getOrderByColumn(i);
+                    ResultColumn resultColumn = orderByColumn.getResultColumn();
+                    addColumnReferences(resultColumn, refCountMap, baseColumnNodes);
+                }
+            }
+        }
+    }
+
+    /**
+     * Process join clause. Record referenced result column and base columns
+     * @param resultSet
+     * @param refCountMap
+     * @param baseColumnNodes
+     * @throws StandardException
+     */
+    private void processAggregates(ResultSetNode resultSet,
+                                   Map<ResultColumn, Integer> refCountMap,
+                                   Map<String, BaseColumnNode> baseColumnNodes) throws StandardException {
+        Set<SelectNode> selectNodes = collectNodes(resultSet, SelectNode.class, false);
+        for (SelectNode selectNode : selectNodes) {
+            processAggregateList(selectNode.getHavingAggregates(), refCountMap, baseColumnNodes);
+            processAggregateList(selectNode.getSelectAggregates(), refCountMap, baseColumnNodes);
+            processAggregateList(selectNode.getWhereAggregates(), refCountMap, baseColumnNodes);
+        }
+    }
+
+    /**
+     * Process aggregation list. Record referenced result column and base columns
+     * @param aggregates
+     * @param refCountMap
+     * @param baseColumnNodes
+     * @throws StandardException
+     */
+    private void processAggregateList(List<AggregateNode> aggregates,
+                                      Map<ResultColumn, Integer> refCountMap,
+                                      Map<String, BaseColumnNode> baseColumnNodes) throws StandardException {
+        if (aggregates == null)
+            return;
+
+        for (AggregateNode aggregateNode : aggregates) {
+            if (aggregateNode.getOperand() != null) {
+                Set<ColumnReference> columnReferences = collectNodes(aggregateNode, ColumnReference.class, false);
+                for (ColumnReference cr: columnReferences) {
+                    ResultColumn resultColumn = cr.getSource();
+                    addColumnReferences(resultColumn, refCountMap, baseColumnNodes);
+                }
+            }
+        }
+
+    }
+
+    private void addColumnReferences(ResultColumn resultColumn,
+                                     Map<ResultColumn, Integer> refCountMap,
+                                     Map<String, BaseColumnNode> baseColumnNodes) {
+        if (resultColumn == null)
+            return;
+
+
+        BaseColumnNode baseColumnNode = resultColumn.getBaseColumnNode();
+        if(baseColumnNode != null) {
+            String columnName = baseColumnNode.getTableName() + "." + baseColumnNode.getColumnName();
+            baseColumnNodes.put(columnName, baseColumnNode);
+            Integer refCount = refCountMap.get(resultColumn);
+            if (refCount == null) {
+                refCountMap.put(resultColumn, 1);
+            } else {
+                refCountMap.put(resultColumn, refCount + 1);
+            }
+        }
+    }
+
+    /**
+     * Collect result column lists that will be used to calculated reference count for result columns. Exceptions:
+     *
+     * 1) Result column list of FromBaseTable. They are needed during optimization, and unused columns will be removed
+     *    later.
+     * 2) Result column list of SetOperatorNode's child result set. Unused column will be inferenced from the parent.
+     * 3) Result column list of distinct select cannot be removed
+     *
+     * @param resultSet
+     * @param includeColumnLists
+     * @return
+     * @throws StandardException
+     */
+    private Set<ResultColumnList> getResultColumnLists(ResultSetNode resultSet,
+                                                       Set<ResultColumnList> includeColumnLists) throws StandardException {
+        Set<ResultColumnList> resultColumnLists = collectNodes(resultSet, ResultColumnList.class, false);
+        Set<ResultSetNode> resultSetNodes = collectNodes(resultSet, ResultSetNode.class, false);
+
+        //Do not remove columns from FromBaseTable now
+        for (ResultSetNode resultSetNode : resultSetNodes) {
+            if (resultSetNode instanceof FromBaseTable) {
+                ResultColumnList resultColumnList = resultSetNode.getResultColumns();
+                resultColumnLists.remove(resultColumnList);
+            }
+        }
+
+        // Do not remove columns from distinct select because they are always needed for sorting
+        Set<SelectNode> selectNodes = collectNodes(resultSet, SelectNode.class, false);
+        for (SelectNode selectNode : selectNodes) {
+            if (selectNode.hasDistinct()) {
+                ResultColumnList resultColumnList = selectNode.getResultColumns();
+                includeColumnLists.add(resultColumnList);
+            }
+        }
+
+        // Collect set operator nodes
+        Set<SetOperatorNode> setOperators = collectNodes(resultSet, SetOperatorNode.class, false);
+        for (SetOperatorNode setOperator:setOperators) {
+            includeColumnLists.add(setOperator.getResultColumns());
+            ResultSetNode leftChild = setOperator.getLeftResultSet();
+            includeColumnLists.add(leftChild.getResultColumns());
+
+            ResultSetNode rightChild = setOperator.getRightResultSet();
+            includeColumnLists.add(rightChild.getResultColumns());
+        }
+        return resultColumnLists;
     }
 }

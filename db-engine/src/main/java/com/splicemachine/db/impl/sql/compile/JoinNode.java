@@ -1043,6 +1043,12 @@ public class JoinNode extends TableOperatorNode{
         if(joinPredicates!=null){
             joinPredicates=(PredicateList)joinPredicates.accept(v, this);
         }
+        if (leftPredicateList != null) {
+            leftPredicateList=(PredicateList)leftPredicateList.accept(v, this);
+        }
+        if (rightPredicateList != null) {
+            rightPredicateList = (PredicateList)rightPredicateList.accept(v, this);
+        }
     }
 
     // This method returns the table references in Join node, and this may be
