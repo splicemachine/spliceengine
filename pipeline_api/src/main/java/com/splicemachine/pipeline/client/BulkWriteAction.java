@@ -19,7 +19,6 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -29,8 +28,9 @@ import com.splicemachine.pipeline.callbuffer.PipingCallBuffer;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.WriteConflict;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -315,7 +315,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                                             id,bulkWriteResult,currentBulkWrite);
                                 }
 
-                                Collection<KVPair> writes=PipelineUtils.doPartialRetry(currentBulkWrite,bulkWriteResult,id);
+                                Collection<Record> writes=PipelineUtils.doPartialRetry(currentBulkWrite,bulkWriteResult,id);
                                 if(writes.size()>0){
                                     ctx.addBulkWrites(writes);
                                     // only redo cache if you have a failure not a lock contention issue
@@ -463,7 +463,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         return first;
     }
 
-    private void addToRetryCallBuffer(Collection<KVPair> retryBuffer,TxnView txn,boolean refreshCache) throws Exception{
+    private void addToRetryCallBuffer(Collection<Record> retryBuffer, Txn txn, boolean refreshCache) throws Exception{
         if(retryBuffer==null) return; //actually nothing to do--probably doesn't happen, but just to be safe
         if(RETRY_LOG.isDebugEnabled())
             SpliceLogUtils.debug(RETRY_LOG,"[%d] addToRetryCallBuffer %d rows, refreshCache=%s",id,retryBuffer.size(),refreshCache);
@@ -486,7 +486,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
          * necessarily a subset of the rows contained in directWriteSet).
          *
          */
-        Collection<KVPair> nextWriteSet;
+        Collection<Record> nextWriteSet;
         boolean directRetry;
         int attemptCount = 0;
 
@@ -506,7 +506,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             rejected=false;
         }
 
-        void addBulkWrites(Collection<KVPair> writes){
+        void addBulkWrites(Collection<Record> writes){
             assert !directRetry: "Cannot add a partial failure and a global retry at the same time";
             if(nextWriteSet==null)
                 nextWriteSet = writes;

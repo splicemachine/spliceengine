@@ -15,9 +15,8 @@
 
 package com.splicemachine.pipeline.writehandler;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
-
+import com.splicemachine.storage.Record;
 import java.io.IOException;
 
 /**
@@ -31,7 +30,7 @@ public interface WriteHandler {
 	/**
 	 * Process the mutation with the given handler
 	 */
-    void next(KVPair mutation, WriteContext ctx);
+    void next(Record mutation, WriteContext ctx);
 
     /**
      * Flush the writes with the given handler.  This method assumes possible asynchronous underlying calls.

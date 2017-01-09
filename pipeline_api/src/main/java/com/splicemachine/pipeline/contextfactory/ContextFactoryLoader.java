@@ -16,8 +16,7 @@
 package com.splicemachine.pipeline.contextfactory;
 
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.si.api.txn.TxnView;
-
+import com.splicemachine.si.api.txn.Txn;
 import java.io.IOException;
 import java.util.Set;
 
@@ -27,7 +26,7 @@ import java.util.Set;
  */
 public interface ContextFactoryLoader extends AutoCloseable{
 
-    void load(TxnView txn) throws IOException, InterruptedException;
+    void load(Txn txn) throws IOException, InterruptedException;
 
     WriteFactoryGroup getForeignKeyFactories();
 

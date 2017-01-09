@@ -16,7 +16,7 @@
 package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.pipeline.config.WriteConfiguration;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
 
 /**
@@ -86,7 +86,7 @@ public interface CallBuffer<E> extends AutoCloseable {
      * Retrieve the current transaction.
      *
      */
-    TxnView getTxn();
+    Txn getTxn();
 
     Partition destinationPartition();
 

@@ -16,7 +16,7 @@
 package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.pipeline.config.WriteConfiguration;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
 
 /**
@@ -37,7 +37,7 @@ public class ForwardingCallBuffer<E> implements CallBuffer<E> {
     @Override public void close() throws Exception { delegate.close(); }
     @Override public PreFlushHook getPreFlushHook() {return delegate.getPreFlushHook(); }
     @Override public WriteConfiguration getWriteConfiguration() { return delegate.getWriteConfiguration();}
-    @Override public TxnView getTxn() { return delegate.getTxn();}
+    @Override public Txn getTxn() { return delegate.getTxn();}
 
     @Override
     public Partition destinationPartition(){

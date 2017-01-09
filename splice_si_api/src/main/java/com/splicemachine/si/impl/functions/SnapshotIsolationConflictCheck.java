@@ -38,7 +38,8 @@ public class SnapshotIsolationConflictCheck implements Function<Record[],BitSet>
     @Nullable
     @Override
     public BitSet apply(Record[] records) {
-        IntObjectOpenHashMap<DataPut> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(locks.length, 0.9f);
+        return null;
+/*        IntObjectOpenHashMap<DataPut> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(locks.length, 0.9f);
         DataResult possibleConflicts = null;
         for (int i = 0; i< records.length; i++) {
             if (locks[i] == null) // Ignore Records We Could Not Get a lock on...
@@ -70,6 +71,7 @@ public class SnapshotIsolationConflictCheck implements Function<Record[],BitSet>
                      * If the type is an upsert, then we want to check for an ADDITIVE conflict. If so,
                      * we fail this row with an ADDITIVE_UPSERT_CONFLICT.
                      */
+        /*
                 if(conflictResults.hasAdditiveConflicts()){
                     finalStatus[i]=operationStatusLib.failure(exceptionLib.additiveWriteConflict());
                 }
@@ -89,5 +91,8 @@ public class SnapshotIsolationConflictCheck implements Function<Record[],BitSet>
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+}
+*/
     }
 }

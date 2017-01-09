@@ -2,7 +2,7 @@
 //
 //import com.splicemachine.kvpair.KVPair;
 //import com.splicemachine.primitives.Bytes;
-//import com.splicemachine.si.api.txn.TxnView;
+//import com.splicemachine.si.api.txn.txn;
 //import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 //import org.junit.Assert;
 //import org.junit.Test;
@@ -17,10 +17,10 @@
 //
 //    @Test
 //    public void testCanEncodeAndDecodeASingleBulkWrite() throws Exception {
-//        TxnView txnView = new ActiveWriteTxn(1l,1l);
+//        txn txn = new ActiveWriteTxn(1l,1l);
 //
 //        Collection<BulkWrite> bws = generateBulkWrites(1);
-//        BulkWrites toEncode = new BulkWrites(bws,txnView);
+//        BulkWrites toEncode = new BulkWrites(bws,txn);
 //
 //        byte[] bytes = PipelineEncoding.encode(toEncode);
 //        BulkWrites decoded = PipelineEncoding.decode(bytes);
@@ -29,10 +29,10 @@
 //
 //    @Test
 //    public void testCanEncodeAndDecodeMultipleBulkWrites() throws Exception {
-//        TxnView txnView = new ActiveWriteTxn(1l,1l);
+//        txn txn = new ActiveWriteTxn(1l,1l);
 //
 //        Collection<BulkWrite> bws = generateBulkWrites(10);
-//        BulkWrites toEncode = new BulkWrites(bws,txnView);
+//        BulkWrites toEncode = new BulkWrites(bws,txn);
 //
 //        byte[] bytes = PipelineEncoding.encode(toEncode);
 //        BulkWrites decoded = PipelineEncoding.decode(bytes);

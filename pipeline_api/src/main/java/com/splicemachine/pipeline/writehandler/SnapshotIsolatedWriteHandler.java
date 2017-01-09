@@ -16,12 +16,10 @@
 package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
-
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.si.impl.DDLFilter;
-
+import com.splicemachine.storage.Record;
 import org.apache.log4j.Logger;
 
 public class SnapshotIsolatedWriteHandler implements WriteHandler {
@@ -36,7 +34,7 @@ public class SnapshotIsolatedWriteHandler implements WriteHandler {
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
+    public void next(Record mutation, WriteContext ctx) {
         try {
             if (ddlFilter.isVisibleBy(ctx.getTxn())) {
                 delegate.next(mutation, ctx);

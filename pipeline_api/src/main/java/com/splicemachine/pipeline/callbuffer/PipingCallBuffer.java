@@ -16,7 +16,6 @@
 package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.access.util.ByteComparisons;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.*;
@@ -26,9 +25,10 @@ import com.splicemachine.pipeline.config.UpdatingWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.writer.RegulatedWriter;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -48,7 +48,7 @@ import java.util.*;
  * @author Scott Fines
  * Created on: 8/27/13
  */
-public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildable{
+public class PipingCallBuffer implements RecordingCallBuffer<Record>, Rebuildable{
     private static final Logger LOG = Logger.getLogger(PipingCallBuffer.class);
 
     /**
@@ -63,7 +63,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
 
     private final Writer writer;
     private final boolean skipIndexWrites;
-    private final TxnView txn;
+    private final Txn txn;
     //private final RegionCache regionCache;
     private long totalElementsAdded = 0l;
     private long totalBytesAdded = 0l;
@@ -77,10 +77,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     private final PreFlushHook preFlushHook;
     private boolean record = true;
     private final Partition table;
-    private KVPair lastKvPair;
+    private Record lastKvPair;
 
     public PipingCallBuffer(Partition table,
-                            TxnView txn,
+                            Txn txn,
                             Writer writer,
                             PreFlushHook preFlushHook,
                             WriteConfiguration writeConfiguration,
@@ -104,11 +104,11 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
      * This method will "pipe" (set) the mutation into the correct region's call buffer for later flushing.
      */
     @Override
-    public void add(KVPair element) throws Exception {
+    public void add(Record element) throws Exception {
         assert element!=null: "Cannot add a non-null element!";
         lastKvPair = element;
         rebuildIfNecessary();
-        Map.Entry<byte[],Pair<PartitionBuffer,PartitionServer>> entry = startKeyToRegionCBMap.floorEntry(element.getRowKey());
+        Map.Entry<byte[],Pair<PartitionBuffer,PartitionServer>> entry = startKeyToRegionCBMap.floorEntry(element.rowKeySlice().getByteCopy()); // JL TODO FIX
         if(entry==null) entry = startKeyToRegionCBMap.firstEntry();
         assert entry!=null;
         PartitionBuffer regionCB = entry.getValue().getFirst();
@@ -165,7 +165,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
          */
 
         // Get all of the "Splice mutations" that need to be performed on this table.
-        Collection<KVPair> items = getKVPairs();  // KVPairs are simple, just a row key, value, and "Splice mutation" type.
+        Collection<Record> items = getKVPairs();  // KVPairs are simple, just a row key, value, and "Splice mutation" type.
         assert items != null;
 
         // The following block of code flushes the region and region server call buffers.
@@ -257,8 +257,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
      * This method will "pipe" (set) the mutations into the correct region's call buffers for later flushing.
      */
     @Override
-    public void addAll(KVPair[] elements) throws Exception {
-        for(KVPair element:elements)
+    public void addAll(Record[] elements) throws Exception {
+        for(Record element:elements)
             add(element);
     }
 
@@ -267,8 +267,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
      * This method will "pipe" (set) the mutations into the correct region's call buffers for later flushing.
      */
     @Override
-    public void addAll(Iterable<KVPair> elements) throws Exception {
-        for(KVPair element:elements){
+    public void addAll(Iterable<Record> elements) throws Exception {
+        for(Record element:elements){
             add(element);
         }
     }
@@ -325,7 +325,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     @Override public long getTotalFlushes() {  return totalFlushes;  }
     @Override public double getAverageEntriesPerFlush() { return ((double)totalElementsAdded)/getTotalFlushes(); }
     @Override public double getAverageSizePerFlush() { return ((double) totalBytesAdded)/getTotalFlushes(); }
-    @Override public CallBuffer<KVPair> unwrap() { return this; }
+    @Override public CallBuffer<Record> unwrap() { return this; }
     @Override public WriteStats getWriteStats() { return writeStats; }
 
     public List<BulkWrites> getBulkWrites() throws Exception {
@@ -344,9 +344,9 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
 	 * @return list of all "Splice mutations" that are buffered for the table
 	 * @throws Exception
 	 */
-    public Collection<KVPair> getKVPairs() throws Exception {
+    public Collection<Record> getKVPairs() throws Exception {
         SpliceLogUtils.trace(LOG, "getKVPairs");
-        Collection<KVPair> kvPairs = new ArrayList<>();
+        Collection<Record> kvPairs = new ArrayList<>();
         for(Pair<PartitionBuffer,PartitionServer> buffer:startKeyToRegionCBMap.values()) {
             kvPairs.addAll(buffer.getFirst().getBuffer());
         }
@@ -373,7 +373,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     }
 
     @Override
-    public TxnView getTxn() {
+    public Txn getTxn() {
         return txn;
     }
 
@@ -383,7 +383,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     }
 
     @Override
-    public KVPair lastElement(){
+    public Record lastElement(){
         return lastKvPair;
     }
 }

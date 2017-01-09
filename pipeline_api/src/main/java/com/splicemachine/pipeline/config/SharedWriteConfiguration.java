@@ -18,7 +18,6 @@ package com.splicemachine.pipeline.config;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.Code;
@@ -28,9 +27,9 @@ import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -40,7 +39,7 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
 
     private static final Logger LOG = Logger.getLogger(SharedWriteConfiguration.class);
 
-    private final List<Pair<WriteContext, ObjectObjectOpenHashMap<KVPair, KVPair>>> sharedMainMutationList = new CopyOnWriteArrayList<>();
+    private final List<Pair<WriteContext, ObjectObjectOpenHashMap<Record, Record>>> sharedMainMutationList = new CopyOnWriteArrayList<>();
     private final AtomicInteger completedCount = new AtomicInteger(0);
     private final int maxRetries;
     private final long pause;
@@ -52,7 +51,7 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
     }
 
     @Override
-    public void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
+    public void registerContext(WriteContext context, ObjectObjectOpenHashMap<Record, Record> indexToMainMutationMap) {
         sharedMainMutationList.add(Pair.newPair(context,indexToMainMutationMap));
         completedCount.incrementAndGet();
     }
@@ -89,13 +88,13 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
                 return WriteResponse.RETRY;
             }
             else {
-                List<KVPair> indexMutations = request.mutationsList();
+                List<Record> indexMutations = request.mutationsList();
                 for (IntObjectCursor<WriteResult> cursor : failedRows) {
                     int row = cursor.key;
-                    KVPair kvPair = indexMutations.get(row);
+                    Record kvPair = indexMutations.get(row);
                     WriteResult mutationResult = cursor.value;
-                    for (Pair<WriteContext, ObjectObjectOpenHashMap<KVPair, KVPair>> pair : sharedMainMutationList) {
-                        KVPair main = pair.getSecond().get(kvPair);
+                    for (Pair<WriteContext, ObjectObjectOpenHashMap<Record, Record>> pair : sharedMainMutationList) {
+                        Record main = pair.getSecond().get(kvPair);
                         WriteContext context = pair.getFirst();
                         // The "main" kvPair from the context may not match the one from the context that failed.
                         // This can happen, for instance, when we have an index update - there's a delete ctx

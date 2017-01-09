@@ -15,9 +15,8 @@
 
 package com.splicemachine.pipeline.client;
 
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -29,7 +28,7 @@ import java.util.Collection;
  */
 public class BulkWrites{
     private Collection<BulkWrite> bulkWrites;
-    private TxnView txn;
+    private Txn txn;
     /*
      *a key to indicate which region to send the write to. This is really just
      * any region which is present on the destination region server
@@ -40,12 +39,12 @@ public class BulkWrites{
         bulkWrites=new ArrayList<>(0);
     }
 
-    public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn){
+    public BulkWrites(Collection<BulkWrite> bulkWrites,Txn txn){
         this(bulkWrites,txn,null);
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn,byte[] regionKey){
+    public BulkWrites(Collection<BulkWrite> bulkWrites,Txn txn,byte[] regionKey){
         this.bulkWrites=bulkWrites;
         this.txn=txn;
         this.regionKey=regionKey;
@@ -60,7 +59,7 @@ public class BulkWrites{
         return bulkWrites;
     }
 
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 

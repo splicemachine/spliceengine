@@ -31,7 +31,7 @@ public class ObtainLocks implements Function<Record[],Lock[]> {
         Lock[] locks = new Lock[records.length];
         try {
             for (int i = 0; i < records.length; i++) {
-                Lock lock = table.getRowLock(records[i]);
+                Lock lock = table.getRowLock((byte[])records[i].getKey());
                 if(lock.tryLock())
                     locks[i]=lock;
                 else

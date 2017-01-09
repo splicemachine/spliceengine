@@ -19,8 +19,9 @@ import java.io.IOException;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 import org.apache.log4j.Logger;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.client.WriteResult;
@@ -42,7 +43,7 @@ public abstract class RoutingWriteHandler implements WriteHandler {
      * original (i.e. the base partition) KVPair. This allows us to backtrack and identify the source for a given
      * destination write.
      */
-    protected final ObjectObjectOpenHashMap<KVPair, KVPair> routedToBaseMutationMap= ObjectObjectOpenHashMap.newInstance();
+    protected final ObjectObjectOpenHashMap<Record, Record> routedToBaseMutationMap= ObjectObjectOpenHashMap.newInstance();
     protected final boolean keepState;
 
     protected RoutingWriteHandler(byte[] destination,boolean keepState) {
@@ -51,13 +52,13 @@ public abstract class RoutingWriteHandler implements WriteHandler {
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
+    public void next(Record mutation, WriteContext ctx) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "next %s", mutation);
         if (failed) // Do not run...
             ctx.notRun(mutation);
         else {
-            if (!isHandledMutationType(mutation.getType())) { // Send Upstream
+            if (!isHandledMutationType(mutation.getRecordType())) { // Send Upstream
                 ctx.sendUpstream(mutation);
                 return;
             }
@@ -79,7 +80,7 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             Object[] buffer = routedToBaseMutationMap.values;
             int size = routedToBaseMutationMap.size();
             for (int i = 0; i < size; i++) {
-                fail((KVPair)buffer[i],ctx,e);
+                fail((Record)buffer[i],ctx,e);
             }
         }
     }
@@ -95,24 +96,24 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             Object[] buffer = routedToBaseMutationMap.values;
             int size = routedToBaseMutationMap.size();
             for (int i = 0; i < size; i++) {
-                fail((KVPair)buffer[i],ctx,e);
+                fail((Record)buffer[i],ctx,e);
             }
         }
     }
 
-    protected abstract boolean isHandledMutationType(KVPair.Type type);
+    protected abstract boolean isHandledMutationType(RecordType type);
 
-    protected abstract boolean route(KVPair mutation,WriteContext ctx);
+    protected abstract boolean route(Record mutation,WriteContext ctx);
 
     protected abstract void doFlush(WriteContext ctx) throws Exception;
 
     protected abstract void doClose(WriteContext ctx) throws Exception;
 
-    protected final CallBuffer<KVPair> getRoutedWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
+    protected final CallBuffer<Record> getRoutedWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
         return ctx.getSharedWriteBuffer(destination,routedToBaseMutationMap, expectedSize * 2 + 10, true, ctx.getTxn()); //make sure we don't flush before we can
     }
 
-    protected final void fail(KVPair mutation,WriteContext ctx,Exception e){
+    protected final void fail(Record mutation,WriteContext ctx,Exception e){
         @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = ctx.exceptionFactory().processPipelineException(e);
         if(t instanceof NotServingPartitionException)
             ctx.failed(mutation,WriteResult.notServingRegion());

@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.utils.ByteSlice;
 
 import java.util.Iterator;
 
@@ -145,7 +146,6 @@ public interface Record<K,V> {
      */
     void setKey(K key);
 
-
     RecordType getRecordType();
 
     void setRecordType(RecordType recordType);
@@ -168,12 +168,9 @@ public interface Record<K,V> {
      */
     Record[] updateRecord(Record<K,V> updatedRecord, ExecRow recordDefinition) throws StandardException;
 
-    /**
-     * Position 0 active Record, Position 1 redo record
-     *
-     * @param updatedRecord
-     * @return
-     */
-    Record[] deleteRecord(Record<K,V> deletedRecord, ExecRow recordDefinition) throws StandardException;
+    int getSize();
 
+    ByteSlice rowKeySlice();
+
+    Record cancelToDelete();
 }

@@ -17,8 +17,7 @@ package com.splicemachine.pipeline;
 
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.contextfactory.*;
-import com.splicemachine.si.api.txn.TxnView;
-
+import com.splicemachine.si.api.txn.Txn;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
@@ -35,7 +34,7 @@ public class ManualContextFactoryLoader implements ContextFactoryLoader{
     private final WriteFactoryGroup ddl = new ListWriteFactoryGroup(Collections.<LocalWriteFactory>emptyList());
 
     @Override
-    public void load(TxnView txn) throws IOException, InterruptedException{
+    public void load(Txn txn) throws IOException, InterruptedException{
         //no-op, because we expect to manually add them
     }
 

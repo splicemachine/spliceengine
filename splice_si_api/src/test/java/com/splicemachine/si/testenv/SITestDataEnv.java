@@ -16,7 +16,6 @@
 package com.splicemachine.si.testenv;
 
 import com.splicemachine.si.api.data.*;
-import com.splicemachine.storage.DataFilterFactory;
 
 /**
  * @author Scott Fines
@@ -24,13 +23,10 @@ import com.splicemachine.storage.DataFilterFactory;
  */
 public interface SITestDataEnv{
 
-    DataFilterFactory getFilterFactory();
-
     ExceptionFactory getExceptionFactory();
 
     OperationStatusFactory getOperationStatusFactory();
 
     TxnOperationFactory getOperationFactory();
 
-    OperationFactory getBaseOperationFactory();
 }

@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.storage.Record;
 import com.splicemachine.storage.RecordType;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
@@ -14,11 +15,13 @@ import java.util.Iterator;
 
 /**
  *
- * []
+ * Basic Record for Data stored in the following format.
  *
  */
 public class UnsafeRecord implements Record<byte[],ExecRow> {
-    protected byte[] key;
+    protected byte[] keyObject;
+    protected long keyOffset;
+    protected int keyLength;
     protected long version;
     protected Object baseObject;
     protected long baseOffset;
@@ -37,12 +40,24 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
     protected static int ASIZE = 16;
 
 
+    public UnsafeRecord(byte[] key, long version, boolean isActiveRecord) {
+        this(key,version,isActiveRecord, 200); // TODO Fix JL
+    }
 
+    public UnsafeRecord(byte[] key, long version, boolean isActiveRecord, int startingBackingBufferSize) {
+        this(key,version,new byte[startingBackingBufferSize],0,isActiveRecord); // TODO Fix JL
+    }
 
     public UnsafeRecord(byte[] key, long version, Object baseObject,long baseOffset, boolean isActiveRecord) {
-        assert key != null:"key cannot be null";
+        this(key,0,key.length,version,baseObject,baseOffset,isActiveRecord);
+    }
+
+    public UnsafeRecord(byte[] keyObject, long keyOffset, int keyLength, long version, Object baseObject,long baseOffset, boolean isActiveRecord) {
+        assert keyObject != null:"key cannot be null";
         assert version > 0L:"version cannot be negative";
-        this.key = key;
+        this.keyObject = keyObject;
+        this.keyOffset = keyOffset;
+        this.keyLength = keyLength;
         this.version = version;
         this.baseObject = baseObject;
         this.baseOffset = baseOffset;
@@ -171,12 +186,19 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
 
     @Override
     public byte[] getKey() {
+        if (keyLength == keyObject.length && keyOffset == 0)
+            return keyObject;
+        byte[] key = new byte[keyObject.length];
+        Platform.copyMemory(keyObject,keyOffset,key,0,keyLength);
         return key;
     }
 
     @Override
     public void setKey(byte[] key) {
-        this.key = key;
+        assert key != null:"Passed in key cannot be null";
+        this.keyOffset = 0;
+        this.keyObject = key;
+        this.keyLength = key.length;
     }
 
     @Override
@@ -220,7 +242,12 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
 
     @Override
     public Record[] updateRecord(Record updatedRecord, ExecRow rowDefinition) throws StandardException {
-        if (updatedRecord.hasTombstone()) { // deleting records
+        if (updatedRecord.hasTombstone()) { // delete record
+            updatedRecord.setVersion(getVersion()+1);
+            return new Record[]{updatedRecord,this};
+        }
+
+        if (hasTombstone()) { // undelete record
             updatedRecord.setVersion(getVersion()+1);
             return new Record[]{updatedRecord,this};
         }
@@ -304,7 +331,7 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
             fromIndex = UnsafeRecordUtils.nextSetBit(globalOrBitSetArray,16,fromIndex+1,bitSetWords);
         }
         // Active Record Generation
-        UnsafeRecord activeRecord = new UnsafeRecord(this.key,this.version+1,new byte[COLS_BS_INC+newActiveBitSetArray.length+newActiveBuffer.cursor],16,true);
+        UnsafeRecord activeRecord = new UnsafeRecord(this.keyObject,this.keyOffset,this.keyLength,this.version+1,new byte[COLS_BS_INC+newActiveBitSetArray.length+newActiveBuffer.cursor],16,true);
         Platform.copyMemory(uR.baseObject, uR.baseOffset+TXN_ID1_INC,activeRecord.baseObject,activeRecord.baseOffset+TXN_ID1_INC,16); // txnid1 and txnid2
         activeRecord.setNumberOfColumns(newActiveRow.numFields());
         Platform.copyMemory(newActiveBitSetArray,16,activeRecord.baseObject,(long) (activeRecord.baseOffset+COLS_BS_INC),newActiveBitSetArray.length);
@@ -312,7 +339,7 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
                 (long) (activeRecord.baseOffset+UNSAFE_INC+newActiveBitSetArray.length),(long) newActiveBuffer.cursor);
 
         // Redo Record Generation
-        UnsafeRecord redoRecord = new UnsafeRecord(this.key,this.version,new byte[COLS_BS_INC+newRedoBitSetArray.length+newRedoBuffer.cursor],16,true);
+        UnsafeRecord redoRecord = new UnsafeRecord(this.keyObject,this.keyOffset,this.keyLength,this.version,new byte[COLS_BS_INC+newRedoBitSetArray.length+newRedoBuffer.cursor],16,true);
         Platform.copyMemory(baseObject, baseOffset+TXN_ID1_INC,redoRecord.baseObject,redoRecord.baseOffset+TXN_ID1_INC,24); // txnid1, txnid2, eff-ts
         redoRecord.setNumberOfColumns(newRedoRow.numFields());
         Platform.copyMemory(newRedoBitSetArray,16,redoRecord.baseObject,(long) (redoRecord.baseOffset+COLS_BS_INC),newRedoBitSetArray.length);
@@ -323,7 +350,7 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
 
     @Override
     public String toString() {
-        return "UnsafeRecord {key=" + Hex.encodeHexString(key) +
+        return "UnsafeRecord {key=" + Hex.encodeHexString(getKey()) +
                 ", version=" + version +
                 ", tombstone=" + hasTombstone() +
                 ", txnId1=" + getTxnId1() +
@@ -392,21 +419,19 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
     }
 
     @Override
-    public Record[] deleteRecord(Record<byte[], ExecRow> deletedRecord, ExecRow recordDefinition) throws StandardException {
-        UnsafeRecord activeRecord = new UnsafeRecord(this.key,this.version+1,new byte[COLS_BS_INC],16,true);
-        //Platform.copyMemory(activeRecord.baseObject,activeRecord.baseOffset,);
-        return new Record[]{};
+    public int getSize() {
+        return ((byte[])baseObject).length;
     }
 
-    private void updateToActive(Record<byte[], ExecRow> updatedRecord, Record<byte[], ExecRow> activeRecord) {
-        activeRecord.setTxnId1(updatedRecord.getTxnId1());
-        activeRecord.setTxnId2(updatedRecord.getTxnId2());
+    @Override
+    public ByteSlice rowKeySlice() {
+        return ByteSlice.wrap(keyObject,(int)keyOffset,keyLength);
     }
 
-    private void activeToRedo(Record<byte[], ExecRow> activeRecord, Record<byte[], ExecRow> redoRecord) {
-        redoRecord.setTxnId1(activeRecord.getTxnId1());
-        redoRecord.setTxnId2(activeRecord.getTxnId2());
-        redoRecord.setEffectiveTimestamp(activeRecord.getEffectiveTimestamp());
+    @Override
+    public Record cancelToDelete() {
+//        mutations.add(new Record(kvPair.getKey(), kvPair.getValue(), RecordType.DELETE));
+        // JL - TODO
+        return null;
     }
-
 }

@@ -15,8 +15,7 @@
 
 package com.splicemachine.pipeline.client;
 
-import com.splicemachine.kvpair.KVPair;
-
+import com.splicemachine.storage.Record;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -27,23 +26,23 @@ import java.util.List;
  */
 public class BulkWrite {
 
-    public Collection<KVPair> mutations;
+    public Collection<Record> mutations;
     private String encodedStringName;
     private byte skipIndexWrite;
 
     /*non serialized field*/
     private transient long bufferHeapSize = -1;
 
-    public BulkWrite(Collection<KVPair> mutations,String encodedStringName) {
+    public BulkWrite(Collection<Record> mutations,String encodedStringName) {
         this(-1,mutations,encodedStringName);
     }
 
-    public BulkWrite(Collection<KVPair> mutations, String encodedStringName, byte skipIndexWrite) {
+    public BulkWrite(Collection<Record> mutations, String encodedStringName, byte skipIndexWrite) {
         this(-1, mutations, encodedStringName);
         this.skipIndexWrite = skipIndexWrite;
     }
 
-    public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName) {
+    public BulkWrite(int heapSizeEstimate,Collection<Record> mutations,String encodedStringName) {
         assert encodedStringName != null;
         this.mutations = mutations;
         this.encodedStringName = encodedStringName;
@@ -51,18 +50,18 @@ public class BulkWrite {
         this.skipIndexWrite = 0x02; // default to false - do not skip
     }
 
-    public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName, boolean skipIndexWrite) {
+    public BulkWrite(int heapSizeEstimate,Collection<Record> mutations,String encodedStringName, boolean skipIndexWrite) {
         this(heapSizeEstimate, mutations, encodedStringName);
         if (skipIndexWrite)
             this.skipIndexWrite = 0x01;  // true - skip writing to index
     }
 
-    public Collection<KVPair> getMutations() {
+    public Collection<Record> getMutations() {
         return mutations;
     }
 
-    public List<KVPair> mutationsList(){
-        if(mutations instanceof List) return (List<KVPair>)mutations;
+    public List<Record> mutationsList(){
+        if(mutations instanceof List) return (List<Record>)mutations;
         return new ArrayList<>(mutations);
     }
 
@@ -81,7 +80,7 @@ public class BulkWrite {
     public long getBufferSize() {
         if(bufferHeapSize <0){
             long heap = 0l;
-            for(KVPair kvPair:mutations){
+            for(Record kvPair:mutations){
                 heap+=kvPair.getSize();
             }
             bufferHeapSize = heap;

@@ -17,13 +17,13 @@ package com.splicemachine.pipeline.writehandler;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.config.SharedWriteConfiguration;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.storage.Record;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
@@ -39,7 +39,7 @@ import java.io.IOException;
 public class SharedCallBufferFactory{
 
     /* conglomerateId to CallBuffer */
-    private ObjectObjectOpenHashMap<byte[], CallBuffer<KVPair>> sharedCallBufferMap = new ObjectObjectOpenHashMap<>();
+    private ObjectObjectOpenHashMap<byte[], CallBuffer<Record>> sharedCallBufferMap = new ObjectObjectOpenHashMap<>();
     private final WriteCoordinator writerPool;
     private final PartitionFactory partitionFactory;
 
@@ -48,14 +48,14 @@ public class SharedCallBufferFactory{
         this.partitionFactory = writerPool.getPartitionFactory();
     }
 
-    public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
+    public CallBuffer<Record> getWriteBuffer(byte[] conglomBytes,
                                              WriteContext context,
-                                             ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
+                                             ObjectObjectOpenHashMap<Record, Record> indexToMainMutationMap,
                                              int maxSize,
                                              boolean useAsyncWriteBuffers,
-                                             TxnView txn) throws Exception {
+                                             Txn txn) throws Exception {
 
-        CallBuffer<KVPair> writeBuffer = sharedCallBufferMap.get(conglomBytes);
+        CallBuffer<Record> writeBuffer = sharedCallBufferMap.get(conglomBytes);
         if (writeBuffer == null) {
             writeBuffer = createKvPairCallBuffer(conglomBytes, context, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn);
         } else {
@@ -65,12 +65,12 @@ public class SharedCallBufferFactory{
         return writeBuffer;
     }
 
-    private CallBuffer<KVPair> createKvPairCallBuffer(byte[] conglomBytes,
+    private CallBuffer<Record> createKvPairCallBuffer(byte[] conglomBytes,
                                                       WriteContext context,
-                                                      ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
+                                                      ObjectObjectOpenHashMap<Record, Record> indexToMainMutationMap,
                                                       int maxSize,
                                                       boolean useAsyncWriteBuffers,
-                                                      TxnView txn) throws IOException{
+                                                      Txn txn) throws IOException{
         SharedPreFlushHook hook = new SharedPreFlushHook();
         WriteConfiguration writeConfiguration=writerPool.defaultWriteConfiguration();
         SharedWriteConfiguration wc = new SharedWriteConfiguration(writeConfiguration.getMaximumRetries(),
@@ -78,7 +78,7 @@ public class SharedCallBufferFactory{
                 writeConfiguration.getExceptionFactory());
         hook.registerContext(context, indexToMainMutationMap);
         wc.registerContext(context, indexToMainMutationMap);
-        CallBuffer<KVPair> writeBuffer;
+        CallBuffer<Record> writeBuffer;
         if (useAsyncWriteBuffers) {
             writeBuffer = writerPool.writeBuffer(partitionFactory.getTable(conglomBytes), txn, hook, wc);
         } else {

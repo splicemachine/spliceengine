@@ -15,9 +15,9 @@
 
 package com.splicemachine.pipeline.callbuffer;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.Record;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,7 +30,7 @@ import java.util.Collection;
  */
 public class PartitionBuffer{
 
-    private Collection<KVPair> buffer;
+    private Collection<Record> buffer;
     private int heapSize;
     private Partition partition;
     private PreFlushHook preFlushHook;
@@ -43,7 +43,7 @@ public class PartitionBuffer{
         this.skipIndexWrites = skipIndexWrites;
     }
 
-    public void add(KVPair element) throws Exception {
+    public void add(Record element) throws Exception {
         buffer.add(element);
         heapSize += element.getSize();
     }
@@ -83,10 +83,10 @@ public class PartitionBuffer{
      * @return true if the row key is not contained by (is outside of) the region of this call buffer
      */
     public boolean keyOutsideBuffer(byte[] key) {
-        return !this.partition.containsRow(key);
+        return !this.partition.containsKey(key);
     }
 
-    public Collection<KVPair> getBuffer() {
+    public Collection<Record> getBuffer() {
         return buffer;
     }
 

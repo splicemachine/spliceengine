@@ -16,7 +16,7 @@
 package com.splicemachine.pipeline.contextfactory;
 
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -42,7 +42,7 @@ public class UnmanagedFactoryLoader implements ContextFactoryLoader{
     }
 
     @Override
-    public void load(TxnView txn) throws IOException, InterruptedException{
+    public void load(Txn txn) throws IOException, InterruptedException{
         //no-op
     }
 

@@ -18,18 +18,13 @@ package com.splicemachine.si.testenv;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.server.SITransactor;
-import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.si.jmx.ManagedTransactor;
-import com.splicemachine.storage.DataFilter;
-import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
-
 import java.io.IOException;
 
 
@@ -43,14 +38,10 @@ public class TestTransactionSetup {
     byte[] ageQualifier;
     int agePosition = 0;
     int jobPosition = 1;
-
     TxnOperationFactory txnOperationFactory;
     public Transactor transactor;
     public TimestampSource timestampSource;
-    public TransactionReadController readController;
-
     public TxnLifecycleManager txnLifecycleManager;
-    private DataFilterFactory filterFactory;
     public TransactionStore txnStore;
 
     public TestTransactionSetup(SITestEnv testEnv, boolean simple) {
@@ -70,26 +61,18 @@ public class TestTransactionSetup {
                 testEnv.getTxnStore());
         this.txnStore = testEnv.getTxnStore();
 //        TxnSupplier txnSupplier=new GlobalTxnCacheSupplier(100,16);
-        filterFactory = testEnv.getFilterFactory();
         txnLifecycleManager = lfManager;
 
         txnOperationFactory = testEnv.getOperationFactory();
 
-        readController = new SITransactionReadController();
-
         transactor = new SITransactor(testEnv.getTxnStore(),
                 txnOperationFactory,
-                testEnv.getBaseOperationFactory(),
                 testEnv.getOperationStatusFactory(),
                 testEnv.getExceptionFactory());
 
         if (!simple) {
             listener.setTransactor(transactor);
         }
-    }
-
-    public DataFilter equalsValueFilter(byte[] qualifier,byte[] value){
-        return filterFactory.singleColumnEqualsValueFilter(SIConstants.DEFAULT_FAMILY_BYTES,qualifier,value);
     }
 
     public Partition getPersonTable(SITestEnv testEnv) throws IOException{

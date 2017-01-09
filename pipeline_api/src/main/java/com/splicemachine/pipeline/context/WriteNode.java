@@ -17,17 +17,16 @@ package com.splicemachine.pipeline.context;
 
 import java.io.IOException;
 import java.util.Map;
-
 import com.splicemachine.access.api.ServerControl;
-import com.splicemachine.kvpair.KVPair;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.Record;
 
 public class WriteNode implements WriteContext {
 
@@ -45,7 +44,7 @@ public class WriteNode implements WriteContext {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Override
-    public void sendUpstream(KVPair mutation) {
+    public void sendUpstream(Record mutation) {
         if (next != null) {
             next.handler.next(mutation, next);
         }
@@ -57,13 +56,13 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
-    public Map<KVPair, WriteResult> close() throws IOException {
+    public Map<Record, WriteResult> close() throws IOException {
         handler.close(this);
         return null; //ignored
     }
 
     @Override
-    public Map<KVPair, WriteResult> currentResults(){
+    public Map<Record, WriteResult> currentResults(){
         return pipelineWriteContext.currentResults();
     }
 
@@ -72,22 +71,22 @@ public class WriteNode implements WriteContext {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Override
-    public void notRun(KVPair mutation) {
+    public void notRun(Record mutation) {
         pipelineWriteContext.notRun(mutation);
     }
 
     @Override
-    public void failed(KVPair put, WriteResult mutationResult) {
+    public void failed(Record put, WriteResult mutationResult) {
         pipelineWriteContext.failed(put, mutationResult);
     }
 
     @Override
-    public void success(KVPair put) {
+    public void success(Record put) {
         pipelineWriteContext.success(put);
     }
 
     @Override
-    public void result(KVPair put, WriteResult result) {
+    public void result(Record put, WriteResult result) {
         pipelineWriteContext.result(put, result);
     }
 
@@ -102,9 +101,9 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
-    public CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
-                                                   ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
-                                                   int maxSize, boolean useAsyncWriteBuffers, TxnView txn) throws Exception {
+    public CallBuffer<Record> getSharedWriteBuffer(byte[] conglomBytes,
+                                                   ObjectObjectOpenHashMap<Record, Record> indexToMainMutationMap,
+                                                   int maxSize, boolean useAsyncWriteBuffers, Txn txn) throws Exception {
         return pipelineWriteContext.getSharedWriteBuffer(conglomBytes, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn);
     }
 
@@ -114,12 +113,12 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
-    public boolean canRun(KVPair input) {
+    public boolean canRun(Record input) {
         return pipelineWriteContext.canRun(input);
     }
 
     @Override
-    public TxnView getTxn() {
+    public Txn getTxn() {
         return pipelineWriteContext.getTxn();
     }
 

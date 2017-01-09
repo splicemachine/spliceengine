@@ -85,6 +85,8 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
 
     boolean containsKey(K key);
 
+    boolean containsKey(byte[] key, long offset, int length);
+
     boolean overlapsKeyRange(K start,K stop);
 
     void writesRequested(long writeRequests);

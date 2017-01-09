@@ -16,10 +16,10 @@
 package com.splicemachine.pipeline.api;
 
 import com.splicemachine.access.api.ServerControl;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.util.Set;
@@ -92,7 +92,7 @@ public interface Constraint {
      * context of a given BatchWrite -- used to validate the mutations within that batch do not violate the constraint.
      * BatchConstraintChecker is then used to fully validate the constraint.
      */
-    Result validate(KVPair mutation, TxnView txn, ServerControl rce, Set<ByteSlice> priorValues) throws IOException;
+    Result validate(Record mutation, Txn txn, ServerControl rce, Set<ByteSlice> priorValues) throws IOException;
 
     ConstraintContext getConstraintContext();
 

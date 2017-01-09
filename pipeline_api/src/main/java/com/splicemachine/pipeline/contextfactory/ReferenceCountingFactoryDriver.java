@@ -16,7 +16,7 @@
 package com.splicemachine.pipeline.contextfactory;
 
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 
 import java.io.IOException;
 import java.util.Set;
@@ -73,7 +73,7 @@ public abstract class ReferenceCountingFactoryDriver implements ContextFactoryDr
         }
 
         @Override
-        public void load(TxnView txn) throws IOException, InterruptedException{
+        public void load(Txn txn) throws IOException, InterruptedException{
             if(loaded) return; //no need to load twice
             delegate.load(txn);
             loaded=true;

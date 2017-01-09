@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.splicemachine.si.api.txn.Txn;
 import org.spark_project.guava.base.Function;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
@@ -41,7 +42,6 @@ import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.writehandler.PartitionWriteHandler;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
@@ -108,7 +108,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
 
     @Override
     public WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
-                               TxnView txn, TransactionalRegion rce,
+                               Txn txn, TransactionalRegion rce,
                                ServerControl env) throws IOException, InterruptedException {
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
@@ -122,7 +122,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
 
     @Override
     public WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
-                               TxnView txn, TransactionalRegion region, int expectedWrites, boolean skipIndexWrites,
+                               Txn txn, TransactionalRegion region, int expectedWrites, boolean skipIndexWrites,
                                ServerControl env) throws IOException, InterruptedException {
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
@@ -135,7 +135,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         return context;
     }
 
-    private BatchConstraintChecker buildConstraintChecker(TxnView txn) throws IOException, InterruptedException{
+    private BatchConstraintChecker buildConstraintChecker(Txn txn) throws IOException, InterruptedException{
         isInitialized(txn);
         if(state.get()==State.RUNNING){
             if(constraintFactories.isEmpty()){
@@ -152,7 +152,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
 
     @Override
     public WriteContext createPassThrough(SharedCallBufferFactory indexSharedCallBuffer,
-                                          TxnView txn,
+                                          Txn txn,
                                           TransactionalRegion region,
                                           int expectedWrites,
                                           ServerControl env) throws IOException, InterruptedException {
@@ -175,7 +175,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
     }
 
     @Override
-    public boolean hasDependentWrite(TxnView txn) throws IOException, InterruptedException{
+    public boolean hasDependentWrite(Txn txn) throws IOException, InterruptedException{
         isInitialized(txn);
         return indexFactories != null &&!indexFactories.isEmpty();
     }
@@ -191,7 +191,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         };
     }
 
-    private void isInitialized(TxnView txn) throws IOException, InterruptedException {
+    private void isInitialized(Txn txn) throws IOException, InterruptedException {
         switch (state.get()) {
             case READY_TO_START:
                 SpliceLogUtils.trace(LOG, "Index management for conglomerate %d has not completed, attempting to start now", conglomId);
@@ -228,7 +228,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         }
     }
 
-    private void start(TxnView txn) throws IOException, InterruptedException {
+    private void start(Txn txn) throws IOException, InterruptedException {
         /*
          * Ready to Start => switch to STARTING
          * STARTING => continue through to block on the lock

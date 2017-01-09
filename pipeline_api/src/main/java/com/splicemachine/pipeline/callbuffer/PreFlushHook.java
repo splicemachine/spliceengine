@@ -15,7 +15,7 @@
 
 package com.splicemachine.pipeline.callbuffer;
 
-import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.storage.Record;
 import java.util.Collection;
 
 /**
@@ -24,6 +24,6 @@ import java.util.Collection;
  *
  */
 public interface PreFlushHook{
-    Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception;
+    Collection<Record> transform(Collection<Record> buffer) throws Exception;
 }
 

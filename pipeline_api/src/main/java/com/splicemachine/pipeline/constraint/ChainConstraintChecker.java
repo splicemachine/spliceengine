@@ -15,11 +15,10 @@
 
 package com.splicemachine.pipeline.constraint;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.si.api.server.ConstraintChecker;
-import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.MutationStatus;
+import com.splicemachine.storage.Record;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,7 +35,7 @@ public class ChainConstraintChecker implements BatchConstraintChecker {
     }
 
     @Override
-    public MutationStatus checkConstraint(KVPair mutation, DataResult existingRow) throws IOException {
+    public MutationStatus checkConstraint(Record mutation, Record existingRow) throws IOException {
         MutationStatus status = null;
         for (ConstraintChecker delegate : delegates) {
             status = delegate.checkConstraint(mutation, existingRow);

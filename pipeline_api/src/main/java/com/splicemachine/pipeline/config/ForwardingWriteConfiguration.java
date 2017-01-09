@@ -16,7 +16,6 @@
 package com.splicemachine.pipeline.config;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.RecordingContext;
@@ -24,7 +23,7 @@ import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
-
+import com.splicemachine.storage.Record;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -85,7 +84,7 @@ public class ForwardingWriteConfiguration implements WriteConfiguration {
 
     @Override
     public void registerContext(WriteContext context,
-                                ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
+                                ObjectObjectOpenHashMap<Record, Record> indexToMainMutationMap) {
         delegate.registerContext(context, indexToMainMutationMap);
     }
 

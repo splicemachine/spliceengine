@@ -21,16 +21,12 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.testsetup.PipelineTestDataEnv;
 import com.splicemachine.pipeline.testsetup.PipelineTestEnvironment;
 import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
@@ -38,16 +34,11 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.TxnRegion;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
-import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.TestServerControl;
-import com.splicemachine.storage.DataPut;
-import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -73,7 +64,6 @@ import static org.mockito.Mockito.*;
 public class PartitionWriteHandlerTest{
     private static final KryoPool kp=new KryoPool(1);
     private TxnSupplier testStore;
-    private OperationFactory opFactory;
     private OperationStatusFactory opStatusFactory;
     private ExceptionFactory ef;
     private PipelineExceptionFactory pef;
@@ -83,8 +73,7 @@ public class PartitionWriteHandlerTest{
         PipelineTestDataEnv dataEnv =PipelineTestEnvironment.loadTestDataEnvironment();
         ef = dataEnv.getExceptionFactory();
         pef = dataEnv.pipelineExceptionFactory();
-        testStore = new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),ef, Long.MAX_VALUE);
-        opFactory = dataEnv.getBaseOperationFactory();
+        testStore = new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),new TestingTimestampSource(),ef, Long.MAX_VALUE);
         opStatusFactory = dataEnv.getOperationStatusFactory();
     }
 
@@ -94,7 +83,7 @@ public class PartitionWriteHandlerTest{
 
         Partition p = mock(Partition.class);
         when(p.getName()).thenReturn("testRegion");
-        when(p.containsRow(any(byte[].class),anyInt(),anyInt())).thenReturn(Boolean.TRUE);
+        when(p.containsKey(any(byte[].class),anyInt(),anyInt())).thenReturn(Boolean.TRUE);
         when(p.getRowLock(any(byte[].class),anyInt(),anyInt())).thenReturn(new ReentrantLock());
         doNothing().when(p).startOperation();
 

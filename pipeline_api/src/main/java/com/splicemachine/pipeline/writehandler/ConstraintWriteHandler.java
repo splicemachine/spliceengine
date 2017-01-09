@@ -15,12 +15,13 @@
 
 package com.splicemachine.pipeline.writehandler;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.api.Constraint;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
@@ -50,7 +51,7 @@ public class ConstraintWriteHandler implements WriteHandler {
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
+    public void next(Record mutation, WriteContext ctx) {
         if (visitedRows == null) {
             int initialCapacity = (int) Math.ceil(2*expectedWrites/0.9f);
 //            visitedRows = new TreeSet<>();
@@ -78,7 +79,7 @@ public class ConstraintWriteHandler implements WriteHandler {
                     ctx.sendUpstream(mutation);
             }
             // We don't need deletes in this set. delete -> insert/upsert to same rowkey is inefficient but valid
-            if (mutation.getType() != KVPair.Type.DELETE) {
+            if (mutation.getRecordType() != RecordType.DELETE) {
                 visitedRows.add(mutation.rowKeySlice());
             }
         } catch (IOException nsre) {
@@ -95,7 +96,7 @@ public class ConstraintWriteHandler implements WriteHandler {
     }
 
     private boolean containsRow(WriteContext ctx,ByteSlice byteSlice) {
-        return ctx.getRegion().containsRow(byteSlice.array(),byteSlice.offset(),byteSlice.length());
+        return ctx.getRegion().containsKey(byteSlice.array(),byteSlice.offset(),byteSlice.length());
     }
 
     @Override

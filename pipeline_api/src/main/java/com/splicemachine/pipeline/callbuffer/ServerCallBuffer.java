@@ -21,7 +21,7 @@ import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.client.MergingWriteStats;
 import com.splicemachine.pipeline.config.WriteConfiguration;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
@@ -60,11 +60,11 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
     private final MergingWriteStats writeStats;
     private final WriteConfiguration writeConfiguration;
     private final byte[] tableName;
-    private final TxnView txn;
+    private final Txn txn;
     private Pair<byte[], PartitionBuffer> lastElement;
 
     public ServerCallBuffer(byte[] tableName,
-                            TxnView txn,
+                            Txn txn,
                             WriteConfiguration writeConfiguration,
                             PartitionServer server,
                             Writer writer,
@@ -143,7 +143,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
 
     @Override public PreFlushHook getPreFlushHook() { return null; }
     @Override public WriteConfiguration getWriteConfiguration() { return writeConfiguration; }
-    @Override public TxnView getTxn() { return txn; }
+    @Override public Txn getTxn() { return txn; }
 
     @Override
     public Partition destinationPartition(){

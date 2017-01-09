@@ -3,6 +3,7 @@ package com.splicemachine.si.impl.txn;
 import com.splicemachine.si.api.txn.ChildStatementDuration;
 import com.splicemachine.si.api.txn.TransactionStatus;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.storage.Record;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -189,5 +190,10 @@ public class SimpleTxnImpl implements Txn {
     @Override
     public boolean isAbleToCommit() {
         return isActive() || isCommitting();
+    }
+
+    @Override
+    public void resolveCollapsibleTxn(Record record, Txn activeTxn, Txn txnToResolve) {
+
     }
 }

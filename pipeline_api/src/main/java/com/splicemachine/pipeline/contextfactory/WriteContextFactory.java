@@ -19,7 +19,7 @@ import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import java.io.IOException;
 
 /**
@@ -29,12 +29,12 @@ import java.io.IOException;
 public interface WriteContextFactory<T> {
 
     WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
-                        TxnView txn,
+                        Txn txn,
                         T key,
                         ServerControl env) throws IOException, InterruptedException;
 
     WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
-                        TxnView txn,
+                        Txn txn,
                         T key,
                         int expectedWrites,
                         boolean skipIndexWrites,
@@ -44,7 +44,7 @@ public interface WriteContextFactory<T> {
      * Creates a context that only updates side effects.
      */
     WriteContext createPassThrough(SharedCallBufferFactory indexSharedCallBuffer,
-                                   TxnView txn,
+                                   Txn txn,
                                    T key,
                                    int expectedWrites,
                                    ServerControl env) throws IOException, InterruptedException;
@@ -55,6 +55,6 @@ public interface WriteContextFactory<T> {
 
     void prepare();
 
-    boolean hasDependentWrite(TxnView txn) throws IOException, InterruptedException;
+    boolean hasDependentWrite(Txn txn) throws IOException, InterruptedException;
 
 }

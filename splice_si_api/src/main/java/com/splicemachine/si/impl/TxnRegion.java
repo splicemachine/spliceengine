@@ -85,7 +85,7 @@ public class TxnRegion<InternalScanner,K> implements TransactionalRegion<Interna
         /*
          * Designed for subclasses. Override this if you want to bypass transactional writes
          */
-        final MutationStatus[] status = transactor.processKvBatch(region,data,txn,constraintChecker);
+        final MutationStatus[] status = transactor.processRecordBatch(region,data.toArray(new Record[data.size()]),txn,null,constraintChecker);
         return new Iterable<MutationStatus>(){
             @Override public Iterator<MutationStatus> iterator(){ return Iterators.forArray(status); }
         };

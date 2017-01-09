@@ -18,7 +18,6 @@ package com.splicemachine.pipeline.context;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.access.util.CachedPartitionFactory;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.api.Code;
@@ -27,8 +26,9 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Maps;
@@ -46,10 +46,10 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     private static final Logger LOG = Logger.getLogger(PipelineWriteContext.class);
     private static final AtomicInteger idGen = new AtomicInteger(0);
 
-    private final Map<KVPair, WriteResult> resultsMap;
+    private final Map<Record, WriteResult> resultsMap;
     private final TransactionalRegion rce;
     private final CachedPartitionFactory partitionFactory;
-    private final TxnView txn;
+    private final Txn txn;
     private final SharedCallBufferFactory indexSharedCallBuffer;
     private final int id = idGen.incrementAndGet();
     private final boolean skipIndexWrites;
@@ -61,7 +61,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     public PipelineWriteContext(SharedCallBufferFactory indexSharedCallBuffer,
                                  CachedPartitionFactory partitionFactory,
-                                 TxnView txn,
+                                 Txn txn,
                                  TransactionalRegion rce,
                                  boolean skipIndexWrites,
                                  ServerControl env,
@@ -85,34 +85,34 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
-    public void notRun(KVPair mutation) {
+    public void notRun(Record mutation) {
         resultsMap.put(mutation, WriteResult.notRun());
     }
 
     @Override
-    public void sendUpstream(KVPair mutation) {
+    public void sendUpstream(Record mutation) {
         head.sendUpstream(mutation);
     }
 
     @Override
-    public void failed(KVPair put, WriteResult mutationResult) {
+    public void failed(Record put, WriteResult mutationResult) {
         resultsMap.put(put, mutationResult);
     }
 
     @Override
-    public void success(KVPair put) {
+    public void success(Record put) {
         resultsMap.put(put, WriteResult.success());
     }
 
     @Override
-    public void result(KVPair put, WriteResult result) {
+    public void result(Record put, WriteResult result) {
         resultsMap.put(put, result);
     }
 
     @Override
     public void result(byte[] resultRowKey, WriteResult result) {
-        for (KVPair kvPair : resultsMap.keySet()) {
-            byte[] currentRowKey = kvPair.getRowKey();
+        for (Record kvPair : resultsMap.keySet()) {
+            byte[] currentRowKey = kvPair.rowKeySlice().getByteCopy(); // TODO FIX JL
             if (Arrays.equals(currentRowKey, resultRowKey)) {
                 resultsMap.put(kvPair, result);
                 return;
@@ -132,9 +132,9 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
-    public CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
-                                                   ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
-                                                   int maxSize, boolean useAsyncWriteBuffers, TxnView txn) throws Exception {
+    public CallBuffer<Record> getSharedWriteBuffer(byte[] conglomBytes,
+                                                   ObjectObjectOpenHashMap<Record, Record> indexToMainMutationMap,
+                                                   int maxSize, boolean useAsyncWriteBuffers, Txn txn) throws Exception {
         assert indexSharedCallBuffer != null;
         return indexSharedCallBuffer.getWriteBuffer(conglomBytes, this, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn);
     }
@@ -172,23 +172,23 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
-    public boolean canRun(KVPair input) {
+    public boolean canRun(Record input) {
         WriteResult result = resultsMap.get(input);
         return result == null || result.getCode() == Code.SUCCESS;
     }
 
     @Override
-    public TxnView getTxn() {
+    public Txn getTxn() {
         return txn;
     }
 
     @Override
-    public Map<KVPair, WriteResult> close() throws IOException {
+    public Map<Record, WriteResult> close() throws IOException {
         return resultsMap;
     }
 
     @Override
-    public Map<KVPair, WriteResult> currentResults(){
+    public Map<Record, WriteResult> currentResults(){
         return resultsMap;
     }
 

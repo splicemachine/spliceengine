@@ -37,8 +37,7 @@ import java.io.IOException;
  *
  */
 
-public final class FormatableBitSet implements Formatable, Cloneable
-{
+public final class FormatableBitSet implements Formatable, Cloneable {
 
 	/********************************************************
 	**

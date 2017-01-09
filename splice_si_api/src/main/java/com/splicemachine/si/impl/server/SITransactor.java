@@ -17,6 +17,7 @@ package com.splicemachine.si.impl.server;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongOpenHashSet;
+import com.google.common.collect.Lists;
 import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.Transactor;
@@ -101,91 +102,13 @@ public class SITransactor implements Transactor{
             IntObjectOpenHashMap<ConflictType> conflicts = new WriteWriteConflictCheck(table,toProcess,txnOperationFactory).apply(possibleConflicts);
             IntObjectOpenHashMap<MutationStatus> constraints = constraintChecker==null?null:new ConstraintCheck(toProcess, constraintChecker).apply(possibleConflicts);
 
-            List<Record>
-
-            Iterator<MutationStatus> status = table.writeBatch(toProcess);
+            Iterator<MutationStatus> status = table.writeBatch(Lists.newArrayList(toProcess));
 
             return finalStatus;
         }finally{
             if (locks!=null)
                 new ReleaseLocks().apply(locks);
         }
-    }
-
-    private IntObjectOpenHashMap<Record> checkConflictsForKvBatch(Partition table,
-                                                                   Record[] records,
-                                                                   Lock[] locks,
-                                                                   LongOpenHashSet[] conflictingChildren,
-                                                                   Txn txn,
-                                                                   ConstraintChecker constraintChecker,
-                                                                   MutationStatus[] finalStatus) throws IOException {
-// ?        IntObjectOpenHashMap<Record> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(locks.length, 0.9f);
-
-        IntObjectOpenHashMap<Record> possibleConflicts = new PossibleConflictCheck(table, locks,constraintChecker!=null).apply(records);
-        IntObjectOpenHashMap<ConflictType> conflicts = new WriteWriteConflictCheck(table,records,txnOperationFactory).apply(possibleConflicts);
-        IntObjectOpenHashMap<MutationStatus> constraints = new ConstraintCheck(records, constraintChecker).apply(possibleConflicts);
-                if (applyConstraint(constraintChecker, i, record, possibleConflicts, finalStatus, conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
-                    continue;
-
-            //TODO -sf- if type is an UPSERT, and conflict type is ADDITIVE_CONFLICT, then we
-            //set the status on the row to ADDITIVE_CONFLICT_DURING_UPSERT
-            if (KVPair.Type.UPSERT.equals(writeType)) {
-                    /*
-                     * If the type is an upsert, then we want to check for an ADDITIVE conflict. If so,
-                     * we fail this row with an ADDITIVE_UPSERT_CONFLICT.
-                     */
-
-/*                if (conflictResults.hasAdditiveConflicts()) {
-                    finalStatus[i] = operationStatusLib.failure(exceptionLib.additiveWriteConflict());
-                }
-            }
-        }
-
-        }
-    */
-            conflictingChildren[i]=conflictResults.getChildConflicts();
-            DataPut mutationToRun=getMutationToRun(table,kvPair,
-                    family,qualifier,transaction,conflictResults);
-            finalMutationsToWrite.put(i,mutationToRun);
-        }
-        return finalMutationsToWrite;
-    }
-
-
-    private DataPut getMutationToRun(Partition table,KVPair kvPair,
-                                     byte[] family,byte[] column,
-                                     Txn transaction,ConflictResults conflictResults) throws IOException{
-
-        long txnIdLong=transaction.getTxnId();
-//                if (LOG.isTraceEnabled()) LOG.trace(String.format("table = %s, kvPair = %s, txnId = %s", table.toString(), kvPair.toString(), txnIdLong));
-        DataPut newPut;
-        if(kvPair.getType()==KVPair.Type.EMPTY_COLUMN){
-            /*
-             * WARNING: This requires a read of column data to populate! Try not to use
-             * it unless no other option presents itself.
-             *
-             * In point of fact, this only occurs if someone sends over a non-delete Put
-             * which has only SI data. In the event that we send over a row with all nulls
-             * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
-             * for the values column (but which is nulls everywhere)
-             */
-
-            newPut=opFactory.newPut(kvPair.rowKeySlice());
-            setTombstonesOnColumns(table,txnIdLong,newPut);
-        }else if(kvPair.getType()==KVPair.Type.DELETE){
-            newPut=opFactory.newPut(kvPair.rowKeySlice());
-            newPut.tombstone(txnIdLong);
-        }else
-            newPut=opFactory.toDataPut(kvPair,family,column,txnIdLong);
-
-        newPut.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
-        if(kvPair.getType()!=KVPair.Type.DELETE && conflictResults.hasTombstone())
-            newPut.antiTombstone(txnIdLong);
-
-        if(rollForwardQueue!=null)
-            rollForwardQueue.submitForResolution(kvPair.rowKeySlice(),txnIdLong);
-        return newPut;
-
     }
 
 

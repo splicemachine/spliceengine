@@ -17,7 +17,7 @@ package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.pipeline.config.WriteConfiguration;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
 
 /**
@@ -107,7 +107,7 @@ public class ForwardRecordingCallBuffer<E> implements RecordingCallBuffer<E>{
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return delegate.getTxn();
     }
 

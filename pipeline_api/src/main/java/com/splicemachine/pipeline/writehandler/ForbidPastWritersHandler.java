@@ -15,10 +15,10 @@
 
 package com.splicemachine.pipeline.writehandler;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.storage.Record;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 
@@ -33,7 +33,7 @@ public class ForbidPastWritersHandler implements WriteHandler {
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
+    public void next(Record mutation, WriteContext ctx) {
         try {
             if (!ddlFilter.isVisibleBy(ctx.getTxn())) {
                 ctx.failed(mutation, WriteResult.failed("Writes forbidden by transaction " + ddlFilter.getTransaction()));

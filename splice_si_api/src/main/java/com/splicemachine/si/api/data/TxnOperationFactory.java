@@ -15,9 +15,11 @@
 
 package com.splicemachine.si.api.data;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordScan;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -33,4 +35,10 @@ public interface TxnOperationFactory{
     Txn readTxn(ObjectInput oi) throws IOException;
     void writeTxn(Txn txn, ObjectOutput out) throws IOException;
     ConflictType conflicts(Record potentialRecord, Record existingRecord);
+    RecordScan newDataScan();
+    Record newRecord(Txn txn, byte[] key);
+    Record newRecord(Txn txn, byte[] key, ExecRow data);
+    Record newRecord(Txn txn, byte[] keyObject, byte[] keyOffset, byte[] keyLength, ExecRow data);
+    Record newUpdate(Txn txn, byte[] key);
+    Record newDelete(Txn txn, byte[] key);
 }

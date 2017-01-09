@@ -15,16 +15,19 @@
 
 package com.splicemachine.si.testenv;
 
-import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.WriteConflict;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
-import com.splicemachine.utils.kryo.KryoPool;
+import com.splicemachine.utils.IntArrays;
 import org.junit.Assert;
 import java.io.IOException;
-import com.carrotsearch.hppc.BitSet;
 import java.util.*;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -64,7 +67,11 @@ public class TransactorTestUtility {
     }
 
     public String read(Txn txn, String name) throws IOException {
-        return readAgeDirect(transactorSetup,testEnv, txn, name);
+        try {
+            return readAgeDirect(transactorSetup, testEnv, txn, name);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     private static void insertAgeDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
@@ -85,51 +92,60 @@ public class TransactorTestUtility {
 
     public String scan(Txn txn, String name) throws IOException {
         byte[] key = newRowKey(name);
-        RecordScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
+        RecordScan s = transactorSetup.txnOperationFactory.newDataScan();
         s = s.startKey(key).stopKey(key);
 
         try (Partition p = testEnv.getPersonTable(transactorSetup)){
-            try(RecordScanner results = p.openResultScanner(s)){
-                DataResult dr;
-                if((dr=results.next())!=null){
+            try(RecordScanner results = p.openScanner(s,txn, IsolationLevel.SNAPSHOT_ISOLATION)){
+                Record record;
+                if((record=results.next())!=null){
                     assertNull(results.next());
-                    return readRawTuple(name,dr,false,true);
+                    return readRawTuple(name,record,false,true);
                 }else{
                     return "";
                 }
             }
+        } catch (Exception e) {
+            throw new IOException(e);
         }
     }
 
     public String scanNoColumns(Txn txn, String name, boolean deleted) throws IOException {
-        return scanNoColumnsDirect(transactorSetup,testEnv, txn, name, deleted);
+        try {
+            return scanNoColumnsDirect(transactorSetup, testEnv, txn, name, deleted);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     public String scanAll(Txn txn, String startKey, String stopKey, Integer filterValue) throws IOException {
 
         byte[] key = newRowKey(startKey);
         byte[] endKey = newRowKey(stopKey);
-        RecordScan scan = transactorSetup.txnOperationFactory.newDataScan(txn);
+        RecordScan scan = transactorSetup.txnOperationFactory.newDataScan();
         scan.startKey(key).stopKey(endKey);
-        addPredicateFilter(scan);
+      //  addPredicateFilter(scan);
 
-        if (!useSimple && filterValue != null) {
+        // JL-TODO is filtering part of the transactor?
+/*        if (!useSimple && filterValue != null) {
             DataFilter df = transactorSetup.equalsValueFilter(transactorSetup.ageQualifier,convertToBytes(filterValue,filterValue.getClass()));
             scan.filter(df);
+*/
 //            SingleColumnValueFilter filter = new SingleColumnValueFilter(transactorSetup.family,
 //                    transactorSetup.ageQualifier,
 //                    CompareFilter.CompareOp.EQUAL,
 //                    new BinaryComparator(dataLib.encode(filterValue)));
 //            filter.setFilterIfMissing(true);
 //            scan.setFilter(filter);
-        }
+ //       }
+
         try(Partition p = testEnv.getPersonTable(transactorSetup)){
-            try(RecordScanner drs = p.openResultScanner(scan)){
+            try(RecordScanner drs = p.openScanner(scan,txn,IsolationLevel.SNAPSHOT_ISOLATION)){
                 StringBuilder result=new StringBuilder();
-                DataResult dr;
-                while((dr = drs.next())!=null){
-                    final String name=Bytes.toString(dr.key());
-                    final String s=readRawTuple(name,dr,false,
+                Record record;
+                while((record = drs.next())!=null){
+                    final String name=Bytes.toString((byte[])record.getKey());
+                    final String s=readRawTuple(name,record,false,
                             true);
                     result.append(s);
                     if(s.length()>0){
@@ -138,6 +154,9 @@ public class TransactorTestUtility {
                 }
                 return result.toString();
             }
+        }
+        catch (Exception e) {
+            throw new IOException(e);
         }
     }
 
@@ -149,79 +168,73 @@ public class TransactorTestUtility {
 
     private static void insertField(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                     Txn txn,String name,int index,Object fieldValue) throws IOException {
-        DataPut put = makePut(transactorSetup, txn, name, index, fieldValue);
-        processPutDirect(transactorSetup,testEnv, put);
+        Record record = makeRecord(transactorSetup, txn, name, index, fieldValue);
+        processRecordDirect(transactorSetup,testEnv, record);
     }
 
-    private static DataPut makePut(TestTransactionSetup transactorSetup,
+    private static Record makeRecord(TestTransactionSetup transactorSetup,
                                    Txn txn,String name,int index,
                                    Object fieldValue) throws IOException {
         byte[] key = newRowKey(name);
-        DataPut put = transactorSetup.txnOperationFactory.newDataPut(txn,key);
-        final BitSet bitSet = new BitSet();
-        if (fieldValue != null)
-            bitSet.set(index);
-        final EntryEncoder entryEncoder = EntryEncoder.create(new KryoPool(1),2,bitSet,null,null,null);
+        Record record = transactorSetup.txnOperationFactory.newRecord(txn,key);
         try {
+            ValueRow row = new ValueRow(1);
             if (index == 0 && fieldValue != null) {
-                entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
+                row.setRowArray(new DataValueDescriptor[]{new SQLInteger((Integer) fieldValue)});
+                record.setData(new int[]{0}, row);
             } else if (fieldValue != null) {
-                entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
+                row.setRowArray(new DataValueDescriptor[]{new SQLVarchar((String) fieldValue)});
+                record.setData(new int[]{1}, row);
             }
-            put.addCell(transactorSetup.family,SIConstants.PACKED_COLUMN_BYTES,txn.getTxnId(),entryEncoder.encode());
-        } finally {
-            entryEncoder.close();
+        } catch (StandardException se) {
+            throw new RuntimeException();
         }
-        return put;
+        return record;
     }
 
     private static void insertFieldBatch(TestTransactionSetup transactorSetup,SITestEnv SITestEnv,
                                          Object[] args,int index) throws IOException {
-        DataPut[] puts = new DataPut[args.length];
+        Record[] records = new Record[args.length];
         int i = 0;
         for (Object subArgs : args) {
             Object[] subArgsArray = (Object[]) subArgs;
             Txn transactionId = (Txn) subArgsArray[0];
             String name = (String) subArgsArray[1];
             Object fieldValue = subArgsArray[2];
-            DataPut put = makePut(transactorSetup, transactionId, name, index, fieldValue);
-            puts[i] = put;
+            Record record = makeRecord(transactorSetup, transactionId, name, index, fieldValue);
+            records[i] = record;
             i++;
         }
-        processPutDirectBatch(transactorSetup,SITestEnv, puts);
+        processPutDirectBatch(transactorSetup,SITestEnv, records);
     }
 
     private static void deleteRowDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                         Txn txn,String name) throws IOException {
 
         byte[] key = newRowKey(name);
-        DataMutation put = transactorSetup.txnOperationFactory.newDataDelete(txn, key);
-        processMutationDirect(transactorSetup,testEnv,put);
-//        if(put instanceof DataPut)
-//            processPutDirect(transactorSetup,testEnv,(DataPut)put);
-//        else
-//            processDeleteDirect(transactorSetup,testEnv,(DataDelete)put);
+        Record delete = transactorSetup.txnOperationFactory.newDelete(txn, key);
+        processMutationDirect(transactorSetup,testEnv,delete);
     }
 
     private static void processMutationDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
-                                         DataMutation put) throws IOException {
+                                         Record record) throws IOException {
         try(Partition table = transactorSetup.getPersonTable(testEnv)){
-            table.mutate(put);
+            table.mutate(record,null);
         }
     }
 
-    private static void processPutDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
-                                         DataPut put) throws IOException {
+    private static void processRecordDirect(TestTransactionSetup transactorSetup, SITestEnv testEnv,
+                                            Record record) throws IOException {
         try(Partition table = transactorSetup.getPersonTable(testEnv)){
-            table.put(put);
+            table.insert(record,null);
         }
     }
 
     private static void processPutDirectBatch(TestTransactionSetup transactorSetup,
                                               SITestEnv testEnv,
-                                              DataPut[] puts) throws IOException {
+                                              Record[] records) throws IOException {
         try(Partition table = transactorSetup.getPersonTable(testEnv)){
-            Iterator<MutationStatus> statusIter=table.writeBatch(puts);
+            Iterator<MutationStatus> statusIter=table.writeBatch(null); // JL TODO FIX
             int i=0;
             while(statusIter.hasNext()){
                 MutationStatus next=statusIter.next();
@@ -234,40 +247,35 @@ public class TransactorTestUtility {
     }
 
     private static String readAgeDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
-                                        Txn txn,String name) throws IOException {
+                                        Txn txn,String name) throws IOException, StandardException {
 
         byte[] key = newRowKey(name);
-        DataGet get = transactorSetup.txnOperationFactory.newDataGet(txn, key,null);
-        addPredicateFilter(get);
         try (Partition p = transactorSetup.getPersonTable(testEnv)){
-            DataResult rawTuple =p.get(get,null);
-            return readRawTuple(name,rawTuple, true, false);
+            Record record =p.get(key,txn,IsolationLevel.SNAPSHOT_ISOLATION);
+            return readRawTuple(name,record, true, false);
         }
     }
 
     private static String scanNoColumnsDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
-                                              Txn txn,String name,boolean deleted) throws IOException {
+                                              Txn txn,String name,boolean deleted) throws StandardException, IOException {
         byte[] endKey = newRowKey(name);
-        RecordScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
+        RecordScan s = transactorSetup.txnOperationFactory.newDataScan();
         s = s.startKey(endKey).stopKey(endKey);
-        addPredicateFilter(s);
-        transactorSetup.readController.preProcessScan(s);
         try(Partition p = transactorSetup.getPersonTable(testEnv)){
-            try(RecordScanner drs = p.openResultScanner(s)){
-                DataResult dr = null;
-                assertTrue(deleted ||(dr=drs.next())!=null);
-                assertNull(drs.next());
-                return readRawTuple(name,dr, false, false);
+            try(RecordScanner recordScanner = p.openScanner(s,txn,IsolationLevel.SNAPSHOT_ISOLATION)){
+                Record record = null;
+                assertTrue(deleted ||(record=recordScanner.next())!=null);
+                assertNull(recordScanner.next());
+                return readRawTuple(name,record, false, false);
             }
         }
     }
 
-    private static String readRawTuple(String name,DataResult rawTuple,
+    private static String readRawTuple(String name,Record record,
                                        boolean singleRowRead,
-                                       boolean dumpKeyValues) throws IOException {
-        if (rawTuple != null && rawTuple.size()>0) {
-            String suffix = dumpKeyValues ? "[ " + resultToKeyValueString(rawTuple) + " ]" : "";
-            return resultToStringDirect(name,rawTuple) + suffix;
+                                       boolean dumpKeyValues) throws StandardException {
+        if (record != null) {
+            return resultToStringDirect(name,record);
         }
         if (singleRowRead) {
             return name + " absent";
@@ -276,26 +284,13 @@ public class TransactorTestUtility {
         }
     }
 
-    private static String resultToStringDirect(String name,DataResult result) {
-        byte[] packedColumns = result.userData().value();
-        EntryDecoder decoder = new EntryDecoder();
-        decoder.set(packedColumns);
-        MultiFieldDecoder mfd = null;
-        try {
-            mfd = decoder.getEntryDecoder();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        Integer age = null;
-        String job = null;
-        if (decoder.isSet(0))
-            age = mfd.decodeNextInt();
-        if (decoder.isSet(1))
-            job = mfd.decodeNextString();
-        return name + " age=" + age + " job=" + job;
+    private static String resultToStringDirect(String name,Record result) throws StandardException {
+        ValueRow rowDefinition = new ValueRow(2);
+        rowDefinition.setRowArray(new DataValueDescriptor[]{new SQLInteger(),new SQLVarchar()});
+        result.getData(IntArrays.count(2),rowDefinition);
+        return name + " age=" + rowDefinition.getColumn(0).toString() + " job=" + rowDefinition.getColumn(1).toString();
     }
-
+/*
     private static String resultToKeyValueString(DataResult result) {
         Map<Long, String> timestampDecoder =new HashMap<>();
         final StringBuilder s = new StringBuilder();
@@ -316,12 +311,7 @@ public class TransactorTestUtility {
             s.append("V.job@" + timestampToStableString(timestampDecoder, timestamp) + "=" + mfd.decodeNextString());
         return s.toString();
     }
-
-//    public void assertWriteConflict(RetriesExhaustedWithDetailsException e) {
-//        Assert.assertEquals(1, e.getNumExceptions());
-//        assertTrue(e.getMessage().startsWith("Failed 1 action: com.splicemachine.si.client.WriteConflict:"));
-//    }
-
+*/
     private static String timestampToStableString(Map<Long, String> timestampDecoder, long timestamp) {
         if (timestampDecoder.containsKey(timestamp)) {
             return timestampDecoder.get(timestamp);
@@ -358,4 +348,5 @@ public class TransactorTestUtility {
         }
         throw new RuntimeException("Unsupported class "+clazz.getName()+" for "+value);
     }
+
 }

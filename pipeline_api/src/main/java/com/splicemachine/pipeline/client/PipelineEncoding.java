@@ -15,14 +15,11 @@
 
 package com.splicemachine.pipeline.client;
 
-import com.splicemachine.encoding.ExpandedDecoder;
-import com.splicemachine.encoding.ExpandingEncoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 import com.splicemachine.utils.ByteSlice;
 import org.spark_project.guava.collect.Iterators;
-
 import javax.annotation.Nonnull;
 import java.util.*;
 
@@ -33,7 +30,7 @@ import java.util.*;
  *         Date: 1/19/15
  */
 public class PipelineEncoding {
-
+    // JL TODO
     public static byte[] encode(TxnOperationFactory operationFactory,BulkWrites bulkWrites){
         /*
          * The encoding for a BulkWrites is as follows:
@@ -52,6 +49,7 @@ public class PipelineEncoding {
          * but deserialize the KVPairs on an as-needed basis.
          *
          */
+        /*
         byte[] txnBytes = operationFactory.encode(bulkWrites.getTxn());
 
         int heapSize = bulkWrites.getBufferHeapSize();
@@ -70,9 +68,9 @@ public class PipelineEncoding {
         }
 
         for(BulkWrite bw:bws){
-            Collection<KVPair> mutations = bw.getMutations();
+            Collection<Record> mutations = bw.getMutations();
             buffer.encode(mutations.size());
-            for(KVPair kvPair:mutations){
+            for(Record kvPair:mutations){
                 //TODO -sf- use a run-length encoding for type information here?
                 buffer.rawEncode(kvPair.getType().asByte());
                 buffer.rawEncode(kvPair.rowKeySlice());
@@ -80,13 +78,16 @@ public class PipelineEncoding {
             }
         }
         return buffer.getBuffer();
+        */
+        return null;
     }
 
 
     public static BulkWrites decode(TxnOperationFactory operationFactory,byte[] data){
+        /*
         ExpandedDecoder decoder = new ExpandedDecoder(data);
         byte[] txnBytes = decoder.rawBytes();
-        TxnView txn = operationFactory.decode(txnBytes,0,txnBytes.length);
+        txn txn = operationFactory.decode(txnBytes,0,txnBytes.length);
         int bwSize = decoder.decodeInt();
         List<String> stringNames = new ArrayList<>(bwSize);
         for(int i=0;i<bwSize;i++) {
@@ -98,6 +99,8 @@ public class PipelineEncoding {
         }
 
         return new BulkWrites(new BulkWriteCol(skipIndexWrites,data,decoder.currentOffset(),stringNames),txn);
+        */
+        return null;
     }
 
 
@@ -114,7 +117,7 @@ public class PipelineEncoding {
          * creating new with each iteration);
          */
         private transient Collection<BulkWrite> cache;
-        private transient ExpandedDecoder decoder;
+//        private transient ExpandedDecoder decoder;
         private transient int lastIndex = 0;
 
         public BulkWriteCol(byte[] skipIndexWrites, byte[] buffer,int kvOffset, List<String> encodedStringNames) {
@@ -139,7 +142,7 @@ public class PipelineEncoding {
                 }
             }
             cache = new ArrayList<>(encodedStringNames.size());
-            decoder = new ExpandedDecoder(buffer,kvOffset);
+            //decoder = new ExpandedDecoder(buffer,kvOffset);
             return new BulkIter(0);
         }
 
@@ -162,15 +165,16 @@ public class PipelineEncoding {
 
             @Override
             public BulkWrite next() {
+                /*
                 String esN = encodedStrings.next();
                 byte skipIndexWrite = skipIndexWrites[index++];
                 int size = decoder.decodeInt();
-                Collection<KVPair> kvPairs = new ArrayList<>(size);
-                KVPair template = new KVPair();
+                Collection<Record> kvPairs = new ArrayList<>(size);
+                Record template = new Record();
                 ByteSlice rowKeySlice = template.rowKeySlice();
                 ByteSlice valueSlice = template.valueSlice();
                 for(int i=0;i<size;i++){
-                    template.setType(KVPair.Type.decode(decoder.rawByte()));
+                    template.setType(RecordType.decode(decoder.rawByte()));
                     decoder.sliceNext(rowKeySlice);
                     decoder.sliceNext(valueSlice);
                     kvPairs.add(template.shallowClone());
@@ -181,6 +185,8 @@ public class PipelineEncoding {
                 cache.add(bulkWrite);
                 lastIndex=index;
                 return bulkWrite;
+                */
+                return null;
             }
         }
     }

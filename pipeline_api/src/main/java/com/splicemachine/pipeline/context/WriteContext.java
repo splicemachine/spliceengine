@@ -16,15 +16,14 @@
 package com.splicemachine.pipeline.context;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
-
+import com.splicemachine.storage.Record;
 import java.io.IOException;
 import java.util.Map;
 
@@ -39,24 +38,24 @@ public interface WriteContext {
     /**
      * Do not run the following KVPair
      */
-    void notRun(KVPair mutation);
+    void notRun(Record mutation);
 
     /**
      * Send KVPair upstream to be processes by possible handlers.
      */
-    void sendUpstream(KVPair mutation);
+    void sendUpstream(Record mutation);
 
     /**
      * Fail the following KVPair and put them into the WriteResult
      */
-    void failed(KVPair put, WriteResult mutationResult);
+    void failed(Record put, WriteResult mutationResult);
 
     /**
      * Mark KVPair as successful
      */
-    void success(KVPair put);
+    void success(Record put);
 
-    void result(KVPair put, WriteResult result);
+    void result(Record put, WriteResult result);
 
     /**
      * Update an existing result when you don't have the KVPair, only the mutation's rowKey.
@@ -76,11 +75,11 @@ public interface WriteContext {
     /**
      * Retrieve the sharedWriteBuffer for the index upsert handler
      */
-    CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
-                                            ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
+    CallBuffer<Record> getSharedWriteBuffer(byte[] conglomBytes,
+                                            ObjectObjectOpenHashMap<Record, Record> indexToMainMutationMap,
                                             int maxSize,
                                             boolean useAsyncWriteBuffers,
-                                            TxnView txn) throws Exception;
+                                            Txn txn) throws Exception;
 
     /**
      * Retrieve the coprocessor environment
@@ -95,18 +94,18 @@ public interface WriteContext {
     /**
      * Close
      */
-    Map<KVPair, WriteResult> close() throws IOException;
+    Map<Record, WriteResult> close() throws IOException;
 
-    Map<KVPair,WriteResult> currentResults();
+    Map<Record,WriteResult> currentResults();
     /**
      * CanRun
      */
-    boolean canRun(KVPair input);
+    boolean canRun(Record input);
 
     /**
      * Retrieve Txn
      */
-    TxnView getTxn();
+    Txn getTxn();
 
     boolean skipIndexWrites();
 

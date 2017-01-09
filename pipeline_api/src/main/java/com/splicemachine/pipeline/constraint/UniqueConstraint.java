@@ -16,12 +16,12 @@
 package com.splicemachine.pipeline.constraint;
 
 import com.splicemachine.access.api.ServerControl;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Constraint;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 import com.splicemachine.utils.ByteSlice;
-
 import java.io.IOException;
 import java.util.Set;
 
@@ -55,13 +55,13 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public Result validate(KVPair mutation, TxnView txn, ServerControl rce, Set<ByteSlice> priorValues) throws IOException {
-        KVPair.Type type = mutation.getType();
+    public Result validate(Record mutation, Txn txn, ServerControl rce, Set<ByteSlice> priorValues) throws IOException {
+        RecordType type = mutation.getRecordType();
         // Only these mutation types can cause UniqueConstraint violations.
-        if (type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT) {
+        if (type == RecordType.INSERT || type == RecordType.UPSERT) {
             // if prior visited values has it, it's in the same batch mutation, so don't fail it
             if (priorValues.contains(mutation.rowKeySlice())) {
-                return (type == KVPair.Type.UPSERT) ? Result.ADDITIVE_WRITE_CONFLICT : Result.FAILURE;
+                return (type == RecordType.UPSERT) ? Result.ADDITIVE_WRITE_CONFLICT : Result.FAILURE;
             }
         }
         return Result.SUCCESS;

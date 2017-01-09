@@ -18,11 +18,11 @@ package com.splicemachine.pipeline.utils;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
@@ -39,19 +39,19 @@ public class PipelineUtils{
     private static final Random RANDOM = new Random();
     public static final PreFlushHook noOpFlushHook = new PreFlushHook() {
         @Override
-        public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception {
+        public Collection<Record> transform(Collection<Record> buffer) throws Exception {
             return new ArrayList<>(buffer);
         }
     };
 
-    public static Collection<KVPair> doPartialRetry(BulkWrite bulkWrite,BulkWriteResult response,long id) throws Exception{
+    public static Collection<Record> doPartialRetry(BulkWrite bulkWrite,BulkWriteResult response,long id) throws Exception{
         IntOpenHashSet notRunRows=response.getNotRunRows();
         IntObjectOpenHashMap<WriteResult> failedRows=response.getFailedRows();
-        Collection<KVPair> toRetry=new ArrayList<>(failedRows.size()+notRunRows.size());
+        Collection<Record> toRetry=new ArrayList<>(failedRows.size()+notRunRows.size());
         List<String> errorMsgs= Lists.newArrayListWithCapacity(failedRows.size());
         int i=0;
-        Collection<KVPair> allWrites=bulkWrite.getMutations();
-        for(KVPair kvPair : allWrites){
+        Collection<Record> allWrites=bulkWrite.getMutations();
+        for(Record kvPair : allWrites){
             if(notRunRows.contains(i))
                 toRetry.add(kvPair);
             else{

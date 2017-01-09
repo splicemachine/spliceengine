@@ -18,9 +18,6 @@ package com.splicemachine.pipeline.client;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.IncrementingClock;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.config.DefaultWriteConfiguration;
@@ -29,10 +26,7 @@ import com.splicemachine.pipeline.testsetup.PipelineTestDataEnv;
 import com.splicemachine.pipeline.testsetup.PipelineTestEnvironment;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
-import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -76,7 +70,7 @@ public class BulkWriteActionTest{
     @Test
     public void testDoesNotWriteDataWhenGivenAnEmptyBulkWrite() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        txn txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
         Collection<BulkWrite> bwList=new ArrayList<>();
 
         BulkWrites bw=new BulkWrites(bwList,txn);
@@ -135,7 +129,7 @@ public class BulkWriteActionTest{
     @Test
     public void testDoesNotWriteDataWhenGivenBulkWriteWithNoRecords() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        txn txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
         Collection<BulkWrite> bwList=new ArrayList<>();
         bwList.add(new BulkWrite(Collections.<KVPair>emptyList(),"region1"));
 
@@ -195,7 +189,7 @@ public class BulkWriteActionTest{
     @Test
     public void testCorrectlyRetriesWhenOneRegionStops() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        txn txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
         Collection<BulkWrite> bwList=new ArrayList<>(2);
         bwList.add(new BulkWrite(addData(0,10),"region1"));
         bwList.add(new BulkWrite(addData(100,10),"region2"));
@@ -269,7 +263,7 @@ public class BulkWriteActionTest{
     @Test
     public void testCorrectlyRetriesPartialResults() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        txn txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
         Collection<BulkWrite> bwList=new ArrayList<>(2);
         bwList.add(new BulkWrite(addData(0,10),"region1"));
         bwList.add(new BulkWrite(addData(100,10),"region2"));
@@ -343,7 +337,7 @@ public class BulkWriteActionTest{
     @Test
     public void testCorrectlyRetriesWhenOneRegionStopsButReturnsResult() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        txn txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
         Collection<BulkWrite> bwList=new ArrayList<>(2);
         bwList.add(new BulkWrite(addData(0,10),"region1"));
         bwList.add(new BulkWrite(addData(100,10),"region2"));

@@ -18,7 +18,6 @@ package com.splicemachine.pipeline;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.ServerControl;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
@@ -31,8 +30,9 @@ import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.Record;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -81,7 +81,7 @@ public class PartitionWritePipeline{
     }
 
 
-    public BulkWriteResult submitBulkWrite(TxnView txn,
+    public BulkWriteResult submitBulkWrite(Txn txn,
                                            BulkWrite toWrite,
                                            SharedCallBufferFactory writeBufferFactory,
                                            ServerControl rce) throws IOException{
@@ -106,8 +106,8 @@ public class PartitionWritePipeline{
         }catch(IndexNotSetUpException e){
             return INDEX_NOT_SETUP;
         }
-        Collection<KVPair> kvPairs=toWrite.getMutations();
-        for(KVPair kvPair : kvPairs){
+        Collection<Record> kvPairs=toWrite.getMutations();
+        for(Record kvPair : kvPairs){
             context.sendUpstream(kvPair);
         }
         return new BulkWriteResult(context,WriteResult.success());
@@ -135,13 +135,13 @@ public class PartitionWritePipeline{
         }
         try{
             ctx.flush();
-            Map<KVPair, WriteResult> rowResultMap=ctx.close();
+            Map<Record, WriteResult> rowResultMap=ctx.close();
             BulkWriteResult response=new BulkWriteResult();
             int failed=0;
             int size=write.getSize();
-            Collection<KVPair> kvPairs=write.getMutations();
+            Collection<Record> kvPairs=write.getMutations();
             int i=0;
-            for(KVPair kvPair : kvPairs){
+            for(Record kvPair : kvPairs){
                 WriteResult result=rowResultMap.get(kvPair);
                 if(result==null){
                     /* in case a kvPair is of CANCEL type, it may be ignored and no result is returned.
@@ -178,7 +178,7 @@ public class PartitionWritePipeline{
         }
     }
 
-    public boolean isDependent(TxnView txn) throws IOException, InterruptedException{
+    public boolean isDependent(Txn txn) throws IOException, InterruptedException{
         return ctxFactory.hasDependentWrite(txn);
     }
 

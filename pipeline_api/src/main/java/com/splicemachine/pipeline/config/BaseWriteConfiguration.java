@@ -18,13 +18,13 @@ package com.splicemachine.pipeline.config;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.RecordingContext;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -193,7 +193,7 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
     }
 
     @Override
-    public void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
+    public void registerContext(WriteContext context, ObjectObjectOpenHashMap<Record, Record> indexToMainMutationMap) {
         SpliceLogUtils.warn(LOG, "registering Context with a base class");
     }
 

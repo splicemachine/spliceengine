@@ -15,12 +15,12 @@
 
 package com.splicemachine.pipeline.constraint;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.MutationStatus;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 
 import java.io.IOException;
 
@@ -47,9 +47,9 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
     }
 
     @Override
-    public MutationStatus checkConstraint(KVPair mutation, DataResult existingRow) throws IOException {
+    public MutationStatus checkConstraint(Record mutation, Record existingRow) throws IOException {
         // There is an existing row, if this is an insert then fail.
-        return mutation.getType() == KVPair.Type.INSERT ? failure : SUCCESS;
+        return mutation.getRecordType() == RecordType.INSERT ? failure : SUCCESS;
     }
 
     @Override
