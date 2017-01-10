@@ -21,7 +21,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -35,7 +35,7 @@ import java.io.ObjectOutput;
  */
 public abstract class DeleteTableWriterBuilder implements Externalizable,DataSetWriterBuilder{
     protected long heapConglom;
-    protected TxnView txn;
+    protected Txn txn;
     protected OperationContext operationContext;
 
     public DeleteTableWriterBuilder heapConglom(long heapConglom) {
@@ -59,7 +59,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 
@@ -75,7 +75,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     }
 
     @Override
-    public DataSetWriterBuilder txn(TxnView txn) {
+    public DataSetWriterBuilder txn(Txn txn) {
         assert txn!=null: "Txn cannot be null";
         this.txn = txn;
         return this;

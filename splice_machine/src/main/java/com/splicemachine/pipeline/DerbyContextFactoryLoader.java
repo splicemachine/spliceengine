@@ -15,6 +15,7 @@
 
 package com.splicemachine.pipeline;
 
+import com.splicemachine.si.api.txn.Txn;
 import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Multimap;
@@ -66,7 +67,6 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     private final long conglomId;
     private final OperationStatusFactory osf;
     private final PipelineExceptionFactory pef;
-    private final TransactionReadController trc;
     private final Set<ConstraintFactory> constraintFactories=new CopyOnWriteArraySet<>();
     private final FKWriteFactoryHolder fkGroup;
     private final ListWriteFactoryGroup indexFactories=new ListWriteFactoryGroup();
@@ -76,12 +76,10 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     public DerbyContextFactoryLoader(long conglomId,
                                      OperationStatusFactory osf,
                                      PipelineExceptionFactory pef,
-                                     TransactionReadController trc,
                                      TxnOperationFactory txnOperationFactory){
         this.conglomId=conglomId;
         this.osf=osf;
         this.pef=pef;
-        this.trc=trc;
         this.fkGroup=new FKWriteFactoryHolder(pef,txnOperationFactory);
         //TODO -sf- memory leak
         this.ddlListener=new DDLWatcher.DDLListener(){
@@ -109,7 +107,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     }
 
     @Override
-    public void load(TxnView txn) throws IOException, InterruptedException{
+    public void load(Txn txn) throws IOException, InterruptedException{
         ContextManager currentCm=ContextService.getFactory().getCurrentContextManager();
         SpliceTransactionResourceImpl transactionResource;
         try{
@@ -202,7 +200,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                 break;
             case DROP_INDEX:
                 if(ddlChange.getDropIndex().getBaseConglomerate()!=conglomId) break;
-                TxnView txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
+                Txn txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
                 long indexConglomId=ddlChange.getDropIndex().getConglomerate();
                 synchronized(indexFactories){
                     for(LocalWriteFactory factory : indexFactories.list()){
@@ -333,7 +331,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         //TODO -sf- key this to the specific conglomerate
         DDLDriver ddlDriver=DDLDriver.driver();
         for(DDLMessage.DDLChange ddlChange : ddlDriver.ddlWatcher().getTentativeDDLs()){
-            TxnView txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
+            Txn txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
             if(txn.getEffectiveState().isFinal()){
                 ddlDriver.ddlController().finishMetadataChange(ddlChange.getChangeId());
             }else{

@@ -22,7 +22,7 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
 import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
 
@@ -31,10 +31,10 @@ import com.splicemachine.si.impl.driver.SIDriver;
  */
 class IndexFactory implements LocalWriteFactory{
     private DDLMessage.TentativeIndex tentativeIndex;
-    private TxnView txn; // Null in the case of startup, populated in the case of DDL Change
+    private Txn txn; // Null in the case of startup, populated in the case of DDL Change
     private long indexConglomerateId;
 
-    IndexFactory(DDLMessage.TentativeIndex tentativeIndex, TxnView txn) {
+    IndexFactory(DDLMessage.TentativeIndex tentativeIndex, Txn txn) {
         this.tentativeIndex = tentativeIndex;
         this.txn = txn;
         indexConglomerateId = tentativeIndex.getIndex().getConglomerate();

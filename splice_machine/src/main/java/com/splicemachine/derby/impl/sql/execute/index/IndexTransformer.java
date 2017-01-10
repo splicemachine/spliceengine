@@ -19,24 +19,15 @@ import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.storage.Record;
 import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
-import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.*;
-import com.splicemachine.storage.index.BitIndex;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
@@ -69,18 +60,12 @@ import static org.spark_project.guava.base.Preconditions.checkArgument;
  */
 @NotThreadSafe
 public class IndexTransformer {
-    private TypeProvider typeProvider;
-    private MultiFieldDecoder srcKeyDecoder;
-    private EntryDecoder srcValueDecoder;
-    private ByteEntryAccumulator indexKeyAccumulator;
-    private EntryEncoder indexValueEncoder;
     private DDLMessage.Index index;
     private DDLMessage.Table table;
     private int [] mainColToIndexPosMap;
     private BitSet indexedCols;
     private byte[] indexConglomBytes;
     private int[] indexFormatIds;
-    private DescriptorSerializer[] serializers;
 
 
     private transient DataGet baseGet = null;
@@ -149,14 +134,14 @@ public class IndexTransformer {
 
         // transform the results into an index row (as if we were inserting it) but create a delete for it
 
-        KVPair toTransform = new KVPair(
+        Record toTransform = new KVPair(
                 resultValue.keyArray(),resultValue.keyOffset(),resultValue.keyLength(),
                 resultValue.valueArray(),resultValue.valueOffset(),resultValue.valueLength(),KVPair.Type.DELETE);
         return translate(toTransform);
     }
 
 
-    public KVPair writeDirectIndex(LocatedRow locatedRow) throws IOException, StandardException {
+    public Record writeDirectIndex(LocatedRow locatedRow) throws IOException, StandardException {
         assert locatedRow != null: "locatedRow passed in is null";
         ExecRow execRow = locatedRow.getRow();
         getSerializers(execRow);
@@ -206,7 +191,7 @@ public class IndexTransformer {
      * suitable for performing the required modification of the index record associated with this mutation.
      * @throws IOException for encoding/decoding problems.
      */
-    public KVPair translate(KVPair mutation) throws IOException {
+    public Record translate(Record mutation) throws IOException {
         if (mutation == null) {
             return null;
         }

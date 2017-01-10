@@ -24,7 +24,7 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.TransactionInfo;
 import com.splicemachine.db.iapi.store.raw.Transaction;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -133,7 +133,7 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 
 	public Transaction startNestedTransaction(CompatibilitySpace lockSpace,
 											  ContextManager contextManager,
-											  String nestedReadonlyUserTrans,TxnView parentTxn) throws StandardException{
+											  String nestedReadonlyUserTrans,Txn parentTxn) throws StandardException{
 		if(LOG.isTraceEnabled())
 			LOG.trace("startNestedReadOnlyUserTransaction with context manager "+contextManager+", lock space "+lockSpace+", nestedReadonlyUserTrans "+nestedReadonlyUserTrans);
 		return transactionFactory.startNestedTransaction(this,contextManager,parentTxn);

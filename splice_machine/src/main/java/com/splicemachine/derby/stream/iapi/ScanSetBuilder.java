@@ -22,9 +22,9 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.RecordScan;
-import com.splicemachine.storage.DataScanner;
+import com.splicemachine.storage.RecordScanner;
 
 import java.io.IOException;
 
@@ -52,7 +52,7 @@ public interface ScanSetBuilder<V>{
      * @param scanner
      * @return
      */
-    ScanSetBuilder<V> scanner(DataScanner scanner);
+    ScanSetBuilder<V> scanner(RecordScanner scanner);
 
     /**
      *
@@ -67,7 +67,7 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> scan(RecordScan scan);
 
-    ScanSetBuilder<V> transaction(TxnView txn);
+    ScanSetBuilder<V> transaction(Txn txn);
 
     ScanSetBuilder<V> optionalProbeValue(DataValueDescriptor optionalProbeValue);
 
@@ -115,7 +115,7 @@ public interface ScanSetBuilder<V>{
 
     RecordScan getScan();
 
-    TxnView getTxn();
+    Txn getTxn();
 
     OperationContext getOperationContext();
 

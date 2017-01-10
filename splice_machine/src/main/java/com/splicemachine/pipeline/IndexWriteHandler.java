@@ -19,11 +19,12 @@ import java.io.IOException;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -36,7 +37,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class IndexWriteHandler extends RoutingWriteHandler{
     private static final Logger LOG = Logger.getLogger(IndexWriteHandler.class);
     private final IndexTransformer transformer;
-    private CallBuffer<KVPair> indexBuffer;
+    private CallBuffer<Record> indexBuffer;
     private final int expectedWrites;
     private BitSet indexedColumns;
 
@@ -76,21 +77,21 @@ public class IndexWriteHandler extends RoutingWriteHandler{
     }
 
     @Override
-    protected boolean isHandledMutationType(KVPair.Type type) {
-        return type == KVPair.Type.DELETE || type == KVPair.Type.CANCEL ||
-            type == KVPair.Type.UPDATE || type == KVPair.Type.INSERT ||
-            type == KVPair.Type.UPSERT;
+    protected boolean isHandledMutationType(RecordType type) {
+        return type == RecordType.DELETE || type == RecordType.CANCEL ||
+            type == RecordType.UPDATE || type == RecordType.INSERT ||
+            type == RecordType.UPSERT;
     }
 
     @Override
-    public boolean route(KVPair mutation,WriteContext ctx) {
+    public boolean route(Record mutation,WriteContext ctx) {
         if (ctx.skipIndexWrites()) {
             return true;
         }
         if (!ensureBufferReader(mutation, ctx))
             return false;
 
-        switch(mutation.getType()) {
+        switch(mutation.getRecordType()) {
             case INSERT:
                 return createIndexRecord(mutation, ctx,null);
             case UPDATE:
@@ -108,17 +109,16 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                 if (transformer.isUniqueIndex())
                     return true;
                 throw new RuntimeException("Not Valid Execution Path");
-            case EMPTY_COLUMN:
             default:
                 throw new RuntimeException("Not Valid Execution Path");
         }
     }
 
-    private boolean createIndexRecord(KVPair mutation, WriteContext ctx,KVPair deleteMutation) {
+    private boolean createIndexRecord(Record mutation, WriteContext ctx,Record deleteMutation) {
         try {
             boolean add=true;
-            KVPair newIndex = transformer.translate(mutation);
-            newIndex.setType(KVPair.Type.INSERT);
+            Record newIndex = transformer.translate(mutation);
+            newIndex.setRecordType(RecordType.INSERT);
             if(deleteMutation!=null && newIndex.rowKeySlice().equals(deleteMutation.rowKeySlice())){
                 /*
                  * DB-4165: When we do an update to the base table, that translates to a delete
@@ -136,7 +136,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                  * competing for the row results.
                  */
                 deleteMutation.setValue(newIndex.getValue());
-                deleteMutation.setType(KVPair.Type.UPDATE);
+                deleteMutation.setRecordType(RecordType.UPDATE);
                 newIndex = deleteMutation;
                 add=false;
             }
@@ -153,7 +153,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
     }
 
 
-    private boolean deleteIndexRecord(KVPair mutation, WriteContext ctx) {
+    private boolean deleteIndexRecord(Record mutation, WriteContext ctx) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
 
@@ -165,7 +165,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
          * 3. issue a delete against the index table
          */
         try {
-            KVPair indexDelete = transformer.createIndexDelete(mutation, ctx, indexedColumns);
+            Record indexDelete = transformer.createIndexDelete(mutation, ctx, indexedColumns);
             if (indexDelete == null) {
                 // we can't find the old row, it may have been deleted already, but we'll have to update the
                 // index anyway in the calling method
@@ -185,7 +185,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         return true;
     }
 
-    private boolean ensureBufferReader(KVPair mutation, WriteContext ctx) {
+    private boolean ensureBufferReader(Record mutation, WriteContext ctx) {
         if (indexBuffer == null) {
             try {
                 indexBuffer = getRoutedWriteBuffer(ctx,expectedWrites);

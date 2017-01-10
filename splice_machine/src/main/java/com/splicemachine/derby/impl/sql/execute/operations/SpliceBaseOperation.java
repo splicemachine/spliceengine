@@ -643,7 +643,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return getTransaction();
     }
 
-    protected TxnView elevateTransaction() throws StandardException{
+    protected Txn elevateTransaction() throws StandardException{
 		/*
 		 * Elevate the current transaction to make sure that we are writable
 		 */

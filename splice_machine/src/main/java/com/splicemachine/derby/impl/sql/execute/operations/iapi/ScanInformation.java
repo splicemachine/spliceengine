@@ -18,15 +18,14 @@ package com.splicemachine.derby.impl.sql.execute.operations.iapi;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.RecordScan;
-
 import java.util.List;
 
 /**
@@ -58,15 +57,15 @@ public interface ScanInformation<T> {
 
     int[] getIndexToBaseColumnMap() throws StandardException;
 
-    RecordScan getScan(TxnView txn) throws StandardException;
+    RecordScan getScan(Txn txn) throws StandardException;
 
-    RecordScan getScan(TxnView txn, T startKeyHint, int[] keyDecodingMap, int[] scanKeys, T stopKeyPrefix) throws StandardException;
+    RecordScan getScan(Txn txn, T startKeyHint, int[] keyDecodingMap, int[] scanKeys, T stopKeyPrefix) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
     long getConglomerateId();
     
-    List<RecordScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException;
+    List<RecordScan> getScans(Txn txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException;
 
     int[] getColumnOrdering() throws StandardException;
 

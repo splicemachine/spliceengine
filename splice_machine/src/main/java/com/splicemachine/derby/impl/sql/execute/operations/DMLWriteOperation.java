@@ -38,7 +38,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
@@ -297,7 +297,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public TxnView getCurrentTransaction() throws StandardException{
+    public Txn getCurrentTransaction() throws StandardException{
         return elevateTransaction();
     }
 

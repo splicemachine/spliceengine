@@ -35,8 +35,6 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.stats.StoreCostControllerImpl;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -1754,7 +1752,7 @@ public class SpliceTransactionManager implements XATransactionController,
     	return buf;
     }
 
-    public TxnView getActiveStateTxn() {
+    public Txn getActiveStateTxn() {
         return ((BaseSpliceTransaction)rawtran).getActiveStateTxn();
     }
 

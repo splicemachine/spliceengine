@@ -23,11 +23,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.TxnView;
 import java.io.IOException;
 import java.util.Iterator;
 
@@ -41,7 +38,7 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public int rowsDeleted = 0;
     protected DeleteOperation deleteOperation;
 
-    public DeletePipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) throws StandardException {
+    public DeletePipelineWriter(Txn txn,long heapConglom,OperationContext operationContext) throws StandardException {
         super(txn,heapConglom,operationContext);
         if (operationContext != null) {
             deleteOperation = (DeleteOperation)operationContext.getOperation();

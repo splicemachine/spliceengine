@@ -18,7 +18,7 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import java.util.Iterator;
 
 /**
@@ -32,8 +32,8 @@ public interface TableWriter <T> {
     void close() throws StandardException;
     void write(T row) throws StandardException;
     void write(Iterator<T> rows) throws StandardException;
-    void setTxn(TxnView txn);
-    TxnView getTxn();
+    void setTxn(Txn txn);
+    Txn getTxn();
     byte[] getDestinationTable();
     OperationContext getOperationContext();
 }

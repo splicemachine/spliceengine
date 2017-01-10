@@ -22,7 +22,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 
 
 /**
@@ -37,12 +37,12 @@ import com.splicemachine.si.api.txn.TxnView;
 public class SpliceOperationContext{
     private final GenericStorablePreparedStatement preparedStatement;
     private final Activation activation;
-    private TxnView txn;
+    private Txn txn;
     private SConfiguration config;
 
     public SpliceOperationContext(Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  TxnView txn,
+                                  Txn txn,
                                   SConfiguration config){
         this.activation=activation;
         this.preparedStatement=preparedStatement;
@@ -58,7 +58,7 @@ public class SpliceOperationContext{
         return activation;
     }
 
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 
@@ -66,7 +66,7 @@ public class SpliceOperationContext{
         return newContext(a,null); //TODO -sf- make this return a configuration
     }
 
-    public static SpliceOperationContext newContext(Activation a,TxnView txn){
+    public static SpliceOperationContext newContext(Activation a,Txn txn){
         if(txn==null){
             TransactionController te=a.getLanguageConnectionContext().getTransactionExecute();
             txn=((SpliceTransactionManager)te).getRawTransaction().getActiveStateTxn();

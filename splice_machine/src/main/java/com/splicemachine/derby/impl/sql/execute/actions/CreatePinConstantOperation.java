@@ -34,7 +34,7 @@ import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.derby.stream.utils.StreamUtils;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -110,7 +110,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
         }
 
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        TxnView parentTxn = ((SpliceTransactionManager)userTransaction).getActiveStateTxn();
+        Txn parentTxn = ((SpliceTransactionManager)userTransaction).getActiveStateTxn();
         SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(td.getHeapConglomerateId());
         int[] baseColumnMap = IntArrays.count(conglomerate.getFormat_ids().length);
 

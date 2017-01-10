@@ -31,7 +31,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 
 /**
  * Interface for Parallel Operations in the Splice Machine.
@@ -314,7 +314,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      * @return
      * @throws StandardException
      */
-    TxnView getCurrentTransaction() throws StandardException;
+    Txn getCurrentTransaction() throws StandardException;
 
     /**
      * Retrieve the sub operations for this operation.  This is mostly used
