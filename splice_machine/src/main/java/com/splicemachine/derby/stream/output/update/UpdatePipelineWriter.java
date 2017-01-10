@@ -33,6 +33,7 @@ import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.Record;
 import com.splicemachine.storage.RecordType;

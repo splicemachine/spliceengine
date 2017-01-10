@@ -18,7 +18,6 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TransactionViewImpl;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -45,7 +44,7 @@ public class SpliceTransactionView extends BaseSpliceTransaction<TransactionView
     public SpliceTransactionView(CompatibilitySpace compatibilitySpace,
     						 SpliceTransactionFactory spliceTransactionFactory,
     						 DataValueFactory dataValueFactory,
-                             String transName, TxnView txn) {
+                             String transName, Txn txn) {
         SpliceLogUtils.trace(LOG, "Instantiating Splice transaction");
         this.compatibilitySpace = compatibilitySpace;
 		this.spliceTransactionFactory = spliceTransactionFactory;
@@ -69,7 +68,7 @@ public class SpliceTransactionView extends BaseSpliceTransaction<TransactionView
         throw new UnsupportedOperationException("Cannot abort from SpliceTransactionView");
     }
 
-    @Override public TxnView getTxnInformation() { return transaction.getTxnInformation(); }
+    @Override public Txn getTxnInformation() { return transaction.getTxnInformation(); }
 
     @Override
     public String getActiveStateTxIdString() {
@@ -77,7 +76,7 @@ public class SpliceTransactionView extends BaseSpliceTransaction<TransactionView
     }
 
     @Override
-    public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn) {
+    public void setActiveState(boolean nested, boolean dependent, Txn parentTxn) {
         transaction.setActiveState(nested, dependent, parentTxn);
     }
 

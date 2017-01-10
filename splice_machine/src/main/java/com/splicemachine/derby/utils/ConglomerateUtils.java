@@ -24,11 +24,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.ServiceLoader;
-
 import com.carrotsearch.hppc.BitSet;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Preconditions;
-
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -36,19 +34,11 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataGet;
-import com.splicemachine.storage.DataPut;
-import com.splicemachine.storage.DataResult;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 
