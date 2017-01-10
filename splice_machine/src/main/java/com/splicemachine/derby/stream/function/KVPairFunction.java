@@ -17,13 +17,13 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.storage.Record;
 import scala.Tuple2;
 
 /**
  * Created by jyuan on 10/19/15.
  */
-public class KVPairFunction extends SplicePairFunction<SpliceOperation,KVPair,byte[],KVPair> {
+public class KVPairFunction extends SplicePairFunction<SpliceOperation,Record,byte[],Record> {
     private int counter = 0;
     public KVPairFunction() {
         super();
@@ -34,18 +34,18 @@ public class KVPairFunction extends SplicePairFunction<SpliceOperation,KVPair,by
     }
 
     @Override
-    public Tuple2<byte[], KVPair> call(KVPair kvPair) throws Exception {
-        return new Tuple2<>(kvPair.getRowKey(),kvPair);
+    public Tuple2<byte[], Record> call(Record kvPair) throws Exception {
+        return new Tuple2<>(kvPair.getKey(),kvPair);
     }
 
     @Override
-    public byte[] genKey(KVPair kvPair) {
+    public byte[] genKey(Record kvPair) {
         counter++;
-        return kvPair.getRowKey();
+        return kvPair.getKey();
     }
 
     @Override
-    public KVPair genValue(KVPair kvPair) {
+    public Record genValue(Record kvPair) {
         return kvPair;
     }
 }

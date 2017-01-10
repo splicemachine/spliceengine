@@ -33,7 +33,6 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 
 /**
  * DDL operation to drop an index. The approach is as follows:
@@ -122,15 +121,15 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
                            SpliceTransactionManager userTxnManager, LanguageConnectionContext lcc) throws StandardException {
         final long tableConglomId = td.getHeapConglomerateId();
         final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
-        TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
+        Txn uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
         //get the top-most transaction, that's the actual user transaction
         TransactionController tc = lcc.getTransactionExecute();
-        TxnView t = uTxn;
+        Txn t = uTxn;
         while(t.getTxnId()!= Txn.ROOT_TRANSACTION.getTxnId()){
             uTxn = t;
             t = uTxn.getParentTxnView();
         }
-        final TxnView userTxn = uTxn;
+        final Txn userTxn = uTxn;
         DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }

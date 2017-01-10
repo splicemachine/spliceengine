@@ -154,7 +154,7 @@ public interface Record<K> {
      *
      * @return
      */
-    K getKey();
+    byte[] getKey();
 
     /**
      *

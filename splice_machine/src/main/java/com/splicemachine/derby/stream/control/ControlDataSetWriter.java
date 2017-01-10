@@ -31,7 +31,6 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
@@ -59,7 +58,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
         SpliceOperation operation=operationContext.getOperation();
         Txn txn = null;
         try{
-            txn = SIDriver.driver().lifecycleManager().beginChildTransaction(getTxn(),pipelineWriter.getDestinationTable());
+            txn = SIDriver.driver().lifecycleManager().beginChildTransaction(getTxn());
             pipelineWriter.setTxn(txn);
             operation.fireBeforeStatementTriggers();
             pipelineWriter.open(operation.getTriggerHandler(),operation);
@@ -67,7 +66,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
 
             long recordsWritten = operationContext.getRecordsWritten();
             operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
-            txn.commit();
+            SIDriver.driver().lifecycleManager().commit(txn);
             if(pipelineWriter!=null)
                 pipelineWriter.close();
             long badRecords = 0;
@@ -113,7 +112,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
        }catch(Exception e){
             if(txn!=null){
                 try{
-                    txn.rollback();
+                    SIDriver.driver().lifecycleManager().rollback(txn);
                 }catch(IOException e1){
                     e.addSuppressed(e1);
                 }
@@ -126,7 +125,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
     }
 
     @Override
-    public void setTxn(TxnView childTxn){
+    public void setTxn(Txn childTxn){
         pipelineWriter.setTxn(childTxn);
     }
 
@@ -136,7 +135,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return pipelineWriter.getTxn();
     }
 

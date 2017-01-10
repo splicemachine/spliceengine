@@ -16,20 +16,12 @@
 package com.splicemachine.si.impl;
 
 import org.spark_project.guava.collect.Iterators;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.filter.TransactionReadController;
-import com.splicemachine.si.api.filter.TxnFilter;
-import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.Transactor;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
-import com.splicemachine.utils.Pair;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -41,23 +33,14 @@ import java.util.concurrent.locks.Lock;
 public class TxnPartition implements Partition{
     private final Partition basePartition;
     private final Transactor transactor;
-    private final RollForward rollForward;
     private final TxnOperationFactory txnOpFactory;
-    private final TransactionReadController txnReadController;
-    private final ReadResolver readResolver;
 
     public TxnPartition(Partition basePartition,
                         Transactor transactor,
-                        RollForward rollForward,
-                        TxnOperationFactory txnOpFactory,
-                        TransactionReadController txnReadController,
-                        ReadResolver readResolver){
+                        TxnOperationFactory txnOpFactory){
         this.basePartition=basePartition;
         this.transactor=transactor;
-        this.rollForward=rollForward;
         this.txnOpFactory=txnOpFactory;
-        this.txnReadController=txnReadController;
-        this.readResolver=readResolver;
     }
 
     @Override

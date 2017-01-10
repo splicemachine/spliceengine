@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.splicemachine.storage.Record;
 import org.apache.spark.api.java.Optional;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -37,7 +38,6 @@ import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdatePipelineWriter;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
-import com.splicemachine.kvpair.KVPair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.*;
@@ -398,7 +398,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 DirectPipelineWriter writer = new DirectPipelineWriter(destConglomerate,
                         txn, opCtx,skipIndex);
 
-                return new DirectDataSetWriter<>((ControlPairDataSet<K,KVPair>)ControlPairDataSet.this,writer);
+                return new DirectDataSetWriter<>((ControlPairDataSet<K,Record>)ControlPairDataSet.this,writer);
             }
         };
     }

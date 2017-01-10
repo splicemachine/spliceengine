@@ -60,7 +60,7 @@ public class ConglomerateUtils{
      * @param <T>           the type to return
      * @return an instance of {@code T} which contains the conglomerate information.
      */
-    public static <T> T readConglomerate(long conglomId,Class<T> instanceClass,TxnView txn) throws StandardException{
+    public static <T> T readConglomerate(long conglomId,Class<T> instanceClass,Txn txn) throws StandardException{
         SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomId);

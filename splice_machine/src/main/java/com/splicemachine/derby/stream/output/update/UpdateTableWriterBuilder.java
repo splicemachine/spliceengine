@@ -25,7 +25,7 @@ import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
@@ -47,7 +47,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     protected FormatableBitSet pkColumns;
     protected FormatableBitSet heapList;
     protected String tableVersion;
-    protected TxnView txn;
+    protected Txn txn;
     protected ExecRow execRowDefinition;
     protected int[] execRowTypeFormatIds;
     protected OperationContext operationContext;
@@ -98,7 +98,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
-    public UpdateDataSetWriterBuilder txn(TxnView txn) {
+    public UpdateDataSetWriterBuilder txn(Txn txn) {
         assert txn != null :"Txn Cannot Be null!";
         this.txn = txn;
         return this;
@@ -147,7 +147,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 
