@@ -42,11 +42,8 @@ import com.splicemachine.pipeline.foreignkey.FKWriteFactoryHolder;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.filter.TransactionReadController;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.sql.SQLException;

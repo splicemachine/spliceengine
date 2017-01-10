@@ -17,7 +17,7 @@ package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.SimplePipelineWriter;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -33,7 +33,7 @@ import java.io.ObjectOutput;
 public class PipelineWriterBuilder implements Externalizable {
 
     private long heapConglom;
-    private TxnView txn;
+    private Txn txn;
     private boolean skipIndex;
 
     public PipelineWriterBuilder() {}
@@ -43,7 +43,7 @@ public class PipelineWriterBuilder implements Externalizable {
         return this;
     }
 
-    public PipelineWriterBuilder txn(TxnView txn) {
+    public PipelineWriterBuilder txn(Txn txn) {
         this.txn = txn;
         return this;
     }

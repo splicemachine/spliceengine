@@ -22,33 +22,32 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.storage.Record;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.util.concurrent.Callable;
 
 /**
  * Created by jleach on 5/20/15.
  */
 public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableWriter<T> {
-    protected TxnView txn;
+    protected Txn txn;
     protected byte[] destinationTable;
     protected long heapConglom;
     protected  TriggerHandler triggerHandler;
     protected Callable<Void> flushCallback;
-    protected RecordingCallBuffer<KVPair> writeBuffer;
+    protected RecordingCallBuffer<Record> writeBuffer;
     protected WriteCoordinator writeCoordinator;
     protected DMLWriteOperation operation;
     protected OperationContext operationContext;
 
-    public AbstractPipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) {
+    public AbstractPipelineWriter(Txn txn,long heapConglom,OperationContext operationContext) {
         this.txn = txn;
         this.heapConglom = heapConglom;
         this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
@@ -65,12 +64,12 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     }
 
     @Override
-    public void setTxn(TxnView txn) {
+    public void setTxn(Txn txn) {
         this.txn = txn;
     }
 
     @Override
-    public TxnView getTxn() {
+    public Txn getTxn() {
         return txn;
     }
 

@@ -5,9 +5,9 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Record;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -21,14 +21,14 @@ import java.util.concurrent.Callable;
 public class DistributedAlterTableTransformJob extends DistributedJob implements Externalizable {
     long destConglom;
     String jobGroup;
-    TxnView childTxn;
-    ScanSetBuilder<KVPair> scanSetBuilder;
+    Txn childTxn;
+    ScanSetBuilder<Record> scanSetBuilder;
     String description;
     String pool;
     DDLMessage.DDLChange ddlChange;
 
     public DistributedAlterTableTransformJob() {}
-    public DistributedAlterTableTransformJob(TxnView childTxn, ScanSetBuilder<KVPair> scanSetBuilder, long destConglom,
+    public DistributedAlterTableTransformJob(Txn childTxn, ScanSetBuilder<Record> scanSetBuilder, long destConglom,
                                              String description, String jobName, String pool, DDLMessage.DDLChange ddlChange) {
         this.childTxn = childTxn;
         this.jobGroup = jobName;
@@ -63,7 +63,7 @@ public class DistributedAlterTableTransformJob extends DistributedJob implements
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         destConglom = in.readLong();
-        scanSetBuilder = (ScanSetBuilder<KVPair>) in.readObject();
+        scanSetBuilder = (ScanSetBuilder<Record>) in.readObject();
         description = in.readUTF();
         jobGroup = in.readUTF();
         pool = in.readUTF();

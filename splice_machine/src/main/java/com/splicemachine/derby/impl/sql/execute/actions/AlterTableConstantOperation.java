@@ -24,6 +24,8 @@ import java.util.concurrent.TimeoutException;
 
 import com.splicemachine.derby.impl.sql.execute.altertable.DistributedAlterTableTransformJob;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.si.api.txn.IsolationLevel;
+import com.splicemachine.storage.Record;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
@@ -69,14 +71,12 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -515,7 +515,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         //     column in table.
         ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
 
-        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+        Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
         // How were the columns ordered before?
         int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
@@ -951,8 +951,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         }
 
         //get the absolute user transaction
-        TxnView uTxn = wrapperTxn;
-        TxnView n = uTxn.getParentTxnView();
+        Txn uTxn = wrapperTxn;
+        Txn n = uTxn.getParentTxnView();
         while(n.getTxnId()>=0){
             uTxn = n;
             n = n.getParentTxnView();
@@ -976,7 +976,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
              * this makes the SI logic more complex during the populate phase.
              */
             populateTxn = SIDriver.driver().lifecycleManager().chainTransaction(
-                wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
+                wrapperTxn, IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
@@ -987,7 +987,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
     @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Local Store is a side effect of writing")
     protected void transformAndWriteToNewConglomerate(Activation activation,
-                                                      TxnView parentTxn,
+                                                      Txn parentTxn,
                                                       DDLChange ddlChange,
                                                       long baseConglomNumber,
                                                       long destConglom,
@@ -998,7 +998,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
 
         // Create a scanner to scan old conglomerate
-        ScanSetBuilder<KVPair> builder = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomNumber))
+        ScanSetBuilder<Record> builder = dsp.<SpliceOperation,Record>newScanSet(null,Long.toString(baseConglomNumber))
                 .tableDisplayName(this.tableName)
                 .activation(activation)
                 .scan(DDLUtils.createFullScan())

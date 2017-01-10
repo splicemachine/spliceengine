@@ -24,7 +24,6 @@ import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -792,7 +791,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
          * Manages the Create and Populate index phases
          */
         Txn tentativeTransaction;
-        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+        Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         try {
             TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
             tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomId));

@@ -25,7 +25,7 @@ import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import java.util.concurrent.Callable;
 
 /**
@@ -60,7 +60,7 @@ public class PopulateIndexJob implements Callable<Void> {
                                                     String prefix,
                                                     int[] indexFormatIds,
                                                     String scope,
-                                                    TxnView childTxn
+                                                    Txn childTxn
                                                     ) throws StandardException
     {
 

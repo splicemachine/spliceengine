@@ -22,7 +22,7 @@ import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -35,7 +35,7 @@ import java.util.concurrent.Callable;
  */
 public class DistributedPopulateIndexJob extends DistributedJob implements Externalizable {
     String jobGroup;
-    TxnView childTxn;
+    Txn childTxn;
     ScanSetBuilder<LocatedRow> scanSetBuilder;
     String scope;
     String prefix;
@@ -43,7 +43,7 @@ public class DistributedPopulateIndexJob extends DistributedJob implements Exter
     int[] indexFormatIds;
 
     public DistributedPopulateIndexJob() {}
-    public DistributedPopulateIndexJob(TxnView childTxn, ScanSetBuilder<LocatedRow> scanSetBuilder, String scope,
+    public DistributedPopulateIndexJob(Txn childTxn, ScanSetBuilder<LocatedRow> scanSetBuilder, String scope,
                                        String jobGroup, String prefix, DDLMessage.TentativeIndex tentativeIndex, int[] indexFormatIds) {
         this.childTxn = childTxn;
         this.scanSetBuilder = scanSetBuilder;

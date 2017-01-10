@@ -70,7 +70,6 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -909,7 +908,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
      * @return list of transactions still running after timeout
      * @throws IOException
      */
-    public long waitForConcurrentTransactions(Txn maximum, TxnView userTxn,long tableConglomId) throws IOException {
+    public long waitForConcurrentTransactions(Txn maximum, Txn userTxn,long tableConglomId) throws IOException {
         if (!waitsForConcurrentTransactions()) {
             return -1l;
         }
@@ -923,8 +922,8 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
         long timeAvailable = maxWait;
         long activeTxnId = -1l;
         do{
-            try(Stream<TxnView> activeTxns = transactionReader.getActiveTransactions()){
-                TxnView txn;
+            try(Stream<Txn> activeTxns = transactionReader.getActiveTransactions()){
+                Txn txn;
                 while((txn = activeTxns.next())!=null){
                     if(!txn.descendsFrom(userTxn)){
                         activeTxnId = txn.getTxnId();

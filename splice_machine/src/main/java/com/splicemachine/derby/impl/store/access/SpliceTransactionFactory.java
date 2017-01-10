@@ -33,7 +33,6 @@ import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -77,7 +76,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
      * @return a derby representation of the transaction
      * @throws StandardException if something goes wrong (which it isn't super likely to do)
      */
-    public Transaction marshalTransaction(String transName,TxnView txn) throws StandardException{
+    public Transaction marshalTransaction(String transName,Txn txn) throws StandardException{
         try{
             return new SpliceTransactionView(NoLockSpace.INSTANCE,this,dataValueFactory,transName,txn);
         }catch(Exception e){
@@ -125,7 +124,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
      */
     public Transaction startNestedTransaction(HBaseStore hbaseStore,
                                               ContextManager contextMgr,
-                                              TxnView parentTxn) throws StandardException{
+                                              Txn parentTxn) throws StandardException{
         checkContextAndStore(hbaseStore,contextMgr,"startNestedTransaction");
 
         return startNestedTransaction(hbaseStore,contextMgr,
@@ -171,7 +170,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                              boolean abortAll,
                                                              String contextName,
                                                              boolean additive,
-                                                             TxnView parentTxn){
+                                                             Txn parentTxn){
         try{
             TxnLifecycleManager lifecycleManager=SIDriver.driver().lifecycleManager();
             /*

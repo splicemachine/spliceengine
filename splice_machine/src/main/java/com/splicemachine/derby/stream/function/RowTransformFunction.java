@@ -24,14 +24,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpPrefix;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.RowTransformer;
+import com.splicemachine.storage.Record;
 
 
 /**
@@ -49,14 +43,14 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
         this.ddlChange = ddlChange;
     }
 
-    public KVPair call(LocatedRow locatedRow) throws Exception {
+    public Record call(LocatedRow locatedRow) throws Exception {
 
         if (!initialized) {
             initialize();
         }
         ExecRow row = locatedRow.getRow();
 
-        KVPair kvPair = rowTransformer.transform(row);
+        Record kvPair = rowTransformer.transform(row);
         if (kvPair.getRowKey().length == 0) {
             // If this is a dummy row key, reuse the original row key
             kvPair.setKey(locatedRow.getRowLocation().getBytes());
@@ -92,32 +86,4 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
         initialized= true;
     }
 
-    @SuppressWarnings("unused")
-    private static KeyEncoder createDummyKeyEncoder() {
-
-        DataHash hash = new DataHash<ExecRow>() {
-            @Override
-            public void setRow(ExecRow rowToEncode) {
-                // no op
-            }
-
-            @Override
-            public byte[] encode() throws StandardException, IOException {
-                //return a dummy key
-                return new byte[0];
-            }
-
-            @Override
-            public KeyHashDecoder getDecoder() {
-                return NoOpKeyHashDecoder.INSTANCE;
-            }
-
-            @Override
-            public void close() throws IOException {
-                // No Op
-            }
-        };
-
-        return new KeyEncoder(NoOpPrefix.INSTANCE, hash, NoOpPostfix.INSTANCE);
-    }
 }

@@ -95,7 +95,7 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 				SpliceLogUtils.trace(LOG,"getRawStoreProperties %s",transactionController);
 		}
 
-		public Transaction marshallTransaction(ContextManager contextManager, String transactionName, TxnView txn) throws StandardException {
+		public Transaction marshallTransaction(ContextManager contextManager, String transactionName, Txn txn) throws StandardException {
 				SpliceLogUtils.trace(LOG, "marshalTransaction with Context Manager %s  and transaction name %s", contextManager, transactionName);
 				return transactionFactory.marshalTransaction(transactionName, txn);
 		}

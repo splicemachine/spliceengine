@@ -31,7 +31,6 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.Exceptions;
@@ -197,7 +196,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		}
 	}
 
-    protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
+    protected Txn beginChildTransaction(Txn parentTxn, long indexConglomId) throws IOException{
         TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();
         return tc.beginChildTransaction(parentTxn,Bytes.toBytes(Long.toString(indexConglomId)));
     }
