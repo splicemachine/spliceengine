@@ -17,10 +17,9 @@ package com.splicemachine.pipeline;
 
 import java.io.Closeable;
 import java.io.IOException;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.storage.Record;
 
 /**
  * Transformer interface for taking a base row and transforming it to another representation.
@@ -38,7 +37,7 @@ public interface RowTransformer extends Closeable  {
      * @throws StandardException
      * @throws IOException
      */
-    KVPair transform(ExecRow row) throws StandardException, IOException;
+    Record transform(ExecRow row) throws StandardException, IOException;
 
     /**
      * Transform a source KVPair to a target KVPair, where a KVPair represents a
@@ -50,6 +49,6 @@ public interface RowTransformer extends Closeable  {
      * @throws StandardException
      * @throws IOException
      */
-    KVPair transform(KVPair kvPair) throws StandardException, IOException;
+    Record transform(Record kvPair) throws StandardException, IOException;
 
 }

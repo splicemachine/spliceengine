@@ -32,14 +32,10 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
-import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
-import com.splicemachine.derby.utils.marshall.EntryDataHash;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;
@@ -56,7 +52,6 @@ public abstract class SpliceController implements ConglomerateController{
     protected OpenSpliceConglomerate openSpliceConglomerate;
     private PartitionFactory partitionFactory;
     protected BaseSpliceTransaction trans;
-    protected EntryDataHash entryEncoder;
     private String tableVersion;
     private Partition table;
     protected TxnOperationFactory opFactory;
@@ -95,8 +90,6 @@ public abstract class SpliceController implements ConglomerateController{
         if(table!=null){
             try{ table.close(); }catch(IOException ignored){ }
         }
-        if(entryEncoder!=null)
-            try{ entryEncoder.close();}catch(IOException ignored){}
         try{
             if((openSpliceConglomerate!=null) && (openSpliceConglomerate.getTransactionManager()!=null))
                 openSpliceConglomerate.getTransactionManager().closeMe(this);
@@ -149,8 +142,7 @@ public abstract class SpliceController implements ConglomerateController{
     public boolean delete(RowLocation loc) throws StandardException{
         Partition htable = getTable();
         try{
-            DataMutation dataMutation=opFactory.newDataDelete(((SpliceTransaction)trans).getTxn(),loc.getBytes());
-            htable.mutate(dataMutation);
+            htable.delete(loc.getBytes(),((SpliceTransaction)trans).getTxn());
             return true;
         }catch(Exception e){
             throw Exceptions.parseException(e);
@@ -165,9 +157,10 @@ public abstract class SpliceController implements ConglomerateController{
         Partition htable = getTable();
         try{
             DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),loc.getBytes(),null);
-            baseGet.returnAllVersions();
             DataGet get=createGet(baseGet,destRow,validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
-            DataResult result=htable.get(get,null);
+            Record result=htable.get(loc.getBytes(),trans.getTxnInformation(), IsolationLevel.SNAPSHOT_ISOLATION);
+            validColumns
+
             if(result==null || result.size()<=0) return false;
 
             int[] cols=FormatableBitSetUtils.toIntArray(validColumns);

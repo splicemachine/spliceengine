@@ -27,10 +27,10 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.RecordScan;
-import com.splicemachine.storage.DataScanner;
+import com.splicemachine.storage.RecordScanner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -47,11 +47,11 @@ import java.util.Arrays;
  *         Date: 4/9/14
  */
 public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetBuilder<V>{
-    protected DataScanner scanner;
+    protected RecordScanner scanner;
     protected ExecRow template;
     protected RecordScan scan;
     protected int[] rowColumnMap;
-    protected TxnView txn;
+    protected Txn txn;
     protected int[] keyColumnEncodingOrder;
     protected int[] keyColumnTypes;
     protected int[] keyDecodingMap;
@@ -94,7 +94,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     @Override
-    public ScanSetBuilder<V> scanner(DataScanner scanner){
+    public ScanSetBuilder<V> scanner(RecordScanner scanner){
         assert scanner!=null:"Null scanners are not allowed!";
         this.scanner=scanner;
         return this;
@@ -128,7 +128,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     @Override
-    public ScanSetBuilder<V> transaction(TxnView txn){
+    public ScanSetBuilder<V> transaction(Txn txn){
         assert txn!=null:"No Txn specified";
         this.txn=txn;
         return this;
@@ -521,7 +521,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             location = in.readUTF();
     }
 
-    protected TxnView readTxn(ObjectInput in) throws IOException{
+    protected Txn readTxn(ObjectInput in) throws IOException{
         return SIDriver.driver().getOperationFactory().readTxn(in);
     }
 
@@ -549,7 +549,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 

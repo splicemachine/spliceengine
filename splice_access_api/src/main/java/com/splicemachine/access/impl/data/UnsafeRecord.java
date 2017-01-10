@@ -1,6 +1,7 @@
 package com.splicemachine.access.impl.data;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.storage.Record;
@@ -122,6 +123,36 @@ public class UnsafeRecord implements Record<byte[],ExecRow> {
     @Override
     public void setNumberOfColumns(int numberOfColumns) {
         Platform.putInt(baseObject,baseOffset+NUM_COLS_INC,numberOfColumns);
+    }
+
+    @Override
+    public ExecRow getData(FormatableBitSet accessedColumns, ExecRow execRow) throws StandardException {
+        assert accessedColumns.getNumBitsSet() == execRow.nColumns():"Columns Passed have mismatch with data passed";
+        int numberOfColumns = numberOfColumns();
+        int bitSetWidth = UnsafeRecordUtils.calculateBitSetWidthInBytes(numberOfColumns);
+        UnsafeRow row = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+COLS_BS_INC,bitSetWidth/8));
+        row.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth,100);
+        int fromIndex = UnsafeRecordUtils.nextSetBit(baseObject,baseOffset+ COLS_BS_INC,0,8);
+        int ordinal = 0;
+        for (int i = 0; i< accessedColumns.getNumBitsSet(); i++) {
+            do {
+                if (fromIndex == -1 || fromIndex > accessedColumns.anySetBit()columns[i]) { // Exhausted or past record
+                    execRow.getColumn(i + 1).setToNull();
+                    break;
+                }
+                if (fromIndex == columns[i]) { // set value and move on
+                    execRow.getColumn(i + 1).read(row, ordinal);
+                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC, fromIndex+1, 8);
+                    ordinal++;
+                    break;
+                } else  { // if (fromIndex < columns[i]) {
+                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC, fromIndex+1, 8);
+                    ordinal++;
+                }
+            } while (true);
+
+        }
+        return execRow;
     }
 
     @Override

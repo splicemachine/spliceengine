@@ -21,16 +21,13 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.si.api.filter.TransactionReadController;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.jetty.util.ConcurrentHashSet;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,7 +47,6 @@ public class DDLWatchRefresher{
     private final AtomicReference<DDLFilter> ddlDemarcationPoint;
     private final DDLWatchChecker watchChecker;
     private final Clock clock;
-    private final TransactionReadController txController;
     private final long maxDdlWaitMs;
     private final AtomicInteger currChangeCount= new AtomicInteger(0);
     private final SqlExceptionFactory exceptionFactory;
@@ -58,14 +54,12 @@ public class DDLWatchRefresher{
 
 
     public DDLWatchRefresher(DDLWatchChecker watchChecker,
-                             TransactionReadController txnController,
                              Clock clock,
                              SqlExceptionFactory exceptionFactory,
                              long maxDdlWaitMs,
                              TxnSupplier txnSupplier){
         assert clock!=null;
         this.clock=clock;
-        this.txController = txnController;
         this.maxDdlWaitMs=maxDdlWaitMs;
         this.seenDDLChanges=new ConcurrentHashSet<>();
         this.changeTimeouts=new ConcurrentHashMap<>();
@@ -213,7 +207,7 @@ public class DDLWatchRefresher{
 
     private void assignDDLDemarcationPoint(DDLChange ddlChange) {
         try {
-            TxnView txn = new LazyTxnView(ddlChange.getTxnId(),txnSupplier,exceptionFactory);
+            Txn txn = new LazyTxnView(ddlChange.getTxnId(),txnSupplier,exceptionFactory);
             assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
             if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {

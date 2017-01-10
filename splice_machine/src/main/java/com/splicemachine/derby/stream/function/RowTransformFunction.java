@@ -32,7 +32,7 @@ import com.splicemachine.storage.Record;
  * Created by jyuan on 11/4/15.
  *
  */
-public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow,KVPair> {
+public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow,Record> {
 
     private DDLChange ddlChange;
     private RowTransformer rowTransformer;
@@ -51,7 +51,7 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
         ExecRow row = locatedRow.getRow();
 
         Record kvPair = rowTransformer.transform(row);
-        if (kvPair.getRowKey().length == 0) {
+        if (kvPair.getKey().length == 0) {
             // If this is a dummy row key, reuse the original row key
             kvPair.setKey(locatedRow.getRowLocation().getBytes());
         }

@@ -19,7 +19,7 @@ import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -79,7 +79,7 @@ public class Scans extends SpliceUtils {
                                        Qualifier[][] qualifiers,
                                        boolean[] sortOrder,
                                        FormatableBitSet scanColumnList,
-                                       TxnView txn,
+                                       Txn txn,
                                        boolean sameStartStopPosition,
                                        int[] formatIds,
                                        int[] startScanKeys,
@@ -90,7 +90,6 @@ public class Scans extends SpliceUtils {
                                        boolean rowIdKey) throws StandardException {
         assert dataValueFactory != null;
         RecordScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
-        scan.returnAllVersions();
         try {
             if (rowIdKey) {
                 DataValueDescriptor[] dvd = null;

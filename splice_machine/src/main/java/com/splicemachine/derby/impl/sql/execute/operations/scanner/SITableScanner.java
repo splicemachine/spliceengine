@@ -24,7 +24,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.metrics.*;
@@ -63,8 +62,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private String indexName;
     private ByteSlice slice = new ByteSlice();
     private boolean isKeyed = true;
-    private KeyIndex primaryKeyIndex;
-    private ExecRowAccumulator keyAccumulator;
     private int[] keyDecodingMap;
     private FormatableBitSet accessedKeys;
     private SIFilterFactory filterFactory;
@@ -268,8 +265,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
     /*********************************************************************************************************************/
 		/*Private helper methods*/
-    private SIFilterFactory createFilterFactory(TxnView txn, long demarcationPoint) {
-        TxnView txnView = txn;
+    private SIFilterFactory createFilterFactory(Txn txn, long demarcationPoint) {
+        Txn txnView = txn;
         if (demarcationPoint > 0) {
             txnView = new DDLTxnView(txn,demarcationPoint);
         }
@@ -355,28 +352,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             else
                 currentRowLocation.setValue(slice);
         }
-    }
-
-    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
-    private boolean filterRow(SIFilter filter,List<DataCell> keyValues) throws IOException {
-        filter.nextRow();
-        Iterator<DataCell> kvIter = keyValues.iterator();
-        int numCells = keyValues.size();
-        while(kvIter.hasNext()){
-            DataCell kv = kvIter.next();
-            DataFilter.ReturnCode returnCode = filter.filterCell(kv);
-            switch(returnCode){
-                case NEXT_COL:
-                case NEXT_ROW:
-                case SEEK:
-                    return false; //failed the predicate
-                case SKIP:
-                    numCells--;
-                default:
-                    //these are okay--they mean the encoding is good
-            }
-        }
-        return numCells > 0 && filter.getAccumulator().result() != null;
     }
 
 }

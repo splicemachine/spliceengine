@@ -26,6 +26,7 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
@@ -245,12 +246,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     }
 
     @Override
-    public RecordScan getScan(TxnView txn) throws StandardException {
+    public RecordScan getScan(Txn txn) throws StandardException {
         return getScan(txn, null, null, null, null);
     }
 
     @Override
-    public RecordScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
+    public RecordScan getScan(Txn txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();

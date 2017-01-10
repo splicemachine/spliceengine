@@ -15,19 +15,16 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.si.api.txn.Txn;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.marshall.KeyDecoder;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
-import com.splicemachine.storage.util.MapAttributes;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 
@@ -59,7 +56,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     private final KeyDecoder keyDecoder;
     private final int[] indexCols;
     private final KeyHashDecoder rowDecoder;
-    private final TxnView txn;
+    private final Txn txn;
     private final TxnOperationFactory operationFactory;
     private final PartitionFactory tableFactory;
 
@@ -75,7 +72,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     IndexRowReader(ExecutorService lookupService,
                    Iterator<LocatedRow> sourceIterator,
                    ExecRow outputTemplate,
-                   TxnView txn,
+                   Txn txn,
                    int lookupBatchSize,
                    int numConcurrentLookups,
                    long mainTableConglomId,

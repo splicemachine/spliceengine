@@ -1,6 +1,7 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.utils.ByteSlice;
 
@@ -116,11 +117,19 @@ public interface Record<K,V> {
 
     /**
      *
-     * Set Actual Data
+     * Get Actual Data
      *
      * @return
      */
     V getData(int[] columns, V row) throws StandardException;
+
+    /**
+     *
+     * Get Actual Data
+     *
+     * @return
+     */
+    V getData(FormatableBitSet accessedColumns, V row) throws StandardException;
 
     /**
      *
@@ -173,4 +182,6 @@ public interface Record<K,V> {
     ByteSlice rowKeySlice();
 
     Record cancelToDelete();
+
+
 }
