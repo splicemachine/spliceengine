@@ -18,14 +18,13 @@ package com.splicemachine.derby.stream.output;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.config.ForwardingWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -69,7 +68,7 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
         IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
         @SuppressWarnings("MismatchedReadAndWriteOfArray") Object[] fRows = failedRows.values;
         boolean ignore = result.getNotRunRows().size()<=0 && result.getFailedRows().size()<=0;
-        List<KVPair> kvPairList = request.mutationsList();
+        List<Record> kvPairList = request.mutationsList();
         for(IntObjectCursor<WriteResult> resultCursor:failedRows) {
             WriteResult value = resultCursor.value;
             int rowNum = resultCursor.key;

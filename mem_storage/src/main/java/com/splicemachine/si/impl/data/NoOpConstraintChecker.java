@@ -15,12 +15,10 @@
 
 package com.splicemachine.si.impl.data;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.server.ConstraintChecker;
-import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.MutationStatus;
-
+import com.splicemachine.storage.Record;
 import java.io.IOException;
 
 /**
@@ -35,7 +33,7 @@ public class NoOpConstraintChecker implements ConstraintChecker{
     }
 
     @Override
-    public MutationStatus checkConstraint(KVPair mutation,DataResult existingRow) throws IOException{
+    public MutationStatus checkConstraint(Record mutation, Record existingRow) throws IOException{
         return opFactory.success();
     }
 }

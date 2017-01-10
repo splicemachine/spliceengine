@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.storage.RecordScan;
 import org.apache.log4j.Logger;
 
@@ -43,7 +44,6 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.DerbyMessage;
-import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -53,10 +53,8 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -97,7 +95,7 @@ public class DDLUtils {
         DDLDriver.driver().ddlController().finishMetadataChange(changeId);
     }
 
-    public static TxnView getLazyTransaction(long txnId) {
+    public static Txn getLazyTransaction(long txnId) {
         //TODO -sf- could we remove this method somehow?
         SIDriver driver=SIDriver.driver();
 
@@ -115,7 +113,7 @@ public class DDLUtils {
 
 
     public static Txn getIndexTransaction(TransactionController tc, Txn tentativeTransaction, long tableConglomId, String indexName) throws StandardException {
-        final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+        final Txn wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
         /*
          * We have an additional waiting transaction that we use to ensure that all elements
@@ -125,15 +123,15 @@ public class DDLUtils {
         TxnLifecycleManager tlm = SIDriver.driver().lifecycleManager();
         Txn waitTxn;
         try{
-            waitTxn = tlm.chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,tableBytes,tentativeTransaction);
+            waitTxn = tlm.chainTransaction(wrapperTxn, IsolationLevel.SNAPSHOT_ISOLATION,false,tableBytes,tentativeTransaction);
         }catch(IOException ioe){
             LOG.error("Could not create a wait transaction",ioe);
             throw Exceptions.parseException(ioe);
         }
 
         //get the absolute user transaction
-        TxnView uTxn = wrapperTxn;
-        TxnView n = uTxn.getParentTxnView();
+        Txn uTxn = wrapperTxn;
+        Txn n = uTxn.getParentTxnView();
         while(n.getTxnId()>=0){
             uTxn = n;
             n = n.getParentTxnView();
@@ -163,76 +161,6 @@ public class DDLUtils {
             throw Exceptions.parseException(e);
         }
         return indexTxn;
-    }
-
-
-    /**
-     * Waits for concurrent transactions that started before the tentative
-     * change completed.
-     *
-     * Performs an exponential backoff until a configurable timeout triggers,
-     * then returns the list of transactions still running. The caller has to
-     * forbid those transactions to ever write to the tables subject to the DDL
-     * change.
-     *
-     * @param maximum
-     *            wait for all transactions started before this one. It should
-     *            be the transaction created just after the tentative change
-     *            committed.
-     * @param userTxn the <em>user-level</em> transaction of the ddl operation. It is important
-     *                that it be the user-level, otherwise some child transactions may be treated
-     *                as active when they are not actually active.
-     * @return list of transactions still running after timeout
-     * @throws IOException
-     */
-    public static long waitForConcurrentTransactions(Txn maximum, TxnView userTxn,long tableConglomId) throws IOException {
-        byte[] conglomBytes = Bytes.toBytes(Long.toString(tableConglomId));
-
-        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
-        SConfiguration config = SIDriver.driver().getConfiguration();
-        Clock clock = SIDriver.driver().getClock();
-        long waitTime = config.getDdlRefreshInterval(); //the initial time to wait
-        long maxWait = config.getMaxDdlWait(); // the maximum time to wait
-        long scale = 2; //the scale factor for the exponential backoff
-        long timeAvailable = maxWait;
-        long activeTxnId = -1l;
-        do{
-            try(Stream<TxnView> activeTxns = transactionReader.getActiveTransactions()){
-                TxnView txn;
-                while((txn = activeTxns.next())!=null){
-                    if(!txn.descendsFrom(userTxn)){
-                        activeTxnId = txn.getTxnId();
-                    }
-                }
-            } catch (StreamException e) {
-                throw new IOException(e.getCause());
-            }
-            if(activeTxnId<0) return activeTxnId;
-            /*
-             * It is possible for a sleep to pick up before the
-             * waitTime is expired. Therefore, we measure that actual
-             * time spent and use that for our time remaining period
-             * instead.
-             */
-            long start = clock.currentTimeMillis();
-            try {
-                clock.sleep(waitTime,TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            }
-            long stop = clock.currentTimeMillis();
-            timeAvailable-=(stop-start);
-            /*
-             * We want to exponentially back off, but only to the limit imposed on us. Once
-             * our backoff exceeds that limit, we want to just defer to that limit directly.
-             */
-            waitTime = Math.min(timeAvailable,scale*waitTime);
-        } while(timeAvailable>0);
-
-        if (activeTxnId>=0) {
-            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", "operation Running", activeTxnId));
-        }
-        return activeTxnId;
     }
 
     /**
@@ -334,7 +262,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -356,7 +284,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preAlterStats with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -393,7 +321,7 @@ public class DDLUtils {
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = null;
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             transactionResource = new SpliceTransactionResourceImpl();
             //transactionResource.prepareContextManager();
             prepared = transactionResource.marshallTransaction(txn);
@@ -420,7 +348,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preIndex with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean initializedTxn = false;
             try {
@@ -442,7 +370,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRenameTable with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -474,7 +402,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRenameColumn with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -519,7 +447,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRenameIndex with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -542,7 +470,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropAlias with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -565,7 +493,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preNotifyJarLoader with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -596,7 +524,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preNotifyJarLoader with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -617,7 +545,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropView with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -638,7 +566,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropView with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -662,7 +590,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropSequence with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -691,7 +619,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preCreateTrigger with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -714,7 +642,7 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropTrigger with change=%s",change);
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = false;
             try{
@@ -761,7 +689,7 @@ public class DDLUtils {
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = null;
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             transactionResource = new SpliceTransactionResourceImpl();
             prepared = transactionResource.marshallTransaction(txn);
             for (DerbyMessage.UUID uuid : change.getAlterTable().getTableIdList()) {
@@ -784,7 +712,7 @@ public class DDLUtils {
         SpliceTransactionResourceImpl transactionResource = null;
         boolean prepared = false;
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             transactionResource = new SpliceTransactionResourceImpl();
             prepared = transactionResource.marshallTransaction(txn);
             String roleName = change.getDropRole().getRoleName();
@@ -820,7 +748,7 @@ public class DDLUtils {
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = null;
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             transactionResource = new SpliceTransactionResourceImpl();
             //transactionResource.prepareContextManager();
             prepared = transactionResource.marshallTransaction(txn);
@@ -846,7 +774,7 @@ public class DDLUtils {
             DDLMessage.RevokePrivilege revokePrivilege = change.getRevokePrivilege();
             DDLMessage.RevokePrivilege.Type type = revokePrivilege.getType();
 
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            Txn txn = DDLUtils.getLazyTransaction(change.getTxnId());
             transactionResource = new SpliceTransactionResourceImpl();
             //transactionResource.prepareContextManager();
             prepared = transactionResource.marshallTransaction(txn);

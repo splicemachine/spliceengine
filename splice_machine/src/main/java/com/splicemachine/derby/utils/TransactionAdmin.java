@@ -30,15 +30,12 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
@@ -62,9 +59,9 @@ public class TransactionAdmin{
 
     public static void killAllActiveTransactions(long maxTxnId) throws SQLException{
         ActiveTransactionReader reader=new ActiveTransactionReader(0l,maxTxnId,null);
-        try(Stream<TxnView> activeTransactions=reader.getActiveTransactions()){
+        try(Stream<Txn> activeTransactions=reader.getActiveTransactions()){
             final TxnLifecycleManager tc=SIDriver.driver().lifecycleManager();
-            TxnView next;
+            Txn next;
             while((next=activeTransactions.next())!=null){
                 tc.rollback(next.getTxnId());
             }
@@ -76,12 +73,12 @@ public class TransactionAdmin{
     public static void killTransaction(long txnId) throws SQLException{
         try{
             TxnSupplier store=SIDriver.driver().getTxnStore();
-            TxnView txn=store.getTransaction(txnId);
+            Txn txn=store.getTransaction(txnId);
             //if the transaction is read-only, or doesn't exist, then don't do anything to it
             if(txn==null) return;
 
             TxnLifecycleManager tc=SIDriver.driver().lifecycleManager();
-            tc.rollback(txnId);
+            tc.rollback(txn);
         }catch(IOException e){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
@@ -93,7 +90,7 @@ public class TransactionAdmin{
 
     public static void SYSCS_GET_CURRENT_TRANSACTION(ResultSet[] resultSet) throws SQLException{
         EmbedConnection defaultConn=(EmbedConnection)SpliceAdmin.getDefaultConn();
-        TxnView txn=((SpliceTransactionManager)defaultConn.getLanguageConnection().getTransactionExecute()).getActiveStateTxn();
+        Txn txn=((SpliceTransactionManager)defaultConn.getLanguageConnection().getTransactionExecute()).getActiveStateTxn();
         ExecRow row=new ValueRow(1);
         row.setColumn(1,new SQLLongint(txn.getTxnId()));
         Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
@@ -209,12 +206,12 @@ public class TransactionAdmin{
     public static void SYSCS_COMMIT_CHILD_TRANSACTION(Long txnId) throws SQLException, IOException{
         TxnLifecycleManager tc=SIDriver.driver().lifecycleManager();
         TxnSupplier store=SIDriver.driver().getTxnStore();
-        TxnView childTxn=store.getTransaction(txnId);
+        Txn childTxn=store.getTransaction(txnId);
         if(childTxn==null){
             throw new IllegalArgumentException(String.format("Specified child transaction id %s not found.",txnId));
         }
         try{
-            tc.commit(txnId);
+            tc.commit(childTxn);
         }catch(IOException e){
 
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
@@ -239,7 +236,7 @@ public class TransactionAdmin{
 
         // Verify the parentTransactionId passed in
         TxnSupplier store=SIDriver.driver().getTxnStore();
-        TxnView parentTxn=store.getTransaction(parentTransactionId);
+        Txn parentTxn=store.getTransaction(parentTransactionId);
         if(parentTxn==null){
             throw new IllegalArgumentException(String.format("Specified parent transaction id %s not found. Unable to create child transaction.",parentTransactionId));
         }

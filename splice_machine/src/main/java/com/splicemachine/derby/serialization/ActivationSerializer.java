@@ -23,7 +23,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.db.iapi.types.UserType;
 import com.splicemachine.derby.stream.ActivationHolder;
-import com.splicemachine.derby.utils.marshall.dvd.UDTInputStream;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;

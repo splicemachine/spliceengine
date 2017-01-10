@@ -32,8 +32,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -306,9 +306,9 @@ public class StoreCostControllerImpl implements StoreCostController {
         return (long)rowCount();
     }
 
-    public static Txn getTxn(TxnView wrapperTxn) throws ExecutionException {
+    public static Txn getTxn(Txn wrapperTxn) throws ExecutionException {
         try {
-            return SIDriver.driver().lifecycleManager().beginChildTransaction(wrapperTxn, Txn.IsolationLevel.READ_UNCOMMITTED,null);
+            return SIDriver.driver().lifecycleManager().beginChildTransaction(wrapperTxn, IsolationLevel.READ_UNCOMMITTED,null);
         } catch (IOException e) {
             throw new ExecutionException(e);
         }

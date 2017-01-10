@@ -22,12 +22,7 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.impl.SimpleTxnFilter;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.txn.ActiveWriteTxn;
-import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.storage.*;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
@@ -49,7 +44,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     private TxnOperationFactory txnOperationFactory;
     private HashMap<Long,Partition> childPartitions = new HashMap<>();
     private String parentTableName;
-    private ObjectArrayList<KVPair> mutations = new ObjectArrayList<>();
+    private ObjectArrayList<Record> mutations = new ObjectArrayList<>();
 
 
     public ForeignKeyParentInterceptWriteHandler(String parentTableName,
@@ -66,8 +61,8 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
-        if (isForeignKeyInterceptNecessary(mutation.getType())) {
+    public void next(Record mutation, WriteContext ctx) {
+        if (isForeignKeyInterceptNecessary(mutation.getRecordType())) {
             mutations.add(mutation);
         }
         ctx.sendUpstream(mutation);
@@ -75,10 +70,10 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     /** We exist to prevent updates/deletes of rows from the parent table which are referenced by a child.
      * Since we are a WriteHandler on a primary-key or unique-index we can just handle deletes.
      */
-    private boolean isForeignKeyInterceptNecessary(KVPair.Type type) {
+    private boolean isForeignKeyInterceptNecessary(RecordType type) {
         /* We exist to prevent updates/deletes of rows from the parent table which are referenced by a child.
          * Since we are a WriteHandler on a primary-key or unique-index we can just handle deletes. */
-        return type == KVPair.Type.DELETE;
+        return type == RecordType.DELETE;
     }
 
 
@@ -87,7 +82,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         try {
             // TODO Buffer with skip scan
             for (int k = 0; k<mutations.size();k++) {
-                KVPair mutation = mutations.get(k);
+                Record mutation = mutations.get(k);
                 for (int i = 0; i < referencingIndexConglomerateIds.size(); i++) {
                     long indexConglomerateId = referencingIndexConglomerateIds.get(i);
                     Partition table = null;
@@ -141,8 +136,8 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
          */
 
 
-        private boolean hasReferences(Long indexConglomerateId, Partition table, KVPair kvPair, WriteContext ctx) throws IOException {
-        byte[] startKey = kvPair.getRowKey();
+        private boolean hasReferences(Long indexConglomerateId, Partition table, Record kvPair, WriteContext ctx) throws IOException {
+        byte[] startKey = kvPair.getKey();
         //make sure this is a transactional scan
         RecordScan scan = txnOperationFactory.newDataScan(null); // Non-Transactional, will resolve on this side
         scan =scan.startKey(startKey);
@@ -206,8 +201,8 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
      * @param ctx
      * @param fkConstraintInfo
      */
-    private void failRow(KVPair mutation, WriteContext ctx, DDLMessage.FKConstraintInfo fkConstraintInfo ) {
-        String failedKvAsHex = Bytes.toHex(mutation.getRowKey());
+    private void failRow(Record mutation, WriteContext ctx, DDLMessage.FKConstraintInfo fkConstraintInfo ) {
+        String failedKvAsHex = Bytes.toHex(mutation.getKey());
         ConstraintContext context = ConstraintContext.foreignKey(fkConstraintInfo);
         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context.withMessage(1, parentTableName));
         ctx.failed(mutation, foreignKeyConstraint);

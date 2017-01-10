@@ -30,7 +30,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 
 public class SetRoleConstantOperation implements ConstantAction {
     protected final String  roleName;

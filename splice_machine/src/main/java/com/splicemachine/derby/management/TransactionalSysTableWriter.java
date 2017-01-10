@@ -21,19 +21,13 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Record;
 import com.splicemachine.storage.RecordScanner;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -77,7 +71,7 @@ public abstract class TransactionalSysTableWriter<T> {
 
     protected abstract DataHash<T> getKeyHash();
 
-    public void report(T element,TxnView txn) throws IOException{
+    public void report(T element,Txn txn) throws IOException{
         if(!txn.allowsWrites())
             throw exceptionFactory.readOnlyModification("Cannot write data with a read-only transaction "+ txn.getTxnId());
         Pair<DataHash<T>,DataHash<T>> hashPair = hashLocals.get();
@@ -89,25 +83,25 @@ public abstract class TransactionalSysTableWriter<T> {
 
         String conglom = getConglomIdString(txn);
         try{
-            KVPair toWrite=new KVPair(keyHash.encode(),pairHash.encode());
+            Record toWrite=new KVPair(keyHash.encode(),pairHash.encode());
             writeEntry(txn,conglom,toWrite);
         }catch(Exception e){
             throw exceptionFactory.processRemoteException(e);
         }
     }
 
-    protected void writeEntry(TxnView txn,String conglom,KVPair toWrite) throws Exception{
+    protected void writeEntry(Txn txn,String conglom,Record toWrite) throws Exception{
         WriteCoordinator tableWriter=PipelineDriver.driver().writeCoordinator();
         PartitionFactory pf=SIDriver.driver().getTableFactory();
         try(Partition p=pf.getTable(conglom)){
-            try(RecordingCallBuffer<KVPair> callBuffer=tableWriter.synchronousWriteBuffer(p,txn)){
+            try(RecordingCallBuffer<Record> callBuffer=tableWriter.synchronousWriteBuffer(p,txn)){
                 callBuffer.add(toWrite);
                 callBuffer.flushBufferAndWait();
             }
         }
     }
 
-    public void remove(T element,TxnView txn) throws IOException{
+    public void remove(T element,Txn txn) throws IOException{
         if(!txn.allowsWrites())
             throw exceptionFactory.readOnlyModification("Cannot write data with a read-only transaction "+ txn.getTxnId());
         Pair<DataHash<T>,DataHash<T>> hashPair = hashLocals.get();
@@ -119,14 +113,14 @@ public abstract class TransactionalSysTableWriter<T> {
 
         String conglom = getConglomIdString(txn);
         try{
-            KVPair toWrite=new KVPair(keyHash.encode(),new byte[0],KVPair.Type.DELETE);
+            Record toWrite=new KVPair(keyHash.encode(),new byte[0],KVPair.Type.DELETE);
             writeEntry(txn,conglom,toWrite);
         }catch(Exception e){
             throw exceptionFactory.processRemoteException(e);
         }
     }
 
-    public String getConglomIdString(TxnView txn) throws IOException {
+    public String getConglomIdString(Txn txn) throws IOException {
         String conglom = conglomIdString;
         if(conglom==null){
             synchronized (this){
@@ -143,7 +137,7 @@ public abstract class TransactionalSysTableWriter<T> {
         return conglom;
     }
 
-    private String fetchConglomId(TxnView txn) throws StandardException,SQLException {
+    private String fetchConglomId(Txn txn) throws StandardException,SQLException {
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();

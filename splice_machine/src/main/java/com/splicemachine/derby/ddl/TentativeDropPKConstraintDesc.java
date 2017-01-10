@@ -27,7 +27,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;

@@ -19,31 +19,21 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
-import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.txn.ActiveWriteTxn;
-import com.splicemachine.si.impl.txn.WritableTxn;
-import com.splicemachine.storage.DataCell;
-import com.splicemachine.storage.DataFilter;
-import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.Partition;
-import com.splicemachine.storage.util.MapAttributes;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -55,10 +45,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
     private final long referencedConglomerateNumber;
     private final ForeignKeyViolationProcessor violationProcessor;
     private Partition table;
-    private ObjectArrayList<KVPair> mutations = new ObjectArrayList<>();
+    private ObjectArrayList<Record> mutations = new ObjectArrayList<>();
     private final int formatIds[];
-    private final MultiFieldDecoder multiFieldDecoder;
-    private final TypeProvider typeProvider;
     private FKConstraintInfo fkConstraintInfo;
 
     public ForeignKeyChildInterceptWriteHandler(long referencedConglomerateNumber,
@@ -71,14 +59,12 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         this.formatIds = new int[fkConstraintInfo.getFormatIdsCount()];
         for (int i =0;i<fkConstraintInfo.getFormatIdsCount();i++)
             this.formatIds[i] = fkConstraintInfo.getFormatIds(i);
-        this.multiFieldDecoder = MultiFieldDecoder.create();
-        this.typeProvider = VersionedSerializers.typesForVersion(fkConstraintInfo.getParentTableVersion());
         this.fkConstraintInfo = fkConstraintInfo;
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
-        if (isForeignKeyInterceptNecessary(mutation.getType())) {
+    public void next(Record mutation, WriteContext ctx) {
+        if (isForeignKeyInterceptNecessary(mutation.getRecordType())) {
             mutations.add(mutation);
             ctx.success(mutation);
         }
@@ -86,8 +72,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
     }
 
     /* This WriteHandler doesn't do anything when, for example, we delete from the FK backing index. */
-    private boolean isForeignKeyInterceptNecessary(KVPair.Type type) {
-        return type == KVPair.Type.INSERT || type == KVPair.Type.UPDATE || type == KVPair.Type.UPSERT;
+    private boolean isForeignKeyInterceptNecessary(RecordType type) {
+        return type == RecordType.INSERT || type == RecordType.UPDATE || type == RecordType.UPSERT;
     }
 
     @Override
@@ -197,9 +183,9 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         return "ForeignKeyChildInterceptWriteHandler{parentTable='" + referencedConglomerateNumber + '\'' + '}';
     }
 
-    private void failWrite(KVPair kvPair, WriteContext ctx) {
+    private void failWrite(Record record, WriteContext ctx) {
         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, ConstraintContext.foreignKey(fkConstraintInfo));
-        ctx.failed(kvPair, foreignKeyConstraint);
+        ctx.failed(record, foreignKeyConstraint);
     }
 
     /**

@@ -25,9 +25,6 @@ import java.util.Queue;
 import java.util.Set;
 
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.primitives.Bytes;
 import org.spark_project.guava.collect.ArrayListMultimap;
 import org.spark_project.guava.collect.Lists;

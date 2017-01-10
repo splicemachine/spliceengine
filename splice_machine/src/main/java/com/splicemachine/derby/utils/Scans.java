@@ -125,7 +125,7 @@ public class Scans extends SpliceUtils {
                                        Qualifier[][] qualifiers,
                                        boolean[] sortOrder,
                                        FormatableBitSet scanColumnList,
-                                       TxnView txn,
+                                       Txn txn,
                                        boolean sameStartStopPosition,
                                        int[] formatIds,
                                        int[] keyDecodingMap,
@@ -136,24 +136,6 @@ public class Scans extends SpliceUtils {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
                 sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, null, keyDecodingMap,
                 keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
-    }
-
-    public static void buildPredicateFilter(Qualifier[][] qualifiers,
-                                            FormatableBitSet scanColumnList,
-                                            int[] keyColumnEncodingMap,
-                                            int[] columnTypes,
-                                            RecordScan scan,
-                                            String tableVersion) throws StandardException, IOException {
-        buildPredicateFilter(qualifiers, scanColumnList, scan, keyColumnEncodingMap);
-    }
-
-    public static void buildPredicateFilter(Qualifier[][] qualifiers,
-                                            FormatableBitSet scanColumnList,
-                                            RecordScan scan,
-                                            int[] keyColumnEncodingOrder) throws StandardException, IOException {
-        EntryPredicateFilter pqf = getEntryPredicateFilter(qualifiers,
-                scanColumnList, keyColumnEncodingOrder);
-        scan.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, pqf.toBytes());
     }
 
     public static EntryPredicateFilter getEntryPredicateFilter(Qualifier[][] qualifiers,

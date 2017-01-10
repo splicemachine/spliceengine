@@ -27,17 +27,12 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -79,7 +74,7 @@ public class IndexController extends SpliceController{
 			 *		 Unfortunately, this information is not available here and would need to be passed down from
 			 *		 DataDictionaryImpl through TabInfoImpl.  Something worth looking into in the future.
 			 */
-            TxnView txn=trans.getTxnInformation();
+            Txn txn=trans.getTxnInformation();
             DataGet get=opFactory.newDataGet(txn,rowKey,null);
             DataResult result=htable.get(get,null);
             if(result==null||result.size()<=0){

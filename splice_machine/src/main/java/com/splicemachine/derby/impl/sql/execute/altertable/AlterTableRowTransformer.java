@@ -19,11 +19,8 @@ import java.io.IOException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.RowTransformer;
+import com.splicemachine.storage.Record;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -63,7 +60,7 @@ public class AlterTableRowTransformer implements RowTransformer{
     }
 
     @Override
-    public KVPair transform(ExecRow row) throws StandardException, IOException {
+    public Record transform(ExecRow row) throws StandardException, IOException {
         ExecRow mergedRow = templateRow.getClone();
 
         for (int i = 0; i < columnMapping.length; i++) {
@@ -76,7 +73,7 @@ public class AlterTableRowTransformer implements RowTransformer{
         return entryEncoder.encode(mergedRow);
     }
 
-    public KVPair transform(KVPair kvPair) throws StandardException, IOException {
+    public Record transform(Record kvPair) throws StandardException, IOException {
         // Decode a row
         ExecRow mergedRow = templateRow.getClone();
         srcRow.resetRowArray();
@@ -90,7 +87,7 @@ public class AlterTableRowTransformer implements RowTransformer{
         return entryEncoder.encode(mergedRow);
     }
 
-    private static void decodeRow(KVPair kvPair, ExecRow srcRow, KeyHashDecoder keyDecoder, EntryDataDecoder
+    private static void decodeRow(Record kvPair, ExecRow srcRow, KeyHashDecoder keyDecoder, EntryDataDecoder
         rowDecoder) throws StandardException {
         if (srcRow.nColumns() > 0) {
             keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
