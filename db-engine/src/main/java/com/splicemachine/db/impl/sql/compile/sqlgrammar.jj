@@ -760,6 +760,7 @@ public class SQLParser
 		  case INTEGER:
 		  case INT:
 		  case SMALLINT:
+		  case TINYINT:
 		  case LONGINT:
 		  case FLOAT:
 		  case REAL:
@@ -2711,6 +2712,7 @@ TOKEN [IGNORE_CASE] :
 |	<SESSION_USER: "session_user">
 |	<SET: "set">
 |	<SMALLINT: "smallint">
+|	<TINYINT: "tinyint">
 |	<SOME: "some">
 |	<SPACE: "space">
 |	<SQL: "sql">
@@ -5031,6 +5033,11 @@ exactIntegerType() throws StandardException :
 	<SMALLINT>
 	{
 		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT);
+	}
+|
+	<TINYINT>
+	{
+		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TINYINT);
 	}
 |
 	<LONGINT>
@@ -7551,6 +7558,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == INTEGER ||
                 getToken(1).kind == INT ||
                 getToken(1).kind == SMALLINT ||
+                getToken(1).kind == TINYINT ||
                 getToken(1).kind == LONGINT ||
                 getToken(1).kind == YEAR ||
                 getToken(1).kind == QUARTER ||
@@ -16152,6 +16160,7 @@ reservedKeyword() :
 |	tok = <SESSION_USER>
 |	tok = <SET>
 |	tok = <SMALLINT>
+|	tok = <TINYINT>
 |	tok = <SOME>
 |	tok = <SPACE>
 |	tok = <SQL>
