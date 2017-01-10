@@ -50,10 +50,11 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testInvalidSyntaxParquet() throws Exception {
         try {
+            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
             // Row Format not supported for Parquet
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 int) partitioned by (col1) " +
+            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
                     "row format delimited fields terminated by ',' escaped by '\\' " +
-                    "lines terminated by '\\n' STORED AS PARQUET LOCATION '/foobar/foobar'");
+                    "lines terminated by '\\n' STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT01",e.getSQLState());
@@ -63,10 +64,11 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testInvalidSyntaxORC() throws Exception {
         try {
+            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
             // Row Format not supported for Parquet
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 int) partitioned by (col1) " +
+            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
                     "row format delimited fields terminated by ',' escaped by '\\' " +
-                    "lines terminated by '\\n' STORED AS ORC LOCATION '/foobar/foobar'");
+                    "lines terminated by '\\n' STORED AS ORC LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT02",e.getSQLState());
@@ -77,8 +79,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testStoredAsRequired() throws Exception {
         try {
+            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
             // Location Required For Parquet
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 int) LOCATION 'foobar'");
+            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT03",e.getSQLState());
@@ -98,8 +101,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testCannotUsePartitionUndefined() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external  table table_without_defined_partition (col1 int, col2 varchar(24))" +
-                    " PARTITIONED BY (col3) STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create external  table table_without_defined_partition (col1 int, col2 varchar(24))" +
+                    " PARTITIONED BY (col3) STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT21",e.getSQLState());
@@ -109,7 +113,8 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testNoPrimaryKeysOnExternalTables() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 int, primary key (col1)) STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, primary key (col1)) STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT06",e.getSQLState());
@@ -119,7 +124,8 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testNoCheckConstraintsOnExternalTables() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 int, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000)) STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000)) STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT07",e.getSQLState());
@@ -129,9 +135,10 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testNoReferenceConstraintsOnExternalTables() throws Exception {
         try {
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate("create table Cities (col1 int, col2 int, primary key (col1))");
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key\n" +
-                    " REFERENCES Cities) STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key\n" +
+                    " REFERENCES Cities) STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT08",e.getSQLState());
@@ -141,8 +148,9 @@ public class ExternalTableIT extends SpliceUnitTest{
         @Test
         public void testNoUniqueConstraintsOnExternalTables() throws Exception {
             try {
-                methodWatcher.executeUpdate("create external table foo (col1 int, col2 int unique)" +
-                        " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+                String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+                methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int unique)" +
+                        " STORED AS PARQUET LOCATION '%s'",tablePath));
                 Assert.fail("Exception not thrown");
             } catch (SQLException e) {
                 Assert.assertEquals("Wrong Exception","EXT09",e.getSQLState());
@@ -152,8 +160,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testNoGenerationClausesOnExternalTables() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 varchar(24), col3 GENERATED ALWAYS AS ( UPPER(col2) ))" +
-                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 varchar(24), col3 GENERATED ALWAYS AS ( UPPER(col2) ))" +
+                    " STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT10",e.getSQLState());
@@ -163,8 +172,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testMissingExternal() throws Exception {
         try {
-            methodWatcher.executeUpdate("create table foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create table foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT18",e.getSQLState());
@@ -175,8 +185,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testCannotUpdateExternalTable() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external table update_foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create external table update_foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("update update_foo set col1 = 4");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -187,8 +198,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testCannotDeleteExternalTable() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external table delete_foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create external table delete_foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("delete from delete_foo where col1 = 4");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -544,8 +556,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testCannotAlterExternalTable() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external table alter_foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create external table alter_foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("alter table alter_foo add column col3 int");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT12",e.getSQLState());
@@ -555,8 +568,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testCannotAddIndexToExternalTable() throws Exception {
         try {
-            methodWatcher.executeUpdate("create external table add_index_foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+            methodWatcher.executeUpdate(String.format("create external table add_index_foo (col1 int, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("create index add_index_foo_ix on add_index_foo (col2)");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -566,8 +580,9 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testCannotAddTriggerToExternalTable() throws Exception {
-        methodWatcher.executeUpdate("create external table add_trigger_foo (col1 int, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION 'HUMPTY_DUMPTY_MOLITOR'");
+        String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
+        methodWatcher.executeUpdate(String.format("create external table add_trigger_foo (col1 int, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
 
         verifyTriggerCreateFails(tb.on("add_trigger_foo").named("trig").before().delete().row().then("select * from sys.systables"),
                 "Cannot add triggers to external table 'ADD_TRIGGER_FOO'.");
@@ -595,6 +610,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     public static String getExternalResourceDirectory() {
         return getHBaseDirectory()+"/target/external/";
+
     }
 
 
@@ -615,6 +631,61 @@ public class ExternalTableIT extends SpliceUnitTest{
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testWriteToNotPermitedLocation() throws Exception{
+
+
+        methodWatcher.executeUpdate(String.format("create external table PARQUET_NO_PERMISSION (col1 int, col2 varchar(24), col3 boolean)" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"PARQUET_NO_PERMISSION"));
+
+        File file = new File(String.valueOf(getExternalResourceDirectory()+"PARQUET_NO_PERMISSION"));
+
+        try{
+
+            methodWatcher.executeUpdate(String.format("insert into PARQUET_NO_PERMISSION values (1,'XXXX',true), (2,'YYYY',false), (3,'ZZZZ', true)"));
+            file.setWritable(false);
+            methodWatcher.executeUpdate(String.format("insert into  PARQUET_NO_PERMISSION values (1,'XXXX',true), (2,'YYYY',false), (3,'ZZZZ', true)"));
+
+            // we don't want to have a unwritable file in the folder, clean it up
+            file.setWritable(true);
+            file.delete();
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            // we don't want to have a unwritable file in the folder, clean it up
+            file.setWritable(true);
+            file.delete();
+            Assert.assertEquals("Wrong Exception","EXT22",e.getSQLState());
+        }
+    }
+
+
+    @Test @Ignore // failing on mapr5.2.0. Temporary ignoring
+    public void testReadToNotPermitedLocation() throws Exception{
+
+
+        methodWatcher.executeUpdate(String.format("create external table PARQUET_NO_PERMISSION_READ (col1 int, col2 varchar(24), col3 boolean)" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"PARQUET_NO_PERMISSION_READ"));
+
+        File file = new File(String.valueOf(getExternalResourceDirectory()+"PARQUET_NO_PERMISSION_READ"));
+
+        try{
+
+            methodWatcher.executeUpdate(String.format("insert into PARQUET_NO_PERMISSION_READ values (1,'XXXX',true), (2,'YYYY',false), (3,'ZZZZ', true)"));
+            file.setReadable(false);
+            methodWatcher.executeQuery(String.format("select * from PARQUET_NO_PERMISSION_READ"));
+
+            // we don't want to have a unreadable file in the folder, clean it up
+            file.setReadable(true);
+            file.delete();
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            // we don't want to have a unreadable file in the folder, clean it up
+            file.setReadable(true);
+            file.delete();
+            Assert.assertEquals("Wrong Exception","EXT11",e.getSQLState());
         }
     }
 
