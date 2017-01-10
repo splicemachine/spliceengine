@@ -9,8 +9,6 @@ import com.splicemachine.derby.stream.function.RowTransformFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.kvpair.KVPair;
-
 import java.util.concurrent.Callable;
 
 /**

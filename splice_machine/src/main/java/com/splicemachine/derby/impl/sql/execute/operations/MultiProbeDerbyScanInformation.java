@@ -16,7 +16,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -25,6 +24,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.RecordScan;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -83,7 +83,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 
 	@Override
-    public List<RecordScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<RecordScan> getScans(Txn txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */

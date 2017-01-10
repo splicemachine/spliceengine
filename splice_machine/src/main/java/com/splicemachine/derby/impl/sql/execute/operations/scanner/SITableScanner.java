@@ -17,8 +17,6 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.si.api.txn.Txn;
-import org.spark_project.guava.base.Suppliers;
-import org.spark_project.guava.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -28,7 +26,6 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -65,7 +62,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private int[] keyDecodingMap;
     private FormatableBitSet accessedKeys;
     private SIFilterFactory filterFactory;
-    private ExecRowAccumulator accumulator;
     private final Counter outputBytesCounter;
     private long demarcationPoint;
     private DataValueDescriptor optionalProbeValue;
@@ -101,11 +97,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.keyDecodingMap = keyDecodingMap;
         this.accessedKeys = accessedPks;
         this.tableVersion = tableVersion;
-        if(filterFactory==null){
-            this.filterFactory = createFilterFactory(txn, demarcationPoint);
-        }
-        else
-            this.filterFactory = filterFactory;
     }
 
     protected SITableScanner(RecordScanner scanner,
@@ -162,36 +153,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
     @Override
     public ExecRow next() throws StandardException, IOException {
-        SIFilter filter = getSIFilter();
-        do{
             template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
-            List<DataCell> keyValues=regionScanner.next(-1);
-
-            if(keyValues.size()<=0){
-                currentRowLocation = null;
-                return null;
-            }else{
-                DataCell currentKeyValue = keyValues.get(0);
-                if(template.nColumns()>0){
-                    if(!filterRowKey(currentKeyValue)||!filterRow(filter,keyValues)){
-                        //filter the row first, then filter the row key
-                        filterCounter.increment();
-                        continue;
-                    }
-                }else if(!filterRow(filter,keyValues)){
-                    //still need to filter rows to deal with transactional issues
-                    filterCounter.increment();
-                    continue;
-                } else {
-                    if (LOG.isTraceEnabled())
-                        SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
-                }
-                measureOutputSize(keyValues);
-                currentKeyValue = keyValues.get(0);
-                setRowLocation(currentKeyValue);
-                return template;
-            }
-        }while(true); //TODO -sf- this doesn't seem quite right
+            Record record =regionScanner.next();
+        return record.getData();
     }
 
     public long getBytesOutput(){
@@ -231,10 +195,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
     @Override
     public void close() throws StandardException, IOException {
-        if(keyAccumulator!=null)
-            keyAccumulator.close();
-        if(siFilter!=null)
-            siFilter.getAccumulator().close();
         if (regionScanner != null)
             regionScanner.close();
     }
@@ -251,7 +211,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         return regionScanner.getRowsVisited();
     }
 
-    public void setRegionScanner(DataScanner scanner){
+    public void setRegionScanner(RecordScanner scanner){
         this.regionScanner = scanner;
     }
 
@@ -259,55 +219,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         return regionScanner.getBytesOutput();
     }
 
-    public DataScanner getRegionScanner() {
+    public RecordScanner getRegionScanner() {
         return regionScanner;
-    }
-
-    /*********************************************************************************************************************/
-		/*Private helper methods*/
-    private SIFilterFactory createFilterFactory(Txn txn, long demarcationPoint) {
-        Txn txnView = txn;
-        if (demarcationPoint > 0) {
-            txnView = new DDLTxnView(txn,demarcationPoint);
-        }
-
-        SIFilterFactory siFilterFactory;
-        try {
-            final TxnFilter txnFilter = region.unpackedFilter(txnView);
-
-            siFilterFactory = new SIFilterFactory<Data>() {
-                @Override
-                public SIFilter newFilter(EntryPredicateFilter predicateFilter,
-                                                EntryDecoder rowEntryDecoder,
-                                                EntryAccumulator accumulator,
-                                                boolean isCountStar) throws IOException {
-
-                    HRowAccumulator hRowAccumulator =new HRowAccumulator(predicateFilter,
-                            rowEntryDecoder,accumulator,
-                            isCountStar);
-                    //noinspection unchecked
-                    return new PackedTxnFilter(txnFilter, hRowAccumulator) {
-                        @Override
-                        public ReturnCode accumulate(DataCell data) throws IOException{
-                            if (!accumulator.isFinished() && accumulator.isInteresting(data)) {
-                                if (!accumulator.accumulateCell(data)) {
-                                    return DataFilter.ReturnCode.NEXT_ROW;
-                                }
-                                return DataFilter.ReturnCode.INCLUDE;
-                            } else return DataFilter.ReturnCode.INCLUDE;
-                        }
-                    };
-                }
-            };
-        } catch (Exception e) {
-            throw new RuntimeException(Throwables.getRootCause(e));
-        }
-
-        return siFilterFactory;
-    }
-
-    private KeyIndex getIndex(final int[] allPkColumns, int[] keyColumnTypes,TypeProvider typeProvider) {
-        return new KeyIndex(allPkColumns,keyColumnTypes, typeProvider);
     }
 
     protected void setRowLocation(DataCell sampleKv) throws StandardException {

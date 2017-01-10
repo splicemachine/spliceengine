@@ -18,12 +18,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.si.api.txn.Txn;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -34,7 +35,7 @@ import java.io.ObjectOutput;
  */
 public class DerbyDMLWriteInfo implements DMLWriteInfo {
     private transient Activation activation;
-    private TxnView txn;
+    private Txn txn;
 
     @Override
     public void initialize(SpliceOperationContext opCtx) throws StandardException {

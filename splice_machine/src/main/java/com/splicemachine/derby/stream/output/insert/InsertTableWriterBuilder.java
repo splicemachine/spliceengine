@@ -26,7 +26,7 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.SerializationUtils;
@@ -49,7 +49,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     protected RowLocation[] autoIncrementRowLocationArray;
     protected SpliceSequence[] spliceSequences;
     protected long heapConglom;
-    protected TxnView txn;
+    protected Txn txn;
     protected OperationContext operationContext;
     protected boolean isUpsert;
 
@@ -84,7 +84,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     }
 
     @Override
-    public InsertDataSetWriterBuilder txn(TxnView txn) {
+    public InsertDataSetWriterBuilder txn(Txn txn) {
         this.txn = txn;
         return this;
     }
@@ -121,7 +121,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 

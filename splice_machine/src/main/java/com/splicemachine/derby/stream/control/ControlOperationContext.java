@@ -22,13 +22,12 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.stream.ActivationHolder;import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.log4j.Logger;
-
 import java.io.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -55,7 +54,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         public Activation activation;
         public SpliceOperationContext context;
         public Op op;
-        public TxnView txn;
+        public Txn txn;
         private int failBadRecordCount = -1;
         private boolean permissive;
         private BadRecordsRecorder badRecordsRecorder;
@@ -296,7 +295,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 

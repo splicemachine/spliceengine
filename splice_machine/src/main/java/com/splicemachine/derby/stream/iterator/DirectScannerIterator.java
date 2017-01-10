@@ -17,8 +17,7 @@ package com.splicemachine.derby.stream.iterator;
 
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.kvpair.KVPair;
-
+import com.splicemachine.storage.Record;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -29,9 +28,9 @@ import java.util.NoSuchElementException;
  * Created by jyuan on 10/16/15.
  */
 @NotThreadSafe
-public class DirectScannerIterator implements Iterable<KVPair>, Iterator<KVPair>, Closeable {
+public class DirectScannerIterator implements Iterable<Record>, Iterator<Record>, Closeable {
     private DirectScanner directScanner;
-    private KVPair value;
+    private Record value;
     private boolean populated=false;
 
     public DirectScannerIterator(DirectScanner hTableBuilder) throws IOException, StandardException{
@@ -40,7 +39,7 @@ public class DirectScannerIterator implements Iterable<KVPair>, Iterator<KVPair>
     }
 
     @Override
-    public Iterator<KVPair> iterator() {
+    public Iterator<Record> iterator() {
         return this;
     }
 
@@ -61,7 +60,7 @@ public class DirectScannerIterator implements Iterable<KVPair>, Iterator<KVPair>
     }
 
     @Override
-    public KVPair next() {
+    public Record next() {
         if(!hasNext()) throw new NoSuchElementException();
         populated=false;
         return value;

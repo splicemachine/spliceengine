@@ -17,16 +17,15 @@ package com.splicemachine.pipeline;
 
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
-import com.splicemachine.si.api.txn.TxnView;
-
+import com.splicemachine.si.api.txn.Txn;
 import java.io.IOException;
 
 class DropIndexFactory implements LocalWriteFactory{
-    private TxnView dropTxn;
+    private Txn dropTxn;
     private volatile LocalWriteFactory delegate;
     private long indexConglomId;
 
-    DropIndexFactory(TxnView dropTxn, LocalWriteFactory delegate, long indexConglomId) {
+    DropIndexFactory(Txn dropTxn, LocalWriteFactory delegate, long indexConglomId) {
         this.dropTxn=dropTxn;
         this.delegate = delegate;
         this.indexConglomId = indexConglomId;

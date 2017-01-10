@@ -20,7 +20,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
@@ -32,8 +31,8 @@ import com.splicemachine.pipeline.config.ForwardingWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
-
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.storage.Record;
 import java.io.IOException;
 import java.util.Iterator;
 
@@ -41,15 +40,15 @@ import java.util.Iterator;
  * @author Scott Fines
  *         Date: 1/13/16
  */
-public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
+public class DirectPipelineWriter implements TableWriter<Record>,AutoCloseable{
     private final long destConglomerate;
-    private TxnView txn;
+    private Txn txn;
     private final OperationContext opCtx;
     private final boolean skipIndex;
 
-    private RecordingCallBuffer<KVPair> writeBuffer;
+    private RecordingCallBuffer<Record> writeBuffer;
 
-    public DirectPipelineWriter(long destConglomerate,TxnView txn,OperationContext opCtx,boolean skipIndex){
+    public DirectPipelineWriter(long destConglomerate,Txn txn,OperationContext opCtx,boolean skipIndex){
         this.destConglomerate=destConglomerate;
         this.txn=txn;
         this.opCtx=opCtx;
@@ -78,7 +77,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     }
 
     @Override
-    public void write(KVPair row) throws StandardException{
+    public void write(Record row) throws StandardException{
         try{
             writeBuffer.add(row);
         }catch(Exception e){
@@ -87,7 +86,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     }
 
     @Override
-    public void write(Iterator<KVPair> rows) throws StandardException{
+    public void write(Iterator<Record> rows) throws StandardException{
         while(rows.hasNext()){
             write(rows.next());
         }
@@ -120,12 +119,12 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     }
 
     @Override
-    public void setTxn(TxnView txn){
+    public void setTxn(Txn txn){
         this.txn = txn;
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 

@@ -17,12 +17,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpPrefix;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import javax.annotation.concurrent.ThreadSafe;
@@ -47,9 +41,6 @@ class ByteBufferMapTableLoader implements BroadcastJoinCache.JoinTableLoader{
     @Override
     public JoinTable.Factory load(Callable<Stream<ExecRow>> streamLoader,int[] innerHashKeys,int[] outerHashKeys, ExecRow outerTemplateRow) throws ExecutionException{
         Map<ByteBuffer, List<ExecRow>> table=new HashMap<>();
-
-        DescriptorSerializer[] innerSerializers=null;
-        KeyEncoder innerKeyEncoder=null;
 
         try(Stream<ExecRow> innerRows=streamLoader.call()){
             ExecRow right;

@@ -34,6 +34,7 @@ import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -386,7 +387,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         try{
             if(table==null)
                 table = partitionFactory.getTable(Long.toString(spliceConglomerate.getConglomerate().getContainerid()));
-            scanner=table.openResultScanner(scan);
+            scanner=table.openScanner(scan,trans.getTxnInformation(), IsolationLevel.SNAPSHOT_ISOLATION);
             this.scannerInitialized=true;
         }catch(IOException e){
             LOG.error("Initializing scanner failed",e);

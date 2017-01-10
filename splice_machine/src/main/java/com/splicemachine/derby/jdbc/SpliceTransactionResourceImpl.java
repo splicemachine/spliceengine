@@ -28,10 +28,9 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -73,7 +72,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         }
     }
 
-    public boolean marshallTransaction(TxnView txn) throws StandardException, SQLException{
+    public boolean marshallTransaction(Txn txn) throws StandardException, SQLException{
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"marshallTransaction with transactionID %s",txn);
 

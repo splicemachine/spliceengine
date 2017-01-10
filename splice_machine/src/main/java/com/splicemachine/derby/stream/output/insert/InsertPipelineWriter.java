@@ -27,16 +27,13 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.PermissiveInsertWriteConfiguration;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.RecordType;
 import com.splicemachine.utils.IntArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -51,7 +48,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected String tableVersion;
     protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
-    protected KVPair.Type dataType;
+    protected RecordType dataType;
     protected SpliceSequence[] spliceSequences;
     protected PairEncoder encoder;
     protected InsertOperation insertOperation;
@@ -65,7 +62,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                                 RowLocation[] autoIncrementRowLocationArray,
                                 SpliceSequence[] spliceSequences,
                                 long heapConglom,
-                                TxnView txn,
+                                Txn txn,
                                 OperationContext operationContext,
                                 boolean isUpsert) {
         super(txn,heapConglom,operationContext);
@@ -77,7 +74,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         this.spliceSequences = spliceSequences;
         this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
         this.isUpsert = isUpsert;
-        this.dataType = isUpsert?KVPair.Type.UPSERT:KVPair.Type.INSERT;
+        this.dataType = isUpsert?RecordType.UPSERT:RecordType.INSERT;
         if (operationContext!=null) {
             this.insertOperation = (InsertOperation) operationContext.getOperation();
         }

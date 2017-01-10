@@ -16,6 +16,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.si.api.txn.Txn;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.SameThreadExecutorService;
@@ -24,16 +25,8 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.SkippingKeyDecoder;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.EntryPredicateFilter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -66,7 +59,7 @@ public class IndexRowReaderBuilder implements Externalizable{
     private int[] indexCols;
     private String tableVersion;
     private int[] mainTableKeyColumnTypes;
-    private TxnView txn;
+    private Txn txn;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder indexColumns(int[] indexCols){
@@ -106,7 +99,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         return this;
     }
 
-    public IndexRowReaderBuilder transaction(TxnView transaction){
+    public IndexRowReaderBuilder transaction(Txn transaction){
         this.txn=transaction;
         return this;
     }

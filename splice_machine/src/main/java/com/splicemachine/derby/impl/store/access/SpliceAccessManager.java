@@ -18,6 +18,8 @@ package com.splicemachine.derby.impl.store.access;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
+
+import com.splicemachine.si.api.txn.Txn;
 import org.spark_project.guava.base.Preconditions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.ConglomerateUtils;
@@ -49,7 +51,6 @@ import com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.shared.common.reference.Attribute;
-import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -366,7 +367,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return tc;
     }
 
-    public TransactionController marshallTransaction( ContextManager cm , TxnView txn) throws StandardException {
+    public TransactionController marshallTransaction( ContextManager cm , Txn txn) throws StandardException {
         SpliceLogUtils.debug(LOG, "marshallTransaction called for transaction {%s} for context manager {%s}",txn, cm);
         Preconditions.checkNotNull(cm, "ContextManager is null");
         /*
@@ -380,7 +381,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
              */
             SpliceTransactionManagerContext otherRtc = (SpliceTransactionManagerContext)ContextService.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
             if(otherRtc!=null){
-                TxnView txnInformation=otherRtc.getTransactionManager().getRawTransaction().getTxnInformation();
+                Txn txnInformation=otherRtc.getTransactionManager().getRawTransaction().getTxnInformation();
                 if(txn.equals(txnInformation)){
                     return otherRtc.getTransactionManager();
                 }

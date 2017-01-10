@@ -15,16 +15,14 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.si.api.txn.Txn;
 import org.spark_project.guava.collect.Lists;
-
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-
 import java.sql.SQLException;
 import java.util.List;
 
@@ -55,7 +53,7 @@ public class DataDictionaryUtils {
      * @return Zero-based column ordering.
      * @throws StandardException
      */
-    public static int[] getColumnOrdering(TxnView txn, UUID tableId) throws StandardException {
+    public static int[] getColumnOrdering(Txn txn, UUID tableId) throws StandardException {
 
         int[] columnOrdering = null;
         boolean prepared = false;
@@ -129,7 +127,7 @@ public class DataDictionaryUtils {
         return newColumnOrdering;
     }
 
-    public static int[] getFormatIds(TxnView txn, UUID tableId) throws SQLException, StandardException {
+    public static int[] getFormatIds(Txn txn, UUID tableId) throws SQLException, StandardException {
 
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = null;

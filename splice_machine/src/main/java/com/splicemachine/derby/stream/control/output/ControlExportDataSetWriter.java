@@ -30,7 +30,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
@@ -94,7 +94,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
     }
 
     @Override
-    public void setTxn(TxnView childTxn){
+    public void setTxn(Txn childTxn){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
@@ -104,7 +104,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 

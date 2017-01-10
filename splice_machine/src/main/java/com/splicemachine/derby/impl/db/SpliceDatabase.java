@@ -35,6 +35,7 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.Txn;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -74,7 +75,6 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -147,7 +147,7 @@ public class SpliceDatabase extends BasicDatabase{
     /**
      * This is the light creation of languageConnectionContext that removes 4 rpc calls per context creation.
      */
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,
+    public LanguageConnectionContext generateLanguageConnectionContext(Txn txn,
                                                                        ContextManager cm,
                                                                        String user,
                                                                        String drdaID,
@@ -170,7 +170,7 @@ public class SpliceDatabase extends BasicDatabase{
      * <p/>
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
      */
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user,String drdaID,String dbname, CompilerContext.DataSetProcessorType type) throws StandardException{
+    public LanguageConnectionContext generateLanguageConnectionContext(Txn txn, ContextManager cm, String user, String drdaID, String dbname, CompilerContext.DataSetProcessorType type) throws StandardException{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
