@@ -260,13 +260,13 @@ public class SelectivityUtil {
      * @param outerCost
      * @return
      */
-    public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
-        double outerShuffleCost = outerCost.localCostPerPartition()+outerCost.getRemoteCost()/outerCost.partitionCount()
-                +outerCost.getOpenCost()+outerCost.getCloseCost();
-        double innerShuffleCost = innerCost.localCostPerPartition()+innerCost.getRemoteCost()/innerCost.partitionCount()
-                +innerCost.getOpenCost()+innerCost.getCloseCost();
-        double outerReadCost = outerCost.localCost()/outerCost.partitionCount();
-        double innerReadCost = innerCost.localCost()/outerCost.partitionCount();
+    public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double replicationFactor) {
+        double outerShuffleCost = outerCost.localCostPerPartition()+replicationFactor*outerCost.getRemoteCost()/outerCost.partitionCount()
+                +outerCost.getOpenCost()+outerCost.getCloseCost();;
+        double innerShuffleCost = innerCost.localCostPerPartition()+replicationFactor*innerCost.getRemoteCost()/innerCost.partitionCount()
+                +innerCost.getOpenCost()+innerCost.getCloseCost();;
+        double outerReadCost = outerCost.localCost()/16;
+        double innerReadCost = innerCost.localCost()/16;
 
         return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost;
     }
