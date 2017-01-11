@@ -25,29 +25,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 /**
- * CostController for a TEMP-table based algorithm for computing Grouped Aggregates.
+ * CostController for computing Grouped Aggregates.
  *
- * The TEMP based algorithm is separated into a <em>parallel</em> and <em>sequential</em> phase. The
- * parallel phase <em>always</em> occurs, and contributes its cost to the local portion of the sequential
- * phase.
+ * LocalCost = Base Local Cost (Underneath us) + group by rows (Cardinality) * per row local cost (underneath)
+ * RemoteCost = group by rows (Cardinality) * per row remote cost (underneath)
  *
- * --------
- * <h2>Costing the Parallel Phase</h2>
- * For each partition in the base cost, we submit a parallel task which reads all the data,
- * then computes intermediate results and emits them to TEMP (for simplicity, we ignore the
- * size of the underlying hashtable or the sort order of the incoming data, which can dramatically
- * affect the actual size of the intermediate results). Therefore, we read all the rows, but we
- * write only the number of <em>unique</em> rows.
- *
- * Again for simplicity, we assume that all partitions have roughly the same number of rows of interest,
- * which means that all tasks will run in roughly the same amount of time. Therefore, the cost to perform
- * the parallel phase is divided by the partition count to reflect this. As a result, the cost is
- *
- * parallelOutputRows = cardinalityFraction*baseCost.outputRows
- * parallelCost = (baseCost.localCost+baseCost.remoteCost/parallelOutputRows)/numPartitions
- *
- * where cardinalityFraction is the number of unique values for <em>all</em> grouped columns. In general,
- * cardinality estimates of two multisets follow the "row count rule". Consider to columns A and B. The
+ * In general,cardinality estimates of two multisets follow the "row count rule". Consider to columns A and B. The
  * cardinality of A is C(A), and the cardinality of B is C(B). If we let C by the cardinality of the intersection
  * (e.g. the number of distinct values in common between the two sets), and D be the cardinality of the
  * union (e.g. what we're looking for), then we have
@@ -55,12 +38,6 @@ import java.util.List;
  * C(D) = C(A) + C(B) - C(C)
  *
  * and C(D) is the cardinalityFraction. Note that this isn't perfect, but it's fairly close.
- *
- * ------
- * <h2>Costing the Sequential Phase</h2>
- * The Sequential phase reads all data in sorted order and merges them together to form the final output row.
- * This should be considered the cost to read the TEMP data (since we aren't accounting for duplication
- * in this costing strategy).
  *
  * @author Scott Fines
  *         Date: 3/26/15
@@ -94,7 +71,7 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
             outputRows = baseCost.rowCount();
         if(outputRows<1d) outputRows=1;
 
-        double parallelCost = (baseCost.localCost()+baseCost.remoteCost()/outputRows)/baseCost.partitionCount();
+        double baseLocalCost = baseCost.localCost();
 
         double localCostPerRow;
         double remoteCostPerRow;
@@ -109,22 +86,15 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
             heapPerRow=baseCost.getEstimatedHeapSize()/baseCost.rowCount();
         }
 
-        double seqLocalCost = parallelCost+outputRows*localCostPerRow;
-        double seqRemoteCost = outputRows*remoteCostPerRow;
-        double finalHeap = outputRows*heapPerRow; //TODO -sf- include the cost of the aggregate columns in the row size
-
-        int numPartitions = 16; //since we write to TEMP's buckets
-
         CostEstimate newEstimate = baseCost.cloneMe();
         //output information
         newEstimate.setRowCount(outputRows);
         newEstimate.setSingleScanRowCount(outputRows);
-        newEstimate.setNumPartitions(numPartitions);
-        newEstimate.setEstimatedHeapSize((long)finalHeap);
+        newEstimate.setEstimatedHeapSize((long) (outputRows*heapPerRow) );
 
         //cost information
-        newEstimate.setLocalCost(seqLocalCost);
-        newEstimate.setRemoteCost(seqRemoteCost);
+        newEstimate.setLocalCost(baseLocalCost+localCostPerRow*outputRows);
+        newEstimate.setRemoteCost(remoteCostPerRow*outputRows);
 
         return newEstimate;
     }
