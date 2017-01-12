@@ -63,13 +63,13 @@ for platform in ${platforms[@]} ; do
     echo "Splice Machine uber jar is ${spliceuberjar}"
 
     # same thing for yarn
-    spliceyarnjar=""
-    spliceyarnjar="$(find ${splicedir[${platform}]} -xdev -type f -name splice\*yarn\*.jar | head -1)"
-    if [[ -z "${spliceyarnjar}" ]] ; then
+    spliceyarnwebproxyjar=""
+    spliceyarnwebproxyjar="$(find ${splicedir[${platform}]} -xdev -type f -name splice\*yarn-webproxy.jar | head -1)"
+    if [[ -z "${spliceyarnwebproxyjar}" ]] ; then
       echo "did not find a Splice Machine YARN jar under ${splicedir[${platform}]}"
       continue
     fi
-    echo "Splice Machine YARN jar is ${spliceyarnjar}"
+    echo "Splice Machine YARN jar is ${spliceyarnwebproxyjar}"
 
     # sqlshell.sh - needed for hdp/mapr
     sqlshellsh=""
@@ -160,7 +160,7 @@ for platform in ${platforms[@]} ; do
           fi
         done
         # now symlink in our uber and yarn jars
-        for symlinkjar in ${spliceuberjar} ${spliceyarnjar} ; do
+        for symlinkjar in ${spliceuberjar} ${spliceyarnwebproxyjar} ; do
           echo "symlinking ${symlinkjar} into ${yarnlibdir}"
           ln -sf ${symlinkjar} ${yarnlibdir}
         done

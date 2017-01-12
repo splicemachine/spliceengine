@@ -330,6 +330,10 @@
                                             <fileset dir="target/classes/scripts" includes="**/*"/>
                                             <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
                                         </copy>
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-uber.jar"
+                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar" />
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-yarn-webproxy.jar"
+                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-yarn-webproxy.jar" />
                                         <!-- el6 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-el6" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
@@ -440,7 +444,10 @@
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
                                             <fileset dir="target/" includes="*splice-yarn-webproxy*"/>
                                         </copy>
-
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-uber.jar"
+                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar" />
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-yarn-webproxy.jar"
+                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-yarn-webproxy.jar" />
                                         <tar compression="gzip" destfile="target/installer/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}.tar.gz">
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
