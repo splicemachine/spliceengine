@@ -347,7 +347,30 @@ public interface ConglomerateController extends ConglomPropertyQueryable
 	int insert(DataValueDescriptor[]    row) 
 		throws StandardException;
 
-    /**
+
+	/**
+	 insert rows into the conglomerate.
+
+	 @param row the row to insert into the conglomerate.  the stored
+	 representations of the row's columns are copied into a new row
+	 somewhere in the conglomerate.
+
+	 @return returns 0 if insert succeeded.  returns
+	 conglomeratecontroller.rowisduplicate if conglomerate supports uniqueness
+	 checks and has been created to disallow duplicates, and the row inserted
+	 had key columns which were duplicate of a row already in the table.  other
+	 insert failures will raise standardexception's.
+
+	 @exception standardexception standard exception policy.
+	 @see rowutil
+	 **/
+	int batchInsert(List<ExecRow>    rows)
+			throws StandardException;
+
+
+
+
+	/**
      * insert row and fetch it's row location in one operation.
      * <p>
      * Insert a row into the conglomerate, and store its location in 
@@ -370,6 +393,32 @@ public interface ConglomerateController extends ConglomPropertyQueryable
     DataValueDescriptor[]   row, 
     RowLocation             destRowLocation)
 		throws StandardException;
+
+	/**
+	 * insert rows and fetch there row location in one batchPut operation.
+	 * <p>
+	 * Insert a row into the conglomerate, and store its location in
+	 * the provided destination row location.  The row location must be of the
+	 * correct type for this conglomerate (a new row location of the correct
+	 * type can be obtained from newRowLocationTemplate()).
+	 *
+	 * @param row           The row to insert into the conglomerate.  The
+	 *                      stored representations of the row's columns are
+	 *                      copied into a new row somewhere in the conglomerate.
+	 *
+	 * @param rowLocations The rowlocation to read the inserted row location
+	 *                      into.
+	 *
+	 * @exception  StandardException  Standard exception policy.
+	 *
+	 * @see RowUtil
+	 **/
+
+	void batchInsertAndFetchLocation(
+			ExecRow[]			rows,
+			RowLocation[]       rowLocations
+	) throws StandardException;
+
 
     /**
 	Return whether this is a keyed conglomerate.
