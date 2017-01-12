@@ -62,14 +62,28 @@ for platform in ${platforms[@]} ; do
     fi
     echo "Splice Machine uber jar is ${spliceuberjar}"
 
-    # same thing for yarn
-    spliceyarnjar=""
-    spliceyarnjar="$(find ${splicedir[${platform}]} -xdev -type f -name splice\*yarn\*.jar | head -1)"
-    if [[ -z "${spliceyarnjar}" ]] ; then
-      echo "did not find a Splice Machine YARN jar under ${splicedir[${platform}]}"
+    # unversioned uber jar symlink
+    spliceubersymlink="$(dirname ${spliceuberjar})/splice_machine-assembly-uber.jar"
+    echo "removing any existing ${spliceubersymlink} symlink"
+    test -e ${spliceubersymlink} && rm -f ${spliceubersymlink}
+    echo "linking ${spliceuberjar} to ${spliceubersymlink}"
+    ln -sf ${spliceuberjar} ${spliceubersymlink}
+
+    # same thing for yarn web proxy
+    spliceyarnwebproxyjar=""
+    spliceyarnwebproxyjar="$(find ${splicedir[${platform}]} -xdev -type f -name splice\*yarn-webproxy.jar | head -1)"
+    if [[ -z "${spliceyarnwebproxyjar}" ]] ; then
+      echo "did not find a Splice Machine YARN web proxy jar under ${splicedir[${platform}]}"
       continue
     fi
-    echo "Splice Machine YARN jar is ${spliceyarnjar}"
+    echo "Splice Machine YARN web proxy jar is ${spliceyarnwebproxyjar}"
+
+    # unversioned yarn web proxy jar symlink
+    spliceyarnwebproxysymlink="$(dirname ${spliceyarnwebproxyjar})/splice_machine-assembly-yarn-webproxy.jar"
+    echo "removing any existing ${spliceyarnwebproxysymlink} symlink"
+    test -e ${spliceyarnwebproxysymlink} && rm -f ${spliceyarnwebproxysymlink}
+    echo "linking ${spliceyarnwebproxyjar} to ${spliceyarnwebproxysymlink}"
+    ln -sf ${spliceyarnwebproxyjar} ${spliceyarnwebproxysymlink}
 
     # sqlshell.sh - needed for hdp/mapr
     sqlshellsh=""
@@ -159,8 +173,8 @@ for platform in ${platforms[@]} ; do
             rm -f ${splicesymlink}
           fi
         done
-        # now symlink in our uber and yarn jars
-        for symlinkjar in ${spliceuberjar} ${spliceyarnjar} ; do
+        # now symlink in our uber and yarn web proxy jars
+        for symlinkjar in ${spliceubersymlink} ${spliceyarnwebproxysymlink} ; do
           echo "symlinking ${symlinkjar} into ${yarnlibdir}"
           ln -sf ${symlinkjar} ${yarnlibdir}
         done
