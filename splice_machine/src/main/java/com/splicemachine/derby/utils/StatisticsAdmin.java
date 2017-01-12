@@ -192,8 +192,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
             List<Future<StatsResult>> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
-                if (td.getStoredAs() != null)
-                    continue; // Cannot run stats currently on external tables.
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
                 futures.add(collectTableStatistics(td, txn, conn));
             }
