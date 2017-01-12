@@ -212,7 +212,7 @@ public final class SQLLongint extends NumberDataType {
 
 		/* neither are null, get the value */
 
-		long thisValue = this.getLong();
+		long thisValue = value;
 
 		long otherValue = arg.getLong();
 
@@ -835,7 +835,7 @@ public final class SQLLongint extends NumberDataType {
 			return result;
 		}
 
-		operandValue = this.getLong();
+		operandValue = value;
 
 		/*
 		** In two's complement arithmetic, the minimum value for a number

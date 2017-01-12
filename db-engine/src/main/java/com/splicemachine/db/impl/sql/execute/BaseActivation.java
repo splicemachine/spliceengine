@@ -341,17 +341,17 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		{
 			SanityManager.ASSERT(itemNumber >= 0,
 				"itemNumber expected to be >= 0");
-			if (! (getPreparedStatement().getSavedObject(itemNumber) instanceof RowLocation))
+			if (! (preStmt.getSavedObject(itemNumber) instanceof RowLocation))
 			{
 				SanityManager.THROWASSERT(
 					"getPreparedStatement().getSavedObject(itemNumber) expected to be " +
 					"instance of RowLocation, not " +
-					getPreparedStatement().getSavedObject(itemNumber).getClass().getName() +
-					", query is " + getPreparedStatement().getSource());
+					preStmt.getSavedObject(itemNumber).getClass().getName() +
+					", query is " + preStmt.getSource());
 			}
         }
-        RowLocation rl = (RowLocation)
-                getPreparedStatement().getSavedObject(itemNumber);
+		RowLocation rl = (RowLocation)
+                preStmt.getSavedObject(itemNumber);
         /* We have to return a clone of the saved RowLocation due
          * to the shared cache of SPSs.
          */
@@ -363,7 +363,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
                     "rl.getClone() expected to be " +
                     "instance of RowLocation, not " +
                     rlClone.getClass().getName() + ", query is " +
-                    getPreparedStatement().getSource());
+                    preStmt.getSource());
 			}
 		}
         return (RowLocation)rlClone;
@@ -398,7 +398,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		updateHeapCC = null;
 		// REMIND: do we need to get them to stop input as well?
 
-		if (!isSingleExecution())
+		if (!singleExecution)
 			clearWarnings();
 	}
 
@@ -435,7 +435,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
 			closed = true;
 
-			LanguageConnectionContext lcc = getLanguageConnectionContext();
+			LanguageConnectionContext lcc = this.lcc;
 
             // Remove all the dependencies this activation has. It won't need
             // them after it's closed, so let's free up the memory in the
@@ -585,7 +585,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		{
 			//If we came here, it means this activation is held over commit and it reference session table names
 			//Now let's check if it referneces the passed temporary table name which has ON COMMIT DELETE ROWS defined on it.
-			return ((ArrayList)getPreparedStatement().getSavedObject(indexOfSessionTableNamesInSavedObjects)).contains(tableName);
+			return ((ArrayList) preStmt.getSavedObject(indexOfSessionTableNamesInSavedObjects)).contains(tableName);
 		}
 
 		return false;
@@ -669,7 +669,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		Used in activations for generating rows.
 	 */
 	public final ExecutionFactory getExecutionFactory() {
-		return getLanguageConnectionContext().
+		return lcc.
             getLanguageConnectionFactory().getExecutionFactory();
 	}
 
@@ -724,7 +724,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
             cm.pushContext(lcc.getLanguageConnectionFactory().getExecutionFactory().newExecutionContext(cm));
             ContextService.getFactory().setCurrentContextManager(cm);
 
-            NumberDataValue ndv = (NumberDataValue) getDataValueFactory().getNull(typeFormatID, StringDataValue.COLLATION_TYPE_UCS_BASIC);
+			NumberDataValue ndv = (NumberDataValue) dvf.getNull(typeFormatID, StringDataValue.COLLATION_TYPE_UCS_BASIC);
             lcc.getDataDictionary().getCurrentValueAndAdvance(sequenceUUIDstring, ndv,
 					true); // Hard Coded Batch since single lookups are too slow...
             return ndv;
@@ -860,7 +860,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 */
 	public final void markUnused()
 	{
-		if(isInUse()) {
+		if(inUse) {
 			inUse = false;
 			lcc.notifyUnusedActivation();
 		}
@@ -1111,7 +1111,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	// the number of parameters expected?
 	public void	setParameters(ParameterValueSet parameterValues, DataTypeDescriptor[] parameterTypes) throws StandardException
 	{
-		if (!isClosed())
+		if (!closed)
 		{
 
 			if (this.pvs == null || parameterTypes == null) {
@@ -1339,11 +1339,11 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	protected void checkPositionedStatement(String cursorName, String psName)
 		throws StandardException {
 
-		ExecPreparedStatement ps = getPreparedStatement();
+		ExecPreparedStatement ps = preStmt;
 		if (ps == null)
 			return;
-			
-		LanguageConnectionContext lcc = getLanguageConnectionContext();
+
+		LanguageConnectionContext lcc = this.lcc;
 
 		CursorActivation cursorActivation = lcc.lookupCursorActivation(cursorName);
 
@@ -1385,7 +1385,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	public NoPutResultSet materializeResultSetIfPossible(NoPutResultSet rs, int resultSetNumber)
 		throws StandardException
 	{
-		int maxMemoryPerTable = getLanguageConnectionContext().getOptimizerFactory().getMaxMemoryPerTable();
+		int maxMemoryPerTable = lcc.getOptimizerFactory().getMaxMemoryPerTable();
 		if(maxMemoryPerTable<=0)
 			return rs;
 
@@ -1518,8 +1518,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 */
 	public Connection getCurrentConnection() throws SQLException {
 
-		ConnectionContext cc = 
-			(ConnectionContext) getContextManager().getContext(ConnectionContext.CONTEXT_ID);
+		ConnectionContext cc =
+			(ConnectionContext) cm.getContext(ConnectionContext.CONTEXT_ID);
 
 		return cc.getNestedConnection(true);
 	}	
@@ -1551,8 +1551,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
                                          NumberDataValue reUse)
         throws StandardException
     {
-        if( reUse == null)
-            reUse = getDataValueFactory().getNullInteger( null);
+        if( reUse == null) {
+			reUse = dvf.getNullInteger( null);
+		}
         if( value.isNull())
             reUse.setToNull();
         else
@@ -1696,7 +1697,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     }
 
 	public boolean willRunInSpark() {
-		return useSpark() || getLanguageConnectionContext().getDataSetProcessorType()
+		return useSpark() || lcc.getDataSetProcessorType()
 				.equals(CompilerContext.DataSetProcessorType.FORCED_SPARK);
 	}
 }

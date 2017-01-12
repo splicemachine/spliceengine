@@ -610,7 +610,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     }
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {
-        return getTableDescriptor()==null?null:getTableDescriptor().getBaseConglomerateDescriptor();
+        return table ==null?null: table.getBaseConglomerateDescriptor();
     }
 
 }

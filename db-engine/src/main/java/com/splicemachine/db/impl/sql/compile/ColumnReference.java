@@ -417,16 +417,16 @@ public class ColumnReference extends ValueNode {
 	public void copyFields(ColumnReference oldCR) throws StandardException {
 		super.copyFields(oldCR);
 
-		tableName = oldCR.getTableNameNode();
-		tableNumber = oldCR.getTableNumber();
-		columnNumber = oldCR.getColumnNumber();
-		source = oldCR.getSource();
-		nestingLevel = oldCR.getNestingLevel();
-		sourceLevel = oldCR.getSourceLevel();
-		replacesAggregate = oldCR.getGeneratedToReplaceAggregate();
+		tableName = oldCR.tableName;
+		tableNumber = oldCR.tableNumber;
+		columnNumber = oldCR.columnNumber;
+		source = oldCR.source;
+		nestingLevel = oldCR.nestingLevel;
+		sourceLevel = oldCR.sourceLevel;
+		replacesAggregate = oldCR.replacesAggregate;
 		replacesWindowFunctionCall =
-				oldCR.getGeneratedToReplaceWindowFunctionCall();
-		scoped = oldCR.isScoped();
+				oldCR.replacesWindowFunctionCall;
+		scoped = oldCR.scoped;
 	}
 
 	/**
@@ -796,12 +796,12 @@ public class ColumnReference extends ValueNode {
 		if (source.getExpression() instanceof ColumnReference)
 		{
 			ColumnReference cr = (ColumnReference) source.getExpression();
-			tableNumber = cr.getTableNumber();
+			tableNumber = cr.tableNumber;
 			if (SanityManager.DEBUG)
 			{
 				// if dummy cr generated to replace aggregate, it may not have table number
 				// because underneath can be more than 1 table.
-				if (tableNumber == -1 && !cr.getGeneratedToReplaceAggregate() && !cr.getGeneratedToReplaceWindowFunctionCall())
+				if (tableNumber == -1 && !cr.replacesAggregate && !cr.replacesWindowFunctionCall)
 				{
 					SanityManager.THROWASSERT(
 							"tableNumber not expected to be -1, origName = " + origName);
@@ -1095,7 +1095,7 @@ public class ColumnReference extends ValueNode {
 		{
 			if (sourceResultSetNumber < 0)
 			{
-				SanityManager.THROWASSERT("sourceResultSetNumber expected to be >= 0 for " + getTableName() + "." + getColumnName());
+				SanityManager.THROWASSERT("sourceResultSetNumber expected to be >= 0 for " + getTableName() + "." + columnName);
 			}
 		}
 
@@ -1205,13 +1205,13 @@ public class ColumnReference extends ValueNode {
 		}
 
 		ValueNode rcExpr;
-		ResultColumn rc = getSource();
+		ResultColumn rc = source;
 
 		// Walk the ResultColumn->ColumnReference chain until we
 		// find a ResultColumn whose expression is a VirtualColumnNode.
 
 		rcExpr = rc.getExpression();
-		colNum[0] = getColumnNumber();
+		colNum[0] = columnNumber;
 
 		/* We have to make sure we enter this loop if rc is redundant,
 		 * so that we can navigate down to the actual source result
@@ -1224,8 +1224,8 @@ public class ColumnReference extends ValueNode {
 		{
 			if (rcExpr instanceof ColumnReference)
 			{
-				colNum[0] = ((ColumnReference)rcExpr).getColumnNumber();
-				rc = ((ColumnReference)rcExpr).getSource();
+				colNum[0] = ((ColumnReference) rcExpr).columnNumber;
+				rc = ((ColumnReference) rcExpr).source;
 			}
 
 			/* If "rc" is redundant then that means it points to another
@@ -1243,8 +1243,8 @@ public class ColumnReference extends ValueNode {
 					rc = rcExpr.getSourceResultColumn();
 				else if (rcExpr instanceof ColumnReference)
 				{
-					colNum[0] = ((ColumnReference)rcExpr).getColumnNumber();
-					rc = ((ColumnReference)rcExpr).getSource();
+					colNum[0] = ((ColumnReference) rcExpr).columnNumber;
+					rc = ((ColumnReference) rcExpr).source;
 				}
 				else
 				{
@@ -1282,7 +1282,7 @@ public class ColumnReference extends ValueNode {
 		}
 		ColumnReference other = (ColumnReference)o;
 		return (tableNumber == other.tableNumber
-				&& columnName.equals(other.getColumnName()));
+				&& columnName.equals(other.columnName));
 	}
 
 	@Override
@@ -1371,7 +1371,7 @@ public class ColumnReference extends ValueNode {
 	public long cardinality() throws StandardException {
 		if (source == null || source.getTableColumnDescriptor() ==null)
 			return 0;
-		return getStoreCostController().cardinality(getSource().getColumnPosition());
+		return getStoreCostController().cardinality(source.getColumnPosition());
 	}
 
 	/**
@@ -1405,14 +1405,14 @@ public class ColumnReference extends ValueNode {
 	 */
 	public double nullSelectivity() throws StandardException {
 		// Check for not null in declaration
-		if (!getSource().getType().isNullable())
+		if (!source.getType().isNullable())
 			return 0.0;
-		return getStoreCostController().nullSelectivity(getSource().getColumnPosition());
+		return getStoreCostController().nullSelectivity(source.getColumnPosition());
 	}
 
 	public StoreCostController getStoreCostController() throws StandardException{
 		StoreCostController storeCostController = null;
-		ColumnDescriptor cd = getSource().getTableColumnDescriptor();
+		ColumnDescriptor cd = source.getTableColumnDescriptor();
 		// TODO THROW EXCEPTION HERE JL
 		if (cd != null) {
 			ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
@@ -1428,7 +1428,7 @@ public class ColumnReference extends ValueNode {
 	}
 
 	public ConglomerateDescriptor getBaseConglomerateDescriptor() {
-		return getSource() == null ? null : getSource().getBaseConglomerateDescriptor();
+		return source == null ? null : source.getBaseConglomerateDescriptor();
 	}
 
 	@Override

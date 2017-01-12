@@ -231,7 +231,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         String password = ClientBaseDataSource.getPassword(properties);
         securityMechanism_ = ClientBaseDataSource.getSecurityMechanism(properties);
         flowConnect(password, securityMechanism_);
-        if(!isConnectionNull())
+        if(!connectionNull)
         	completeConnect();
         //DERBY-2026. reset timeout after connection is made
         netAgent_.setTimeout(0);
@@ -321,7 +321,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         // (which the InternalDriver assumes means there's a subsubprotocol)  
         // and it's not a subsubprotocol recognized by our drivers.
         // If so, bail out here.
-        if(!isConnectionNull()) {
+        if(!connectionNull) {
             completeConnect();
         }
         else
@@ -1794,7 +1794,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         super.close();
         if (!isXAConnection_)
             return;
-        if (isOpen()) {
+        if (open_) {
             return; // still open, return
         }
     }
@@ -1867,7 +1867,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         super.closeX();
         if (!isXAConnection_)
             return;
-        if (isOpen()) {
+        if (open_) {
             return; // still open, return
         }
     }
@@ -1880,7 +1880,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         super.closeForReuse(closeStatementsOnClose);
         if (!isXAConnection_)
             return;
-        if (isOpen()) {
+        if (open_) {
             return; // still open, return
         }
     }
@@ -1894,8 +1894,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         super.closeResources();
         if (!isXAConnection_)
             return;
-        
-        if (isOpen()) {
+
+        if (open_) {
             return; // still open, return
         }
     }

@@ -779,7 +779,7 @@ public class ResultColumn extends ValueNode
 
 		if (expression instanceof ColumnReference)
 		{
-			autoincrement = ((ColumnReference)expression).getSource().isAutoincrement();
+			autoincrement = ((ColumnReference) expression).getSource().autoincrement;
 		}
 
 		return this;
@@ -1076,7 +1076,7 @@ public class ResultColumn extends ValueNode
 	public void checkStorableExpression()
 			throws StandardException
 	{
-		checkStorableExpression(getExpression());
+		checkStorableExpression(expression);
 	}
 
 	/**
@@ -1170,7 +1170,7 @@ public class ResultColumn extends ValueNode
 		** parameters.  So don't even bother in this
 		** case.
 		*/
-		if (getExpression().requiresTypeFromContext())
+		if (expression.requiresTypeFromContext())
 		{
 			return false;
 		}
@@ -1185,7 +1185,7 @@ public class ResultColumn extends ValueNode
 			return false;
 
 
-		DataTypeDescriptor  expressionType = getExpression().getTypeServices();
+		DataTypeDescriptor  expressionType = expression.getTypeServices();
 
 		if (!getTypeServices().isExactTypeAndLengthMatch(expressionType))
 			return false;
@@ -1202,7 +1202,7 @@ public class ResultColumn extends ValueNode
 	boolean columnTypeAndLengthMatch(ResultColumn otherColumn)
 			throws StandardException
 	{
-		ValueNode otherExpression = otherColumn.getExpression();
+		ValueNode otherExpression = otherColumn.expression;
 
 		DataTypeDescriptor resultColumnType = getTypeServices();
 		DataTypeDescriptor otherResultColumnType = otherColumn.getTypeServices();
@@ -1256,7 +1256,7 @@ public class ResultColumn extends ValueNode
 			 */
 			if (otherExpression instanceof ConstantNode)
 			{
-				ConstantNode constant = (ConstantNode)otherColumn.getExpression();
+				ConstantNode constant = (ConstantNode) otherColumn.expression;
 				DataValueDescriptor oldValue = constant.getValue();
 
 				DataValueDescriptor newValue = convertConstant(
@@ -1401,19 +1401,19 @@ public class ResultColumn extends ValueNode
 	 */
 	void pullVirtualIsReferenced()
 	{
-		if( isReferenced())
+		if(isReferenced)
 			return;
 
 		for( ValueNode expr = expression; expr != null && (expr instanceof VirtualColumnNode);)
 		{
 			VirtualColumnNode vcn = (VirtualColumnNode) expr;
 			ResultColumn src = vcn.getSourceColumn();
-			if( src.isReferenced())
+			if(src.isReferenced)
 			{
 				setReferenced();
 				return;
 			}
-			expr = src.getExpression();
+			expr = src.expression;
 		}
 	} // end of pullVirtualIsReferenced
 
@@ -1440,7 +1440,7 @@ public class ResultColumn extends ValueNode
 			VirtualColumnNode vcn = (VirtualColumnNode) vn;
 			ResultColumn rc = vcn.getSourceColumn();
 			rc.setReferenced();
-			vn = rc.getExpression();
+			vn = rc.expression;
 		}
 	}
 
@@ -1572,26 +1572,26 @@ public class ResultColumn extends ValueNode
 
 			newResultColumn = (ResultColumn) getNodeFactory().getNode(
 					C_NodeTypes.RESULT_COLUMN,
-					getName(),
+					exposedName,
 					cloneExpr,
 					getContextManager());
 		}
 
 		/* Set the VirtualColumnId and name in the new node */
-		newResultColumn.setVirtualColumnId(getVirtualColumnId());
+		newResultColumn.setVirtualColumnId(virtualColumnId);
 		// Splice fork: also set the result set number on the new node
-		newResultColumn.setResultSetNumber(getResultSetNumber());
+		newResultColumn.setResultSetNumber(resultSetNumber);
 		
 		/* Set the type and name information in the new node */
-		newResultColumn.setName(getName());
+		newResultColumn.setName(exposedName);
 		newResultColumn.setType(getTypeServices());
-		newResultColumn.setNameGenerated(isNameGenerated());
+		newResultColumn.setNameGenerated(isNameGenerated);
 
 		// For OFFSET/FETCH we need the also clone table name to avoid failing
 		// check #2 in EmbedResultSet#checksBeforeUpdateXXX. Clone schema for
 		// good measure...
-		newResultColumn.setSourceTableName(getSourceTableName());
-		newResultColumn.setSourceSchemaName(getSourceSchemaName());
+		newResultColumn.setSourceTableName(sourceTableName);
+		newResultColumn.setSourceSchemaName(sourceSchemaName);
 
 		/* Set the "is generated for unmatched column in insert" status in the new node
 		This if for bug 4194*/
@@ -1599,7 +1599,7 @@ public class ResultColumn extends ValueNode
 			newResultColumn.markGeneratedForUnmatchedColumnInInsert();
 
 		/* Set the "is referenced" status in the new node */
-		if (isReferenced())
+		if (isReferenced)
 			newResultColumn.setReferenced();
 
 		/* Set the "updated" status in the new node */
@@ -1610,20 +1610,20 @@ public class ResultColumn extends ValueNode
 		if (updatableByCursor())
 			newResultColumn.markUpdatableByCursor();
 
-		if (isAutoincrementGenerated())
+		if (autoincrementGenerated)
 			newResultColumn.setAutoincrementGenerated();
 
-		if (isAutoincrement())
+		if (autoincrement)
 			newResultColumn.setAutoincrement();
-		if (isGroupingColumn())
+		if (isGroupingColumn)
 			newResultColumn.markAsGroupingColumn();
 
-		if (isRightOuterJoinUsingClause()) {
+		if (rightOuterJoinUsingClause) {
 			newResultColumn.setRightOuterJoinUsingClause(true);
 		}
 
-		if (getJoinResultSet() != null) {
-			newResultColumn.setJoinResultset(getJoinResultSet());
+		if (joinResultSet != null) {
+			newResultColumn.setJoinResultset(joinResultSet);
 		}
 
 		if (isGenerated()) {
@@ -1650,8 +1650,9 @@ public class ResultColumn extends ValueNode
 		if (type != null)
 			return type;
 
-		if (getExpression() != null)
-			return getExpression().getTypeServices();
+		if (expression != null) {
+			return expression.getTypeServices();
+		}
 
 		return null;
 	}
@@ -1679,7 +1680,7 @@ public class ResultColumn extends ValueNode
 		** is variant.
 		*/
 		int expType;
-		if (isAutoincrementGenerated()) {
+		if (autoincrementGenerated) {
 			expType = Qualifier.VARIANT;
 		} else if (expression != null) {
 			expType = expression.getOrderableVariantType();
@@ -1965,11 +1966,11 @@ public class ResultColumn extends ValueNode
      * @throws StandardException
      */
     public long cardinality() throws StandardException {
-        if (this.getTableColumnDescriptor() ==null) // Temporary JL
+		if (columnDescriptor ==null) // Temporary JL
             return 0;
-        ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+		ConglomerateDescriptor cd = columnDescriptor.getTableDescriptor().getConglomerateDescriptorList().get(0);
         int leftPosition = getColumnPosition();
-        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd).cardinality(leftPosition);
+		return getCompilerContext().getStoreCostController(columnDescriptor.getTableDescriptor(),cd).cardinality(leftPosition);
     }
     /**
      *
@@ -1985,7 +1986,7 @@ public class ResultColumn extends ValueNode
     }
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {
-        return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();
+		return columnDescriptor ==null?null: columnDescriptor.getBaseConglomerateDescriptor();
     }
 
 
@@ -2002,7 +2003,7 @@ public class ResultColumn extends ValueNode
      */
     public StructField getStructField() {
         try {
-            return getType().getNull().getStructField(getName());
+			return getType().getNull().getStructField(exposedName);
         } catch (StandardException e) {
             return null;
         }

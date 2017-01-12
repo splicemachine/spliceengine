@@ -393,8 +393,8 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 	    
         // only drop the conglomerate if no similar index but with different
 	    // name. Get from dd in case we drop other dup indexes with a cascade operation	    
-	    ConglomerateDescriptor [] congDescs =
-	        dd.getConglomerateDescriptors(getConglomerateNumber());
+		ConglomerateDescriptor [] congDescs =
+	        dd.getConglomerateDescriptors(conglomerateNumber);
 
 		boolean dropConglom = false;
 		ConglomerateDescriptor physicalCD = null;
@@ -439,7 +439,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 			 */
 
 			physicalCD = describeSharedConglomerate(congDescs, true);
-			IndexRowGenerator othersIRG = physicalCD.getIndexDescriptor();
+			IndexRowGenerator othersIRG = physicalCD.indexRowGenerator;
 
 			/* Let OTHERS denote the set of "other" descriptors which
 			 * share a physical conglomerate with this one.  Recall
@@ -490,7 +490,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 	    if (dropConglom)
 	    {
 	        /* Drop the physical conglomerate */
-	        tc.dropConglomerate(getConglomerateNumber());
+			tc.dropConglomerate(conglomerateNumber);
 	    }
 
 	    /* Drop the conglomerate descriptor */
@@ -539,24 +539,24 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 		 * descriptor's conglomerate number, then that element should
 		 * be the same descriptor as "this".
 		 */
-		if (!isIndex())
+		if (!indexable)
 		{
 			ConglomerateDescriptor heap = null;
 			for (int i = 0; i < descriptors.length; i++)
 			{
-				if (getConglomerateNumber() !=
-					descriptors[i].getConglomerateNumber())
+				if (conglomerateNumber !=
+						descriptors[i].conglomerateNumber)
 				{
 					continue;
 				}
 
 				if (SanityManager.DEBUG)
 				{
-					if (!descriptors[i].getUUID().equals(getUUID()))
+					if (!descriptors[i].uuid.equals(uuid))
 					{
 						SanityManager.THROWASSERT(
 							"Should not have multiple descriptors for " +
-							"heap conglomerate " + getConglomerateNumber());
+							"heap conglomerate " + conglomerateNumber);
 					}
 				}
 
@@ -597,12 +597,12 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 		for (int i = 0; i < descriptors.length; i++)
 		{
 			// Skip if it's not an index (i.e. it's a heap descriptor).
-			if (!descriptors[i].isIndex())
+			if (!descriptors[i].indexable)
 				continue;
 
 			// Skip if it doesn't share with "this".
-			if (getConglomerateNumber() !=
-				descriptors[i].getConglomerateNumber())
+			if (conglomerateNumber !=
+					descriptors[i].conglomerateNumber)
 			{
 				continue;
 			}
@@ -613,15 +613,14 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 			// databases prior to the DERBY-655 fix may have a 
 			// duplicate conglomerateID
 			if (ignoreThis &&
-				getUUID().equals(descriptors[i].getUUID()) &&
-				getConglomerateName().equals(descriptors[i].
-							getConglomerateName())
+				uuid.equals(descriptors[i].uuid) &&
+				name.equals(descriptors[i].name)
 				)
 			{
 				continue;
 			}
 
-			if (descriptors[i].getIndexDescriptor().isUnique())
+			if (descriptors[i].indexRowGenerator.isUnique())
 			{
 				/* Given criteria #1 and #4 described above, if we
 				 * have a unique conglomerate descriptor then we've
@@ -631,7 +630,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 				break;
 			}
 
-			if (descriptors[i].getIndexDescriptor()
+			if (descriptors[i].indexRowGenerator
 					.isUniqueWithDuplicateNulls())
 			{
 				/* Criteria #2. Remember this descriptor. If we don't find
@@ -654,7 +653,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 			{
 				SanityManager.THROWASSERT(
 					"Failed to find sharable conglomerate descriptor " +
-					"for index conglomerate # " + getConglomerateNumber());
+					"for index conglomerate # " + conglomerateNumber);
 			}
 		}
 

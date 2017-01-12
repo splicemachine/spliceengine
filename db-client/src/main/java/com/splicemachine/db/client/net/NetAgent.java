@@ -442,7 +442,7 @@ public class NetAgent extends Agent {
     }
 
     public void checkForChainBreakingException_() throws SqlException {
-        int svrcod = getSvrcod();
+        int svrcod = svrcod_;
         clearSvrcod();
         if (svrcod > CodePoint.SVRCOD_WARNING) // Not for SQL warning, if svrcod > WARNING, then its a chain breaker
         {

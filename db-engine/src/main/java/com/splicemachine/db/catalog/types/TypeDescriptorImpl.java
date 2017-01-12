@@ -448,7 +448,7 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable
 	public String	toString()
 	{
 		String s = getSQLstring();
-		if (!isNullable())
+		if (!isNullable)
 			return s + " NOT NULL";
 		return s;
 	}

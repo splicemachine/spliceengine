@@ -28,6 +28,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.apache.commons.collections.iterators.SingletonListIterator;
 import org.apache.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
@@ -227,7 +228,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 // We didn't reach the limit, continue executing more partitions
                 result = "CONTINUE";
             }
-            return Arrays.asList(result).iterator();
+            return new SingletonListIterator(result);
         } finally {
             workerGroup.shutdownGracefully();
         }

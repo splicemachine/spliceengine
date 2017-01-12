@@ -359,7 +359,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
             return false;
         }
         BinaryListOperatorNode other=(BinaryListOperatorNode)o;
-        if(!operator.equals(other.operator) || !leftOperand.isEquivalent(other.getLeftOperand())){
+        if(!operator.equals(other.operator) || !leftOperand.isEquivalent(other.leftOperand)){
             return false;
         }
 

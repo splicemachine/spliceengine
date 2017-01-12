@@ -279,7 +279,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 		 * before() Pn, will be violated.
 		 */
 
-        int otherIndexPosition=otherPred.getIndexPosition();
+        int otherIndexPosition= otherPred.indexPosition;
 
         if(indexPosition<otherIndexPosition)
             return -1;
@@ -311,7 +311,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         }
         // other is not "in" or other is a probe predicate
         if(otherPred.isRelationalOpPredicate() || otherPred.isInListProbePredicate()){
-            int otherOperator=((RelationalOperator)(otherPred.getAndNode().getLeftOperand())).getOperator();
+            int otherOperator=((RelationalOperator)(otherPred.andNode.getLeftOperand())).getOperator();
             otherIsEquals=(otherOperator==RelationalOperator.EQUALS_RELOP ||
                     otherOperator==RelationalOperator.IS_NULL_RELOP);
             otherIsNotEquals=(otherOperator==RelationalOperator.NOT_EQUALS_RELOP ||
@@ -619,14 +619,14 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      */
     public String binaryRelOpColRefsToString(){
         // We only consider binary relational operators here.
-        if(!(getAndNode().getLeftOperand()
+        if(!(andNode.getLeftOperand()
                 instanceof BinaryRelationalOperatorNode)){
             return "";
         }
 
         final String DUMMY_VAL="<expr>";
         StringBuilder sBuf=new StringBuilder();
-        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode) andNode.getLeftOperand();
 
         // Get left operand's name.
         if(opNode.getLeftOperand() instanceof ColumnReference){
@@ -685,12 +685,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     public void copyFields(Predicate otherPred){
 
-        this.equivalenceClass=otherPred.getEquivalenceClass();
-        this.indexPosition=otherPred.getIndexPosition();
-        this.startKey=otherPred.isStartKey();
-        this.stopKey=otherPred.isStopKey();
-        this.isQualifier=otherPred.isQualifier();
-        this.searchClauseHT=otherPred.getSearchClauseHT();
+        this.equivalenceClass= otherPred.equivalenceClass;
+        this.indexPosition= otherPred.indexPosition;
+        this.startKey= otherPred.startKey;
+        this.stopKey= otherPred.stopKey;
+        this.isQualifier= otherPred.isQualifier;
+        this.searchClauseHT= otherPred.searchClauseHT;
 
     }
 
@@ -727,9 +727,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         // such column references, but it's not clear whether that's
         // always a safe option; further investigation required.
 
-        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode) andNode.getLeftOperand();
 
-        JBitSet tNums=new JBitSet(getReferencedSet().size());
+        JBitSet tNums=new JBitSet(referencedSet.size());
         BaseTableNumbersVisitor btnVis=new BaseTableNumbersVisitor(tNums);
         opNode.getLeftOperand().accept(btnVis);
         if(tNums.getFirstSetBit()==-1)
@@ -751,11 +751,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     public boolean isJoinPredicate(){
         // If the predicate isn't a binary relational operator,
         // then it's not a join predicate.
-        if(!(getAndNode().getLeftOperand() instanceof BinaryRelationalOperatorNode)){
+        if(!(andNode.getLeftOperand() instanceof BinaryRelationalOperatorNode)){
             return false;
         }
 
-        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode) andNode.getLeftOperand();
 
         ValueNode leftOperand=opNode.getLeftOperand();
         ValueNode rightOperand=opNode.getRightOperand();
@@ -838,7 +838,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                                                   ResultSetNode childRSN,
                                                   int[] whichRC) throws StandardException{
         // We only deal with binary relational operators here.
-        if(!(getAndNode().getLeftOperand() instanceof BinaryRelationalOperatorNode)){
+        if(!(andNode.getLeftOperand() instanceof BinaryRelationalOperatorNode)){
             return this;
         }
 
@@ -850,7 +850,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                 Boolean.TRUE,
                 getContextManager());
 
-        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode) andNode.getLeftOperand();
 
         // Create a new op node with left and right operands that point
         // to the received result set's columns as appropriate.
@@ -896,7 +896,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         // Copy all of this predicates other fields into the new predicate.
         newPred.clearScanFlags();
         newPred.copyFields(this);
-        newPred.setPushable(getPushable());
+        newPred.setPushable(pushable);
 
         // Take note of the fact that the new predicate is scoped for
         // the sake of pushing; we need this information during optimization
@@ -1277,7 +1277,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 
     public boolean isNullPredicate() throws StandardException {
-        return this.getAndNode() !=null && this.getAndNode().getLeftOperand()!= null && (this.getAndNode().getLeftOperand() instanceof IsNullNode);
+        return andNode !=null && andNode.getLeftOperand()!= null && (andNode.getLeftOperand() instanceof IsNullNode);
     }
 
 }
