@@ -287,6 +287,11 @@ public final class SConfigurationImpl implements SConfiguration {
         return sequenceBlockSize;
     }
 
+    @Override
+    public int getThreadPoolMaxSize() {
+         return threadPoolMaxSize;
+    }
+
     // PipelineConfiguration
     @Override
     public int getCoreWriterThreads() {
@@ -601,6 +606,7 @@ public final class SConfigurationImpl implements SConfiguration {
         transactionKeepAliveInterval = builder.transactionKeepAliveInterval;
         transactionTimeout = builder.transactionTimeout;
         sequenceBlockSize = builder.sequenceBlockSize;
+        threadPoolMaxSize = builder.threadPoolMaxSize;
         ddlDrainingInitialWait = builder.ddlDrainingInitialWait;
         ddlDrainingMaximumWait = builder.ddlDrainingMaximumWait;
         ddlRefreshInterval = builder.ddlRefreshInterval;

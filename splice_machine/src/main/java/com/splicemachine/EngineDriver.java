@@ -16,7 +16,8 @@
 package com.splicemachine;
 
 import java.sql.Connection;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
@@ -52,6 +53,7 @@ public class EngineDriver{
     private final DatabaseAdministrator dbAdmin;
     private final OlapClient olapClient;
     private final SqlEnvironment environment;
+    private final ExecutorService threadPool;
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
@@ -87,6 +89,11 @@ public class EngineDriver{
                     }
                 }).build();
 
+        /* Create a general purpose thread pool */
+        final AtomicLong count = new AtomicLong(0);
+        this.threadPool = new ThreadPoolExecutor(0, 64, /* TODO: use config.get??? */
+                60L, TimeUnit.SECONDS, new SynchronousQueue<>(),
+                (runnable) -> new Thread(runnable, "SpliceThreadPool-" + count.getAndIncrement()));
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -140,4 +147,6 @@ public class EngineDriver{
     public OlapClient getOlapClient() {
         return olapClient;
     }
+
+    public ExecutorService getExecutorService() { return threadPool; }
 }

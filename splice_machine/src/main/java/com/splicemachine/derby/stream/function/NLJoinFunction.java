@@ -60,7 +60,6 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected boolean isOneRowInnerJoin;
 
     protected ExecutorCompletionService<Pair<OperationContext, Iterator<LocatedRow>>> completionService;
-    protected ExecutorService executorService;
 
     public NLJoinFunction () {}
 
@@ -75,8 +74,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         batchSize = configuration.getNestedLoopJoinBatchSize();
         nLeftRows = 0;
         leftSideIterator = from;
-        executorService = Executors.newFixedThreadPool(batchSize);
-        completionService = new ExecutorCompletionService<>(executorService);
+        completionService = new ExecutorCompletionService<>(EngineDriver.driver().getExecutorService());
 
         initOperationContexts();
         loadBatch();
@@ -154,9 +152,6 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     leftRowLocation = currentOperationContext.getOperation().getLeftOperation().getCurrentRowLocation();
                     operationContext.getOperation().getLeftOperation().setCurrentLocatedRow(getLeftLocatedRow());
                 }
-            }
-            if (!rightSideNLJIterator.hasNext()) {
-                executorService.shutdownNow();
             }
 
             return rightSideNLJIterator.hasNext();

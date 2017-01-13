@@ -48,8 +48,13 @@ public class OperationConfiguration implements ConfigurationDefault {
     public static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
     private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
 
+    /* The maximum number of threads to be created in the general thread pool */
+    public static final String THREAD_POOL_MAX_SIZE = "splice.threadPool.maxSize";
+    private static final int DEFAULT_THREAD_POOL_MAX_SIZE = 256;
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.sequenceBlockSize = configurationSource.getInt(SEQUENCE_BLOCK_SIZE, DEFAULT_SEQUENCE_BLOCK_SIZE);
+        builder.threadPoolMaxSize = configurationSource.getInt(THREAD_POOL_MAX_SIZE, DEFAULT_THREAD_POOL_MAX_SIZE);
     }
 }
