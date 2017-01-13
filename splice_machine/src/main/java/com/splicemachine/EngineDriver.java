@@ -59,6 +59,11 @@ public class EngineDriver{
         INSTANCE=new EngineDriver(environment);
     }
 
+    public static void shutdownDriver() {
+        driver().threadPool.shutdown();
+        INSTANCE = null;
+    }
+
     public static EngineDriver driver(){
         return INSTANCE;
     }
