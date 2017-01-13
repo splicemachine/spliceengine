@@ -78,6 +78,7 @@ public final class SConfigurationImpl implements SConfiguration {
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
+    private final  int threadPoolMaxSize;
 
     // PipelineConfiguration
     private final  int coreWriterThreads;
