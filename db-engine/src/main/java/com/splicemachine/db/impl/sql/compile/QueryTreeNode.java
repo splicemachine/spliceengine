@@ -389,15 +389,17 @@ public abstract class QueryTreeNode implements Node, Visitable{
                 //noinspection unchecked
                 printed.put(this,null);
                 debugPrint(formatNodeString(nodeHeader(),depth));
-                String thisStr=formatNodeString(this.toString(),depth);
+                if (this.toString() != null) {
+                    String thisStr = formatNodeString(this.toString(), depth);
 
-                if(containsInfo(thisStr) &&
-                        !SanityManager.DEBUG_ON("DumpBrief")){
-                    debugPrint(thisStr);
-                }
+                    if (containsInfo(thisStr) &&
+                            !SanityManager.DEBUG_ON("DumpBrief")) {
+                        debugPrint(thisStr);
+                    }
 
-                if(thisStr.charAt(thisStr.length()-1)!='\n'){
-                    debugPrint("\n");
+                    if (thisStr.charAt(thisStr.length() - 1) != '\n') {
+                        debugPrint("\n");
+                    }
                 }
 
                 printSubNodes(depth);

@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -119,5 +120,12 @@ public class ExplainNode extends DMLStatementNode {
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         if ( node!= null)
             node.buildTree(tree,depth);
+    }
+
+    @Override
+    public void treePrint(){
+        if(SanityManager.DEBUG){
+            node.treePrint();
+        }
     }
 }

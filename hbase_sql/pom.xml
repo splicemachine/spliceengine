@@ -919,6 +919,7 @@
                                 <argument>-Dderby.language.updateSystemProcs=false</argument>
                                 <!-- Setting the logStatementText option to true enables logging of all statements. -->
                                 <argument>-Dderby.language.logStatementText=false</argument>
+                                <argument>-Dderby.debug.true=DumpClassFile</argument>
                                 <argument>-Dderby.infolog.append=true</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
                                 <argument>file://${project.build.directory}/hbase</argument>

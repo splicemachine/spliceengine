@@ -43,8 +43,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
-import com.splicemachine.db.impl.sql.compile.ExplainNode;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -53,6 +53,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
@@ -582,7 +584,7 @@ public class GenericStatement implements Statement{
             // Call user-written tree-printer if it exists
             walkAST(lcc,qt, CompilationPhase.AFTER_OPTIMIZE);
             saveTree(qt, CompilationPhase.AFTER_OPTIMIZE);
-
+            int n = totalColumns(qt);
             // Statement logging if lcc.getLogStatementText() is true
             if(istream!=null){
                 String endStatement = "End compiling prepared statement: ";
@@ -602,6 +604,21 @@ public class GenericStatement implements Statement{
         }
     }
 
+    private int totalColumns(StatementNode qt) throws StandardException {
+        int total = 0;
+        List<FromBaseTable> fromBaseTables = RSUtils.collectNodes(qt, FromBaseTable.class);
+        for (FromBaseTable fromBaseTable:fromBaseTables) {
+            ResultColumnList rcl = fromBaseTable.getResultColumns();
+            total += rcl.size();
+            System.out.print("Base table " + fromBaseTable.getTableName() + " " + rcl.size() +": ");
+            for (int i = 0; i < rcl.size(); ++i) {
+                ResultColumn rc = rcl.elementAt(i);
+                System.out.print(rc.getBaseColumnNode().getColumnName() + " ");
+            }
+            System.out.println();
+        }
+        return total;
+    }
     private Timestamp generate(LanguageConnectionContext lcc,
                                long[] timestamps,
                                CompilerContext cc,

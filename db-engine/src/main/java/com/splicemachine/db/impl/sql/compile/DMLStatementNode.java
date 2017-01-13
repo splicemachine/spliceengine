@@ -421,7 +421,7 @@ public abstract class DMLStatementNode extends StatementNode {
                 String colName =  n.getTableName() + "." + n.getColumnName();
 
                 Integer refCount = refCountMap.get(resultColumn);
-                if (!baseColumnNodes.containsKey(colName) && (refCount == null || refCount ==0)) {
+                if ((refCount == null || refCount ==0)) {
                     resultColumn.setUnreferenced();
                     count++;
                     total++;
@@ -479,7 +479,7 @@ public abstract class DMLStatementNode extends StatementNode {
                                                    Map<ResultColumn, ResultColumnList> resultColumnListMap,
                                                    Map<String, BaseColumnNode> baseColumnNodes,
                                                    Map<ResultColumn, ResultColumn> referenceMap,
-                                                   Set<ResultColumnList> includeColumnLists) {
+                                                   Set<ResultColumnList> includeColumnLists) throws StandardException {
         Set<ResultColumn> toRemove = new HashSet<>();
         boolean done = false;
         while (!done) {
@@ -489,19 +489,25 @@ public abstract class DMLStatementNode extends StatementNode {
                 ResultColumn resultColumn = (ResultColumn)o;
                 Integer refCount = refCountMap.get(resultColumn);
                 if (refCount == 0 ) {
-                    BaseColumnNode baseColumnNode = resultColumn.getBaseColumnNode();
-                    String columnName = baseColumnNode !=null ?
-                            baseColumnNode.getTableName()+"."+baseColumnNode.getColumnName() : null;
                     ResultColumnList resultColumnList = resultColumnListMap.get(resultColumn);
-                    if (!includeColumnLists.contains(resultColumnList) &&
-                            baseColumnNode != null && !baseColumnNodes.containsKey(columnName) &&
-                            !resultColumn.isGenerated()) {
-                        refCountMap.remove(resultColumn);
-                        toRemove.add(resultColumn);
-                        ResultColumn referenceColumn = referenceMap.get(resultColumn);
-                        if (referenceColumn != null) {
-                            refCountMap.put(referenceColumn, refCountMap.get(referenceColumn)-1);
-                            done = false;
+                    if (!includeColumnLists.contains(resultColumnList)) {
+
+                        if (resultColumn.name.compareToIgnoreCase("ZIP") == 0) {
+                            System.out.println("checking");
+                        }
+                        BaseColumnNode baseColumnNode = resultColumn.getBaseColumnNode();
+                        String columnName = baseColumnNode != null ?
+                                baseColumnNode.getTableName() + "." + baseColumnNode.getColumnName() : null;
+
+                        if (//(baseColumnNode == null || !baseColumnNodes.containsKey(columnName)) &&
+                                !resultColumn.isGenerated()) {
+                            refCountMap.remove(resultColumn);
+                            toRemove.add(resultColumn);
+                            ResultColumn referenceColumn = referenceMap.get(resultColumn);
+                            if (referenceColumn != null) {
+                                refCountMap.put(referenceColumn, refCountMap.get(referenceColumn) - 1);
+                                done = false;
+                            }
                         }
                     }
                 }
@@ -617,10 +623,11 @@ public abstract class DMLStatementNode extends StatementNode {
                 resultColumnListMap.put(resultColumn, resultColumnList);
 
                 List<ResultColumn> targetColumns = getTargetColumns(resultColumn.getExpression());
+                if (refCountMap.get(resultColumn) == null) {
+                    refCountMap.put(resultColumn, 0);
+                }
                 for (ResultColumn rc : targetColumns) {
-                    if (refCountMap.get(resultColumn) == null) {
-                        refCountMap.put(resultColumn, 0);
-                    }
+
                     referenceMap.put(resultColumn, rc);
                     Integer refCount = refCountMap.get(rc);
                     if (refCount == null) {
