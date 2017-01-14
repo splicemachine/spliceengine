@@ -396,19 +396,24 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testWriteReadFromCompressedORCExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table compressed_orc (col1 int, col2 varchar(24))" +
-                "COMPRESSED WITH ZLIB STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"compressed_orc"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_orc values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from compressed_orc");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    public void testWriteReadWithPreExistingParquet() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table (col1 varchar(24), col2 varchar(24))" +
+                "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
+        ResultSet rs = methodWatcher.executeQuery("select COL2 from parquet_simple_file_table where col1='AAA'");
+        Assert.assertEquals("COL2 |\n" +
+                "------\n" +
+                " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testWriteReadWithPreExistingParquetAndOr() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table_and_or (col1 varchar(24), col2 varchar(24))" +
+                "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
+        ResultSet rs = methodWatcher.executeQuery("select COL2 from parquet_simple_file_table_and_or where col1='BBB' OR ( col1='AAA' AND col2='AAA')");
+        Assert.assertEquals("COL2 |\n" +
+                "------\n" +
+                " AAA |\n" +
+                " BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test @Ignore
@@ -420,11 +425,10 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "(3,'ZZZZ')"));
         Assert.assertEquals("insertCount is wrong",3,insertCount);
         ResultSet rs = methodWatcher.executeQuery("select * from compressed_parquet_test");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        Assert.assertEquals("COL2 |\n" +
+                "------\n" +
+                "AAAA |\n" +
+                "BBBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
@@ -612,6 +616,8 @@ public class ExternalTableIT extends SpliceUnitTest{
         return getHBaseDirectory()+"/target/external/";
 
     }
+
+
 
 
     @Test
