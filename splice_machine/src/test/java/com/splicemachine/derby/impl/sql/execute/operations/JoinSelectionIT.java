@@ -140,12 +140,23 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     // should be NestedLoopJoin
     @Test
     public void testInnerJoinWithSubqueryFilterExactCriteria() throws Exception {
-        fourthRowContainsQuery(
+        ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from %s a2 join " +
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
-                BROADCAST_JOIN, methodWatcher);
+            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            if (count == 4) {
+                String row = rs.getString(1);
+                String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                        row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertThat("Join strategy must be either NESTED_LOOP_JOIN or BROADCAST_JOIN", joinStrategy,
+                        anyOf(equalTo(NESTED_LOOP_JOIN), equalTo(BROADCAST_JOIN)));
+                break;
+            }
+        }
     }
     
     @Test
@@ -165,7 +176,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                         anyOf(equalTo(MERGE_SORT_JOIN), equalTo(BROADCAST_JOIN)));
             	break;
             }
-        }   
+        }
     }
 
 
@@ -237,12 +248,23 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
     @Test
     public void testInnerJoinWithSubqueryLHSFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from (select person.pid from %s) as a3 " +
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            BROADCAST_JOIN, methodWatcher);
+            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            if (count == 4) {
+                String row = rs.getString(1);
+                String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                        row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertThat("Join strategy must be either NESTED_LOOP_JOIN or BROADCAST_JOIN", joinStrategy,
+                        anyOf(equalTo(NESTED_LOOP_JOIN), equalTo(BROADCAST_JOIN)));
+                break;
+            }
+        }
     }
     
     @Test
@@ -261,19 +283,30 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                 Assert.assertTrue(MERGE_SORT_JOIN.equals(joinStrategy) || BROADCAST_JOIN.equals(joinStrategy));
             	break;
             }
-        }   
+        }
     }
 
 
     // should be NLJ
     @Test
     public void testLeftOuterJoinWithSubqueryLHSFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from (select person.pid from %s) as a3 " +
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            BROADCAST_JOIN, methodWatcher);
+            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            if (count == 4) {
+                String row = rs.getString(1);
+                String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                        row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertThat("Join strategy must be either NESTED_LOOP_JOIN or BROADCAST_JOIN", joinStrategy,
+                        anyOf(equalTo(NESTED_LOOP_JOIN), equalTo(BROADCAST_JOIN)));
+                break;
+            }
+        }
     }
 
     @Test
