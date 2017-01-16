@@ -60,7 +60,7 @@ public class EngineDriver{
     }
 
     public static void shutdownDriver() {
-        driver().threadPool.shutdown();
+        driver().threadPool.shutdownNow();
         INSTANCE = null;
     }
 
@@ -97,8 +97,13 @@ public class EngineDriver{
         /* Create a general purpose thread pool */
         final AtomicLong count = new AtomicLong(0);
         this.threadPool = new ThreadPoolExecutor(0, config.getThreadPoolMaxSize(),
-                60L, TimeUnit.SECONDS, new SynchronousQueue<>(),
-                (runnable) -> new Thread(runnable, "SpliceThreadPool-" + count.getAndIncrement()),
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                (runnable) -> {
+                    Thread t = new Thread(runnable, "SpliceThreadPool-" + count.getAndIncrement());
+                    t.setDaemon(true);
+                    return t;
+                },
                 new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
