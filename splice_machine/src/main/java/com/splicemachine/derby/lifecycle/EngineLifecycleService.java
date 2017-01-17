@@ -148,6 +148,8 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
             LOG.error("Unexpected error during shutdown",e);
         }
 
+        EngineDriver.shutdownDriver();
+
         try{
             SIDriver driver = SIDriver.driver();
             if(driver!=null)
