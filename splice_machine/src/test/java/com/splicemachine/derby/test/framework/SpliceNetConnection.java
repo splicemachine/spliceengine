@@ -42,7 +42,7 @@ public class SpliceNetConnection {
         return String.format(DB_URL_LOCAL, DEFAULT_USER, DEFAULT_USER_PASSWORD);
     }
 
-    private static Connection getConnectionAs(String providedURL, String userName, String password) throws SQLException {
+    public static Connection getConnectionAs(String providedURL, String userName, String password) throws SQLException {
         String url = String.format(providedURL, userName, password);
         return DriverManager.getConnection(url, new Properties());
     }

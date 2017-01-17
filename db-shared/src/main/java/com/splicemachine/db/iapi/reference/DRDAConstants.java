@@ -44,7 +44,7 @@ public	interface	DRDAConstants
 	// list of legal DRDA Product Identifiers.
 	//
 	public	static	final	String	DERBY_DRDA_SERVER_ID = "CSS";
-	public	static	final	String	DERBY_DRDA_CLIENT_ID = "DNC";
+	public	static	final	String	DERBY_DRDA_CLIENT_ID = "SNC";
 
     // Maximum size of a DDM block
     public static final int DATA_STREAM_STRUCTURE_MAX_LENGTH = 32767;
