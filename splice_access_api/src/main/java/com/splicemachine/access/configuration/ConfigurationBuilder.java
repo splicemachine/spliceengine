@@ -40,6 +40,7 @@ public class ConfigurationBuilder {
 
     // OperationConfiguration
     public int sequenceBlockSize;
+    public int threadPoolMaxSize;
 
     // DDLConfiguration
     public long ddlDrainingInitialWait;
