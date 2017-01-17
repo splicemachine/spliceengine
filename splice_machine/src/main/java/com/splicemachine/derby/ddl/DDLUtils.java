@@ -95,11 +95,12 @@ public class DDLUtils {
         DDLDriver.driver().ddlController().finishMetadataChange(changeId);
     }
 
-    public static Txn getLazyTransaction(long txnId) {
-        //TODO -sf- could we remove this method somehow?
-        SIDriver driver=SIDriver.driver();
-
-        return new LazyTxnView(txnId, driver.getTxnSupplier(),driver.getExceptionFactory());
+    public static Txn getLazyTransaction(long txnId) throws StandardException {
+        try {
+            return SIDriver.driver().getTxnStore().getTransaction(txnId);
+        } catch (IOException ioe) {
+            throw StandardException.plainWrapException(ioe);
+        }
     }
 
     public static String outIntArray(int[] values) {
@@ -114,16 +115,17 @@ public class DDLUtils {
 
     public static Txn getIndexTransaction(TransactionController tc, Txn tentativeTransaction, long tableConglomId, String indexName) throws StandardException {
         final Txn wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
-
+        throw new UnsupportedOperationException("Implement");
         /*
          * We have an additional waiting transaction that we use to ensure that all elements
          * which commit after the demarcation point are committed BEFORE the populate part.
          */
+        /*
         byte[] tableBytes = Bytes.toBytes(Long.toString(tableConglomId));
         TxnLifecycleManager tlm = SIDriver.driver().lifecycleManager();
         Txn waitTxn;
         try{
-            waitTxn = tlm.chainTransaction(wrapperTxn, IsolationLevel.SNAPSHOT_ISOLATION,false,tableBytes,tentativeTransaction);
+            waitTxn = tlm.chainTransaction(wrapperTxn,tentativeTransaction);
         }catch(IOException ioe){
             LOG.error("Could not create a wait transaction",ioe);
             throw Exceptions.parseException(ioe);
@@ -154,6 +156,8 @@ public class DDLUtils {
              * that the write pipeline is able to see the conglomerate descriptor. However,
              * this makes the SI logic more complex during the populate phase.
              */
+
+        /*
             indexTxn = tlm.chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
@@ -161,6 +165,7 @@ public class DDLUtils {
             throw Exceptions.parseException(e);
         }
         return indexTxn;
+        */
     }
 
     /**
@@ -180,8 +185,8 @@ public class DDLUtils {
      * @return
      */
     public static RecordScan createFullScan() {
-        RecordScan scan = SIDriver.driver().getOperationFactory().newDataScan(null);
-        scan.startKey(SIConstants.EMPTY_BYTE_ARRAY).stopKey(SIConstants.EMPTY_BYTE_ARRAY).returnAllVersions();
+        RecordScan scan = SIDriver.driver().getOperationFactory().newDataScan();
+        scan.startKey(SIConstants.EMPTY_BYTE_ARRAY).stopKey(SIConstants.EMPTY_BYTE_ARRAY);
         return scan;
     }
 

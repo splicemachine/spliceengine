@@ -372,7 +372,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         //     column in table.
         ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
 
-        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+        Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
         // How were the columns ordered before?
         int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
@@ -435,10 +435,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         // Start a tentative txn to demarcate the DDL change
         Txn tentativeTransaction;
+        TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
         try {
-            TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
+
             tentativeTransaction =
-                lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
+                lifecycleManager.beginChildTransaction(parentTxn);
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative Drop Primary Key operation");
             throw Exceptions.parseException(e);
@@ -458,8 +459,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                 constraintColumnNames + ")");
 
             // Read from old conglomerate, transform each row and write to new conglomerate.
-            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, oldCongNum,newCongNum,populateTxn.getBeginTimestamp());
-            populateTxn.commit();
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, oldCongNum,newCongNum,populateTxn.getTxnId());
+            lifecycleManager.commit(populateTxn);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -582,10 +583,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         // Start a tentative txn to demarcate the DDL change
         Txn tentativeTransaction;
+        TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
         try {
-            TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
+
             tentativeTransaction =
-                lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
+                lifecycleManager.beginChildTransaction(parentTxn);
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for create primary key operation");
             throw Exceptions.parseException(e);
@@ -606,8 +608,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                 constraintColumnNames + ")");
 
             // Read from old conglomerate, transform each row and write to new conglomerate.
-            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange,oldCongNum,newCongNum, populateTxn.getBeginTimestamp());
-            populateTxn.commit();
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange,oldCongNum,newCongNum, populateTxn.getTxnId());
+            lifecycleManager.commit(populateTxn);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -932,12 +934,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                       long tableConglomId,
                                       String alterTableActionName)
         throws StandardException {
-        final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+        final Txn wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+
+        throw new UnsupportedOperationException("Not Implemented");
 
         /*
          * We have an additional waiting transaction that we use to ensure that all elements
          * which commit after the demarcation point are committed BEFORE the populate part.
          */
+        /**
         byte[] tableBytes = Bytes.toBytes(Long.toString(tableConglomId));
         Txn waitTxn;
         try{
@@ -975,6 +980,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
              * that the write pipeline is able to see the conglomerate descriptor. However,
              * this makes the SI logic more complex during the populate phase.
              */
+
+
+        /*
             populateTxn = SIDriver.driver().lifecycleManager().chainTransaction(
                 wrapperTxn, IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
         } catch (IOException e) {
@@ -982,6 +990,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             throw Exceptions.parseException(e);
         }
         return populateTxn;
+        */
     }
 
 
@@ -1012,7 +1021,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             EngineDriver.driver().getOlapClient().execute(new DistributedAlterTableTransformJob(childTxn, builder, destConglom, this.toString(), jobName, "admin", ddlChange));
         } catch (TimeoutException e) {
             try {
-                childTxn.rollback();
+                SIDriver.driver().lifecycleManager().rollback(childTxn);
             } catch (Throwable t) {
                 // ignore
                 LOG.error("Ignored error while cleaning up after time out", t);
@@ -1020,7 +1029,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             throw new IOException("Olap job timed out", e);
         }
 
-        childTxn.commit();
+        SIDriver.driver().lifecycleManager().commit(childTxn);
     }
 
     public String getScopeName() {

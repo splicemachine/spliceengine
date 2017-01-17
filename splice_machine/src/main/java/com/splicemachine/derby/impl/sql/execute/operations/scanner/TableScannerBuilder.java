@@ -61,7 +61,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected String indexName;
     protected String tableDisplayName;
     protected String tableVersion;
-    protected SIFilterFactory filterFactory;
     protected boolean[] keyColumnSortOrder;
     protected TransactionalRegion region;
     protected OperationContext operationContext;
@@ -288,11 +287,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
-    public ScanSetBuilder<V> filterFactory(SIFilterFactory filterFactory){
-        this.filterFactory=filterFactory;
-        return this;
-    }
-
     @Override
     public ScanSetBuilder<V> region(TransactionalRegion region){
         this.region=region;
@@ -381,7 +375,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     reuseRowLocation,
                     indexName,
                     tableVersion,
-                    filterFactory,
                     demarcationPoint,
                     optionalProbeValue);
     }

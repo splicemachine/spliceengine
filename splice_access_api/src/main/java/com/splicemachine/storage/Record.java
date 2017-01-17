@@ -154,6 +154,22 @@ public interface Record<K> {
      *
      * @return
      */
+    void setData(int[] columns, DataValueDescriptor[] dvds) throws StandardException;
+
+    /**
+     *
+     * Set Actual Data
+     *
+     * @return
+     */
+    void setData(DataValueDescriptor[] dvds) throws StandardException;
+
+    /**
+     *
+     * Set Actual Data
+     *
+     * @return
+     */
     byte[] getKey();
 
     /**
@@ -185,6 +201,10 @@ public interface Record<K> {
      * @return
      */
     Record[] updateRecord(Record<K> updatedRecord, ExecRow recordDefinition) throws StandardException;
+
+    Record createIndexDelete(int[] mainColToIndexPosMap, boolean uniqueWithDuplicateNulls, boolean[] descending, ExecRow indexRow) throws StandardException;
+
+    Record createIndexInsert(int[] mainColToIndexPosMap, boolean uniqueWithDuplicateNulls, boolean[] descending, ExecRow indexRow) throws StandardException;
 
     int getSize();
 

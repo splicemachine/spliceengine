@@ -125,22 +125,12 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             throw Exceptions.parseException(e);
         }
         writeBuffer=transformWriteBuffer(bufferToTransform);
-        encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
         flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
     }
 
-    public DataHash getRowHash() throws StandardException{
-        //if we haven't modified any of our primary keys, then we can just change it directly
-        DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
-        if(!modifiedPrimaryKeys){
-            return new NonPkRowHash(colPositionMap,null,serializers,heapList);
-        }
-        ResultSupplier resultSupplier=new ResultSupplier(new BitSet(),txn,heapConglom);
-        return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
-    }
-
     public RecordingCallBuffer<Record> transformWriteBuffer(final RecordingCallBuffer<Record> bufferToTransform) throws StandardException{
-        if(modifiedPrimaryKeys){
+        throw new UnsupportedOperationException("Not Implemented");
+/*        if(modifiedPrimaryKeys){
             PreFlushHook preFlushHook=new PreFlushHook(){
                 @Override
                 public Collection<Record> transform(Collection<Record> buffer) throws Exception{
@@ -172,18 +162,24 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             }
         }else
             return bufferToTransform;
+            */
     }
 
     public void update(ExecRow execRow) throws StandardException{
-        try{
+        try {
             beforeRow(execRow);
-            currentRow=execRow;
+            currentRow = execRow;
             rowsUpdated++;
-            KVPair encode=encoder.encode(execRow);
+            throw new UnsupportedOperationException("Not implemented");
+/*            KVPair encode=encoder.encode(execRow);
             assert encode.getKey()!=null && encode.getRowKey().length>0:"Tried to buffer incorrect row key";
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler,execRow,flushCallback);
             operationContext.recordWrite();
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+        */
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

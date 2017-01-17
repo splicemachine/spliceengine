@@ -31,6 +31,7 @@ import com.splicemachine.storage.Record;
 import com.splicemachine.storage.RecordType;
 
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.ws.rs.NotSupportedException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -78,13 +79,15 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
     @Override
     public void flush(WriteContext ctx) throws IOException {
+        throw new NotSupportedException("Not Implemented");
+        /*
         try {
             initTable();
             HashSet<byte[]> culledLookups = new HashSet(mutations.size());
             int[] locations = new int[mutations.size()];
             int counter = 0;
             for (int i =0; i<mutations.size();i++) {
-                byte[] checkRowKey = getCheckRowKey(mutations.get(i).getRowKey());
+                byte[] checkRowKey = getCheckRowKey(mutations.get(i).getKey());
                 if (culledLookups.contains(checkRowKey)) {
                     locations[i] = counter-1;
                 } else {
@@ -139,6 +142,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
                 table.close();
             mutations.clear();
         }
+        */
 
     }
 
@@ -146,30 +150,6 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
     public void close(WriteContext ctx) throws IOException {
         if (mutations.size() > 0)
             flush(ctx);
-    }
-
-    private boolean hasData(DataResult result,SimpleTxnFilter filter) throws IOException {
-        if(result!=null && result.size()>0) {
-            int cellCount = result.size();
-            for (DataCell dc : result) {
-                DataFilter.ReturnCode returnCode = filter.filterCell(dc);
-                switch (returnCode) {
-                    case NEXT_ROW:
-                        return false; //the entire row is filtered
-                    case SKIP:
-                    case NEXT_COL:
-                    case SEEK:
-                        cellCount--; //the cell is filtered
-                        break;
-                    case INCLUDE:
-                    case INCLUDE_AND_NEXT_COL: //the cell is included, so we have some data
-                    default: //do nothing
-                        break;
-                }
-            }
-            if(cellCount>0) return true; // Has Data...
-        }
-        return false; // No data returned, fail
     }
 
     /* Only need to create the CallBuffer once, but not until we have a WriteContext */
@@ -212,7 +192,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
      * return value      = [65, 67, 0 54, 45]
      */
     private byte[] getCheckRowKey(byte[] rowKeyIn) {
-
+        throw new NotSupportedException("Not Implemented");
+    /*
         int position = 0;
         multiFieldDecoder.set(rowKeyIn);
         for (int i = 0; i < formatIds.length; i++) {
@@ -237,6 +218,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         byte[] checkRowKey = new byte[lastKeyIndex + 1];
         System.arraycopy(rowKeyIn, 0, checkRowKey, 0, lastKeyIndex + 1);
         return checkRowKey;
+        */
     }
 
 }

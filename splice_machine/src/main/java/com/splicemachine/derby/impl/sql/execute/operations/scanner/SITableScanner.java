@@ -19,17 +19,13 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.SpliceLogUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 
@@ -61,7 +57,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private boolean isKeyed = true;
     private int[] keyDecodingMap;
     private FormatableBitSet accessedKeys;
-    private SIFilterFactory filterFactory;
     private final Counter outputBytesCounter;
     private long demarcationPoint;
     private DataValueDescriptor optionalProbeValue;
@@ -79,8 +74,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              FormatableBitSet accessedPks,
                              boolean reuseRowLocation,
                              String indexName,
-                             final String tableVersion,
-                             SIFilterFactory filterFactory) {
+                             final String tableVersion) {
         assert template!=null:"Template cannot be null into a scanner";
         this.region = region;
         regionId.set(region.getRegionName());
@@ -113,14 +107,15 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              boolean reuseRowLocation,
                              String indexName,
                              final String tableVersion,
-                             SIFilterFactory filterFactory,
                              final long demarcationPoint) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory);
+                tableVersion);
         this.demarcationPoint = demarcationPoint;
+        /*
         if(filterFactory==null)
             this.filterFactory = createFilterFactory(txn, demarcationPoint);
+            */
     }
 
     protected SITableScanner(RecordScanner scanner,
@@ -137,12 +132,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              boolean reuseRowLocation,
                              String indexName,
                              final String tableVersion,
-                             SIFilterFactory filterFactory,
                              final long demarcationPoint,
                              DataValueDescriptor optionalProbeValue) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory,demarcationPoint);
+                tableVersion,demarcationPoint);
         this.optionalProbeValue = optionalProbeValue;
     }
 
@@ -155,37 +149,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     public ExecRow next() throws StandardException, IOException {
             template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
             Record record =regionScanner.next();
-        return record.getData();
+        throw new UnsupportedOperationException("Not Implemented");
+//        return record.getData();
     }
 
     public long getBytesOutput(){
         return outputBytesCounter.getTotal();
-    }
-
-    private void measureOutputSize(List<DataCell> keyValues){
-        if(outputBytesCounter.isActive()){
-            for(DataCell cell:keyValues){
-                outputBytesCounter.add(cell.encodedLength());
-            }
-        }
-
-    }
-
-    public void recordFieldLengths(int[] columnLengths){
-        if(rowDecodingMap!=null) {
-            for (int i = 0; i < rowDecodingMap.length; i++) {
-                int pos = rowDecodingMap[i];
-                if(pos<0) continue;
-                columnLengths[pos] = accumulator.getCurrentLength(i);
-            }
-        }
-        if(keyDecodingMap!=null) {
-            for (int i = 0; i < keyDecodingMap.length; i++) {
-                int pos = keyDecodingMap[i];
-                if(pos<0) continue;
-                columnLengths[pos] = keyAccumulator.getCurrentLength(i);
-            }
-        }
     }
 
     public RowLocation getCurrentRowLocation(){
@@ -223,48 +192,5 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         return regionScanner;
     }
 
-    protected void setRowLocation(DataCell sampleKv) throws StandardException {
-        if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
-            /*
-			 * If indexName !=null, then we are currently scanning an index,
-			 * so our RowLocation should point to the main table, and not to the
-			 * index (that we're actually scanning)
-			 */
-            if (template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
-                currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
-            } else {
-                try {
-                    if (entryDecoder == null)
-                        entryDecoder = new EntryDecoder();
-                    entryDecoder.set(sampleKv.valueArray(),sampleKv.valueOffset(),sampleKv.valueLength());
-
-                    MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-                    byte[] bytes = decoder.decodeNextBytesUnsorted();
-                    if (reuseRowLocation) {
-                        slice.set(bytes);
-                    } else {
-                        slice = ByteSlice.wrap(bytes);
-                    }
-                    if(currentRowLocation==null || !reuseRowLocation)
-                        currentRowLocation = new HBaseRowLocation(slice);
-                    else
-                        currentRowLocation.setValue(slice);
-                }
-                catch (IOException e) {
-                    throw StandardException.newException(e.getMessage());
-                }
-            }
-        } else {
-            if (reuseRowLocation) {
-                slice.set(sampleKv.keyArray(),sampleKv.keyOffset(),sampleKv.keyLength());
-            } else {
-                slice = ByteSlice.wrap(sampleKv.keyArray(),sampleKv.keyOffset(),sampleKv.keyLength());
-            }
-            if(currentRowLocation==null || !reuseRowLocation)
-                currentRowLocation = new HBaseRowLocation(slice);
-            else
-                currentRowLocation.setValue(slice);
-        }
-    }
 
 }

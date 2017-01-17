@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.api.txn.Txn;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
@@ -52,18 +53,14 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     private final int numBlocks;
     private final ExecRow outputTemplate;
     private final long mainTableConglomId;
-    private final byte[] predicateFilterBytes;
-    private final KeyDecoder keyDecoder;
     private final int[] indexCols;
-    private final KeyHashDecoder rowDecoder;
     private final Txn txn;
     private final TxnOperationFactory operationFactory;
     private final PartitionFactory tableFactory;
 
-    private List<Pair<LocatedRow, DataResult>> currentResults;
-    private List<Future<List<Pair<LocatedRow, DataResult>>>> resultFutures;
+    private List<Pair<LocatedRow, Record>> currentResults;
+    private List<Future<List<Pair<LocatedRow, Record>>>> resultFutures;
     private boolean populated=false;
-    private EntryDecoder entryDecoder;
     protected Iterator<LocatedRow> sourceIterator;
 
     private LocatedRow heapRowToReturn=new LocatedRow();
@@ -76,9 +73,6 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
                    int lookupBatchSize,
                    int numConcurrentLookups,
                    long mainTableConglomId,
-                   byte[] predicateFilterBytes,
-                   KeyHashDecoder keyDecoder,
-                   KeyHashDecoder rowDecoder,
                    int[] indexCols,
                    TxnOperationFactory operationFactory,
                    PartitionFactory tableFactory){
@@ -89,20 +83,13 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         batchSize=lookupBatchSize;
         this.numBlocks=numConcurrentLookups;
         this.mainTableConglomId=mainTableConglomId;
-        this.predicateFilterBytes=predicateFilterBytes;
         this.tableFactory=tableFactory;
-        this.keyDecoder=new KeyDecoder(keyDecoder,0);
-        this.rowDecoder=rowDecoder;
         this.indexCols=indexCols;
         this.resultFutures=Lists.newArrayListWithCapacity(numConcurrentLookups);
         this.operationFactory = operationFactory;
     }
 
     public void close() throws IOException{
-        rowDecoder.close();
-        keyDecoder.close();
-        if(entryDecoder!=null)
-            entryDecoder.close();
         lookupService.shutdownNow();
     }
 
@@ -130,12 +117,10 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
                 return false; // No More Data
             }
 
-            Pair<LocatedRow, DataResult> next=currentResults.remove(0);
+            Pair<LocatedRow, Record> next=currentResults.remove(0);
             //merge the results
             LocatedRow nextScannedRow=next.getFirst();
-            DataResult nextFetchedData=next.getSecond();
-            if(entryDecoder==null)
-                entryDecoder=new EntryDecoder();
+            Record nextFetchedData=next.getSecond();
             for(DataCell kv : nextFetchedData){
                 keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow.getRow());
                 rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
@@ -184,7 +169,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     private void waitForBlockCompletion() throws StandardException, IOException{
         //wait for the first future to return correctly or error-out
         try{
-            Future<List<Pair<LocatedRow, DataResult>>> future=resultFutures.remove(0);
+            Future<List<Pair<LocatedRow, Record>>> future=resultFutures.remove(0);
             currentResults=future.get();
         }catch(InterruptedException e){
             throw new InterruptedIOException(e.getMessage());
@@ -195,7 +180,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         }
     }
 
-    public class Lookup implements Callable<List<Pair<LocatedRow, DataResult>>>{
+    public class Lookup implements Callable<List<Pair<LocatedRow, Record>>>{
         private final List<LocatedRow> sourceRows;
 
         public Lookup(List<LocatedRow> sourceRows){
@@ -203,23 +188,20 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         }
 
         @Override
-        public List<Pair<LocatedRow, DataResult>> call() throws Exception{
+        public List<Pair<LocatedRow, Record>> call() throws Exception{
             List<byte[]> rowKeys = new ArrayList<>(sourceRows.size());
             for(LocatedRow sourceRow : sourceRows){
                 byte[] row=sourceRow.getRowLocation().getBytes();
                 rowKeys.add(row);
             }
-            Attributable attributable = new MapAttributes();
-            attributable.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
-            operationFactory.encodeForReads(attributable,txn,false);
 
             try(Partition table = tableFactory.getTable(Long.toString(mainTableConglomId))){
-                Iterator<DataResult> results=table.batchGet(attributable,rowKeys);
-                List<Pair<LocatedRow, DataResult>> locations=Lists.newArrayListWithCapacity(sourceRows.size());
+                Iterator<Record> results=table.batchGet(rowKeys,txn, IsolationLevel.SNAPSHOT_ISOLATION);
+                List<Pair<LocatedRow, Record>> locations=Lists.newArrayListWithCapacity(sourceRows.size());
                 for(LocatedRow sourceRow : sourceRows){
                     if(!results.hasNext())
                         throw new IllegalStateException("Programmer error: incompatible iterator sizes!");
-                    locations.add(Pair.newPair(sourceRow,results.next().getClone()));
+                    locations.add(Pair.newPair(sourceRow,results.next()));
                 }
                 return locations;
             }

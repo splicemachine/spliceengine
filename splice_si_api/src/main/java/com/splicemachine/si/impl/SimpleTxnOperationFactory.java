@@ -18,6 +18,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.access.impl.data.UnsafeRecord;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
@@ -25,6 +26,7 @@ import com.splicemachine.storage.Record;
 import com.splicemachine.storage.RecordScan;
 import com.splicemachine.storage.RecordType;
 
+import javax.ws.rs.NotSupportedException;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -73,14 +75,28 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
 
     @Override
     public Record newRecord(Txn txn, byte[] key, int[] fields, ExecRow data) throws StandardException{
-        Record record = newRecord(txn,key);
-        record.setData(fields,data);
-        return null;
+        throw new NotSupportedException("Not Implemented");
+
+    }
+
+    @Override
+    public Record newRecord(Txn txn, byte[] key, int[] fields, DataValueDescriptor[] data) throws StandardException{
+        throw new NotSupportedException("Not Implemented");
     }
 
     @Override
     public Record newRecord(Txn txn, byte[] keyObject, byte[] keyOffset, byte[] keyLength, int[] fields, ExecRow data) {
-        return null;
+        throw new NotSupportedException("Not Implemented");
+    }
+
+    @Override
+    public Record newRecord(Txn txn, byte[] key, ExecRow data) throws StandardException {
+        throw new NotSupportedException("Not Implemented");
+    }
+
+    @Override
+    public Record newRecord(Txn txn, byte[] key, DataValueDescriptor[] data) throws StandardException {
+        throw new NotSupportedException("Not Implemented");
     }
 
     @Override

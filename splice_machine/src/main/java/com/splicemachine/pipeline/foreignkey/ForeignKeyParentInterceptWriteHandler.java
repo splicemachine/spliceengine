@@ -22,6 +22,7 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.storage.*;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.WriteContext;
@@ -139,59 +140,23 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         private boolean hasReferences(Long indexConglomerateId, Partition table, Record kvPair, WriteContext ctx) throws IOException {
         byte[] startKey = kvPair.getKey();
         //make sure this is a transactional scan
-        RecordScan scan = txnOperationFactory.newDataScan(null); // Non-Transactional, will resolve on this side
+        RecordScan scan = txnOperationFactory.newDataScan(); // Non-Transactional, will resolve on this side
         scan =scan.startKey(startKey);
         byte[] endKey = Bytes.unsignedCopyAndIncrement(startKey);//new byte[startKey.length+1];
         scan = scan.stopKey(endKey);
-
-            SimpleTxnFilter readUncommittedFilter;
-            SimpleTxnFilter readCommittedFilter;
-            if (ctx.getTxn() instanceof ActiveWriteTxn) {
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-
-            }
-            else if (ctx.getTxn() instanceof WritableTxn) {
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-            }
-            else
-                throw new IOException("invalidTxn");
-        try(DataScanner scanner = table.openScanner(scan)) {
-            List<DataCell> next;
-            while ((next = scanner.next(-1)) != null && !next.isEmpty()) {
-                readCommittedFilter.reset();
-                readUncommittedFilter.reset();
-                if (hasData(next, readCommittedFilter) || hasData(next, readUncommittedFilter))
+            Record next = null;
+            try(RecordScanner scanner = table.openScanner(scan,ctx.getTxn(), IsolationLevel.READ_COMMITTED)) {
+                while ((next = scanner.next()) != null) {
                     return true;
+                }
+            }
+            try(RecordScanner scanner = table.openScanner(scan,ctx.getTxn(), IsolationLevel.READ_UNCOMMITTED)) {
+                while ((next = scanner.next()) != null) {
+                    return true;
+                }
             }
             return false;
-        }catch (Exception e) {
-            throw new IOException(e);
-        }
     }
-
-    private boolean hasData(List<DataCell> next, SimpleTxnFilter txnFilter) throws IOException {
-        int cellCount = next.size();
-        for(DataCell dc:next){
-            DataFilter.ReturnCode rC = txnFilter.filterCell(dc);
-            switch(rC){
-                case NEXT_ROW:
-                    return false; //the entire row is filtered
-                case SKIP:
-                case NEXT_COL:
-                case SEEK:
-                    cellCount--; //the cell is filtered
-                    break;
-                case INCLUDE:
-                case INCLUDE_AND_NEXT_COL: //the cell is included
-                default:
-                    break;
-            }
-        }
-        return cellCount>0;
-    }
-
     /**
      *
      * TODO JL

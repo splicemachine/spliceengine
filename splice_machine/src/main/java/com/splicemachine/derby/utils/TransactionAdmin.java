@@ -41,6 +41,7 @@ import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.ByteSlice;
 
+import javax.ws.rs.NotSupportedException;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -58,7 +59,8 @@ import java.util.List;
 public class TransactionAdmin{
 
     public static void killAllActiveTransactions(long maxTxnId) throws SQLException{
-        ActiveTransactionReader reader=new ActiveTransactionReader(0l,maxTxnId,null);
+        throw new UnsupportedOperationException("not implemented");
+        /*ActiveTransactionReader reader=new ActiveTransactionReader(0l,maxTxnId,null);
         try(Stream<Txn> activeTransactions=reader.getActiveTransactions()){
             final TxnLifecycleManager tc=SIDriver.driver().lifecycleManager();
             Txn next;
@@ -68,6 +70,7 @@ public class TransactionAdmin{
         }catch(StreamException|IOException e){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
+        */
     }
 
     public static void killTransaction(long txnId) throws SQLException{
@@ -106,29 +109,7 @@ public class TransactionAdmin{
     }
 
     public static void SYSCS_GET_ACTIVE_TRANSACTION_IDS(ResultSet[] resultSets) throws SQLException{
-        ActiveTransactionReader reader=new ActiveTransactionReader(0l,Long.MAX_VALUE,null);
-        try{
-            ExecRow template=toRow(CURRENT_TXN_ID_COLUMNS);
-            List<ExecRow> results=Lists.newArrayList();
-            try(Stream<TxnView> activeTxns=reader.getActiveTransactions()){
-                TxnView n;
-                while((n=activeTxns.next())!=null){
-                    template.getColumn(1).setValue(n.getTxnId());
-                    results.add(template.getClone());
-                }
-            }
-
-            EmbedConnection defaultConn=(EmbedConnection)SpliceAdmin.getDefaultConn();
-            Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
-            IteratorNoPutResultSet rs=new IteratorNoPutResultSet(results,CURRENT_TXN_ID_COLUMNS,lastActivation);
-            rs.openCore();
-
-            resultSets[0]=new EmbedResultSet40(defaultConn,rs,false,null,true);
-        }catch(StreamException|IOException e){
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }catch(StandardException e){
-            throw PublicAPI.wrapStandardException(e);
-        }
+       throw new NotSupportedException("Not implemented");
     }
 
 
@@ -243,7 +224,7 @@ public class TransactionAdmin{
 
         Txn childTxn;
         try{
-            childTxn=SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn,Bytes.toBytes(spliceTableName));
+            childTxn=SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn);
         }catch(IOException e){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }

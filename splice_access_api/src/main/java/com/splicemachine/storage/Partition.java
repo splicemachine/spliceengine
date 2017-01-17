@@ -69,6 +69,8 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
     // JL TODO
     long increment(byte[] rowKey, long amount) throws IOException;
 
+    long getCurrentIncrement(byte[] rowKey) throws IOException;
+
     boolean isClosed();
 
     boolean isClosing();

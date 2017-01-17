@@ -4,9 +4,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.storage.Record;
 import com.splicemachine.storage.RecordType;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.IntArrays;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
@@ -212,11 +214,16 @@ public class UnsafeRecord implements Record<byte[]> {
      */
     @Override
     public void setData(int[] columns, ExecRow data) throws StandardException {
-        assert columns.length == data.nColumns():"Columns Passed have mismatch with data passed";
-        int columnCount = isActiveRecord?data.getNonNullCount():columns.length;
+        DataValueDescriptor[] dvds = data.getRowArray();
+        setData(columns,dvds);
+    }
+
+    @Override
+    public void setData(int[] columns, DataValueDescriptor[] dvds) throws StandardException {
+        assert columns.length == dvds.length:"Columns Passed have mismatch with data passed";
+        int columnCount = isActiveRecord? ValueRow.nonNullCountFromArray(dvds):columns.length;
         BufferHolder bufferHolder = new BufferHolder(new UnsafeRow(columnCount));
         UnsafeRowWriter writer = new UnsafeRowWriter(bufferHolder,columnCount);
-        DataValueDescriptor[] dvds = data.getRowArray();
         int bitSetWidth = UnsafeRecordUtils.calculateBitSetWidthInBytes(columnCount);
         writer.reset();
         int j = 0;
@@ -230,6 +237,12 @@ public class UnsafeRecord implements Record<byte[]> {
         Platform.putInt(baseObject,baseOffset+ COLS_BS_INC +bitSetWidth,bufferHolder.cursor);
         Platform.copyMemory(bufferHolder.buffer,16,baseObject,
                 baseOffset+UNSAFE_INC+bitSetWidth,bufferHolder.cursor);
+
+    }
+
+    @Override
+    public void setData(DataValueDescriptor[] dvds) throws StandardException {
+        setData(IntArrays.count(dvds.length),dvds);
     }
 
     @Override
@@ -482,5 +495,15 @@ public class UnsafeRecord implements Record<byte[]> {
 //        mutations.add(new Record(kvPair.getKey(), kvPair.getValue(), RecordType.DELETE));
 
         return null;
+    }
+
+    @Override
+    public Record createIndexDelete(int[] mainColToIndexPosMap, boolean uniqueWithDuplicateNulls, boolean[] descending, ExecRow indexRow) throws StandardException {
+        throw new UnsupportedOperationException("not implemented yet");
+    }
+
+    @Override
+    public Record createIndexInsert(int[] mainColToIndexPosMap, boolean uniqueWithDuplicateNulls, boolean[] descending, ExecRow indexRow) throws StandardException {
+        throw new UnsupportedOperationException("not implemented yet");
     }
 }

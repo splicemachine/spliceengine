@@ -25,6 +25,8 @@ public class SimpleTxnImpl implements Txn {
     private String userId;
     private String statementId;
     private boolean persisted = false;
+    private boolean readOnly = true;
+
 
     public SimpleTxnImpl() {
 
@@ -215,4 +217,10 @@ public class SimpleTxnImpl implements Txn {
     public void resolveCollapsibleTxn(Record record, Txn activeTxn, Txn txnToResolve) {
 
     }
+
+    @Override
+    public boolean isReadOnly() {
+        return isReadOnly();
+    }
+
 }

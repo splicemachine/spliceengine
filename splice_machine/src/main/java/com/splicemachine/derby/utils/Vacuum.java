@@ -118,7 +118,7 @@ public class Vacuum{
         EmbedConnection embedConnection = (EmbedConnection)connection;
 
         TransactionController transactionExecute = embedConnection.getLanguageConnection().getTransactionExecute();
-        TxnView activeStateTxn = ((SpliceTransactionManager) transactionExecute).getActiveStateTxn();
+        Txn activeStateTxn = ((SpliceTransactionManager) transactionExecute).getActiveStateTxn();
 
         //wait for all transactions prior to us to complete, but only wait for so long
         try{
@@ -135,6 +135,7 @@ public class Vacuum{
     }
 
     private long waitForConcurrentTransactions(Txn txn) throws StandardException {
+        /*
         ActiveTransactionReader reader = new ActiveTransactionReader(0l,txn.getTxnId(),null);
         SConfiguration config = EngineDriver.driver().getConfiguration();
         long timeRemaining = config.getDdlDrainingMaximumWait();
@@ -174,6 +175,8 @@ public class Vacuum{
         }
 
         return activeTxn;
+        */
+        throw new UnsupportedOperationException();
     } // end waitForConcurrentTransactions
 
     public void shutdown() throws SQLException {

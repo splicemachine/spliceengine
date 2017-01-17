@@ -66,22 +66,9 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
                                                          int[] targetKeyOrdering,
                                                          int[] columnMapping,
                                                          ExecRow srcRow,
-                                                         ExecRow templateRow,
-                                                         KeyEncoder keyEncoder) {
-
-        // Key decoder
-        KeyHashDecoder keyDecoder;
-        if(sourceKeyOrdering!=null && sourceKeyOrdering.length>0){
-            // We'll need src table key column order when we have keys (PK, unique) on src table
-            // Must use dense encodings in the key serializer (sparse = false)
-            DescriptorSerializer[] denseSerializers =
-                VersionedSerializers.forVersion(tableVersion, false).getSerializers(srcRow);
-            keyDecoder = BareKeyHash.decoder(sourceKeyOrdering, null, denseSerializers);
-        }else{
-            // Just use the no-op key decoder for src rows when no key in src table
-            keyDecoder = NoOpDataHash.instance().getDecoder();
-        }
-
+                                                         ExecRow templateRow) {
+        throw new UnsupportedOperationException("Not Implemented Yet");
+        /*
         // Row decoder
         DescriptorSerializer[] oldSerializers =
             VersionedSerializers.forVersion(tableVersion, true).getSerializers(srcRow);
@@ -118,7 +105,7 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
 
         // Create and return the row transformer
         return new AlterTableRowTransformer(srcRow, columnMapping, templateRow, keyDecoder, rowDecoder, rowEncoder);
-
+    */
     }
 
 

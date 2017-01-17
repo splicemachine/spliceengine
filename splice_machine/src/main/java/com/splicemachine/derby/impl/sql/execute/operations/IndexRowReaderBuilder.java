@@ -181,25 +181,6 @@ public class IndexRowReaderBuilder implements Externalizable{
         for(int i=mainTableAccessedRowColumns.anySetBit();i>=0;i=mainTableAccessedRowColumns.anySetBit(i)){
             rowFieldsToReturn.set(i);
         }
-        EntryPredicateFilter epf=new EntryPredicateFilter(rowFieldsToReturn);
-        byte[] epfBytes=epf.toBytes();
-
-        DescriptorSerializer[] templateSerializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(outputTemplate);
-        KeyHashDecoder keyDecoder;
-        if(mainTableKeyColumnEncodingOrder==null || mainTableAccessedKeyColumns==null || mainTableAccessedKeyColumns.getNumBitsSet()<=0)
-            keyDecoder=NoOpKeyHashDecoder.INSTANCE;
-        else{
-            keyDecoder=SkippingKeyDecoder.decoder(VersionedSerializers.typesForVersion(tableVersion),
-                    templateSerializers,
-                    mainTableKeyColumnEncodingOrder,
-                    mainTableKeyColumnTypes,
-                    mainTableKeyColumnSortOrder,
-                    mainTableKeyDecodingMap,
-                    mainTableAccessedKeyColumns);
-        }
-
-        KeyHashDecoder rowDecoder=new EntryDataDecoder(mainTableRowDecodingMap,null,templateSerializers);
-
         SIDriver driver=SIDriver.driver();
         TxnOperationFactory txnOperationFactory =driver.getOperationFactory();
         PartitionFactory tableFactory = driver.getTableFactory();
@@ -210,9 +191,6 @@ public class IndexRowReaderBuilder implements Externalizable{
                 lookupBatchSize,
                 Math.max(numConcurrentLookups,0),
                 mainTableConglomId,
-                epfBytes,
-                keyDecoder,
-                rowDecoder,
                 indexCols,
                 txnOperationFactory,
                 tableFactory);

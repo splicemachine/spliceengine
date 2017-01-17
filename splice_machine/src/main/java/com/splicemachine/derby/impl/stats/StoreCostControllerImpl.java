@@ -308,7 +308,7 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     public static Txn getTxn(Txn wrapperTxn) throws ExecutionException {
         try {
-            return SIDriver.driver().lifecycleManager().beginChildTransaction(wrapperTxn, IsolationLevel.READ_UNCOMMITTED,null);
+            return SIDriver.driver().lifecycleManager().beginChildTransaction(wrapperTxn);
         } catch (IOException e) {
             throw new ExecutionException(e);
         }

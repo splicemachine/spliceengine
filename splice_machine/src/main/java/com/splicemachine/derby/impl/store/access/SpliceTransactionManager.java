@@ -1229,12 +1229,11 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public void elevate(String tableName) throws StandardException {
+    public void elevate() throws StandardException {
         assert rawtran instanceof SpliceTransaction: "Programmer error: cannot elevate a transaction view!";
-        assert tableName !=null : "Programmer error: cannot elevate a transaction without specifying a label";
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "Before elevate: txn=%s, tableName=%s, nestedTxnStack=\n%s", getRawTransaction(), tableName, getNestedTransactionStackString());
-        ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(tableName));
+        ((SpliceTransaction)rawtran).elevate();
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "After elevate: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
     }
@@ -1579,7 +1578,7 @@ public class SpliceTransactionManager implements XATransactionController,
 
     private Transaction getChildTransactionFromView(boolean readOnly,ContextManager cm,SpliceTransactionView spliceTxn) throws StandardException{
         String txnName;
-        TxnView txn = spliceTxn.getActiveStateTxn();
+        Txn txn = spliceTxn.getActiveStateTxn();
         if(!readOnly){
             if(!txn.allowsWrites())
                 throw StandardException.newException(SQLState.XACT_INTERNAL_TRANSACTION_EXCEPTION,"Unable to create a writable child of a read only view");
@@ -1591,13 +1590,16 @@ public class SpliceTransactionManager implements XATransactionController,
         return accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
     }
 
-    private void elevate(Txn knownChild,String tableName) throws StandardException{
+    private void elevate(Txn knownChild) throws StandardException{
         /*
          * Elevate this transaction, then set the active state transaction as the parent on the known child
          */
-        elevate(tableName);
-        if(knownChild instanceof ReadOnlyTxn)
+
+            throw new UnsupportedOperationException("Need to implement");
+        /*        elevate();
+        if(knownChild.isReadOnly())
             ((ReadOnlyTxn)knownChild).parentWritable(getActiveStateTxn());
+            */
     }
 
     /**
@@ -1724,7 +1726,7 @@ public class SpliceTransactionManager implements XATransactionController,
     	}
 
     	StringBuffer sb = new StringBuffer();
-    	sb.append(Txn.ROOT_TRANSACTION);
+    	sb.append("Root");
     	sb.append("\n");
     	int count = 2;
     	while (!txnStack.empty()) {

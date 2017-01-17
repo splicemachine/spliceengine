@@ -26,16 +26,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
-
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
-import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.TxnSupplier;
 
 /**
@@ -58,8 +55,7 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
     private final DDLWatchRefresher refresher; //= new DDLWatchRefresher(checker,new SystemClock(),MAXIMUM_DDL_WAIT_MS);
     private final long refreshWaitMs;
 
-    public AsynchronousDDLWatcher(TransactionReadController txnController,
-                                  Clock clock,
+    public AsynchronousDDLWatcher(Clock clock,
                                   SConfiguration config,
                                   DDLWatchChecker ddlWatchChecker,
                                   SqlExceptionFactory exceptionFactory,
@@ -68,7 +64,6 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
         this.refreshWaitMs = config.getDdlRefreshInterval();
         this.checker = ddlWatchChecker;
         this.refresher = new DDLWatchRefresher(checker,
-                txnController,
                 clock,
                 exceptionFactory,
                 maxDdlWait,txnSupplier );

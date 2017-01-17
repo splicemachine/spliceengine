@@ -418,4 +418,9 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	public int getNonNullCount() throws StandardException {
 		return valueRow.getNonNullCount();
 	}
+
+	@Override
+	public byte[] generateRowKey(int[] columns) throws StandardException {
+		return valueRow.generateRowKey(columns);
+	}
 }

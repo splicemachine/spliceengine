@@ -95,7 +95,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     descriptor.setCollectStatistics(false);
                     LanguageConnectionContext languageConnection=conn.getLanguageConnection();
                     TransactionController transactionCompile=languageConnection.getTransactionCompile();
-                    transactionCompile.elevate("dictionary");
+                    transactionCompile.elevate();
                     languageConnection.getDataDictionary().setCollectStats(transactionCompile, td.getUUID(), columnName, false);
                     return;
                 }
@@ -132,7 +132,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     descriptor.setCollectStatistics(true);
                     LanguageConnectionContext languageConnection=conn.getLanguageConnection();
                     TransactionController transactionCompile=languageConnection.getTransactionCompile();
-                    transactionCompile.elevate("dictionary");
+                    transactionCompile.elevate();
                     languageConnection.getDataDictionary().setCollectStats(transactionCompile, td.getUUID(), columnName, true);
                     return;
                 }
@@ -180,7 +180,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
             authorize(tds);
             TransactionController transactionExecute = lcc.getTransactionExecute();
-            transactionExecute.elevate("statistics");
+            transactionExecute.elevate();
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc,tds);
 //            ExecRow templateOutputRow = buildOutputTemplateRow();
@@ -300,7 +300,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
             authorize(tds);
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
-            tc.elevate("statistics");
+            tc.elevate();
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc,tds);
             SpliceLogUtils.debug(LOG, "Done dropping statistics for schema %s.", schema);
@@ -318,7 +318,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             table = EngineUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
-            tc.elevate("statistics");
+            tc.elevate();
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
             List<TableDescriptor> tds = Collections.singletonList(tableDesc);
             dropTableStatistics(tds,dd,tc);
@@ -371,8 +371,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
     private static RecordScan createScan (Txn txn) {
-        RecordScan scan=SIDriver.driver().getOperationFactory().newDataScan(txn);
-        scan.returnAllVersions(); //make sure that we read all versions of the data
+        RecordScan scan=SIDriver.driver().getOperationFactory().newDataScan();
         return scan.startKey(new byte[0]).stopKey(new byte[0]);
     }
 

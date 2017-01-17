@@ -305,8 +305,6 @@ public abstract class ScanOperation extends SpliceBaseOperation{
      */
     public static void deSiify(RecordScan scan){
         //exclude this from SI treatment, since we're doing it internally
-        scan.addAttribute(SIConstants.SI_NEEDED,null);
-        scan.returnAllVersions();
     }
 
     protected RecordScan getScan() throws StandardException{
