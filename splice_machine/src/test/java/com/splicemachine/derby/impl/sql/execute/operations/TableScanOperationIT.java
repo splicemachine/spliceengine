@@ -58,6 +58,7 @@ public class TableScanOperationIT{
     private static SpliceTableWatcher spliceTableWatcher8=new SpliceTableWatcher("CHICKEN3",SCHEMA,"(c1 timestamp, c2 date, c3 time, primary key (c3))");
     private static SpliceTableWatcher spliceTableWatcher9=new SpliceTableWatcher("NUMBERS",SCHEMA,"(i int, l bigint, s smallint, d double precision, r real, dc decimal(10,2), PRIMARY KEY(i))");
     private static SpliceTableWatcher spliceTableWatcher10=new SpliceTableWatcher("CONSUMER_DATA",SCHEMA,"(SEQUENCE_ID bigint NOT NULL,CONSUMER_ID bigint NOT NULL,CONTRIBUTOR_ID varchar(128) NOT NULL,WINDOW_KEY_ADDRESS varchar(128) NOT NULL,ADDRESS_HASH varchar(128) NOT NULL,PRIMARY KEY (WINDOW_KEY_ADDRESS, CONSUMER_ID, CONTRIBUTOR_ID))");
+    private static SpliceTableWatcher spliceTableWatcher11=new SpliceTableWatcher("TINYINTTEST",SCHEMA,"(col1 tinyint, col2 tinyint, primary key(col2))");
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -71,6 +72,7 @@ public class TableScanOperationIT{
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
             .around(spliceTableWatcher10)
+            .around(spliceTableWatcher11)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description){
@@ -91,6 +93,10 @@ public class TableScanOperationIT{
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",SCHEMA,"CHICKEN2"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",SCHEMA,"CHICKEN3"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,1,'contributor_id','window_key_address','address_hash')",SCHEMA,"CONSUMER_DATA"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,1)",SCHEMA,"TINYINTTEST"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (2,2)",SCHEMA,"TINYINTTEST"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,3)",SCHEMA,"TINYINTTEST"));
+
                     }catch(Exception e){
                         throw new RuntimeException(e);
                     }finally{
@@ -911,6 +917,15 @@ public class TableScanOperationIT{
     public void testDuplicatePredicates () throws Exception {
         try(Statement s=conn.createStatement()){
             try(ResultSet rs=s.executeQuery(format("select * from %s where sd=1 and (1!=0 or sa='j') and (1!=0 and sa='i')",spliceTableWatcher))){
+                assertTrue("Incorrect number of rows returned!",rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testTinyInt () throws Exception {
+        try(Statement s=conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(format("select * from %s where col1=1",spliceTableWatcher11))){
                 assertTrue("Incorrect number of rows returned!",rs.next());
             }
         }
