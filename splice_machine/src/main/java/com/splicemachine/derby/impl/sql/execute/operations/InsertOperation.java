@@ -340,7 +340,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .txn(txn)
                     .build();
             return writer.write();
-        }catch (Exception e) {
+        }catch (IOException e) {
             throw StandardException.plainWrapException(e);
         }finally{
             operationContext.popScope();
