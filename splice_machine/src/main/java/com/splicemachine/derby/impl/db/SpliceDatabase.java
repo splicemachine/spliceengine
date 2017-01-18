@@ -419,7 +419,7 @@ public class SpliceDatabase extends BasicDatabase{
         ((SpliceAccessManager) af).setDatabase(this);
         if(create){
             TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
-            ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate(Bytes.toBytes("boot"));
+            ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate();
         }
 
     }

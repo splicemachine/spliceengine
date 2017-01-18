@@ -427,9 +427,12 @@ public class ActivationSerializer {
                     int read =in.read(bytes, 0, len);
                     assert read==len:"Did not read entire length!";
                     ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+                    throw new UnsupportedOperationException("not implemented");
+                    /*
                     UDTInputStream inputStream = new UDTInputStream(input, classFactory);
                     dvd = (DataValueDescriptor)inputStream.readObject();
                     inputStream.close();
+                    */
                 }
 
             } else {

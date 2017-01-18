@@ -29,7 +29,6 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.storage.*;
@@ -200,7 +199,7 @@ public abstract class SpliceController implements ConglomerateController{
 
 
     protected void elevateTransaction() throws StandardException{
-        ((SpliceTransaction)trans).elevate(Bytes.toBytes(Long.toString(openSpliceConglomerate.getConglomerate().getContainerid())));
+        ((SpliceTransaction)trans).elevate();
     }
 
     public SpliceConglomerate getConglomerate(){

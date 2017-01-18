@@ -31,18 +31,18 @@ import java.util.Map;
  */
 class ByteBufferMappedJoinTable implements JoinTable{
     private final Map<ByteBuffer, List<ExecRow>> table;
-    private final KeyEncoder outerKeyEncoder;
+    private int[] outerHashKeys;
+    private ExecRow outerTemplateRow;
 
     public ByteBufferMappedJoinTable(Map<ByteBuffer, List<ExecRow>> table,int[] outerHashkeys, ExecRow outerTemplateRow){
         this.table=table;
-        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(outerTemplateRow);
-        this.outerKeyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
-                BareKeyHash.encoder(outerHashkeys,null,serializers),NoOpPostfix.INSTANCE);
+        this.outerHashKeys = outerHashkeys;
+        this.outerTemplateRow = outerTemplateRow;
     }
 
     @Override
     public Iterator<ExecRow> fetchInner(ExecRow outer) throws IOException, StandardException{
-        byte[] outerKey=outerKeyEncoder.getKey(outer);
+        byte[] outerKey=outer.generateRowKey(outerHashKeys);
         assert outerKey!=null: "Programmer error: outer row does not have row key";
         List<ExecRow> rows = table.get(ByteBuffer.wrap(outerKey));
         if(rows==null)

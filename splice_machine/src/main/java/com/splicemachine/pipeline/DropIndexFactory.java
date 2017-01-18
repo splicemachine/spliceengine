@@ -72,8 +72,10 @@ class DropIndexFactory implements LocalWriteFactory{
          * 3. If dropTxn is still active, find the youngest common ancestor(YCA) of dropTxn and ctx.getTxn().
          * 4. If YCA !=ROOT, then do not perform the write, otherwise, perform the write
          */
-
+        throw new UnsupportedOperationException("not implemented");
+/*
         if (!ctx.getTxn().canSee(dropTxn)) delegate.addTo(ctx, keepState, expectedWrites);
+        */
     }
 
     public void setDelegate(LocalWriteFactory delegate) {

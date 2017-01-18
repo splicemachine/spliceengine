@@ -212,5 +212,4 @@ public interface Record<K> {
 
     Record cancelToDelete();
 
-
 }

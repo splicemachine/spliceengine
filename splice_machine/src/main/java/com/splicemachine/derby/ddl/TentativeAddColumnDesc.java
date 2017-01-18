@@ -26,7 +26,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -63,13 +62,8 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
     }
 
     @Override
-    public RowTransformer createRowTransformer(KeyEncoder keyEncoder) throws IOException {
-        return create(tableVersion, columnOrdering, columnInfos, keyEncoder);
-    }
-
-    @Override
     public RowTransformer createRowTransformer() throws IOException {
-        return create(tableVersion, columnOrdering, columnInfos, null);
+        return create(tableVersion, columnOrdering, columnInfos);
     }
 
     @Override
@@ -111,8 +105,7 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
 
     private RowTransformer create(String tableVersion,
                                          int[] sourceKeyOrdering,
-                                         ColumnInfo[] columnInfos,
-                                         KeyEncoder keyEncoder) throws IOException {
+                                         ColumnInfo[] columnInfos) throws IOException {
 
         // template rows
         ExecRow srcRow = new ValueRow(columnInfos.length-1);
@@ -144,8 +137,7 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
                                     sourceKeyOrdering,
                                     columnMapping,
                                     srcRow,
-                                    targetRow,
-                                    keyEncoder);
+                                    targetRow);
     }
 
 }

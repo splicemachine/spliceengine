@@ -39,7 +39,7 @@ public class PossibleConflictCheck implements Function<Record[],IntObjectOpenHas
                 Record record = records[i];
                 if (RecordType.INSERT.equals(record.getRecordType()) && !hasConstraintChecker)
                     continue;
-                Record conflictRecord=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(record.getKey()):null;
+                Record conflictRecord=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.get(record.getKey(),null,null):null;
                 if (conflictRecord != null) {
                     if (possibleConflicts == null)
                         possibleConflicts = IntObjectOpenHashMap.newInstance();

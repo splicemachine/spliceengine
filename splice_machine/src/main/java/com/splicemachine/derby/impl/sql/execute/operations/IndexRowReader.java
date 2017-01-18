@@ -109,6 +109,8 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
 
     @Override
     public boolean hasNext(){
+        throw new UnsupportedOperationException("not implemented");
+            /*
         try{
             if(currentResults==null || currentResults.size()<=0)
                 getMoreData();
@@ -121,6 +123,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
             //merge the results
             LocatedRow nextScannedRow=next.getFirst();
             Record nextFetchedData=next.getSecond();
+
             for(DataCell kv : nextFetchedData){
                 keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow.getRow());
                 rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
@@ -132,6 +135,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         }catch(Exception e){
             throw new RuntimeException(e);
         }
+        }*/
     }
 
 

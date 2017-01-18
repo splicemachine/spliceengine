@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.storage.Record;
 import com.splicemachine.storage.RecordScan;
 
@@ -46,4 +47,9 @@ public interface TxnOperationFactory{
     Record newRecord(Txn txn, byte[] keyObject, byte[] keyOffset, byte[] keyLength, int[] fields, ExecRow data) throws StandardException;
     Record newUpdate(Txn txn, byte[] key);
     Record newDelete(Txn txn, byte[] key);
+    DDLFilter newDDLFilter(Txn txn);
+    RecordScan readScan(ObjectInput in);
+    void writeScan(RecordScan scan, ObjectOutput out);
+
+
 }

@@ -650,12 +650,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
         Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
-        TxnView currentTxn = rawTxn.getActiveStateTxn();
+        Txn currentTxn = rawTxn.getActiveStateTxn();
         if(this instanceof DMLWriteOperation) {
-            if (currentTxn instanceof ActiveWriteTxn)
+            if (currentTxn.isReadOnly())
                 return rawTxn.getActiveStateTxn();
             else if (rawTxn instanceof  SpliceTransaction)
-                return ((SpliceTransaction) rawTxn).elevate(((DMLWriteOperation) this).getDestinationTable());
+                return ((SpliceTransaction) rawTxn).elevate();
             else
                 throw new IllegalStateException("Programmer error: " + "cannot elevate transaction");
         }

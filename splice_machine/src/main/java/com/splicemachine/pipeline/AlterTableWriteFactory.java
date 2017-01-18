@@ -16,6 +16,8 @@
 package com.splicemachine.pipeline;
 
 import java.io.IOException;
+
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -24,6 +26,7 @@ import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
 import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 /**
  * The write intercepting side of alter table.<br/>
@@ -46,8 +49,7 @@ public class AlterTableWriteFactory implements LocalWriteFactory{
         if (changeType == DDLMessage.DDLChangeType.DROP_PRIMARY_KEY) {
             return new AlterTableWriteFactory(ddlChange,
                                               new TentativeDropPKConstraintDesc(ddlChange.getTentativeDropPKConstraint(),
-                                                                                exceptionFactory),
-                                              readController);
+                                                                                exceptionFactory));
         } else {
             throw new RuntimeException("Unknown DDLChangeType: "+changeType);
         }
@@ -55,10 +57,14 @@ public class AlterTableWriteFactory implements LocalWriteFactory{
 
     @Override
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        RowTransformer transformer = ddlDescriptor.createRowTransformer();
-        WriteHandler writeHandler = ddlDescriptor.createWriteHandler(transformer);
-        DDLFilter ddlFilter = readController.newDDLFilter(DDLUtils.getLazyTransaction(ddlChange.getTxnId()));
-        ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
+        try {
+            RowTransformer transformer = ddlDescriptor.createRowTransformer();
+            WriteHandler writeHandler = ddlDescriptor.createWriteHandler(transformer);
+            DDLFilter ddlFilter = SIDriver.driver().getOperationFactory().newDDLFilter(DDLUtils.getLazyTransaction(ddlChange.getTxnId()));
+            ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
+        } catch (StandardException se) {
+            throw new IOException(se);
+        }
     }
 
     @Override

@@ -33,6 +33,9 @@ import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TransactionStore;
+import com.splicemachine.si.api.txn.TxnFactory;
+import com.splicemachine.si.api.txn.TxnLocationFactory;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
@@ -78,11 +81,6 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public OperationStatusFactory statusFactory(){
         return siEnv.statusFactory();
-    }
-
-    @Override
-    public TimestampSource timestampSource(){
-        return siEnv.timestampSource();
     }
 
     @Override
@@ -153,5 +151,35 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException {
         return siEnv.fileSystem(path);
+    }
+
+    @Override
+    public TransactionStore txnStore() {
+        return siEnv.txnStore();
+    }
+
+    @Override
+    public TxnFactory txnFactory() {
+        return siEnv.txnFactory();
+    }
+
+    @Override
+    public TimestampSource logicalTimestampSource() {
+        return siEnv.logicalTimestampSource();
+    }
+
+    @Override
+    public TxnLocationFactory txnLocationFactory() {
+        return siEnv.txnLocationFactory();
+    }
+
+    @Override
+    public TimestampSource physicalTimestampSource() {
+        return siEnv.physicalTimestampSource();
+    }
+
+    @Override
+    public TxnSupplier globalTxnCache() {
+        return siEnv.globalTxnCache();
     }
 }

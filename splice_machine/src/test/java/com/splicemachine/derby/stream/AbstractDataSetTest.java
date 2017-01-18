@@ -17,18 +17,13 @@ package com.splicemachine.derby.stream;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.BooleanDataValue;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stream.BaseStreamTest;
 import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.primitives.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
@@ -98,7 +93,7 @@ public abstract class AbstractDataSetTest extends BaseStreamTest implements Seri
         @Override
         public ExecRow call(ExecRow execRow) throws Exception {
             ExecRow clone = execRow.getClone();
-            clone.setColumn(1,TestingDataType.BOOLEAN.getDataValueDescriptor());
+            clone.setColumn(1,new SQLBoolean());
             return clone;
         }
     }
@@ -113,7 +108,7 @@ public abstract class AbstractDataSetTest extends BaseStreamTest implements Seri
         public RowLocation genKey(ExecRow execRow) {
             try {
                 ExecRow clone = execRow.getClone();
-                DataValueDescriptor dvd = TestingDataType.INTEGER.getDataValueDescriptor();
+                DataValueDescriptor dvd = new SQLInteger();
                 dvd.setValue(1);
                 clone.setColumn(1, dvd);
                 return new HBaseRowLocation(Bytes.toBytes(execRow.getColumn(1).getInt()));
@@ -126,7 +121,7 @@ public abstract class AbstractDataSetTest extends BaseStreamTest implements Seri
         public ExecRow genValue(ExecRow execRow) {
             try {
                 ExecRow clone = execRow.getClone();
-                DataValueDescriptor dvd = TestingDataType.INTEGER.getDataValueDescriptor();
+                DataValueDescriptor dvd = new SQLInteger();
                 dvd.setValue(1);
                 clone.setColumn(1, dvd);
                 return clone;

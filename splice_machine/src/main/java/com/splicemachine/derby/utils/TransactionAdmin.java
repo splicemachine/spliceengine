@@ -203,7 +203,7 @@ public class TransactionAdmin{
         //TxnSupplier store = TransactionStorage.getTxnStore();
         EmbedConnection defaultConn=(EmbedConnection)SpliceAdmin.getDefaultConn();
         try{
-            defaultConn.getLanguageConnection().getTransactionExecute().elevate(tableName);
+            defaultConn.getLanguageConnection().getTransactionExecute().elevate();
         }catch(StandardException e){
             // TODO Auto-generated catch block
             throw new IllegalArgumentException(String.format("Specified tableName %s cannot be elevated. ",tableName));

@@ -87,7 +87,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             if(insertOperation!=null && operationContext.isPermissive())
                     writeConfiguration = new PermissiveInsertWriteConfiguration(writeConfiguration,
                             operationContext,
-                            encoder.getDecoder(execRowDefinition));
+                            execRowDefinition);
 
             writeConfiguration.setRecordingContext(operationContext);
             this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));

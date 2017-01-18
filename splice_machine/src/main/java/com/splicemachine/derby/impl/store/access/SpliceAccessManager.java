@@ -629,7 +629,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 				pf = (PropertyFactory) Monitor.findServiceModule(this, com.splicemachine.db.iapi.reference.Module.PropertyFactory);
 
         if(create)
-            ((SpliceTransaction)tc.getRawTransaction()).elevate(Bytes.toBytes("boot"));
+            ((SpliceTransaction)tc.getRawTransaction()).elevate();
         // set up the transaction properties.  On J9, over NFS, runing on a
         // power PC coprossor, the directories were created fine, but create
         // db would fail when trying to create this first file in seg0.

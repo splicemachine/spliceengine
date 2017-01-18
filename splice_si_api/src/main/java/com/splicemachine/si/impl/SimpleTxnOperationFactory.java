@@ -100,6 +100,11 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     }
 
     @Override
+    public DDLFilter newDDLFilter(Txn txn) {
+        throw new NotSupportedException("Not Implemented");
+    }
+
+    @Override
     public Record newDelete(Txn txn, byte[] key) {
         UnsafeRecord record = new UnsafeRecord(key,1l,true);
         record.setTxnId1(txn.getTxnId());
@@ -111,5 +116,15 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     @Override
     public Record newUpdate(Txn txn, byte[] key) {
         return null;
+    }
+
+    @Override
+    public RecordScan readScan(ObjectInput in) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public void writeScan(RecordScan scan, ObjectOutput out) {
+        throw new UnsupportedOperationException("not implemented");
     }
 }

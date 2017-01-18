@@ -45,13 +45,7 @@ class ByteBufferMapTableLoader implements BroadcastJoinCache.JoinTableLoader{
         try(Stream<ExecRow> innerRows=streamLoader.call()){
             ExecRow right;
             while((right=innerRows.next())!=null){
-                if(innerSerializers==null){
-                    innerSerializers=VersionedSerializers.latestVersion(false).getSerializers(right);
-                    innerKeyEncoder=new KeyEncoder(NoOpPrefix.INSTANCE,
-                            BareKeyHash.encoder(innerHashKeys,null,innerSerializers),NoOpPostfix.INSTANCE);
-                }
-
-                ByteBuffer key=ByteBuffer.wrap(innerKeyEncoder.getKey(right));
+                ByteBuffer key=ByteBuffer.wrap(right.generateRowKey(innerHashKeys));
                 List<ExecRow> rows=table.get(key);
                 if(rows==null){
                     rows=new ArrayList<>(1);

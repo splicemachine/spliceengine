@@ -65,13 +65,8 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
     }
 
     @Override
-    public RowTransformer createRowTransformer(KeyEncoder keyEncoder) throws IOException {
-        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos, keyEncoder);
-    }
-
-    @Override
     public RowTransformer createRowTransformer() throws IOException {
-        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos, null);
+        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos);
     }
 
     @Override
@@ -143,8 +138,7 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
     private RowTransformer create(String tableVersion,
                                          int[] sourceKeyOrdering,
                                          int[] targetKeyOrdering,
-                                         ColumnInfo[] columnInfos,
-                                         KeyEncoder keyEncoder) throws IOException {
+                                         ColumnInfo[] columnInfos) throws IOException {
         // template rows : size is same when not dropping/adding columns
         ExecRow srcRow = new ValueRow(columnInfos.length);
         ExecRow templateRow = new ValueRow(columnInfos.length);
@@ -168,7 +162,6 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
                                     targetKeyOrdering,
                                     columnMapping,
                                     srcRow,
-                                    templateRow,
-                                    keyEncoder);
+                                    templateRow);
     }
 }

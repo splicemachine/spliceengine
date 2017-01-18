@@ -137,6 +137,8 @@ public class ConglomerateUtils{
             }
         }
 
+        throw new NotSupportedException("not implemented");
+        /*
         try(Partition table=tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
             DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
             BitSet fields=new BitSet();
@@ -152,6 +154,7 @@ public class ConglomerateUtils{
             if(entryEncoder!=null)
                 entryEncoder.close();
         }
+        */
 
     }
 
@@ -162,6 +165,8 @@ public class ConglomerateUtils{
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void updateConglomerate(Conglomerate conglomerate,Txn txn) throws StandardException{
+        throw new NotSupportedException("not implemented");
+        /*
         String tableName=Long.toString(conglomerate.getContainerid());
         SpliceLogUtils.debug(LOG,"updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
         EntryEncoder entryEncoder=null;
@@ -180,6 +185,7 @@ public class ConglomerateUtils{
             if(entryEncoder!=null)
                 entryEncoder.close();
         }
+        */
     }
 
     /**

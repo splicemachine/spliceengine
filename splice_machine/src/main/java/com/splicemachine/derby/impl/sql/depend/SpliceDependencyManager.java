@@ -49,7 +49,7 @@ public class SpliceDependencyManager extends BasicDependencyManager {
       assert usrTxn instanceof SpliceTransaction: "Programmer error: cannot elevate a non-SpliceTransaction";
       SpliceTransaction txn = (SpliceTransaction)usrTxn;
       if(!txn.allowsWrites())
-          txn.elevate(Bytes.toBytes(copyTo.getObjectName()));
+          txn.elevate();
       super.copyDependencies(copyFrom, copyTo, persistentOnly, cm, tc);
   }
 

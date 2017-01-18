@@ -125,6 +125,8 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
         //get the top-most transaction, that's the actual user transaction
         TransactionController tc = lcc.getTransactionExecute();
         Txn t = uTxn;
+        throw new UnsupportedOperationException("not implemented");
+        /*
         while(t.getTxnId()!= Txn.ROOT_TRANSACTION.getTxnId()){
             uTxn = t;
             t = uTxn.getParentTxnView();
@@ -132,6 +134,8 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
         final Txn userTxn = uTxn;
         DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        */
+
     }
 
     private void drop(ConglomerateDescriptor cd,

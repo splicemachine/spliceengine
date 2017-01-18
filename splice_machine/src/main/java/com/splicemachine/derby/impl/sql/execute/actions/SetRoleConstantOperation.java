@@ -68,7 +68,7 @@ public class SetRoleConstantOperation implements ConstantAction {
 
         // SQL 2003, section 18.3, General rule 1:
         BaseSpliceTransaction txn = ((SpliceTransactionManager) tc).getRawTransaction();
-        if (!(txn.getTxnInformation() instanceof ReadOnlyTxn)) {
+        if (!(txn.getTxnInformation().isReadOnly())) {
             throw StandardException.newException
                 (SQLState.INVALID_TRANSACTION_STATE_ACTIVE_CONNECTION);
         }

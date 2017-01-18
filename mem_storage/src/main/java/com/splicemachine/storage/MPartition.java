@@ -16,6 +16,7 @@
 package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.LongSet;
+import com.splicemachine.access.impl.data.UnsafeRecord;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.api.txn.Txn;
@@ -25,12 +26,12 @@ import com.splicemachine.si.impl.functions.ResolveTransaction;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.spark_project.guava.collect.BiMap;
 import org.spark_project.guava.collect.HashBiMap;
-import com.splicemachine.collections.EmptyNavigableSet;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import org.spark_project.guava.primitives.Longs;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
+import javax.ws.rs.NotSupportedException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -54,22 +55,23 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
     private final String tableName;
     private final PartitionServer owner;
     // One record per key...
-    private final ConcurrentSkipListSet<Record<byte[],Object[]>> active =new ConcurrentSkipListSet<>(new Comparator<Record<byte[],Object[]>>() {
+    private final ConcurrentSkipListSet<Record<byte[]>> active =new ConcurrentSkipListSet<>(new Comparator<Record<byte[]>>() {
         @Override
-        public int compare(Record<byte[],Object[]> o1, Record<byte[],Object[]> o2) {
+        public int compare(Record<byte[]> o1, Record<byte[]> o2) {
             return Bytes.basicByteComparator().compare(o1.getKey(),o2.getKey());
         }
     });
     // N Records Per Key
-    private final ConcurrentSkipListSet<Record<byte[],Object[]>> redo = new ConcurrentSkipListSet<>(new Comparator<Record<byte[],Object[]>>() {
+    private final ConcurrentSkipListSet<Record<byte[]>> redo = new ConcurrentSkipListSet<>(new Comparator<Record<byte[]>>() {
         @Override
-        public int compare(Record<byte[],Object[]> o1, Record<byte[],Object[]> o2) {
+        public int compare(Record<byte[]> o1, Record<byte[]> o2) {
             int value = Bytes.basicByteComparator().compare(o1.getKey(),o2.getKey());
             if (value != 0)
                 return value;
             return Longs.compare(o1.getTxnId1(),o2.getTxnId1());
         }
     });
+    private final HashMap<byte[],Long> incrementMap = new HashMap<byte[],Long>();
     private final BiMap<ByteBuffer, Lock> lockMap=HashBiMap.create();
     private AtomicLong writes=new AtomicLong(0l);
     private AtomicLong reads=new AtomicLong(0l);
@@ -105,7 +107,7 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
 
     @Override
     public Record get(byte[] key, Txn txn, IsolationLevel isolationLevel) throws IOException {
-        Record<byte[],Object[]> record = active.floor(new MRecord(key));
+        Record<byte[]> record = active.floor(new UnsafeRecord(key,0l));
         if (record != null && Bytes.basicByteComparator().compare(record.getKey(),key) == 0) { // Active Match
             Record[] baseRecords =
                     new BatchFetchActiveRecords(1).apply(new SingletonIterator(record));
@@ -125,20 +127,15 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
     }
 
     @Override
-    public Record getLatest(byte[] rowKey) throws IOException{
-        Record<byte[],Object[]> record = active.floor(new MRecord(key));
-        if (record != null && Bytes.basicByteComparator().compare(record.getKey(),key) == 0)
-            return record;
-        return null;
-    }
-
-    @Override
     public RecordScanner openScanner(RecordScan scan,Txn txn, IsolationLevel isolationLevel) throws IOException{
-        NavigableSet<DataCell> dataCells=getAscendingScanSet(scan);
-        Iterator<DataCell> iter = scan.isDescendingScan()? dataCells.descendingIterator(): dataCells.iterator();
+        throw new NotSupportedException("not implemented");
+        /*
+        NavigableSet<Record> dataCells=getAscendingScanSet(scan);
+        Iterator<Record> iter = scan.isDescendingScan()? dataCells.descendingIterator(): dataCells.iterator();
 
         long curSeq = sequenceGen.get();
         return new SetScanner(curSeq,iter,scan.lowVersion(),scan.highVersion(),scan.getFilter(),this,metricFactory);
+        */
     }
 
 
@@ -149,10 +146,13 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
 
     @Override
     public boolean checkAndPut(byte[] key, Record expectedValue, Record record) throws IOException{
+        throw new NotSupportedException("not supported");
+/*
         Lock lock = getRowLock(key);
         lock.lock();
         try{
-            DataResult latest=getLatest(key,family,null);
+
+            Record latest=getLatest(key,family,null);
             if(latest!=null&& latest.size()>0){
                 DataCell dc = latest.latestCell(family,qualifier);
                 if(dc!=null){
@@ -171,6 +171,7 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
         }finally{
             lock.unlock();
         }
+        */
     }
 
     @Override
@@ -193,7 +194,14 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
     }
 
     @Override
+    public long getCurrentIncrement(byte[] rowKey) throws IOException{
+        throw new UnsupportedOperationException("Not Implemented");
+    }
+
+    @Override
     public long increment(byte[] rowKey, long amount) throws IOException{
+        throw new NotSupportedException("not implemented");
+        /*
         Lock lock=getRowLock(rowKey,0,rowKey.length);
         lock.lock();
         try{
@@ -212,6 +220,7 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
         }finally{
             lock.unlock();
         }
+        */
     }
 
     @Override
@@ -225,28 +234,13 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
     }
 
     @Override
-    public Record getLatest(byte[] key) throws IOException{
-        DataCell s=new MCell(key,new byte[]{},new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
-        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
-
-        NavigableSet<DataCell> dataCells=memstore.subSet(s,true,e,true);
-        List<DataCell> results=new ArrayList<>(dataCells.size());
-        DataCell lastResult=null;
-        for(DataCell dc : dataCells){
-            if(lastResult==null){
-                results.add(dc);
-                lastResult=dc;
-            }else if(!dc.matchesQualifier(lastResult.family(),lastResult.qualifier())){
-                results.add(dc);
-                lastResult=dc;
-            }
-        }
-        return new MResult(results);
+    public Lock getRowLock(byte[] key) throws IOException{
+        return getRowLock(key,0,key.length);
     }
 
     @Override
-    public Lock getRowLock(byte[] key) throws IOException{
-        final ByteBuffer wrap=ByteBuffer.wrap(key,keyOff,keyLen);
+    public Lock getRowLock(byte[] key, long keyOff, int keyLen) throws IOException{
+        final ByteBuffer wrap=ByteBuffer.wrap(key,(int) keyOff,keyLen);
         Lock lock;
         synchronized(lockMap){
             lock=lockMap.get(wrap);
@@ -274,7 +268,17 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
     }
 
     @Override
+    public boolean containsKey(byte[] row, long offset, int length){
+        return true;
+    }
+
+    @Override
     public boolean overlapsKeyRange(byte[] start,byte[] stop){
+        return true;
+    }
+
+    @Override
+    public boolean overlapsKeyRange(byte[] start, long startOffset, int startLength, byte[] stop, long stopOffset, int stopLength){
         return true;
     }
 
@@ -380,40 +384,6 @@ public class MPartition implements Partition<byte[], Txn ,IsolationLevel>{
         public Condition newCondition(){
             return lock.newCondition();
         }
-    }
-
-    private NavigableSet<DataCell> getAscendingScanSet(RecordScan scan){
-        NavigableSet<DataCell> dataCells;
-        if(memstore.size()<=0)
-            dataCells = EmptyNavigableSet.instance();
-        else{
-            byte[] startKey=scan.getStartKey();
-            byte[] stopKey=scan.getStopKey();
-            DataCell start;
-            DataCell stop;
-            if(startKey==null|| startKey.length==0) {
-                if(stopKey==null||stopKey.length==0){
-                    return memstore;
-                }else{
-                    start = memstore.first();
-                }
-            }else
-                start=new MCell(startKey,new byte[]{},new byte[]{},scan.highVersion(),new byte[]{},CellType.COMMIT_TIMESTAMP);
-
-            if(stopKey==null||stopKey.length==0){
-                return memstore.tailSet(start,true);
-            }else
-                stop=new MCell(stopKey,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
-
-            /*
-             * It is possible (particularly if the start key is null) that the stop value compares to less than
-             * the start key, and that is a reasonable situation. In that case, we know that the end results
-             * are empty, so bypass creating a new Set object in this case.
-             */
-            if(stop.compareTo(start)<0) return EmptyNavigableSet.instance();
-            dataCells=memstore.subSet(start,true,stop,false);
-        }
-        return dataCells;
     }
 
     @Override

@@ -55,6 +55,12 @@ public class UnsafeRecord implements Record<byte[]> {
     protected static int ASIZE = 16;
     protected static int WORD_SIZE = 8;
 
+    public UnsafeRecord(byte[] key, long version) {
+        this.keyObject = key;
+        this.keyLength = key.length;
+        this.keyOffset = 0;
+        this.version = version;
+    }
 
     public UnsafeRecord(byte[] key, long version, boolean isActiveRecord) {
         this(key,version,isActiveRecord, 200); // TODO Fix JL

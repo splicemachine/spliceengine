@@ -77,7 +77,7 @@ public class SpliceTransactionView extends BaseSpliceTransaction<TransactionView
 
     @Override
     public void setActiveState(boolean nested, boolean dependent, Txn parentTxn) {
-        transaction.setActiveState(nested, dependent, parentTxn);
+        transaction.setActiveState(nested, parentTxn);
     }
 
     public void setTxn(Txn txn) {

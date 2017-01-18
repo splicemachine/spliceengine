@@ -33,7 +33,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.stats.StoreCostControllerImpl;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -1232,7 +1231,7 @@ public class SpliceTransactionManager implements XATransactionController,
     public void elevate() throws StandardException {
         assert rawtran instanceof SpliceTransaction: "Programmer error: cannot elevate a transaction view!";
 	    if (LOG.isDebugEnabled())
-	    	SpliceLogUtils.debug(LOG, "Before elevate: txn=%s, tableName=%s, nestedTxnStack=\n%s", getRawTransaction(), tableName, getNestedTransactionStackString());
+	    	SpliceLogUtils.debug(LOG, "Before elevate: txn=%s, nestedTxnStack=\n%s", getRawTransaction(),  getNestedTransactionStackString());
         ((SpliceTransaction)rawtran).elevate();
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "After elevate: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
@@ -1455,7 +1454,7 @@ public class SpliceTransactionManager implements XATransactionController,
         ContextManager cm = getContextManager();
         Transaction global = accessmanager.getRawStore().startGlobalTransaction(cm,1,new byte[0],new byte[0]);
         if(!readOnly)
-            ((SpliceTransaction)global).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with an actual name
+            ((SpliceTransaction)global).elevate();
 
         SpliceTransactionManager rt = new SpliceTransactionManager(
                 accessmanager, global, this);
@@ -1547,7 +1546,7 @@ public class SpliceTransactionManager implements XATransactionController,
             childTxn = getChildTransactionFromView(readOnly,cm,(SpliceTransactionView)rawtran);
 
         if(!readOnly)
-            ((SpliceTransaction)childTxn).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with an actual name
+            ((SpliceTransaction)childTxn).elevate(); //TODO -sf- replace this with an actual name
 
         SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, childTxn, this);
 
@@ -1566,9 +1565,9 @@ public class SpliceTransactionManager implements XATransactionController,
         Txn txn = spliceTxn.getActiveStateTxn();
         if(!readOnly){
             if(parent_tran!=null)
-                parent_tran.elevate(txn,"unknown");
+                parent_tran.elevate(txn);
             txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
-            elevate("unknown");
+            elevate();
             txn = ((SpliceTransaction)rawtran).getTxn();
         }else
             txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
@@ -1580,7 +1579,7 @@ public class SpliceTransactionManager implements XATransactionController,
         String txnName;
         Txn txn = spliceTxn.getActiveStateTxn();
         if(!readOnly){
-            if(!txn.allowsWrites())
+            if(txn.isReadOnly())
                 throw StandardException.newException(SQLState.XACT_INTERNAL_TRANSACTION_EXCEPTION,"Unable to create a writable child of a read only view");
             txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
             txn = ((BaseSpliceTransaction)rawtran).getTxnInformation();
