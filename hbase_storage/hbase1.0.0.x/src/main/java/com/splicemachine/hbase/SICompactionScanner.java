@@ -15,11 +15,9 @@
 
 package com.splicemachine.hbase;
 
-import com.splicemachine.si.impl.server.SICompactionState;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,13 +27,10 @@ import java.util.List;
  * SICompactionState.
  */
 public class SICompactionScanner implements InternalScanner {
-    private final SICompactionState compactionState;
     private final InternalScanner delegate;
     private List<Cell> rawList =new ArrayList<>();
 
-    public SICompactionScanner(SICompactionState compactionState,
-                               InternalScanner scanner) {
-        this.compactionState = compactionState;
+    public SICompactionScanner(InternalScanner scanner) {
         this.delegate = scanner;
     }
 
@@ -46,7 +41,6 @@ public class SICompactionScanner implements InternalScanner {
          */
         rawList.clear();
         final boolean more = delegate.next(rawList);
-        compactionState.mutate(rawList, list);
         return more;
     }
 

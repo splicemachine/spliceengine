@@ -32,7 +32,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 12/14/15
  */
-public class RegionDataScanner implements DataScanner{
+public class RegionDataScanner implements RecordScanner {
     private final Timer readTimer;
     private final Counter outputBytesCounter;
     private final Counter filteredRowCounter;

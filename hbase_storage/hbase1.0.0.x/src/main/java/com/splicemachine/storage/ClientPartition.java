@@ -15,7 +15,6 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.base.Function;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HRegionTooBusy;
@@ -27,10 +26,8 @@ import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Iterators;
 import com.google.protobuf.Service;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.util.PartitionInRangePredicate;
-import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;

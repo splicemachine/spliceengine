@@ -77,7 +77,7 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
 
     Lock getRowLock(byte[] key) throws IOException;
 
-    Lock getRowLock(byte[] key, long offset, int length) throws IOException;
+    Lock getRowLock(byte[] key, int offset, int length) throws IOException;
 
     void delete(K key, Txn txn) throws IOException;
 
