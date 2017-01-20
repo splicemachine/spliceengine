@@ -157,8 +157,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         this.source = (SpliceOperation) in.readObject();
         this.subquerySource = (SpliceOperation) in.readObject();
         this.updateResultSetFieldName = in.readUTF();
-        this.sourceCorrelatedColumnPositions = ArrayUtil.readIntArray(in);
-        this.subqueryCorrelatedColumnPositions = ArrayUtil.readIntArray(in);
+        this.sourceCorrelatedColumnItem = in.readInt();
+        this.subqueryCorrelatedColumnItem = in.readInt();
     }
 
     @Override
@@ -167,8 +167,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         out.writeObject(this.source);
         out.writeObject(this.subquerySource);
         out.writeUTF(this.updateResultSetFieldName);
-        ArrayUtil.writeIntArray(out, this.sourceCorrelatedColumnPositions);
-        ArrayUtil.writeIntArray(out, this.subqueryCorrelatedColumnPositions);
+        out.writeInt(this.sourceCorrelatedColumnItem);
+        out.writeInt(this.subqueryCorrelatedColumnItem);
     }
 
     public SpliceOperation getSubquerySource() {
