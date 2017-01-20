@@ -20,6 +20,7 @@
         <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
+	<argLine>-Xmx3g -XX:MaxPermSize=256m ${jacocoAgent}</argLine>
     </properties>
     <dependencies>
         <!--
@@ -258,7 +259,6 @@
                         <configuration>
                             <!--<groups>com.splicemachine.test.SerialTest</groups>-->
                             <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g -XX:MaxPermSize=128m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -569,6 +569,7 @@
                         <artifactId>exec-maven-plugin</artifactId>
                         <executions>
                             <execution>
+			    	<phase>test</phase>
                                 <goals>
                                     <goal>exec</goal>
                                 </goals>
@@ -584,6 +585,7 @@
                                 <argument>-Xdebug</argument>
                                 <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
                                 <argument>-XX:+FlightRecorder</argument> -->
+				<argument>${jacocoAgent}</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
@@ -631,11 +633,12 @@
                                 <argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
-                                <argument>-Dsplice.spark.executor.extraJavaOptions=-XX:MaxPermSize=128m
+                                <argument>-Dsplice.spark.executor.extraJavaOptions=-XX:MaxPermSize=256m
                                     -Dhbase.rootdir=${project.build.directory}/hbase
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
+					${jacocoAgent}
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
@@ -703,6 +706,7 @@
                             <arguments>
                                 <argument>-classpath</argument>
                                 <classpath/>
+				<argument>${jacocoAgent}</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
