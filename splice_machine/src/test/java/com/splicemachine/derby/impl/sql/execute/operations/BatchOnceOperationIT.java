@@ -120,6 +120,31 @@ public class BatchOnceOperationIT {
                 "21 |NULL |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    @Test
+    public void updateOnSpark() throws Exception {
+         String sql = "update A --SPLICE-PROPERTIES useSpark=true \n" +
+                 " \tset A.name = (select B.name from B where A.id = B.id) where A.name IS NULL";
+
+        doUpdate(true, 6, sql);
+
+        ResultSet rs = methodWatcher.executeQuery("select A.id,A.name from A");
+
+        assertEquals("" +
+                "ID |NAME |\n" +
+                "----------\n" +
+                "10 | 10_ |\n" +
+                "11 | 11_ |\n" +
+                "12 | 12_ |\n" +
+                "13 |NULL |\n" +
+                "14 |NULL |\n" +
+                "15 |NULL |\n" +
+                "16 | 16_ |\n" +
+                "17 | 17_ |\n" +
+                "18 | 18_ |\n" +
+                "19 |NULL |\n" +
+                "20 |NULL |\n" +
+                "21 |NULL |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
     /* Same test as above but position of column refs in subquery where clause is reversed. */
     @Test
     public void updateReverseSubqueryColumnReferences() throws Exception {
