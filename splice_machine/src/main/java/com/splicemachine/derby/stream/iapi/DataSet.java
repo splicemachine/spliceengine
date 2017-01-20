@@ -306,4 +306,13 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
     public void pin(ExecRow template, long conglomId);
 
+
+    /**
+     *
+     * Drop Pin the conglomerate from memory.
+     *
+     * @param conglomId
+     */
+    public void dropPin(long conglomId);
+
 }
