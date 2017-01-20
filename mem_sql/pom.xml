@@ -89,6 +89,7 @@
     </dependencies>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
+        <argLine>-Xmx3g -XX:MaxPermSize=256m</argLine>
     </properties>
     <build>
         <plugins>
@@ -178,7 +179,6 @@
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -275,6 +275,8 @@
                                     <jvmarg value="-XX:+CMSPermGenSweepingEnabled"/>
                                     <jvmarg value="-XX:+CMSClassUnloadingEnabled"/>
                                     <sysproperty key="log4j.configuration" value="file://${basedir}/src/main/resources/log4j.properties"/>
+                                    <jvmarg value="-XX:MaxPermSize=256M"/>
+				    <jvmarg value="${jacocoAgent}"/>
                                 </java>
                                 <java classname="com.splicemachine.test.SpliceTestPlatformWait" classpath="${classpath.test}" spawn="false">
                                     <arg value="localhost"/>
