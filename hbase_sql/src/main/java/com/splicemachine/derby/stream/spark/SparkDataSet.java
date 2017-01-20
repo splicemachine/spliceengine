@@ -769,4 +769,12 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
 
+    @Override @SuppressWarnings({ "unchecked", "rawtypes" })
+    public void dropPin(long conglomId) {
+
+        SpliceSpark.getSession().catalog().uncacheTable("SPLICE_"+conglomId);
+    }
+
+
+
 }

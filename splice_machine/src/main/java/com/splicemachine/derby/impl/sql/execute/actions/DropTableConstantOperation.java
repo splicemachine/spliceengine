@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
@@ -32,6 +33,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.TxnView;
 
 
 /**
@@ -154,8 +156,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             }
 
             /* Invalidate dependencies remotely. */
-
-            DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
+            TxnView activeTransaction = ((SpliceTransactionManager) tc).getActiveStateTxn();
+            DDLChange ddlChange = ProtoUtil.createDropTable(activeTransaction.getTxnId(), (BasicUUID) this.tableId);
             // Run locally first to capture any errors.
             dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
             // Run Remotely
@@ -175,6 +177,12 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
             /* Drop the store element at last, to prevent dangling reference for open cursor, beetle 4393. */
             tc.dropConglomerate(heapId);
+
+            /* is the table pinned ? , if yes we need to drop it */
+            if(td.isPined()){
+                EngineDriver.driver().processorFactory().distributedProcessor().dropPinnedTable(td.getHeapConglomerateId());
+            }
+
         } catch (Exception e) {
             // If dropping table fails, it could happen that the table object in cache has been modified.
             // Invalidate the table in cache.
