@@ -140,6 +140,29 @@ public class CreateTableWithDataIT{
     }
 
     @Test
+    public void testCTASQuotedName() throws Exception {
+        try(PreparedStatement ps=methodWatcher.prepareStatement(String.format("create table %s.\"t3\" as select * from %s with data",spliceSchemaWatcher.schemaName,baseTable))){
+            int numRows=ps.executeUpdate();
+            Assert.assertEquals("It does not claim to have updated rows!",10,numRows);
+
+        }
+
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery("select * from "+spliceSchemaWatcher.schemaName+".\"t3\"")){
+                int count=0;
+                while(rs.next()){
+                    int first=rs.getInt(1);
+                    int second=rs.getInt(2);
+                    Assert.assertEquals("Incorrect row: ("+first+","+second+")",first*2,second);
+                    count++;
+                }
+                Assert.assertEquals("Incorrect row count",10,count);
+            }
+        }
+    }
+
+
+    @Test
     public void testCreateTableWithData2() throws Exception{
         try(PreparedStatement ps=conn.prepareStatement(String.format("create table %s.t4 as select t1.a, t2.c from %s t1, %s t2 where t1.b = t2.b with data",spliceSchemaWatcher.schemaName,baseTable,rightTable))){
             int numRows=ps.executeUpdate();
