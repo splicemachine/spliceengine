@@ -147,7 +147,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 			try ( // try with resources
 				  Connection conn = cc.getNestedConnection(true);
 				  PreparedStatement ps =
-						  conn.prepareStatement("insert into "+schemaName+"."+tableName+" "+withDataQueryString)
+						  conn.prepareStatement("insert into \""+schemaName+"\".\""+tableName+"\" "+withDataQueryString)
 			)  {
 				int rows = ps.executeUpdate();
 				activation.addRowsSeen(rows);
