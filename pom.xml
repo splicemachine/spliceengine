@@ -78,7 +78,7 @@
         <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-	<maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
+        <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
         <spark.version>2.1.0</spark.version>
     </properties>
@@ -496,7 +496,7 @@
                         <encoding>UTF-8</encoding>
                         <compilerArgs>
                             <arg>-XDignore.symbol.file</arg>
-			    <arg>-Xpkginfo:always</arg>
+                            <arg>-Xpkginfo:always</arg>
                         </compilerArgs>
                         <fork>true</fork>
                         <showWarnings>true</showWarnings>
@@ -670,10 +670,40 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+    <profiles>
+        <profile>
+            <id>jacoco</id>
+	    <modules>
+                <module>coverage</module>
+            </modules>
+	    <build>
+	    <plugins>
 		<plugin>
 			<groupId>org.jacoco</groupId>
 			<artifactId>jacoco-maven-plugin</artifactId>
-			<version>0.7.7-SNAPSHOT</version>
+			<version>0.7.7.201606060606</version>
 			<executions>
 				<execution>
 					<id>pre-unit-test</id>
@@ -705,29 +735,9 @@
 				</execution>
 			</executions>
 		</plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>license-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
+	    </plugins>
     </build>
-    <profiles>
+        </profile>
         <profile>
             <id>core</id>
             <activation>
@@ -759,7 +769,6 @@
                 <module>pipeline_api</module>
                 <module>splice_access_api</module>
                 <module>splice_machine</module>
-                <module>coverage</module>
             </modules>
         </profile>
         <profile>
