@@ -48,23 +48,12 @@ public class CreateExternalTableJob implements Callable<Void> {
         dsp.setJobGroup(request.getJobGroup(), "");
 
         // look at the file, if it doesn't exist create it.
-        if(!SIDriver.driver().fileSystem().getPath(request.getLocation()).toFile().exists()){
+        if(!SIDriver.driver().fileSystem().getInfo(request.getLocation()).exists()){
+            Path pathToParent = SIDriver.driver().fileSystem().getPath(request.getLocation()).getParent();
 
-            //throws a error if the parent doesn't have the permission.
-            Path parent = SIDriver.driver().fileSystem().getPath(request.getLocation()).getParent();
-            if(parent == null) {
-                if (!SIDriver.driver().fileSystem().getPath(".").toFile().canWrite()) {
-                    throw ErrorState.CANNOT_WRITE_AT_LOCATION.newException(request.getLocation());
-                }
+            if(!SIDriver.driver().fileSystem().getInfo(pathToParent.toString()).isWritable()){
+                throw  ErrorState.CANNOT_WRITE_AT_LOCATION.newException(request.getLocation());
             }
-            else {
-                if(!parent.toFile().canWrite()){
-                    throw  ErrorState.CANNOT_WRITE_AT_LOCATION.newException(request.getLocation());
-                }
-            }
-
-
-
             dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
         }
 
