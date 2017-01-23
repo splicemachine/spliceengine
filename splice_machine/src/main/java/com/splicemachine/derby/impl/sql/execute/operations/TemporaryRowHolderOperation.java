@@ -504,7 +504,7 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
         RowLocation baseRowLocation=(RowLocation)indexRow[1];
         boolean base_row_exists=
                 heapCC.fetch(
-                        baseRowLocation,currentRow.getRowArray(),(FormatableBitSet)null);
+                        baseRowLocation,currentRow,(FormatableBitSet)null);
 
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(base_row_exists,"base row disappeared.");

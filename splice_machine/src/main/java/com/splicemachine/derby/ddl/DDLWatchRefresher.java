@@ -172,6 +172,8 @@ public class DDLWatchRefresher{
 
     private void processPreCommitChange(DDLChange ddlChange,
                                         Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
+        if (LOG.isTraceEnabled())
+            LOG.trace("processPreCommitChanges -> " + ddlChange);
         currChangeCount.incrementAndGet();
         tentativeDDLS.put(ddlChange.getChangeId(),ddlChange);
         for(DDLWatcher.DDLListener listener:ddlListeners){
@@ -189,7 +191,8 @@ public class DDLWatchRefresher{
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
             if(!children.contains(entry)){
-                LOG.debug("Removing change with id " + entry);
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Removing change with id " + entry);
                 changeTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);
                 currChangeCount.decrementAndGet();

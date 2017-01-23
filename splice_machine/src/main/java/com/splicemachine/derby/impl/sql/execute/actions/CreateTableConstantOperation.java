@@ -432,6 +432,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          */
         long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
         DDLMessage.DDLChange change =DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build();
+
         tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
 
         // is this a external file ?

@@ -675,7 +675,7 @@ public	class DD_Version implements	Formatable
 
 			indexRowGenerator.getIndexRow( heapRow, heapLocation, indexableRow, (FormatableBitSet) null );
 
-			indexController.insert(indexableRow.getRowArray());
+			indexController.insert(indexableRow);
 		}
 
 		indexController.close();

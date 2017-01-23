@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.store.access.RowUtil;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import java.sql.SQLException;
 
@@ -310,10 +311,11 @@ public class ConsistencyChecker
 					** which is in the last column.  
 					*/
 					RowLocation baseRL = (RowLocation) indexRow.getColumn(baseColumns + 1);
-
+					ExecRow row = new ValueRow();
+					row.setRowArray(baseObjectArray);
 					boolean base_row_exists = 
 		                baseCC.fetch(
-			                baseRL, baseObjectArray, indexColsBitSet);
+			                baseRL, row, indexColsBitSet);
 
 					/* Throw exception if fetch() returns false */
 					if (! base_row_exists)

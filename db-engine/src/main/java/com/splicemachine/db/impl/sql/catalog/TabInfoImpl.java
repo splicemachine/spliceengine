@@ -48,6 +48,9 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.types.RowLocation;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -507,48 +510,36 @@ public class TabInfoImpl
         heapLocation = heapController.newRowLocationTemplate();
         rowLocationOut[0]=heapLocation;
 
-        // loop through rows on this list, inserting them into system table
-        for (int rowNumber = 0; rowNumber < rowList.length; rowNumber++)
-        {
-            ExecRow row = rowList[rowNumber];
-            // insert the base row and get its new location
-            heapController.insertAndFetchLocation(row.getRowArray(), heapLocation);
+        RowLocation[] rowLocations = new RowLocation[rowList.length];
+        for ( int i = 0; i< rowLocations.length;i++) {
+            rowLocations[i] = heapController.newRowLocationTemplate();
+        }
 
-            for ( int ictr = 0; ictr < indexCount; ictr++ )
-            {
-                if (indexControllers[ ictr ] == null)
-                {
+        heapController.batchInsertAndFetchLocation(rowList,rowLocations);
+            for ( int ictr = 0; ictr < indexCount; ictr++ ) {
+                if (indexControllers[ ictr ] == null) {
                     continue;
                 }
-
-                // Get an index row based on the base row
-                indexableRow = getIndexRowFromHeapRow( getIndexRowGenerator(ictr),
-                        heapLocation,
-                        row );
-
-                insertRetCode =
-                        indexControllers[ ictr ].insert(indexableRow.getRowArray());
-
-                if ( insertRetCode == ConglomerateController.ROWISDUPLICATE )
-                {
-                    retCode = rowNumber;
+                List<ExecRow> indexRows = new ArrayList(rowList.length);
+                for (int i =0; i< rowList.length; i++) {
+                    // Get an index row based on the base row
+                    indexRows.add(getIndexRowFromHeapRow(getIndexRowGenerator(ictr),
+                            rowLocations[i],
+                            rowList[i]).getClone());
+                }
+                insertRetCode = indexControllers[ ictr ].batchInsert(indexRows);
+                if ( insertRetCode == ConglomerateController.ROWISDUPLICATE ) {
+                    retCode = 1;
                 }
             }
-
-        }	// end loop through rows on list
-
         // Close the open conglomerates
-        for ( int ictr = 0; ictr < indexCount; ictr++ )
-        {
-            if (indexControllers[ ictr ] == null)
-            {
+        for ( int ictr = 0; ictr < indexCount; ictr++ ) {
+            if (indexControllers[ ictr ] == null) {
                 continue;
             }
-
             indexControllers[ ictr ].close();
         }
         heapController.close();
-
         return	retCode;
     }
 
@@ -727,7 +718,7 @@ public class TabInfoImpl
 
             boolean base_row_exists =
                     heapCC.fetch(
-                            baseRowLocation, baseRow.getRowArray(), (FormatableBitSet) null);
+                            baseRowLocation, baseRow, (FormatableBitSet) null);
 
             if (SanityManager.DEBUG)
             {
@@ -884,7 +875,7 @@ public class TabInfoImpl
                         drivingIndexRow.getColumn(drivingIndexRow.nColumns());
                 boolean base_row_exists =
                         heapCC.fetch(
-                                baseRowLocation, baseRow.getRowArray(), (FormatableBitSet) null);
+                                baseRowLocation, baseRow, (FormatableBitSet) null);
 
                 if (SanityManager.DEBUG)
                 {
@@ -1012,7 +1003,7 @@ public class TabInfoImpl
                     drivingIndexRow.getColumn(drivingIndexRow.nColumns());
             boolean base_row_exists =
                     heapCC.fetch(
-                            baseRowLocation, baseRow.getRowArray(), (FormatableBitSet) null);
+                            baseRowLocation, baseRow, (FormatableBitSet) null);
 
             if (SanityManager.DEBUG)
             {
