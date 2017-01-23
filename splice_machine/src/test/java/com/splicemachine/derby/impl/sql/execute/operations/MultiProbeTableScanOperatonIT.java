@@ -39,6 +39,9 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
     protected static SpliceTableWatcher t5Watcher = new SpliceTableWatcher("a",schemaWatcher.schemaName,"(d decimal(10,0))");
     protected static SpliceIndexWatcher i5Watcher = new SpliceIndexWatcher("a",schemaWatcher.schemaName,"i",schemaWatcher.schemaName,"(d)");
 
+	protected static SpliceTableWatcher t6Watcher = new SpliceTableWatcher("tab",schemaWatcher.schemaName,"(i int, j int)");
+	protected static SpliceIndexWatcher i6Watcher = new SpliceIndexWatcher("tab",schemaWatcher.schemaName,"idx",schemaWatcher.schemaName,"(i,j)");
+
 
 	private static int size = 10;
 
@@ -51,6 +54,8 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 			.around(t4Watcher)
             .around(t5Watcher)
             .around(i5Watcher)
+			.around(t6Watcher)
+			.around(i6Watcher)
 			.around(new SpliceDataWatcher() {
 				@Override
 				protected void starting(Description description) {
@@ -114,6 +119,14 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 							ps.addBatch();
 						}
 						ps.executeBatch();
+
+						ps = spliceClassWatcher.prepareStatement("insert into " + t6Watcher.toString() + " values (?,?)");
+                        ps.setInt(1, 1); ps.setInt(2, 1181); ps.addBatch();
+						ps.setInt(1, 2); ps.setInt(2, 1181); ps.addBatch();
+						ps.setInt(1, 1); ps.setInt(2, 1181); ps.addBatch();
+						ps.setInt(1, 118); ps.setInt(2, 1181); ps.addBatch();
+						ps.executeBatch();
+
 					} catch (Exception e) {
 						throw new RuntimeException(e);
 					} finally {
@@ -219,4 +232,20 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
         this.thirdRowContainsQuery("explain select * from a --splice-properties index=i\n" +
                 " where d in (10.0+10, 11.0+10)","preds=[(D[0:1] IN ((10.0 + 10),(11.0 + 10)))]",methodWatcher);
     }
+
+    // DB-1323
+    @Test
+	public void testMultiProbeWithSpark() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery("select count(*) from "+ t6Watcher+ "--splice-properties useSpark=true\n" +
+						" where j in (1181) and (i = 1 or i = 118 )");
+		Assert.assertTrue(rs.next());
+		Assert.assertTrue("wrong count", rs.getInt(1) == 3);
+        rs.close();
+
+		rs = methodWatcher.executeQuery("select count(*) from "+ t6Watcher+ "--splice-properties useSpark=true\n" +
+				" where i in (1, 118)");
+		Assert.assertTrue(rs.next());
+		Assert.assertTrue("wrong count", rs.getInt(1) == 3);
+
+	}
 }
