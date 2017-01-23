@@ -201,7 +201,6 @@ public abstract class SpliceController implements ConglomerateController{
             }
             return true;
         }catch(Exception e){
-            e.printStackTrace();
             throw Exceptions.parseException(e);
         } finally {
             if (rowDecoder !=null)
