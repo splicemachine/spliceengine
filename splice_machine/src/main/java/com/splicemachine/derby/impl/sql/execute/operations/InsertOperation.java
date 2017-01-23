@@ -310,7 +310,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {
 
-                if(!SIDriver.driver().fileSystem().getPath(location).toFile().canWrite()){
+                if(!SIDriver.driver().fileSystem().getInfo(location).isWritable()){
                     throw  ErrorState.CANNOT_WRITE_AT_LOCATION.newException(location);
                 }
 
@@ -340,6 +340,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .txn(txn)
                     .build();
             return writer.write();
+        }catch (IOException e) {
+            throw StandardException.plainWrapException(e);
         }finally{
             operationContext.popScope();
         }
