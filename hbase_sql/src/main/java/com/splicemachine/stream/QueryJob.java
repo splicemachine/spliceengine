@@ -17,7 +17,6 @@ package com.splicemachine.stream;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
