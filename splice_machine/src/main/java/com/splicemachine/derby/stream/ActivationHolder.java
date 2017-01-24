@@ -201,7 +201,7 @@ public class ActivationHolder implements Externalizable {
             prepared =  impl.marshallTransaction(txnView);
             activation = soi.getActivation(this, impl.getLcc());
 
-            Context statementContext = ContextService.getContext(ContextId.LANG_STATEMENT);
+            Context statementContext = activation.getLanguageConnectionContext().getStatementContext();
             EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
             internalConnection.getContextManager().pushContext(statementContext);
 
