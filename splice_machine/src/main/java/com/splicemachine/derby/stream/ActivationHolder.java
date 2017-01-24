@@ -157,11 +157,10 @@ public class ActivationHolder implements Externalizable {
                 so.init(context);
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
             if (prepared) {
                 impl.close();
             }
+            throw new RuntimeException(e);
         }
     }
 

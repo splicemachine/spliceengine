@@ -256,7 +256,6 @@ public class SpliceObserverInstructions implements Externalizable{
                 EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();
                 Context connectionContext = new EmbedConnectionContext(activation.getLanguageConnectionContext().getContextManager(),
                         (EmbedConnection)internalConnection);
-                internalConnection.getContextManager().pushContext(statementContext);
 
                 return activation;
             }catch(Exception e){

@@ -87,9 +87,6 @@ public class QueryJob implements Callable<Void>{
 
             status.markCompleted(new QueryResult(numPartitions));
         } finally {
-            EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();
-            internalConnection.getContextManager().popContext();
-            ah.getActivation().getLanguageConnectionContext().popMe();
             ah.close();
         }
 
