@@ -101,6 +101,8 @@ public interface SConfiguration {
     // OperationConfiguration
     int getSequenceBlockSize();
 
+    int getThreadPoolMaxSize();
+
     // PipelineConfiguration
     int getCoreWriterThreads();
 
