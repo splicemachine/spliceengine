@@ -16,11 +16,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -37,6 +41,9 @@ import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -439,8 +446,35 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         int[] partitionby = activation.getDDLTableDescriptor().getPartitionBy();
         String jobGroup = userId + " <" +txnId +">";
         try {
-            if(storedAs != null)
-            EngineDriver.driver().getOlapClient().execute( new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup,  template));
+            if(storedAs != null){
+                // test constraint only if the external file exits
+                if(SIDriver.driver().fileSystem().getPath(location).toFile().exists()) {
+                    GetSchemaExternalResult result = EngineDriver.driver().getOlapClient().execute(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs));
+                    StructType externalSchema = result.getSchema();
+
+                    //Make sure we have the same amount of attributes in the definition compared to the external file
+                    if (externalSchema.fields().length != template.length()) {
+                        throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
+                    }
+
+                    // test types equivalence. Make sure that the type defined correspond
+                    // to what is really in the external file.
+                    for (int i = 0; i < externalSchema.fields().length; i++) {
+
+                        //compare the datatype
+                        StructField externalField = externalSchema.fields()[i];
+                        StructField definedField = template.schema().fields()[i];
+                        if (!definedField.dataType().equals(externalField.dataType())) {
+                            throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(), externalField.name(), location);
+
+                        }
+                    }
+                }else{
+                    // need the create the external file if the location provided is empty
+                    EngineDriver.driver().getOlapClient().execute( new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup,  template));
+                }
+
+            }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }

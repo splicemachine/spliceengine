@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.utils.ForwardingDataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.types.StructType;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -124,6 +125,14 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         public void refreshTable(String location) {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "DistributedWrapper#refreshTable()");
+        }
+
+        @Override
+        public StructType getExternalFileSchema(String storedAs, String location) {
+            if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "DistributedWrapper#getExternalFileSchema()");
+            //no-op
+            return null;
         }
     }
 }
