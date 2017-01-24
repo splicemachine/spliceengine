@@ -985,7 +985,13 @@ public class ColumnReference extends ValueNode {
 					// column, so fall back on column name, which is unique
 					// then.
 					ftRC = rcl.getResultColumn(columnName);
+                    tableNumber = ft.getTableNumber();
 				}
+				else {
+				    // DB-5743: set tableNumber to where source result column is from
+					tableNumber = ftRC.getTableNumber()!= -1 ? ftRC.getTableNumber() : ft.getTableNumber();
+				}
+
 
 				if (SanityManager.DEBUG) {
 					SanityManager.ASSERT(
@@ -994,8 +1000,6 @@ public class ColumnReference extends ValueNode {
 									"' in the " + "RCL for '" + ft.getTableName() +
 									"'.");
 				}
-
-				tableNumber = ft.getTableNumber();
 
 				if (SanityManager.DEBUG) {
 					SanityManager.ASSERT(tableNumber != -1,
