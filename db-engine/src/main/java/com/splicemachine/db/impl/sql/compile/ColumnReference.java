@@ -985,6 +985,10 @@ public class ColumnReference extends ValueNode {
 					// column, so fall back on column name, which is unique
 					// then.
 					ftRC = rcl.getResultColumn(columnName);
+					tableNumber = ft.getTableNumber();
+				}
+				else {
+					tableNumber = ftRC.getTableNumber();
 				}
 
 				if (SanityManager.DEBUG) {
@@ -994,8 +998,6 @@ public class ColumnReference extends ValueNode {
 									"' in the " + "RCL for '" + ft.getTableName() +
 									"'.");
 				}
-
-				tableNumber = ft.getTableNumber();
 
 				if (SanityManager.DEBUG) {
 					SanityManager.ASSERT(tableNumber != -1,
