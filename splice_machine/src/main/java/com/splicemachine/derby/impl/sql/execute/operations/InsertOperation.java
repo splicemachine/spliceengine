@@ -22,6 +22,7 @@ import java.io.ObjectOutput;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.utils.IntArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -309,10 +310,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {
-
-                if(!SIDriver.driver().fileSystem().getInfo(location).isWritable()){
-                    throw  ErrorState.CANNOT_WRITE_AT_LOCATION.newException(location);
-                }
+                ImportUtils.validateWritable(location,false);
 
                 if (storedAs.toLowerCase().equals("p"))
                     return set.writeParquetFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
@@ -340,8 +338,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .txn(txn)
                     .build();
             return writer.write();
-        }catch (IOException e) {
-            throw StandardException.plainWrapException(e);
         }finally{
             operationContext.popScope();
         }

@@ -4,6 +4,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.pipeline.ErrorState;
@@ -48,12 +49,10 @@ public class CreateExternalTableJob implements Callable<Void> {
         dsp.setJobGroup(request.getJobGroup(), "");
 
         // look at the file, if it doesn't exist create it.
+
         if(!SIDriver.driver().fileSystem().getInfo(request.getLocation()).exists()){
             Path pathToParent = SIDriver.driver().fileSystem().getPath(request.getLocation()).getParent();
-
-            if(!SIDriver.driver().fileSystem().getInfo(pathToParent.toString()).isWritable()){
-                throw  ErrorState.CANNOT_WRITE_AT_LOCATION.newException(request.getLocation());
-            }
+            ImportUtils.validateWritable(pathToParent.toString(),false);
             dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
         }
 
