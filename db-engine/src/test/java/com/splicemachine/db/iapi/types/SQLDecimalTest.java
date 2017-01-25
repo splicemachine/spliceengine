@@ -30,6 +30,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 /**
  *
@@ -132,5 +133,23 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLDecimal(""+5000),new SQLDecimal(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                SQLDecimal decimal = new SQLDecimal();
+                decimal.setPrecision(10);
+                decimal.setScale(2);
+                value.setType(decimal);
+                value.setValue(new DataValueDescriptor[] {new SQLDecimal(new BigDecimal(23),10,2),new SQLDecimal(new BigDecimal(48),10,2), new SQLDecimal(new BigDecimal(10),10,2), new SQLDecimal()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(decimal);
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+
+        }
 
 }

@@ -23,6 +23,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 import java.sql.Time;
+import java.util.Arrays;
 import java.util.GregorianCalendar;
 
 /**
@@ -76,4 +77,21 @@ public class SQLTimeTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals("1 incorrect",value1.getTime(gc),value1a.getTime(gc));
                 Assert.assertEquals("2 incorrect",value2.getTime(gc),value2a.getTime(gc));
         }
+
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLTime());
+                value.setValue(new DataValueDescriptor[] {new SQLTime(new Time(System.currentTimeMillis())),new SQLTime(new Time(System.currentTimeMillis())),
+                        new SQLTime(new Time(System.currentTimeMillis())), new SQLTime()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLTime());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+        }
+
 }

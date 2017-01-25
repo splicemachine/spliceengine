@@ -28,6 +28,8 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLDouble
@@ -136,5 +138,19 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLDouble(5000),new SQLDouble(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLDouble());
+                value.setValue(new DataValueDescriptor[] {new SQLDouble(23),new SQLDouble(48), new SQLDouble(10), new SQLDouble()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLDouble());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
 
+        }
 }

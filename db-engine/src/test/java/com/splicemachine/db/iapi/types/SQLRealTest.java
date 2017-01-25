@@ -27,6 +27,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLDouble
@@ -133,6 +135,22 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLReal(1000),new SQLReal(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLReal(),new SQLReal(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLReal(5000),new SQLReal(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+        }
+
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLReal());
+                value.setValue(new DataValueDescriptor[] {new SQLReal(23),new SQLReal(48), new SQLReal(10), new SQLReal()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLReal());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+
         }
     
 }

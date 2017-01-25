@@ -45,7 +45,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -768,6 +770,40 @@ public final class SQLTinyint
 	        else
 	            unsafeRowWriter.write(ordinal,value);
 	    }
+
+	/**
+	 *
+	 * Write positioned element from array
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else
+			unsafeArrayWriter.write(ordinal,value);
+	}
+
+	/**
+	 *
+	 * Read element from positioned array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = unsafeArrayData.getByte(ordinal);
+		}
+	}
 
 	/**
 	 *

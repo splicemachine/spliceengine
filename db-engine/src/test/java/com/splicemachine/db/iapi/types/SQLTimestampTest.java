@@ -28,7 +28,10 @@ import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.GregorianCalendar;
 
 /**
@@ -120,6 +123,22 @@ public class SQLTimestampTest extends SQLDataValueDescriptorTest {
                 ItemsSketch itemsSketch = integer.getQuantilesSketch();
                 itemsSketch.update(integer2);
                 quantilesSketchUnion.update(itemsSketch);
+        }
+
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLTimestamp());
+                value.setValue(new DataValueDescriptor[] {new SQLTimestamp(new Timestamp(System.currentTimeMillis())),new SQLTimestamp(new Timestamp(System.currentTimeMillis())),
+                        new SQLTimestamp(new Timestamp(System.currentTimeMillis())), new SQLTimestamp()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLTimestamp());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
         }
 
 }
