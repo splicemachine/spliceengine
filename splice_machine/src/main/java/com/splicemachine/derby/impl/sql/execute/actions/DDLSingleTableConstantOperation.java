@@ -27,9 +27,15 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -112,6 +118,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 			loadIndexProperties(lcc, ((KeyConstraintDescriptor)consDesc)
 					.getIndexConglomerateDescriptor(lcc.getDataDictionary()),ixProps);
 		}
+
 		ConglomerateDescriptor newBackingConglomCD = consDesc.drop(lcc, clearDeps);
 
         if (consDesc.getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT) {
@@ -122,6 +129,15 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
             new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, consDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
         }
 
+        if (consDesc.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
+            DataDictionary dd = lcc.getDataDictionary();
+            ReferencedKeyConstraintDescriptor keyConsDesc = (ReferencedKeyConstraintDescriptor)consDesc;
+            ConglomerateDescriptor indexConglom = keyConsDesc.getIndexConglomerateDescriptor(dd);
+            String indexName = indexConglom.getObjectName();
+            TableDescriptor td = consDesc.getTableDescriptor();
+            String schemaName = td.getSchemaName();
+            dropIndex(td, indexConglom, (SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName);
+        }
 		/* If we don't need a new conglomerate then there's nothing
 		 * else to do.
 		 */
@@ -360,5 +376,23 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 		dd.updateConglomerateDescriptor(congDescs,
 			replaceConglomAction.getCreatedConglomNumber(),lcc.getTransactionExecute());
 	}
+
+    protected void dropIndex(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor,
+                             SpliceTransactionManager userTxnManager, LanguageConnectionContext lcc,
+                             String schemaName, String indexName) throws StandardException {
+        final long tableConglomId = td.getHeapConglomerateId();
+        final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
+        TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
+        //get the top-most transaction, that's the actual user transaction
+        TransactionController tc = lcc.getTransactionExecute();
+        TxnView t = uTxn;
+        while(t.getTxnId()!= Txn.ROOT_TRANSACTION.getTxnId()){
+            uTxn = t;
+            t = uTxn.getParentTxnView();
+        }
+        final TxnView userTxn = uTxn;
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+    }
 }
 
