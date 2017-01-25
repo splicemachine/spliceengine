@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.types.RowLocation;
+import org.apache.log4j.Logger;
 import org.xerial.snappy.Snappy;
 
 /**
@@ -56,6 +57,7 @@ import org.xerial.snappy.Snappy;
 */
 class DDMWriter
 {
+	private static final Logger LOG = Logger.getLogger(DDMWriter.class);
 
 	// number of nesting levels for collections.  We need to mark the length
 	// location of the collection so that we can update it as we add more stuff
@@ -1491,9 +1493,8 @@ class DDMWriter
 		// the 6 byte dss header located at the beginning of the dss.	It does not
 		// include the length of any continuation headers.
 		int totalSize = offset - dssLengthLocation;
-		if (SanityManager.DEBUG) {
-			SanityManager.DEBUG_PRINT("COMPRESS", "agent.canCompress() " + agent.canCompress());
-			SanityManager.DEBUG_PRINT("COMPRESS", "totalSize " + totalSize);
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("COMPRESS agent.canCompress: " + agent.canCompress() + " totalSize: " + totalSize);
 		}
 		if(agent.canCompress() && (totalSize > DssConstants.MAX_DSS_LENGTH)) 
 		{
@@ -1505,10 +1506,12 @@ class DDMWriter
 			    compressedSize = Snappy.compress(buffer.array(), dssLengthLocation + 6, 
 			        uncompressedSize, compressedBuffer, 0);
 			} catch (IOException e) {
-		            SanityManager.DEBUG_PRINT("COMPRESS", "Snappy compression exception:  " + e.getMessage());
+				LOG.warn("COMPRESS Snappy compression exception:  " + e.getMessage());
 			}
 
-			SanityManager.DEBUG_PRINT("COMPRESS", "finalizeDssLength original size " + uncompressedSize + " compressed size " + compressedSize);
+			if (LOG.isTraceEnabled()) {
+				LOG.trace("COMPRESS finalizeDssLength original size: " + uncompressedSize + " compressed size: " + compressedSize);
+			}
 
 			if(compressedSize < uncompressedSize) 
 			{
@@ -1520,8 +1523,9 @@ class DDMWriter
 				totalSize = offset - dssLengthLocation;
 			}
 		}
-		SanityManager.DEBUG_PRINT("COMPRESS", "post compression totalSize " + totalSize);
-
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("COMPRESS post compression totalSize: " + totalSize);
+		}
 		
 		int bytesRequiringContDssHeader = totalSize - DssConstants.MAX_DSS_LENGTH;
 
