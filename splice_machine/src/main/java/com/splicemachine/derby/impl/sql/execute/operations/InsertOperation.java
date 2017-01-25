@@ -23,6 +23,8 @@ import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.utils.IntArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -306,8 +308,17 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
         operationContext.pushScope();
         try{
-            if(statusDirectory!=null)
+            if(statusDirectory!=null) {
                 dsp.setSchedulerPool("import");
+                if (txn instanceof ActiveWriteTxn) {
+                    ActiveWriteTxn activeWriteTxn = (ActiveWriteTxn) txn;
+                    activeWriteTxn.setAdditive(true);
+                }
+                else if (txn instanceof WritableTxn) {
+                    WritableTxn writableTxn = (WritableTxn)txn;
+                    writableTxn.setAdditive(true);
+                }
+            }
             if (storedAs!=null) {
 
                 if(!SIDriver.driver().fileSystem().getInfo(location).isWritable()){
