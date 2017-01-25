@@ -25,15 +25,9 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 
 /**
  * DDL operation to drop an index. The approach is as follows:
@@ -113,26 +107,9 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
 
         invalidate(cd,dm,lcc); // invalidate locally for error handling
         // Remote Notification
-        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute(),lcc);
+        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName);
         // Physical DD Drop
         drop(cd, td, dd, lcc);
-    }
-
-    private void dropIndex(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor,
-                           SpliceTransactionManager userTxnManager, LanguageConnectionContext lcc) throws StandardException {
-        final long tableConglomId = td.getHeapConglomerateId();
-        final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
-        TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
-        //get the top-most transaction, that's the actual user transaction
-        TransactionController tc = lcc.getTransactionExecute();
-        TxnView t = uTxn;
-        while(t.getTxnId()!= Txn.ROOT_TRANSACTION.getTxnId()){
-            uTxn = t;
-            t = uTxn.getParentTxnView();
-        }
-        final TxnView userTxn = uTxn;
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 
     private void drop(ConglomerateDescriptor cd,
