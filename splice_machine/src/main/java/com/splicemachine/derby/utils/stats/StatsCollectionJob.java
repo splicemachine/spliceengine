@@ -58,7 +58,7 @@ public class StatsCollectionJob implements Callable<Void> {
                 ScanSetBuilder builder = request.scanSetBuilder;
                 String storedAs = request.scanSetBuilder.getStoredAs();
                     if (storedAs.equals("T"))
-                        statsDataSet = dsp.readTextFile(null,builder.getLocation(),builder.getDelimited(),null,builder.getColumnPositionMap(),null,builder.getTemplate());
+                        statsDataSet = dsp.readTextFile(null,builder.getLocation(),builder.getDelimited(),null,builder.getColumnPositionMap(),null,null,null, builder.getTemplate());
                     else if (storedAs.equals("P"))
                         statsDataSet = dsp.readParquetFile(builder.getColumnPositionMap(),builder.getLocation(),null,null,null,builder.getTemplate());
                     else if (storedAs.equals("O"))

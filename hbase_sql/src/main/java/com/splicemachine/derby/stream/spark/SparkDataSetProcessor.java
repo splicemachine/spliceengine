@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -29,6 +31,7 @@ import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -66,6 +69,7 @@ import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
+import scala.collection.JavaConverters;
 
 /**
  * Spark-based DataSetProcessor.
@@ -462,11 +466,30 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
         }
     }
+
     @Override
     public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                      OperationContext context, ExecRow execRow) throws StandardException {
+                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
         try {
-            return SpliceFileVTI.getSpliceFileVTI(location, characterDelimiter, columnDelimiter, baseColumnMap).getDataSet(op, this, execRow);
+            Dataset<Row> table = null;
+            try {
+                table = SpliceSpark.getSession().read().csv(location);
+
+                //1. spark cvs assume all the columns to be string by default
+                //   we know the schema, no need to use infer schema which is doing a full scan
+                //   so 2 scan , not cheap.
+                //2. There is a annoying underscore with csv in columns names
+                List<Column> correctSchemaSelection = Arrays.stream(execRow.schema().fields())
+                        .map( field -> new Column("_"+field.name()).cast(field.dataType())).collect(Collectors.toList());
+                table = table.select(correctSchemaSelection.toArray(new Column[correctSchemaSelection.size()]));
+
+            } catch (Exception e) {
+                return handleExceptionInCaseOfEmptySet(e,location);
+            }
+            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            return new SparkDataSet(table
+                    .rdd().toJavaRDD()
+                    .map(new RowToLocatedRowFunction(context,execRow)));
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
