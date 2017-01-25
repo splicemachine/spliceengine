@@ -79,7 +79,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             ExecRow execRow = operation==null?template:op.getExecRowDefinition();
             Qualifier[][] qualifiers = operation == null?null:operation.getScanInformation().getScanQualifiers();
             if (storedAs.equals("T"))
-                return dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
+                return dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
             if (storedAs.equals("P"))
                 return dsp.readParquetFile(baseColumnMap,location,operationContext,qualifiers,null,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
             if (storedAs.equals("O"))
