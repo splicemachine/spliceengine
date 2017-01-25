@@ -18,10 +18,9 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Random;
 
@@ -34,18 +33,18 @@ class ExportPermissionCheck {
     private ExportParams exportParams;
     private ExportFile testFile;
 
-    ExportPermissionCheck(ExportParams exportParams,DistributedFileSystem dfs) throws IOException {
+    ExportPermissionCheck(ExportParams exportParams,DistributedFileSystem dfs) {
         this.exportParams = exportParams;
         byte[] testFileTaskId = new byte[16];
         new Random().nextBytes(testFileTaskId);
         testFile = new ExportFile(exportParams, testFileTaskId,dfs);
     }
 
-    ExportPermissionCheck(ExportParams exportParams) throws IOException {
-        this(exportParams,SIDriver.driver().getFileSystem(exportParams.getDirectory()));
+    ExportPermissionCheck(ExportParams exportParams) throws StandardException {
+        this(exportParams, ImportUtils.getFileSystem(exportParams.getDirectory()));
     }
 
-    void verify() throws IOException, StandardException {
+    void verify() throws StandardException {
         verifyExportDirExistsOrCanBeCreated();
         verifyExportDirWritable();
     }
@@ -69,7 +68,7 @@ class ExportPermissionCheck {
      * Given that limitation we instead check permissions by attempting to create a temporary file in the export
      * directory. Maybe future version of HDFS will implement .isWritable() or allow us to query group membership.
      */
-    private void verifyExportDirWritable() throws IOException, StandardException {
+    private void verifyExportDirWritable() throws StandardException {
 
         StandardException userVisibleErrorMessage = StandardException.newException(SQLState.UU_INVALID_PARAMETER,
                 "cannot write to export directory", exportParams.getDirectory()); // TODO: i18n

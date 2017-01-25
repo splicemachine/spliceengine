@@ -799,4 +799,34 @@ public class ExternalTableIT extends SpliceUnitTest{
         rs2.close();
     }
 
+    @Test
+    public void testReadArraysParquet() {
+
+    }
+
+    @Test
+    public void testReadArraysORC() {
+
+    }
+
+    @Test
+    public void testWriteArraysORC() {
+
+    }
+
+    @Test
+    public void testWriteArraysParquet() {
+
+    }
+
+    @Test
+    public void testReadArrayTextFile() {
+
+    }
+
+    @Test
+    public void testWriteArrayTextFile() {
+
+    }
+
 }

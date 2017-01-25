@@ -31,6 +31,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,6 +40,7 @@ import java.util.zip.GZIPInputStream;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
+import org.junit.Assert;
 
 /**
  * This IT assumes the server side writes to the local files system accessible to IT itself.  Currently true only
@@ -423,6 +425,15 @@ public class ExportOperationIT {
                 row(29, 3.14159, "14:31:20", "varchar1 \" quote"),
                 row(30, 3.14159, "14:31:20", "varchar1")
         );
+    }
+
+    @Test
+    public void exportExceptionsS3() throws Exception {
+        try {
+            Long expectedRowCount = methodWatcher.query("EXPORT ( 's3a://molitorisspechial/temp/', null, null, null, null, null ) select * from export_test;");
+        } catch (SQLException sqle) {
+            Assert.assertTrue("AWS?",sqle.getMessage().contains("AWS"));
+        }
     }
 
 }

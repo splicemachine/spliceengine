@@ -138,7 +138,8 @@ public	interface	DRDAConstants
     // section on SQLUDTGRP
 	public	static final int DRDA_TYPE_UDT = 0x50;
 	public	static final int DRDA_TYPE_NUDT = 0x51;
-    
+	public	static final int DRDA_TYPE_ARRAY = 0x52;
+
 	public	static final int DRDA_TYPE_LOBBYTES = 0xC8;
 	public	static final int DRDA_TYPE_NLOBBYTES = 0xC9;
 	public	static final int DRDA_TYPE_LOBCSBCS = 0xCA;
@@ -227,6 +228,7 @@ public	interface	DRDAConstants
     // there is no DB2 type for UDTs. we invent one
     public   static final int DB2_SQLTYPE_FAKE_UDT = 2000;
     public   static final int DB2_SQLTYPE_FAKE_NUDT = 2001;
+	public   static final int DB2_SQLTYPE_FAKE_ARRAY = 2002;
 
     // DB2 and DRDA support timestamps with microseconds precision, but not
     // nanoseconds precision: yyyy-mm-dd-hh.mm.ss.ffffff

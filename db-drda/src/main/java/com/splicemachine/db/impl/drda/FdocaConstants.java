@@ -254,6 +254,9 @@ class FdocaConstants
                 outlen[0] = -1;
                 break;
 			case java.sql.Types.ARRAY:
+				drdaType = DRDAConstants.DRDA_TYPE_ARRAY;
+				outlen[0] = -1;
+				break;
 			case java.sql.Types.DISTINCT:
 			case java.sql.Types.NULL:
 			case java.sql.Types.OTHER:

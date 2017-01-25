@@ -198,6 +198,14 @@ public class BaseTypeIdImpl implements Formatable
           case StoredFormatIds.DECIMAL_TYPE_ID_IMPL:
                 retval += "(" + td.getPrecision() + "," + td.getScale() + ")";
                 break;
+/*
+          case StoredFormatIds.ARRAY_TYPE_ID_IMPL:
+              System.out.println(td!=null);
+              TypeDescriptorImpl impl = (TypeDescriptorImpl) td;
+              System.out.println(impl.getChildren() != null);
+              retval += "(" + toParsableString(impl.getChildren()[0])+ ")";
+              break;
+*/
         }
 
         return retval;
@@ -472,7 +480,13 @@ public class BaseTypeIdImpl implements Formatable
               JDBCTypeId = Types.TIMESTAMP;
               break;
 
-          case StoredFormatIds.XML_TYPE_ID_IMPL:
+            case StoredFormatIds.ARRAY_TYPE_ID_IMPL:
+                schemaName = null;
+                unqualifiedName = TypeId.ARRAY_NAME;
+                JDBCTypeId = Types.ARRAY;
+                break;
+
+            case StoredFormatIds.XML_TYPE_ID_IMPL:
               schemaName = null;
               unqualifiedName = TypeId.XML_NAME;
               JDBCTypeId = JDBC40Translation.SQLXML;

@@ -279,6 +279,7 @@ class DRDAProtocolException extends Exception
 		}
 		else
 		{
+
 			this.svrcod = exceptionInfo.svrcod;
 			msg = "Execution failed because of a Distributed Protocol Error:  " 
 				+ messageid +

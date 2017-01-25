@@ -198,6 +198,9 @@ public class SpliceSpark {
         conf.set("spark.streaming.ui.retainedBatches", System.getProperty("splice.spark.streaming.ui.retainedBatches", "100"));
 
 
+        conf.set("spark.default.parallelism","100");
+        conf.set("spark.sql.shuffle.partitions","100");
+
         /*
 
            Spark UI

@@ -64,6 +64,7 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
         static TypeCompiler blobTypeCompiler ;
         static TypeCompiler clobTypeCompiler ;
         static TypeCompiler xmlTypeCompiler ;
+        static TypeCompiler arrayTypeCompiler ;
 
         /**
          * Get a TypeCompiler corresponding to the given TypeId
@@ -225,6 +226,14 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
                                 getAnInstance(PACKAGE_NAME + "XMLTypeCompiler",
                                                                 xmlTypeCompiler,
                                                                 typeId);
+
+                    case Types.ARRAY:
+                        return arrayTypeCompiler =
+                                getAnInstance(PACKAGE_NAME + "ArrayTypeCompiler",
+                                        arrayTypeCompiler,
+                                        typeId);
+
+
 
                 }
 

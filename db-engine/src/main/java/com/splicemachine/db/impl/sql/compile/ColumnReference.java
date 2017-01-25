@@ -204,7 +204,7 @@ public class ColumnReference extends ValueNode {
 		}
 		else
 		{
-			return "";
+			return "columnName: " + columnName;
 		}
 	}
 

@@ -61,6 +61,7 @@ public interface ClassName
     String UserType = "com.splicemachine.db.iapi.types.UserType";
 	String ConcatableDataValue  = "com.splicemachine.db.iapi.types.ConcatableDataValue";
 	String XMLDataValue  = "com.splicemachine.db.iapi.types.XMLDataValue";
+	String ArrayDataValue  = "com.splicemachine.db.iapi.types.ArrayDataValue";
 
 	String FormatableBitSet = "com.splicemachine.db.iapi.services.io.FormatableBitSet";
 

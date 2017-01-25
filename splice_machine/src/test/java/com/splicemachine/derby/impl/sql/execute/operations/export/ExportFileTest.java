@@ -16,6 +16,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.impl.TestingFileSystem;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.si.testenv.SITestDataEnv;
@@ -91,7 +92,7 @@ public class ExportFileTest {
     }
 
     @Test
-    public void createDirectory() throws IOException {
+    public void createDirectory() throws IOException, StandardException {
         String testDir = temporaryFolder.getRoot().getAbsolutePath() + "/" + RandomStringUtils.randomAlphabetic(9);
         ExportParams exportParams = ExportParams.withDirectory(testDir);
         ExportFile exportFile = new ExportFile(exportParams, testTaskId(),dfs);
@@ -103,7 +104,7 @@ public class ExportFileTest {
     }
 
     @Test
-    public void createDirectory_returnsFalseWhenCannotCreate() throws IOException {
+    public void createDirectory_returnsFalseWhenCannotCreate() throws IOException, StandardException {
         String testDir = "/noPermissionToCreateFolderInRoot";
         ExportParams exportParams = ExportParams.withDirectory(testDir);
         ExportFile exportFile = new ExportFile(exportParams, testTaskId(),dfs);

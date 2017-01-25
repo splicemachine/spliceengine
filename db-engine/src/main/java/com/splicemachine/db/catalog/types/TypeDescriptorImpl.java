@@ -36,8 +36,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.shared.common.reference.JDBC30Translation;
                              
-public class TypeDescriptorImpl implements TypeDescriptor, Formatable
-{
+public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 	/********************************************************
 	**
 	**	This class implements Formatable. That means that it
@@ -57,6 +56,7 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable
 	private int						scale;
 	private boolean					isNullable;
 	private int						maximumWidth;
+	private TypeDescriptor[] children;
 	/** @see TypeDescriptor#getCollationType() */
 	private int	collationType = StringDataValue.COLLATION_TYPE_UCS_BASIC;
 
@@ -81,8 +81,7 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable
 		int precision,
 		int scale,
 		boolean isNullable,
-		int maximumWidth)
-	{
+		int maximumWidth) {
 		this.typeId = typeId;
 		this.precision = precision;
 		this.scale = scale;
@@ -114,14 +113,13 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable
 		int scale,
 		boolean isNullable,
 		int maximumWidth,
-		int collationType)
-	{
-		this.typeId = typeId;
-		this.precision = precision;
-		this.scale = scale;
-		this.isNullable = isNullable;
-		this.maximumWidth = maximumWidth;
-		this.collationType = collationType;
+		int collationType) {
+			this.typeId = typeId;
+			this.precision = precision;
+			this.scale = scale;
+			this.isNullable = isNullable;
+			this.maximumWidth = maximumWidth;
+			this.collationType = collationType;
 	}
 
 	/**
@@ -135,8 +133,7 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable
 	public TypeDescriptorImpl(
 		BaseTypeIdImpl typeId,
 		boolean isNullable,
-		int maximumWidth)
-	{
+		int maximumWidth) {
 		this.typeId = typeId;
 		this.isNullable = isNullable;
 		this.maximumWidth = maximumWidth;
@@ -538,6 +535,12 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable
 		
 		isNullable = in.readBoolean();
 		maximumWidth = in.readInt();
+		if (in.readBoolean()) {
+			children = new TypeDescriptorImpl[in.readInt()];
+			for (int i = 0; i< children.length;i++) {
+				children[i] = (TypeDescriptorImpl)in.readObject();
+			}
+		}
 	}
 
 	/**
@@ -579,6 +582,13 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable
 		
 		out.writeBoolean( isNullable );
 		out.writeInt( maximumWidth );
+		out.writeBoolean(children != null);
+		if (children!=null) {
+			out.writeInt(children.length);
+			for (int i  =0 ; i< children.length; i++) {
+				out.writeObject(children[i]);
+			}
+		}
 	}
  
 	/**
@@ -601,4 +611,12 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable
 
         return ((RowMultiSetImpl) typeId).getTypes();
     }
+
+	public TypeDescriptor[] getChildren() {
+		return this.children;
+	}
+
+	public void setChildren(TypeDescriptor[] children) {
+		this.children = children;
+	}
 }

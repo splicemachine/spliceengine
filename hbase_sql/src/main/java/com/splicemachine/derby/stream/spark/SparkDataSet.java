@@ -639,16 +639,23 @@ public class SparkDataSet<V> implements DataSet<V> {
                 expr = i!=0?expr.and(joinEquality):joinEquality;
             }
             DataSet joinedSet;
-            if (op.wasRightOuterJoin)
-                joinedSet =  new SparkDataSet(rightDF.join(leftDF,expr,joinType.strategy()).rdd().toJavaRDD().map(
+            System.out.println(leftDF.join(rightDF,expr,joinType.strategy()).queryExecution().optimizedPlan().treeString(true));
+
+            SpliceSpark.getContext().getConf().set("spark.sql.shuffle.partitions","20");
+            if (op.wasRightOuterJoin) {
+                joinedSet = new SparkDataSet(rightDF.join(leftDF, expr, joinType.strategy()).rdd().toJavaRDD().map(
                         new RowToLocatedRowFunction(context)));
+            }
             else
                 joinedSet =  new SparkDataSet(leftDF.join(rightDF,expr,joinType.strategy()).rdd().toJavaRDD().map(
                     new RowToLocatedRowFunction(context)));
             return joinedSet;
         } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            SpliceSpark.getContext().getConf().set("spark.sql.shuffle.partitions","100");
         }
+
     }
 
     /**
