@@ -54,12 +54,15 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -1147,12 +1150,44 @@ public final class SQLTime extends DataType
 		if (isNull())
 			unsafeRowWriter.setNullAt(ordinal);
 		else {
-			BufferHolder holder = unsafeRowWriter.holder();
-			holder.grow(8);
-			Platform.putInt(holder.buffer, holder.cursor, encodedTime);
-			Platform.putInt(holder.buffer, holder.cursor + 4, encodedTimeFraction);
-			unsafeRowWriter.setOffsetAndSize(ordinal, 8);
-			holder.cursor = 8;
+			unsafeRowWriter.write(ordinal,(((long)encodedTime) << 32) | (encodedTimeFraction & 0xffffffffL));
+		}
+	}
+
+	/**
+	 *
+	 * Write Element into Positioned Array
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else {
+			unsafeArrayWriter.write(ordinal,(((long)encodedTime) << 32) | (encodedTimeFraction & 0xffffffffL));
+		}
+	}
+
+	/**
+	 *
+	 * Read Element from Positioned Array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			long l = unsafeArrayData.getLong(ordinal);
+			encodedTime = (int)(l >> 32);
+			encodedTimeFraction = (int)l;
+			isNull = false;
 		}
 	}
 
@@ -1170,10 +1205,9 @@ public final class SQLTime extends DataType
 		if (unsafeRow.isNullAt(ordinal))
 			setToNull();
 		else {
-			long offsetAndSize = unsafeRow.getLong(ordinal);
-			int offset = (int)(offsetAndSize >> 32);
-			encodedTime = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset);
-			encodedTimeFraction = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 4L);
+			long l = unsafeRow.getLong(ordinal);
+			encodedTime = (int)(l >> 32);
+			encodedTimeFraction = (int)l;
 			isNull = false;
 		}
 	}

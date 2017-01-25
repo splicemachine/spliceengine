@@ -47,6 +47,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLBoolean
@@ -139,5 +141,21 @@ public class SQLBooleanTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(9000.0d,(double) stats.rangeSelectivity(new SQLBoolean(false),new SQLBoolean(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLBoolean());
+                value.setValue(new DataValueDescriptor[] {new SQLBoolean(true),new SQLBoolean(false),
+                        new SQLBoolean(true), new SQLBoolean()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLBoolean());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+
+        }
 
 }

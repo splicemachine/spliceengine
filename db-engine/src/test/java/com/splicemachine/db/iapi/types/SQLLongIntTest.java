@@ -43,6 +43,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLLongint
@@ -148,5 +150,19 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLLongint(),new SQLLongint(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLLongint(5000),new SQLLongint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
-    
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLLongint());
+                value.setValue(new DataValueDescriptor[] {new SQLLongint(23),new SQLLongint(48), new SQLLongint(10), new SQLLongint()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLLongint());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+
+        }
 }

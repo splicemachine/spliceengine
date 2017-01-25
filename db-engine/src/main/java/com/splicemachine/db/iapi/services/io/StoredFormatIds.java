@@ -1753,4 +1753,15 @@ public interface StoredFormatIds {
     // DO NOT USE 4 BYTE IDS ANYMORE
     static public final int MAX_ID_4 =
             (MIN_ID_4 + 34);
+
+    public static final int SQL_ARRAY_ID =
+            (MIN_ID_2 + 508);
+
+    public static final int ARRAY_TYPE_ID =
+            (MIN_ID_2 + 700);
+
+    public static final int ARRAY_TYPE_ID_IMPL =
+            (MIN_ID_2 + 704);
+
+
 }

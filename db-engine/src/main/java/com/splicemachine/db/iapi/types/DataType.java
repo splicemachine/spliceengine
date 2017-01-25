@@ -50,6 +50,8 @@ import java.sql.RowId;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 
+import javax.ws.rs.NotSupportedException;
+
 /**
  *
  * DataType is the superclass for all data types. 
@@ -1107,6 +1109,13 @@ public abstract class DataType extends NullValueData
 		returnValue.setToNull();
 		return returnValue;
 
+	}
+
+	@Override
+	public DataValueDescriptor setArray(DataValueDescriptor[] theValue, DataValueDescriptor dvd) {
+		// Need to check type...
+		((SQLArray) dvd).setValue(theValue);
+		return dvd;
 	}
 
 	/**

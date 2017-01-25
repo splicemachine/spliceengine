@@ -233,6 +233,8 @@ public class TypeId{
     public static final TypeId CHAR_ID=create(StoredFormatIds.CHAR_TYPE_ID,StoredFormatIds.CHAR_TYPE_ID_IMPL);
 
     public static final TypeId DOUBLE_ID=create(StoredFormatIds.DOUBLE_TYPE_ID,StoredFormatIds.DOUBLE_TYPE_ID_IMPL);
+
+
         /*
         ** Others are created on demand by the getBuiltInTypeId(int),
         ** if they are built-in (i.e.? Part of JDBC .Types),
@@ -247,6 +249,7 @@ public class TypeId{
     private static final TypeId DECIMAL_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(false));
     private static final TypeId NUMERIC_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(true));
     private static final TypeId VARCHAR_ID=create(StoredFormatIds.VARCHAR_TYPE_ID,StoredFormatIds.VARCHAR_TYPE_ID_IMPL);
+    private static final TypeId ARRAY_ID=create(StoredFormatIds.ARRAY_TYPE_ID,StoredFormatIds.ARRAY_TYPE_ID_IMPL);
     private static final TypeId DATE_ID=create(StoredFormatIds.DATE_TYPE_ID,StoredFormatIds.DATE_TYPE_ID_IMPL);
     private static final TypeId TIME_ID=create(StoredFormatIds.TIME_TYPE_ID,StoredFormatIds.TIME_TYPE_ID_IMPL);
     private static final TypeId TIMESTAMP_ID=create(StoredFormatIds.TIMESTAMP_TYPE_ID,StoredFormatIds.TIMESTAMP_TYPE_ID_IMPL);
@@ -378,6 +381,8 @@ public class TypeId{
                 return CLOB_ID;
             case JDBC40Translation.SQLXML:
                 return XML_ID;
+            case Types.ARRAY:
+                return ARRAY_ID;
             default:
                 return null;
         }
@@ -1367,6 +1372,9 @@ public class TypeId{
 
             case StoredFormatIds.XML_TYPE_ID:
                 return new XML();
+
+            case StoredFormatIds.ARRAY_TYPE_ID:
+                return new SQLArray();
 
             default:
                 if(SanityManager.DEBUG){
