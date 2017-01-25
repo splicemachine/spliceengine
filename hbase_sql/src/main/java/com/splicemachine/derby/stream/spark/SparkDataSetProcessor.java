@@ -40,7 +40,6 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -338,26 +337,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location){
-        StructType schema = null;
-        if (storedAs!=null) {
-            if (storedAs.toLowerCase().equals("p")) {
-                schema =  SpliceSpark.getSession().read().parquet(location).schema();
-
-            }
-            if (storedAs.toLowerCase().equals("o")) {
-                schema =  SpliceSpark.getSession().read().orc(location).schema();
-
-            }
-            if (storedAs.toLowerCase().equals("t")) {
-                schema =  SpliceSpark.getSession().read().csv(location).schema();
-            }
-        }
-
-        return schema;
-    }
-
-    @Override
     public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
 
@@ -387,6 +366,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     if (storedAs.toLowerCase().equals("t")) {
                         empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
                     }
+
             }
 
 
@@ -425,7 +405,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return dataset;
 
     }
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+
+
     @Override
     public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
         try {
@@ -440,7 +421,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
                                           OperationContext context, Qualifier[][] qualifiers,

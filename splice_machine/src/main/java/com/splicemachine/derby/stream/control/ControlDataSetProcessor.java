@@ -36,7 +36,6 @@ import com.splicemachine.derby.stream.iapi.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
-import org.apache.spark.sql.types.StructType;
 import org.spark_project.guava.base.Charsets;
 import scala.Tuple2;
 import com.splicemachine.access.api.DistributedFileSystem;
@@ -353,11 +352,5 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     public void refreshTable(String location) {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         proc.refreshTable(location);
-    }
-
-    @Override
-    public StructType getExternalFileSchema(String storedAs, String location) {
-        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return proc.getExternalFileSchema(storedAs,location);
     }
 }

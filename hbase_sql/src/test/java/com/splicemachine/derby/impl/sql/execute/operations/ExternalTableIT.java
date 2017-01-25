@@ -213,14 +213,14 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testFileExistingNotDeleted() throws  Exception{
-        String tablePath = getResourceDirectory()+"parquet_sample_one";
+        String tablePath = getExternalResourceDirectory()+"location_existing_file";
 
         File newFile = new File(tablePath);
         newFile.createNewFile();
         long lastModified = newFile.lastModified();
 
 
-        methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+        methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
         Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),lastModified,newFile.lastModified());
     }
@@ -427,50 +427,6 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-
-    @Test
-    public void testReadFailingNumberAttributeConstraint() throws Exception {
-        try{
-                methodWatcher.executeUpdate(String.format("create external table failing_number_attribute(col1 varchar(24), col2 varchar(24), col3 int, col4 int)" +
-                        "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
-                ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_number_attribute where col1='AAA'");
-                Assert.assertEquals("COL2 |\n" +
-                        "------\n" +
-                        " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-                 Assert.fail("Exception not thrown");
-            } catch (SQLException e) {
-
-                Assert.assertEquals("Wrong Exception","EXT23",e.getSQLState());
-            }
-    }
-
-    @Test
-    public void testReadFailingAttributeDataTypeConstraint() throws Exception {
-        try{
-            methodWatcher.executeUpdate(String.format("create external table failing_data_type_attribute(col1 int, col2 varchar(24), col4 varchar(24))" +
-                    "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
-            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_data_type_attribute where col1='AAA'");
-            Assert.assertEquals("COL2 |\n" +
-                    "------\n" +
-                    " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-
-            Assert.assertEquals("Wrong Exception","EXT24",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testReadPassedConstraint() throws Exception {
-            methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(col1 varchar(24), col2 varchar(24), col4 varchar(24))" +
-                    "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
-            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_correct_attribute where col1='AAA'");
-            Assert.assertEquals("COL2 |\n" +
-                    "------\n" +
-                    " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-    }
-
     @Test
     public void testWriteReadFromSimpleTextExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table simple_text (col1 int, col2 varchar(24), col3 boolean)" +
@@ -531,32 +487,32 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void validateReadParquetFromEmptyDirectory() throws Exception {
-        String path = getExternalResourceDirectory()+"parquet_empty";
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"parquet_empty"));
+        if (!directory.exists())
+            directory.mkdir();
         methodWatcher.executeUpdate(String.format("create external table parquet_empty (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"parquet_empty"));
         ResultSet rs = methodWatcher.executeQuery("select * from parquet_empty");
-        Assert.assertTrue(new File(path).exists());
         Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    // look like it will be resolve in the next Spark version
-    // https://issues.apache.org/jira/browse/SPARK-15474
-    // for now ignoring
-    @Test @Ignore
+    @Test
     public void validateReadORCFromEmptyDirectory() throws Exception {
-        String path = getExternalResourceDirectory()+"orc_empty";
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"orc_empty"));
+        if (!directory.exists())
+            directory.mkdir();
         methodWatcher.executeUpdate(String.format("create external table orc_empty (col1 int, col2 varchar(24))" +
-                " STORED AS ORC LOCATION '%s'", path));
-        Assert.assertTrue(new File(path).exists());
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"orc_empty"));
         ResultSet rs = methodWatcher.executeQuery("select * from orc_empty");
-
         Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
     // SPLICE-1180
     public void testReadTimeFromFile() throws Exception {
-
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"timestamp_parquet"));
+        if (!directory.exists())
+            directory.mkdir();
         methodWatcher.executeUpdate(String.format("create external table timestamp_parquet (a time)" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"timestamp_parquet"));
         methodWatcher.executeUpdate("insert into timestamp_parquet values ('22:22:22')");
@@ -569,7 +525,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     // SPLICE-1180
     public void testReadClobFromFile() throws Exception {
-
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"clob_parquet"));
+        if (!directory.exists())
+            directory.mkdir();
         methodWatcher.executeUpdate(String.format("create external table clob_parquet (largecol clob(65535))" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"clob_parquet"));
         methodWatcher.executeUpdate("insert into clob_parquet values ('asdfasfd234234')");
@@ -582,7 +540,9 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     // SPLICE-1180
     public void testReadSmallIntFromFile() throws Exception {
-
+        File directory = new File(String.valueOf(getExternalResourceDirectory()+"short_parquet"));
+        if (!directory.exists())
+            directory.mkdir();
         methodWatcher.executeUpdate(String.format("create external table short_parquet (col1 smallint)" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"short_parquet"));
         methodWatcher.executeUpdate("insert into short_parquet values (12)");
@@ -728,26 +688,6 @@ public class ExternalTableIT extends SpliceUnitTest{
             Assert.assertEquals("Wrong Exception","EXT11",e.getSQLState());
         }
     }
-
-    @Test
-    public void testWriteReadWithPreExistingParquet() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table (col1 varchar(24), col2 varchar(24))" +
-                methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                        "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
-        ResultSet rs = methodWatcher.executeQuery("select COL2 from parquet_simple_file_table where col1='AAA'");
-        Assert.assertEquals("COL2 |\n" +
-
-
-        @Test
-        public void testWriteReadWithPreExistingParquetAndOr() throws Exception {
-            methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table_and_or (col1 varchar(24), col2 varchar(24))" +
-                    methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table_and_or (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                            "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
-            ResultSet rs = methodWatcher.executeQuery("select COL2 from parquet_simple_file_table_and_or where col1='BBB' OR ( col1='AAA' AND col2='AAA')");
-            Assert.assertEquals("COL2 |\n" +
-
-                    "BBBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        }
 
     @Test
     public void testCollectStats() throws Exception {

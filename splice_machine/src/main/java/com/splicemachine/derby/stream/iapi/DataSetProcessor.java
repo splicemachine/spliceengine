@@ -23,8 +23,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
-import org.apache.spark.sql.types.StructType;
-
 import java.io.InputStream;
 import java.util.Iterator;
 
@@ -155,15 +153,6 @@ public interface DataSetProcessor {
      */
     public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy,String storageAs,  String location, String compression) throws StandardException ;
 
-    /**
-     * Get external schema. This used to verify and make sure that what is really provided in the external fil
-     * will match the definition in the CreateTableOperation.
-     * Splice Machine implement natively the Spark interface so we use this to the constraint check.
-     * @param storedAs
-     * @param location
-     * @return
-     */
-    public StructType getExternalFileSchema(String storedAs, String location);
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because
