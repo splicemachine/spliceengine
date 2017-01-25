@@ -703,7 +703,7 @@ public class ExternalTableIT extends SpliceUnitTest{
             // we don't want to have a unwritable file in the folder, clean it up
             file.setWritable(true);
             file.delete();
-            Assert.assertEquals("Wrong Exception","EXT22",e.getSQLState());
+            Assert.assertEquals("Wrong Exception","SE010",e.getSQLState());
         }
     }
 
