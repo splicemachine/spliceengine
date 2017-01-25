@@ -25,10 +25,7 @@ import static org.junit.Assert.fail;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -298,6 +295,18 @@ public class UniqueConstraintIT {
         assertSqlFails("update ZONING_09 set b=3", "The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index", "ZONING_09");
     }
 
+    @Test
+    public void testDropUniqueConstraint() throws Exception {
+        methodWatcher.executeUpdate("create table t(i int, j int, constraint cons unique(i))");
+
+        methodWatcher.executeUpdate("insert into t values (0, 0)");
+        methodWatcher.executeUpdate("alter table t drop constraint cons");
+        methodWatcher.executeUpdate("insert into t values (0, 0)");
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from t");
+        rs.next();
+        Assert.assertEquals(2, rs.getInt(1));
+    }
+    
     private void assertSqlFails(String sql, String expectedException, String tableName) {
         try {
             methodWatcher.executeUpdate(sql);
