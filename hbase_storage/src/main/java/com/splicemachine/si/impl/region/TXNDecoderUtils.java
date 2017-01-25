@@ -38,7 +38,7 @@ public class TXNDecoderUtils {
         if (level == null)
         	level = Txn.IsolationLevel.SNAPSHOT_ISOLATION;
         TxnMessage.TxnInfo.Builder info = TxnMessage.TxnInfo.newBuilder().setIsolationLevel(level.encode())
-        		.setTxnId(beginTs).setBeginTs(beginTs).setParentTxnid(parentTs);
+        		.setTxnId(txnId).setBeginTs(beginTs).setParentTxnid(parentTs);
         if (destTableBuffer !=null)
         	info.setDestinationTables(destTableBuffer);
         if(hasAdditive)
