@@ -44,8 +44,6 @@ import java.sql.RowId;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 
-import javax.ws.rs.NotSupportedException;
-
 /**
  *
  * DataType is the superclass for all data types. 
