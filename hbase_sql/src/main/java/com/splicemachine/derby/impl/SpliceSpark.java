@@ -149,6 +149,15 @@ public class SpliceSpark {
             conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
         }
 
+        // fallback on hbase.master.keytab.file property if we don't yet have a keytab
+        if(conf.get("spark.yarn.principal", "") != ""){
+            if(conf.get("spark.yarn.keytab", "") == ""){
+                if(HConfiguration.unwrapDelegate().get("hbase.master.keytab.file") != null){
+                    conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.master.keytab.file"));
+                }
+                // likely need an else that does a conf.remove("spark.yarn.principal"); if we don't have a keytab, and vice versa
+            }
+        }
 
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
