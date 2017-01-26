@@ -160,6 +160,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     private String storedAs;
     private String location;
     private String compression;
+    private boolean isPined;
 
 
     /**
@@ -232,7 +233,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -258,7 +259,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String lines,
                            String storedAs,
                            String location,
-                           String compression
+                           String compression,
+                           boolean isPined
     ){
         super(dataDictionary);
 
@@ -277,6 +279,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.storedAs = storedAs;
         this.location = location;
         this.compression = compression;
+        this.isPined = isPined;
 
     }
 
@@ -361,6 +364,23 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     public String getDelimited() {
         return delimited;
+    }
+
+    /**
+     * Will tell if the current table is currently pined in the memory
+     * @return
+     */
+
+    public boolean isPined() {
+        return isPined;
+    }
+
+    /**
+     * Will mark the table pined
+     * @param pined
+     */
+    public void setPined(boolean pined) {
+        isPined = pined;
     }
 
     /**
