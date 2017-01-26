@@ -315,7 +315,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     public void testWriteReadFromSimpleCsvExternalTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"dt_txt";
         methodWatcher.executeUpdate(String.format("create external table dt_txt(a date) stored as textfile location '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into dt_txt values (current_date)"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into dt_txt values ('2017-01-25')"));
         Assert.assertEquals("insertCount is wrong",1,insertCount);
         ResultSet rs = methodWatcher.executeQuery("select a from dt_txt");
         Assert.assertEquals("A     |\n" +
