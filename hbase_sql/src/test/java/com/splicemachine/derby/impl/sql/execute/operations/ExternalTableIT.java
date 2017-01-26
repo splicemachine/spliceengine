@@ -312,6 +312,35 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
+    public void testWriteReadFromSimpleCsvExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"dt_txt";
+        methodWatcher.executeUpdate(String.format("create external table dt_txt(a date) stored as textfile location '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into dt_txt values (current_date)"));
+        Assert.assertEquals("insertCount is wrong",1,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select a from dt_txt");
+        Assert.assertEquals("A     |\n" +
+                "------------\n" +
+                "2017-01-25 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+
+    }
+
+
+    @Test
+    public void testReadSmallIntFromCsv() throws Exception {
+
+        String tablePath = getExternalResourceDirectory()+"small_int_txt";
+        methodWatcher.executeUpdate(String.format("create external table small_int_txt(a smallint) stored as textfile location '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into small_int_txt values (12)"));
+        Assert.assertEquals("insertCount is wrong",1,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select a from small_int_txt");
+        Assert.assertEquals("A |\n" +
+                "----\n" +
+                "12 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
+    @Test
     public void testWriteReadWithPartitionedByFloatTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
