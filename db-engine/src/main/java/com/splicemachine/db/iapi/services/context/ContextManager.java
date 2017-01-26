@@ -198,7 +198,7 @@ public class ContextManager
 	 * the specified Context object does not exist, the call will fail.
 	 * @param theContext the Context object to remove.
 	 */
-	void popContext(Context theContext)
+	public void popContext(Context theContext)
 	{
 		checkInterrupt();
 		if (SanityManager.DEBUG)
