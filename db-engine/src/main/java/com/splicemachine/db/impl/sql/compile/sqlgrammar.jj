@@ -2849,6 +2849,7 @@ TOKEN [IGNORE_CASE] :
 |	<STORED: "stored">
 |	<LOCATION: "location">
 |	<PIN: "pin">
+|	<UNPIN: "unpin">
 |	<TEXTFILE: "textfile">
 |	<PARQUET: "parquet">
 |	<ORC: "orc">
@@ -3445,7 +3446,9 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 		statementNode = revokeStatement() |
 		statementNode = execStatement() |
 		statementNode = explainStatement() |
-		statementNode = exportStatement()
+		statementNode = exportStatement() |
+		statementNode = pinStatement() |
+		statementNode = dropPinStatement()
     )
     {
         return statementNode;
@@ -3617,8 +3620,7 @@ createStatements() throws StandardException :
             statementNode = synonymDefinition() |
             statementNode = roleDefinition() |
         	statementNode = createTemporaryTableDeclaration() |
-            statementNode = sequenceDefinition() |
-            statementNode = pinStatement()
+            statementNode = sequenceDefinition()
         )
         {
         }
@@ -3658,8 +3660,8 @@ dropStatements() throws StandardException :
             statementNode = dropViewStatement() |
             statementNode = dropTriggerStatement() |
             statementNode = dropRoleStatement() |
-            statementNode = dropSequenceStatement() |
-            statementNode = dropPinStatement()
+            statementNode = dropSequenceStatement()
+
         )
 	{
 		return statementNode;
@@ -15177,7 +15179,7 @@ dropPinStatement() throws StandardException :
 	TableName tableName;
 }
 {
-	<PIN> [ ifTok = <IF> existsTok = <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+	<UNPIN> <TABLE> [ ifTok = <IF> existsTok = <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
         // must have both "if" and "exists"
         boolean ifExists = ifTok != null && existsTok != null;
