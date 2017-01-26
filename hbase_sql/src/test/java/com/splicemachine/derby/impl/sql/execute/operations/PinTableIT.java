@@ -54,7 +54,7 @@ public class PinTableIT extends SpliceUnitTest{
     public void testPinTableDoesNotExist() throws Exception {
         try {
             // Row Format not supported for Parquet
-            methodWatcher.executeUpdate("create pin table foo");
+            methodWatcher.executeUpdate("pin table foo");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","X0X05",e.getSQLState());
@@ -64,7 +64,7 @@ public class PinTableIT extends SpliceUnitTest{
     @Test
     public void testPinTable() throws Exception {
             methodWatcher.executeUpdate("insert into t1 values (1)");
-            methodWatcher.executeUpdate("create pin table t1");
+            methodWatcher.executeUpdate("pin table t1");
             ResultSet rs = methodWatcher.executeQuery("select * from t1 --splice-properties pin=true");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
