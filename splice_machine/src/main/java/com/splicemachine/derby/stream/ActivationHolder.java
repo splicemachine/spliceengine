@@ -15,9 +15,8 @@
 package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.services.context.Context;
-import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Maps;
@@ -202,7 +201,10 @@ public class ActivationHolder implements Externalizable {
 
             Context statementContext = activation.getLanguageConnectionContext().getStatementContext();
             EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
-            internalConnection.getContextManager().pushContext(statementContext);
+            ContextManager cm = internalConnection.getContextManager();
+            synchronized (cm) {
+                cm.pushContext(statementContext);
+            }
 
             if (reinit) {
                 SpliceOperationContext context = SpliceOperationContext.newContext(activation);
@@ -221,7 +223,11 @@ public class ActivationHolder implements Externalizable {
             prepared = false;
         }
 
+        Context statementContext = activation.getLanguageConnectionContext().getStatementContext();
         EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();
-        internalConnection.getContextManager().popContext();
+        ContextManager cm = internalConnection.getContextManager();
+        synchronized (cm) {
+            cm.popContext(statementContext);
+        }
     }
 }
