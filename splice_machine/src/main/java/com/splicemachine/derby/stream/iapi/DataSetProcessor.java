@@ -224,7 +224,7 @@ public interface DataSetProcessor {
      * @throws StandardException
      */
     public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                                OperationContext context,  ExecRow execRow) throws StandardException;
+                                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException;
 
     /**
      *
