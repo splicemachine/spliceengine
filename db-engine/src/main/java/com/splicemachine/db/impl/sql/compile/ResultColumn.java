@@ -1907,9 +1907,9 @@ public class ResultColumn extends ValueNode
 
 			// If the VCN points to a FromBaseTable, just get that
 			// table's number.
-			if (vcn.getSourceResultSet() instanceof FromBaseTable)
+			if (vcn.getSourceResultSet() instanceof FromTable)
 			{
-				return ((FromBaseTable)vcn.getSourceResultSet()).
+				return ((FromTable)vcn.getSourceResultSet()).
 						getTableNumber();
 			}
 
