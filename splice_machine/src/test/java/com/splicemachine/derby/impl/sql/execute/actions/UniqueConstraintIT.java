@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.actions;
@@ -25,10 +24,7 @@ import static org.junit.Assert.fail;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -298,6 +294,18 @@ public class UniqueConstraintIT {
         assertSqlFails("update ZONING_09 set b=3", "The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index", "ZONING_09");
     }
 
+    @Test
+    public void testDropUniqueConstraint() throws Exception {
+        methodWatcher.executeUpdate("create table t(i int, j int, constraint cons unique(i))");
+
+        methodWatcher.executeUpdate("insert into t values (0, 0)");
+        methodWatcher.executeUpdate("alter table t drop constraint cons");
+        methodWatcher.executeUpdate("insert into t values (0, 0)");
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from t");
+        rs.next();
+        Assert.assertEquals(2, rs.getInt(1));
+    }
+    
     private void assertSqlFails(String sql, String expectedException, String tableName) {
         try {
             methodWatcher.executeUpdate(sql);

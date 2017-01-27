@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.actions;
@@ -19,23 +18,34 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+
 /**
  * @author Scott Fines
  *         Date: 9/2/14
  */
 public class TruncateTableIT {
 
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(TruncateTableIT.class.getSimpleName().toUpperCase());
+    public static String CLASS_NAME = TruncateTableIT.class.getSimpleName().toUpperCase();
+
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int, primary key (a, b))");
 
-    public static final SpliceWatcher classWatcher = new SpliceWatcher();
+    public static final SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
+
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     public static final String query = "select * from " + table+" where a = ";
     @ClassRule
@@ -53,6 +63,22 @@ public class TruncateTableIT {
     public static void setUpClass() throws Exception {
         conn1 = classWatcher.getOrCreateConnection();
         conn2 = classWatcher.createConnection();
+
+        new TableCreator(conn1)
+                .withCreate("create table pk1 (a int primary key, b char(20))")
+                .withInsert("insert into pk1 values(?,?)")
+                .withRows(rows(
+                        row(1, "San Francisco"),
+                        row(2, "San Jose")))
+                .create();
+
+        new TableCreator(conn1)
+                .withCreate("create table fk1( a int , b varchar(10), foreign key(a) references pk1(a))")
+                .withInsert("insert into fk1 values(?,?)")
+                .withRows(rows(
+                        row(1, "SFO"),
+                        row(2, "SJC")))
+                .create();
     }
 
     @AfterClass
@@ -199,5 +225,15 @@ public class TruncateTableIT {
         Assert.assertEquals(4, rs.getInt(2));
 
         conn1.commit();
+    }
+
+
+    @Test
+    public void testTruncateDeleteParentTable() throws Exception {
+        methodWatcher.executeUpdate("truncate table fk1");
+        int n = methodWatcher.executeUpdate("delete from pk1 where a < 5");
+        //DB-5539: truncate table should remove backing foreign key index and write handler and re-create them. After
+        // child table is truncated, all rows in parent table should be allowed to delete
+        Assert.assertTrue("wrong number of rows deleted n = " + n, n == 2);
     }
 }

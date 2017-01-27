@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.operations;
@@ -140,12 +139,23 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     // should be NestedLoopJoin
     @Test
     public void testInnerJoinWithSubqueryFilterExactCriteria() throws Exception {
-        fourthRowContainsQuery(
+        ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from %s a2 join " +
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
-            MERGE_SORT_JOIN, methodWatcher);
+            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            if (count == 4) {
+                String row = rs.getString(1);
+                String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                        row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertThat("Join strategy must be either NESTED_LOOP_JOIN or BROADCAST_JOIN", joinStrategy,
+                        anyOf(equalTo(NESTED_LOOP_JOIN), equalTo(BROADCAST_JOIN)));
+                break;
+            }
+        }
     }
     
     @Test
@@ -165,7 +175,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                         anyOf(equalTo(MERGE_SORT_JOIN), equalTo(BROADCAST_JOIN)));
             	break;
             }
-        }   
+        }
     }
 
 
@@ -237,12 +247,23 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
     @Test
     public void testInnerJoinWithSubqueryLHSFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from (select person.pid from %s) as a3 " +
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            MERGE_SORT_JOIN, methodWatcher);
+            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            if (count == 4) {
+                String row = rs.getString(1);
+                String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                        row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertThat("Join strategy must be either NESTED_LOOP_JOIN or BROADCAST_JOIN", joinStrategy,
+                        anyOf(equalTo(NESTED_LOOP_JOIN), equalTo(BROADCAST_JOIN)));
+                break;
+            }
+        }
     }
     
     @Test
@@ -261,19 +282,30 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                 Assert.assertTrue(MERGE_SORT_JOIN.equals(joinStrategy) || BROADCAST_JOIN.equals(joinStrategy));
             	break;
             }
-        }   
+        }
     }
 
 
     // should be NLJ
     @Test
     public void testLeftOuterJoinWithSubqueryLHSFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from (select person.pid from %s) as a3 " +
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            MERGE_SORT_JOIN, methodWatcher);
+            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            if (count == 4) {
+                String row = rs.getString(1);
+                String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                        row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertThat("Join strategy must be either NESTED_LOOP_JOIN or BROADCAST_JOIN", joinStrategy,
+                        anyOf(equalTo(NESTED_LOOP_JOIN), equalTo(BROADCAST_JOIN)));
+                break;
+            }
+        }
     }
 
     @Test

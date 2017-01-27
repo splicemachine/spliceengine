@@ -1,4 +1,17 @@
 /*
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Some parts of this source code are based on Apache Derby, and the following notices apply to
+ * Apache Derby:
+ *
  * Apache Derby is a subproject of the Apache DB project, and is licensed under
  * the Apache License, Version 2.0 (the "License"); you may not use these files
  * except in compliance with the License. You may obtain a copy of the License at:
@@ -10,17 +23,10 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  *
- * Splice Machine, Inc. has modified this file.
+ * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
- * and are licensed to you under the License; you may not use this file except in
- * compliance with the License.
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
+ * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+ * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.drda;
@@ -46,6 +52,7 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.types.RowLocation;
+import org.apache.log4j.Logger;
 import org.xerial.snappy.Snappy;
 
 /**
@@ -56,6 +63,7 @@ import org.xerial.snappy.Snappy;
 */
 class DDMWriter
 {
+	private static final Logger LOG = Logger.getLogger(DDMWriter.class);
 
 	// number of nesting levels for collections.  We need to mark the length
 	// location of the collection so that we can update it as we add more stuff
@@ -1491,9 +1499,8 @@ class DDMWriter
 		// the 6 byte dss header located at the beginning of the dss.	It does not
 		// include the length of any continuation headers.
 		int totalSize = offset - dssLengthLocation;
-		if (SanityManager.DEBUG) {
-			SanityManager.DEBUG_PRINT("COMPRESS", "agent.canCompress() " + agent.canCompress());
-			SanityManager.DEBUG_PRINT("COMPRESS", "totalSize " + totalSize);
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("COMPRESS agent.canCompress: " + agent.canCompress() + " totalSize: " + totalSize);
 		}
 		if(agent.canCompress() && (totalSize > DssConstants.MAX_DSS_LENGTH)) 
 		{
@@ -1505,10 +1512,12 @@ class DDMWriter
 			    compressedSize = Snappy.compress(buffer.array(), dssLengthLocation + 6, 
 			        uncompressedSize, compressedBuffer, 0);
 			} catch (IOException e) {
-		            SanityManager.DEBUG_PRINT("COMPRESS", "Snappy compression exception:  " + e.getMessage());
+				LOG.warn("COMPRESS Snappy compression exception:  " + e.getMessage());
 			}
 
-			SanityManager.DEBUG_PRINT("COMPRESS", "finalizeDssLength original size " + uncompressedSize + " compressed size " + compressedSize);
+			if (LOG.isTraceEnabled()) {
+				LOG.trace("COMPRESS finalizeDssLength original size: " + uncompressedSize + " compressed size: " + compressedSize);
+			}
 
 			if(compressedSize < uncompressedSize) 
 			{
@@ -1520,8 +1529,9 @@ class DDMWriter
 				totalSize = offset - dssLengthLocation;
 			}
 		}
-		SanityManager.DEBUG_PRINT("COMPRESS", "post compression totalSize " + totalSize);
-
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("COMPRESS post compression totalSize: " + totalSize);
+		}
 		
 		int bytesRequiringContDssHeader = totalSize - DssConstants.MAX_DSS_LENGTH;
 

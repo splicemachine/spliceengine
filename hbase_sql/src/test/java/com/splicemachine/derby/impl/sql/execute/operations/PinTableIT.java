@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -40,7 +54,7 @@ public class PinTableIT extends SpliceUnitTest{
     public void testPinTableDoesNotExist() throws Exception {
         try {
             // Row Format not supported for Parquet
-            methodWatcher.executeUpdate("create pin table foo");
+            methodWatcher.executeUpdate("pin table foo");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","X0X05",e.getSQLState());
@@ -50,7 +64,7 @@ public class PinTableIT extends SpliceUnitTest{
     @Test
     public void testPinTable() throws Exception {
             methodWatcher.executeUpdate("insert into t1 values (1)");
-            methodWatcher.executeUpdate("create pin table t1");
+            methodWatcher.executeUpdate("pin table t1");
             ResultSet rs = methodWatcher.executeQuery("select * from t1 --splice-properties pin=true");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
