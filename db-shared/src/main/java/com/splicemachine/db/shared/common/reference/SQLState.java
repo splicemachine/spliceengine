@@ -1971,6 +1971,7 @@ public interface SQLState {
     String INCONSISTENT_DATATYPE_ATTRIBUTES				    		= "EXT24";
 	String FILESYSTEM_URI_EXCEPTION				    				= "EXT25";
 	String FILESYSTEM_IO_EXCEPTION				    				= "EXT26";
+	String NO_ARRAY_IN_PRIMARY_KEY				    				= "EXT27";
 
 
 }

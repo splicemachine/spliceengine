@@ -32,7 +32,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.types.ArrayDataValue;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import java.lang.reflect.Modifier;
@@ -56,8 +58,8 @@ public class ArrayOperatorNode extends ValueNode {
 	 * @param field   The field to extract
 	 * @param operand The operand
 	 */
-	public void init(Object field, Object operand) {
-		this.extractField = ((Integer) field).intValue();
+	public void init(Object field, Object operand) throws StandardException {
+		this.extractField = ((NumericConstantNode) field).value.getInt();
 		this.operand = (ValueNode) operand;
 	}
 
@@ -111,15 +113,23 @@ public class ArrayOperatorNode extends ValueNode {
 
 		String resultTypeName = getTypeCompiler().interfaceName();
 
-		String receiverType = getTypeCompiler().interfaceName();
+		String receiverType = ArrayDataValue.class.getCanonicalName();
 		operand.generateExpression(acb, mb);
 		mb.cast(receiverType);
-
+		MethodBuilder	acbConstructor = acb.getConstructor();
 		LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
+		acb.generateNull(acbConstructor, getTypeCompiler(getTypeId()),
+				getTypeServices().getCollationType(),
+				getTypeServices().getPrecision(),
+				getTypeServices().getScale());
+		acbConstructor.setField(field);
+
 		mb.push(extractField);
 		mb.getField(field);
+		mb.cast(DataValueDescriptor.class.getCanonicalName());
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, null,
-				"arrayElement", resultTypeName, 2);
+				"arrayElement", DataValueDescriptor.class.getCanonicalName(), 2);
+		mb.cast(resultTypeName);
 	}
 
 	/*

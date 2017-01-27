@@ -9017,7 +9017,7 @@ columnReference() throws StandardException :
 		    return columnReference;
 		return (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.ARRAY_OPERATOR_NODE,
-                                new Integer(1),
+                                arrayElement,
                                 columnReference,
                                 getContextManager());
 
@@ -16273,10 +16273,7 @@ reservedKeyword() :
 |	tok = <SESSION_USER>
 |	tok = <SET>
 |	tok = <SMALLINT>
-<<<<<<< HEAD
-=======
 |	tok = <ARRAY>
->>>>>>> 9ede53d... Foo
 |	tok = <TINYINT>
 |	tok = <SOME>
 |	tok = <SPACE>

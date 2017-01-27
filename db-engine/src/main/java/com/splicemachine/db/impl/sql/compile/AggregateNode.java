@@ -593,7 +593,7 @@ public class AggregateNode extends UnaryOperatorNode
 		** Create a null of the right type.  The proper aggregators
 		** are created dynamically by the SortObservers
 		*/
-		ConstantNode nullNode = getNullNode(compType);
+		ValueNode nullNode = getNullNode(compType);
 
 		nullNode.bindExpression(
 						null,	// from

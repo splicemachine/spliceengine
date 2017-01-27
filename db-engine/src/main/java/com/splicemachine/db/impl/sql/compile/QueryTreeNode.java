@@ -613,7 +613,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * @throws StandardException Thrown on error
      * @return A ConstantNode with the specified type, and a value of null
      */
-    public ConstantNode getNullNode(DataTypeDescriptor type) throws StandardException{
+    public ValueNode getNullNode(DataTypeDescriptor type) throws StandardException{
         int constantNodeType;
         switch(type.getTypeId().getJDBCTypeId()){
             case Types.VARCHAR:
@@ -673,6 +673,9 @@ public abstract class QueryTreeNode implements Node, Visitable{
             case Types.BOOLEAN:
                 constantNodeType=C_NodeTypes.BOOLEAN_CONSTANT_NODE;
                 break;
+            case Types.ARRAY:
+                constantNodeType=C_NodeTypes.ARRAY_CONSTANT_NODE;
+                break;
             default:
                 if(type.getTypeId().userType()){
                     constantNodeType=C_NodeTypes.USERTYPE_CONSTANT_NODE;
@@ -681,7 +684,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
                 }
         }
 
-        ConstantNode constantNode=(ConstantNode)getNodeFactory().getNode(constantNodeType, type.getTypeId(), cm);
+        ValueNode constantNode=(ValueNode) getNodeFactory().getNode(constantNodeType, type.getTypeId(), cm);
 
         constantNode.setType(type.getNullabilityType(true));
 

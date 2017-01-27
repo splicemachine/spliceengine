@@ -345,6 +345,7 @@ public class DataTypeDescriptor implements Formatable{
 
     private TypeDescriptorImpl typeDescriptor;
     private TypeId typeId;
+    private DataTypeDescriptor[] children;
 
     /**
      * Derivation of this type. All catalog types are
@@ -1239,6 +1240,9 @@ public class DataTypeDescriptor implements Formatable{
                     || compareWithJDBCTypeId==Types.DATE
                     || compareWithTypeID.isStringTypeId();
 
+        if (typeId.getJDBCTypeId()==Types.ARRAY)
+            return compareWithJDBCTypeId==Types.ARRAY;
+
         // Right now, user defined types are not comparable.
         // This removes old logic which we might want
         // to revive when we support comparable UDTs. See
@@ -1674,5 +1678,21 @@ public class DataTypeDescriptor implements Formatable{
         }
         return name;
     }
+
+    public DataTypeDescriptor[] getChildren() {
+        return this.children;
+    }
+
+    public void setChildren(DataTypeDescriptor[] children) {
+        this.children = children;
+        if (children != null) {
+            TypeDescriptor[] array = new TypeDescriptor[children.length];
+            for (int i = 0; i< children.length; i++) {
+                array[i] = children[i].typeDescriptor;
+            }
+            typeDescriptor.setChildren(array);
+         }
+     }
+
 }
 

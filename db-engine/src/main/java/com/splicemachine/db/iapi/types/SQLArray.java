@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
@@ -49,6 +50,7 @@ import java.io.*;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class SQLArray extends DataType implements ArrayDataValue {
 	protected DataValueDescriptor[] value;
@@ -135,8 +137,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		return value !=null?Arrays.toString(value):null;
 	}
 
-	public Object getObject()
-	{
+	public Object getObject() {
 		return value;
 	}
 
@@ -200,11 +201,14 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         boolean nonNull = in.readBoolean();
 		if (nonNull) {
+			setIsNull(false);
 			value = new DataValueDescriptor[in.readInt()];
 			for (int i =0; i< value.length; i++) {
 				value[i] = (DataValueDescriptor) in.readObject();
 			}
-        }
+        } else {
+			setIsNull(true);
+		}
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
 		boolean nonNull = in.readBoolean();
@@ -234,16 +238,51 @@ public class SQLArray extends DataType implements ArrayDataValue {
 						   DataValueDescriptor other,
 						   boolean orderedNulls,
 						   boolean unknownRV)
-					throws StandardException
-	{
-		return false;
+					throws StandardException {
+
+		int result = compare(other);
+		switch(op) {
+			case ORDER_OP_LESSTHAN:
+				return (result < 0);   // this <  other
+			case ORDER_OP_EQUALS:
+				return (result == 0);  // this == other
+			case ORDER_OP_LESSOREQUALS:
+				return (result <= 0);  // this <= other
+			// flipped operators
+			case ORDER_OP_GREATERTHAN:
+				return (result > 0);   // this > other
+			case ORDER_OP_GREATEROREQUALS:
+				return (result >= 0);  // this >= other
+			default:
+				if (SanityManager.DEBUG)
+					SanityManager.THROWASSERT("Invalid Operator");
+				return false;
+		}
+
 	}
 
 	/** @exception StandardException	Thrown on error */
 	public int compare(DataValueDescriptor other) throws StandardException {
-		if (this.isNull() || other.isNull())
-			return -1;
-        if (other instanceof SQLArray) {
+		boolean thisNull, otherNull;
+
+		thisNull = this.isNull();
+		otherNull = other.isNull();
+
+		/*
+		 * thisNull otherNull	return
+		 *	T		T		 	0	(this == other)
+		 *	F		T		 	-1 	(this > other)
+		 *	T		F		 	1	(this < other)
+		 */
+		if (thisNull || otherNull) {
+			if (!thisNull)		// otherNull must be true
+				return -1;
+			if (!otherNull)		// thisNull must be true
+				return 1;
+			return 0;
+		}
+
+		if (other instanceof SQLArray) {
 			DataValueDescriptor[] oArray = ((SQLArray) other).value;
 			for (int i =0; i< this.value.length;i++) {
 				if (oArray.length < i)
@@ -473,4 +512,78 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		throw new UnsupportedOperationException("Cannot compute Statistics on Arrays Currently.");
 	}
 
+	@Override
+	public DataValueDescriptor arrayElement(int element, DataValueDescriptor valueToSet) throws StandardException {
+		if (value == null || value.length <= element || value[element] == null) {
+			valueToSet.setToNull();
+			return valueToSet;
+		}
+		else {
+			valueToSet.isNotNull();
+			valueToSet.setValue(value[element]);
+			return valueToSet;
+		}
+	}
+
+	@Override
+	public String getBaseTypeName() throws SQLException {
+		return null;
+	}
+
+	/**
+	 *
+	 * jdbc base type.
+	 *
+	 * @return
+	 * @throws SQLException
+     */
+	@Override
+	public int getBaseType() throws SQLException {
+		return 0;
+	}
+
+	@Override
+	public Object getArray() throws SQLException {
+		return value;
+	}
+
+	@Override
+	public Object getArray(Map<String, Class<?>> map) throws SQLException {
+		return getArray();
+	}
+
+	@Override
+	public Object getArray(long index, int count) throws SQLException {
+		return Arrays.<DataValueDescriptor>copyOfRange(value,(int)index,count);
+	}
+
+	@Override
+	public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+		return getArray(index,count);
+	}
+
+	@Override
+	public ResultSet getResultSet() throws SQLException {
+		throw new UnsupportedOperationException("Not Supported");
+	}
+
+	@Override
+	public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
+		throw new UnsupportedOperationException("Not Supported");
+	}
+
+	@Override
+	public ResultSet getResultSet(long index, int count) throws SQLException {
+		throw new UnsupportedOperationException("Not Supported");
+	}
+
+	@Override
+	public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
+		throw new UnsupportedOperationException("Not Supported");
+	}
+
+	@Override
+	public void free() throws SQLException {
+		// Free as a bird... (No Locator on our implementation)
+	}
 }

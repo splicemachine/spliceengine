@@ -34,19 +34,7 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.DataTruncation;
-import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -4850,6 +4838,12 @@ class DRDAConnThread extends Thread {
 				ps.setObject(i+1, paramVal);
 				break;
 			}
+			case DRDAConstants.DRDA_TYPE_NARRAY:
+			{
+				Object paramVal = readUDT();
+				ps.setArray(i+1, (Array) paramVal);
+				break;
+			}
 			case DRDAConstants.DRDA_TYPE_NLOBBYTES:
 			case DRDAConstants.DRDA_TYPE_NLOBCMIXED:
 			case DRDAConstants.DRDA_TYPE_NLOBCSBCS:
@@ -7405,6 +7399,8 @@ class DRDAConnThread extends Thread {
                 return rs.getTime(index, getGMTCalendar());
             case DRDAConstants.DRDA_TYPE_NTIMESTAMP:
                 return rs.getTimestamp(index, getGMTCalendar());
+			case DRDAConstants.DRDA_TYPE_NARRAY:
+				return rs.getArray(index);
             default:
                 return rs.getObject(index);
         }
@@ -8093,6 +8089,7 @@ class DRDAConnThread extends Thread {
 					writer.writeInt(((EngineLOB)val).getLocator());
 					break;
 				case DRDAConstants.DRDA_TYPE_NUDT:
+				case DRDAConstants.DRDA_TYPE_NARRAY:
 					writer.writeUDT( val, index );
 					break;
                 case DRDAConstants.DRDA_TYPE_NROWID:

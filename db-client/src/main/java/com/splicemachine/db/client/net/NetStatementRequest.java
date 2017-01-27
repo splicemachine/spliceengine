@@ -24,11 +24,14 @@
  */
 package com.splicemachine.db.client.net;
 
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 
 import com.splicemachine.db.client.am.*;
+import com.splicemachine.db.client.am.Blob;
+import com.splicemachine.db.client.am.Clob;
+import com.splicemachine.db.client.am.ResultSet;
+import com.splicemachine.db.client.am.RowId;
+import com.splicemachine.db.client.am.Types;
 import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
@@ -786,6 +789,9 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                     case DRDAConstants.DRDA_TYPE_NUDT:
                         writeUDT( inputs[i] );
                         break;
+                    case DRDAConstants.DRDA_TYPE_NARRAY:
+                            writeUDT( inputs[i] );
+                            break;
                     case DRDAConstants.DRDA_TYPE_NROWID:
                         byte[] rowid = ((RowId) inputs[i]).getBytes();
                         writeBytes(rowid, rowid.length);
@@ -1396,6 +1402,10 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                     lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NUDT;
                     lidAndLengths[i][1] = 32767;
                     break;
+                 case java.sql.Types.ARRAY:
+                        lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NARRAY;
+                        lidAndLengths[i][1] = 32767;
+                        break;
                 case java.sql.Types.ROWID:
                     lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NROWID;
                     lidAndLengths[i][1] = 32767;

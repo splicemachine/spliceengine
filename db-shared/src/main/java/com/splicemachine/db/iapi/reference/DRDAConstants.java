@@ -139,6 +139,7 @@ public	interface	DRDAConstants
 	public	static final int DRDA_TYPE_UDT = 0x50;
 	public	static final int DRDA_TYPE_NUDT = 0x51;
 	public	static final int DRDA_TYPE_ARRAY = 0x52;
+	public	static final int DRDA_TYPE_NARRAY = 0x53;
 
 	public	static final int DRDA_TYPE_LOBBYTES = 0xC8;
 	public	static final int DRDA_TYPE_NLOBBYTES = 0xC9;

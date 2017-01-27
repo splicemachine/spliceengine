@@ -61,8 +61,16 @@ public class ArrayConstantNode extends ValueNode {
 	 * @param functionName	Tells if the function was called with name COALESCE or with name VALUE
 	 * @param argumentsList	The list of arguments to the coalesce/value function
 	 */
-	public void init(Object argumentsList) {
-		this.argumentsList = (ValueNodeList) argumentsList;
+	public void init(Object argumentsList) throws StandardException {
+		if (argumentsList instanceof TypeId) {
+			this.setNullability(true);
+		} else {
+			this.argumentsList = (ValueNodeList) argumentsList;
+		}
+		setType(
+				TypeId.getBuiltInTypeId(Types.ARRAY),
+				argumentsList==null, // need to fix JL-TODO
+				-1);
 	}
 
 	/**
@@ -105,13 +113,6 @@ public class ArrayConstantNode extends ValueNode {
 			argumentsList.compatible((ValueNode) argumentsList.elementAt(index));
 		}
 
-		setType(
-						TypeId.getBuiltInTypeId(Types.ARRAY),
-				true, // need to fix JL-TODO
-				-1);
-
-
-
 		//set all the parameter types to the type of the result type
 		for (int index = 0; index < argumentsListSize; index++) {
 			if (((ValueNode) argumentsList.elementAt(index)).requiresTypeFromContext()) {
@@ -132,8 +133,16 @@ public class ArrayConstantNode extends ValueNode {
 
 	public void generateExpression(ExpressionClassBuilder acb,
 								   MethodBuilder mb)
-			throws StandardException
-	{
+			throws StandardException {
+
+				/* Are we generating a SQL null value? */
+		if (argumentsList == null) // bail out
+		{
+			acb.generateNull(mb, getTypeCompiler(),
+					getTypeServices().getCollationType(),getTypeServices().getPrecision(),getTypeServices().getScale());
+			return;
+		}
+
 		int			argumentsListSize = argumentsList.size();
 		String		receiverType = ClassName.DataValueDescriptor;
 		String		argumentsListInterfaceType = ClassName.DataValueDescriptor + "[]";
@@ -315,7 +324,8 @@ public class ArrayConstantNode extends ValueNode {
 	@Override
 	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
-		argumentsList = (ValueNodeList) argumentsList.accept(v, this);
+		if (argumentsList != null)
+			argumentsList = (ValueNodeList) argumentsList.accept(v, this);
 	}
 
 	/**
