@@ -1920,6 +1920,9 @@ public class ResultColumn extends ValueNode
 		else if (expression instanceof TernaryOperatorNode) {
 			return ((TernaryOperatorNode) expression).receiver.getTableNumber();
 		}
+		else if (expression == null) {
+			return -1;
+		}
 
 		// We can get here if expression has neither a column
 		// reference nor a FromBaseTable beneath it--for example,
