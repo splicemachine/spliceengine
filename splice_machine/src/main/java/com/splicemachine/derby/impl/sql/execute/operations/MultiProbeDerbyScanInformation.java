@@ -114,7 +114,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 			Qualifier[] ands  = qualifiers[0];
 			if(ands!=null){
 					Qualifier first = ands[0];
-					if(first!=null){
+					if(first!=null && probeValue != null){
 							first.clearOrderableCache();
 							first.getOrderable().setValue(probeValue);
 					}
