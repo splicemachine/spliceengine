@@ -18,7 +18,9 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.db.catalog.UUID;
@@ -180,6 +182,17 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
 		     */
         dd.startWriting(lcc);
 
+        // If the table has foreign key, drop the old foreign key write handler
+        ConstraintDescriptorList constraintDescriptors = td.getConstraintDescriptorList();
+        for(int i = 0; i < constraintDescriptors.size(); ++i) {
+            ConstraintDescriptor conDesc = constraintDescriptors.get(i);
+            if (conDesc instanceof ForeignKeyConstraintDescriptor) {
+                ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) conDesc;
+                ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
+                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
+            }
+        }
+
         // truncate  all indexes
         if(numIndexes > 0) {
             long[] newIndexCongloms = new long[numIndexes];
@@ -188,6 +201,15 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             }
         }
 
+        // If the table has foreign key, create a new foreign key write handler
+        for(int i = 0; i < constraintDescriptors.size(); ++i) {
+            ConstraintDescriptor conDesc = constraintDescriptors.get(i);
+            if (conDesc instanceof ForeignKeyConstraintDescriptor) {
+                ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) conDesc;
+                ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
+                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY,lcc).submit();
+            }
+        }
         // Invalidate cache
         DDLMessage.DDLChange change = ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
