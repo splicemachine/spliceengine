@@ -43,6 +43,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLTinyint
@@ -122,5 +124,21 @@ public class SQLTinyIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLTinyint((byte)'T'),new SQLTinyint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLTinyint());
+                value.setValue(new DataValueDescriptor[] {new SQLTinyint((byte)0),new SQLTinyint((byte)2),
+                        new SQLTinyint((byte)4), new SQLTinyint()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLTinyint());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+
+        }
 
 }

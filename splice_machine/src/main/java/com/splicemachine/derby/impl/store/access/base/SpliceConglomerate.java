@@ -35,7 +35,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.io.IOException;
@@ -215,6 +217,16 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
     @Override
     public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
+
+    @Override
+    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
+
+    @Override
+    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
         throw new UnsupportedOperationException("Not Implemented");
     }
 

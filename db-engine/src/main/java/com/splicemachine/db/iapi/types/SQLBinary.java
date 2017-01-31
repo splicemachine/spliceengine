@@ -51,7 +51,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -1404,6 +1406,41 @@ abstract class SQLBinary
 			unsafeRowWriter.write(ordinal, dataValue);
 		}
 	}
+
+	/**
+	 * Read Data as position in Array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			dataValue = unsafeArrayData.getBinary(ordinal);
+		}
+	}
+
+	/**
+	 *
+	 * Write Array Data
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else {
+			unsafeArrayWriter.write(ordinal, dataValue);
+		}
+	}
+
 	/**
 	 *
 	 * Read from a Project Tungsten UnsafeRow format.

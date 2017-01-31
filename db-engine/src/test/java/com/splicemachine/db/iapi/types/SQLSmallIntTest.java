@@ -43,6 +43,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLSmallint
@@ -149,5 +151,20 @@ public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLSmallint(5000),new SQLSmallint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLSmallint());
+                value.setValue(new DataValueDescriptor[] {new SQLSmallint(23),new SQLSmallint(48), new SQLSmallint(10), new SQLSmallint()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLSmallint());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+
+        }
 
 }

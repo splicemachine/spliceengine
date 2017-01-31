@@ -37,6 +37,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLTinyint
@@ -85,5 +87,21 @@ public class SQLRefTest extends SQLDataValueDescriptorTest {
                 value2a.decodeFromKey(range2);
                 Assert.assertEquals("1 incorrect",value1.getObject(),value1a.getObject());
                 Assert.assertEquals("2 incorrect",value2.getObject(),value2a.getObject());
+        }
+
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLRef(new SQLRowId()));
+                value.setValue(new DataValueDescriptor[] {new SQLRef(new SQLRowId("1".getBytes())),new SQLRef(new SQLRowId("435".getBytes())),
+                        new SQLRef(new SQLRowId("----".getBytes())), new SQLRef(new SQLRowId())});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLRef(new SQLRowId()));
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
         }
 }

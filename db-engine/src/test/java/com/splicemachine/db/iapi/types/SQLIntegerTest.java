@@ -47,6 +47,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLInteger
@@ -167,5 +169,19 @@ public class SQLIntegerTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLInteger(5000),new SQLInteger(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLInteger());
+                value.setValue(new DataValueDescriptor[] {new SQLInteger(23),new SQLInteger(48), new SQLInteger(10), new SQLInteger()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLInteger());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
 
+        }
 }
