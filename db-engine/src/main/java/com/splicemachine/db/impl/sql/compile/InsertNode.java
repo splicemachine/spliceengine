@@ -92,6 +92,7 @@ public final class InsertNode extends DMLModStatementNode {
     public static final String STATUS_DIRECTORY = "statusDirectory";
     public static final String BAD_RECORDS_ALLOWED = "badRecordsAllowed";
     public static final String INSERT = "INSERT";
+    public static final String PIN = "pin";
 
 
 	public		ResultColumnList	targetColumnList;
@@ -716,6 +717,11 @@ public final class InsertNode extends DMLModStatementNode {
 		String insertModeString = targetProperties.getProperty(INSERT_MODE);
         String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
         String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
+        Boolean pin = Boolean.parseBoolean(StringUtil.SQLToUpperCase(targetProperties.getProperty(PIN)));
+
+        if(pin){
+			throw StandardException.newException(SQLState.INSERT_PIN_VIOLATION);
+		}
 
 		if (insertModeString != null) {
             String upperValue = StringUtil.SQLToUpperCase(insertModeString);
