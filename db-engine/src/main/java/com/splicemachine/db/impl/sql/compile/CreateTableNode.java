@@ -506,7 +506,9 @@ public class CreateTableNode extends DDLStatementNode
             if ( numReferenceConstraints > 0) { tableElementList.validateForeignKeysOnGenerationClauses( fromList, generatedColumns ); }
 		}
 
-        if ( numPrimaryKeys > 0 ) { tableElementList.validatePrimaryKeyNullability(); }
+        if ( numPrimaryKeys > 0 ) {
+			tableElementList.validatePrimaryKeyNullability();
+		}
 	}
 
 	/**

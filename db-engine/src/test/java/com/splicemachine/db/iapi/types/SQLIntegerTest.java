@@ -184,4 +184,17 @@ public class SQLIntegerTest extends SQLDataValueDescriptorTest {
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
 
         }
+
+        @Test
+        public void testExecRowSparkRowConversion() throws StandardException {
+                ValueRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLInteger(1234)});
+                Row row = execRow.getSparkRow();
+                Assert.assertEquals(1234,row.getInt(0));
+                ValueRow execRow2 = new ValueRow(1);
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLInteger()});
+                execRow2.getColumn(1).setSparkObject(row.get(0));
+                Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
+        }
+
 }

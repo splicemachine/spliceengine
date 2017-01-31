@@ -30,13 +30,17 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.*;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.sql.Blob;
 import java.util.Arrays;
 
 /**
@@ -103,7 +107,19 @@ public class SQLBlobTest extends SQLDataValueDescriptorTest {
                 value.write(writer,0);
                 valueA.read(row,0);
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-
         }
+
+        @Test
+        public void testExecRowSparkRowConversion() throws StandardException {
+                ValueRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLBlob("1234".getBytes())});
+                Row row = execRow.getSparkRow();
+                Assert.assertTrue(Arrays.equals("1234".getBytes(),(byte[])row.get(0)));
+                ValueRow execRow2 = new ValueRow(1);
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLBlob()});
+                execRow2.getColumn(1).setSparkObject(row.get(0));
+                Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
+        }
+
 
 }

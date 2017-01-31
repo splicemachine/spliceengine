@@ -954,9 +954,7 @@ public class CastNode extends ValueNode
 		*/
 
 		acb.generateNull(acbConstructor, getTypeCompiler(getTypeId()),
-				getTypeServices().getCollationType(),
-				getTypeServices().getPrecision(),
-				getTypeServices().getScale());
+				getTypeServices());
 		acbConstructor.setField(field);
 
 
@@ -976,9 +974,7 @@ public class CastNode extends ValueNode
 
 		if (!sourceCTI.userType() && !getTypeId().userType()) {
 			acb.generateNull(mb, getTypeCompiler(getTypeId()),
-					getTypeServices().getCollationType(),
-					getTypeServices().getPrecision(),
-					getTypeServices().getScale());
+					getTypeServices());
 			mb.dup();
 			mb.setField(field); // targetDVD reference for the setValue method call
 			mb.swap();
@@ -996,9 +992,7 @@ public class CastNode extends ValueNode
 
 			//castExpr
 			acb.generateNull(mb, getTypeCompiler(getTypeId()),
-					getTypeServices().getCollationType(),
-					getTypeServices().getPrecision(),
-					getTypeServices().getScale());
+					getTypeServices());
 			mb.dup();
 			mb.setField(field); // instance for the setValue/setObjectForCast method call
 			mb.swap(); // push it before the value

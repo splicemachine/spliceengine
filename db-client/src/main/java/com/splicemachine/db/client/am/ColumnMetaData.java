@@ -329,6 +329,7 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
             case Types.TIMESTAMP:
                 return 29;
             case Types.JAVA_OBJECT:
+            case Types.ARRAY:
                 return JDBC30Translation.DEFAULT_COLUMN_DISPLAY_SIZE;
             case Types.BINARY:
             case Types.VARBINARY:

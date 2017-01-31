@@ -32,16 +32,12 @@
 package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.types.VariableSizeDataValue;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RawToBinaryFormatStream;
-import com.splicemachine.db.iapi.types.ReaderToUTF8Stream;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
@@ -56,7 +52,6 @@ import com.splicemachine.db.iapi.jdbc.BrokeredConnectionControl;
 import com.splicemachine.db.iapi.jdbc.EngineParameterMetaData;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
-import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 
 /**
@@ -1290,6 +1285,16 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
             }
         }
 
+        if (colType == Types.ARRAY) {
+            try {
+                /* JDBC is one-based, DBMS is zero-based */
+                getParms().getParameterForSet(parameterIndex - 1).setValue((SQLArray) x);
+                return;
+
+            } catch (Throwable t) {
+                throw EmbedResultSet.noStateChangeException(t);
+            }
+        }
 
         // Need to do instanceof checks here so that the behaviour
         // for these calls is consistent with the matching setXXX() value.
@@ -1805,7 +1810,7 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
         // (sort of) JAVA_OBJECT.
 
         switch (dataType) {
-        case Types.ARRAY:
+//        case Types.ARRAY:
         case Types.DATALINK:
         case JDBC40Translation.NCHAR:
         case JDBC40Translation.NCLOB:

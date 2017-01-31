@@ -113,12 +113,31 @@ public class OperatorToString {
             BinaryOperatorNode bop = (BinaryOperatorNode) operand;
             return format("(%s %s %s)", opToString(bop.getLeftOperand()),
                           bop.getOperatorString(), opToString(bop.getRightOperand()));
+        } else if (operand instanceof ArrayOperatorNode) {
+            ArrayOperatorNode array = (ArrayOperatorNode) operand;
+            ValueNode op = array.operand;
+            return format("%s[%d]", op == null ? "" : opToString(op), array.extractField);
         } else if (operand instanceof TernaryOperatorNode) {
             TernaryOperatorNode top = (TernaryOperatorNode) operand;
             ValueNode rightOp = top.getRightOperand();
             return format("%s(%s, %s%s)", top.getOperator(), opToString(top.getReceiver()),
                           opToString(top.getLeftOperand()), rightOp == null ? "" : ", " + opToString(rightOp));
-        } else if (operand instanceof ColumnReference) {
+        }
+        else if (operand instanceof ArrayConstantNode) {
+            ArrayConstantNode arrayConstantNode = (ArrayConstantNode) operand;
+            StringBuilder builder = new StringBuilder();
+            builder.append("[");
+            int i = 0;
+            for (Object object: arrayConstantNode.argumentsList) {
+                if (i!=0)
+                    builder.append(",");
+                builder.append(opToString((ValueNode)object));
+                i++;
+            }
+            builder.append("]");
+            return builder.toString();
+        }
+        else if (operand instanceof ColumnReference) {
             ColumnReference cr = (ColumnReference) operand;
             String table = cr.getTableName();
             ResultColumn source = cr.getSource();

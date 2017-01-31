@@ -34,6 +34,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
@@ -61,29 +62,6 @@ import com.splicemachine.db.iapi.services.io.FormatableLongHolder;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.SQLBit;
-import com.splicemachine.db.iapi.types.SQLBlob;
-import com.splicemachine.db.iapi.types.SQLBoolean;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLClob;
-import com.splicemachine.db.iapi.types.SQLDate;
-import com.splicemachine.db.iapi.types.SQLDecimal;
-import com.splicemachine.db.iapi.types.SQLDouble;
-import com.splicemachine.db.iapi.types.SQLInteger;
-import com.splicemachine.db.iapi.types.SQLLongVarbit;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.SQLLongvarchar;
-import com.splicemachine.db.iapi.types.SQLReal;
-import com.splicemachine.db.iapi.types.SQLRef;
-import com.splicemachine.db.iapi.types.SQLRowId;
-import com.splicemachine.db.iapi.types.SQLSmallint;
-import com.splicemachine.db.iapi.types.SQLTime;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.SQLTinyint;
-import com.splicemachine.db.iapi.types.SQLVarbit;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.UserType;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.CursorInfo;
 import com.splicemachine.db.impl.sql.CursorTableReference;
@@ -849,6 +827,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(StatisticsFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,277);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,278);
         instance.register(RowToLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER,279);
+        instance.register(SQLArray.class,EXTERNALIZABLE_SERIALIZER,280);
 
     }
 }

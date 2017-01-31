@@ -759,7 +759,7 @@ public class UnaryOperatorNode extends OperatorNode
         // object is not null.
         MethodBuilder constructor = acb.getConstructor();
         acb.generateNull(constructor, getTypeCompiler(),
-                         getTypeServices().getCollationType(),getTypeServices().getPrecision(),getTypeServices().getScale());
+                         getTypeServices());
         constructor.setField(resultField);
 
         // Swap operand and result object so that the method will be called

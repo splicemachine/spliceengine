@@ -265,9 +265,11 @@ public interface C_NodeTypes
     static final int LEAD_LAG_FUNCTION_NODE = 254;
 	static final int CREATE_PIN_NODE = 255;
 	static final int DROP_PIN_NODE = 256;
+	static final int ARRAY_OPERATOR_NODE = 257;
+	static final int ARRAY_CONSTANT_NODE = 258;
 
 	// Final value in set, keep up to date!
-    static final int FINAL_VALUE = DROP_PIN_NODE;
+    static final int FINAL_VALUE = ARRAY_CONSTANT_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

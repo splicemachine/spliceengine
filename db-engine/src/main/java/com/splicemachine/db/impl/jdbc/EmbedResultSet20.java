@@ -275,8 +275,12 @@ public class EmbedResultSet20
          * @exception SQLException Feature not implemented for now.
      */
     public Array getArray(int i) throws SQLException {
-                throw Util.notImplemented();
+        try {
+            return (Array)getColumn(i);
+        } catch (StandardException t) {
+            throw noStateChangeException(t);
         }
+    }
 
     /**
      * JDBC 2.0

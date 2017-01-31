@@ -1134,5 +1134,12 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      */
 	Object getSparkObject() throws StandardException;
 
+	/**
+	 * Retrieve the Spark Object (required in places where spark has type issues (time for example).
+	 *
+	 * @return
+	 */
+	void setSparkObject(Object sparkObject) throws StandardException;
+
 
 }
