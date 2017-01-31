@@ -763,4 +763,9 @@ public class UserType extends DataType
 		updateSketch.update(SerializationUtils.serialize(SerializationUtils.serialize((Serializable)value)));
 	}
 
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+
+	}
+
 }

@@ -228,7 +228,7 @@ public abstract class ConstantNode extends ValueNode
 	    if (isNull())
 	    {
 			acb.generateNull(mb, getTypeCompiler(), 
-					getTypeServices().getCollationType(),getTypeServices().getPrecision(),getTypeServices().getScale());
+					getTypeServices());
 		}
 		else
 		{

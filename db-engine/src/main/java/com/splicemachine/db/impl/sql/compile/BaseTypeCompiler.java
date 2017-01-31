@@ -59,9 +59,8 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
  *
  */
 
-abstract class BaseTypeCompiler implements TypeCompiler
-{
-	private TypeId correspondingTypeId;
+abstract class BaseTypeCompiler implements TypeCompiler {
+	protected TypeId correspondingTypeId;
 
 	/**
 	 * Get the method name for getting out the corresponding primitive
@@ -70,10 +69,8 @@ abstract class BaseTypeCompiler implements TypeCompiler
 	 * @return String		The method call name for getting the
 	 *						corresponding primitive Java type.
 	 */
-	public String getPrimitiveMethodName()
-	{
-		if (SanityManager.DEBUG)
-		{
+	public String getPrimitiveMethodName() {
+		if (SanityManager.DEBUG) {
 			SanityManager.THROWASSERT("getPrimitiveMethodName not applicable for " +
 									  getClass().toString());
 		}
@@ -114,22 +111,22 @@ abstract class BaseTypeCompiler implements TypeCompiler
      * 
      * @see TypeCompiler#generateNull(MethodBuilder, int)
      */
-	public void generateNull(MethodBuilder mb, int collationType, int precision, int scale)
+	@Override
+	public void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] localFields)
 	{
         int argCount;
 		if (correspondingTypeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID) {
-			mb.push(precision);
-			mb.push(scale);
+			mb.push(dtd.getPrecision());
+			mb.push(dtd.getScale());
 			argCount = 3;
 		}
-        else if (pushCollationForDataValue(collationType))
+        else if (pushCollationForDataValue(dtd.getCollationType()))
         {
-            mb.push(collationType);
+            mb.push(dtd.getCollationType());
             argCount = 2;
         }
         else
             argCount = 1;
-        
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
 									nullMethodName(),
 									interfaceName(),

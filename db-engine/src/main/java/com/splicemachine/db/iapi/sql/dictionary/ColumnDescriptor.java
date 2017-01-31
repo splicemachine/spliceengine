@@ -601,6 +601,7 @@ public final class ColumnDescriptor extends TupleDescriptor
             case StoredFormatIds.SQL_TIMESTAMP_ID:
             case StoredFormatIds.SQL_VARCHAR_ID:
             case StoredFormatIds.SQL_LONGVARCHAR_ID:
+            case StoredFormatIds.SQL_ARRAY_ID:
                 return true;
             default:
                 return false;

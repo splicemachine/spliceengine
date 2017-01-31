@@ -196,6 +196,7 @@ public class TypeId{
      * The following constants define the type precedence hierarchy.
      */
     public static final int USER_PRECEDENCE=1000;
+    public static final int ARRAY_PRECEDENCE=1001;
 
     public static final int XML_PRECEDENCE=180;
     public static final int BLOB_PRECEDENCE=170;
@@ -552,6 +553,10 @@ public class TypeId{
         if(SQLTypeName.equals(XML_NAME)){
             return XML_ID;
         }
+        if(SQLTypeName.equals(ARRAY_NAME)){
+            return ARRAY_ID;
+        }
+
 
         // Types defined below here are SQL types and non-JDBC types that are
         // supported by Derby
@@ -808,6 +813,13 @@ public class TypeId{
                 isUserDefinedTypeId=true;
                 break;
 
+            case StoredFormatIds.ARRAY_TYPE_ID:
+                typePrecedence=ARRAY_PRECEDENCE;
+                javaTypeName="java.sql.Array";
+                maxMaxWidth=-1;
+                isConcatableTypeId=false;
+                break;
+
             case StoredFormatIds.VARBIT_TYPE_ID:
                 typePrecedence=VARBIT_PRECEDENCE;
                 javaTypeName="byte[]";
@@ -1026,6 +1038,15 @@ public class TypeId{
      */
     public boolean isLongVarbinaryTypeId(){
         return (formatId==StoredFormatIds.LONGVARBIT_TYPE_ID);
+    }
+
+    /**
+     * Is this an Array?
+     *
+     * @return
+     */
+    public boolean isArray(){
+        return (formatId==StoredFormatIds.ARRAY_TYPE_ID);
     }
 
 

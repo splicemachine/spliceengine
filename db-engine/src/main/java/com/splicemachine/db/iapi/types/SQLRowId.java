@@ -402,4 +402,9 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         updateSketch.update(bytes);
     }
 
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+
+    }
+
 }

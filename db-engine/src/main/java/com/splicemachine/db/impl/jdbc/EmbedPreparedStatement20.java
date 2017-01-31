@@ -100,7 +100,7 @@ public abstract class EmbedPreparedStatement20
      * @exception SQLException Feature not implemented for now.
      */
     public void setArray (int i, Array x) throws SQLException {
-		throw Util.notImplemented();
+		setObject(i,x);
 	}
 
 }

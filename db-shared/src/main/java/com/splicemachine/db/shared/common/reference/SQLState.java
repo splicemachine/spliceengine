@@ -1975,6 +1975,9 @@ public interface SQLState {
     String CANNOT_WRITE_AT_LOCATION				    				= "EXT22";
     String INCONSISTENT_NUMBER_OF_ATTRIBUTE				    		= "EXT23";
     String INCONSISTENT_DATATYPE_ATTRIBUTES				    		= "EXT24";
+	String FILESYSTEM_URI_EXCEPTION				    				= "EXT25";
+	String FILESYSTEM_IO_EXCEPTION				    				= "EXT26";
+	String NO_ARRAY_IN_PRIMARY_KEY				    				= "EXT27";
 
 
 }

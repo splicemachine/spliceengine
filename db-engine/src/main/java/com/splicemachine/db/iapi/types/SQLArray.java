@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
@@ -49,10 +50,13 @@ import java.io.*;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class SQLArray extends DataType implements ArrayDataValue {
 	protected DataValueDescriptor[] value;
 	protected DataValueDescriptor type;
+	protected int baseType;
+	protected String baseTypeName;
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLArray.class);
 
@@ -135,8 +139,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		return value !=null?Arrays.toString(value):null;
 	}
 
-	public Object getObject()
-	{
+	public Object getObject() {
 		return value;
 	}
 
@@ -180,7 +183,10 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(value != null);
+		out.writeBoolean(type!=null);
+		if (type!=null)
+			out.writeObject(type);
+		out.writeBoolean(value != null);
         if (value != null) {
 			out.writeInt(value.length);
 			for (int i = 0;i<value.length;i++)
@@ -198,15 +204,22 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	 *										be SQLRef).
 	 */
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		if (in.readBoolean())
+			type = (DataValueDescriptor) in.readObject();
         boolean nonNull = in.readBoolean();
 		if (nonNull) {
+			setIsNull(false);
 			value = new DataValueDescriptor[in.readInt()];
 			for (int i =0; i< value.length; i++) {
 				value[i] = (DataValueDescriptor) in.readObject();
 			}
-        }
+        } else {
+			setIsNull(true);
+		}
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
+		if (in.readBoolean())
+			type = (DataValueDescriptor) in.readObject();
 		boolean nonNull = in.readBoolean();
 		if (nonNull) {
 			value = new DataValueDescriptor[in.readInt()];
@@ -234,16 +247,51 @@ public class SQLArray extends DataType implements ArrayDataValue {
 						   DataValueDescriptor other,
 						   boolean orderedNulls,
 						   boolean unknownRV)
-					throws StandardException
-	{
-		return false;
+					throws StandardException {
+
+		int result = compare(other);
+		switch(op) {
+			case ORDER_OP_LESSTHAN:
+				return (result < 0);   // this <  other
+			case ORDER_OP_EQUALS:
+				return (result == 0);  // this == other
+			case ORDER_OP_LESSOREQUALS:
+				return (result <= 0);  // this <= other
+			// flipped operators
+			case ORDER_OP_GREATERTHAN:
+				return (result > 0);   // this > other
+			case ORDER_OP_GREATEROREQUALS:
+				return (result >= 0);  // this >= other
+			default:
+				if (SanityManager.DEBUG)
+					SanityManager.THROWASSERT("Invalid Operator");
+				return false;
+		}
+
 	}
 
 	/** @exception StandardException	Thrown on error */
 	public int compare(DataValueDescriptor other) throws StandardException {
-		if (this.isNull() || other.isNull())
-			return -1;
-        if (other instanceof SQLArray) {
+		boolean thisNull, otherNull;
+
+		thisNull = this.isNull();
+		otherNull = other.isNull();
+
+		/*
+		 * thisNull otherNull	return
+		 *	T		T		 	0	(this == other)
+		 *	F		T		 	-1 	(this > other)
+		 *	T		F		 	1	(this < other)
+		 */
+		if (thisNull || otherNull) {
+			if (!thisNull)		// otherNull must be true
+				return -1;
+			if (!otherNull)		// thisNull must be true
+				return 1;
+			return 0;
+		}
+
+		if (other instanceof SQLArray) {
 			DataValueDescriptor[] oArray = ((SQLArray) other).value;
 			for (int i =0; i< this.value.length;i++) {
 				if (oArray.length < i)
@@ -274,15 +322,20 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		 * Clone the underlying RowLocation, if possible, so that we
 		 * don't clobber the value in the clone.
 		 */
-		if (value == null)
-			return new SQLArray();
+		SQLArray array = null;
+		if (value == null) {
+			array = new SQLArray();
+
+		}
 		else {
 			DataValueDescriptor[] values = new DataValueDescriptor[value.length];
 			for (int i =0; i< values.length; i++) {
 				values[i] = value[i].cloneValue(false);
 			}
-			return new SQLArray(values);
+			array = new SQLArray(values);
 		}
+		array.setType(type);
+		return array;
 	}
 
 	/**
@@ -290,7 +343,10 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	 */
 	public DataValueDescriptor getNewNull()
 	{
-		return new SQLArray();
+		SQLArray array = new SQLArray();
+		array.setType(type);
+		array.setToNull();
+		return array;
 	}
 
 	/**
@@ -329,6 +385,8 @@ public class SQLArray extends DataType implements ArrayDataValue {
     @Override
 	public void setValue(DataValueDescriptor[] dvds) {
 		value = dvds;
+		if (type == null && dvds != null && dvds.length > 0)
+			type = dvds[0].cloneValue(true);
 		isNull = evaluateNull();
 	}
 
@@ -415,6 +473,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
+		assert type != null:"type cannot be null when reading from Spark";
 		if (row.isNullAt(ordinal))
 			setToNull();
 		else {
@@ -422,7 +481,8 @@ public class SQLArray extends DataType implements ArrayDataValue {
 			List list = row.getList(ordinal);
 			value = new DataValueDescriptor[list.size()];
 			for (int i =0 ; i< value.length; i++) {
-				value[i] = new SQLVarchar((String)list.get(i));
+				value[i] = type.cloneValue(true);
+				value[i].setSparkObject(list.get(i));
 			}
 		}
 	}
@@ -466,11 +526,125 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	@Override
 	public StructField getStructField(String columnName) {
-		return DataTypes.createStructField(columnName, DataTypes.createArrayType(DataTypes.StringType), true);
+		if (type == null)
+			throw new RuntimeException("type cannot be null");
+		return DataTypes.createStructField(columnName, DataTypes.createArrayType(type.getStructField("co").dataType()), true);
 	}
 
 	public void updateThetaSketch(UpdateSketch updateSketch) {
-		throw new UnsupportedOperationException("Cannot compute Statistics on Arrays Currently.");
+		try {
+			updateSketch.update(getBytes());
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+	}
+
+	@Override
+	public DataValueDescriptor arrayElement(int element, DataValueDescriptor valueToSet) throws StandardException {
+		if (value == null || value.length <= element || value[element] == null) {
+			valueToSet.setToNull();
+			return valueToSet;
+		}
+		else {
+			valueToSet.isNotNull();
+			valueToSet.setValue(value[element]);
+			return valueToSet;
+		}
+	}
+
+	@Override
+	public String getBaseTypeName() throws SQLException {
+		return baseTypeName;
+	}
+
+	public void setBaseTypeName(String baseTypeName) {
+		this.baseTypeName = baseTypeName;
+	}
+
+	/**
+	 *
+	 * jdbc base type.
+	 *
+	 * @return
+	 * @throws SQLException
+     */
+	@Override
+	public int getBaseType() throws SQLException {
+		return baseType;
+	}
+
+	/**
+	 *
+	 * jdbc base type.
+	 *
+	 * @return
+	 * @throws SQLException
+	 */
+	public void setBaseType(int baseType) {
+		this.baseType = baseType;
+	}
+
+	@Override
+	public Object getArray() throws SQLException {
+		return value;
+	}
+
+	@Override
+	public Object getArray(Map<String, Class<?>> map) throws SQLException {
+		return getArray();
+	}
+
+	@Override
+	public Object getArray(long index, int count) throws SQLException {
+		return Arrays.<DataValueDescriptor>copyOfRange(value,(int)index,count);
+	}
+
+	@Override
+	public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+		return getArray(index,count);
+	}
+
+	@Override
+	public ResultSet getResultSet() throws SQLException {
+		throw new UnsupportedOperationException("Not Supported");
+	}
+
+	@Override
+	public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
+		throw new UnsupportedOperationException("Not Supported");
+	}
+
+	@Override
+	public ResultSet getResultSet(long index, int count) throws SQLException {
+		throw new UnsupportedOperationException("Not Supported");
+	}
+
+	@Override
+	public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
+		throw new UnsupportedOperationException("Not Supported");
+	}
+
+	@Override
+	public void free() throws SQLException {
+		// Free as a bird... (No Locator on our implementation)
+	}
+
+	@Override
+	public Object getSparkObject() throws StandardException {
+		if (value == null)
+			return null;
+		Object[] items = new Object[value.length];
+		for (int i = 0; i< value.length; i++) {
+			if (value[i] == null || value[i].isNull())
+				continue;
+			items[i] = value[i].getSparkObject();
+		}
+		return items;
+	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+
 	}
 
 }

@@ -1035,4 +1035,14 @@ public final class SQLReal
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(value);
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (Float) sparkObject; // Autobox, must be something better.
+			setIsNull(false);
+		}
+	}
 }

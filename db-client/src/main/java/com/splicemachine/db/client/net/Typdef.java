@@ -31,6 +31,8 @@ import com.splicemachine.db.client.am.SignedBinary;
 import com.splicemachine.db.client.am.ClientMessageId;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
+import java.sql.Types;
+
 //
 //  General Notes
 //  Descriptors are overriden using two distinct mechanisms
@@ -432,9 +434,9 @@ public class Typdef implements java.lang.Cloneable {
         /* 0x51 null UDT */
         new FdocaSimpleDataArray(0x51, FdocaConstants.FDOCA_TYPE_NVARBYTES, Cursor.VARIABLE_BYTES, NOCCSID, 0, 1, 32767, TWOBYTELENGTH),
         /* 0x52 Empties */
-        null,
+        new FdocaSimpleDataArray(0x52, FdocaConstants.FDOCA_TYPE_NVARBYTES, Cursor.VARIABLE_BYTES, NOCCSID, 0, 1, 32767, TWOBYTELENGTH),
         /* 0x53 Empties */
-        null,
+        new FdocaSimpleDataArray(0x53, FdocaConstants.FDOCA_TYPE_NVARBYTES, Cursor.VARIABLE_BYTES, NOCCSID, 0, 1, 32767, TWOBYTELENGTH),
         /* 0x54 Empties */
         null,
         /* 0x55 Empties */
@@ -769,8 +771,8 @@ public class Typdef implements java.lang.Cloneable {
         java.sql.Types.VARCHAR, // 0x4F null MBCS
         java.sql.Types.JAVA_OBJECT, // 0x50 UDT
         java.sql.Types.JAVA_OBJECT, // 0x51 null UDT
-        0x00, // 0x52 Empties
-        0x00, // 0x53 Empties
+        java.sql.Types.ARRAY, // 0x52 Array
+        java.sql.Types.ARRAY, // 0x53 Null Array
         0x00, // 0x54 Empties
         0x00, // 0x55 Empties
         0x00, // 0x56 Empties

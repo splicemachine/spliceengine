@@ -154,7 +154,7 @@ public class UserDefinedTypeCompiler extends BaseTypeCompiler
 	}
 
     @Override
-	public void generateNull(MethodBuilder mb, int collationType, int precision, int scale) {
+	public void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] fields) {
 		int argCount;
         try {
             LanguageConnectionContext lcc = (LanguageConnectionContext)
@@ -173,8 +173,8 @@ public class UserDefinedTypeCompiler extends BaseTypeCompiler
                     mb.upCast("java.lang.Object");
                 }
             }
-            if (pushCollationForDataValue(collationType)) {
-                mb.push(collationType);
+            if (pushCollationForDataValue(dtd.getCollationType())) {
+                mb.push(dtd.getCollationType());
                 argCount = 2;
             } else
                 argCount = 1;

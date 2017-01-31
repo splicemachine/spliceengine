@@ -144,7 +144,7 @@ public class CallStatementNode extends DMLStatementNode {
 							null,
 							null);
 
-		// Disallow creation of BEFORE triggers which contain calls to 
+		//  Disallow creation of BEFORE triggers which contain calls to
 		// procedures that modify SQL data. 
   		checkReliability();
 

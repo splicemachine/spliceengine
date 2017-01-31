@@ -1230,9 +1230,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 userExprFun.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"getColumn",ClassName.DataValueDescriptor,1); // the express
 
                 acb.generateNullWithExpress(userExprFun,rc.getTypeCompiler(),
-                        rc.getTypeServices().getCollationType(),
-                        rc.getTypeServices().getPrecision(),
-                        rc.getTypeServices().getScale());
+                        rc.getTypeServices(),null);
             }else{
                 rc.generateExpression(acb,userExprFun);
             }

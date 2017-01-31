@@ -62,7 +62,7 @@ public abstract class ValueNode extends QueryTreeNode
     /**
      * The data type for this node.
      */
-	private DataTypeDescriptor	dataTypeServices;
+	protected DataTypeDescriptor	dataTypeServices;
 
 	// Whether or not additional predicates have been created from this one.
 	boolean	transformed;

@@ -374,67 +374,27 @@ public class ActivationSerializer {
     public static class DataValueStorage implements FieldStorage {
         private static final long serialVersionUID = 1l;
         private DataValueDescriptor dvd;
-        private int type;
 
         @Deprecated
         public DataValueStorage() { }
 
         public DataValueStorage(DataValueDescriptor dvd) {
             this.dvd = dvd;
-            this.type = dvd.getTypeFormatId();
         }
 
         @Override
         public Object getValue(ActivationHolder context) throws StandardException {
-            if(dvd==null)
-                dvd= context.getActivation().getDataValueFactory().getNull(type,0);
             return dvd;
         }
 
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeBoolean(dvd.isNull());
-            if (!dvd.isNull()) {
-                if (dvd instanceof UserType && ((UserType) dvd).getObject() instanceof UDTBase) {
-                    // If this is a UDT or UDA, do not serialize using kryo
-                    out.writeBoolean(false);
-                    ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
-                    ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputBuffer);
-                    objectOutputStream.writeObject(dvd);
-                    objectOutputStream.flush();
-                    byte[] bytes = outputBuffer.toByteArray();
-                    out.writeInt(bytes.length);
-                    out.write(bytes);
-                    objectOutputStream.close();
-                } else {
-                    out.writeBoolean(true);
-                    out.writeObject(dvd);
-                }
-            } else {
-                out.writeInt(type);
-            }
+            out.writeObject(dvd);
         }
 
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            if(!in.readBoolean()) {
-                if (in.readBoolean()) {
-                    dvd = (DataValueDescriptor) in.readObject();
-                } else {
-                    // This is a UDT or UDA and was not serialized by Kryo
-                    int len = in.readInt();
-                    byte[] bytes = new byte[len];
-                    int read =in.read(bytes, 0, len);
-                    assert read==len:"Did not read entire length!";
-                    ByteArrayInputStream input = new ByteArrayInputStream(bytes);
-                    UDTInputStream inputStream = new UDTInputStream(input, classFactory);
-                    dvd = (DataValueDescriptor)inputStream.readObject();
-                    inputStream.close();
-                }
-
-            } else {
-                type = in.readInt();
-            }
+            dvd = (DataValueDescriptor) in.readObject();
         }
     }
 

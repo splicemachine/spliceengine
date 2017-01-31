@@ -1728,4 +1728,14 @@ public final class SQLTimestamp extends DataType
 		updateSketch.update(new int[]{encodedDate,encodedTime,nanos});
 	}
 
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			setValue((Timestamp) sparkObject);
+			setIsNull(false);
+		}
+	}
+
 }

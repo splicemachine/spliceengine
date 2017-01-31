@@ -43,6 +43,7 @@ class UnsortedBinaryDescriptorSerializer implements DescriptorSerializer{
 								case StoredFormatIds.SQL_BLOB_ID:
 								case StoredFormatIds.SQL_BIT_ID:
 								case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
+								case StoredFormatIds.SQL_ARRAY_ID:
 										return true;
 								default:
 										return false;

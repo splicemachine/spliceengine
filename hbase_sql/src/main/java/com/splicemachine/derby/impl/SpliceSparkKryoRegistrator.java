@@ -684,6 +684,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(RowTransformFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TxnViewDecoderFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CountWriteFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLArray.class,EXTERNALIZABLE_SERIALIZER);
+
 
 
     }
