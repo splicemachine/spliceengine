@@ -53,6 +53,8 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
     private long numberOfBadRecords = 0L;
     private Path badRecordMasterPath;
     private transient OutputStream fileOut;
+    private String filePath;
+    private int fileCounter = 0; // When we close the stream we increment the counter so there's no collision
 
     public BadRecordsRecorder() {/*Externalizable*/}
 
@@ -138,8 +140,9 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         if (fileOut !=null) {
+            fileCounter++;
             try {
                 Closeables.close(fileOut, true);
             } catch (Exception e) {
@@ -163,13 +166,13 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
      * Write a record to the temp file
      * @param record record to write
      */
-    private void writeToFile(String record) {
+    private synchronized void writeToFile(String record) {
         // lazily init when we don't have a stream to which write
         if (fileOut == null) {
             try {
                 DistributedFileSystem dfs = SIDriver.driver().fileSystem();
                 String postfix = java.util.UUID.randomUUID().toString().replaceAll("-","");
-                String filePath = badRecordMasterPath.toString() + "_" + postfix;
+                filePath = badRecordMasterPath.toString() + "_" + postfix + "_" + fileCounter;
                 fileOut = dfs.newOutputStream(filePath, StandardOpenOption.CREATE);
             } catch (Exception e) {
                 close();
@@ -178,7 +181,7 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         }
         try {
             fileOut.write(Bytes.toBytes(record));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             close();
             throw new RuntimeException(e);
         }
