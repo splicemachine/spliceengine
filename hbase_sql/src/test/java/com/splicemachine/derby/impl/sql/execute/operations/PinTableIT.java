@@ -67,12 +67,12 @@ public class PinTableIT extends SpliceUnitTest{
 
     @Test
     public void testPinTable() throws Exception {
-            methodWatcher.executeUpdate("insert into t1 values (1)");
-            methodWatcher.executeUpdate("pin table t1");
-            ResultSet rs = methodWatcher.executeQuery("select * from t1 --splice-properties pin=true");
-            Assert.assertEquals("COL1 |\n" +
-                    "------\n" +
-                    "  1  |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate("insert into PinTable1 values (1)");
+        methodWatcher.executeUpdate("pin table PinTable1");
+        ResultSet rs = methodWatcher.executeQuery("select * from PinTable1 --splice-properties pin=true");
+        Assert.assertEquals("COL1 |\n" +
+                "------\n" +
+                "  1  |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
@@ -90,7 +90,7 @@ public class PinTableIT extends SpliceUnitTest{
     @Test
     public void testPinTableMarkedInDictionnary() throws Exception {
         methodWatcher.executeUpdate("insert into PinTable3 values (1)");
-        methodWatcher.executeUpdate("create pin table PinTable3");
+        methodWatcher.executeUpdate("pin table PinTable3");
         ResultSet rs = methodWatcher.executeQuery("select IS_PINNED from SYS.SYSTABLES where TABLENAME='PINTABLE3'");
         Assert.assertEquals("IS_PINNED |\n" +
                 "------------\n" +
