@@ -39,8 +39,10 @@ public class PinTableIT extends SpliceUnitTest{
     private static final String SCHEMA_NAME = PinTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
     private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
-    private static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("t1",SCHEMA_NAME,"(col1 int)");
-    private static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("t2",SCHEMA_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("PinTable1",SCHEMA_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("PinTable2",SCHEMA_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("PinTable3",SCHEMA_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("PinTable4",SCHEMA_NAME,"(col1 int)");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -49,7 +51,9 @@ public class PinTableIT extends SpliceUnitTest{
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher)
-    .around(spliceTableWatcher2);
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
+            .around(spliceTableWatcher4);
     @Test
     public void testPinTableDoesNotExist() throws Exception {
         try {
@@ -74,12 +78,33 @@ public class PinTableIT extends SpliceUnitTest{
     @Test
     public void selectFromPinThatDoesNotExist() throws Exception {
         try {
-            methodWatcher.executeUpdate("insert into t2 values (1)");
-            ResultSet rs = methodWatcher.executeQuery("select * from t2 --splice-properties pin=true");
+            methodWatcher.executeUpdate("insert into PinTable2 values (1)");
+            ResultSet rs = methodWatcher.executeQuery("select * from PinTable2 --splice-properties pin=true");
             Assert.assertEquals("foo", TestUtils.FormattedResult.ResultFactory.toString(rs));
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT16",e.getSQLState());
         }
+    }
+
+
+    @Test
+    public void testPinTableMarkedInDictionnary() throws Exception {
+        methodWatcher.executeUpdate("insert into PinTable3 values (1)");
+        methodWatcher.executeUpdate("create pin table PinTable3");
+        ResultSet rs = methodWatcher.executeQuery("select IS_PINNED from SYS.SYSTABLES where TABLENAME='PINTABLE3'");
+        Assert.assertEquals("IS_PINNED |\n" +
+                "------------\n" +
+                "   true    |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
+    @Test
+    public void testPinTableNotMarkedInDictionnary() throws Exception {
+        methodWatcher.executeUpdate("insert into PinTable4 values (1)");
+        ResultSet rs = methodWatcher.executeQuery("select IS_PINNED from SYS.SYSTABLES where TABLENAME='PINTABLE4'");
+        Assert.assertEquals("IS_PINNED |\n" +
+                "------------\n" +
+                "   false   |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
 }
