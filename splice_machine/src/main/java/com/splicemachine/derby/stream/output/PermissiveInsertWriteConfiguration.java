@@ -17,8 +17,10 @@ package com.splicemachine.derby.stream.output;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -41,13 +43,18 @@ import java.util.concurrent.ExecutionException;
 public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfiguration {
     private static final Logger LOG = Logger.getLogger(PermissiveInsertWriteConfiguration.class);
     protected OperationContext operationContext;
-    protected PairDecoder pairDecoder;
+    protected ThreadLocal<PairDecoder> pairDecoder;
 
-    public PermissiveInsertWriteConfiguration(WriteConfiguration delegate, OperationContext operationContext, PairDecoder pairDecoder) {
+    public PermissiveInsertWriteConfiguration(WriteConfiguration delegate, OperationContext operationContext, final PairEncoder encoder, final ExecRow execRowDefinition) {
         super(delegate);
-        assert operationContext!=null && pairDecoder != null:"Passed in null values to PermissiveInsert";
+        assert operationContext!=null && encoder != null:"Passed in null values to PermissiveInsert";
         this.operationContext = operationContext;
-        this.pairDecoder = pairDecoder;
+        this.pairDecoder = new ThreadLocal<PairDecoder>() {
+            @Override
+            protected PairDecoder initialValue() {
+                return encoder.getDecoder(execRowDefinition.getClone());
+            }
+        };
     }
 
     @Override
@@ -79,7 +86,7 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
                 if (operationContext.isFailed())
                     ignore = true;
                 try {
-                    operationContext.recordBadRecord(errorRow(pairDecoder.decode(kvPairList.get(rowNum)).toString(), value), null);
+                    operationContext.recordBadRecord(errorRow(pairDecoder.get().decode(kvPairList.get(rowNum).shallowClone()).toString(), value), null);
                 } catch (Exception e) {
                     ignore = true;
                 }
