@@ -149,6 +149,10 @@ public interface C_NodeNames
 
 	static final String EXTRACT_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExtractOperatorNode";
 
+	static final String ARRAY_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ArrayOperatorNode";
+
+	static final String ARRAY_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ArrayConstantNode";
+
 	static final String FK_CONSTRAINT_DEFINITION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.FKConstraintDefinitionNode";
 
 	static final String FROM_BASE_TABLE_NAME = "com.splicemachine.db.impl.sql.compile.FromBaseTable";

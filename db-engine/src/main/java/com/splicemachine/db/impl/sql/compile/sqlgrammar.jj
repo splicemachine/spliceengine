@@ -1479,6 +1479,7 @@ public class SQLParser
 	private boolean rowValueConstructorListFollows()
 	{
 		int nesting;
+		int bracketNesting = 0;
 		boolean retval = false;
 
 		// A rowValueConstructorList starts with a left parenthesis
@@ -1501,7 +1502,7 @@ public class SQLParser
 
 				// There must be a COMMA at nesting level 1 (i.e. outside of
 				// the first expression) for it to be a rowValueConstructorList
-				if (nesting == 1 && tokKind == COMMA)
+				if (nesting == 1 && tokKind == COMMA && bracketNesting == 0)
 				{
 					retval = true;
 					break;
@@ -1524,6 +1525,17 @@ public class SQLParser
 				{
 					nesting--;
 				}
+
+                // Increase the nesting for each (, and decrease it for each )
+                if (tokKind == LEFT_BRACKET)
+                {
+                    bracketNesting++;
+                }
+                else if (tokKind == RIGHT_BRACKET)
+                {
+                    bracketNesting--;
+                }
+
 
 				// Don't look any farther than the last closing parenthesis
 				if (nesting == 0)
@@ -2712,6 +2724,7 @@ TOKEN [IGNORE_CASE] :
 |	<SESSION_USER: "session_user">
 |	<SET: "set">
 |	<SMALLINT: "smallint">
+|	<ARRAY: "array">
 |	<TINYINT: "tinyint">
 |	<SOME: "some">
 |	<SPACE: "space">
@@ -4681,6 +4694,7 @@ DataTypeDescriptor
 dataTypeCast() throws StandardException :
 {
 	DataTypeDescriptor	typeDescriptor;
+	DataTypeDescriptor	optionalParentDescriptor;
 }
 {
 	// This lookahead is required because the names of the built-in
@@ -4705,6 +4719,7 @@ dataTypeCommon() throws StandardException :
 {
 	DataTypeDescriptor	typeDescriptor;
 	boolean checkCS = false;
+	boolean isArray = false;
 }
 {
 (
@@ -4716,17 +4731,20 @@ dataTypeCommon() throws StandardException :
 	*/
 	( LOOKAHEAD({getToken(2).kind != LARGE})
 		typeDescriptor = characterStringType()
+		[ <ARRAY> { isArray = true; } ]
 	)
 		/* [ <CHARACTER> <SET> characterSetSpecification() ] */
 |
 	( LOOKAHEAD({getToken(3).kind != LARGE})
 		typeDescriptor = nationalCharacterStringType()
+		[ <ARRAY> { isArray = true; } ]
 	)
 |
 	typeDescriptor = numericType()
+	[ <ARRAY> { isArray = true; } ]
 |
 	typeDescriptor = datetimeType()
-| <BOOLEAN>
+| <BOOLEAN> [ <ARRAY> { isArray = true; } ]
 {
 	if ((getCompilerContext().getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
     {
@@ -4736,14 +4754,24 @@ dataTypeCommon() throws StandardException :
 }
 |
 	typeDescriptor = longType()
+		[ <ARRAY> { isArray = true; } ]
 |
 	typeDescriptor = LOBType()
+		[ <ARRAY> { isArray = true; } ]
+
 |
 	typeDescriptor = XMLType()
+		[ <ARRAY> { isArray = true; } ]
+
 
 )
 	{
-		return typeDescriptor;
+	    if (isArray) { // Wrap Array Handling...
+	        DataTypeDescriptor dataTypeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.ARRAY);
+	        dataTypeDescriptor.setChildren(new DataTypeDescriptor[]{typeDescriptor});
+	        return dataTypeDescriptor;
+	    }
+        return typeDescriptor;
 	}
 }
 
@@ -5134,6 +5162,23 @@ longType() throws StandardException :
 {
 	<LONG> dataTypeDescriptor = longSubType()
 	{
+		return dataTypeDescriptor;
+	}
+}
+
+/*
+ * <A NAME="longType">longType</A>
+ */
+DataTypeDescriptor
+arrayType(DataTypeDescriptor childDataTypeDescriptor) throws StandardException :
+{
+	DataTypeDescriptor	dataTypeDescriptor;
+}
+{
+    <ARRAY>
+	{
+		dataTypeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.ARRAY);
+		dataTypeDescriptor.setChildren(new DataTypeDescriptor[]{childDataTypeDescriptor});
 		return dataTypeDescriptor;
 	}
 }
@@ -7489,12 +7534,18 @@ valueExpressionPrimary() throws StandardException :
 		LOOKAHEAD( {getToken(1).kind == SELECT || getToken(1).kind == VALUES} )
 		value = subquery(SubqueryNode.EXPRESSION_SUBQUERY, null)
 		|
+
+		LOOKAHEAD( {getToken(1).kind == LEFT_BRACKET})
+		 value = valueExpression()
+		|
+
 		/*
 		** NOTE: The optional intervalQualfier() here makes sense only for
 		** the MINUS operator.  We will have to add a semantic check that the
 		** valueExpression() here is a MINUS operator if the intervalQualifier
 		** is supplied.
 		*/
+
 		value = valueExpression()
 	)
 	<RIGHT_PAREN>
@@ -7538,7 +7589,6 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == NVL ||
                 getToken(1).kind == VALUE ||
-
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == REPLACE ||
@@ -7560,6 +7610,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == INTEGER ||
                 getToken(1).kind == INT ||
                 getToken(1).kind == SMALLINT ||
+                getToken(1).kind == ARRAY ||
                 getToken(1).kind == TINYINT ||
                 getToken(1).kind == LONGINT ||
                 getToken(1).kind == YEAR ||
@@ -8880,7 +8931,7 @@ columnNameForInvocation() throws StandardException :
 /*
  * <A NAME="columnReference">columnReference</A>
  */
-ColumnReference
+ValueNode
 columnReference() throws StandardException :
 {
 	String		firstName;
@@ -8890,6 +8941,8 @@ columnReference() throws StandardException :
 	String		tableName = null;
 	String		schemaName = null;
 	TableName	tabName = null;
+	ValueNode arrayElement = null;
+	String	sign = "";
 }
 {
 	firstName = identifier(Limits.MAX_IDENTIFIER_LENGTH, false)
@@ -8912,7 +8965,8 @@ columnReference() throws StandardException :
 					} )
 			<PERIOD> thirdName = identifier(Limits.MAX_IDENTIFIER_LENGTH, false)
 		]
-	]
+	    ]
+               [ <LEFT_BRACKET> arrayElement = numericLiteral(sign) <RIGHT_BRACKET>]
 	{
 		// Figure out what each name stands for
 		if (thirdName == null)
@@ -8954,13 +9008,22 @@ columnReference() throws StandardException :
 							getContextManager());
 		}
 
-		return (ColumnReference) nodeFactory.getNode(
+		ColumnReference columnReference = (ColumnReference) nodeFactory.getNode(
 								C_NodeTypes.COLUMN_REFERENCE,
 								columnName,
 								tabName,
 								new Integer(lastIdentifierToken.beginOffset),
 								new Integer(lastIdentifierToken.endOffset),
 								getContextManager());
+		if (arrayElement == null)
+		    return columnReference;
+		return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.ARRAY_OPERATOR_NODE,
+                                arrayElement,
+                                columnReference,
+                                getContextManager());
+
+
 	}
 }
 
@@ -9345,7 +9408,7 @@ void
 setClause(ResultColumnList columnList) throws StandardException :
 {
 	ResultColumn resultColumn;
-	ColumnReference	 columnName;
+	ValueNode	 columnName;
 	ValueNode	 valueNode;
 }
 {
@@ -9370,7 +9433,7 @@ void
 setClauseSpecial(ResultColumnList columnList) throws StandardException :
 {
     ResultColumn resultColumn;
-    ColumnReference  columnName;
+    ValueNode  columnName;
     ValueNode    valueNode;
 }
 {
@@ -9545,7 +9608,7 @@ columnQualifiedNameList(ResultColumnList columnList) throws StandardException :
 void
 columnQualifiedNameItem(ResultColumnList columnList) throws StandardException :
 {
-	ColumnReference		columnRef;
+	ValueNode		columnRef;
 	ResultColumn	resultColumn;
 }
 {
@@ -13578,21 +13641,21 @@ StatementNode
 renameColumnStatement() throws StandardException :
 {
 	String newColumnName;
-        ColumnReference oldColumnReference;
+        ValueNode oldColumnReference;
 }
 {
 	<COLUMN> oldColumnReference = columnReference()
 		<TO> newColumnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
 	{
-		if (oldColumnReference.getTableNameNode() == null)
+		if (((ColumnReference)oldColumnReference).getTableNameNode() == null)
 			throw StandardException.newException(
 				SQLState.LANG_OBJECT_DOES_NOT_EXIST,
 				"RENAME COLUMN",
-				oldColumnReference.getColumnName());
+				((ColumnReference)oldColumnReference).getColumnName());
 		return (StatementNode) nodeFactory.getNode(
 			C_NodeTypes.RENAME_NODE,
-			oldColumnReference.getTableNameNode(),
-			oldColumnReference.getColumnName(),
+			((ColumnReference)oldColumnReference).getTableNameNode(),
+			((ColumnReference)oldColumnReference).getColumnName(),
 			newColumnName,
 			Boolean.FALSE,
 			ReuseFactory.getInteger(StatementType.RENAME_COLUMN),
@@ -14041,7 +14104,58 @@ valueSpecification() throws StandardException :
 	{
 		return value;
 	}
+|
+    // create table foo (col1 int array);
+    // Handles arrays like values ( [0,0,0] ), ([0]), ([0,1])
+    // insert into foo values ([0,0,0]);
+    // select col1[0]
+	<LEFT_BRACKET> value = arrayExpression()
+	{
+	    return value;
+	}
+
 }
+
+
+/*
+ * <A NAME="arrayExpression">arrayExpression</A>
+ */
+ValueNode
+arrayExpression() throws StandardException :
+{
+	ValueNodeList list = (ValueNodeList) nodeFactory.getNode(
+    	C_NodeTypes.VALUE_NODE_LIST,
+    	getContextManager());
+}
+{
+    arrayElement( list) ( <COMMA> arrayElement( list) ) *
+	<RIGHT_BRACKET>
+	{
+		ContextManager cm = getContextManager();
+		return((ValueNode) nodeFactory.getNode(C_NodeTypes.ARRAY_CONSTANT_NODE,
+												list,
+												cm));
+	}
+}
+
+
+/*
+ * <A NAME="arrayElement">arrayElement</A>
+ */
+void
+arrayElement(ValueNodeList list) throws StandardException :
+{
+	ValueNode	   expr;
+}
+{
+    expr = additiveExpression(null,0)
+	{
+	    list.addElement(expr);
+	}
+}
+
+
+
 
 /*
  * <A NAME="caseExpression">caseExpression</A>
@@ -15903,7 +16017,6 @@ internalIdentifier( int id_length_limit, boolean checkLength) throws StandardExc
 	tok = <IDENTIFIER>
 	{
         str = StringUtil.SQLToUpperCase(tok.image);
- 
  		if (checkLength) {//if checkLength false, then calling method would do the length limit checks
 			//limit the identifier to the id length limit passed to this method
 			IdUtil.checkIdentifierLengthLimit(str, id_length_limit);
@@ -16162,6 +16275,7 @@ reservedKeyword() :
 |	tok = <SESSION_USER>
 |	tok = <SET>
 |	tok = <SMALLINT>
+|	tok = <ARRAY>
 |	tok = <TINYINT>
 |	tok = <SOME>
 |	tok = <SPACE>

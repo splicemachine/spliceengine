@@ -52,6 +52,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
+
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.PreparedStatement;
@@ -1441,4 +1443,17 @@ public final class SQLDate extends DataType
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(encodedDate);
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			java.time.LocalDate localeDate = ((Date)sparkObject).toLocalDate();
+			encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
+			setIsNull(false);
+		}
+
+	}
+
 }

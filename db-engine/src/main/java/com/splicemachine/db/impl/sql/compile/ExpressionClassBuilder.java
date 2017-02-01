@@ -32,6 +32,8 @@
 package com.splicemachine.db.impl.sql.compile;
 
 
+import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.ClassBuilder;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.compiler.JavaFactory;
@@ -40,6 +42,8 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -865,10 +869,19 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 		Nothing is required on the stack, a SQL null data value
 		is pushed.
 	*/
-	void generateNull(MethodBuilder mb, TypeCompiler tc, int collationType, int precision, int scale) {
+	void generateNull(MethodBuilder mb, TypeCompiler tc, DataTypeDescriptor dtd) {
+		LocalField field = null;
+		if (dtd.getTypeId().isArray()) {
+			MethodBuilder acbConstructor = getConstructor();
+			TypeDescriptor td = ((TypeDescriptorImpl) dtd.getCatalogType()).getChildren()[0];
+			field = newFieldDeclaration(Modifier.PRIVATE, DataValueDescriptor.class.getCanonicalName());
+			generateNull(acbConstructor, getTypeCompiler(TypeId.getBuiltInTypeId(td.getJDBCTypeId())),
+					DataTypeDescriptor.getType(td));
+			acbConstructor.setField(field);
+		}
 		pushDataValueFactory(mb);
 		mb.pushNull(tc.interfaceName());
-		tc.generateNull(mb, collationType, precision, scale);
+		tc.generateNull(mb, dtd, new LocalField[]{field});
 	}
 
 	/**
@@ -876,12 +889,12 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 		The express value is required on the stack and will be popped, a SQL null data value
 		is pushed.
 	*/
-	void generateNullWithExpress(MethodBuilder mb, TypeCompiler tc, 
-			int collationType, int precision, int scale) {
+	void generateNullWithExpress(MethodBuilder mb, TypeCompiler tc,
+								 DataTypeDescriptor dtd, LocalField[] localFields) {
 		pushDataValueFactory(mb);
 		mb.swap(); // need the dvf as the instance
 		mb.cast(tc.interfaceName());
-		tc.generateNull(mb, collationType,precision,scale);
+		tc.generateNull(mb, dtd, localFields);
 	}
 
 	/**

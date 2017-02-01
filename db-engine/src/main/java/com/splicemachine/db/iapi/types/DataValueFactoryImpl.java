@@ -715,17 +715,12 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 }
         }
 
-        public ArrayDataValue getNullArray(ArrayDataValue dataValue)
-        {
+        public ArrayDataValue getNullArray(ArrayDataValue dataValue, DataValueDescriptor type) throws StandardException {
                 if (dataValue == null)
-                {
-                        return new SQLArray();
-                }
-                else
-                {
-                        dataValue.setToNull();
-                        return dataValue;
-                }
+                        dataValue = new SQLArray();
+                dataValue.setToNull();
+                dataValue.setType(type);
+                return dataValue;
         }
 
         public BitDataValue             getNullBit(BitDataValue dataValue) throws StandardException

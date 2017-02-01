@@ -337,6 +337,7 @@ public class SQLBlob extends SQLBinary
     public Format getFormat() {
     	return Format.BLOB;
     }
+
 }
 
 

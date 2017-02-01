@@ -842,4 +842,60 @@ public class ExternalTableIT extends SpliceUnitTest{
         rs2.close();
     }
 
+    @Test
+    public void testWriteReadyArraysParquet() throws Exception {
+
+        String tablePath = getExternalResourceDirectory()+"parquet_array";
+        methodWatcher.executeUpdate(String.format("create external table parquet_array (col1 int array, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into parquet_array values ([1,1,1],'XXXX')," +
+                "([2,2,2],'YYYY')," +
+                "([3,3,3],'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from parquet_array");
+        Assert.assertEquals("COL1    |COL2 |\n" +
+                "-----------------\n" +
+                "[1, 1, 1] |XXXX |\n" +
+                "[2, 2, 2] |YYYY |\n" +
+                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from parquet_array");
+        Assert.assertEquals("COL1    |\n" +
+                "-----------\n" +
+                "[1, 1, 1] |\n" +
+                "[2, 2, 2] |\n" +
+                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        //Make sure empty file is created
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+    }
+
+    @Test
+    public void testWriteReadArraysORC() throws Exception {
+
+        String tablePath = getExternalResourceDirectory()+"orc_array";
+        methodWatcher.executeUpdate(String.format("create external table orc_array (col1 int array, col2 varchar(24))" +
+                " STORED AS ORC LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into orc_array values ([1,1,1],'XXXX')," +
+                "([2,2,2],'YYYY')," +
+                "([3,3,3],'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from orc_array");
+        Assert.assertEquals("COL1    |COL2 |\n" +
+                "-----------------\n" +
+                "[1, 1, 1] |XXXX |\n" +
+                "[2, 2, 2] |YYYY |\n" +
+                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from orc_array");
+        Assert.assertEquals("COL1    |\n" +
+                "-----------\n" +
+                "[1, 1, 1] |\n" +
+                "[2, 2, 2] |\n" +
+                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        //Make sure empty file is created
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+
+    }
+
+
 }

@@ -417,4 +417,9 @@ public class SQLRef extends DataType implements RefDataValue {
 		value.updateThetaSketch(updateSketch);
 	}
 
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+
+	}
+
 }

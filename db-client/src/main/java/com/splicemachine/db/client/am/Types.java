@@ -82,6 +82,8 @@ public class Types {
 
     public final static int JAVA_OBJECT = java.sql.Types.JAVA_OBJECT;          // 2000;
 
+    public final static int ARRAY = java.sql.Types.ARRAY;          // 2003;
+
     public final static int ROWID = java.sql.Types.ROWID;
     // hide the default constructor
     private Types() {
@@ -182,6 +184,8 @@ public class Types {
             return java.sql.Types.JAVA_OBJECT;
         case DRDAConstants.DB2_SQLTYPE_ROWID:
             return ROWID;
+        case DRDAConstants.DB2_SQLTYPE_FAKE_ARRAY:
+            return java.sql.Types.ARRAY;
         default:
             return 0;
         }

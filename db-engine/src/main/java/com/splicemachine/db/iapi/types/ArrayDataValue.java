@@ -25,7 +25,10 @@
 
 package com.splicemachine.db.iapi.types;
 
-public interface ArrayDataValue extends DataValueDescriptor {
+import com.splicemachine.db.iapi.error.StandardException;
+import java.sql.Array;
+
+public interface ArrayDataValue extends DataValueDescriptor, Array {
 
 	/**
 	 * Set the value of this RefDataValue.
@@ -34,5 +37,24 @@ public interface ArrayDataValue extends DataValueDescriptor {
 	 *					to.  Null means set this RefDataValue to null.
 	 */
 	public void setValue(DataValueDescriptor[] theValue);
+
+	/**
+	 *
+	 * Array Element to Probe for ArrayOperatorNode
+	 *
+	 * @param element
+	 * @param valueToSet
+	 * @return
+	 * @throws StandardException
+     */
+	public DataValueDescriptor arrayElement(int element, DataValueDescriptor valueToSet) throws StandardException;
+
+	/**
+	 *
+	 * The type for the array to set from a null value.
+	 *
+	 * @param type
+     */
+	public void setType(DataValueDescriptor type) throws StandardException;
 
 }

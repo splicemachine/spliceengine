@@ -1339,4 +1339,15 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(this.value.toEngineeringString());
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (BigDecimal) sparkObject; //
+			setIsNull(false);
+		}
+	}
+
 }
