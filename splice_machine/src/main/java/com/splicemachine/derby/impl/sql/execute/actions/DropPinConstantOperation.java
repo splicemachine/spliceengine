@@ -80,6 +80,9 @@ public class DropPinConstantOperation extends DDLSingleTableConstantOperation {
         if (td == null) {
             throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
         }
+        if(!td.isPined()){
+            throw StandardException.newException(SQLState.TABLE_NOT_PINNED, fullTableName);
+        }
         long heapId = td.getHeapConglomerateId();
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.dropPinnedTable(heapId);

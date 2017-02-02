@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.iapi;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -303,15 +304,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param template
      * @param conglomId
      */
-    public void pin(ExecRow template, long conglomId);
+    public void pin(ExecRow template, long conglomId) throws StandardException;
 
-
-    /**
-     *
-     * Drop Pin the conglomerate from memory.
-     *
-     * @param conglomId
-     */
-    public void dropPin(long conglomId);
 
 }

@@ -1975,7 +1975,7 @@ public interface SQLState {
     String CANNOT_WRITE_AT_LOCATION				    				= "EXT22";
     String INCONSISTENT_NUMBER_OF_ATTRIBUTE				    		= "EXT23";
     String INCONSISTENT_DATATYPE_ATTRIBUTES				    		= "EXT24";
-
+    String TABLE_NOT_PINNED				    						= "EXT28";
 
 }
 
