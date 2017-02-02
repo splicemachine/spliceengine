@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -80,7 +79,6 @@ import java.util.Vector;
 
 public final class UpdateNode extends DMLModStatementNode
 {
-	public static String PIN = "pin";
 	//Note: These are public so they will be visible to
 	//the RepUpdateNode.
 	public int[]				changedColumnIds;
@@ -1537,11 +1535,6 @@ public final class UpdateNode extends DMLModStatementNode
 
 	@Override
 	void verifyTargetTable() throws StandardException {
-		Boolean pin = Boolean.parseBoolean(StringUtil.SQLToUpperCase(targetTable.getProperties().getProperty(PIN)));
-
-		if(pin){
-			throw StandardException.newException(SQLState.UPDATE_PIN_VIOLATION);
-		}
 		super.verifyTargetTable();
 		if (targetTableDescriptor.getTableType() == TableDescriptor.EXTERNAL_TYPE)
 			throw StandardException.newException(SQLState.EXTERNAL_TABLES_ARE_NOT_UPDATEABLE, targetTableName);
