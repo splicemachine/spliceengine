@@ -473,10 +473,10 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
-		assert type != null:"type cannot be null when reading from Spark";
 		if (row.isNullAt(ordinal))
 			setToNull();
 		else {
+			assert type != null:"type cannot be null when reading from Spark";
 			setIsNull(false);
 			List list = row.getList(ordinal);
 			value = new DataValueDescriptor[list.size()];

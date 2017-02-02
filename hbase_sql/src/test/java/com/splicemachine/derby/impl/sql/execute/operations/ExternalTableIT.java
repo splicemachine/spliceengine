@@ -779,6 +779,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    @Ignore
     public void testCollectStats() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table t1_orc (col1 int, col2 char(24))" +
                 " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"t1_orc_test"));
@@ -843,7 +844,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testWriteReadyArraysParquet() throws Exception {
+    public void testWriteReadArraysParquet() throws Exception {
 
         String tablePath = getExternalResourceDirectory()+"parquet_array";
         methodWatcher.executeUpdate(String.format("create external table parquet_array (col1 int array, col2 varchar(24))" +
