@@ -43,8 +43,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private String drdaID;
     protected SpliceDatabase database;
     protected LanguageConnectionContext lcc;
-    private boolean generateLcc=true;
-    private ContextManager oldCm;
 
     public SpliceTransactionResourceImpl() throws SQLException{
         this("jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true", new Properties());
@@ -77,7 +75,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s", txn);
         }
 
-        oldCm=csf.getCurrentContextManager();
         cm=csf.newContextManager();
         csf.setCurrentContextManager(cm);
 
@@ -88,18 +85,11 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
 
     public void close(){
-        if(generateLcc){
-            while(!cm.isEmpty()){
-                cm.popContext();
-            }
-            csf.resetCurrentContextManager(cm);
-            csf.removeContext(cm);
-            if(oldCm!=null){
-                csf.forceRemoveContext(cm);
-                oldCm.setActiveThread();
-                csf.setCurrentContextManager(oldCm);
-            }
+        while(!cm.isEmpty()){
+            cm.popContext();
         }
+        csf.resetCurrentContextManager(cm);
+        csf.removeContext(cm);
     }
 
     public LanguageConnectionContext getLcc(){
