@@ -9000,6 +9000,12 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>externalAttributeCount</arg>
            </msg>
 
+           <msg>
+               <name>EXT28</name>
+               <text> Table '{0}' is not pinned</text>
+               <arg>location</arg>
+           </msg>
+
        </family>
     </section>
 
