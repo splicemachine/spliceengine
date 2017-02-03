@@ -169,6 +169,11 @@ public final class ContextService{
     private static class ContextManagerLink {
         ContextManager cm;
         ContextManagerLink next;
+
+        ContextManagerLink(ContextManager cm, ContextManagerLink next) {
+            this.cm = cm;
+            this.next = next;
+        }
     }
 
     private ThreadLocal<ContextManagerLink> threadContextList = new ThreadLocal<>();
@@ -290,44 +295,6 @@ public final class ContextService{
             return;
         }
 
-        if(SanityManager.DEBUG){
-
-            if(cm.activeCount==0){
-
-                cm.activeThread=null;
-
-                // If the ContextManager is empty
-                // then don't keep a reference to it
-                // when it is not in use. The ContextManager
-                // has been closed (most likely) and this
-                // is now unwanted. Keeping the reference
-                // would hold onto memory and increase the
-                // chance of holding onto a another reference
-                // will could cause issues for future operations.
-                if(cm.isEmpty()) {
-                    threadContextList.set(null);
-                }
-                return;
-
-//				SanityManager.THROWASSERT("resetCurrentContextManager - invalid count - current" + Thread.currentThread() + " - count " + cm.activeCount);
-            }
-
-            final Thread currThread=Thread.currentThread();
-            int activeCount=cm.activeCount;
-            Thread activeThread=cm.activeThread;
-            if(currThread!=activeThread){
-                SanityManager.THROWASSERT("resetCurrentContextManager - mismatch threads - current"+currThread+" - cm's "+activeThread+" : "+activeCount);
-            }
-
-            if(getCurrentContextManager()!=cm){
-                SanityManager.THROWASSERT("resetCurrentContextManager - mismatch contexts - "+currThread+" : "+getCurrentContextManager()+" : "+cm);
-            }
-
-            if(cm.activeCount<-1){
-                SanityManager.THROWASSERT("resetCurrentContextManager - invalid count - current"+currThread+" - count "+activeCount);
-            }
-        }
-
         if(cm.activeCount!=-1){
             if(--cm.activeCount<=0){
                 cm.activeThread=null;
@@ -347,11 +314,22 @@ public final class ContextService{
             return;
         }
 
+        if(SanityManager.DEBUG){
+            Thread currThread = Thread.currentThread();
+            Thread activeThread = cm.activeThread;
+            if (currThread != activeThread) {
+                SanityManager.THROWASSERT("resetCurrentContextManager - mismatch threads - current"+currThread+" - cm's "+activeThread);
+            }
+            if (getCurrentContextManager() != cm) {
+                SanityManager.THROWASSERT("resetCurrentContextManager - mismatch contexts - "+currThread+" : "+getCurrentContextManager()+" : "+cm);
+            }
+        }
+
         ContextManagerLink link = threadContextList.get();
         link = link.next;
         threadContextList.set(link);
-        ContextManager nextCM = link.cm;
 
+        ContextManager nextCM = link.cm;
         boolean seenMultipleCM=false;
         boolean seenCM=false;
         int count = 0;
@@ -374,8 +352,7 @@ public final class ContextService{
             // all the context managers on the stack
             // are the same so reduce to a simple count.
             nextCM.activeCount = count;
-            link = new ContextManagerLink();
-            link.cm = nextCM;
+            link = new ContextManagerLink(nextCM, null);
             threadContextList.set(link);
         }
     }
@@ -397,8 +374,7 @@ public final class ContextService{
 
         // Not currently using any ContextManager
         if (link == null){
-            link = new ContextManagerLink();
-            link.cm = associateCM;
+            link = new ContextManagerLink(associateCM, null);
             threadContextList.set(link);
             return true;
         }
@@ -428,24 +404,19 @@ public final class ContextService{
             // entries in the stack.
             link = null;
             for (int i = 0; i < threadsCM.activeCount; i++) {
-                ContextManagerLink node = new ContextManagerLink();
-                node.cm = threadsCM;
-                node.next = link;
-                link = node;
+                link = new ContextManagerLink(threadsCM, link);
             }
             threadsCM.activeCount = -1;
         }
 
-        ContextManagerLink node = new ContextManagerLink();
-        node.cm = associateCM;
-        node.next = link;
-        threadContextList.set(node);
+        link = new ContextManagerLink(associateCM, link);
+        threadContextList.set(link);
         associateCM.activeCount=-1;
 
         if(SanityManager.DEBUG){
             if(SanityManager.DEBUG_ON("memoryLeakTrace")) {
                 int size = 0;
-                for (link = node; link != null; link = link.next) ++size;
+                for (; link != null; link = link.next) ++size;
                 if (size > 10)
                     System.out.println("memoryLeakTrace:ContextService:threadLocal " + size);
             }
@@ -514,15 +485,14 @@ public final class ContextService{
         // a severe error.
         new SystemContext(cm);
 
-        synchronized(allContexts){
+        synchronized(allContexts) {
             allContexts.add(cm);
+        }
 
-            if(SanityManager.DEBUG){
-
-                if(SanityManager.DEBUG_ON("memoryLeakTrace")){
-
-                    if(allContexts.size()>50)
-                        System.out.println("memoryLeakTrace:ContextService:allContexts "+allContexts.size());
+        if (SanityManager.DEBUG) {
+            if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
+                if (allContexts.size()>50) {
+                    System.out.println("memoryLeakTrace:ContextService:allContexts " + allContexts.size());
                 }
             }
         }
@@ -536,23 +506,16 @@ public final class ContextService{
         synchronized (allContexts) {
             for(ContextManager cm : allContexts){
 
-                Thread active=cm.activeThread;
-
-                if(active==me)
+                final Thread active = cm.activeThread;
+                if (active == null || active == me) {
                     continue;
+                }
 
-                if(active==null)
-                    continue;
-
-                final Thread fActive=active;
-                if(cm.setInterrupted(c)){
-                    AccessController.doPrivileged(
-                            new PrivilegedAction(){
-                                public Object run(){
-                                    fActive.interrupt();
-                                    return null;
-                                }
-                            });
+                if (cm.setInterrupted(c)) {
+                    AccessController.doPrivileged((PrivilegedAction) () -> {
+                        active.interrupt();
+                        return null;
+                    });
                 }
             }
         }
