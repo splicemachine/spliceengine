@@ -43,6 +43,7 @@ public class PinTableIT extends SpliceUnitTest{
     private static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("PinTable2",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("PinTable3",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("PinTable4",SCHEMA_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("PinTable5",SCHEMA_NAME,"(col1 int)");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -53,7 +54,8 @@ public class PinTableIT extends SpliceUnitTest{
             .around(spliceTableWatcher)
             .around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
-            .around(spliceTableWatcher4);
+            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher5);
     @Test
     public void testPinTableDoesNotExist() throws Exception {
         try {
@@ -107,4 +109,34 @@ public class PinTableIT extends SpliceUnitTest{
                 "   false   |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+
+    @Test
+    public void testPinTableInsertViolation() throws Exception {
+        try {
+            methodWatcher.executeUpdate("insert into PinTable5  --splice-properties pin=true \n values (1)");
+            Assert.fail("INSERT is not allowed in pin table but it didn't failed");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT29",e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testPinTableUpdateViolation() throws Exception {
+        try {
+            methodWatcher.executeUpdate("UPDATE PinTable5 --splice-properties pin=true \n SET col1=20");
+            Assert.fail("UPDATE is not allowed in pin table but it didn't failed");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT30",e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testPinTableDeleteViolation() throws Exception {
+        try {
+            methodWatcher.executeUpdate("DELETE FROM PinTable5 --splice-properties pin=true \n");
+            Assert.fail("UPDATE is not allowed in pin table but it didn't failed");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT30",e.getSQLState());
+        }
+    }
 }
