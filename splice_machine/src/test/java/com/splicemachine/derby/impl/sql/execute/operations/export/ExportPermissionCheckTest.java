@@ -48,7 +48,7 @@ public class ExportPermissionCheckTest {
     @Test
     public void verify_failCase() throws IOException, StandardException {
         expectedException.expect(StandardException.class);
-        expectedException.expectMessage("Invalid parameter 'cannot create export directory'='/ExportPermissionCheckTest'.");
+        expectedException.expectMessage("IOException '/ExportPermissionCheckTest' when accessing directory");
 
         ExportParams exportParams = ExportParams.withDirectory("/ExportPermissionCheckTest");
         ExportPermissionCheck permissionCheck = new ExportPermissionCheck(exportParams,dfs);

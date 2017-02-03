@@ -71,7 +71,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
             }
         }
         try{
-            final DistributedFileSystem dfs=SIDriver.driver().fileSystem();
+            final DistributedFileSystem dfs=SIDriver.driver().getSIEnvironment().fileSystem(path);
             dfs.createDirectory(path,false);
             // The 'part-r-00000' naming convention is what spark uses so we are consistent on control side
             try(OutputStream fileOut =dfs.newOutputStream(path /*directory*/,"part-r-00000"+extension/*file*/,StandardOpenOption.CREATE)){
