@@ -17,10 +17,14 @@ package com.splicemachine.derby.impl.load;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.commons.httpclient.URIException;
+
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 /**
  * @author Scott Fines
@@ -93,8 +97,10 @@ public class ImportUtils{
     public static DistributedFileSystem getFileSystem(String path) throws StandardException {
         try {
            return SIDriver.driver().getSIEnvironment().fileSystem(path);
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
+        } catch (URISyntaxException e) {
+            throw StandardException.newException(SQLState.FILESYSTEM_URI_EXCEPTION,e.getMessage());
+        } catch (Exception ioe) { // Runtime is added to handle Amazon S3 Issues
+            throw StandardException.newException(SQLState.FILESYSTEM_IO_EXCEPTION, ioe.getMessage());
         }
     }
 }
