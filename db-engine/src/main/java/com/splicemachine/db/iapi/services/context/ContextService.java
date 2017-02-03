@@ -272,7 +272,7 @@ public final class ContextService{
             return null;
         }
         ContextManager cm = link.cm;
-        if (cm.activeThread != Thread.currentThread()) {
+        if (link.next == null && cm.activeThread != Thread.currentThread()) {
             return null;
         }
         return cm;
@@ -409,6 +409,10 @@ public final class ContextService{
         }
 
         if (link.next == null) {
+            // Could be two situations:
+            // 1. Single ContextManager not in use by this thread
+            // 2. Single ContextManager in use by this thread (nested call)
+
             ContextManager threadsCM = link.cm;
             if (threadsCM.activeThread != Thread.currentThread()) {
                 // Not nested, just a CM left over
@@ -422,7 +426,8 @@ public final class ContextService{
             // of ContextManagers, splitting out nesting
             // of a single ContextManager into multiple
             // entries in the stack.
-            for (int i = 1; i < threadsCM.activeCount; i++) {
+            link = null;
+            for (int i = 0; i < threadsCM.activeCount; i++) {
                 ContextManagerLink node = new ContextManagerLink();
                 node.cm = threadsCM;
                 node.next = link;
