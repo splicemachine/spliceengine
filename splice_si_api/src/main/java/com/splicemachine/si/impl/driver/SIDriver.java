@@ -20,6 +20,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -46,6 +47,9 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.GreenLight;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
 
 public class SIDriver {
     private static volatile SIDriver INSTANCE;
@@ -210,8 +214,8 @@ public class SIDriver {
         return fileSystem;
     }
 
-    public DistributedFileSystem getFileSystem(String path){
-        return fileSystem;
+    public DistributedFileSystem getFileSystem(String path) throws URISyntaxException, IOException {
+        return SIDriver.driver().getSIEnvironment().fileSystem(path);
     }
 
 

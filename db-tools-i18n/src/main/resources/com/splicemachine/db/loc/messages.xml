@@ -8846,6 +8846,19 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>A concurrent {0} backup is running.</text>
                <arg>backupType</arg>
            </msg>
+
+           <msg>
+               <name>EXT25</name>
+               <text>URIException '{0}' when accessing directory</text>
+               <arg>exception</arg>
+           </msg>
+
+
+           <msg>
+               <name>EXT26</name>
+               <text>IOException '{0}' when accessing directory</text>
+               <arg>exception</arg>
+           </msg>
        </family>
     </section>
 

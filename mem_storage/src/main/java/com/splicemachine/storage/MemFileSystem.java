@@ -162,13 +162,15 @@ public class MemFileSystem extends DistributedFileSystem{
     public boolean createDirectory(Path dir,boolean errorIfExists) throws IOException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "createDirectory(): path = %s", dir);
-        try{
+
+        if (Files.exists(dir))
+            return true;
+        try {
             localDelegate.createDirectory(dir);
             return true;
-        }catch(FileAlreadyExistsException fafe){
-            if(!errorIfExists)
-                return Files.isDirectory(dir);
-            else throw fafe;
+        }
+        catch (Exception e) {
+            return false;
         }
     }
 
