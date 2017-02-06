@@ -79,6 +79,7 @@ import java.util.Vector;
 
 public final class UpdateNode extends DMLModStatementNode
 {
+	public static String PIN = "pin";
 	//Note: These are public so they will be visible to
 	//the RepUpdateNode.
 	public int[]				changedColumnIds;
@@ -1536,6 +1537,13 @@ public final class UpdateNode extends DMLModStatementNode
 	@Override
 	void verifyTargetTable() throws StandardException {
 		super.verifyTargetTable();
+		if(targetTable.getProperties()!=null) {
+			Boolean pin = Boolean.parseBoolean(targetTable.getProperties().getProperty(PIN));
+			if (pin) {
+				throw StandardException.newException(SQLState.UPDATE_PIN_VIOLATION);
+			}
+		}
+
 		if (targetTableDescriptor.getTableType() == TableDescriptor.EXTERNAL_TYPE)
 			throw StandardException.newException(SQLState.EXTERNAL_TABLES_ARE_NOT_UPDATEABLE, targetTableName);
 	}

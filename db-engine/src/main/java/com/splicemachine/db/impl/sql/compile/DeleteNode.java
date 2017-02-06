@@ -91,6 +91,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 
 public class DeleteNode extends DMLModStatementNode
 {
+	public static String PIN = "pin";
 	/* Column name for the RowLocation column in the ResultSet */
 	// Splice fork: changed this to public, like it is in UpdateNode.
 	public static final String COLUMNNAME = "###RowLocationToDelete";
@@ -1057,6 +1058,12 @@ public class DeleteNode extends DMLModStatementNode
 	@Override
 	void verifyTargetTable() throws StandardException {
 		super.verifyTargetTable();
+		if(targetTable.getProperties()!=null) {
+			Boolean pin = Boolean.parseBoolean(targetTable.getProperties().getProperty(PIN));
+			if (pin) {
+				throw StandardException.newException(SQLState.UPDATE_PIN_VIOLATION);
+			}
+		}
 		if (targetTableDescriptor.getTableType() == TableDescriptor.EXTERNAL_TYPE)
 			throw StandardException.newException(SQLState.EXTERNAL_TABLES_ARE_NOT_UPDATEABLE, targetTableName);
 	}
