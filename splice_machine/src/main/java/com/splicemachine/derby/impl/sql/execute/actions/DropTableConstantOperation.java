@@ -178,7 +178,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             tc.dropConglomerate(heapId);
 
             /* is the table pinned ? , if yes we need to drop it */
-            if(td.isPined()){
+            if(td.isPinned()){
                 EngineDriver.driver().processorFactory().distributedProcessor().dropPinnedTable(td.getHeapConglomerateId());
             }
 

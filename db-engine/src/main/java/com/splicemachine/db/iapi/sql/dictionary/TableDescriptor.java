@@ -160,7 +160,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     private String storedAs;
     private String location;
     private String compression;
-    private boolean isPined;
+    private boolean isPinned;
 
 
     /**
@@ -260,7 +260,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String storedAs,
                            String location,
                            String compression,
-                           boolean isPined
+                           boolean isPinned
     ){
         super(dataDictionary);
 
@@ -279,7 +279,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.storedAs = storedAs;
         this.location = location;
         this.compression = compression;
-        this.isPined = isPined;
+        this.isPinned = isPinned;
 
     }
 
@@ -367,20 +367,20 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     }
 
     /**
-     * Will tell if the current table is currently pined in the memory
+     * Will tell if the current table is currently pinned in the memory
      * @return
      */
 
-    public boolean isPined() {
-        return isPined;
+    public boolean isPinned() {
+        return isPinned;
     }
 
     /**
-     * Will mark the table pined
-     * @param pined
+     * Will mark the table pinned
+     * @param pinned
      */
-    public void setPined(boolean pined) {
-        isPined = pined;
+    public void setPinned(boolean pinned) {
+        isPinned = pinned;
     }
 
     /**
