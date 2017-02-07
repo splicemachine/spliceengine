@@ -758,21 +758,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void pin(ExecRow template, long conglomId) {
+    public void pin(ExecRow template, long conglomId) throws StandardException {
         Dataset<Row> pinDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
                 template.schema());
         pinDF.createOrReplaceTempView("SPLICE_"+conglomId);
         SpliceSpark.getSession().catalog().cacheTable("SPLICE_"+conglomId);
     }
-
-
-    @Override @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void dropPin(long conglomId) {
-
-        SpliceSpark.getSession().catalog().uncacheTable("SPLICE_"+conglomId);
-    }
-
-
-
 }
