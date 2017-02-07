@@ -63,14 +63,14 @@ public class WritableTxn extends AbstractTxn{
 
     public WritableTxn(long txnId,
                        long beginTimestamp,
-                       Txn parentRoot,
+                       Txn parentReference,
                        IsolationLevel isolationLevel,
                        TxnView parentTxn,
                        TxnLifecycleManager tc,
                        boolean isAdditive,
                        byte[] destinationTable,
                        ExceptionFactory exceptionFactory){
-        super(parentRoot,txnId,beginTimestamp,isolationLevel);
+        super(parentReference,txnId,beginTimestamp,isolationLevel);
         this.exceptionFactory = exceptionFactory;
         this.parentTxn=parentTxn;
         this.tc=tc;
@@ -163,7 +163,7 @@ public class WritableTxn extends AbstractTxn{
         for(Txn c : children) {
             c.subRollback();
         }
-        parentRoot.addRolledback(getSubId());
+        parentReference.addRolledback(getSubId());
         state = State.ROLLEDBACK;
     }
 
@@ -191,7 +191,7 @@ public class WritableTxn extends AbstractTxn{
             }
         } else {
             subRollback();
-            tc.rollbackSubtransactions(txnId, parentRoot.getRolledback());
+            tc.rollbackSubtransactions(txnId, parentReference.getRolledback());
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"After rollback: txn=%s",this);
@@ -221,12 +221,12 @@ public class WritableTxn extends AbstractTxn{
     }
 
     public WritableTxn getReadUncommittedActiveTxn() {
-        return new WritableTxn(txnId,getBeginTimestamp(),parentRoot,Txn.IsolationLevel.READ_UNCOMMITTED,
+        return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_UNCOMMITTED,
                 parentTxn,tc,isAdditive,null,exceptionFactory);
     }
 
     public WritableTxn getReadCommittedActiveTxn() {
-        return new WritableTxn(txnId,getBeginTimestamp(),parentRoot,Txn.IsolationLevel.READ_COMMITTED,
+        return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_COMMITTED,
                 parentTxn,tc,isAdditive,null,exceptionFactory);
     }
 

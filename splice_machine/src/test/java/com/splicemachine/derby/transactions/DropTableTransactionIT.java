@@ -37,12 +37,12 @@ import static org.junit.Assert.fail;
 @Category({Transactions.class})
 public class DropTableTransactionIT{
 
-    private static final SpliceSchemaWatcher schemaWatcher=new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase());
+    private static final SpliceSchemaWatcher schemaWatcher=new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase()+"2");
 
 //    private static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
     private static final String tableStructure= "(a int, b int)";
 
-    private static final SpliceWatcher classWatcher=new SpliceWatcher();
+    private static final SpliceWatcher classWatcher=new SpliceWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase()+"2");
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(classWatcher).around(schemaWatcher);

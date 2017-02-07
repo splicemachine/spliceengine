@@ -205,7 +205,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         /*private helper method*/
     private Txn createWritableTransaction(long timestamp,
                                           long subId,
-                                          Txn parentRoot,
+                                          Txn parentReference,
                                           Txn.IsolationLevel isolationLevel,
                                           boolean additive,
                                           TxnView parentTxn,
@@ -216,7 +216,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 		 * This uses 2 network calls--once to get a beginTimestamp, and then once to record the
 		 * transaction to the table.
 		 */
-        WritableTxn newTxn=new WritableTxn(timestamp ^ subId, timestamp, parentRoot,
+        WritableTxn newTxn=new WritableTxn(timestamp ^ subId, timestamp, parentReference,
                 isolationLevel,parentTxn,this,additive,destinationTable,exceptionFactory);
         if (subId == 0) {
             //record the transaction on the transaction table--network call

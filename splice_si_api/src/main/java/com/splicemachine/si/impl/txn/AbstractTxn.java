@@ -34,20 +34,21 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     private AtomicLong counter;
     protected LongOpenHashSet rolledback = new LongOpenHashSet();
     protected Set<Txn> children = new HashSet<>();
-    protected Txn parentRoot;
+    protected Txn parentReference;
+    private boolean subtransactionsAllowed = true;
 
     protected AbstractTxn(){
     }
 
     protected AbstractTxn(
-            Txn parentRoot,
+            Txn parentReference,
             long txnId,
             long beginTimestamp,
             IsolationLevel isolationLevel){
         super(txnId,beginTimestamp,isolationLevel);
-        if (parentRoot != null) {
-            this.parentRoot = parentRoot;
-            this.parentRoot.register(this);
+        if (parentReference != null) {
+            this.parentReference = parentReference;
+            this.parentReference.register(this);
         }
         if (getSubId() == 0) {
             counter = new AtomicLong(0);
@@ -69,13 +70,12 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (getSubId() == 0) {
             return counter.incrementAndGet();
         } else {
-            return parentRoot.newSubId();
+            return parentReference.newSubId();
         }
     }
 
-    @Override
-    public Txn getParentRoot() {
-        return parentRoot;
+    public Txn getParentReference() {
+        return parentReference;
     }
 
     @Override
@@ -88,7 +88,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (getSubId() == 0) {
             rolledback.add(subId);
         } else {
-            parentRoot.addRolledback(subId);
+            parentReference.addRolledback(subId);
         }
     }
 
@@ -97,17 +97,27 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (getSubId() == 0) {
             return rolledback.clone();
         } else {
-            return parentRoot.getRolledback();
+            return parentReference.getRolledback();
         }
     }
 
     @Override
     public boolean allowsSubtransactions() {
+        if (!subtransactionsAllowed || (parentReference != null && !parentReference.allowsSubtransactions()))
+            return false;
         for (Txn c : children) {
             if (c.getState() != State.ROLLEDBACK) {
                 return false;
             }
         }
         return true;
+    }
+
+    @Override
+    public void forbidSubtransactions() {
+        subtransactionsAllowed = false;
+        if (parentReference != null) {
+            parentReference.forbidSubtransactions();
+        }
     }
 }

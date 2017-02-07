@@ -67,9 +67,9 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
 
             long recordsWritten = operationContext.getRecordsWritten();
             operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
-            txn.commit();
             if(pipelineWriter!=null)
                 pipelineWriter.close();
+            txn.commit();
             long badRecords = 0;
             if(operation instanceof InsertOperation){
                 InsertOperation insertOperation = (InsertOperation)operation;

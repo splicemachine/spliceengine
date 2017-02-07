@@ -124,8 +124,7 @@ public interface Txn extends TxnView{
             throw new UnsupportedOperationException("Can't create subtransactions of ROOT_TXN");
         }
 
-        @Override
-        public Txn getParentRoot() {
+        public Txn getParentReference() {
             return this;
         }
 
@@ -147,6 +146,11 @@ public interface Txn extends TxnView{
         @Override
         public void subRollback() {
             throw new UnsupportedOperationException("Can't create subtransactions of ROOT_TXN");
+        }
+
+        @Override
+        public void forbidSubtransactions() {
+            throw new UnsupportedOperationException("Can't forbid subtransactions on ROOT_TXN");
         }
 
         @Override
@@ -198,15 +202,20 @@ public interface Txn extends TxnView{
 
     long newSubId();
 
-    Txn getParentRoot();
+    Txn getParentReference();
 
     void register(Txn child);
 
+    /** Register a subtransaction as rolledback*/
     void addRolledback(long subId);
 
+    /** Set of subtransactions that have been rolledback */
     LongOpenHashSet getRolledback();
 
+    /** Rollback this transaction and all its subtransactions */
     void subRollback();
+
+    void forbidSubtransactions();
 
     enum State{
         ACTIVE((byte)0x00), //represents an Active transaction that has not timed out

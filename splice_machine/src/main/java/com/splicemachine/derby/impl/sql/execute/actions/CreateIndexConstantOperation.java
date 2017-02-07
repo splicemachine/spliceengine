@@ -799,12 +799,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             // tentativeTransaction must be a fully distributed transaction capable of committing with a CommitTimestamp,
             // in order to reuse this commit timestamp as the begin timestamp and chain the transactions
-            tentativeTransaction = lifecycleManager.beginChildTransaction(new ForwardingTxnView((Txn) parentTxn) {
-                @Override
-                public boolean allowsSubtransactions() {
-                    return false;
-                }
-            }, DDLUtils.getIndexConglomBytes(indexConglomId));
+            ((Txn) parentTxn).forbidSubtransactions();
+            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomId));
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
