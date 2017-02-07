@@ -474,14 +474,6 @@ public class ControlDataSet<V> implements DataSet<V> {
         throw new UnsupportedOperationException("Pin Not Supported in Control Mode");
     }
 
-    /**
-     * Not Supported
-     * @param conglomId
-     */
-    @Override
-    public void dropPin(long conglomId) {
-        throw new UnsupportedOperationException("Un Pin Not Supported in Control Mode");
-    }
 
     /**
      *
