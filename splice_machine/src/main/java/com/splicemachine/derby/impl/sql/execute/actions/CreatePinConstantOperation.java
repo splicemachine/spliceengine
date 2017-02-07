@@ -140,8 +140,8 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
         // Change the table name of the table descriptor
         td.setColumnSequence(td.getColumnSequence()+1);
 
-        //Mark the table pined
-        td.setPined(true);
+        //Mark the table pinned
+        td.setPinned(true);
         		    /* Prepare all dependents to invalidate.  (This is their chance
 		     * to say that they can't be invalidated.  For example, an open
 		     * cursor referencing a table/view that the user is attempting to
