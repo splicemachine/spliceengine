@@ -25,11 +25,10 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
@@ -52,6 +51,9 @@ import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.io.StorageFile;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 public class JarUtil
 {
@@ -99,7 +101,7 @@ public class JarUtil
 		try {
 			is = openJarURL(externalPath);
 			return jutil.add(is);
-		} catch (java.io.IOException fnfe) {
+		} catch (java.io.IOException | URISyntaxException fnfe) {
 			throw StandardException.newException(SQLState.SQLJ_INVALID_JAR, fnfe, externalPath);
 		}
 		finally {
@@ -178,7 +180,7 @@ public class JarUtil
 			is = openJarURL(externalPath);
 
 			return jutil.replace(is);
-		} catch (java.io.IOException fnfe) {
+		} catch (java.io.IOException | URISyntaxException fnfe) {
 			throw StandardException.newException(SQLState.SQLJ_INVALID_JAR, fnfe, externalPath);
 		}
 		finally {
@@ -231,19 +233,17 @@ public class JarUtil
      * the URL throws a MalformedURLException.
      */
     private static InputStream openJarURL(final String externalPath)
-        throws IOException
+        throws IOException, URISyntaxException
     {
         try {
             return (InputStream) AccessController.doPrivileged
             (new java.security.PrivilegedExceptionAction(){
-                
-                public Object run() throws IOException {    
-                    try {
-                        return new URL(externalPath).openStream();
-                    } catch (MalformedURLException mfurle)
-                    {
-                        return new FileInputStream(externalPath);
-                    }
+
+                public Object run() throws IOException, URISyntaxException {
+                    Configuration conf = new Configuration();
+                    FileSystem fs = FileSystem.get(new URI(externalPath), conf);
+                    DataInputStream dis = fs.open(new Path(externalPath));
+                    return dis;
                 }
             });
         } catch (PrivilegedActionException e) {
