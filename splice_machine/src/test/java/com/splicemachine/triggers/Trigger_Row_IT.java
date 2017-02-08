@@ -40,7 +40,6 @@ import static org.junit.Assert.*;
  */
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
-@Ignore("DB-1222")
 public class Trigger_Row_IT {
 
     private static final String SCHEMA = Trigger_Row_IT.class.getSimpleName();
@@ -260,6 +259,7 @@ public class Trigger_Row_IT {
 
     // DB-3354: Nested triggers produce null transition variables.
     @Test
+    @Ignore("DB-1222")
     public void afterInsertCascadingTriggers() throws Exception {
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table cascade1 (a int)");
@@ -392,6 +392,7 @@ public class Trigger_Row_IT {
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
+    @Ignore("DB-1222")
     public void multipleRowAndStatementTriggersOnOneTable() throws Exception {
         // given - six row triggers on same table.
         createTrigger(tb.named("u_1").after().update().on("T").row().then("INSERT INTO RECORD VALUES('u1')"));

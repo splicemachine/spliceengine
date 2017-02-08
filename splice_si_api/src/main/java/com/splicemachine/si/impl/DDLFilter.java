@@ -38,7 +38,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
         if(visible!=null) return visible;
 
         //if I haven't succeeded yet, don't do anything
-        if(myTransaction.getState()!= Txn.State.COMMITTED) return false;
+//        if(myTransaction.getState()!= Txn.State.COMMITTED) return false;
         //if my parent was rolled back, do nothing
         if(myTransaction.getParentTxnView().getEffectiveState()== Txn.State.ROLLEDBACK) return false;
 
