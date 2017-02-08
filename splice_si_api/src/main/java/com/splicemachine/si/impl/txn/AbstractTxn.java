@@ -101,15 +101,34 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         }
     }
 
+    private boolean internalAllowsSubtransactions() {
+        if (!subtransactionsAllowed)
+            return false;
+        boolean nonRolledbackChild = false;
+        for (Txn c : children) {
+            if (c.getState() == State.ACTIVE) {
+                if (nonRolledbackChild) {
+                    return false;
+                }
+                nonRolledbackChild = true;
+            }
+        }
+        if (parentReference != null)
+            return ((AbstractTxn)parentReference).internalAllowsSubtransactions();
+        return true;
+    }
+
     @Override
     public boolean allowsSubtransactions() {
-        if (!subtransactionsAllowed || (parentReference != null && !parentReference.allowsSubtransactions()))
+        if (!subtransactionsAllowed)
             return false;
         for (Txn c : children) {
-            if (c.getState() != State.ROLLEDBACK) {
+            if (c.getState() == State.ACTIVE) {
                 return false;
             }
         }
+        if (parentReference != null)
+            return ((AbstractTxn)parentReference).internalAllowsSubtransactions();
         return true;
     }
 

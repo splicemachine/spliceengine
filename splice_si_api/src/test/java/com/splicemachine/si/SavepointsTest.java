@@ -20,6 +20,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.SavePointNotFoundException;
 import com.splicemachine.si.impl.TransactionImpl;
@@ -212,6 +213,29 @@ public class SavepointsTest {
         Assert.assertTrue(transaction.getTxn().allowsWrites());
 
         transaction.commit();
+    }
+
+    @Test
+    public void testSomePersistedTxns() throws Exception{
+        Txn parent=control.beginTransaction();
+        TransactionImpl transaction = new TransactionImpl("user", parent, false, control);
+        transaction.elevate(DESTINATION_TABLE);
+
+        for (int i = 0; i < SIConstants.TRASANCTION_INCREMENT * 3; ++i) {
+            int res = transaction.setSavePoint("test" + i, null);
+            transaction.elevate(DESTINATION_TABLE);
+            Assert.assertEquals("Wrong txn stack size", 2 + i, res);
+        }
+
+        Txn older=control.beginTransaction();
+        Assert.assertTrue("We lost more timestamps than estimated. Difference = " + (older.getTxnId() - parent.getTxnId()),
+                older.getTxnId() <= parent.getTxnId() + 0x400);
+        Assert.assertTrue("We didnt have persisted savepoints", older.getTxnId() > parent.getTxnId() + 0x300);
+        System.out.println(older.getTxnId());
+        System.out.println(parent.getTxnId());
+
+        transaction.commit();
+        older.commit();
     }
 
 }
