@@ -440,7 +440,8 @@ public class ExportOperationIT {
             String error = sqle.getMessage();
             String mesg1 = "Invalid parameter 'cannot create export directory'='s3a://molitorisspechial/temp/'.";
             String mesg2 = "Service: Amazon S3; Status Code: 403; Error Code: 403 Forbidden";
-            Assert.assertTrue(error, error.contains(mesg1) || error.contains(mesg2));
+            String mesg3 = "Status Code: 403, AWS Service: Amazon S3";
+            Assert.assertTrue(error, error.contains(mesg1) || error.contains(mesg2) || error.contains(mesg3));
         }
     }
 
