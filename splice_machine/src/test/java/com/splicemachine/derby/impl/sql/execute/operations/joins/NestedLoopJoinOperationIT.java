@@ -96,6 +96,19 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
             // ERROR 42Y69: No valid execution plan was found for this statement.
             assertEquals("42Y69", e.getSQLState());
         }
+
+        // We shouldn't preserve ordering from either side
+        try {
+            methodWatcher.executeQuery("select * from --splice-properties joinOrder=fixed\n" +
+                    "DB5773, DB5773 b_nlj --splice-properties joinStrategy=nestedloop\n" +
+                    ", DB5773 c_mj --splice-properties joinStrategy=merge\n" +
+                    "where b_nlj.i = c_mj.i");
+            fail("Should have raised exception");
+        } catch (SQLException e) {
+            // Error expected due to invalid MERGE join:
+            // ERROR 42Y69: No valid execution plan was found for this statement.
+            assertEquals("42Y69", e.getSQLState());
+        }
     }
 
     private String toString(ResultSet rs) throws Exception {
