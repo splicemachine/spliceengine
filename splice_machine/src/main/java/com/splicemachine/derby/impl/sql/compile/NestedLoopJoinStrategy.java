@@ -259,6 +259,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setBase(innerCost.cloneMe());
         double totalRowCount = outerCost.rowCount()*innerCost.rowCount();
 
+        innerCost.setRowOrdering(null);
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setRowCount(totalRowCount);
@@ -266,7 +267,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double joinCost = SelectivityUtil.nestedLoopJoinStrategyLocalCost(innerCost, outerCost);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
     }
 
