@@ -598,9 +598,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 		 * iff they are not correlated with an outer query block.
 		 */
 
+        return true;
+        /* This no longer holds true with our predicate pulling...
         HasCorrelatedCRsVisitor visitor=new HasCorrelatedCRsVisitor();
         accept(visitor);
         return !(visitor.hasCorrelatedCRs());
+        */
     }
 
     @Override
