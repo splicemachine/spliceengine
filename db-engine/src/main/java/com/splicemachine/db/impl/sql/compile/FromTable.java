@@ -592,18 +592,17 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return false;
     }
 
+    /**
+     *
+     * Always meterializable
+     *
+     * @return
+     * @throws StandardException
+     */
     @Override
-    public boolean isMaterializable() throws StandardException{
-		/* Derived tables are materializable
-		 * iff they are not correlated with an outer query block.
-		 */
 
+    public boolean isMaterializable() throws StandardException{
         return true;
-        /* This no longer holds true with our predicate pulling...
-        HasCorrelatedCRsVisitor visitor=new HasCorrelatedCRsVisitor();
-        accept(visitor);
-        return !(visitor.hasCorrelatedCRs());
-        */
     }
 
     @Override
