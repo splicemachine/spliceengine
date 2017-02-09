@@ -18,13 +18,7 @@ package com.splicemachine.derby.impl.sql.compile;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
@@ -89,40 +83,15 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
                             Optimizer optimizer,
                             CostEstimate outerCost,
                             boolean wasHinted) throws StandardException {
-        boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost,wasHinted) && innerTable.isBaseTable();
+        boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost,wasHinted);
         if(!hashFeasible) return false;
-		TableDescriptor td = innerTable.getTableDescriptor();
-        if(td==null) return false;
 
         /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
         if(JoinStrategyUtil.isNonCoveringIndex(innerTable)) {
             return false;
         }
 
-        ConglomerateDescriptor innerCd = innerTable.getCurrentAccessPath().getConglomerateDescriptor();
-        /*
-         * Filter out join predicates from the predicate list, since they aren't applied on the right side
-         * anyway
-         */
-        OptimizablePredicateList nonJoinPredicates = new PredicateList();
-        int s = predList.size();
-        for(int i=0;i<s;i++){
-            OptimizablePredicate op = predList.getOptPredicate(i);
-            if(!(op instanceof Predicate)) continue;
-            Predicate pred = (Predicate)op;
-            if(!pred.isJoinPredicate()){
-                //push it down
-                nonJoinPredicates.addOptPredicate(pred);
-            }
-        }
-
-        CostEstimate baseEstimate = innerTable.estimateCost(nonJoinPredicates,innerCd,optimizer.newCostEstimate(),optimizer,null);
-        double estimatedMemoryMB = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
-        double estimatedRowCount = baseEstimate.getEstimatedRowCount();
-        SConfiguration configuration=EngineDriver.driver().getConfiguration();
-        long regionThreshold = configuration.getBroadcastRegionMbThreshold();
-        long rowCountThreshold = configuration.getBroadcastRegionRowThreshold();
-        return wasHinted || (estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold) ;
+        return true;
 	}
 
     @Override
@@ -160,16 +129,30 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             return; //actually a scan, don't do anything
         }
         innerCost.setBase(innerCost.cloneMe());
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
-        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        innerCost.setNumPartitions(outerCost.partitionCount());
-        double joinCost = SelectivityUtil.broadcastJoinStrategyLocalCost(innerCost, outerCost);
-        innerCost.setLocalCost(joinCost);
-        innerCost.setLocalCostPerPartition(joinCost);
-        innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
-        innerCost.setRowOrdering(outerCost.getRowOrdering());
-        innerCost.setRowCount(totalOutputRows);
-        innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
+        double estimatedMemoryMB = innerCost.getEstimatedHeapSize()/1024d/1024d;
+        double estimatedRowCount = innerCost.getEstimatedRowCount();
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        long regionThreshold = configuration.getBroadcastRegionMbThreshold();
+        long rowCountThreshold = configuration.getBroadcastRegionRowThreshold();
+        AccessPath currentAccessPath = innerTable.getCurrentAccessPath();
+        boolean isHinted = currentAccessPath.isHintedJoinStrategy();
+        if (isHinted || estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold) {
+            double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
+            double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
+            innerCost.setNumPartitions(outerCost.partitionCount());
+            double joinCost = SelectivityUtil.broadcastJoinStrategyLocalCost(innerCost, outerCost);
+            innerCost.setLocalCost(joinCost);
+            innerCost.setLocalCostPerPartition(joinCost);
+            innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalOutputRows));
+            innerCost.setRowOrdering(outerCost.getRowOrdering());
+            innerCost.setRowCount(totalOutputRows);
+            innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
+        }
+        else {
+            // Set cost to max to rule out broadcast join
+            innerCost.setLocalCost(Double.MAX_VALUE);
+            innerCost.setRemoteCost(Double.MAX_VALUE);
+        }
     }
 
     @Override
