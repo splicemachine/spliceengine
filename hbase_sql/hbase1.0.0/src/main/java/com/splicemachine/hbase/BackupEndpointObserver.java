@@ -145,7 +145,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         // Register HFiles for incremental backup
         SpliceLogUtils.info(LOG, "Flushing region %s.%s", tableName, regionName);
         try {
-            if (namespace.compareTo("splice") != 0)
+            if (!BackupUtils.isSpliceTable(namespace, tableName))
                 return;
             BackupUtils.captureIncrementalChanges(conf, region, path, fs, rootDir, backupDir,
                     tableName, resultFile.getPath().getName(), preparing);
