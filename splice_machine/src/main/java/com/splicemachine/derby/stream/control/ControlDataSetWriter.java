@@ -59,7 +59,13 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
         SpliceOperation operation=operationContext.getOperation();
         Txn txn = null;
         try{
-            txn = SIDriver.driver().lifecycleManager().beginChildTransaction(getTxn(),pipelineWriter.getDestinationTable());
+            TxnView parent = getTxn();
+            txn = SIDriver.driver().lifecycleManager().beginChildTransaction(
+                    parent,
+                    parent.getIsolationLevel(),
+                    parent.isAdditive(),
+                    pipelineWriter.getDestinationTable(),
+                    true);
             pipelineWriter.setTxn(txn);
             operation.fireBeforeStatementTriggers();
             pipelineWriter.open(operation.getTriggerHandler(),operation);

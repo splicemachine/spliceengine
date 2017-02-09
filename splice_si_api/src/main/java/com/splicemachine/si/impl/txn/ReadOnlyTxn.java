@@ -195,7 +195,7 @@ public class ReadOnlyTxn extends AbstractTxn{
 			* create a child transaction id or a begin timestamp of our own. Instead of elevating,
 			* we actually create a writable child transaction.
 			*/
-            newTxn=tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable);
+            newTxn=tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable,true);
         }else{
             newTxn=tc.elevateTransaction(this,writeTable); //requires at least one network call
         }

@@ -93,11 +93,21 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         return beginChildTransaction(parentTxn,isolationLevel,parentTxn.isAdditive(),destinationTable);
     }
 
+
     @Override
     public Txn beginChildTransaction(TxnView parentTxn,
                                      Txn.IsolationLevel isolationLevel,
                                      boolean additive,
-                                     byte[] destinationTable) throws IOException{
+                                     byte[] destinationTable) throws IOException {
+        return beginChildTransaction(parentTxn, isolationLevel, additive, destinationTable, false);
+    }
+
+    @Override
+    public Txn beginChildTransaction(TxnView parentTxn,
+                                     Txn.IsolationLevel isolationLevel,
+                                     boolean additive,
+                                     byte[] destinationTable,
+                                     boolean inMemory) throws IOException{
         if(parentTxn==null)
             parentTxn=Txn.ROOT_TRANSACTION;
         if(destinationTable!=null && !parentTxn.allowsWrites())
@@ -105,10 +115,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         if(parentTxn.getState()!=Txn.State.ACTIVE)
             throw exceptionFactory.doNotRetry("Cannot create a child of an inactive transaction. Parent: "+parentTxn);
         if(destinationTable!=null){
-            if (parentTxn.allowsSubtransactions()) {
+            if (inMemory && parentTxn.allowsSubtransactions()) {
                 Txn parent = (Txn) parentTxn;
                 long subId = parent.newSubId();
-                if (subId < SIConstants.SUBTRANSANCTION_ID_MASK)
+                if (subId <= SIConstants.SUBTRANSANCTION_ID_MASK)
                     return createWritableTransaction(parent.getBeginTimestamp(), subId, parent, isolationLevel, additive, parentTxn, destinationTable);
             }
             long timestamp = timestampSource.nextTimestamp();

@@ -125,9 +125,7 @@ public abstract class AbstractTxnView implements TxnView {
              */
             TxnView myParent = getParentTxnView();
             TxnView otherParent = otherTxn.getParentTxnView();
-            if(equals(otherParent)
-                    || otherTxn.equals(myParent)
-                    || !myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equals(otherParent)){
+            if(!myParent.equals(Txn.ROOT_TRANSACTION) && myParent.getTxnId() == otherParent.getTxnId()){
                 return false;
             }
         }

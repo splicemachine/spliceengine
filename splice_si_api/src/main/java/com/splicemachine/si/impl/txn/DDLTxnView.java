@@ -78,6 +78,7 @@ public class DDLTxnView extends AbstractTxnView {
         //we cannot see any transaction which begins after our demarcation point
         if(otherTxn.getBeginTimestamp()>=demarcationPoint) return false;
 
+        if(otherTxn.getEffectiveState() == Txn.State.COMMITTED) return true;
         if(equals(otherTxn)) return true; //you can always see your own writes
         if(isAdditive() && otherTxn.isAdditive()){
             /*

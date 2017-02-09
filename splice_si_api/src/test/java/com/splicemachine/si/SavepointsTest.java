@@ -231,8 +231,6 @@ public class SavepointsTest {
         Assert.assertTrue("We lost more timestamps than estimated. Difference = " + (older.getTxnId() - parent.getTxnId()),
                 older.getTxnId() <= parent.getTxnId() + 0x400);
         Assert.assertTrue("We didnt have persisted savepoints", older.getTxnId() > parent.getTxnId() + 0x300);
-        System.out.println(older.getTxnId());
-        System.out.println(parent.getTxnId());
 
         transaction.commit();
         older.commit();
