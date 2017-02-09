@@ -1123,7 +1123,7 @@ public class SITransactorTest {
 				 * is already committed.
 				 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1, DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, DESTINATION_TABLE, true);
         testUtility.insertAge(t2, "joe51", 21);
         t2.commit();
         t2.rollback();
@@ -1543,11 +1543,11 @@ public class SITransactorTest {
     }
 
     @Test
-    public void childWritesDoNotConflictWithPriorActiveParentWrites() throws IOException {
+    public void parentWritesDoNotConflictWithPriorActiveChildWrites() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe102", 20);
-        testUtility.insertAge(t2, "joe102", 21);
+        testUtility.insertAge(t2, "joe102", 20);
+        testUtility.insertAge(t1, "joe102", 21);
         Assert.assertEquals("joe102 age=21 job=null", testUtility.read(t1, "joe102"));
         t2.commit();
         Assert.assertEquals("joe102 age=21 job=null", testUtility.read(t1, "joe102"));
@@ -2119,15 +2119,15 @@ public class SITransactorTest {
         final Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(), false, DESTINATION_TABLE);
         Assert.assertEquals(t1.getTxnId() + SIConstants.TRASANCTION_INCREMENT, t2.getTxnId());
         // next ID burned for commit
-        Assert.assertEquals(t1.getTxnId() + SIConstants.TRASANCTION_INCREMENT+1, t3.getTxnId());
+        Assert.assertEquals(t1.getTxnId() + SIConstants.TRASANCTION_INCREMENT*2, t3.getTxnId());
     }
 
     @Test
-    public void testSubtransactionsConsecutive() throws IOException {
+    public void testInmemorySubtransactionsConsecutive() throws IOException {
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        final Txn t2 = control.beginChildTransaction(t1, DESTINATION_TABLE);
-        final Txn t3 = control.beginChildTransaction(t2, DESTINATION_TABLE);
-        final Txn t4 = control.beginChildTransaction(t3, DESTINATION_TABLE);
+        final Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, DESTINATION_TABLE, true);
+        final Txn t3 = control.beginChildTransaction(t2, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, DESTINATION_TABLE, true);
+        final Txn t4 = control.beginChildTransaction(t3, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, DESTINATION_TABLE, true);
 
         Assert.assertEquals(t1.getTxnId() + 1, t2.getTxnId());
         Assert.assertEquals(t1.getTxnId() + 2, t3.getTxnId());
@@ -2141,7 +2141,7 @@ public class SITransactorTest {
         final Txn t1 = control.beginTransaction();
         final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
 //        final Txn t3 = control.beginChildTransaction(t2, true, true, false, null, null, t1.commit();
-        final Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(), false, DESTINATION_TABLE);
+        final Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(), false, DESTINATION_TABLE, true);
         Assert.assertEquals(t1.getTxnId() + SIConstants.TRASANCTION_INCREMENT, t2.getTxnId());
         // no ID burned for commit
         Assert.assertEquals(t1.getTxnId() + SIConstants.TRASANCTION_INCREMENT+1, t3.getTxnId());
