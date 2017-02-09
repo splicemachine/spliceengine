@@ -249,13 +249,42 @@ public class ExternalTableIT extends SpliceUnitTest{
         PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
         ps.setString(1, "EXTERNALTABLEIT");
         ps.setString(2, "EXTERNAL_TABLE_REFRESH");
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-
-        Assert.assertEquals("Error with refresh external table","EXTERNALTABLEIT.EXTERNAL_TABLE_REFRESH schema table refreshed",  rs.getString(1));
+        ps.execute();
 
 
     }
+
+    @Test
+    public void refreshRequireExternalTableNotFound() throws  Exception{
+
+        try {
+            PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
+            ps.setString(1, "EXTERNALTABLEIT");
+            ps.setString(2, "NOT_EXIST");
+            ResultSet rs = ps.executeQuery();
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","42X05",e.getSQLState());
+        }
+
+    }
+
+    //SPLICE-1387
+    @Test
+    public void refreshRequireExternalTableWrongParameters() throws  Exception{
+
+        try {
+            PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE('arg1','arg2','arg3') ");
+
+            ResultSet rs = ps.executeQuery();
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","42Y03",e.getSQLState());
+        }
+
+    }
+
+
 
     @Test
     public void testWriteReadNullValues() throws Exception {
@@ -699,8 +728,6 @@ public class ExternalTableIT extends SpliceUnitTest{
         return getHBaseDirectory()+"/target/external/";
 
     }
-
-
 
 
     @Test
