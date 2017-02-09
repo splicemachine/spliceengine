@@ -15,6 +15,7 @@
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -49,12 +50,11 @@ public class ExternalTableSystemProcedures {
      *
      * @param schema
      * @param table
-     * @param resultSets
      * @throws StandardException
      * @throws SQLException
      */
 
-    public static void SYSCS_REFRESH_EXTERNAL_TABLE(String schema, String table, ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void SYSCS_REFRESH_EXTERNAL_TABLE(String schema, String table) throws StandardException, SQLException {
         Connection conn = SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         TransactionController tc=lcc.getTransactionExecute();
@@ -65,18 +65,19 @@ public class ExternalTableSystemProcedures {
             TableDescriptor td=
                     data_dictionary.getTableDescriptor(table,sd,tc);
 
+            if(td ==null)
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, schema +"." + table);
+
             if(!td.isExternal())
                 throw StandardException.newException(SQLState.NOT_AN_EXTERNAL_TABLE, td.getName());
 
             String jobGroup = lcc.getSessionUserId() + " <" + tc.getTransactionIdString() +">";
 
             EngineDriver.driver().getOlapClient().execute(new DistributedRefreshExternalTableSchemaJob(jobGroup, td.getLocation()));
-                    resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s.%s schema table refreshed",schema,table));
 
         }catch (Throwable t){
-            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
-            SpliceLogUtils.error(LOG, "Refresh external table Error", t);
-            t.printStackTrace();
+            throw StandardException.plainWrapException(t);
+
         }
     }
 
