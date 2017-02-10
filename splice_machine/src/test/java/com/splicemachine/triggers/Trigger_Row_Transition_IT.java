@@ -99,7 +99,6 @@ public class Trigger_Row_Transition_IT {
     }
 
     @Test
-    @Ignore("DB-1222")
     public void afterUpdateTriggerUpdatesOwnTable() throws Exception {
         try(Statement s = conn.createStatement()){
             s.executeUpdate(tb.named("trig1").after().update().on("T").referencing("NEW AS N")

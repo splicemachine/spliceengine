@@ -17,6 +17,7 @@ package com.splicemachine.si.impl.txn;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -138,5 +139,16 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (parentReference != null) {
             parentReference.forbidSubtransactions();
         }
+    }
+
+    @Override
+    public boolean canSee(TxnView otherTxn) {
+        // Protects against reading data written by the "self-insert transaction"
+        for (Txn c : children) {
+            if (c.equals(otherTxn) && c.getState() == State.ACTIVE) {
+                return false;
+            }
+        }
+        return super.canSee(otherTxn);
     }
 }
