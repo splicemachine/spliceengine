@@ -220,8 +220,6 @@ public class Trigger_Row_IT {
     }
 
     @Test
-    @Ignore
-    //SPLICE-1168
     public void afterUpdate_sinkingTriggerAction() throws Exception {
         try(Statement s = conn.createStatement()){
             s.executeUpdate("insert into RECORD values('aaa')");
@@ -391,7 +389,6 @@ public class Trigger_Row_IT {
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-    @Ignore("DB-1222")
     public void multipleRowAndStatementTriggersOnOneTable() throws Exception {
         // given - six row triggers on same table.
         createTrigger(tb.named("u_1").after().update().on("T").row().then("INSERT INTO RECORD VALUES('u1')"));
