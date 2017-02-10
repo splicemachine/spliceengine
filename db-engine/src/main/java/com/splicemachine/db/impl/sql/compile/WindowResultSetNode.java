@@ -501,6 +501,35 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         // Cache the ref
                         pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
                     }
+                } else {
+                    // Check again if we find match, if not then add it in cache ref if we have the equivalent match
+                    if (pulledUp.get(expKey) == null) {
+                        ResultColumn srcRC = findOrPullUpRC(expRC,
+                                ((SingleChildResultSetNode) childResult).getChildResult(),
+                                rCtoCRfactory);
+                        if (srcRC != null) {
+                            // We found the RC referenced by this column from the over clause. Create RC->CR pairs
+                            // in our two RCLs (our projection -- this RCL -- and the PR we created as a staging
+                            // below us. Then cache the PR's RC so that we can reference repeated columns to the
+                            // same RC.
+                            String baseName = exp.getColumnName();
+
+                            // create RC->CR->srcRC for bottom PR
+                            ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(),
+                                    getContextManager(), this.getLevel(), this.getLevel());
+                            childRCL.addElement(bottomRC);
+                            bottomRC.setVirtualColumnId(childRCL.size());
+
+                            // create RC->CR->bottomRC for window PR
+                            ResultColumn winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(),
+                                    getContextManager(), this.getLevel(), this.getLevel());
+                            winRCL.addElement(winRC);
+                            winRC.setVirtualColumnId(winRCL.size());
+
+                            // Cache the ref
+                            pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
+                        }
+                    }
                 }
             } else {
                 if (LOG.isDebugEnabled()) {
