@@ -3755,4 +3755,30 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testWindowFnWithSubqAlias() throws Exception {
+        String sqlText =
+                String.format(
+                        "select distinct " +
+                        "sum(d1.c6) over (partition by d1.c7) as aggr_sum " +
+                        ",d1.c7 " +
+                        "from (select mgr as c7, sal c6 from %s  --SPLICE-PROPERTIES useSpark = %s \n" +
+                        ") as d1 order by 1",
+                        this.getTableReference(EMP),useSpark);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "AGGR_SUM | C7  |\n"+
+                        "----------------\n" +
+                        " 800.00  |7902 |\n" +
+                        " 1100.00 |7788 |\n" +
+                        " 1300.00 |7782 |\n" +
+                        " 5000.00 |NULL |\n" +
+                        " 6000.00 |7566 |\n" +
+                        " 6550.00 |7698 |\n" +
+                        " 8275.00 |7839 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 }
