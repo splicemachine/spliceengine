@@ -413,6 +413,45 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
+     * create and insert RC->CR pair for matching Result Column found
+     *
+     * @param srcRC  Result column being found from findOrPullUpRC()
+     * @param pulledUp  a mapping to CRs we've spliced together that we can point to if it's determined that
+     *                 we have a dependency on them.
+     * @param exp over column expression Node
+     * @param expRC Result col for over col expression
+     * @param expKey Name of over col
+     * @param childRCL  ResultSetNode under the SingleChildResultSetNode
+     * @param winRCL  window function result colummn list
+     * @throws StandardException
+     */
+    private void createInsertRC_CR_Pair(ResultColumn srcRC, Map<String, ColumnRefPosition> pulledUp, ValueNode exp, ResultColumn expRC,
+                     String expKey, ResultColumnList childRCL, ResultColumnList winRCL) throws StandardException {
+        if (srcRC != null) {
+            // We found the RC referenced by this column from the over clause. Create RC->CR pairs
+            // in our two RCLs (our projection -- this RCL -- and the PR we created as a staging
+            // below us. Then cache the PR's RC so that we can reference repeated columns to the
+            // same RC.
+            String baseName = exp.getColumnName();
+
+            // create RC->CR->srcRC for bottom PR
+            ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(),
+                    getContextManager(), this.getLevel(), this.getLevel());
+            childRCL.addElement(bottomRC);
+            bottomRC.setVirtualColumnId(childRCL.size());
+
+            // create RC->CR->bottomRC for window PR
+            ResultColumn winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(),
+                    getContextManager(), this.getLevel(), this.getLevel());
+            winRCL.addElement(winRC);
+            winRC.setVirtualColumnId(winRCL.size());
+
+            // Cache the ref
+            pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
+        }
+    }
+
+    /**
      * Now we find expressions from the grand child result set node below us that we require as given in the columns
      * defined in our over clause. We create RC->CR pairs and append them to ours and our child's RCL.
      * <p/>
@@ -444,32 +483,14 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             if (pulledUp.get(expKey) == null) {
                 if (! contains(expRC, winRCL)) {
                     ResultColumn srcRC = findOrPullUpRC(expRC,
-                                                        ((SingleChildResultSetNode) childResult).getChildResult(),
-                                                        rCtoCRfactory);
-
+                            ((SingleChildResultSetNode) childResult).getChildResult(),
+                            rCtoCRfactory);
                     if (srcRC != null) {
-                        // We found the RC referenced by this column from the over clause. Create RC->CR pairs
-                        // in our two RCLs (our projection -- this RCL -- and the PR we created as a staging
-                        // below us. Then cache the PR's RC so that we can reference repeated columns to the
-                        // same RC.
-                        String baseName = exp.getColumnName();
+                        createInsertRC_CR_Pair(srcRC, pulledUp, exp, expRC, expKey, childRCL, winRCL);
 
-                        // create RC->CR->srcRC for bottom PR
-                        ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(),
-                                                                 getContextManager(), this.getLevel(), this.getLevel());
-                        childRCL.addElement(bottomRC);
-                        bottomRC.setVirtualColumnId(childRCL.size());
-
-                        // create RC->CR->bottomRC for window PR
-                        ResultColumn winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(),
-                                                              getContextManager(), this.getLevel(), this.getLevel());
-                        winRCL.addElement(winRC);
-                        winRC.setVirtualColumnId(winRCL.size());
-
-                        // Cache the ref
-                        pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
-
-                    } else if (exp instanceof ColumnReference && ((ColumnReference)exp).getGeneratedToReplaceAggregate()) {
+                    } else if (exp instanceof ColumnReference &&
+                            ((((ColumnReference)exp).getGeneratedToReplaceAggregate())  ||
+                             (expRC != null)) ) {
                         // We didn't find it in an RCL below us, probably because it's an agg function previously
                         // created -- the RCs for those don't have ColumnDescriptors which we need to find an
                         // equivalent RC.
@@ -493,12 +514,20 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         // Cache the ref
                         pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
                     }
+                } else {
+                    // We have equivalent match, so find the matching RC and add it in the map
+                    ResultColumn srcRC = findOrPullUpRC(expRC,
+                            ((SingleChildResultSetNode) childResult).getChildResult(),
+                            rCtoCRfactory);
+                    createInsertRC_CR_Pair(srcRC, pulledUp, exp, expRC, expKey, childRCL, winRCL);
+
                 }
             } else {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("addOverColumns() already pulled up "+exp.getColumnName()+" in "+wdn.toString());
                 }
             }
+
             // re-point the overCol exp to the RC's expression we've cached
             ColumnRefPosition crp = pulledUp.get(expKey);
             assert crp != null : "Failed to find CR for "+expKey;
