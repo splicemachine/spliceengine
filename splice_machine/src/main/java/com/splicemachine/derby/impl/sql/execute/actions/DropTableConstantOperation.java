@@ -1,20 +1,20 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.TxnView;
 
 
 /**
@@ -154,8 +155,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             }
 
             /* Invalidate dependencies remotely. */
-
-            DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
+            TxnView activeTransaction = ((SpliceTransactionManager) tc).getActiveStateTxn();
+            DDLChange ddlChange = ProtoUtil.createDropTable(activeTransaction.getTxnId(), (BasicUUID) this.tableId);
             // Run locally first to capture any errors.
             dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
             // Run Remotely
@@ -175,6 +176,12 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
             /* Drop the store element at last, to prevent dangling reference for open cursor, beetle 4393. */
             tc.dropConglomerate(heapId);
+
+            /* is the table pinned ? , if yes we need to drop it */
+            if(td.isPinned()){
+                EngineDriver.driver().processorFactory().distributedProcessor().dropPinnedTable(td.getHeapConglomerateId());
+            }
+
         } catch (Exception e) {
             // If dropping table fails, it could happen that the table object in cache has been modified.
             // Invalidate the table in cache.

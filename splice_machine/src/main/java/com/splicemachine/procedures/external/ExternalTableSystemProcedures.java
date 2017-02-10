@@ -1,6 +1,21 @@
+/*
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -35,12 +50,11 @@ public class ExternalTableSystemProcedures {
      *
      * @param schema
      * @param table
-     * @param resultSets
      * @throws StandardException
      * @throws SQLException
      */
 
-    public static void SYSCS_REFRESH_EXTERNAL_TABLE(String schema, String table, ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void SYSCS_REFRESH_EXTERNAL_TABLE(String schema, String table) throws StandardException, SQLException {
         Connection conn = SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         TransactionController tc=lcc.getTransactionExecute();
@@ -51,18 +65,19 @@ public class ExternalTableSystemProcedures {
             TableDescriptor td=
                     data_dictionary.getTableDescriptor(table,sd,tc);
 
+            if(td ==null)
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, schema +"." + table);
+
             if(!td.isExternal())
                 throw StandardException.newException(SQLState.NOT_AN_EXTERNAL_TABLE, td.getName());
 
             String jobGroup = lcc.getSessionUserId() + " <" + tc.getTransactionIdString() +">";
 
             EngineDriver.driver().getOlapClient().execute(new DistributedRefreshExternalTableSchemaJob(jobGroup, td.getLocation()));
-                    resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s.%s schema table refreshed",schema,table));
 
         }catch (Throwable t){
-            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
-            SpliceLogUtils.error(LOG, "Refresh external table Error", t);
-            t.printStackTrace();
+            throw StandardException.plainWrapException(t);
+
         }
     }
 

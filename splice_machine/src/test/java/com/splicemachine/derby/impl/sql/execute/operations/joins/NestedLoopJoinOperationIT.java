@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
@@ -27,8 +26,10 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Integration tests for NestedLoopJoinOperation.
@@ -77,6 +78,37 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
                 "----\n" +
                 " 0 |", toString(rs));
 
+    }
+
+    @Test
+    public void nestedLoopJoinIsNotSorted() throws Exception {
+        methodWatcher.executeUpdate("create table DB5773(i int primary key)");
+        methodWatcher.executeUpdate("create table b_nlj(i int)");
+        methodWatcher.executeUpdate("create table c_mj(i int primary key)");
+        try {
+            methodWatcher.executeQuery("select * from --splice-properties joinOrder=fixed\n" +
+                    "DB5773, b_nlj --splice-properties joinStrategy=nestedloop\n" +
+                    ", c_mj --splice-properties joinStrategy=merge\n" +
+                    "where DB5773.i = c_mj.i");
+            fail("Should have raised exception");
+        } catch (SQLException e) {
+            // Error expected due to invalid MERGE join:
+            // ERROR 42Y69: No valid execution plan was found for this statement.
+            assertEquals("42Y69", e.getSQLState());
+        }
+
+        // We shouldn't preserve ordering from either side
+        try {
+            methodWatcher.executeQuery("select * from --splice-properties joinOrder=fixed\n" +
+                    "DB5773, DB5773 b_nlj --splice-properties joinStrategy=nestedloop\n" +
+                    ", DB5773 c_mj --splice-properties joinStrategy=merge\n" +
+                    "where b_nlj.i = c_mj.i");
+            fail("Should have raised exception");
+        } catch (SQLException e) {
+            // Error expected due to invalid MERGE join:
+            // ERROR 42Y69: No valid execution plan was found for this statement.
+            assertEquals("42Y69", e.getSQLState());
+        }
     }
 
     private String toString(ResultSet rs) throws Exception {

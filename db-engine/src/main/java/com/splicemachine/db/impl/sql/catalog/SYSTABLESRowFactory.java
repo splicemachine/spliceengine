@@ -1,4 +1,17 @@
 /*
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Some parts of this source code are based on Apache Derby, and the following notices apply to
+ * Apache Derby:
+ *
  * Apache Derby is a subproject of the Apache DB project, and is licensed under
  * the Apache License, Version 2.0 (the "License"); you may not use these files
  * except in compliance with the License. You may obtain a copy of the License at:
@@ -10,17 +23,10 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  *
- * Splice Machine, Inc. has modified this file.
+ * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
- * and are licensed to you under the License; you may not use this file except in
- * compliance with the License.
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
+ * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+ * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.catalog;
@@ -71,6 +77,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_STORED_AS = 11;
 	protected static final int		SYSTABLES_LOCATION = 12;
 	protected static final int		SYSTABLES_COMPRESSION = 13;
+	protected static final int 		SYSTABLES_IS_PINNED = 14;
 	/* End External Tables Columns	*/
 	protected static final int		SYSTABLES_INDEX1_ID = 0;
 	protected static final int		SYSTABLES_INDEX1_TABLENAME = 1;
@@ -148,6 +155,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String 					storedAs = null;
 		String 					location = null;
 		String 					compression = null;
+		boolean 				isPinned = false;
 
 		if (td != null)
 		{
@@ -222,6 +230,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			storedAs = descriptor.getStoredAs();
 			location = descriptor.getLocation();
 			compression = descriptor.getCompression();
+			isPinned = descriptor.isPinned();
 		}
 
 		/* Insert info into systables */
@@ -259,6 +268,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		row.setColumn(SYSTABLES_STORED_AS,new SQLVarchar(storedAs));
 		row.setColumn(SYSTABLES_LOCATION,new SQLVarchar(location));
 		row.setColumn(SYSTABLES_COMPRESSION,new SQLVarchar(compression));
+		row.setColumn(SYSTABLES_IS_PINNED,new SQLBoolean(isPinned));
 
 		return row;
 	}
@@ -387,6 +397,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String storedAs;
 		String location;
 		String compression;
+		boolean isPinned;
 
 
 		/* 1st column is TABLEID (UUID - char(36)) */
@@ -461,6 +472,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		DataValueDescriptor storedDVD = row.getColumn(SYSTABLES_STORED_AS);
 		DataValueDescriptor locationDVD = row.getColumn(SYSTABLES_LOCATION);
 		DataValueDescriptor compressionDVD = row.getColumn(SYSTABLES_COMPRESSION);
+		DataValueDescriptor isPinnedDVD = row.getColumn(SYSTABLES_IS_PINNED);
 
 
 
@@ -472,7 +484,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 				linesDVD!=null?linesDVD.getString():null,
 				storedDVD!=null?storedDVD.getString():null,
 				locationDVD!=null?locationDVD.getString():null,
-				compressionDVD!=null?compressionDVD.getString():null
+				compressionDVD!=null?compressionDVD.getString():null,
+				isPinnedDVD.getBoolean()
 				);
 		tabDesc.setUUID(tableUUID);
 
@@ -524,7 +537,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			SystemColumnImpl.getColumn("LINES", Types.VARCHAR, true),
 			SystemColumnImpl.getColumn("STORED", Types.VARCHAR, true),
 			SystemColumnImpl.getColumn("LOCATION", Types.VARCHAR, true),
-			SystemColumnImpl.getColumn("COMPRESSION", Types.VARCHAR, true)
+			SystemColumnImpl.getColumn("COMPRESSION", Types.VARCHAR, true),
+			SystemColumnImpl.getColumn("IS_PINNED", Types.BOOLEAN, false)
         };
 	}
 

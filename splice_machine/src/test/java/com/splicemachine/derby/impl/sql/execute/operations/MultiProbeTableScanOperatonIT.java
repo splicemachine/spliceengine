@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.operations;
@@ -39,6 +38,9 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
     protected static SpliceTableWatcher t5Watcher = new SpliceTableWatcher("a",schemaWatcher.schemaName,"(d decimal(10,0))");
     protected static SpliceIndexWatcher i5Watcher = new SpliceIndexWatcher("a",schemaWatcher.schemaName,"i",schemaWatcher.schemaName,"(d)");
 
+	protected static SpliceTableWatcher t6Watcher = new SpliceTableWatcher("tab",schemaWatcher.schemaName,"(i int, j int)");
+	protected static SpliceIndexWatcher i6Watcher = new SpliceIndexWatcher("tab",schemaWatcher.schemaName,"idx",schemaWatcher.schemaName,"(i,j)");
+
 
 	private static int size = 10;
 
@@ -51,6 +53,8 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 			.around(t4Watcher)
             .around(t5Watcher)
             .around(i5Watcher)
+			.around(t6Watcher)
+			.around(i6Watcher)
 			.around(new SpliceDataWatcher() {
 				@Override
 				protected void starting(Description description) {
@@ -114,6 +118,14 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 							ps.addBatch();
 						}
 						ps.executeBatch();
+
+						ps = spliceClassWatcher.prepareStatement("insert into " + t6Watcher.toString() + " values (?,?)");
+                        ps.setInt(1, 1); ps.setInt(2, 1181); ps.addBatch();
+						ps.setInt(1, 2); ps.setInt(2, 1181); ps.addBatch();
+						ps.setInt(1, 1); ps.setInt(2, 1181); ps.addBatch();
+						ps.setInt(1, 118); ps.setInt(2, 1181); ps.addBatch();
+						ps.executeBatch();
+
 					} catch (Exception e) {
 						throw new RuntimeException(e);
 					} finally {
@@ -219,4 +231,20 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
         this.thirdRowContainsQuery("explain select * from a --splice-properties index=i\n" +
                 " where d in (10.0+10, 11.0+10)","preds=[(D[0:1] IN ((10.0 + 10),(11.0 + 10)))]",methodWatcher);
     }
+
+    // DB-1323
+    @Test
+	public void testMultiProbeWithSpark() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery("select count(*) from "+ t6Watcher+ "--splice-properties useSpark=true\n" +
+						" where j in (1181) and (i = 1 or i = 118 )");
+		Assert.assertTrue(rs.next());
+		Assert.assertTrue("wrong count", rs.getInt(1) == 3);
+        rs.close();
+
+		rs = methodWatcher.executeQuery("select count(*) from "+ t6Watcher+ "--splice-properties useSpark=true\n" +
+				" where i in (1, 118)");
+		Assert.assertTrue(rs.next());
+		Assert.assertTrue("wrong count", rs.getInt(1) == 3);
+
+	}
 }

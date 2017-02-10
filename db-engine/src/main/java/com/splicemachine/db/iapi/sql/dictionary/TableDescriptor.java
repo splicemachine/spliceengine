@@ -1,4 +1,17 @@
 /*
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Some parts of this source code are based on Apache Derby, and the following notices apply to
+ * Apache Derby:
+ *
  * Apache Derby is a subproject of the Apache DB project, and is licensed under
  * the Apache License, Version 2.0 (the "License"); you may not use these files
  * except in compliance with the License. You may obtain a copy of the License at:
@@ -10,17 +23,10 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  *
- * Splice Machine, Inc. has modified this file.
+ * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
- * and are licensed to you under the License; you may not use this file except in
- * compliance with the License.
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
+ * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+ * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.iapi.sql.dictionary;
@@ -154,6 +160,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     private String storedAs;
     private String location;
     private String compression;
+    private boolean isPinned;
 
 
     /**
@@ -226,7 +233,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -252,7 +259,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String lines,
                            String storedAs,
                            String location,
-                           String compression
+                           String compression,
+                           boolean isPinned
     ){
         super(dataDictionary);
 
@@ -271,6 +279,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.storedAs = storedAs;
         this.location = location;
         this.compression = compression;
+        this.isPinned = isPinned;
 
     }
 
@@ -355,6 +364,23 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     public String getDelimited() {
         return delimited;
+    }
+
+    /**
+     * Will tell if the current table is currently pinned in the memory
+     * @return
+     */
+
+    public boolean isPinned() {
+        return isPinned;
+    }
+
+    /**
+     * Will mark the table pinned
+     * @param pinned
+     */
+    public void setPinned(boolean pinned) {
+        isPinned = pinned;
     }
 
     /**

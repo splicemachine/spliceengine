@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
@@ -223,6 +237,29 @@ public class BackupUtils {
             e.printStackTrace();
             throw Exceptions.parseException(e);
         }
+    }
+
+    /**
+     * Is this a splice managed table?
+     * A table is managed by splice if its namespace is "splice", or it's
+     * one of splice system tables
+     * @param namespace
+     * @param tableName
+     * @return
+     */
+    public static boolean isSpliceTable(String namespace, String tableName) {
+        if (namespace == null) {
+            if (tableName.compareTo("SPLICE_CONGLOMERATE") == 0 ||
+                    tableName.compareTo("SPLICE_SEQUENCES") == 0 ||
+                    tableName.compareTo("SPLICE_TXN") == 0 ||
+                    tableName.compareTo("TENTATIVE_DDL") == 0) {
+                return true;
+            }
+        }
+        else if (namespace.compareTo("splice") == 0)
+            return true;
+
+        return false;
     }
 
     public static boolean backupCanceled() throws KeeperException, InterruptedException {

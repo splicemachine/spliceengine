@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.actions;
@@ -18,7 +17,9 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.db.catalog.UUID;
@@ -181,6 +182,17 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
 		     */
         dd.startWriting(lcc);
 
+        // If the table has foreign key, drop the old foreign key write handler
+        ConstraintDescriptorList constraintDescriptors = td.getConstraintDescriptorList();
+        for(int i = 0; i < constraintDescriptors.size(); ++i) {
+            ConstraintDescriptor conDesc = constraintDescriptors.get(i);
+            if (conDesc instanceof ForeignKeyConstraintDescriptor) {
+                ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) conDesc;
+                ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
+                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
+            }
+        }
+
         // truncate  all indexes
         if(numIndexes > 0) {
             long[] newIndexCongloms = new long[numIndexes];
@@ -189,6 +201,15 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             }
         }
 
+        // If the table has foreign key, create a new foreign key write handler
+        for(int i = 0; i < constraintDescriptors.size(); ++i) {
+            ConstraintDescriptor conDesc = constraintDescriptors.get(i);
+            if (conDesc instanceof ForeignKeyConstraintDescriptor) {
+                ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) conDesc;
+                ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
+                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY,lcc).submit();
+            }
+        }
         // Invalidate cache
         DDLMessage.DDLChange change = ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));

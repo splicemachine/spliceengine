@@ -1,4 +1,17 @@
 /*
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Some parts of this source code are based on Apache Derby, and the following notices apply to
+ * Apache Derby:
+ *
  * Apache Derby is a subproject of the Apache DB project, and is licensed under
  * the Apache License, Version 2.0 (the "License"); you may not use these files
  * except in compliance with the License. You may obtain a copy of the License at:
@@ -10,26 +23,18 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  *
- * Splice Machine, Inc. has modified this file.
+ * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
- * and are licensed to you under the License; you may not use this file except in
- * compliance with the License.
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
+ * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+ * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
@@ -47,6 +52,9 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.io.StorageFile;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 public class JarUtil
 {
@@ -94,7 +102,7 @@ public class JarUtil
 		try {
 			is = openJarURL(externalPath);
 			return jutil.add(is);
-		} catch (java.io.IOException fnfe) {
+		} catch (java.io.IOException | URISyntaxException fnfe) {
 			throw StandardException.newException(SQLState.SQLJ_INVALID_JAR, fnfe, externalPath);
 		}
 		finally {
@@ -173,7 +181,7 @@ public class JarUtil
 			is = openJarURL(externalPath);
 
 			return jutil.replace(is);
-		} catch (java.io.IOException fnfe) {
+		} catch (java.io.IOException | URISyntaxException fnfe) {
 			throw StandardException.newException(SQLState.SQLJ_INVALID_JAR, fnfe, externalPath);
 		}
 		finally {
@@ -226,19 +234,17 @@ public class JarUtil
      * the URL throws a MalformedURLException.
      */
     private static InputStream openJarURL(final String externalPath)
-        throws IOException
+        throws IOException, URISyntaxException
     {
         try {
             return (InputStream) AccessController.doPrivileged
             (new java.security.PrivilegedExceptionAction(){
-                
-                public Object run() throws IOException {    
-                    try {
-                        return new URL(externalPath).openStream();
-                    } catch (MalformedURLException mfurle)
-                    {
-                        return new FileInputStream(externalPath);
-                    }
+
+                public Object run() throws IOException, URISyntaxException {
+                    Configuration conf = new Configuration();
+                    FileSystem fs = FileSystem.get(new URI(externalPath), conf);
+                    DataInputStream dis = fs.open(new Path(externalPath));
+                    return dis;
                 }
             });
         } catch (PrivilegedActionException e) {

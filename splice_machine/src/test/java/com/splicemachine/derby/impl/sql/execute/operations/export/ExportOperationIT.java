@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
@@ -31,6 +30,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,6 +39,7 @@ import java.util.zip.GZIPInputStream;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
+import org.junit.Assert;
 
 /**
  * This IT assumes the server side writes to the local files system accessible to IT itself.  Currently true only
@@ -423,6 +424,24 @@ public class ExportOperationIT {
                 row(29, 3.14159, "14:31:20", "varchar1 \" quote"),
                 row(30, 3.14159, "14:31:20", "varchar1")
         );
+    }
+
+    @Test
+    public void exportExceptionsS3() throws Exception {
+        try {
+            new TableCreator(methodWatcher.getOrCreateConnection())
+                    .withCreate("create table export_s3_test (c1 int, c2 int, c3 int)")
+                    .withInsert("insert into export_s3_test values(?,?,?)")
+                    .withRows(rows(row(1, 1, 1), row(2, 2, 2), row(3, 3, 3), row(4, 4, 4), row(5, 5, 5)))
+                    .create();
+
+            Long expectedRowCount = methodWatcher.query("EXPORT ( 's3a://molitorisspechial/temp/', null, null, null, null, null ) select * from export_s3_test");
+        } catch (SQLException sqle) {
+            String error = sqle.getMessage();
+            String mesg1 = "Invalid parameter 'cannot create export directory'='s3a://molitorisspechial/temp/'.";
+            String mesg2 = "Status Code: 403";
+            Assert.assertTrue(error, error.contains(mesg1) || error.contains(mesg2));
+        }
     }
 
 }

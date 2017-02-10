@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.stream.spark;
@@ -19,6 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -29,6 +30,7 @@ import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -40,6 +42,7 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -65,6 +68,7 @@ import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
+import scala.collection.JavaConverters;
 
 /**
  * Spark-based DataSetProcessor.
@@ -337,6 +341,26 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
+    public StructType getExternalFileSchema(String storedAs, String location){
+        StructType schema = null;
+        if (storedAs!=null) {
+            if (storedAs.toLowerCase().equals("p")) {
+                schema =  SpliceSpark.getSession().read().parquet(location).schema();
+
+            }
+            if (storedAs.toLowerCase().equals("o")) {
+                schema =  SpliceSpark.getSession().read().orc(location).schema();
+
+            }
+            if (storedAs.toLowerCase().equals("t")) {
+                schema =  SpliceSpark.getSession().read().csv(location).schema();
+            }
+        }
+
+        return schema;
+    }
+
+    @Override
     public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
 
@@ -366,7 +390,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     if (storedAs.toLowerCase().equals("t")) {
                         empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
                     }
-
             }
 
 
@@ -377,6 +400,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
         }
     }
+
 
 
     @Override
@@ -398,15 +422,14 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         Dataset dataset = rawDataset
                 .select(cols.toArray(new Column[cols.size()]));
         if (qualifiers !=null) {
-            Column filter = createFilterCondition(dataset, qualifiers, baseColumnMap, probeValue);
+            Column filter = createFilterCondition(dataset,allCols, qualifiers, baseColumnMap, probeValue);
             if (filter != null)
                 dataset = dataset.filter(filter);
         }
         return dataset;
 
     }
-
-
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
         try {
@@ -421,6 +444,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
                                           OperationContext context, Qualifier[][] qualifiers,
@@ -441,11 +465,30 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
         }
     }
+
     @Override
     public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                      OperationContext context, ExecRow execRow) throws StandardException {
+                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
         try {
-            return SpliceFileVTI.getSpliceFileVTI(location, characterDelimiter, columnDelimiter, baseColumnMap).getDataSet(op, this, execRow);
+            Dataset<Row> table = null;
+            try {
+                table = SpliceSpark.getSession().read().csv(location);
+
+                //1. spark cvs assume all the columns to be string by default
+                //   we know the schema, no need to use infer schema which is doing a full scan
+                //   so 2 scan , not cheap.
+                //2. There is a annoying underscore with csv in columns names
+                List<Column> correctSchemaSelection = Arrays.stream(execRow.schema().fields())
+                        .map( field -> new Column("_"+field.name()).cast(field.dataType())).collect(Collectors.toList());
+                table = table.select(correctSchemaSelection.toArray(new Column[correctSchemaSelection.size()]));
+
+            } catch (Exception e) {
+                return handleExceptionInCaseOfEmptySet(e,location);
+            }
+            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            return new SparkDataSet(table
+                    .rdd().toJavaRDD()
+                    .map(new RowToLocatedRowFunction(context,execRow)));
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
@@ -453,83 +496,83 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
 
-    private static Column createFilterCondition(Dataset dataset, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
-            assert qual_list!=null:"qualifier[][] passed in is null";
-            boolean     row_qualifies = true;
-            Column andCols = null;
-            for (int i = 0; i < qual_list[0].length; i++) {
-                Qualifier q = qual_list[0][i];
+    private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
+        assert qual_list!=null:"qualifier[][] passed in is null";
+        boolean     row_qualifies = true;
+        Column andCols = null;
+        for (int i = 0; i < qual_list[0].length; i++) {
+            Qualifier q = qual_list[0][i];
+            if (q.getVariantType() == Qualifier.VARIANT)
+                continue; // Cannot Push Down Qualifier
+            Column col = dataset.col(allColIdInSpark[q.getStoragePosition()]);
+            q.clearOrderableCache();
+            Object value = (probeValue==null || i!=0?q.getOrderable():probeValue).getObject();
+            switch (q.getOperator()) {
+                case DataType.ORDER_OP_LESSTHAN:
+                    col=q.negateCompareResult()?col.geq(value):col.lt(value);
+                    break;
+                case DataType.ORDER_OP_LESSOREQUALS:
+                    col=q.negateCompareResult()?col.gt(value):col.leq(value);
+                    break;
+                case DataType.ORDER_OP_GREATERTHAN:
+                    col=q.negateCompareResult()?col.leq(value):col.gt(value);
+                    break;
+                case DataType.ORDER_OP_GREATEROREQUALS:
+                    col=q.negateCompareResult()?col.lt(value):col.geq(value);
+                    break;
+                case DataType.ORDER_OP_EQUALS:
+                    if (value == null) // Handle Null Case, push down into Catalyst and Hopefully Parquet/ORC
+                        col=q.negateCompareResult()?col.isNotNull():col.isNull();
+                    else
+                        col=q.negateCompareResult()?col.notEqual(value):col.equalTo(value);
+                    break;
+            }
+            if (andCols ==null)
+                andCols = col;
+            else
+                andCols = andCols.and(col);
+        }
+        // all the qual[0] and terms passed, now process the OR clauses
+        for (int and_idx = 1; and_idx < qual_list.length; and_idx++) {
+            Column orCols = null;
+            for (int or_idx = 0; or_idx < qual_list[and_idx].length; or_idx++) {
+                Qualifier q = qual_list[and_idx][or_idx];
                 if (q.getVariantType() == Qualifier.VARIANT)
                     continue; // Cannot Push Down Qualifier
-                Column col = dataset.col(ValueRow.getNamedColumn(q.getStoragePosition()));
                 q.clearOrderableCache();
-                Object value = (probeValue==null || i!=0?q.getOrderable():probeValue).getObject();
+                Column orCol = dataset.col(allColIdInSpark[(baseColumnMap != null ? baseColumnMap[q.getStoragePosition()] : q.getStoragePosition())]);
+                Object value = q.getOrderable().getObject();
                 switch (q.getOperator()) {
                     case DataType.ORDER_OP_LESSTHAN:
-                        col=q.negateCompareResult()?col.geq(value):col.lt(value);
+                        orCol = q.negateCompareResult() ? orCol.geq(value) : orCol.lt(value);
                         break;
                     case DataType.ORDER_OP_LESSOREQUALS:
-                        col=q.negateCompareResult()?col.gt(value):col.leq(value);
+                        orCol = q.negateCompareResult() ? orCol.gt(value) : orCol.leq(value);
                         break;
                     case DataType.ORDER_OP_GREATERTHAN:
-                        col=q.negateCompareResult()?col.leq(value):col.gt(value);
+                        orCol = q.negateCompareResult() ? orCol.leq(value) : orCol.gt(value);
                         break;
                     case DataType.ORDER_OP_GREATEROREQUALS:
-                        col=q.negateCompareResult()?col.lt(value):col.geq(value);
+                        orCol = q.negateCompareResult() ? orCol.lt(value) : orCol.geq(value);
                         break;
                     case DataType.ORDER_OP_EQUALS:
-                        if (value == null) // Handle Null Case, push down into Catalyst and Hopefully Parquet/ORC
-                            col=q.negateCompareResult()?col.isNotNull():col.isNull();
-                        else
-                            col=q.negateCompareResult()?col.notEqual(value):col.equalTo(value);
+                        orCol = q.negateCompareResult() ? orCol.notEqual(value) : orCol.equalTo(value);
                         break;
                 }
-                if (andCols ==null)
-                    andCols = col;
+                if (orCols == null)
+                    orCols = orCol;
                 else
-                    andCols = andCols.and(col);
+                    orCols = orCols.or(orCol);
             }
-            // all the qual[0] and terms passed, now process the OR clauses
-            for (int and_idx = 1; and_idx < qual_list.length; and_idx++) {
-                Column orCols = null;
-                for (int or_idx = 0; or_idx < qual_list[and_idx].length; or_idx++) {
-                    Qualifier q = qual_list[and_idx][or_idx];
-                    if (q.getVariantType() == Qualifier.VARIANT)
-                        continue; // Cannot Push Down Qualifier
-                    q.clearOrderableCache();
-                    Column orCol = dataset.col(ValueRow.getNamedColumn((baseColumnMap != null ? baseColumnMap[q.getStoragePosition()] : q.getStoragePosition())));
-                    Object value = q.getOrderable().getObject();
-                    switch (q.getOperator()) {
-                        case DataType.ORDER_OP_LESSTHAN:
-                            orCol = q.negateCompareResult() ? orCol.geq(value) : orCol.lt(value);
-                            break;
-                        case DataType.ORDER_OP_LESSOREQUALS:
-                            orCol = q.negateCompareResult() ? orCol.gt(value) : orCol.leq(value);
-                            break;
-                        case DataType.ORDER_OP_GREATERTHAN:
-                            orCol = q.negateCompareResult() ? orCol.leq(value) : orCol.gt(value);
-                            break;
-                        case DataType.ORDER_OP_GREATEROREQUALS:
-                            orCol = q.negateCompareResult() ? orCol.lt(value) : orCol.geq(value);
-                            break;
-                        case DataType.ORDER_OP_EQUALS:
-                            orCol = q.negateCompareResult() ? orCol.notEqual(value) : orCol.equalTo(value);
-                            break;
-                    }
-                    if (orCols == null)
-                        orCols = orCol;
-                    else
-                        orCols = orCols.or(orCol);
-                }
-                if (orCols!=null) {
-                    if (andCols ==null)
-                        andCols = orCols;
-                    else
-                        andCols = andCols.and(orCols);
-                }
+            if (orCols!=null) {
+                if (andCols ==null)
+                    andCols = orCols;
+                else
+                    andCols = andCols.and(orCols);
             }
-            return andCols;
         }
+        return andCols;
+    }
 
     @Override
     public void refreshTable(String location) {

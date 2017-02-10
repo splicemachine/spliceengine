@@ -1,25 +1,22 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import com.splicemachine.test_tools.TableCreator;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -28,6 +25,8 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Properties;
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static java.lang.String.format;
 
 /**
@@ -36,7 +35,7 @@ import static java.lang.String.format;
 public class ExplainPlanIT extends SpliceUnitTest  {
 
     public static final String CLASS_NAME = ExplainPlanIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     public static final String TABLE_NAME = "A";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -73,7 +72,24 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
             });
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+
+    @BeforeClass
+    public static void createTables() throws Exception {
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
+
+        new TableCreator(conn)
+                .withCreate("create table t1 (c1 int, c2 int)")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t2 (c1 int, c2 int)")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t3 (c1 int, c2 int)")
+                .create();
+    }
 
     @Test
     public void testExplainSelect() throws Exception {
@@ -153,5 +169,26 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         Assert.assertTrue(rs.next());
         Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=Spark"));
 
+    }
+
+    //DB-5743
+    @Test
+    public void testPredicatePushDownAfterOJ2IJ() throws Exception {
+
+        String query =
+                "explain select count(*) from t1 a\n" +
+                "left join t2 b on a.c1=b.c1\n" +
+                "left join t2 c on b.c2=c.c2\n" +
+                "where a.c2 not in (1, 2, 3) and c.c1 > 0";
+        
+        // Make sure predicate on a.c2 is pushed down to the base table scan
+        String predicate = "preds=[(A.C2[0:2] <> 1),(A.C2[0:2] <> 2),(A.C2[0:2] <> 3)]";
+        ResultSet rs  = methodWatcher.executeQuery(query);
+        while(rs.next()) {
+            String s = rs.getString(1);
+            if (s.contains(predicate)) {
+                Assert.assertTrue(s, s.contains("TableScan"));
+            }
+        }
     }
 }

@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
@@ -68,6 +67,9 @@ public class OuterJoinIT extends SpliceUnitTest {
     private static SpliceTableWatcher t4 = new SpliceTableWatcher(TABLE_NAME_12, CLASS_NAME, "(id int, parentId int)");
     private static SpliceTableWatcher bvarchar = new SpliceTableWatcher("bvc", CLASS_NAME, "(a varchar(3))");
     private static SpliceTableWatcher bchar = new SpliceTableWatcher("bc", CLASS_NAME, "(b char(3))");
+    private static SpliceTableWatcher tab_a = new SpliceTableWatcher("tab_a", CLASS_NAME, "(id int)");
+    private static SpliceTableWatcher tab_b = new SpliceTableWatcher("tab_b", CLASS_NAME, "(id int)");
+    private static SpliceTableWatcher tab_c = new SpliceTableWatcher("tab_c", CLASS_NAME, "(id int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -86,6 +88,9 @@ public class OuterJoinIT extends SpliceUnitTest {
             .around(t4)
             .around(bchar)
             .around(bvarchar)
+            .around(tab_a)
+            .around(tab_b)
+            .around(tab_c)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -158,6 +163,28 @@ public class OuterJoinIT extends SpliceUnitTest {
                         s.executeUpdate("insert into "+ bvarchar+" values 'MCI','STL','STL'");
                     }catch(SQLException se){
                         throw new RuntimeException(se);
+                    }
+                }
+            })
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        Statement statement = spliceClassWatcher.getStatement();
+                        statement.execute(String.format("insert into %s values  (1)", tab_a));
+                        statement.execute(String.format("insert into %s values  (2)", tab_a));
+                        statement.execute(String.format("insert into %s values  (3)", tab_a));
+
+                        statement.execute(String.format("insert into %s values  (1)", tab_b));
+                        statement.execute(String.format("insert into %s values  (3)", tab_b));
+                        statement.execute(String.format("insert into %s values  (4)", tab_b));
+
+                        statement.execute(String.format("insert into %s values  (3)", tab_c));
+                        statement.execute(String.format("insert into %s values  (6)", tab_c));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
                     }
                 }
             })
@@ -420,6 +447,17 @@ public class OuterJoinIT extends SpliceUnitTest {
     	} finally {
     		methodWatcher.executeUpdate("drop table "+CLASS_NAME+".foo");
     	}
+    }
+
+    @Test
+    public void testRightOuterWithRightOuter() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select * from "+ tab_a + " right join " +  tab_b +
+                " using(id) right join "+ tab_c +" using(id)");
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals("Returned the wrong number of rows", 2,count);
     }
 
     @Test

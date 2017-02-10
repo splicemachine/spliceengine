@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
@@ -18,6 +17,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -41,11 +42,11 @@ public class ExportFile {
     private final byte[] taskId;
     private static Logger LOG=Logger.getLogger(ExportFile.class);
 
-    ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        this(exportParams, taskId, SIDriver.driver().getFileSystem(exportParams.getDirectory()));
+    ExportFile(ExportParams exportParams, byte[] taskId) throws StandardException {
+        this(exportParams, taskId, ImportUtils.getFileSystem(exportParams.getDirectory()));
     }
 
-    ExportFile(ExportParams exportParams, byte[] taskId, DistributedFileSystem fileSystem) throws IOException {
+    ExportFile(ExportParams exportParams, byte[] taskId, DistributedFileSystem fileSystem) {
         this.exportParams = exportParams;
         this.taskId = taskId;
         this.fileSystem = fileSystem;
@@ -62,15 +63,13 @@ public class ExportFile {
         return exportParams.isCompression() ? new GZIPOutputStream(rawOutputStream) : rawOutputStream;
     }
 
-    public boolean createDirectory() {
+    public boolean createDirectory() throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "createDirectory(): export directory=%s", exportParams.getDirectory());
         try {
-            return fileSystem.createDirectory(exportParams.getDirectory(),false);
-        } catch (IOException e) {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "createDirectory(): exception trying to create directory %s: %s", exportParams.getDirectory(), e);
-            return false;
+            return fileSystem.createDirectory(exportParams.getDirectory(), false);
+        } catch (Exception ioe) { // Runtime is added to handle Amazon S3 Issues
+            throw StandardException.newException(SQLState.FILESYSTEM_IO_EXCEPTION, ioe.getMessage());
         }
     }
 

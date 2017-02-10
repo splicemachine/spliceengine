@@ -1,26 +1,29 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -37,6 +40,9 @@ import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -271,7 +277,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     lines,
                     storedAs,
                     location,
-                    compression
+                    compression,
+                    false
                     );
         } else {
             td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
@@ -439,8 +446,35 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         int[] partitionby = activation.getDDLTableDescriptor().getPartitionBy();
         String jobGroup = userId + " <" +txnId +">";
         try {
-            if(storedAs != null)
-            EngineDriver.driver().getOlapClient().execute( new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup,  template));
+            if(storedAs != null){
+                // test constraint only if the external file exits
+                if(SIDriver.driver().fileSystem().getPath(location).toFile().exists()) {
+                    GetSchemaExternalResult result = EngineDriver.driver().getOlapClient().execute(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs));
+                    StructType externalSchema = result.getSchema();
+
+                    //Make sure we have the same amount of attributes in the definition compared to the external file
+                    if (externalSchema.fields().length != template.length()) {
+                        throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
+                    }
+
+                    // test types equivalence. Make sure that the type defined correspond
+                    // to what is really in the external file.
+                    for (int i = 0; i < externalSchema.fields().length; i++) {
+
+                        //compare the datatype
+                        StructField externalField = externalSchema.fields()[i];
+                        StructField definedField = template.schema().fields()[i];
+                        if (!definedField.dataType().equals(externalField.dataType())) {
+                            throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(), externalField.name(), location);
+
+                        }
+                    }
+                }else{
+                    // need the create the external file if the location provided is empty
+                    EngineDriver.driver().getOlapClient().execute( new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup,  template));
+                }
+
+            }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }

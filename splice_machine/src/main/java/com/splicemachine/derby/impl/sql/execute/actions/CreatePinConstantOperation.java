@@ -1,16 +1,15 @@
 /*
- * Copyright 2012 - 2016 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License. You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.splicemachine.derby.impl.sql.execute.actions;
@@ -21,9 +20,12 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
@@ -34,6 +36,8 @@ import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -102,6 +106,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
         TransactionController userTransaction = lcc.getTransactionExecute();
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, userTransaction, true);
         TableDescriptor td = dd.getTableDescriptor(tableName, sd, userTransaction);
@@ -111,6 +116,54 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
 
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         TxnView parentTxn = ((SpliceTransactionManager)userTransaction).getActiveStateTxn();
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+        dd.startWriting(lcc);
+        // Drop the table and then recreate it with the pin marked.
+        try {
+            dd.dropTableDescriptor(td,sd,userTransaction);
+        } catch (StandardException e) {
+            if (ErrorState.WRITE_WRITE_CONFLICT.getSqlState().equals(e.getSQLState())) {
+                throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("Add Pin ()",
+                        e.getMessage());
+            }
+            throw e;
+        }
+
+        // Change the table name of the table descriptor
+        td.setColumnSequence(td.getColumnSequence()+1);
+
+        //Mark the table pinned
+        td.setPinned(true);
+        		    /* Prepare all dependents to invalidate.  (This is their chance
+		     * to say that they can't be invalidated.  For example, an open
+		     * cursor referencing a table/view that the user is attempting to
+		     * alter.) If no one objects, then invalidate any dependent objects.
+		     */
+        dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
+
+        TransactionController tc = lcc.getTransactionExecute();
+
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                (BasicUUID) td.getUUID());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+
+        // Save the TableDescriptor off in the Activation
+        activation.setDDLTableDescriptor(td);
+
+
+        dd.addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,userTransaction);
+
+
         SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(td.getHeapConglomerateId());
         int[] baseColumnMap = IntArrays.count(conglomerate.getFormat_ids().length);
 
