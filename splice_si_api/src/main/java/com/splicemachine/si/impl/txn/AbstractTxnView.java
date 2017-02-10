@@ -18,6 +18,7 @@ import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -92,7 +93,7 @@ public abstract class AbstractTxnView implements TxnView {
         return null;
     }
 
-    @Override public long getParentTxnId() { 
+    @Override public long getParentTxnId() {
     	return getParentTxnView().getTxnId(); 
     }
 
@@ -109,6 +110,7 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
     public boolean canSee(TxnView otherTxn) {
         assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
+        if(otherTxn.getState() == Txn.State.ROLLEDBACK) return false; // can't see rolledback
         if(equals(otherTxn)) return true; //you can always see your own writes
         if(isAdditive() && otherTxn.isAdditive()){
             /*
@@ -122,9 +124,7 @@ public abstract class AbstractTxnView implements TxnView {
              */
             TxnView myParent = getParentTxnView();
             TxnView otherParent = otherTxn.getParentTxnView();
-            if(equals(otherParent)
-                    || otherTxn.equals(myParent)
-                    || !myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equals(otherParent)){
+            if(!myParent.equals(Txn.ROOT_TRANSACTION) && myParent.getTxnId() == otherParent.getTxnId()){
                 return false;
             }
         }
@@ -295,10 +295,13 @@ public abstract class AbstractTxnView implements TxnView {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null) return false;
-        return txnId == ((TxnView) o).getTxnId();
+        return (txnId & SIConstants.TRANSANCTION_ID_MASK) == (((TxnView) o).getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
     }
 
-    @Override public int hashCode() { return (int) (txnId ^ (txnId >>> 32)); }
+    @Override
+    public int hashCode() {
+        return (int) (txnId ^ (txnId >>> 32));
+    }
 
     /************************************************************************************************************/
     /*private helper methods*/
@@ -346,5 +349,14 @@ public abstract class AbstractTxnView implements TxnView {
     			txnId,
     			getState(),
     			(LOG.isDebugEnabled() ? String.format(" -> %s", getParentTxnView()) : ""));
-    }    
+    }
+
+    public int getSubId() {
+        return (int)(txnId & SIConstants.SUBTRANSANCTION_ID_MASK);
+    }
+
+    @Override
+    public boolean allowsSubtransactions() {
+        return false;
+    }
 }

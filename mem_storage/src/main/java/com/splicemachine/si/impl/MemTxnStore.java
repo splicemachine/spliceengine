@@ -15,6 +15,8 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.LongOpenHashSet;
+import com.splicemachine.si.constants.SIConstants;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.primitives.Longs;
 import com.splicemachine.concurrent.Clock;
@@ -62,14 +64,19 @@ public class MemTxnStore implements TxnStore{
 
     @Override
     public Txn getTransaction(long txnId) throws IOException{
-        ReadWriteLock rwlLock=lockStriper.get(txnId);
+        long subId = txnId & SIConstants.SUBTRANSANCTION_ID_MASK;
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        ReadWriteLock rwlLock=lockStriper.get(beginTS);
         Lock rl=rwlLock.readLock();
         rl.lock();
         try{
-            TxnHolder txn=txnMap.get(txnId);
+            TxnHolder txn=txnMap.get(beginTS);
             if(txn==null) return null;
 
             if(isTimedOut(txn))
+                return getRolledbackTxn(txnId,txn.txn);
+            else if (subId == 0) return txn.txn;
+            else if (txn.txn.getRolledback().contains(subId))
                 return getRolledbackTxn(txnId,txn.txn);
             else return txn.txn;
         }finally{
@@ -133,6 +140,37 @@ public class MemTxnStore implements TxnStore{
         }finally{
             wl.unlock();
         }
+    }
+
+    @Override
+    public void rollbackSubtransactions(long txnId, LongOpenHashSet subtransactions) throws IOException {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+
+        ReadWriteLock readWriteLock=lockStriper.get(beginTS);
+        Lock wl=readWriteLock.writeLock();
+        wl.lock();
+        try{
+            TxnHolder txnHolder=txnMap.get(beginTS);
+            if(txnHolder==null) return; //no transaction exists
+
+            Txn txn=txnHolder.txn;
+
+            Txn.State state=txn.getState();
+            if(state!=Txn.State.ACTIVE) return; //nothing to do if we aren't active
+            txnHolder.txn=getRolledbackSubtxns(beginTS,txn,subtransactions);
+        }finally{
+            wl.unlock();
+        }
+    }
+
+    private Txn getRolledbackSubtxns(long txnId, Txn txn, LongOpenHashSet subtransactions) {
+        final LongOpenHashSet subs = subtransactions.clone();
+        return new ForwardingTxnView(txn){
+            @Override
+            public LongOpenHashSet getRolledback() {
+                return subs;
+            }
+        };
     }
 
     protected Txn getRolledbackTxn(long txnId,final Txn txn){
