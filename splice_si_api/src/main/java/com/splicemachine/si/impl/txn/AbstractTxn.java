@@ -145,7 +145,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     public boolean canSee(TxnView otherTxn) {
         // Protects against reading data written by the "self-insert transaction"
         for (Txn c : children) {
-            if (c.equals(otherTxn) && c.getState() == State.ACTIVE) {
+            if (c.getTxnId() == otherTxn.getTxnId() && c.getState() == State.ACTIVE) {
                 return false;
             }
         }
