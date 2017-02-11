@@ -55,6 +55,10 @@ import java.util.stream.Collectors;
 import static org.apache.spark.sql.functions.asc;
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.desc;
+import static org.apache.spark.sql.functions.asc_nulls_first;
+import static org.apache.spark.sql.functions.asc_nulls_last;
+import static org.apache.spark.sql.functions.desc_nulls_last;
+import static org.apache.spark.sql.functions.desc_nulls_first;
 
 public class SparkUtils {
     public static final Logger LOG = Logger.getLogger(SparkUtils.class);
@@ -238,9 +242,30 @@ public class SparkUtils {
     public static scala.collection.mutable.Buffer<Column> convertSortColumns(ColumnOrdering[] sortColumns){
         return Arrays
                 .stream(sortColumns)
-                .map(column -> column.getIsAscending() ? asc(ValueRow.getNamedColumn(column.getColumnId()-1)) :
-                        desc(ValueRow.getNamedColumn(column.getColumnId()-1)))
+                .map(column -> ordering(ValueRow.getNamedColumn(column.getColumnId()-1),column.getIsAscending(),column.getIsNullsOrderedLow()))
                 .collect(Collectors.collectingAndThen(Collectors.toList(), JavaConversions::asScalaBuffer));
+    }
+
+    private  static Column ordering(String column, boolean isAscending, boolean isNullsOrderedLow){
+
+        if(isAscending){
+            if(isNullsOrderedLow){
+                return asc_nulls_last(column);
+
+            }
+            else{
+                return asc_nulls_first(column);
+            }
+        }
+        else{
+            if(isNullsOrderedLow){
+                return desc_nulls_last(column);
+            }
+            else {
+                return desc_nulls_first(column);
+
+            }
+        }
     }
 
     /**
