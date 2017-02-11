@@ -78,7 +78,7 @@ public class DDLTxnView extends AbstractTxnView {
         if(otherTxn.getBeginTimestamp()>=demarcationPoint) return false;
 
         if(otherTxn.getEffectiveState() == Txn.State.COMMITTED) return true;
-        if(equals(otherTxn)) return true; //you can always see your own writes
+        if(equivalent(otherTxn)) return true; //you can always see your own writes
         if(isAdditive() && otherTxn.isAdditive()){
             /*
              * Both transactions are additive, but we can only treat them as additive
@@ -95,9 +95,9 @@ public class DDLTxnView extends AbstractTxnView {
              */
             TxnView myParent = getParentTxnView();
             TxnView otherParent = otherTxn.getParentTxnView();
-            if(equals(otherParent)
-                    || otherTxn.equals(myParent)
-                    || !myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equals(otherParent)){
+            if(equivalent(otherParent)
+                    || otherTxn.equivalent(myParent)
+                    || !myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equivalent(otherParent)){
                 return Txn.IsolationLevel.READ_UNCOMMITTED.canSee(getBeginTimestamp(),otherTxn,false);
             }
         }

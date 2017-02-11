@@ -69,6 +69,11 @@ public interface Txn extends TxnView{
         }
 
         @Override
+        public boolean equivalent(TxnView o) {
+            return equals(o);
+        }
+
+        @Override
         public long getBeginTimestamp(){
             return 0;
         }

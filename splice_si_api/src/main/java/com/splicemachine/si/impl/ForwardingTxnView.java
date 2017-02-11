@@ -61,4 +61,9 @@ public abstract class ForwardingTxnView extends AbstractTxn {
 
     @Override public boolean isAdditive() { return delegate.isAdditive(); }
     @Override public Iterator<ByteSlice> getDestinationTables() { return delegate.getDestinationTables(); }
+
+    @Override
+    public boolean equivalent(TxnView o) {
+        return delegate.equivalent(o);
+    }
 }

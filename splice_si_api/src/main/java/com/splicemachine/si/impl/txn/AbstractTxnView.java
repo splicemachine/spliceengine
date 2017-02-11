@@ -111,7 +111,7 @@ public abstract class AbstractTxnView implements TxnView {
     public boolean canSee(TxnView otherTxn) {
         assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
         if(otherTxn.getState() == Txn.State.ROLLEDBACK) return false; // can't see rolledback
-        if(equals(otherTxn)) return true; //you can always see your own writes
+        if(equivalent(otherTxn)) return true; //you can always see your own writes
         if(isAdditive() && otherTxn.isAdditive()){
             /*
              * Both transactions are additive, but we can only treat them as additive
@@ -181,7 +181,7 @@ public abstract class AbstractTxnView implements TxnView {
               * effective state.
               */
               TxnView b = this;
-              while(!lat.equals(b)){
+              while(!lat.equivalent(b)){
                   if(Txn.ROOT_TRANSACTION.equals(b.getParentTxnView())) break;
                   b = b.getParentTxnView();
               }
@@ -204,7 +204,7 @@ public abstract class AbstractTxnView implements TxnView {
 				 *
 				 * otherwise, we conflict
 				 */
-        if(equals(otherTxn)) return ConflictType.NONE; //cannot conflict with ourself
+        if(equivalent(otherTxn)) return ConflictType.NONE; //cannot conflict with ourself
         if(isAdditive() && otherTxn.isAdditive()){
             /*
              * Both transactions are additive, but we can only treat them as additive
@@ -212,7 +212,7 @@ public abstract class AbstractTxnView implements TxnView {
              */
             TxnView myParent = getParentTxnView();
             TxnView otherParent = otherTxn.getParentTxnView();
-            if(!myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equals(otherParent)){
+            if(!myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equivalent(otherParent)){
                 /*
                  * We are additive. Normally, we don't care about additive conflicts, and
                  * unless special circumstances are met, we will ignore this, but
@@ -282,7 +282,7 @@ public abstract class AbstractTxnView implements TxnView {
     public boolean descendsFrom(TxnView potentialParent) {
         TxnView t = this;
         while(!t.equals(Txn.ROOT_TRANSACTION)){
-            if(t.equals(potentialParent)) return true;
+            if(t.equivalent(potentialParent)) return true;
             else
                 t = t.getParentTxnView();
         }
@@ -295,8 +295,16 @@ public abstract class AbstractTxnView implements TxnView {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null) return false;
-        return (txnId & SIConstants.TRANSANCTION_ID_MASK) == (((TxnView) o).getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
+        return txnId  == ((TxnView) o).getTxnId();
     }
+
+    @Override
+    public boolean equivalent(TxnView o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        return (txnId & SIConstants.TRANSANCTION_ID_MASK) == (o.getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
+    }
+
 
     @Override
     public int hashCode() {
@@ -316,7 +324,7 @@ public abstract class AbstractTxnView implements TxnView {
          */
         TxnView b = this;
         TxnView n = this.getParentTxnView();
-        while(!ancestor.equals(n)){
+        while(!ancestor.equivalent(n)){
             b = n;
             n = n.getParentTxnView();
             assert n!=null: "Reached ROOT transaction without finding ancestor!";
@@ -344,11 +352,10 @@ public abstract class AbstractTxnView implements TxnView {
 
     @Override
     public String toString(){
-    	return String.format("%s(%s,%s)%s",
+    	return String.format("%s(%s,%s)",
     			getClass().getSimpleName(),
     			txnId,
-    			getState(),
-    			(LOG.isDebugEnabled() ? String.format(" -> %s", getParentTxnView()) : ""));
+    			getState());
     }
 
     public int getSubId() {
