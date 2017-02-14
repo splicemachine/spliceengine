@@ -16,6 +16,13 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.splicetest.sqlj</groupId>
     <packaging>jar</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_machine</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
     <artifactId>sqlj-it-procs</artifactId>
     <name>${project.artifactId}</name>
     <description>Splice Machine sqlj IT jar</description>
