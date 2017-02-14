@@ -15,9 +15,11 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
@@ -472,8 +474,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     }
                 }else{
                     // need the create the external file if the location provided is empty
-                    EngineDriver.driver().getOlapClient().execute( new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup,  template));
-                }
+                    // look at the file, if it doesn't exist create it.
+                        DistributedFileSystem dfs = SIDriver.driver().getSIEnvironment().fileSystem(location);
+                        if(!dfs.getInfo(location).exists()) {
+                            String pathToParent = location.substring(0, location.lastIndexOf("/"));
+                            ImportUtils.validateWritable(pathToParent.toString(), false);
+                            EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, template));
+                        }
+                    }
 
             }
         } catch (Exception e) {
