@@ -62,15 +62,8 @@ public class CreateExternalTableJob implements Callable<Void> {
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.getJobGroup(), "");
+        dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
 
-        // look at the file, if it doesn't exist create it.
-        DistributedFileSystem dfs = SIDriver.driver().getSIEnvironment().fileSystem(request.getLocation());
-        if(!dfs.getInfo(request.getLocation()).exists()){
-            String location =  request.getLocation();
-            String pathToParent = location.substring(0, location.lastIndexOf("/"));
-            ImportUtils.validateWritable(pathToParent.toString(),false);
-            dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
-        }
 
         jobStatus.markCompleted(new SuccessfulOlapResult());
         return null;
