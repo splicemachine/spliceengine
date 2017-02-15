@@ -80,9 +80,9 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             if (storedAs.equals("T"))
                 return dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
             if (storedAs.equals("P"))
-                return dsp.readParquetFile(baseColumnMap,location,operationContext,qualifiers,null,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
+                return dsp.readParquetFile(baseColumnMap,location,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
             if (storedAs.equals("O"))
-                return dsp.readORCFile(baseColumnMap,location,operationContext,qualifiers,null,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
+                return dsp.readORCFile(baseColumnMap,location,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
@@ -122,6 +122,8 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         super.writeExternal(out);
         out.writeUTF(tableName);
         out.writeObject(dsp);
+        out.writeObject(op);
+
     }
 
     @Override
@@ -129,5 +131,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         super.readExternal(in);
         this.tableName = in.readUTF();
         this.dsp = (SparkDataSetProcessor)in.readObject();
+        this.op = (SpliceOperation)in.readObject();
     }
 }
