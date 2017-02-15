@@ -107,7 +107,12 @@ public class HBaseSITestEnv implements SITestEnv{
     @Override
     public void initialize() throws IOException{
         try(HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin()){
-            hBaseAdmin.createTable(generateDefaultSIGovernedTable("1440"));
+            HTableDescriptor table = generateDefaultSIGovernedTable("1440");
+            if (hBaseAdmin.tableExists(table.getTableName())) {
+                hBaseAdmin.disableTable(table.getTableName());
+                hBaseAdmin.deleteTable(table.getTableName());
+            }
+            hBaseAdmin.createTable(table);
         }
     }
 

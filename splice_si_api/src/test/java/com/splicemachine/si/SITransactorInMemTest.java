@@ -1,15 +1,16 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright 2012 - 2016 Splice Machine, Inc.
  *
- * This file is part of Splice Machine.
- * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
- * GNU Affero General Public License as published by the Free Software Foundation, either
- * version 3, or (at your option) any later version.
- * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
- * If not, see <http://www.gnu.org/licenses/>.
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
+ * License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package com.splicemachine.si;
@@ -17,21 +18,32 @@ package com.splicemachine.si;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
-import com.splicemachine.si.api.txn.*;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.ForwardingTxnView;
 import com.splicemachine.si.impl.txn.DDLTxnView;
-import com.splicemachine.si.impl.txn.InheritingTxnView;
-import com.splicemachine.si.impl.txn.LazyTxnView;
-import com.splicemachine.si.testenv.*;
+import com.splicemachine.si.testenv.ArchitectureSpecific;
+import com.splicemachine.si.testenv.SITestEnv;
+import com.splicemachine.si.testenv.SITestEnvironment;
+import com.splicemachine.si.testenv.TestTransactionSetup;
+import com.splicemachine.si.testenv.TransactorTestUtility;
 import com.splicemachine.utils.ByteSlice;
 import org.hamcrest.core.IsInstanceOf;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.spark_project.guava.collect.Lists;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -39,9 +51,9 @@ import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
 @Category(ArchitectureSpecific.class)
-public class SITransactorTest {
+public class SITransactorInMemTest {
     @Rule public ExpectedException error = ExpectedException.none();
-    private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
+    private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1384");
     private boolean useSimple = true;
     private static SITestEnv testEnv;
     private static TestTransactionSetup transactorSetup;
@@ -56,6 +68,21 @@ public class SITransactorTest {
             @Override
             protected void afterStart(Txn txn) {
                 createdParentTxns.add(txn);
+            }
+
+            @Override
+            public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable) throws IOException {
+                return super.beginChildTransaction(parentTxn, isolationLevel, additive, destinationTable, true);
+            }
+
+            @Override
+            public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException {
+                return this.beginChildTransaction(parentTxn, isolationLevel, parentTxn.isAdditive(), destinationTable);
+            }
+
+            @Override
+            public Txn beginChildTransaction(TxnView parentTxn, byte[] destinationTable) throws IOException {
+                return this.beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), destinationTable);
             }
         };
         testUtility = new TransactorTestUtility(useSimple,testEnv, transactorSetup);
@@ -73,7 +100,6 @@ public class SITransactorTest {
 
     @Before
     public void setUp() throws IOException {
-
         baseSetUp();
     }
 
@@ -1548,17 +1574,6 @@ public class SITransactorTest {
     }
 
     @Test
-    public void parentWritesDoNotConflictWithPriorActiveChildWrites() throws IOException {
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
-        testUtility.insertAge(t2, "joe102", 20);
-        testUtility.insertAge(t1, "joe102", 21);
-        Assert.assertEquals("joe102 age=21 job=null", testUtility.read(t1, "joe102"));
-        t2.commit();
-        Assert.assertEquals("joe102 age=21 job=null", testUtility.read(t1, "joe102"));
-    }
-
-    @Test
     public void parentWritesDoNotConflictWithPriorActiveChildDelete() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         Txn t2 = control.beginChildTransaction(noSubTxns(t1), t1.getIsolationLevel(), DESTINATION_TABLE);
@@ -1620,7 +1635,7 @@ public class SITransactorTest {
         testUtility.insertAge(t1, "boe58", 19);
         testUtility.insertAge(t2, "boe58", 21);
         testUtility.insertAge(t3, "joe58", 20);
-        Assert.assertEquals("joe58 age=20 job=null", testUtility.read(t3, "joe58"));
+//        Assert.assertEquals("joe58 age=20 job=null", testUtility.read(t3, "joe58"));
         t3.rollback();
         Assert.assertEquals("joe58 age=18 job=null", testUtility.read(t2, "joe58"));
         Assert.assertEquals("boe58 age=21 job=null", testUtility.read(t2, "boe58"));
@@ -2113,18 +2128,6 @@ public class SITransactorTest {
         Assert.assertEquals("147joe age=11 job=null", testUtility.read(t2, "147joe"));
         Assert.assertEquals("147boe age=31 job=null", testUtility.read(t2, "147boe"));
         Assert.assertEquals("147zoe age=51 job=null", testUtility.read(t2, "147zoe"));
-    }
-
-    // Commit & begin together tests
-    @Test
-    public void testCommitAndBeginSeparate() throws IOException {
-        final Txn t1 = control.beginTransaction();
-        final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-        t1.commit();
-        final Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(), false, DESTINATION_TABLE);
-        Assert.assertEquals(t1.getTxnId() + SIConstants.TRASANCTION_INCREMENT, t2.getTxnId());
-        // next ID burned for commit
-        Assert.assertEquals(t1.getTxnId() + SIConstants.TRASANCTION_INCREMENT*2, t3.getTxnId());
     }
 
     @Test
