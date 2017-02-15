@@ -60,7 +60,7 @@ import com.splicemachine.util.concurrent.TestLock;
  */
 @Category(ArchitectureIndependent.class)
 public class DDLCoordinationTest{
-    private static final WritableTxn txn=new WritableTxn(1L,1L,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true,null);
+    private static final WritableTxn txn=new WritableTxn(0x100L,0x100L,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true,null);
     private static final SConfiguration config = new ConfigurationBuilder().build(new EmptyConfigurationDefaultsList().addConfig(new TestConfig()),
                                                                                   new ReflectingConfigurationSource());
 

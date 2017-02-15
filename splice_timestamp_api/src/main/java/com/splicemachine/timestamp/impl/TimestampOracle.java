@@ -29,6 +29,7 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 public class TimestampOracle implements TimestampOracleStatistics{
+	private static final long TIMESTAMP_INCREMENT = 0x100l;
 
     private static final Logger LOG = Logger.getLogger(TimestampOracle.class);
 
@@ -77,7 +78,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
 	private void initialize() throws TimestampIOException {
 			synchronized(this) {
                 _maxReservedTimestamp = timestampBlockManager.initialize();
-				_timestampCounter.set(_maxReservedTimestamp + 1);
+				_timestampCounter.set(_maxReservedTimestamp + TIMESTAMP_INCREMENT);
 			}
 			try {
 				registerJMX();
@@ -87,7 +88,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
     }
 
 	public long getNextTimestamp() throws TimestampIOException {
-		long nextTS = _timestampCounter.getAndIncrement();
+		long nextTS = _timestampCounter.addAndGet(TIMESTAMP_INCREMENT);
 		long maxTS = _maxReservedTimestamp; // avoid the double volatile read
 		if (nextTS > maxTS) {
 			reserveNextBlock(maxTS);

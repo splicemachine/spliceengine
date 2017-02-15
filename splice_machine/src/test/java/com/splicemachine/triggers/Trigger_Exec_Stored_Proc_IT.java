@@ -38,7 +38,6 @@ import org.spark_project.guava.collect.Lists;
  * Note the dependency on user-defined stored procedures in this test class.<br/>
  * See {@link TriggerProcs} for instructions on adding/modifying store procedures.
  */
-//@Ignore
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {

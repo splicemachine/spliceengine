@@ -25,6 +25,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.ForwardingTxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.Exceptions;
@@ -794,6 +795,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         try {
             TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
+
+            // tentativeTransaction must be a fully distributed transaction capable of committing with a CommitTimestamp,
+            // in order to reuse this commit timestamp as the begin timestamp and chain the transactions
+            ((Txn) parentTxn).forbidSubtransactions();
             tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomId));
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative DDL operation");

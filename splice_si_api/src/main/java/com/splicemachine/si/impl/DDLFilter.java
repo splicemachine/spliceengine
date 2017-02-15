@@ -36,13 +36,9 @@ public class DDLFilter implements Comparable<DDLFilter> {
         Boolean visible = visibilityMap.getIfPresent(txn.getTxnId());
         if(visible!=null) return visible;
 
-        //if I haven't succeeded yet, don't do anything
-        if(myTransaction.getState()!= Txn.State.COMMITTED) return false;
         //if my parent was rolled back, do nothing
         if(myTransaction.getParentTxnView().getEffectiveState()== Txn.State.ROLLEDBACK) return false;
 
-//        if I have a parent, and he was rolled back, don't do anything
-//        if(myParenTxn!=null && myParenTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return false;
         try{
             return visibilityMap.get(txn.getTxnId(),new Callable<Boolean>() {
                 @Override
