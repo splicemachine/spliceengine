@@ -206,10 +206,9 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
                                                  String extension) throws StandardException {
         try {
             DistributedFileSystem fileSystem = SIDriver.driver().getSIEnvironment().fileSystem(vtiFilePath);
-            Path inputFilePath = fileSystem.getPath(vtiFilePath);
+            String inputFileName = fileSystem.getFileName(vtiFilePath);
             if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "BadRecordsRecorder: badDirectory=%s, filePath=%s", badDirectory, inputFilePath);
-            assert inputFilePath != null;
+                SpliceLogUtils.trace(LOG, "BadRecordsRecorder: badDirectory=%s, filePath=%s", badDirectory, vtiFilePath);
 
             if (badDirectory == null || badDirectory.isEmpty() || badDirectory.toUpperCase().equals("NULL")) {
                 badDirectory = vtiFilePath.substring(0, vtiFilePath.lastIndexOf("/"));
@@ -220,10 +219,9 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
             fileSystem = SIDriver.driver().getSIEnvironment().fileSystem(badDirectory);
             int i = 0;
             while (true) {
-                String fileName = badDirectory + "/" + inputFilePath.getFileName();
+                String fileName = badDirectory + "/" + inputFileName;
                 fileName = fileName + (i == 0 ? extension : "_" + i + extension);
-                Path fileSystemPathForWrites = fileSystem.getPath(fileName);
-                if (!Files.exists(fileSystemPathForWrites)) {
+                if (!fileSystem.exists(fileName)) {
                     return fileName;
                 }
                 i++;

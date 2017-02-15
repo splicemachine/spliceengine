@@ -182,11 +182,6 @@ public class MPipelineEnv  implements PipelineEnvironment{
     }
 
     @Override
-    public DistributedFileSystem fileSystem(){
-        return siEnv.fileSystem();
-    }
-
-    @Override
     public SnowflakeFactory snowflakeFactory() {
         return siEnv.snowflakeFactory();
     }

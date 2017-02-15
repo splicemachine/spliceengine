@@ -451,7 +451,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         try {
             if(storedAs != null){
                 // test constraint only if the external file exits
-                if(SIDriver.driver().fileSystem().getPath(location).toFile().exists()) {
+                if(SIDriver.driver().getFileSystem(location).exists(location)) {
                     GetSchemaExternalResult result = EngineDriver.driver().getOlapClient().execute(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs));
                     StructType externalSchema = result.getSchema();
 
