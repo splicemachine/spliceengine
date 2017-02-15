@@ -147,9 +147,10 @@ public class WritableTxn extends AbstractTxn{
                         return;
                     case ROLLEDBACK:
                         throw exceptionFactory.cannotCommit(txnId, state);
+                    case ACTIVE:
+                        commitTimestamp = tc.commit(txnId);
+                        state = State.COMMITTED;
                 }
-                commitTimestamp = tc.commit(txnId);
-                state = State.COMMITTED;
             }
         } else {
             state = State.COMMITTED;

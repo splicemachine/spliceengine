@@ -105,7 +105,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
 
     /**
      * The number of timestamps to 'reserve' at a time in the Timestamp Server.
-     * Defaults to 8192
+     * Defaults to 32768
      */
     public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
     protected static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 32768;
