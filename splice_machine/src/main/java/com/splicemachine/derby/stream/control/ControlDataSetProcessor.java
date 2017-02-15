@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.net.URISyntaxException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
@@ -187,6 +188,8 @@ public class ControlDataSetProcessor implements DataSetProcessor{
             return singleRowPairDataSet(s,is);
         }catch(IOException e){
             throw new RuntimeException(e);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -197,17 +200,19 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public DataSet<String> readTextFile(final String s){
-        return new ControlDataSet<>(new Iterable<String>(){
-            @Override
-            public Iterator<String> iterator(){
-                try{
-                    InputStream is=getFileStream(s);
+        try{
+            final InputStream is=getFileStream(s);
+            return new ControlDataSet<String>(new Iterable<String>() {
+                @Override
+                public Iterator<String> iterator() {
                     return new TextFileIterator(is);
-                }catch(IOException e){
-                    throw new RuntimeException(e);
                 }
-            }
-        });
+            });
+        }catch(IOException e) {
+            throw new RuntimeException(e);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -288,36 +293,32 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private InputStream newInputStream(DistributedFileSystem dfs,@Nonnull Path p,OpenOption... options) throws IOException{
+    private InputStream newInputStream(DistributedFileSystem dfs,@Nonnull String p,OpenOption... options) throws IOException{
+        assert p!=null;
         InputStream value = dfs.newInputStream(p,options);
-        String s=p.getFileName().toString();
-        assert s!=null;
-        if(s.endsWith("gz")){
+        if(p.endsWith("gz")){
             //need to open up a decompressing inputStream
             value = new GZIPInputStream(value);
         }
         return value;
     }
 
-    private InputStream getFileStream(String s) throws IOException{
-        DistributedFileSystem dfs=SIDriver.driver().fileSystem();
+    private InputStream getFileStream(String s) throws IOException, URISyntaxException {
+        DistributedFileSystem dfs=SIDriver.driver().getSIEnvironment().fileSystem(s);
         InputStream value;
         if(dfs.getInfo(s).isDirectory()){
             //we need to open a Stream against each file in the directory
             InputStream inputStream = null;
-            boolean sequenced = false;
-            try(DirectoryStream<Path> stream =Files.newDirectoryStream(dfs.getPath(s))){
-                for(Path p:stream){
-                    if(inputStream==null){
-                        inputStream = newInputStream(dfs,p,StandardOpenOption.READ);
-                    }else {
-                        inputStream = new SequenceInputStream(inputStream,newInputStream(dfs,p,StandardOpenOption.READ));
-                    }
+            for (String file : dfs.getExistingFiles(s, "*")) {
+                if(inputStream==null){
+                    inputStream = newInputStream(dfs,file,StandardOpenOption.READ);
+                }else {
+                    inputStream = new SequenceInputStream(inputStream,newInputStream(dfs,file,StandardOpenOption.READ));
                 }
             }
             value = inputStream;
         }else{
-            value = newInputStream(dfs,dfs.getPath(s),StandardOpenOption.READ);
+            value = newInputStream(dfs,s,StandardOpenOption.READ);
         }
         return value;
     }
