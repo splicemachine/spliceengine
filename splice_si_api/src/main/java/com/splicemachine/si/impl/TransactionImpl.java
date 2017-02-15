@@ -60,14 +60,10 @@ public class TransactionImpl extends BaseTransaction {
             ignoreSavePoints=true;
         }
 
-//        if(LOG.isDebugEnabled())
-//            SpliceLogUtils.debug(LOG,"Before setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
         setActiveState(false,false,null); //make sure that we are active
         Txn currentTxn=getTxn();
         Txn child=lifecycleManager.beginChildTransaction(currentTxn,null);
         txnStack.push(Pair.newPair(name,child));
-//        if(LOG.isDebugEnabled())
-//            SpliceLogUtils.debug(LOG,"After setSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
         return txnStack.size();
     }
 
