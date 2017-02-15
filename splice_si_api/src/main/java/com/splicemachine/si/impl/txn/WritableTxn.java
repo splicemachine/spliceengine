@@ -51,23 +51,25 @@ public class WritableTxn extends AbstractTxn{
 
     public WritableTxn(long txnId,
                        long beginTimestamp,
+                       Txn parentRoot,
                        IsolationLevel isolationLevel,
                        TxnView parentTxn,
                        TxnLifecycleManager tc,
                        boolean isAdditive,
                        ExceptionFactory exceptionFactory){
-        this(txnId,beginTimestamp,isolationLevel,parentTxn,tc,isAdditive,null,exceptionFactory);
+        this(txnId,beginTimestamp,parentRoot,isolationLevel,parentTxn,tc,isAdditive,null,exceptionFactory);
     }
 
     public WritableTxn(long txnId,
                        long beginTimestamp,
+                       Txn parentReference,
                        IsolationLevel isolationLevel,
                        TxnView parentTxn,
                        TxnLifecycleManager tc,
                        boolean isAdditive,
                        byte[] destinationTable,
                        ExceptionFactory exceptionFactory){
-        super(txnId,beginTimestamp,isolationLevel);
+        super(parentReference,txnId,beginTimestamp,isolationLevel);
         this.exceptionFactory = exceptionFactory;
         this.parentTxn=parentTxn;
         this.tc=tc;
@@ -78,7 +80,7 @@ public class WritableTxn extends AbstractTxn{
     }
 
     public WritableTxn(Txn txn,TxnLifecycleManager tc,byte[] destinationTable,ExceptionFactory exceptionFactory){
-        super(txn.getTxnId(),txn.getBeginTimestamp(),txn.getIsolationLevel());
+        super(txn, txn.getTxnId(), txn.getBeginTimestamp(),txn.getIsolationLevel());
         this.parentTxn=txn.getParentTxnView();
         this.tc=tc;
         this.isAdditive=txn.isAdditive();
@@ -129,46 +131,67 @@ public class WritableTxn extends AbstractTxn{
     public void commit() throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"Before commit: txn=%s",this);
-        switch(state){
-            case COMMITTED:
-                return;
-            case ROLLEDBACK:
-                throw exceptionFactory.cannotCommit(txnId,state);
-        }
-        synchronized(this){
-            //double-checked locking for efficiency--usually not needed
-            switch(state){
+
+        if (getSubId() == 0) {
+            switch (state) {
                 case COMMITTED:
                     return;
                 case ROLLEDBACK:
-                    throw exceptionFactory.cannotCommit(txnId,state);
+                    throw exceptionFactory.cannotCommit(txnId, state);
             }
-            commitTimestamp=tc.commit(txnId);
-            state=State.COMMITTED;
+            synchronized (this) {
+                //double-checked locking for efficiency--usually not needed
+                switch (state) {
+                    case COMMITTED:
+                        return;
+                    case ROLLEDBACK:
+                        throw exceptionFactory.cannotCommit(txnId, state);
+                    case ACTIVE:
+                        commitTimestamp = tc.commit(txnId);
+                        state = State.COMMITTED;
+                }
+            }
+        } else {
+            state = State.COMMITTED;
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"After commit: txn=%s,commitTimestamp=%s",this,commitTimestamp);
     }
 
     @Override
+    public void subRollback() {
+        for(Txn c : children) {
+            c.subRollback();
+        }
+        parentReference.addRolledback(getSubId());
+        state = State.ROLLEDBACK;
+    }
+
+    @Override
     public void rollback() throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"Before rollback: txn=%s",this);
-        switch(state){
-            case COMMITTED://don't need to rollback
-            case ROLLEDBACK:
-                return;
-        }
 
-        synchronized(this){
-            switch(state){
+        if (getSubId() == 0) {
+            switch (state) {
                 case COMMITTED://don't need to rollback
                 case ROLLEDBACK:
                     return;
             }
 
-            tc.rollback(txnId);
-            state=State.ROLLEDBACK;
+            synchronized (this) {
+                switch (state) {
+                    case COMMITTED://don't need to rollback
+                    case ROLLEDBACK:
+                        return;
+                }
+
+                tc.rollback(txnId);
+                state = State.ROLLEDBACK;
+            }
+        } else {
+            subRollback();
+            tc.rollbackSubtransactions(txnId, parentReference.getRolledback());
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"After rollback: txn=%s",this);
@@ -198,12 +221,12 @@ public class WritableTxn extends AbstractTxn{
     }
 
     public WritableTxn getReadUncommittedActiveTxn() {
-        return new WritableTxn(txnId,getBeginTimestamp(),Txn.IsolationLevel.READ_UNCOMMITTED,
+        return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_UNCOMMITTED,
                 parentTxn,tc,isAdditive,null,exceptionFactory);
     }
 
     public WritableTxn getReadCommittedActiveTxn() {
-        return new WritableTxn(txnId,getBeginTimestamp(),Txn.IsolationLevel.READ_COMMITTED,
+        return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_COMMITTED,
                 parentTxn,tc,isAdditive,null,exceptionFactory);
     }
 

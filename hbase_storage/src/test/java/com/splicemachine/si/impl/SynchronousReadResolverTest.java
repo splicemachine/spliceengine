@@ -74,9 +74,9 @@ public class SynchronousReadResolverTest {
                 store.rollback((Long) invocationOnMock.getArguments()[0]);
                 return null;
             }
-        }).when(tc).rollback(1l);
+        }).when(tc).rollback(0x100l);
 
-        Txn rolledBackTxn = new WritableTxn(1l, 1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, tc, false,HExceptionFactory.INSTANCE);
+        Txn rolledBackTxn = new WritableTxn(0x100l, 0x100l, null, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, tc, false,HExceptionFactory.INSTANCE);
         store.recordNewTransaction(rolledBackTxn);
         rolledBackTxn.rollback(); //ensure that it's rolled back
 
@@ -88,7 +88,7 @@ public class SynchronousReadResolverTest {
 
         region.put(testPut);
 
-        Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(2l, Txn.ROOT_TRANSACTION, 2l,
+        Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(0x200l, Txn.ROOT_TRANSACTION, 0x200l,
                 Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
         SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store);
 
@@ -119,10 +119,10 @@ public class SynchronousReadResolverTest {
             public Long answer(InvocationOnMock invocationOnMock) throws Throwable {
                 long next = commitTsGenerator.nextTimestamp();
                 store.commit((Long) invocationOnMock.getArguments()[0]);
-                return next + 1;
+                return next + SIConstants.TRASANCTION_INCREMENT;
             }
         }).when(tc).commit(anyLong());
-        Txn committedTxn = new WritableTxn(1l, 1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, tc, false,HExceptionFactory.INSTANCE);
+        Txn committedTxn = new WritableTxn(0x100l, 0x100l, null, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, tc, false,HExceptionFactory.INSTANCE);
         store.recordNewTransaction(committedTxn);
         committedTxn.commit();
 
@@ -134,7 +134,7 @@ public class SynchronousReadResolverTest {
 
         region.put(testPut);
 
-        Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(3l, Txn.ROOT_TRANSACTION, 3l,
+        Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(0x300l, Txn.ROOT_TRANSACTION, 0x300l,
                 Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
         SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store);
 

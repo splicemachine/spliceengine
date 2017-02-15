@@ -126,6 +126,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     public TxnView fromWrites(byte[] data,int off,int length) throws IOException{
         if(length<=0) return null; //non-transactional
         MultiFieldDecoder decoder=MultiFieldDecoder.wrap(data,off,length);
+        long txnId=decoder.decodeNextLong();
         long beginTs=decoder.decodeNextLong();
         boolean additive=decoder.decodeNextBoolean();
         Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
@@ -137,7 +138,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
             long id=decoder.decodeNextLong();
             parent=new ActiveWriteTxn(id,id,parent,additive,level);
         }
-        return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
+        return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
     }
 
     @Override
@@ -156,8 +157,9 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
 
     @Override
     public byte[] encode(TxnView txn){
-        MultiFieldEncoder encoder=MultiFieldEncoder.create(5)
+        MultiFieldEncoder encoder=MultiFieldEncoder.create(6)
                 .encodeNext(txn.getTxnId())
+                .encodeNext(txn.getBeginTimestamp())
                 .encodeNext(txn.isAdditive())
                 .encodeNext(txn.getIsolationLevel().encode())
                 .encodeNext(txn.allowsWrites());
@@ -170,6 +172,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
 
     public TxnView decode(byte[] data,int offset,int length){
         MultiFieldDecoder decoder=MultiFieldDecoder.wrap(data,offset,length);
+        long txnId=decoder.decodeNextLong();
         long beginTs=decoder.decodeNextLong();
         boolean additive=decoder.decodeNextBoolean();
         Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
@@ -184,9 +187,9 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
                 parent=new ReadOnlyTxn(id,id,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
         }
         if(allowsWrites)
-            return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
+            return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
         else
-            return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
+            return new ReadOnlyTxn(txnId,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
     }
 
     @Override

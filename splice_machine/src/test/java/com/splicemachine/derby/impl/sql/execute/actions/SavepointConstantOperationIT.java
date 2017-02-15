@@ -18,10 +18,14 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Savepoint;
 import java.sql.Statement;
@@ -31,22 +35,32 @@ import java.sql.Statement;
  * @author Jeff Cunningham
  *         Date: 7/17/13
  */
+@Category({SerialTest.class}) // Needed to check transaction distance
 public class SavepointConstantOperationIT { 
     public static final String CLASS_NAME = SavepointConstantOperationIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher classWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+    @ClassRule
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+    @ClassRule
+    public static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
     public static final String TABLE_NAME_1 = "B";
 
     private static String tableDef = "(TaskId INT NOT NULL)";
     protected static SpliceTableWatcher b= new SpliceTableWatcher(TABLE_NAME_1, CLASS_NAME, tableDef);
     protected static SpliceTableWatcher t= new SpliceTableWatcher("T", CLASS_NAME, "(a int)");
+    protected static SpliceTableWatcher c= new SpliceTableWatcher("C", CLASS_NAME, "(i int primary key)");
+    protected static SpliceTableWatcher d= new SpliceTableWatcher("D", CLASS_NAME, "(i int primary key)");
+    protected static SpliceTableWatcher e= new SpliceTableWatcher("E", CLASS_NAME, "(i int primary key)");
+    protected static SpliceTableWatcher f= new SpliceTableWatcher("F", CLASS_NAME, "(i int primary key)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(spliceSchemaWatcher)
             .around(b)
-            .around(t);
+            .around(t).around(c).around(d)
+            .around(e).around(f);
 
     private static TestConnection conn1;
     private static TestConnection conn2;
@@ -213,5 +227,100 @@ public class SavepointConstantOperationIT {
         Assert.assertEquals("Incorrect count after savepoint release!",1l,count);
 
 
+    }
+
+    @Test
+    public void testSomePersistedSavepoints() throws Exception {
+        ResultSet rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        rs.next();
+        PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s.c (i) values (?)", CLASS_NAME));
+        long txnId = rs.getLong(1);
+        long iterations = (SIConstants.TRASANCTION_INCREMENT - 2) ;
+        for (int i = 0; i < iterations; ++i) {
+            ps.setInt(1, i);
+            ps.execute();
+        }
+        conn1.commit();
+        long count = conn1.count("select * from c");
+        Assert.assertEquals("Incorrect count after savepoint release!",iterations,count);
+
+        rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        rs.next();
+        long txnIdLater = rs.getLong(1);
+
+        // The difference should be 0x400: the batch created one persisted txn, that's 2 timestamps (begin + commit),
+        // the user transaction committed (1 ts) and then the new user transaction started (1 ts)
+        Assert.assertEquals("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnId + 0x400, txnIdLater);
+    }
+
+
+    @Test
+    public void testMorePersistedSavepoints() throws Exception {
+        ResultSet rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        rs.next();
+        PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s.d (i) values (?)", CLASS_NAME));
+        long txnId = rs.getLong(1);
+        long iterations = (SIConstants.TRASANCTION_INCREMENT - 2) * 4;
+        for (int i = 0; i < iterations; ++i) {
+            ps.setInt(1, i);
+            ps.execute();
+        }
+        conn1.commit();
+        long count = conn1.count("select * from d");
+        Assert.assertEquals("Incorrect count after savepoint release!",iterations,count);
+
+        rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        rs.next();
+        long txnIdLater = rs.getLong(1);
+
+        // The difference should be 0x1000: the batch created 7 persisted txns, that's 14 timestamps (begin + commit),
+        // the user transaction committed (1 ts) and then the new user transaction started (1 ts)
+        Assert.assertEquals("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnId + 0x1000, txnIdLater);
+    }
+
+
+    @Test
+    public void testMorePersistedSavepointsInBatch() throws Exception {
+        ResultSet rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        rs.next();
+        PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s.e (i) values (?)", CLASS_NAME));
+        long txnId = rs.getLong(1);
+        long iterations = (SIConstants.TRASANCTION_INCREMENT - 2) * 4;
+        for (int i = 0; i < iterations; ++i) {
+            ps.setInt(1, i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        conn1.commit();
+        long count = conn1.count("select * from e");
+        Assert.assertEquals("Incorrect count after savepoint release!",iterations,count);
+
+        rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        rs.next();
+        long txnIdLater = rs.getLong(1);
+
+        // The difference should be 0x1000: the batch created 7 persisted txns, that's 14 timestamps (begin + commit),
+        // the user transaction committed (1 ts) and then the new user transaction started (1 ts)
+        Assert.assertEquals("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnId + 0x1000, txnIdLater);
+    }
+
+    @Test
+    public void testSomePersistedSavepointsRollbacks() throws Exception {
+        Savepoint first = conn1.setSavepoint("test");
+        for (int i = 0; i < SIConstants.TRASANCTION_INCREMENT; ++i) {
+            Savepoint savepoint = conn1.setSavepoint("test" + i);
+            conn1.execute(String.format("insert into f (i) values (%d)", i));
+        }
+        conn1.rollback(first);
+        long count = conn1.count("select * from f");
+        Assert.assertEquals("Incorrect count after savepoint rollback!",0,count);
+
+        for (int i = 0; i < SIConstants.TRASANCTION_INCREMENT; ++i) {
+            Savepoint savepoint = conn1.setSavepoint("test" + i);
+            conn1.execute(String.format("insert into f (i) values (%d)", i));
+        }
+        conn1.commit();
+        count = conn1.count("select * from f");
+        Assert.assertEquals("Incorrect count after savepoint release!",SIConstants.TRASANCTION_INCREMENT,count);
     }
 }

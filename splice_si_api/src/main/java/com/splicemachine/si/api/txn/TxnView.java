@@ -15,6 +15,7 @@
 package com.splicemachine.si.api.txn;
 
 import com.splicemachine.utils.ByteSlice;
+
 import java.io.Externalizable;
 import java.util.Iterator;
 
@@ -42,6 +43,16 @@ public interface TxnView extends Externalizable {
      * @return the unique transaction id for this transaction.
      */
     long getTxnId();
+
+    boolean allowsSubtransactions();
+
+    /**
+     * Equality comparison taking into account subtransactions
+     * @return true if the transactions are equivalent, subtransactions are considered equivalent to their parents
+     */
+    boolean equivalent(TxnView o);
+
+    int getSubId();
 
     /**
      * @return the begin timestmap for the transaction.
