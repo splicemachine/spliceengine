@@ -78,10 +78,19 @@ public class MemTxnStore implements TxnStore{
             else if (subId == 0) return txn.txn;
             else if (txn.txn.getRolledback().contains(subId))
                 return getRolledbackTxn(txnId,txn.txn);
-            else return txn.txn;
+            else return getSubTransaction(txn.txn, txnId);
         }finally{
             rl.unlock();
         }
+    }
+
+    private Txn getSubTransaction(Txn txn, long subTxnId) {
+        return new ForwardingTxnView(txn) {
+            @Override
+            public long getTxnId() {
+                return subTxnId;
+            }
+        };
     }
 
     @Override
@@ -173,8 +182,13 @@ public class MemTxnStore implements TxnStore{
         };
     }
 
-    protected Txn getRolledbackTxn(long txnId,final Txn txn){
+    protected Txn getRolledbackTxn(long realTxnId,final Txn txn){
         return new ForwardingTxnView(txn){
+            @Override
+            public long getTxnId() {
+                return realTxnId;
+            }
+
             @Override
             public void commit() throws IOException{
                 throw new UnsupportedOperationException("Txn is rolled back");
