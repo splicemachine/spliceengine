@@ -288,7 +288,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     public void saveAsTextFile(String path) {
         OutputStream fileOut = null;
         try {
-            DistributedFileSystem dfs = SIDriver.driver().fileSystem();
+            DistributedFileSystem dfs = SIDriver.driver().getFileSystem(path);
             fileOut = dfs.newOutputStream(path, StandardOpenOption.CREATE);
             while (iterator.hasNext()) {
                 fileOut.write(Bytes.toBytes(iterator.next().toString()));
