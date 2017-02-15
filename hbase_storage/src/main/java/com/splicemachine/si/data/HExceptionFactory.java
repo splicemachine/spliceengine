@@ -166,7 +166,16 @@ public class HExceptionFactory implements ExceptionFactory{
         }else if(e instanceof CallTimeoutException){
             return new HCallTimeout(e.getMessage());
         }else if(e instanceof IOException) {
-            return (IOException)e;
+            /**
+             * Rpc client may get an IOException with an error message containing "HRegionInfo was null"
+             * when preparing rpc invocation, because a region is in a transitional state. If that happens,
+             * return a retriable exception
+             *
+             */
+            if (e.getMessage().contains("HRegionInfo was null"))
+                return new HRegionTooBusy(e.getMessage());
+            else
+                return (IOException)e;
         } else if(e instanceof SparkException){
             return parseSparkException((SparkException)e);
         } else
