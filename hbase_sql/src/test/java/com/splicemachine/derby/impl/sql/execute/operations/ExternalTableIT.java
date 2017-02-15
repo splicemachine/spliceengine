@@ -224,7 +224,6 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
 
-
     @Test
     public void testFileExistingNotDeleted() throws  Exception{
         String tablePath = getResourceDirectory()+"parquet_sample_one";
@@ -283,7 +282,6 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
 
     }
-
 
 
     @Test
@@ -613,6 +611,50 @@ public class ExternalTableIT extends SpliceUnitTest{
         ResultSet rs = methodWatcher.executeQuery("select * from parquet_empty");
         Assert.assertTrue(new File(path).exists());
         Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testPinExternalOrcTable() throws Exception {
+        String path = getExternalResourceDirectory()+"orc_pin";
+        methodWatcher.executeUpdate(String.format("create external table orc_pin (col1 int, col2 varchar(24))" +
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"orc_pin"));
+        methodWatcher.executeUpdate("insert into orc_pin values (1,'test')");
+
+        methodWatcher.executeUpdate("pin table orc_pin");
+        ResultSet rs = methodWatcher.executeQuery("select * from orc_pin --splice-properties pin=true");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |test |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
+
+    @Test
+    public void testPinExternalParquetTable() throws Exception {
+        String path = getExternalResourceDirectory()+"parquet_pin";
+        methodWatcher.executeUpdate(String.format("create external table parquet_pin (col1 int, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"parquet_pin"));
+        methodWatcher.executeUpdate("insert into parquet_pin values (1,'test')");
+
+        methodWatcher.executeUpdate("pin table parquet_pin");
+        ResultSet rs = methodWatcher.executeQuery("select * from parquet_pin --splice-properties pin=true");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |test |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testPinExternalTextTable() throws Exception {
+        String path = getExternalResourceDirectory()+"parquet_pin";
+        methodWatcher.executeUpdate(String.format("create external table textfile_pin (col1 int, col2 varchar(24))" +
+                " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"textfile_pin"));
+        methodWatcher.executeUpdate("insert into textfile_pin values (1,'test')");
+
+        methodWatcher.executeUpdate("pin table textfile_pin");
+        ResultSet rs = methodWatcher.executeQuery("select * from textfile_pin --splice-properties pin=true");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |test |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     // look like it will be resolve in the next Spark version
