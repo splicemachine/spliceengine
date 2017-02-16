@@ -161,11 +161,6 @@ public class MemSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public DistributedFileSystem fileSystem(){
-        return fileSystem;
-    }
-
-    @Override
     public DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException {
         return fileSystem;
     }

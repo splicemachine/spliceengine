@@ -77,7 +77,6 @@ public class SIDriver {
     private final DataFilterFactory filterFactory;
     private final Clock clock;
     private final AsyncReadResolver readResolver;
-    private final DistributedFileSystem fileSystem;
     private final OperationFactory baseOpFactory;
     private final PartitionInfoCache partitionInfoCache;
     private final SnowflakeFactory snowflakeFactory;
@@ -111,7 +110,6 @@ public class SIDriver {
         this.lifecycleManager =clientTxnLifecycleManager;
         readController = new SITransactionReadController(txnSupplier);
         readResolver = initializedReadResolver(config,env.keyedReadResolver());
-        this.fileSystem = env.fileSystem();
         this.baseOpFactory = env.baseOperationFactory();
         this.env = env;
     }
@@ -208,10 +206,6 @@ public class SIDriver {
 
     public Clock getClock(){
         return clock;
-    }
-
-    public DistributedFileSystem fileSystem(){
-        return fileSystem;
     }
 
     public DistributedFileSystem getFileSystem(String path) throws URISyntaxException, IOException {
