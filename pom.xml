@@ -73,6 +73,7 @@
         <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
+	<maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <spark.version>1.6.2</spark.version>
 	    <databind.version>2.2.2</databind.version>
         <!-- Dependency added so Splice Machine will use the shaded libraries for Guava and Netty -->
