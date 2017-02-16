@@ -33,7 +33,7 @@ public abstract class DistributedFileSystem {
 
     /**
      * Fetches the names of files in the specified directory that match the specified pattern,
-     * which can include wildcards.
+     * which can include wildcards (only "*" is supported).
      *
      * @param dir directory to search for files
      * @param filePattern pattern to use for matching files
