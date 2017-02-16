@@ -65,7 +65,7 @@ public class TestingFileSystem extends DistributedFileSystem{
     }
 
     public String[] getExistingFiles(String dir, String filePattern) throws IOException {
-        Pattern pattern = Pattern.compile(filePattern);
+        Pattern pattern = Pattern.compile(filePattern.replace("*", ".*"));
         try (DirectoryStream<Path> stream =
                      localDelegate.newDirectoryStream(
                              getPath(dir),
