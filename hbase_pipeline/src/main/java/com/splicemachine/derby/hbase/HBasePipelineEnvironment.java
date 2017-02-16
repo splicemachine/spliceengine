@@ -180,11 +180,6 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
         return pipelineFactory;
     }
 
-    @Override
-    public DistributedFileSystem fileSystem(){
-        return delegate.fileSystem();
-    }
-
     /**
      *
      * Retrieve the appropriate filesystem based on the scheme.  If not scheme provided,

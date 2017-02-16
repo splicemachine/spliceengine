@@ -30,9 +30,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
 
 /**
  * A convenient Local file system for use in testing code without needing to resort to an architecture
@@ -47,20 +50,8 @@ public class TestingFileSystem extends DistributedFileSystem{
         this.localDelegate=localDelegate;
     }
 
-    @Override
-    public void delete(Path path,boolean recursive) throws IOException{
-        //TODO -sf- deal with recursive deletes
-        localDelegate.delete(path);
-    }
-
-    @Override
     public void delete(Path path) throws IOException{
         localDelegate.delete(path);
-    }
-
-    @Override
-    public boolean deleteIfExists(Path path) throws IOException{
-        return localDelegate.deleteIfExists(path);
     }
 
     @Override
@@ -74,17 +65,35 @@ public class TestingFileSystem extends DistributedFileSystem{
     }
 
     public String[] getExistingFiles(String dir, String filePattern) throws IOException {
-        return new String[]{};
-    };
+        Pattern pattern = Pattern.compile(filePattern);
+        try (DirectoryStream<Path> stream =
+                     localDelegate.newDirectoryStream(
+                             getPath(dir),
+                             entry -> pattern.matcher(entry.getFileName().toString()).matches())) {
+            List<String> files = new ArrayList<>();
+            for (Path i : stream) {
+                files.add(i.toAbsolutePath().toString());
+            }
+            return files.toArray(new String[files.size()]);
+        }
+    }
 
-    @Override
     public Path getPath(String directory,String fileName){
         return Paths.get(directory,fileName);
     }
 
-    @Override
     public Path getPath(String fullPath){
         return Paths.get(fullPath);
+    }
+
+    @Override
+    public String getFileName(String fullPath) {
+        return getPath(fullPath).getFileName().toString();
+    }
+
+    @Override
+    public boolean exists(String fullPath) throws IOException {
+        return Files.exists(getPath(fullPath));
     }
 
     @Override
@@ -93,40 +102,14 @@ public class TestingFileSystem extends DistributedFileSystem{
         return new PathInfo(p);
     }
 
-
-    /*delegate methods*/
     @Override
-    public String getScheme(){
-        return localDelegate.getScheme();
+    public OutputStream newOutputStream(String dir,String fileName,OpenOption... options) throws IOException{
+        return localDelegate.newOutputStream(Paths.get(dir, fileName),options);
     }
 
     @Override
-    public FileSystem newFileSystem(URI uri,Map<String, ?> env) throws IOException{
-        return localDelegate.newFileSystem(uri,env);
-    }
-
-    @Override
-    public FileSystem getFileSystem(URI uri){
-        return localDelegate.getFileSystem(uri);
-    }
-
-    @Override
-    public Path getPath(URI uri){
-        return localDelegate.getPath(uri);
-    }
-
-    @Override
-    public FileSystem newFileSystem(Path path,Map<String, ?> env) throws IOException{
-        return localDelegate.newFileSystem(path,env);
-    }
-
-    @Override
-    public InputStream newInputStream(Path path,OpenOption... options) throws IOException{
-        return localDelegate.newInputStream(path,options);
-    }
-
-    @Override
-    public OutputStream newOutputStream(Path path,OpenOption... options) throws IOException{
+    public OutputStream newOutputStream(String fullPath,OpenOption... options) throws IOException{
+        Path path = Paths.get(fullPath);
         if(options.length==1){
             if(options[0] instanceof DistributedFileOpenOption){
                 return localDelegate.newOutputStream(path,((DistributedFileOpenOption)options[0]).standardOption());
@@ -144,37 +127,10 @@ public class TestingFileSystem extends DistributedFileSystem{
     }
 
     @Override
-    public OutputStream newOutputStream(String dir,String fileName,OpenOption... options) throws IOException{
-        return localDelegate.newOutputStream(Paths.get(dir, fileName),options);
+    public InputStream newInputStream(String fullPath, OpenOption... options) throws IOException {
+        return localDelegate.newInputStream(Paths.get(fullPath), options);
     }
 
-    @Override
-    public OutputStream newOutputStream(String fullPath,OpenOption... options) throws IOException{
-        return localDelegate.newOutputStream(Paths.get(fullPath),options);
-    }
-
-    @Override
-    public FileChannel newFileChannel(Path path,Set<? extends OpenOption> options,FileAttribute<?>... attrs) throws IOException{
-        return localDelegate.newFileChannel(path,options,attrs);
-    }
-
-    @Override
-    public AsynchronousFileChannel newAsynchronousFileChannel(Path path,Set<? extends OpenOption> options,ExecutorService executor,FileAttribute<?>... attrs) throws IOException{
-        return localDelegate.newAsynchronousFileChannel(path,options,executor,attrs);
-    }
-
-    @Override
-    public SeekableByteChannel newByteChannel(Path path,Set<? extends OpenOption> options,FileAttribute<?>... attrs) throws IOException{
-        return localDelegate.newByteChannel(path,options,attrs);
-    }
-
-    @Override
-    public DirectoryStream<Path> newDirectoryStream(Path dir,DirectoryStream.Filter<? super Path> filter) throws IOException{
-        return localDelegate.newDirectoryStream(dir,filter);
-    }
-
-
-    @Override
     public boolean createDirectory(Path dir,boolean errorIfExists) throws IOException{
         try{
             localDelegate.createDirectory(dir);
@@ -189,91 +145,11 @@ public class TestingFileSystem extends DistributedFileSystem{
     }
 
     @Override
-    public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
-        try{
-            localDelegate.createDirectory(dir,attrs);
-        }catch(FileAlreadyExistsException fafe){
-            //determine if the path is already a directory, or if it is a file. If it's a file, then
-            //throw a NotADirectoryException. Otherwise, we are good
-            if(!Files.isDirectory(dir)){
-                throw fafe;
-            }
-        }
-    }
-
-    @Override
     public boolean createDirectory(String fullPath,boolean errorIfExists) throws IOException {
         return createDirectory(getPath(fullPath), errorIfExists);
     }
-
-    @Override
-    public void createSymbolicLink(Path link,Path target,FileAttribute<?>... attrs) throws IOException{
-        localDelegate.createSymbolicLink(link,target,attrs);
-    }
-
-    @Override
-    public void createLink(Path link,Path existing) throws IOException{
-        localDelegate.createLink(link,existing);
-    }
-
-    @Override
-    public Path readSymbolicLink(Path link) throws IOException{
-        return localDelegate.readSymbolicLink(link);
-    }
-
-    @Override
     public void copy(Path source,Path target,CopyOption... options) throws IOException{
         localDelegate.copy(source,target,options);
-    }
-
-    @Override
-    public void move(Path source,Path target,CopyOption... options) throws IOException{
-        localDelegate.move(source,target,options);
-    }
-
-    @Override
-    public boolean isSameFile(Path path,Path path2) throws IOException{
-        return localDelegate.isSameFile(path,path2);
-    }
-
-    @Override
-    public boolean isHidden(Path path) throws IOException{
-        return localDelegate.isHidden(path);
-    }
-
-    @Override
-    public FileStore getFileStore(Path path) throws IOException{
-        return localDelegate.getFileStore(path);
-    }
-
-    @Override
-    public void checkAccess(Path path,AccessMode... modes) throws IOException{
-        localDelegate.checkAccess(path,modes);
-    }
-
-    @Override
-    public <V extends FileAttributeView> V getFileAttributeView(Path path,Class<V> type,LinkOption... options){
-        return localDelegate.getFileAttributeView(path,type,options);
-    }
-
-    @Override
-    public <A extends BasicFileAttributes> A readAttributes(Path path,Class<A> type,LinkOption... options) throws IOException{
-        return localDelegate.readAttributes(path,type,options);
-    }
-
-    @Override
-    public Map<String, Object> readAttributes(Path path,String attributes,LinkOption... options) throws IOException{
-        return localDelegate.readAttributes(path,attributes,options);
-    }
-
-    @Override
-    public void setAttribute(Path path,String attribute,Object value,LinkOption... options) throws IOException{
-        localDelegate.setAttribute(path,attribute,value,options);
-    }
-
-    @Override
-    public void touchFile(Path path) throws IOException{
-        Files.createFile(path);
     }
 
     @Override

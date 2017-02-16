@@ -54,7 +54,7 @@ public class ExportFile {
     
     public OutputStream getOutputStream() throws IOException {
         // Filename
-        Path fullyQualifiedExportFilePath = buildOutputFilePath();
+        String fullyQualifiedExportFilePath = buildOutputFilePath();
 
         // OutputStream
         OutputStream rawOutputStream =fileSystem.newOutputStream(fullyQualifiedExportFilePath,
@@ -134,8 +134,8 @@ public class ExportFile {
         }
     }
 
-    protected Path buildOutputFilePath() {
-        return fileSystem.getPath(exportParams.getDirectory(),buildFilenameFromTaskId(taskId));
+    protected String buildOutputFilePath() {
+        return exportParams.getDirectory() + "/" + buildFilenameFromTaskId(taskId);
     }
 
     protected String buildFilenameFromTaskId(byte[] taskId) {

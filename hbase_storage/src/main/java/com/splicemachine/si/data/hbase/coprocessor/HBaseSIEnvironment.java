@@ -222,11 +222,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public DistributedFileSystem fileSystem(){
-        return fileSystem;
-    }
-
-    @Override
     public DistributedFileSystem fileSystem(String path) throws IOException, URISyntaxException  {
         return new HNIOFileSystem(FileSystem.get(new URI(path), (Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
     }
