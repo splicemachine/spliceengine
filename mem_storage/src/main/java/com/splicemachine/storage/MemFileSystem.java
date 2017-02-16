@@ -60,11 +60,16 @@ public class MemFileSystem extends DistributedFileSystem{
     }
 
     public String[] getExistingFiles(String dir, String filePattern) throws IOException {
-        Pattern pattern = Pattern.compile(filePattern);
+        final Pattern pattern = Pattern.compile(filePattern.replace("*", ".*"));
         try (DirectoryStream<Path> stream =
                      localDelegate.newDirectoryStream(
                              getPath(dir),
-                             entry -> pattern.matcher(entry.getFileName().toString()).matches())) {
+                             new DirectoryStream.Filter<Path>() {
+                                 @Override
+                                 public boolean accept(Path entry) throws IOException {
+                                     return pattern.matcher(entry.getFileName().toString()).matches();
+                                 }
+                             })) {
             List<String> files = new ArrayList<>();
             for (Path i : stream) {
                 files.add(i.toAbsolutePath().toString());
