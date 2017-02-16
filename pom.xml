@@ -77,6 +77,7 @@
         <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+	<maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
         <spark.version>2.1.0</spark.version>
     </properties>
