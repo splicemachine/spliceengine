@@ -124,13 +124,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.splicetest.sqlj</groupId>
-            <artifactId>sqlj-it-procs</artifactId>
-            <version>2.5.0.1706-SNAPSHOT</version>
-            <type>jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derbyclient</artifactId>
             <version>10.9.1.0</version>

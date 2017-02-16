@@ -70,6 +70,10 @@ public class SqlJJarIT extends SpliceUnitTest {
 	private static final String CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', NULL)";
 	private static final String CALL_GET_GLOBAL_CLASSPATH = "CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath')";
 
+	// SQL statements to use VTI
+	private static final String SELECT_FROM_VTI_STRING = "select * from new com.splicemachine.tutorials.vti.PropertiesFileVTI('log4j.properties') a (key1 varchar(200), value varchar(200))";
+
+
 	// SQL queries.
 	private static final String SELECT_FROM_SYSFILES = "SELECT * FROM SYS.SYSFILES, sys.sysschemas " +
 			"where sys.sysschemas.schemaid = sys.sysfiles.schemaid and schemaname = 'SQLJARIT' and FILENAME = 'SQLJ_IT_PROCS_JAR'";
@@ -175,6 +179,11 @@ public class SqlJJarIT extends SpliceUnitTest {
 		// Add the jar file into the global DB class path.
 		rc = methodWatcher.executeUpdate(String.format(CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Select from the user defined VTI
+		rs = methodWatcher.executeQuery(SELECT_FROM_VTI_STRING);
+		int numRows = resultSetSize(rs);
+		Assert.assertTrue("Incorrect return code or result count returned!", numRows > 0);
 
 		// Create the user-defined stored procedure.
 		rc = methodWatcher.executeUpdate(CREATE_PROC_SIMPLE_ONE_ARG);
