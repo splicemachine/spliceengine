@@ -779,14 +779,14 @@
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
                                             <arg value="-c"/>
-                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
+					    <arg value="-p ${envClassifier},${envHbase}${ee_out}${jacoco_out}"/>
                                         </exec>
                                     </then>
                                     <else>
                                         <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
+					    <arg value="-p ${envClassifier},${envHbase}${ee_out}${jacoco_out}"/>
                                         </exec>
                                     </else>
                                 </if>

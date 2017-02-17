@@ -69,6 +69,7 @@
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
+	<jacoco_out/>
         <!-- run chaos monkey -->
         <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
         <skip.integration.tests>true</skip.integration.tests>
@@ -698,6 +699,9 @@
 	    <modules>
                 <module>coverage</module>
             </modules>
+            <properties>
+                <jacoco_out>,jacoco</jacoco_out>
+            </properties>
 	    <build>
 	    <plugins>
 		<plugin>
