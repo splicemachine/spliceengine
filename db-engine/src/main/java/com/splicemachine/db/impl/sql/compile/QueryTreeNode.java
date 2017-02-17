@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.LongLongOpenHashMap;
+import com.carrotsearch.hppc.LongObjectOpenHashMap;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.RowMultiSetImpl;
@@ -60,14 +63,16 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import java.sql.Types;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.lang3.text.WordUtils;
 import org.spark_project.guava.base.Strings;
+import org.spark_project.guava.collect.ArrayListMultimap;
+import org.spark_project.guava.collect.Multimap;
 
 /**
  * QueryTreeNode is the root class for all query tree nodes. All
@@ -1665,4 +1670,49 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public void setHashableJoinColumnReference(ColumnReference cr) {}
+
+
+    /**
+     * For a given ResultColumnList, return a map from
+     * [resultSetNumber, virtualColumnId] => ResultColumn
+     * where there is one entry for each ResultColumn down the chain of reference to
+     * its source column on a table. This allows translation from a column reference at
+     * any node below into the ResultColumn projected from the passed ResultColumnList.
+     */
+    public LongObjectOpenHashMap<ResultColumn> rsnChainMap()
+            throws StandardException {
+        LongObjectOpenHashMap<ResultColumn> chain = LongObjectOpenHashMap.newInstance();
+        List<ResultColumn> cols = RSUtils.collectNodes(this, ResultColumn.class);
+        for (ResultColumn rc : cols) {
+            long top = rc.getCoordinates();
+            chain.put(top, rc);
+            LongArrayList list = rc.chain();
+            for (int i = 0; i< list.size(); i++) {
+                chain.put(list.buffer[i],rc);
+            }
+        }
+        return chain;
+    }
+
+    public LongLongOpenHashMap childParentMap()
+            throws StandardException {
+        // Lots of duplication, thus the HashSet
+        Set<ResultColumn> cols = new HashSet<>(RSUtils.collectNodes(this, ResultColumn.class));
+        LongLongOpenHashMap chain = LongLongOpenHashMap.newInstance(cols.size(),LongLongOpenHashMap.DEFAULT_LOAD_FACTOR);
+        for (ResultColumn rc : cols) {
+            if (rc.getExpression() ==null)
+                continue;
+            long top = rc.getCoordinates();
+            if (top == -1L)
+                continue;
+            long child = rc.getChildLink();
+            if (child != -1L) {
+                if (!chain.containsKey(child))
+                    chain.put(child, top);
+            }
+        }
+        return chain;
+        }
+
+
 }
