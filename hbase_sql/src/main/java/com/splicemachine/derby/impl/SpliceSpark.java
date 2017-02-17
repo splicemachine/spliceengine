@@ -68,10 +68,16 @@ public class SpliceSpark {
         return session;
     }
 
-
-
     public static synchronized JavaSparkContext getContext() {
         SparkSession s = getSession();
+        return ctx;
+    }
+
+    /** This method is unsafe, it should only be used on tests are as a convenience when trying to
+     * get a local Spark Context, it should never be used when implementing Splice operations or functions
+     */
+    public static synchronized JavaSparkContext getContextUnsafe() {
+        SparkSession s = getSessionUnsafe();
         return ctx;
     }
 
