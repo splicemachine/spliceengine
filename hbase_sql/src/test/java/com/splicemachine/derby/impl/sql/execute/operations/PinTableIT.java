@@ -44,6 +44,8 @@ public class PinTableIT extends SpliceUnitTest{
     private static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("PinTable3",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("PinTable4",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("PinTable5",SCHEMA_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("PinTable6",SCHEMA_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("PinTable7",SCHEMA_NAME,"(col1 int)");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -55,7 +57,9 @@ public class PinTableIT extends SpliceUnitTest{
             .around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
             .around(spliceTableWatcher4)
-            .around(spliceTableWatcher5);
+            .around(spliceTableWatcher5)
+            .around(spliceTableWatcher6)
+            .around(spliceTableWatcher7);
     @Test
     public void testPinTableDoesNotExist() throws Exception {
         try {
@@ -152,5 +156,30 @@ public class PinTableIT extends SpliceUnitTest{
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT30",e.getSQLState());
         }
+    }
+
+    @Test
+    public void testDropPinnedTable() throws Exception {
+        methodWatcher.executeUpdate("insert into PinTable6 values (1)");
+        methodWatcher.executeUpdate("pin table PinTable6");
+        ResultSet rs = methodWatcher.executeQuery("select * from PinTable6 --splice-properties pin=true");
+        Assert.assertEquals("COL1 |\n" +
+                "------\n" +
+                "  1  |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        methodWatcher.executeUpdate("drop table PinTable6");
+    }
+
+    @Test
+    public void testDropUnpinnedTable() throws Exception {
+        methodWatcher.executeUpdate("insert into PinTable7 values (1)");
+        methodWatcher.executeUpdate("pin table PinTable7");
+        ResultSet rs = methodWatcher.executeQuery("select * from PinTable7 --splice-properties pin=true");
+        Assert.assertEquals("COL1 |\n" +
+                "------\n" +
+                "  1  |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        methodWatcher.executeUpdate("unpin table PinTable7");
+        methodWatcher.executeUpdate("drop table PinTable7");
     }
 }
