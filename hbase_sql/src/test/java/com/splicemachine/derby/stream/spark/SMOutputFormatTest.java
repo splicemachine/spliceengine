@@ -40,7 +40,7 @@ public class SMOutputFormatTest extends BaseStreamTest {
 
     @Test
     public void readExceptionsCauseAbort() throws StandardException, IOException {
-        SparkPairDataSet<ExecRow, ExecRow> dataset = new SparkPairDataSet<>(SpliceSpark.getContext().parallelizePairs(tenRows).mapToPair(new FailFunction()));
+        SparkPairDataSet<ExecRow, ExecRow> dataset = new SparkPairDataSet<>(SpliceSpark.getContextUnsafe().parallelizePairs(tenRows).mapToPair(new FailFunction()));
         JavaPairRDD<ExecRow, Either<Exception, ExecRow>> rdd = dataset.wrapExceptions();
 
         final Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
@@ -62,7 +62,7 @@ public class SMOutputFormatTest extends BaseStreamTest {
 
     @Test
     public void writeExceptionsCauseAbort() throws StandardException, IOException {
-        SparkPairDataSet<RowLocation, ExecRow> dataset = new SparkPairDataSet<>(SpliceSpark.getContext().parallelizePairs(tenRows).mapToPair(new ToRowLocationFunction()));
+        SparkPairDataSet<RowLocation, ExecRow> dataset = new SparkPairDataSet<>(SpliceSpark.getContextUnsafe().parallelizePairs(tenRows).mapToPair(new ToRowLocationFunction()));
         JavaPairRDD<RowLocation, Either<Exception, ExecRow>> rdd = dataset.wrapExceptions();
 
         final Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
@@ -84,7 +84,7 @@ public class SMOutputFormatTest extends BaseStreamTest {
 
     @Test
     public void abortNotCalled() throws StandardException, IOException {
-        SparkPairDataSet<RowLocation, ExecRow> dataset = new SparkPairDataSet<>(SpliceSpark.getContext().parallelizePairs(tenRows).mapToPair(new ToRowLocationFunction()));
+        SparkPairDataSet<RowLocation, ExecRow> dataset = new SparkPairDataSet<>(SpliceSpark.getContextUnsafe().parallelizePairs(tenRows).mapToPair(new ToRowLocationFunction()));
         JavaPairRDD<RowLocation, Either<Exception, ExecRow>> rdd = dataset.wrapExceptions();
 
         final Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
