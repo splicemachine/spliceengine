@@ -46,7 +46,7 @@ public class SortOperationIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(255),value1 varchar(255),value2 varchar(255))");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(255), age float,created_time timestamp)");
 	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(col boolean)");
-	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME,"(id int, text char(20))");
+	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME,"(id int, txt char(20))");
 	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(id int)");
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(id int)");
 
@@ -72,8 +72,8 @@ public class SortOperationIT extends SpliceUnitTest {
 				spliceClassWatcher.executeUpdate(format("insert into %s.%s values (2,'d2w')",CLASS_NAME,TABLE_NAME_4));
 				spliceClassWatcher.executeUpdate(format("insert into %s.%s(id) values (3)",CLASS_NAME,TABLE_NAME_4));
 					spliceClassWatcher.executeUpdate(format("insert into %s.%s(id) values (4)",CLASS_NAME,TABLE_NAME_4));
-				spliceClassWatcher.executeUpdate(format("insert into %s.%s(text) values ('4')",CLASS_NAME,TABLE_NAME_4));
-				spliceClassWatcher.executeUpdate(format("insert into %s.%s(text) values ('45')",CLASS_NAME,TABLE_NAME_4));
+				spliceClassWatcher.executeUpdate(format("insert into %s.%s(txt) values ('4')",CLASS_NAME,TABLE_NAME_4));
+				spliceClassWatcher.executeUpdate(format("insert into %s.%s(txt) values ('45')",CLASS_NAME,TABLE_NAME_4));
 
 
 				Triplet triple = new Triplet("jzhang","pickles","greens");
@@ -508,8 +508,8 @@ public class SortOperationIT extends SpliceUnitTest {
 
 	@Test
 	public void testNullsFirstPartial() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select text, id from %s.%s order by id nulls first,text",CLASS_NAME,TABLE_NAME_4));
-		String test = "TEXT | ID  |\n" +
+		ResultSet rs = methodWatcher.executeQuery(format("select txt, id from %s.%s order by id nulls first,txt",CLASS_NAME,TABLE_NAME_4));
+		String test = "TXT | ID  |\n" +
 				"------------\n" +
 				"  4  |NULL |\n" +
 				" 45  |NULL |\n" +
