@@ -19,13 +19,13 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.5.0.1706-SNAPSHOT</version>
+        <version>2.5.0.1707-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
-            <version>2.5.0.1706-SNAPSHOT</version>
+            <version>2.5.0.1707-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <artifactId>guava</artifactId>
@@ -131,26 +131,26 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
-            <version>2.5.0.1706-SNAPSHOT</version>
+            <version>2.5.0.1707-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
-            <version>2.5.0.1706-SNAPSHOT</version>
+            <version>2.5.0.1707-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_si_api</artifactId>
-            <version>2.5.0.1706-SNAPSHOT</version>
+            <version>2.5.0.1707-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
-            <version>2.5.0.1706-SNAPSHOT</version>
+            <version>2.5.0.1707-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
