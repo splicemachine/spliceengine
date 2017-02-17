@@ -32,12 +32,12 @@
 package com.splicemachine.db.impl.ast;
 
 
+import com.carrotsearch.hppc.LongArrayList;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Collections2;
 import org.spark_project.guava.collect.Iterables;
@@ -146,13 +146,15 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
             throws StandardException {
         try {
             ResultColumn rc = RSUtils.refToRC.apply(colRef);
-            List<Pair<Integer, Integer>> chain = ColumnUtils.rsnChain(rc);
-            Pair<Integer, Integer> lastLink = chain.get(chain.size() - 1);
+            LongArrayList chain = rc.chain();
+            long lastLink = chain.get(chain.size() - 1);
             List<ResultSetNode> subTree = RSUtils.getSelfAndDescendants(rsn);
             Map<Integer, ResultSetNode> nodeMap = zipMap(Iterables.transform(subTree, RSUtils.rsNum), subTree);
-            ResultSetNode targetRSN = nodeMap.get(lastLink.getLeft());
-            rc.setResultSetNumber(lastLink.getLeft());
-            rc.setVirtualColumnId(lastLink.getRight());
+            int left = (int) (lastLink >> 32);
+            int right = (int) lastLink;
+            ResultSetNode targetRSN = nodeMap.get(left);
+            rc.setResultSetNumber(left);
+            rc.setVirtualColumnId(right);
             ((Optimizable)targetRSN).pushOptPredicate(pred);
         } catch (StandardException e) {
             LOG.warn("Exception pushing down topmost subquery predicate:", e);

@@ -1450,4 +1450,10 @@ public class ColumnReference extends ValueNode {
         return columnName.compareToIgnoreCase("ROWID")==0;
 	}
 
+	public ResultColumn getCoordinateSourceColumn() {
+		return getSourceResultColumn();
+	}
+
+
+
 }

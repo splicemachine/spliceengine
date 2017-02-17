@@ -31,11 +31,11 @@
 
 package com.splicemachine.db.impl.ast;
 
+import com.carrotsearch.hppc.LongObjectOpenHashMap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Lists;
@@ -82,7 +82,7 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
         if (correlatedSubQs.containsKey(num)){
             final org.spark_project.guava.base.Predicate<ResultColumn> pointsToPrimaryTree = RSUtils.pointsTo(node.getChildResult());
             ResultColumnList rcl = node.getChildResult().getResultColumns();
-            Map<Pair<Integer,Integer>,ResultColumn> colMap = ColumnUtils.rsnChainMap(rcl);
+            LongObjectOpenHashMap<ResultColumn> colMap = rcl.rsnChainMap();
             for (SubqueryNode sub: correlatedSubQs.get(num)){
                 Iterable<ColumnReference> crs =
                         Iterables.filter(RSUtils.collectNodes(sub, ColumnReference.class),
@@ -94,11 +94,11 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
                                     }
                                 });
                 for (ColumnReference cr: crs){
-                    Pair<Integer,Integer> coord = ColumnUtils.RSCoordinate(cr.getSource());
+                    long coord = cr.getSource().getCoordinates();
                     ResultColumn rcInScope = colMap.get(coord);
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(String.format("Translating column %s to %s", coord,
-                                                   ColumnUtils.RSCoordinate(rcInScope)));
+                                                   rcInScope.getCoordinates()));
                     }
                     cr.setSource(rcInScope);
                 }
