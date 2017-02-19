@@ -960,6 +960,36 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testWriteReadArraysWithStatsParquet() throws Exception {
+
+        String tablePath = getExternalResourceDirectory()+"parquet_array_stats";
+        methodWatcher.executeUpdate(String.format("create external table parquet_array_stats (col1 int array, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into parquet_array_stats values ([1,1,1],'XXXX')," +
+                "([2,2,2],'YYYY')," +
+                "([3,3,3],'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        methodWatcher.executeQuery("analyze table parquet_array_stats");
+
+        ResultSet rs = methodWatcher.executeQuery("select * from parquet_array_stats");
+        Assert.assertEquals("COL1    |COL2 |\n" +
+                "-----------------\n" +
+                "[1, 1, 1] |XXXX |\n" +
+                "[2, 2, 2] |YYYY |\n" +
+                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from parquet_array_stats");
+        Assert.assertEquals("COL1    |\n" +
+                "-----------\n" +
+                "[1, 1, 1] |\n" +
+                "[2, 2, 2] |\n" +
+                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        //Make sure empty file is created
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+    }
+
+
+    @Test
     public void testWriteReadArraysORC() throws Exception {
 
         String tablePath = getExternalResourceDirectory()+"orc_array";
