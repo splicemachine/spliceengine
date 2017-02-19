@@ -384,7 +384,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
         ExecRow row = new ValueRow(colsToCollect.size());
-        int[] execRowFormatIds = new int[colsToCollect.size()];
+  //      int[] execRowFormatIds = new int[colsToCollect.size()];
         BitSet accessedColumns = new BitSet(table.getMaxStorageColumnID());
         int outputCol = 0;
         int[] columnPositionMap = new int[table.getNumberOfColumns()];
@@ -394,7 +394,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             accessedColumns.set(descriptor.getStoragePosition() - 1);
             row.setColumn(outputCol + 1, descriptor.getType().getNull());
             columnPositionMap[outputCol] = descriptor.getPosition();
-            execRowFormatIds[outputCol] = descriptor.getType().getNull().getFormat().getStoredFormatId();
+//            execRowFormatIds[outputCol] = descriptor.getType().getNull().getFormat().getStoredFormatId();
             outputCol++;
             allColumnLengths[descriptor.getPosition() - 1] = descriptor.getType().getMaximumWidth();
         }
@@ -433,15 +433,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
         }
         DataScan scan = createScan(txn);
-        ExecRow rowTemplate = new ValueRow(execRowFormatIds.length);
-        DataValueDescriptor[] dvds = rowTemplate.getRowArray();
-        DataValueFactory dataValueFactory=conn.getLanguageConnection().getDataValueFactory();
-        for(int i=0;i<execRowFormatIds.length;i++){
-            dvds[i] = dataValueFactory.getNull(execRowFormatIds[i],-1);
-        }
+    //    ExecRow rowTemplate = new ValueRow(execRowFormatIds.length);
+    //    DataValueDescriptor[] dvds = rowTemplate.getRowArray();
+    //    DataValueFactory dataValueFactory=conn.getLanguageConnection().getDataValueFactory();
+    //    for(int i=0;i<execRowFormatIds.length;i++){
+    //        dvds[i] = dataValueFactory.getNull(execRowFormatIds[i],-1);
+    //    }
         return builder.transaction(txn)
                 .metricFactory(Metrics.basicMetricFactory())
-                .template(rowTemplate)
+                .template(row)
                 .scan(scan)
                 .rowDecodingMap(rowDecodingMap)
                 .keyColumnEncodingOrder(keyColumnEncodingOrder)
