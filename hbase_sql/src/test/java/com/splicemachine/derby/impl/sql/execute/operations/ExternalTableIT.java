@@ -239,6 +239,19 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testLocationCannotBeAFile() throws  Exception{
+        File temp = File.createTempFile("temp-file", ".tmp");
+
+        try {
+            methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'",temp.getAbsolutePath()));
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT33",e.getSQLState());
+        }
+    }
+
+    @Test
     public void refreshRequireExternalTable() throws  Exception{
         String tablePath = getExternalResourceDirectory()+"external_table_refresh";
 
