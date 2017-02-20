@@ -222,8 +222,6 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
     }
 
-
-
     @Test
     public void testFileExistingNotDeleted() throws  Exception{
         String tablePath = getResourceDirectory()+"parquet_sample_one";
@@ -236,6 +234,15 @@ public class ExternalTableIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
         Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),lastModified,newFile.lastModified());
+    }
+
+    @Test
+    public void testEmptyDirectory() throws  Exception{
+        String tablePath = getExternalResourceDirectory()+"empty_directory";
+        new File(tablePath).mkdir();
+
+        methodWatcher.executeUpdate(String.format("create external table empty_directory (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
     }
 
     @Test
