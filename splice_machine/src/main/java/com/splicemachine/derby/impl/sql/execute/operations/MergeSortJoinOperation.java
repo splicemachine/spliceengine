@@ -200,14 +200,14 @@ public class MergeSortJoinOperation extends JoinOperation {
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
                 rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<LocatedRow> joined;
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null) {
-            if (isOuterJoin)
-                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
-            else if (notExistsRightSide)
-                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTANTI,false);
-            else
-                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.INNER,false);
-        } else{
+//        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null) {
+//            if (isOuterJoin)
+//                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
+//            else if (notExistsRightSide)
+//                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTANTI,false);
+//            else
+//                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.INNER,false);
+//        } else{
             PairDataSet<ExecRow, LocatedRow> rightDataSet =
                     rightDataSet2.keyBy(new KeyerFunction(operationContext, rightHashKeys));
 //            operationContext.popScope();
@@ -218,7 +218,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                         isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
             joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
-        }
+//        }
             return joined.map(new CountProducedFunction(operationContext), true);
     }
 
