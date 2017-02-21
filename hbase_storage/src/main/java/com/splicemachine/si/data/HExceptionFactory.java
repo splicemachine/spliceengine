@@ -172,8 +172,9 @@ public class HExceptionFactory implements ExceptionFactory{
              * return a retriable exception
              *
              */
-            if (e.getMessage().contains("HRegionInfo was null"))
-                return new HRegionTooBusy(e.getMessage());
+            String message = e.getMessage();
+            if (message != null && message.contains("HRegionInfo was null"))
+                return new HRegionTooBusy(message);
             else
                 return (IOException)e;
         } else if(e instanceof SparkException){

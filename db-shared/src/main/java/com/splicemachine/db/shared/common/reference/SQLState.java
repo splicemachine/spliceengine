@@ -1926,6 +1926,7 @@ public interface SQLState {
 
 	//general SPlice errors
 	String LANG_INVALID_DAY										   = "SE022";
+	String ERROR_PARSING_EXCEPTION								   = "SE023";
 	/*
      * Backup and restore
      */
