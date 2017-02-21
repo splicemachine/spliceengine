@@ -8768,6 +8768,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>day</arg>
            </msg>
 
+           <msg>
+               <name>SE023</name>
+	       <text>Error parsing exception: {0}</text>
+               <arg>message</arg>
+           </msg>
 
 
            <msg>

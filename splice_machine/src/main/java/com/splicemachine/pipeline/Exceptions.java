@@ -16,6 +16,7 @@
 package com.splicemachine.pipeline;
 
 import org.sparkproject.guava.base.Throwables;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -38,22 +39,26 @@ public class Exceptions {
     }
 
     public static StandardException parseException(Throwable e,PipelineExceptionFactory pef, ExceptionFactory baseEf) {
-        if(e instanceof StandardException)
-            return (StandardException)e;
-        Throwable rootCause = Throwables.getRootCause(e);
-        if (rootCause instanceof StandardException) {
-            return (StandardException) rootCause;
-        }
-        if(pef!=null){
-           e = pef.processPipelineException(rootCause);
-        }else{
-            assert baseEf!=null: "Cannot parse exception without an Exception Factory";
-            e = baseEf.processRemoteException(rootCause);
-        }
+        try {
+            if (e instanceof StandardException)
+                return (StandardException) e;
+            Throwable rootCause = Throwables.getRootCause(e);
+            if (rootCause instanceof StandardException) {
+                return (StandardException) rootCause;
+            }
+            if (pef != null) {
+                e = pef.processPipelineException(rootCause);
+            } else {
+                assert baseEf != null : "Cannot parse exception without an Exception Factory";
+                e = baseEf.processRemoteException(rootCause);
+            }
 
-        ErrorState state = ErrorState.stateFor(e);
+            ErrorState state = ErrorState.stateFor(e);
 
-        return state.newException(rootCause);
+            return state.newException(rootCause);
+        } catch (Throwable t) {
+            return StandardException.newException(SQLState.ERROR_PARSING_EXCEPTION, e, t.getMessage());
+        }
     }
 
     /*
