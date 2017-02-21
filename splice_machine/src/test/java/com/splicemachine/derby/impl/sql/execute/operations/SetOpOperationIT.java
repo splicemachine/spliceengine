@@ -17,6 +17,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.runner.RunWith;
@@ -115,6 +116,23 @@ public class SetOpOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Wrong Count", 2, rs.getInt(1));
         Assert.assertEquals("Wrong Max", 4, rs.getInt(2));
         Assert.assertEquals("Wrong Min", 2, rs.getInt(3));
+    }
+
+    @Test
+    public void testExceptWithOrderBy() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                format("select col1 from foo --SPLICE-PROPERTIES useSpark = %s\n except select col1 from foo2 order by 1",useSpark));
+    Assert.assertEquals("COL1 |\n" +
+            "------\n" +
+            "  2  |\n" +
+            "  4  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testExceptWithOrderByExplain() throws Exception {
+        String query = String.format("explain select col1 from foo --SPLICE-PROPERTIES useSpark = %s\n except select col1 from foo2 order by 1",useSpark);
+        thirdRowContainsQuery(query,"OrderBy",methodWatcher);
+        fourthRowContainsQuery(query,"Except",methodWatcher);
     }
 
     @Test(expected = SQLException.class)
