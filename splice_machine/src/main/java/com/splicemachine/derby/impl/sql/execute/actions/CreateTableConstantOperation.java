@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
@@ -450,7 +451,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         try {
             if(storedAs != null){
                 // test constraint only if the external file exits
-                if(SIDriver.driver().getFileSystem(location).exists(location)) {
+                DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
+                FileInfo fileInfo = fileSystem.getInfo(location);
+                if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0) {
                     GetSchemaExternalResult result = EngineDriver.driver().getOlapClient().execute(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs));
                     StructType externalSchema = result.getSchema();
 
@@ -468,19 +471,16 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         StructField definedField = template.schema().fields()[i];
                         if (!definedField.dataType().equals(externalField.dataType())) {
                             throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(), externalField.name(), location);
-
                         }
                     }
-                }else{
+                } else if(!fileInfo.exists()) {
                     // need the create the external file if the location provided is empty
-                    // look at the file, if it doesn't exist create it.
-                        DistributedFileSystem dfs = SIDriver.driver().getSIEnvironment().fileSystem(location);
-                        if(!dfs.getInfo(location).exists()) {
-                            String pathToParent = location.substring(0, location.lastIndexOf("/"));
-                            ImportUtils.validateWritable(pathToParent.toString(), false);
-                            EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, template));
-                        }
-                    }
+                    String pathToParent = location.substring(0, location.lastIndexOf("/"));
+                    ImportUtils.validateWritable(pathToParent.toString(), false);
+                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, template));
+                } else if(!fileInfo.isDirectory()) {
+                    throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
+                }
 
             }
         } catch (Exception e) {

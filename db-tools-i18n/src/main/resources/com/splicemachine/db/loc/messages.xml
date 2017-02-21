@@ -9052,13 +9052,17 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <name>EXT31</name>
                <text>DELETE from a PIN TABLE is not allowed</text>
            </msg>
-
-
            <msg>
                <name>EXT32</name>
                <text> Table '{0}' is not pinned</text>
                <arg>location</arg>
            </msg>
+           <msg>
+               <name>EXT33</name>
+               <text> Location '{0}' exists and is not a directory</text>
+               <arg>location</arg>
+           </msg>
+
 
 
        </family>
