@@ -117,7 +117,10 @@
                                     <shadedPattern>splice.io.netty</shadedPattern>
                                 </relocation>
 
-
+                                <relocation>
+                                    <pattern>javax.ws</pattern>
+                                    <shadedPattern>splice.javax.ws</shadedPattern>
+                                </relocation>
 
                             </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
@@ -175,7 +178,10 @@
                                     <pattern>io.netty</pattern>
                                     <shadedPattern>splice.io.netty</shadedPattern>
                                 </relocation>
-
+                                <relocation>
+                                    <pattern>javax.ws</pattern>
+                                    <shadedPattern>splice.javax.ws</shadedPattern>
+                                </relocation>
                             </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>splice-yarn-webproxy</shadedClassifierName>
