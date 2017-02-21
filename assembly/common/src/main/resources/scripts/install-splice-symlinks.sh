@@ -81,6 +81,15 @@ for platform in ${platforms[@]} ; do
     fi
     echo "Splice Machine sqlshell.sh is ${sqlshellsh}"
 
+    # ws.rs-api jar
+    splicewsrsapijar=""
+    splicewsrsapijar="$(find ${splicedir[${platform}]} -xdev -type f -name javax.ws.rs-api\*.jar | head -1)"
+    if [[ -z "${splicewsrsapijar}" ]] ; then
+        echo "did not find javax.ws.rs-api jar under ${splicedir[${platform}]}"
+        continue
+    fi
+    echo "Splice Machine javax.ws.rs-api is ${splicewsrsapijar}"
+
     # and servlet-api >= 3.1.0
     spliceservletapijar=""
     spliceservletapijar="$(find ${splicedir[${platform}]} -xdev -type f -name \*servlet-api\*.jar | head -1)"
@@ -94,7 +103,7 @@ for platform in ${platforms[@]} ; do
     # we'll backup and replace these with symbolink links
     declare -a servletapijars
     servletapijars=""
-    servletapijars="$(find ${topdir[${platform}]} -xdev -type f \( -name \*servlet-api-2\*.jar -o -name servlet-api.jar \) )"
+    servletapijars="$(find ${topdir[${platform}]} -xdev -type f \( -name \*servlet-api-2\*.jar -o -name servlet-api.jar -o -name javax.servlet-2.5\*.jar \) )"
     for servletapijar in ${servletapijars[@]} ; do
       echo "backing up ${servletapijar} to ${servletapijar}.PRE-${TS}"
       mv ${servletapijar}{,.PRE-${TS}}
@@ -160,7 +169,7 @@ for platform in ${platforms[@]} ; do
           fi
         done
         # now symlink in our uber and yarn jars
-        for symlinkjar in ${spliceuberjar} ${spliceyarnwebproxyjar} ; do
+        for symlinkjar in ${spliceuberjar} ${spliceyarnwebproxyjar} ${splicewsrsapijar} ; do
           echo "symlinking ${symlinkjar} into ${yarnlibdir}"
           ln -sf ${symlinkjar} ${yarnlibdir}
         done
