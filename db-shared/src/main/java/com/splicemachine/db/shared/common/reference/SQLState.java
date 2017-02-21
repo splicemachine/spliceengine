@@ -1982,6 +1982,7 @@ public interface SQLState {
     String UPDATE_PIN_VIOLATION				    					= "EXT30";
     String DELETE_PIN_VIOLATION				    					= "EXT31";
 	String TABLE_NOT_PINNED				    						= "EXT32";
+	String DIRECTORY_REQUIRED			    						= "EXT33";
 
 
 }
