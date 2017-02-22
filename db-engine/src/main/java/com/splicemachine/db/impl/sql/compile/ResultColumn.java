@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import java.util.Collections;
 import java.util.List;
 
+import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -53,6 +54,7 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.StringUtil;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -2016,5 +2018,63 @@ public class ResultColumn extends ValueNode
             return null;
         }
     }
+
+	public long getCoordinates() {
+		return getExpression().getCoordinates(this);
+	}
+
+	public LongArrayList chain() {
+		LongArrayList chain = LongArrayList.newInstance();
+		ValueNode expression = getExpression();
+		while (expression != null) {
+			if (expression instanceof VirtualColumnNode) {
+				ResultColumn sc = ((VirtualColumnNode) expression).getSourceColumn();
+				chain.add(sc.getCoordinates());
+				expression = sc.getExpression();
+			} else if (expression instanceof ColumnReference) {
+				ResultColumn sc = ((ColumnReference) expression).getSource();
+				if (sc != null) { // A ColumnReference can be sourceless…
+					chain.add(sc.getCoordinates());
+					expression = sc.getExpression();
+				} else {
+					expression = null;
+				}
+			} else if (expression instanceof CastNode) {
+				expression = ((CastNode) expression).getCastOperand();
+			}
+			else {
+				expression = null;
+			}
+		}
+
+		return chain;
+	}
+
+	public long getChildLink() {
+		ValueNode expression = getExpression();
+		while (expression != null) {
+			if (expression instanceof VirtualColumnNode) {
+				ResultColumn sc = ((VirtualColumnNode) expression).getSourceColumn();
+				if (sc.getResultSetNumber() == -1)
+					return -1L;
+				return sc.getCoordinates();
+			} else if (expression instanceof ColumnReference) {
+				ResultColumn sc = ((ColumnReference) expression).getSource();
+				if (sc != null) { // A ColumnReference can be sourceless…
+					return sc.getCoordinates();
+				} else {
+					expression = null;
+				}
+			} else if (expression instanceof CastNode) {
+				expression = ((CastNode) expression).getCastOperand();
+			}
+			else {
+				expression = null;
+			}
+		}
+		return -1L;
+	}
+
+
 }
 

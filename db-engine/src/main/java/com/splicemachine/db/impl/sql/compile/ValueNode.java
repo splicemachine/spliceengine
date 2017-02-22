@@ -1504,4 +1504,16 @@ public abstract class ValueNode extends QueryTreeNode
 	public int getTableNumber() {
 		return -1;
 	}
+
+	/**
+	 *
+	 * ResultSetNumber coupled with column in a long
+	 *
+	 * @param resultColumn
+	 * @return
+     */
+	public long getCoordinates(ResultColumn resultColumn) {
+		return (((long)resultColumn.getResultSetNumber()) << 32) | (resultColumn.getVirtualColumnId() & 0xffffffffL);
+	}
+
 }
