@@ -56,6 +56,12 @@
             <artifactId>spark-hive_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-mesos_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
 
         <dependency>
             <groupId>org.apache.spark</groupId>
