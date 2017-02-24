@@ -16,32 +16,34 @@ package com.splicemachine.derby.stream.spark;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
-import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.AnalysisException;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
@@ -69,6 +71,7 @@ import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import scala.collection.JavaConverters;
+import scala.collection.Seq;
 
 /**
  * Spark-based DataSetProcessor.
@@ -79,6 +82,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private boolean permissive;
     private String statusDirectory;
     private String importFileName;
+    private static String csvSchemaFile = "schema";
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
@@ -341,7 +345,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location){
+    public StructType getExternalFileSchema(String storedAs, String location) throws IOException {
         StructType schema = null;
         if (storedAs!=null) {
             if (storedAs.toLowerCase().equals("p")) {
@@ -353,20 +357,43 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
             }
             if (storedAs.toLowerCase().equals("t")) {
-                schema =  SpliceSpark.getSession().read().csv(location).schema();
+                 schema = getCsvSchema(location);
             }
         }
 
         return schema;
     }
 
+
+    private StructType getCsvSchema(String location) throws IOException {
+        InputStream is = null;
+        try {
+            DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
+            is = fileSystem.newInputStream(location + "/" + csvSchemaFile);
+            int n = is.read();
+            ExecRow execRow = new ValueRow(n);
+            DataValueDescriptor[] rowArray = execRow.getRowArray();
+            for (int i = 0; i < n; ++i) {
+                rowArray[i] = LazyDataValueFactory.getLazyNull(is.read());
+            }
+            return execRow.schema();
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
+        finally {
+            if (is != null)
+                is.close();
+        }
+    }
+
     @Override
-    public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
+    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
 
 
             Dataset<Row> empty =  SpliceSpark.getSession()
-                    .createDataFrame(new ArrayList<Row>(), execRows.schema());
+                    .createDataFrame(new ArrayList<Row>(), execRow.schema());
 
             List<Column> cols = new ArrayList();
             for (int i = 0; i < baseColumnMap.length; i++) {
@@ -388,20 +415,41 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
                     }
                     if (storedAs.toLowerCase().equals("t")) {
-                        empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
+                        storeCsvSchema(execRow, location);
                     }
             }
-
-
         }
-
         catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
         }
     }
 
+    /**
+     * dump csv file schema
+     * @param execRow
+     * @param location
+     * @throws IOException
+     * @throws URISyntaxException
+     */
+    private void storeCsvSchema(ExecRow execRow, String location) throws IOException, URISyntaxException {
 
+        OutputStream os = null;
+        try {
+            DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
+            os = fileSystem.newOutputStream(location + "/" + csvSchemaFile);
+            os.write(execRow.nColumns());
+            List<Integer> formatIds = new ArrayList<>();
+            for (DataValueDescriptor dvd : execRow.getRowArray()) {
+                formatIds.add(dvd.getTypeFormatId());
+                os.write(dvd.getTypeFormatId());
+            }
+        }
+        finally {
+            if (os != null)
+                os.close();
+        }
+    }
 
     @Override
     public void dropPinnedTable(long conglomerateId) throws StandardException {
@@ -472,7 +520,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
-                table = SpliceSpark.getSession().read().csv(location);
+
+                Seq<String> csvFiles = getCsvFiles(location);
+                table = SpliceSpark.getSession().read().csv(csvFiles);
 
                 //1. spark cvs assume all the columns to be string by default
                 //   we know the schema, no need to use infer schema which is doing a full scan
@@ -495,7 +545,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
+    /**
+     * return a list of csv files under the directory, excluding schema file
+     * @param location
+     * @return
+     * @throws IOException
+     */
+    private Seq<String> getCsvFiles(String location) throws IOException {
+        List<String> files = new ArrayList<>();
+        Configuration conf = HConfiguration.unwrapDelegate();
+        FileSystem fs = FileSystem.get(URI.create(location), conf);
+        FileStatus[] fileStatuses = fs.listStatus(new Path(location));
+        for (FileStatus fileStatus : fileStatuses) {
+            String name = fileStatus.getPath().getName();
+            if (name.compareTo(csvSchemaFile) == 0)
+                continue;
 
+            files.add(fileStatus.getPath().toString());
+        }
+        Seq<String> csvFiles = scala.collection.JavaConversions.asScalaBuffer(files).toList();
+        return csvFiles;
+    }
     private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
         assert qual_list!=null:"qualifier[][] passed in is null";
         boolean     row_qualifies = true;
