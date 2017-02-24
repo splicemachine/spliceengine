@@ -341,7 +341,6 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 continue; // huh?
             }
             while (  (int)(rsnAndCol>>32) != n.getResultSetNumber()) {
-                System.out.println(String.format("ResultColumn(%d,%d)",(int)(rsnAndCol>>32),(int)(rsnAndCol)));
                 if (!joinChainMap.containsKey(rsnAndCol)) {
                     ignore = true;
                     break;
@@ -371,14 +370,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         if (operand instanceof ColumnReference) {
             long colCoord = (cr.getSourceResultColumn() != null && !hasSubqueryNode ? cr.getSourceResultColumn() : cr.getOrigSourceResultColumn()).getCoordinates();
             while (  (int)(colCoord>>32) != resultSetNode.getResultSetNumber()) {
-                //.out.println(String.format("ResultColumn(%d,%d)",(int)(colCoord>>32),(int)(colCoord)));
                 if (!joinChainMap.containsKey(colCoord)) {
-                    System.out.println(String.format("Error -> (%d,%d)",(int) (colCoord >> 32), (int) colCoord));
                     throw new RuntimeException(String.format("Unable to find ColRef %s in RCL %s", cr, rcl));
                 }
                 colCoord = joinChainMap.get(colCoord);
             }
-            System.out.println(String.format("Resolved(%d,%d) at (%d)",(int)(colCoord>>32),(int)(colCoord),resultSetNode.getResultSetNumber()));
             return rcl.elementAt( ((int) colCoord)-1).getVirtualColumnId() - 1; // translate from 1-based to 0-based index
         }
         else {
