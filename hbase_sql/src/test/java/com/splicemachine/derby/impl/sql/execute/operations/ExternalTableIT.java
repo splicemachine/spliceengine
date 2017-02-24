@@ -930,5 +930,35 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs2));
         rs2.close();
     }
+    
+    @Test
+    public void testUsingExsitingCsvFile() throws Exception {
 
+        // Create an external table stored as text
+        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE EXT_TEXT (id INT, c_text varchar(30)) \n" +
+                "ROW FORMAT DELIMITED \n" +
+                "FIELDS TERMINATED BY ','\n" +
+                "STORED AS TEXTFILE\n" +
+                "location '%s'", getExternalResourceDirectory() + "testUsingExsitingCsvFile"));
+
+        // insert into the table
+        methodWatcher.execute("insert into EXT_TEXT values (1, 'text1'), (2, 'text2'), (3, 'text3'), (4, 'text4')");
+        ResultSet rs = methodWatcher.executeQuery("select * from ext_text order by 1");
+        String before = TestUtils.FormattedResult.ResultFactory.toString(rs);
+
+        // drop and recreate another external table using previous data
+        methodWatcher.execute("drop table ext_text");
+
+        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE EXT_TEXT2 (id INT, c_text varchar(30)) \n" +
+                "ROW FORMAT DELIMITED \n" +
+                "FIELDS TERMINATED BY ','\n" +
+                "STORED AS TEXTFILE\n" +
+                "location '%s'", getExternalResourceDirectory() + "testUsingExsitingCsvFile"));
+
+        rs = methodWatcher.executeQuery("select * from ext_text2 order by 1");
+        String after = TestUtils.FormattedResult.ResultFactory.toString(rs);
+
+        Assert.assertEquals(after, before, after);
+
+    }
 }
