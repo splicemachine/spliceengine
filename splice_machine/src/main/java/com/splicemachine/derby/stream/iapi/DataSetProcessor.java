@@ -24,6 +24,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
 import org.apache.spark.sql.types.StructType;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 
@@ -162,7 +163,7 @@ public interface DataSetProcessor {
      * @param location
      * @return
      */
-    public StructType getExternalFileSchema(String storedAs, String location);
+    public StructType getExternalFileSchema(String storedAs, String location) throws IOException;
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because
