@@ -288,7 +288,7 @@ public class RowCountOperationIT {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @Ignore("DB-2750 - Remove requirement for curly braces around limit query.")
+    @Ignore("SPLICE-500 - Remove requirement for curly braces around limit query.")
     @Test
     public void limit_WO_braces_ordered() throws Exception {
         validateOrdered("" +

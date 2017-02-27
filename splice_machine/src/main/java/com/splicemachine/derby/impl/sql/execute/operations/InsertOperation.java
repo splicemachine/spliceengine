@@ -276,17 +276,4 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     }
 
 
-    @Override
-    public void openCore() throws StandardException{
-
-        DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
-        if (statusDirectory != null || dsp.getType() == DataSetProcessor.Type.SPARK) {
-            remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
-            remoteQueryClient.submit();
-            locatedRowIterator = remoteQueryClient.getIterator();
-        } else {
-            openCore(dsp);
-        }
-    }
-
 }

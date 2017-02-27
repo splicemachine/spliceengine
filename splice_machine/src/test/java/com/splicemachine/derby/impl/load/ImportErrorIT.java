@@ -291,7 +291,8 @@ public class ImportErrorIT extends SpliceUnitTest {
         helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
-    @Test @Ignore("DB-4341: Import of improper decimal gives overflow when selected")
+    @Test
+    @Ignore("SPLICE-230: Import of improper decimal gives overflow when selected")
     public void testDecimalTable() throws Exception {
         final String importFileName = "bad_decimal.csv";
         final String expectedErrorCode = "XIE0A";

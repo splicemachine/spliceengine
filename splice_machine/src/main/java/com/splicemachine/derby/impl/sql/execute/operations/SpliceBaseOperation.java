@@ -91,6 +91,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected List<SpliceOperation> leftOperationStack;
     protected String jobName;
     protected RemoteQueryClient remoteQueryClient;
+    protected long modifiedRowCount = 0;
+    protected long badRecords = 0;
 
     public SpliceBaseOperation(){
         super();
@@ -150,31 +152,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public int modifiedRowCount() {
-        long modifiedRowCount = 0;
-        long badRecords = 0;
-        try {
-            while (locatedRowIterator.hasNext()) {
-                LocatedRow next = locatedRowIterator.next();
-                ExecRow row = next.getRow();
-                modifiedRowCount += row.getColumn(1).getLong();
-                if (row.nColumns() > 1) {
-                    badRecords += row.getColumn(2).getLong();
-                    getActivation().getLanguageConnectionContext().setBadFile(row.getColumn(3).getString());
-                }
-            }
-            if (modifiedRowCount > Integer.MAX_VALUE || modifiedRowCount < Integer.MIN_VALUE) {
-                // DB-5369: int overflow when modified rowcount is larger than max int
-                // Add modified row count as a long value in warning
-                activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
-                return -1;
-            }
-            getActivation().getLanguageConnectionContext().setRecordsImported(modifiedRowCount);
-            getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
-            return (int) modifiedRowCount;
-        } catch (StandardException se) {
-            Exceptions.throwAsRuntime(PublicAPI.wrapStandardException(se));
-            return 0; //never reached
+        /*
+        The fields modifiedRowCount and badRecords are updated in DMLWriteOperation.openCore()
+         */
+        if (modifiedRowCount > Integer.MAX_VALUE || modifiedRowCount < Integer.MIN_VALUE) {
+            // DB-5369: int overflow when modified rowcount is larger than max int
+            // Add modified row count as a long value in warning
+            activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
+            return -1;
         }
+        getActivation().getLanguageConnectionContext().setRecordsImported(modifiedRowCount);
+        getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
+        return (int) modifiedRowCount;
     }
 
     @Override
@@ -424,6 +413,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             locatedRowIterator = remoteQueryClient.getIterator();
         } else {
             openCore(dsp);
+        }
+    }
+
+    protected void computeModifiedRows() throws StandardException {
+        modifiedRowCount = 0;
+        badRecords = 0;
+        while (locatedRowIterator.hasNext()) {
+            LocatedRow next = locatedRowIterator.next();
+            ExecRow row = next.getRow();
+            modifiedRowCount += row.getColumn(1).getLong();
+            if (row.nColumns() > 1) {
+                badRecords += row.getColumn(2).getLong();
+                getActivation().getLanguageConnectionContext().setBadFile(row.getColumn(3).getString());
+            }
         }
     }
 
