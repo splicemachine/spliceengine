@@ -55,7 +55,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
         StreamListener<ExecRow> sl = new StreamListener<>();
         HostAndPort hostAndPort = server.getHostAndPort();
         server.register(sl);
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(tenRows, 10);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(tenRows, 10);
         StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         srdd.submit();
         Iterator<ExecRow> it = sl.getIterator();
@@ -79,7 +79,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
         List<Tuple2<ExecRow,ExecRow>> shuffledRows = new ArrayList<>(tenRows);
         Collections.shuffle(shuffledRows);
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(shuffledRows, 10);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(shuffledRows, 10);
         JavaRDD<ExecRow> sorted = rdd.values().sortBy(new Function<ExecRow, Integer>() {
             @Override
             public Integer call(ExecRow execRow) throws Exception {
@@ -114,7 +114,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 6);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 6);
         final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         new Thread() {
             @Override
@@ -149,7 +149,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 12);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 12);
         final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         new Thread() {
             @Override
@@ -184,7 +184,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 13);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 13);
         final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         new Thread() {
             @Override
@@ -222,7 +222,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 1);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 1);
         final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         new Thread() {
             @Override
@@ -263,7 +263,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 1);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 1);
         final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
         new Thread() {
             @Override
@@ -300,7 +300,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 13);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 13);
         final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         new Thread() {
             @Override
@@ -337,7 +337,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 13);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 13);
         final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         new Thread() {
             @Override
@@ -373,7 +373,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 13);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 13);
         final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         new Thread() {
             @Override
@@ -414,7 +414,7 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
         }
 
-        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContext().parallelizePairs(manyRows, 12);
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 12);
         final StreamableRDD srdd1 = new StreamableRDD(rdd.values(), sl1.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
         final StreamableRDD srdd2 = new StreamableRDD(rdd.values().map(new Function<ExecRow,ExecRow>() {
             @Override
