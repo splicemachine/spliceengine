@@ -303,7 +303,7 @@ public class UpportIT extends SpliceUnitTest {
         assertCorrectResult(correctFullData,actualData);
     }
 
-    @Test @Ignore("DB-4340")
+    @Test @Ignore("SPLICE-231")
     public void testUpsertWithEmptyTableWillInsertDuplicatesReportedAsBad() throws Exception {
         //  FIXME: JC - 'Additive WriteConflict'. Terminates connection, later tests fail, no good error message.
         CallableStatement statement =

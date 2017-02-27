@@ -83,7 +83,8 @@ public final class InsertNode extends DMLModStatementNode {
 
     public static final String INSERT_MODE = "insertMode";
     public static final String STATUS_DIRECTORY = "statusDirectory";
-    public static final String BAD_RECORDS_ALLOWED = "badRecordsAllowed";
+	public static final String BAD_RECORDS_ALLOWED = "badRecordsAllowed";
+	public static final String USE_SPARK = "useSpark";
     public static final String INSERT = "INSERT";
 
 
@@ -98,6 +99,7 @@ public final class InsertNode extends DMLModStatementNode {
     private     boolean           hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
     private     String              statusDirectory;
     private     int              badRecordsAllowed = 0;
+	private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
 
 
 	protected   RowLocation[] 		autoincRowLocation;
@@ -700,34 +702,41 @@ public final class InsertNode extends DMLModStatementNode {
 	 * @exception StandardException		Thrown on error
 	 */
 	private void verifyTargetProperties(DataDictionary dd)
-		throws StandardException
-	{
+		throws StandardException {
 		// The only property that we're currently interested in is insertMode
 		String insertModeString = targetProperties.getProperty(INSERT_MODE);
         String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
         String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
+		String useSparkString = targetProperties.getProperty(USE_SPARK);
 
 		if (insertModeString != null) {
-            String upperValue = StringUtil.SQLToUpperCase(insertModeString);
-            try {
-                insertMode = InsertMode.valueOf(upperValue);
-            } catch (Exception e) {
-                throw StandardException.newException(SQLState.LANG_INVALID_INSERT_MODE,
-                        insertMode,
-                        targetTableName);
-            }
-        }
+			String upperValue = StringUtil.SQLToUpperCase(insertModeString);
+			try {
+				insertMode = InsertMode.valueOf(upperValue);
+			} catch (Exception e) {
+				throw StandardException.newException(SQLState.LANG_INVALID_INSERT_MODE,
+						insertMode,
+						targetTableName);
+			}
+		}
 
-        if (failBadRecordCountString != null)
-            badRecordsAllowed = getIntProperty(failBadRecordCountString, "bulkFetch");
+		if (failBadRecordCountString != null)
+			badRecordsAllowed = getIntProperty(failBadRecordCountString, "bulkFetch");
 
-        if (statusDirectoryString != null) {
-            // validated for writing in ImportUtils.generateFileSystemPathForWrite()
-            statusDirectory = statusDirectoryString;
-        }
+		if (statusDirectoryString != null) {
+			// validated for writing in ImportUtils.generateFileSystemPathForWrite()
+			statusDirectory = statusDirectoryString;
+		}
 
+		if (useSparkString != null) {
+			try {
+				dataSetProcessorType = Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString)) ? CompilerContext.DataSetProcessorType.FORCED_SPARK : CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+			} catch (Exception sparkE) {
+				throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, useSparkString);
+			}
+		}
 
-    }
+	}
 
 	/**
 	 * Do the bind time checks to see if bulkInsert is allowed on
@@ -912,6 +921,10 @@ public final class InsertNode extends DMLModStatementNode {
 								MethodBuilder mb)
 							throws StandardException
 	{
+		// Set Spark
+		if (dataSetProcessorType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL)
+			acb.setDataSetProcessorType(dataSetProcessorType);
+
 		// If the DML is on the temporary table, generate the code to
 		// mark temporary table as modified in the current UOW. After
 		// DERBY-827 this must be done in execute() since
