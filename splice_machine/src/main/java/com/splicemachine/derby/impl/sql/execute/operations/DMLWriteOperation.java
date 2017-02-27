@@ -300,4 +300,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         return elevateTransaction();
     }
 
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
+        /*
+        We have to compute modifiedRowCount and badRecords here because if there's an Exception it has to
+        propagate from here, otherwise Derby code down the line won't clean up things properly, see SPLICE-1470
+         */
+        computeModifiedRows();
+    }
 }
