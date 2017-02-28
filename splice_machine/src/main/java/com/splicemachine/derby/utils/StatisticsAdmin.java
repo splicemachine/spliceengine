@@ -116,11 +116,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn, schema, table);
-/*            if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
-                throw StandardException.newException(
-                        com.splicemachine.db.iapi.reference.SQLState.EXTERNAL_TABLES_NO_STATS,td.getName());
-            }
-*/
             //verify that that column exists
             ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
             for (ColumnDescriptor descriptor : columnDescriptorList) {
@@ -155,7 +150,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     public static void COLLECT_SCHEMA_STATISTICS(String schema, boolean staleOnly, ResultSet[] outputResults) throws
         SQLException {
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-//        List<ExecRow> rows = Lists.newArrayList();
         try {
             if (schema == null)
                 throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException(); //TODO -sf- change this to proper SCHEMA
@@ -182,7 +176,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             transactionExecute.elevate("statistics");
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc,tds);
-//            ExecRow templateOutputRow = buildOutputTemplateRow();
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             // Create the Dataset.  This needs to stay in a dataset for parallel execution (very important).
@@ -255,12 +248,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             schema = EngineUtils.validateSchema(schema);
             table = EngineUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
-            /*
-            if (tableDesc!=null && tableDesc.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
-                throw StandardException.newException(
-                        com.splicemachine.db.iapi.reference.SQLState.EXTERNAL_TABLES_NO_STATS,tableDesc.getName());
-            }
-            */
             List<TableDescriptor> tds = Collections.singletonList(tableDesc);
             authorize(tds);
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
@@ -394,7 +381,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             accessedColumns.set(descriptor.getStoragePosition() - 1);
             row.setColumn(outputCol + 1, descriptor.getType().getNull());
             columnPositionMap[outputCol] = descriptor.getPosition();
-//            execRowFormatIds[outputCol] = descriptor.getType().getNull().getFormat().getStoredFormatId();
             outputCol++;
             allColumnLengths[descriptor.getPosition() - 1] = descriptor.getType().getMaximumWidth();
         }
@@ -433,12 +419,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
         }
         DataScan scan = createScan(txn);
-    //    ExecRow rowTemplate = new ValueRow(execRowFormatIds.length);
-    //    DataValueDescriptor[] dvds = rowTemplate.getRowArray();
-    //    DataValueFactory dataValueFactory=conn.getLanguageConnection().getDataValueFactory();
-    //    for(int i=0;i<execRowFormatIds.length;i++){
-    //        dvds[i] = dataValueFactory.getNull(execRowFormatIds[i],-1);
-    //    }
         return builder.transaction(txn)
                 .metricFactory(Metrics.basicMetricFactory())
                 .template(row)
