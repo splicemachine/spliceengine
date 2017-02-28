@@ -14,6 +14,7 @@
 
 package com.splicemachine.stream.output;
 
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
@@ -100,7 +101,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
         TxnView txn = taskAttemptMap.remove(taskContext.getTaskAttemptID());
         if (txn == null)
             throw new IOException("no transaction associated with task attempt Id "+taskContext.getTaskAttemptID());
-        SIDriver.driver().lifecycleManager().commit(txn.getTxnId());
+        SIDriver.driver().lifecycleManager().commit((Txn)txn);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"commitTxn=%s and destinationTable=%s",txn,destinationTable);
     }
@@ -112,7 +113,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
         TxnView txn = taskAttemptMap.remove(taskContext.getTaskAttemptID());
         if (txn == null)
             throw new IOException("no transaction associated with task attempt Id "+taskContext.getTaskAttemptID());
-        SIDriver.driver().lifecycleManager().rollback(txn.getTxnId());
+        SIDriver.driver().lifecycleManager().rollback((Txn)txn);
     }
 
 //    @Override

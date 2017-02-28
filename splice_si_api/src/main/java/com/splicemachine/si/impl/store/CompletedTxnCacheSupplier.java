@@ -18,6 +18,7 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
@@ -63,7 +64,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
         if(txnId==-1)
             return Txn.ROOT_TRANSACTION;
         requests.incrementAndGet();
-        TxnView txn=cache.get(txnId); // autobox until Cliff C merge
+        TxnView txn=cache.get(txnId & SIConstants.TRANSANCTION_ID_MASK); // autobox until Cliff C merge
         if(txn!=null){
             hits.incrementAndGet();
             return txn;
@@ -76,7 +77,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
         switch(transaction.getEffectiveState()){
             case COMMITTED:
             case ROLLEDBACK:
-                cache.put(transaction.getTxnId(),transaction); // Cache for Future Use
+                cache.put(transaction.getTxnId() & SIConstants.TRANSANCTION_ID_MASK,transaction); // Cache for Future Use
         }
         return transaction;
     }

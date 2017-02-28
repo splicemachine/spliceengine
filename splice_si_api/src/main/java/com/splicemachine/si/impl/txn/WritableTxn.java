@@ -147,7 +147,7 @@ public class WritableTxn extends AbstractTxn{
                     case ROLLEDBACK:
                         throw exceptionFactory.cannotCommit(txnId, state);
                     case ACTIVE:
-                        commitTimestamp = tc.commit(txnId);
+                        commitTimestamp = tc.commit(this);
                         state = State.COMMITTED;
                 }
             }
@@ -186,12 +186,12 @@ public class WritableTxn extends AbstractTxn{
                         return;
                 }
 
-                tc.rollback(txnId);
+                tc.rollback(this);
                 state = State.ROLLEDBACK;
             }
         } else {
             subRollback();
-            tc.rollbackSubtransactions(txnId, parentReference.getRolledback());
+            tc.rollbackSubtransactions(this, parentReference.getRolledback());
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"After rollback: txn=%s",this);

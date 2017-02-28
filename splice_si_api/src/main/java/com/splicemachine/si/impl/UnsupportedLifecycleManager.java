@@ -76,17 +76,17 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 		}
 
 		@Override
-		public long commit(long txnId) throws IOException {
+		public long commit(Txn txn) throws IOException {
 				throw new UnsupportedOperationException("Cannot commit a transaction from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 		}
 
 		@Override
-		public void rollback(long txnId) throws IOException {
+		public void rollback(Txn txn) throws IOException {
 				throw new UnsupportedOperationException("Cannot rollback a transaction from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 		}
 
 	@Override
-	public void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException {
+	public void rollbackSubtransactions(Txn txn, LongOpenHashSet rolledback) throws IOException {
 		throw new UnsupportedOperationException("Cannot rollback subtransactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}
 

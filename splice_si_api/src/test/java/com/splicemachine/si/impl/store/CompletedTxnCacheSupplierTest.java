@@ -43,7 +43,7 @@ public class CompletedTxnCacheSupplierTest{
     public void testDoesNotCacheActiveTransactions() throws Exception{
         final AtomicLong al=new AtomicLong(0l);
         TxnLifecycleManager tc=mock(TxnLifecycleManager.class);
-        when(tc.commit(anyLong())).thenAnswer(new Answer<Long>(){
+        when(tc.commit(mock(Txn.class))).thenAnswer(new Answer<Long>(){
 
             @Override
             public Long answer(InvocationOnMock invocationOnMock) throws Throwable{
@@ -79,7 +79,7 @@ public class CompletedTxnCacheSupplierTest{
     public void testCachesRolledBackTransactions() throws Exception{
         final AtomicLong al=new AtomicLong(0l);
         TxnLifecycleManager tc=mock(TxnLifecycleManager.class);
-        when(tc.commit(anyLong())).thenAnswer(new Answer<Long>(){
+        when(tc.commit(mock(Txn.class))).thenAnswer(new Answer<Long>(){
 
             @Override
             public Long answer(InvocationOnMock invocationOnMock) throws Throwable{
@@ -119,7 +119,7 @@ public class CompletedTxnCacheSupplierTest{
     public void testCachesCommittedTransactions() throws Exception{
         final AtomicLong al=new AtomicLong(0l);
         TxnLifecycleManager tc=mock(TxnLifecycleManager.class);
-        when(tc.commit(anyLong())).thenAnswer(new Answer<Long>(){
+        when(tc.commit(mock(Txn.class))).thenAnswer(new Answer<Long>(){
 
             @Override
             public Long answer(InvocationOnMock invocationOnMock) throws Throwable{

@@ -185,29 +185,29 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
-    public long commit(long txnId) throws IOException{
+    public long commit(Txn txn) throws IOException{
         if(restoreMode){
             return -1; // we are in restore mode, don't try to access the store
         }
-        return store.commit(txnId);
+        return store.commit(txn.getTxnId());
         //TODO -sf- add the transaction to the global cache?
     }
 
     @Override
-    public void rollback(long txnId) throws IOException{
+    public void rollback(Txn txn) throws IOException{
         if(restoreMode){
             return; // we are in restore mode, don't try to access the store
         }
-        store.rollback(txnId);
+        store.rollback(txn.getTxnId());
         //TODO -sf- add the transaction to the global cache?
     }
 
     @Override
-    public void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException {
+    public void rollbackSubtransactions(Txn txn, LongOpenHashSet rolledback) throws IOException {
         if(restoreMode){
             return; // we are in restore mode, don't try to access the store
         }
-        store.rollbackSubtransactions(txnId, rolledback);
+        store.rollbackSubtransactions(txn.getTxnId(), rolledback);
     }
 
     /**********************************************************************************************************/

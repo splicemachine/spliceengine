@@ -108,7 +108,7 @@ public class ActiveTxnCacheTest{
     private TxnLifecycleManager getLifecycleManager() throws IOException{
         final AtomicLong al=new AtomicLong(0l);
         TxnLifecycleManager tc=mock(TxnLifecycleManager.class);
-        when(tc.commit(anyLong())).thenAnswer(new Answer<Long>(){
+        when(tc.commit(mock(Txn.class))).thenAnswer(new Answer<Long>(){
 
             @Override
             public Long answer(InvocationOnMock invocationOnMock) throws Throwable{

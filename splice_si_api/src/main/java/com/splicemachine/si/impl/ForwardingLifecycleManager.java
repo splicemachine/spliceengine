@@ -108,18 +108,18 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
 		}
 
 		@Override
-		public long commit(long txnId) throws IOException {
-				return lifecycleManager.commit(txnId);
+		public long commit(Txn txn) throws IOException {
+				return lifecycleManager.commit(txn);
 		}
 
 		@Override
-		public void rollback(long txnId) throws IOException {
-				lifecycleManager.rollback(txnId);
+		public void rollback(Txn txn) throws IOException {
+				lifecycleManager.rollback(txn);
 		}
 
 	@Override
-	public void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException {
-		lifecycleManager.rollbackSubtransactions(txnId, rolledback);
+	public void rollbackSubtransactions(Txn txn, LongOpenHashSet rolledback) throws IOException {
+		lifecycleManager.rollbackSubtransactions(txn, rolledback);
 	}
 
 

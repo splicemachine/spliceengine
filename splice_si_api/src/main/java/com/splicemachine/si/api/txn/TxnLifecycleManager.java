@@ -182,7 +182,7 @@ public interface TxnLifecycleManager{
      *                                                        another process (e.g. timeout)
      * @throws IOException                                    if something goes wrong during the elevation
      */
-    long commit(long txnId) throws IOException;
+    long commit(Txn txn) throws IOException;
 
     /**
      * Rollback the transaction identified with {@code txnId}.
@@ -192,9 +192,9 @@ public interface TxnLifecycleManager{
      * @param txnId the id of the transaction to rollback
      * @throws IOException If something goes wrong during the rollback
      */
-    void rollback(long txnId) throws IOException;
+    void rollback(Txn txn) throws IOException;
 
-    void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException;
+    void rollbackSubtransactions(Txn txn, LongOpenHashSet rolledback) throws IOException;
 
     /**
      * "Chains" a new transaction to the old one.
