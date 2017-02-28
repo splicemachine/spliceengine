@@ -436,12 +436,10 @@ public class ExportOperationIT {
                     .create();
 
             Long expectedRowCount = methodWatcher.query("EXPORT ( 's3a://molitorisspechial/temp/', null, null, null, null, null ) select * from export_s3_test");
+            fail();
         } catch (SQLException sqle) {
-            String error = sqle.getMessage();
-            String mesg1 = "Invalid parameter 'cannot create export directory'='s3a://molitorisspechial/temp/'.";
-            String mesg2 = "Service: Amazon S3; Status Code: 403; Error Code: 403 Forbidden";
-            String mesg3 = "Status Code: 403, AWS Service: Amazon S3";
-            Assert.assertTrue(error, error.contains(mesg1) || error.contains(mesg2) || error.contains(mesg3));
+            String sqlState = sqle.getSQLState();
+            Assert.assertTrue(sqlState, sqlState.compareToIgnoreCase("EXT26") == 0 || sqlState.compareToIgnoreCase("XCZ02") == 0);
         }
     }
 
