@@ -440,7 +440,7 @@ public class ExportOperationIT {
             fail();
         } catch (SQLException sqle) {
             String sqlState = sqle.getSQLState();
-            Assert.assertTrue(sqlState, sqlState.compareToIgnoreCase("EXT26") == 0);
+            Assert.assertTrue(sqlState, sqlState.compareToIgnoreCase("EXT26") == 0 || sqlState.compareToIgnoreCase("XCZ02") == 0);
         }
     }
 
