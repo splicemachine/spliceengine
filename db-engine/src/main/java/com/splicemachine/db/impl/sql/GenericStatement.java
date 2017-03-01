@@ -756,7 +756,7 @@ public class GenericStatement implements Statement{
                 queryTree.accept(jsonVisitor);
                 writeJSON(jsonVisitor,phase.toString() + actualJsonIncrement+".json");
                 if (phase == CompilationPhase.AFTER_PARSE)
-                    Files.write(getTargePath(actualJsonIncrement+".json"),statementText.getBytes("UTF-8"));
+                    Files.write(getTargePath("sql"+actualJsonIncrement+".txt"),statementText.getBytes("UTF-8"));
             } catch (IOException e) {
                 /* Don't let the exception propagate.  If we are trying to use this tool on a server where we can't
                    write to the destination, for example, then warn but let the query run. */
