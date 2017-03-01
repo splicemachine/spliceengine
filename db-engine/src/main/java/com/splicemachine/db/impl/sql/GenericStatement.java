@@ -59,10 +59,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
-
+    protected static AtomicInteger jsonIncrement;
+    protected int actualJsonIncrement = -1;
     private static final Logger JSON_TREE_LOG = Logger.getLogger(JsonTreeBuilderVisitor.class);
 
     // these fields define the identity of the statement
@@ -746,18 +748,15 @@ public class GenericStatement implements Statement{
         if (JSON_TREE_LOG.isTraceEnabled()) {
             JSON_TREE_LOG.warn("JSON AST logging is enabled");
             try {
+                if (jsonIncrement ==null)
+                    jsonIncrement = new AtomicInteger(0);
+                if (actualJsonIncrement==-1)
+                    actualJsonIncrement = jsonIncrement.getAndIncrement();
                 JsonTreeBuilderVisitor jsonVisitor = new JsonTreeBuilderVisitor();
                 queryTree.accept(jsonVisitor);
-
-                String destinationFileName = phase + ".json";
-                Path target = Paths.get(destinationFileName);
-                // Attempt to write to target director, if exists under CWD
-                Path subDir = Paths.get("./target");
-                if (Files.isDirectory(subDir)) {
-                    target = subDir.resolve(target);
-                }
-
-                Files.write(target, jsonVisitor.toJson().getBytes("UTF-8"));
+                writeJSON(jsonVisitor,phase.toString() + actualJsonIncrement+".json");
+                if (phase == CompilationPhase.AFTER_PARSE)
+                    Files.write(getTargePath(actualJsonIncrement+".json"),statementText.getBytes("UTF-8"));
             } catch (IOException e) {
                 /* Don't let the exception propagate.  If we are trying to use this tool on a server where we can't
                    write to the destination, for example, then warn but let the query run. */
@@ -765,4 +764,36 @@ public class GenericStatement implements Statement{
             }
         }
     }
+
+    /**
+     *
+     * Write Results to target directory
+     *
+     * @param jsonVisitor
+     * @param destinationFileName
+     * @throws IOException
+     */
+    private void writeJSON(JsonTreeBuilderVisitor jsonVisitor,String destinationFileName) throws IOException {
+        Path target = getTargePath(destinationFileName);
+        Files.write(target, jsonVisitor.toJson().getBytes("UTF-8"));
+    }
+
+    /**
+     *
+     * Get target directory path for debugging
+     *
+     * @param destinationFileName
+     * @return
+     * @throws IOException
+     */
+    private Path getTargePath(String destinationFileName) throws IOException {
+        Path target = Paths.get(destinationFileName);
+        // Attempt to write to target director, if exists under CWD
+        Path subDir = Paths.get("./target");
+        if (Files.isDirectory(subDir)) {
+            target = subDir.resolve(target);
+        }
+        return target;
+    }
+
 }
