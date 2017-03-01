@@ -50,5 +50,5 @@ public interface SizedCacheable extends Cacheable
      *
      * @return the estimated size, in bytes
      */
-    public int getSize();
+    int getSize();
 }

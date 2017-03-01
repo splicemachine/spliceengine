@@ -53,7 +53,7 @@ public interface UniqueSQLObjectDescriptor extends UniqueTupleDescriptor
 	 * 
 	 * @return the name
 	 */
-	public String getName();
+	String getName();
 
 	/**
 	 * Get the objects schema descriptor
@@ -62,6 +62,6 @@ public interface UniqueSQLObjectDescriptor extends UniqueTupleDescriptor
 	 *
 	 * @exception StandardException on error
 	 */
-	public SchemaDescriptor getSchemaDescriptor()
+	SchemaDescriptor getSchemaDescriptor()
 		throws StandardException;
 }

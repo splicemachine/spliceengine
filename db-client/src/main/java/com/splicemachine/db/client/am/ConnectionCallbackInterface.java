@@ -31,15 +31,15 @@ package com.splicemachine.db.client.am;
 // Reply implementations may update connection state via this interface.
 
 public interface ConnectionCallbackInterface {
-    public void completeLocalCommit();
+    void completeLocalCommit();
 
-    public void completeLocalRollback();
+    void completeLocalRollback();
 
-    public void completeAbnormalUnitOfWork();
+    void completeAbnormalUnitOfWork();
 
-    public void completeChainBreakingDisconnect();
+    void completeChainBreakingDisconnect();
 
-    public void completeSqlca(Sqlca e);
+    void completeSqlca(Sqlca e);
     
     /**
      *
@@ -47,19 +47,19 @@ public interface ConnectionCallbackInterface {
      * @param uwl The UnitOfWorkListener to be rolled back.
      *
      */
-    public void completeAbnormalUnitOfWork(UnitOfWorkListener uwl);
+    void completeAbnormalUnitOfWork(UnitOfWorkListener uwl);
 
     /**
      * Completes piggy-backing of the new current isolation level by
      * updating the cached copy in am.Connection.
      * @param pbIsolation new isolation level from the server
      */
-    public void completePiggyBackIsolation(int pbIsolation);
+    void completePiggyBackIsolation(int pbIsolation);
 
     /**
      * Completes piggy-backing of the new current schema by updating
      * the cached copy in am.Connection.
      * @param pbSchema new current schema from the server
      */
-    public void completePiggyBackSchema(String pbSchema);
+    void completePiggyBackSchema(String pbSchema);
 }

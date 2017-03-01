@@ -36,7 +36,7 @@ public interface ArrayDataValue extends DataValueDescriptor, Array {
 	 * @param theValue	Contains the boolean value to set this RefDataValue
 	 *					to.  Null means set this RefDataValue to null.
 	 */
-	public void setValue(DataValueDescriptor[] theValue);
+	void setValue(DataValueDescriptor[] theValue);
 
 	/**
 	 *
@@ -47,7 +47,7 @@ public interface ArrayDataValue extends DataValueDescriptor, Array {
 	 * @return
 	 * @throws StandardException
      */
-	public DataValueDescriptor arrayElement(int element, DataValueDescriptor valueToSet) throws StandardException;
+	DataValueDescriptor arrayElement(int element, DataValueDescriptor valueToSet) throws StandardException;
 
 	/**
 	 *
@@ -55,6 +55,6 @@ public interface ArrayDataValue extends DataValueDescriptor, Array {
 	 *
 	 * @param type
      */
-	public void setType(DataValueDescriptor type) throws StandardException;
+	void setType(DataValueDescriptor type) throws StandardException;
 
 }

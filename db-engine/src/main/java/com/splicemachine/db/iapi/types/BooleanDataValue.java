@@ -35,7 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 public interface BooleanDataValue extends DataValueDescriptor
 {
-	public boolean	getBoolean();
+	boolean	getBoolean();
 
 	/**
 	 * The SQL AND operator.  This provides SQL semantics for AND with unknown
@@ -46,7 +46,7 @@ public interface BooleanDataValue extends DataValueDescriptor
 	 * @return	this AND otherValue
 	 *
 	 */
-	public BooleanDataValue and(BooleanDataValue otherValue);
+	BooleanDataValue and(BooleanDataValue otherValue);
 
 	/**
 	 * The SQL OR operator.  This provides SQL semantics for OR with unknown
@@ -57,7 +57,7 @@ public interface BooleanDataValue extends DataValueDescriptor
 	 * @return	this OR otherValue
 	 *
 	 */
-	public BooleanDataValue or(BooleanDataValue otherValue);
+	BooleanDataValue or(BooleanDataValue otherValue);
 
 	/**
 	 * The SQL IS operator - consult any standard SQL reference for an explanation.
@@ -78,7 +78,7 @@ public interface BooleanDataValue extends DataValueDescriptor
 	 * @return	whether this IS otherValue
 	 *
 	 */
-	public BooleanDataValue is(BooleanDataValue otherValue);
+	BooleanDataValue is(BooleanDataValue otherValue);
 
 	/**
 	 * Implements NOT IS. This reverses the sense of the is() call.
@@ -89,7 +89,7 @@ public interface BooleanDataValue extends DataValueDescriptor
 	 * @return	NOT( this IS otherValue )
 	 *
 	 */
-	public BooleanDataValue isNot(BooleanDataValue otherValue);
+	BooleanDataValue isNot(BooleanDataValue otherValue);
 
 	/**
 	 * Throw an exception with the given SQLState if this BooleanDataValue
@@ -107,10 +107,10 @@ public interface BooleanDataValue extends DataValueDescriptor
 	 * @exception	StandardException	Thrown if this BooleanDataValue
 	 *									is false.
 	 */
-	public BooleanDataValue throwExceptionIfFalse(
-									String SQLState,
-									String tableName,
-									String constraintName)
+	BooleanDataValue throwExceptionIfFalse(
+			String SQLState,
+			String tableName,
+			String constraintName)
 							throws StandardException;
 
 	/*
@@ -124,7 +124,7 @@ public interface BooleanDataValue extends DataValueDescriptor
 	 * @param theValue	Contains the boolean value to set this BooleanDataValue
 	 *					to.  Null means set this BooleanDataValue to null.
 	 */
-	public void setValue(Boolean theValue);
+	void setValue(Boolean theValue);
 
 	/**
 	 * Tell whether a BooleanDataValue has the given value.  This is useful
@@ -134,11 +134,11 @@ public interface BooleanDataValue extends DataValueDescriptor
 	 *
 	 * @return	true if the BooleanDataValue contains the given value.
 	 */
-	public boolean equals(boolean value);
+	boolean equals(boolean value);
 	
 	/**
 	 * Return an immutable BooleanDataValue with the same value as this.
 	 * @return An immutable BooleanDataValue with the same value as this.
 	 */
-	public BooleanDataValue getImmutable();
+	BooleanDataValue getImmutable();
 }

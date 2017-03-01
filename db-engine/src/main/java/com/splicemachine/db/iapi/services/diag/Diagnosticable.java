@@ -47,7 +47,7 @@ public interface Diagnosticable
 	/*
 	** Methods of Diagnosticable
 	*/
-    public void init(Object obj);
+    void init(Object obj);
 
     /**
      * Default implementation of diagnostic on the object.
@@ -64,7 +64,7 @@ public interface Diagnosticable
      *
      * @exception StandardException  Standard Derby exception policy
      **/
-    public String diag() throws StandardException;
+    String diag() throws StandardException;
 
     /**
      * Default implementation of detail diagnostic on the object.
@@ -98,5 +98,5 @@ public interface Diagnosticable
      *
      * @exception StandardException  Standard Derby exception policy
      **/
-    public void diag_detail(Properties prop) throws StandardException;
+    void diag_detail(Properties prop) throws StandardException;
 }

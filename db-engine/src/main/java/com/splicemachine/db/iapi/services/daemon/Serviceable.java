@@ -87,13 +87,13 @@ public interface Serviceable {
 		<P>MT - depends on the work.  Be wary of multiple DaemonService thread
 		calling at the same time if you subscribe or enqueue multiple times.
 	*/
-	public int performWork(ContextManager context) throws StandardException;
+	int performWork(ContextManager context) throws StandardException;
 
 
 	/** return status for performWork - only meaningful for enqueued client */
-	public static int DONE = 1;	// the daemon work is finished, the
+	int DONE = 1;	// the daemon work is finished, the
 								// DaemonService can get rid of this client
-	public static int REQUEUE = 2;// the daemon work is not finished, requeue
+								int REQUEUE = 2;// the daemon work is not finished, requeue
 								  // the request to be serviced again later.
 
 
@@ -110,7 +110,7 @@ public interface Serviceable {
 
 		<P>MT - MT safe
 	*/
-	public boolean serviceASAP();
+	boolean serviceASAP();
 
 
 	/**
@@ -119,7 +119,7 @@ public interface Serviceable {
 		immediately or if it is performed by another thread asynchronously
 		later, then return false.  
 	*/
-	public boolean serviceImmediately();
+	boolean serviceImmediately();
 
 }
 

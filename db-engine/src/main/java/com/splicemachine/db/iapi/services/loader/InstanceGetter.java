@@ -43,6 +43,6 @@ public interface InstanceGetter {
 		@exception InvocationTargetException Exception throw in zero-arg constructor.
 
 	*/
-	public Object getNewInstance()
+	Object getNewInstance()
 		throws InstantiationException, IllegalAccessException, InvocationTargetException;
 }

@@ -52,7 +52,7 @@ public interface TemporaryRowHolder
 	 *
 	 * @exception StandardException on error
  	 */
-	public void insert(ExecRow inputRow)
+	void insert(ExecRow inputRow)
 		throws StandardException;
 
 	/**
@@ -61,23 +61,23 @@ public interface TemporaryRowHolder
 	 *
 	 * @return a result set to use
 	 */
-	public CursorResultSet getResultSet();
+	CursorResultSet getResultSet();
 
 	/**
 	 * Clean up
 	 *
 	 * @exception StandardException on error
 	 */
-	public void close() throws StandardException;
+	void close() throws StandardException;
 
 
 	//returns the conglomerate number it created
-	public long getTemporaryConglomId();
+	long getTemporaryConglomId();
 
 	//return the conglom id of the position index it maintains
-	public long getPositionIndexConglomId();
+	long getPositionIndexConglomId();
 
 	//sets the type of the temporary row holder to unique stream
-	public void setRowHolderTypeToUniqueStream();
+	void setRowHolderTypeToUniqueStream();
 
 }

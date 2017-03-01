@@ -56,6 +56,6 @@ public interface ConstantAction
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation )
+	void	executeConstantAction(Activation activation)
 						throws StandardException;
 }

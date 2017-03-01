@@ -59,19 +59,19 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public interface DaemonService 
 {
-	public static int TIMER_DELAY = 10000; // wake up once per TIMER_DELAY milli-second
+	int TIMER_DELAY = 10000; // wake up once per TIMER_DELAY milli-second
 
 
 	/**
 		Trace flag that can be used by Daemons to print stuff out
 	*/
-	public static final String DaemonTrace = SanityManager.DEBUG ? "DaemonTrace" : null;
+	String DaemonTrace = SanityManager.DEBUG ? "DaemonTrace" : null;
 
 	/**
 		Trace flag that can be used to turn off background daemons
 		If DaemonOff is set, background Daemon will not attempt to do anything.
 	*/
-	public static final String DaemonOff = SanityManager.DEBUG ? "DaemonOff" : null;
+	String DaemonOff = SanityManager.DEBUG ? "DaemonOff" : null;
 
 
 	/**
@@ -81,7 +81,7 @@ public interface DaemonService
 		@param onDemandOnly only service this client when it ask for service with a serviceNow request
 		@return a client number that uniquely identifies this client (this subscription) 
 	*/
-	public int subscribe(Serviceable newClient, boolean onDemandOnly);
+	int subscribe(Serviceable newClient, boolean onDemandOnly);
 
 
 	/**
@@ -94,7 +94,7 @@ public interface DaemonService
 
 		@param clientNumber the number that uniquely identify the client
 	*/
-	public void unsubscribe(int clientNumber);
+	void unsubscribe(int clientNumber);
 
 
     /**
@@ -110,7 +110,7 @@ public interface DaemonService
      *
      * @param clientNumber the number that uniquely identifies the client
      */
-	public void serviceNow(int clientNumber);
+	void serviceNow(int clientNumber);
 
 
 	/**
@@ -132,35 +132,35 @@ public interface DaemonService
 		@return true if the daemon indicates it is being overloaded,
 		false it's happy.
 	*/
-	public boolean enqueue(Serviceable newClient, boolean serviceNow);
+	boolean enqueue(Serviceable newClient, boolean serviceNow);
 
 	/**
 		Pause.  No new service is performed until a resume is issued.
 	*/
-	public void pause();
+	void pause();
 	
 
 	/**
 		Resume service after a pause
 	*/
-	public void resume();
+	void resume();
 	
 
 	/**
 		End this daemon service
 	 */
-	public void stop();
+	void stop();
 
 	/**
 		Clear all the queued up work from this daemon.  Subscriptions are not
 		affected. 
 	 */
-	public void clear();
+	void clear();
 
 	/*
 	 *Wait until work in the high priorty queue is done.
-	 */	
-	public void waitUntilQueueIsEmpty();
+	 */
+	void waitUntilQueueIsEmpty();
 	
 }
 

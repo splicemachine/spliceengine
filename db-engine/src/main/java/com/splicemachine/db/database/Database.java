@@ -63,7 +63,7 @@ public interface Database
 	 * @return	TRUE means the Database is read-only, FALSE means it is
 	 *		not read-only.
 	 */
-	public boolean		isReadOnly();
+	boolean		isReadOnly();
 
     /**
      * Backup the database to a backup directory.  See online documentation
@@ -75,10 +75,10 @@ public interface Database
      *             operations in progress to finish.
      * @exception SQLException Thrown on error
      */
-    public void backup(String backupDir, boolean wait) 
+	void backup(String backupDir, boolean wait)
         throws SQLException;
 
-    public void restore(String restoreDir, boolean wait) 
+    void restore(String restoreDir, boolean wait)
             throws SQLException;
 
 	/**
@@ -87,7 +87,7 @@ public interface Database
 	  *
 	  * @exception SQLException Thrown on error
 	  */
-	public void freeze() throws SQLException;
+	void freeze() throws SQLException;
 
 	/**
 	  * Unfreeze the database after a backup has been taken.
@@ -95,7 +95,7 @@ public interface Database
 	  *
 	  * @exception SQLException Thrown on error
 	  */
-	public void unfreeze() throws SQLException;
+	void unfreeze() throws SQLException;
 
 	/**
 	 * Checkpoints the database, that is, flushes all dirty data to disk.
@@ -103,19 +103,19 @@ public interface Database
 	 *
 	 * @exception SQLException Thrown on error
 	 */
-	public void checkpoint() throws SQLException;
+	void checkpoint() throws SQLException;
 
 	/**
 	 * Get the Locale for this database.
 	 */
-	public Locale getLocale();
+	Locale getLocale();
 
 	/**
 		Return the UUID of this database.
 		@deprecated No longer supported.
 
 	*/
-	public UUID getId();
+	UUID getId();
 }	
 
 

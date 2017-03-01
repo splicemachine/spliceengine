@@ -54,28 +54,28 @@ public interface Dependable
 	  *	Universe of known Dependables. 
 	  */
 
-	public static final String ALIAS						= "Alias";
-	public static final String CONGLOMERATE					= "Conglomerate";
-	public static final String CONSTRAINT					= "Constraint";
-	public static final String DEFAULT						= "Default";
-	public static final String HEAP							= "Heap";
-	public static final String INDEX						= "Index";
-	public static final String PREPARED_STATEMENT 			= "PreparedStatement";
-	public static final String ACTIVATION                   = "Activation";
-	public static final String FILE                         = "File";
-	public static final String STORED_PREPARED_STATEMENT	= "StoredPreparedStatement";
-	public static final String TABLE						= "Table";
-	public static final String COLUMNS_IN_TABLE				= "ColumnsInTable";
-	public static final String TRIGGER						= "Trigger";
-	public static final String VIEW							= "View";
-	public static final String SCHEMA						= "Schema";
-	public static final String TABLE_PERMISSION             = "TablePrivilege";
-	public static final String SCHEMA_PERMISSION            = "SchemaPrivilege";
-	public static final String COLUMNS_PERMISSION           = "ColumnsPrivilege";
-	public static final String ROUTINE_PERMISSION           = "RoutinePrivilege";
-	public static final String ROLE_GRANT                   = "RoleGrant";
-    public static final String SEQUENCE                     = "Sequence";
-    public static final String PERM                         = "Perm";
+	String ALIAS						= "Alias";
+	String CONGLOMERATE					= "Conglomerate";
+	String CONSTRAINT					= "Constraint";
+	String DEFAULT						= "Default";
+	String HEAP							= "Heap";
+	String INDEX						= "Index";
+	String PREPARED_STATEMENT 			= "PreparedStatement";
+	String ACTIVATION                   = "Activation";
+	String FILE                         = "File";
+	String STORED_PREPARED_STATEMENT	= "StoredPreparedStatement";
+	String TABLE						= "Table";
+	String COLUMNS_IN_TABLE				= "ColumnsInTable";
+	String TRIGGER						= "Trigger";
+	String VIEW							= "View";
+	String SCHEMA						= "Schema";
+	String TABLE_PERMISSION             = "TablePrivilege";
+	String SCHEMA_PERMISSION            = "SchemaPrivilege";
+	String COLUMNS_PERMISSION           = "ColumnsPrivilege";
+	String ROUTINE_PERMISSION           = "RoutinePrivilege";
+	String ROLE_GRANT                   = "RoleGrant";
+    String SEQUENCE                     = "Sequence";
+    String PERM                         = "Perm";
 
 
     /**
@@ -87,7 +87,7 @@ public interface Dependable
 	  *					Persistent Dependable.
 	  *				Null if this is not a persistent dependable.
 	  */
-	public	DependableFinder	getDependableFinder();
+	DependableFinder	getDependableFinder();
 
 
 	/**
@@ -96,7 +96,7 @@ public interface Dependable
 	  *
 	  *	@return	Name of Dependable OBJECT.
 	  */
-	public	String	getObjectName();
+	String	getObjectName();
 
 
 	/**
@@ -104,7 +104,7 @@ public interface Dependable
 	  *
 	  *	@return	UUID of this OBJECT.
 	  */
-	public	UUID	getObjectID();
+	UUID	getObjectID();
 
 
 	/**
@@ -113,7 +113,7 @@ public interface Dependable
 	  *
 	  *	@return	true if this Dependable is persistent.
 	  */
-	public	boolean	isPersistent();
+	boolean	isPersistent();
 
 
 	/**
@@ -122,5 +122,5 @@ public interface Dependable
 	  *
 	  *	@return	type of this Dependable.
 	  */
-	public	String	getClassType();
+	String	getClassType();
 }

@@ -48,19 +48,19 @@ public interface EngineStatement extends Statement {
      * 
      * @see java.sql.Statement#getMoreResults(int)
      */
-    public boolean getMoreResults(int current) throws SQLException;
+    boolean getMoreResults(int current) throws SQLException;
     
     /**
      * Identical to the JDBC 3 getResultSetHoldability(int).
      * 
      * @see java.sql.Statement#getResultSetHoldability()
-     */ 
-    public int getResultSetHoldability() throws SQLException;
+     */
+    int getResultSetHoldability() throws SQLException;
 
     /**
      * Identical to the JDBC 4 isClosed() method.
      */
-    public boolean isClosed() throws SQLException;
+    boolean isClosed() throws SQLException;
     
     ////////////////////////////////////////////////////////////////////
     //
@@ -68,7 +68,7 @@ public interface EngineStatement extends Statement {
     //
     ////////////////////////////////////////////////////////////////////
 
-    public  void    closeOnCompletion() throws SQLException;
-    public  boolean isCloseOnCompletion() throws SQLException;
+    void    closeOnCompletion() throws SQLException;
+    boolean isCloseOnCompletion() throws SQLException;
     
 }

@@ -57,14 +57,14 @@ public interface Property {
 	 * Name of the file that contains system wide properties. Has to be located
 	 * in ${db.system.home} if set, otherwise ${user.dir}
 	 */
-	public static final String PROPERTIES_FILE = "derby.properties";
+	String PROPERTIES_FILE = "derby.properties";
 
 
 	/**
 		By convention properties that must not be stored any persistent form of
 		service properties start with this prefix.
 	*/
-	public static final String PROPERTY_RUNTIME_PREFIX = "derby.__rt.";
+	String PROPERTY_RUNTIME_PREFIX = "derby.__rt.";
 
 	/*
 	** db.service.* and related properties
@@ -283,17 +283,17 @@ public interface Property {
 	/**
 		Configuration parameter for deadlock timeouts, set in seconds.
 	*/
-	public static final String DEADLOCK_TIMEOUT = "derby.locks.deadlockTimeout";
+	String DEADLOCK_TIMEOUT = "derby.locks.deadlockTimeout";
 
 	/**
 		Default value for deadlock timesouts (20 seconds)
 	*/
-	public static final int DEADLOCK_TIMEOUT_DEFAULT = 20;
+	int DEADLOCK_TIMEOUT_DEFAULT = 20;
 
 	/**
 		Default value for wait timeouts (60 seconds)
 	*/
-	public static final int WAIT_TIMEOUT_DEFAULT = 60;
+	int WAIT_TIMEOUT_DEFAULT = 60;
 
 	/**
 		Turn on lock monitor to help debug deadlocks.  Default value is OFF.
@@ -302,7 +302,7 @@ public interface Property {
 		<BR>
 		This property takes effect dynamically.
 	 */
-	public static final String DEADLOCK_MONITOR = "derby.locks.monitor";
+	String DEADLOCK_MONITOR = "derby.locks.monitor";
 
 	/**
 		Turn on deadlock trace to help debug deadlocks.
@@ -316,12 +316,12 @@ public interface Property {
 		<BR>
 		This property takes effect dynamically.
 	 */
-	public static final String DEADLOCK_TRACE = "derby.locks.deadlockTrace";
+	String DEADLOCK_TRACE = "derby.locks.deadlockTrace";
 
 	/**
 		Configuration parameter for lock wait timeouts, set in seconds.
 	*/
-	public static final String LOCKWAIT_TIMEOUT = "derby.locks.waitTimeout";
+	String LOCKWAIT_TIMEOUT = "derby.locks.waitTimeout";
 
 	/*
 	** db2j.database.*
@@ -353,7 +353,7 @@ public interface Property {
      * parameterize the Basic security policy used by the Network Server.
      * This property is the location of the db jars.
      **/
-    public static final String DERBY_INSTALL_URL = "derby.install.url";
+	String DERBY_INSTALL_URL = "derby.install.url";
 
     /**
      * Ths property is private to Derby.
@@ -362,7 +362,7 @@ public interface Property {
      * parameterize the Basic security policy used by the Network Server.
      * This property is the hostname which the server uses.
      **/
-    public static final String DERBY_SECURITY_HOST = "derby.security.host";
+	String DERBY_SECURITY_HOST = "derby.security.host";
 
 	/*
 	** db.storage.*
@@ -373,7 +373,7 @@ public interface Property {
 	 * This is a run-time property that should not make it to disk
 	 * in the service.properties file.
      **/
-	public static final String CREATE_WITH_NO_LOG =
+	String CREATE_WITH_NO_LOG =
 		PROPERTY_RUNTIME_PREFIX + "storage.createWithNoLog";
 
     /**
@@ -381,12 +381,12 @@ public interface Property {
      * of 2k, usual choices are: 2k, 4k, 8k, 16k, 32k, 64k.  The default
      * if property is not set is 4k.
      **/
-    public static final String PAGE_SIZE_PARAMETER = "derby.storage.pageSize";
+	String PAGE_SIZE_PARAMETER = "derby.storage.pageSize";
 
     /**
      * The default page size to use for tables that contain a long column.
      **/
-    public static final String PAGE_SIZE_DEFAULT_LONG = "32768";
+	String PAGE_SIZE_DEFAULT_LONG = "32768";
 
     /**
      * The bump threshold for pages sizes for create tables
@@ -394,7 +394,7 @@ public interface Property {
      * threshold, the page size for the tbl is bumped to PAGE_SIZE_DEFAULT_LONG
      * provided the page size is not already specified as a property
      **/
-    public static final int TBL_PAGE_SIZE_BUMP_THRESHOLD = 4096;
+	int TBL_PAGE_SIZE_BUMP_THRESHOLD = 4096;
 
     /**
      * The bump threshold for pages size for index.
@@ -402,7 +402,7 @@ public interface Property {
      * threshold, the page size for the index is bumped to PAGE_SIZE_DEFAULT_LONG
      * provided the page size is not already specified as a property
      **/
-    public static final int IDX_PAGE_SIZE_BUMP_THRESHOLD = 1024;
+	int IDX_PAGE_SIZE_BUMP_THRESHOLD = 1024;
 
     /**
      * Derby supports Row Level Locking (rll),  but you can use this 
@@ -417,7 +417,7 @@ public interface Property {
      * false disables rll.
      *
      **/
-	public static final String ROW_LOCKING = "derby.storage.rowLocking";
+	String ROW_LOCKING = "derby.storage.rowLocking";
 
 	/**
 		db.storage.propertiesId
@@ -481,7 +481,7 @@ public interface Property {
      * This property is static; if you change it while Derby is running, 
      * the change does not take effect until you reboot.  
      */
-	public static final String DURABILITY_PROPERTY = 
+	String DURABILITY_PROPERTY =
         "derby.system.durability";
  	
     /**
@@ -491,7 +491,7 @@ public interface Property {
      * the database might be in an inconsistent state
      * @see #DURABILITY_PROPERTY
      */
-    public static final String DURABILITY_TESTMODE_NO_SYNC = "test";
+	String DURABILITY_TESTMODE_NO_SYNC = "test";
     
 	/**
      * db.storage.fileSyncTransactionLog
@@ -502,7 +502,7 @@ public interface Property {
      * <p>
      *
      **/
-	public static final String FILESYNC_TRANSACTION_LOG = 
+	String FILESYNC_TRANSACTION_LOG =
         "derby.storage.fileSyncTransactionLog";
 
 
@@ -750,10 +750,10 @@ public interface Property {
     /**
      * Properties representing the version of the Splice Machine software.
      */
-    public static final String SPLICE_RELEASE = "splice.software.release";
-    public static final String SPLICE_VERSION_HASH = "splice.software.versionhash";
-    public static final String SPLICE_BUILD_TIME = "splice.software.buildtime";
-    public static final String SPLICE_URL = "splice.software.url";
+	String SPLICE_RELEASE = "splice.software.release";
+    String SPLICE_VERSION_HASH = "splice.software.versionhash";
+    String SPLICE_BUILD_TIME = "splice.software.buildtime";
+    String SPLICE_URL = "splice.software.url";
 
     /*
 	** Transactions
@@ -771,8 +771,8 @@ public interface Property {
 
 
   /* some static fields */
-	public static final String DEFAULT_USER_NAME = "SPLICE";
-	public static final String DATABASE_MODULE = "com.splicemachine.db.database.Database";
+  String DEFAULT_USER_NAME = "SPLICE";
+	String DATABASE_MODULE = "com.splicemachine.db.database.Database";
 
 	/*
 		Property to enable Grant & Revoke SQL authorization. Introduced in Derby 10.2
@@ -780,7 +780,7 @@ public interface Property {
 		authorization by default and by setting this property to true could request for
 		SQL standard authorization model.
 	 */
-	public static final String
+	String
 	SQL_AUTHORIZATION_PROPERTY = "derby.database.sqlAuthorization";
 
     /**
@@ -788,23 +788,23 @@ public interface Property {
      * one of NO_ACCESS, READ_ONLY_ACCESS or FULL_ACCESS.
      * Defaults to FULL_ACCESS if not set.
      */
-	public static final String
+	String
 	DEFAULT_CONNECTION_MODE_PROPERTY = "derby.database.defaultConnectionMode";
 
-	public static final String NO_ACCESS = "NOACCESS";
-	public static final String READ_ONLY_ACCESS = "READONLYACCESS";
-	public static final String FULL_ACCESS = "FULLACCESS";
+	String NO_ACCESS = "NOACCESS";
+	String READ_ONLY_ACCESS = "READONLYACCESS";
+	String FULL_ACCESS = "FULLACCESS";
 
     /**
      * List of users with read-only connection level authorization.
      */
-	public static final String
+	String
 	READ_ONLY_ACCESS_USERS_PROPERTY = "derby.database.readOnlyAccessUsers";
 
     /**
      * List of users with full access connection level authorization.
      */
-	public static final String
+	String
 	FULL_ACCESS_USERS_PROPERTY = "derby.database.fullAccessUsers";
 
 	/*
@@ -812,72 +812,72 @@ public interface Property {
 	*/
 
 	// This is the property that turn on/off authentication
-	public static final String REQUIRE_AUTHENTICATION_PARAMETER =
+	String REQUIRE_AUTHENTICATION_PARAMETER =
 								"derby.connection.requireAuthentication";
 
-	public static final String AUTHENTICATION_PROVIDER_PARAMETER =
+	String AUTHENTICATION_PROVIDER_PARAMETER =
 								"derby.authentication.provider";
 
 	// This is the user property used by Derby and LDAP schemes
-	public static final String USER_PROPERTY_PREFIX = "derby.user.";
+	String USER_PROPERTY_PREFIX = "derby.user.";
 
 	// These are the different built-in providers Derby supports
 
-	public static final String AUTHENTICATION_PROVIDER_NATIVE =
+	String AUTHENTICATION_PROVIDER_NATIVE =
 								"NATIVE:";
 
-	public static final String AUTHENTICATION_PROVIDER_BUILTIN =
+	String AUTHENTICATION_PROVIDER_BUILTIN =
 								"BUILTIN";
 
-	public static final String AUTHENTICATION_PROVIDER_LDAP =
+	String AUTHENTICATION_PROVIDER_LDAP =
 								"LDAP";
 
-	public static final String AUTHENTICATION_SERVER_PARAMETER =
+	String AUTHENTICATION_SERVER_PARAMETER =
 								"derby.authentication.server";
 
     // this suffix on the NATIVE authentication provider means that
     // database operations should be authenticated locally
-	public static final String AUTHENTICATION_PROVIDER_LOCAL_SUFFIX =
+	String AUTHENTICATION_PROVIDER_LOCAL_SUFFIX =
 								":LOCAL";
 
     // when local native authentication is enabled, we store this value for db.authentication.provider
-    public static final String AUTHENTICATION_PROVIDER_NATIVE_LOCAL =
+	String AUTHENTICATION_PROVIDER_NATIVE_LOCAL =
         AUTHENTICATION_PROVIDER_NATIVE + AUTHENTICATION_PROVIDER_LOCAL_SUFFIX;
 
     // Property to force the creation of the native credentials database.
     // Generally, this is only done at the time of the creation of the whole Splice/Derby database.
     // In this particular instance, there are Splice beta customers with AnA disabled and they want to
     // switch to using native AnA.  So we allow a manual override here.  See DB-2088 for more details.
-    public static final String AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE =
+	String AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE =
         "derby.authentication.native.create.credentials.database";
 
     // lifetime (in milliseconds) of a NATIVE password. if <= 0, then the password never expires
-    public static final String AUTHENTICATION_NATIVE_PASSWORD_LIFETIME =
+	String AUTHENTICATION_NATIVE_PASSWORD_LIFETIME =
         "derby.authentication.native.passwordLifetimeMillis";
     
     // default lifetime (in milliseconds) of a NATIVE password. FOREVER
-    public static final long MILLISECONDS_IN_DAY = 1000L * 60L * 60L * 24L;
-    public static final long AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT = 0L;
+	long MILLISECONDS_IN_DAY = 1000L * 60L * 60L * 24L;
+    long AUTHENTICATION_NATIVE_PASSWORD_LIFETIME_DEFAULT = 0L;
     
     // threshhold for raising a warning that a password is about to expire.
     // raise a warning if the remaining password lifetime is less than this proportion of the max lifetime.
-    public static final String  AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD =
+	String  AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD =
         "derby.authentication.native.passwordLifetimeThreshold";
-    public static final double  AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD_DEFAULT = 0.125;
+    double  AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD_DEFAULT = 0.125;
     
 
     /**
      * Property that specifies the name of the hash algorithm to use with
      * the configurable hash authentication scheme.
      */
-    public static final String AUTHENTICATION_BUILTIN_ALGORITHM =
+	String AUTHENTICATION_BUILTIN_ALGORITHM =
             "derby.authentication.builtin.algorithm";
 
     /**
      * Default value for db.authentication.builtin.algorithm when creating
      * a new database.
      */
-    public static final String AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT =
+	String AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT =
             "SHA-256";
 
     /**
@@ -885,7 +885,7 @@ public interface Property {
      * {@link #AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT} is not available at
      * database creation time.
      */
-    public static final String AUTHENTICATION_BUILTIN_ALGORITHM_FALLBACK =
+	String AUTHENTICATION_BUILTIN_ALGORITHM_FALLBACK =
             "SHA-1";
 
     /**
@@ -893,25 +893,25 @@ public interface Property {
      * when hashing credentials using the configurable hash authentication
      * scheme.
      */
-    public static final String AUTHENTICATION_BUILTIN_SALT_LENGTH =
+	String AUTHENTICATION_BUILTIN_SALT_LENGTH =
             "derby.authentication.builtin.saltLength";
 
     /**
      * The default value for db.authentication.builtin.saltLength.
      */
-    public static final int AUTHENTICATION_BUILTIN_SALT_LENGTH_DEFAULT = 16;
+	int AUTHENTICATION_BUILTIN_SALT_LENGTH_DEFAULT = 16;
 
     /**
      * Property that specifies the number of times to apply the hash
      * function in the configurable hash authentication scheme.
      */
-    public static final String AUTHENTICATION_BUILTIN_ITERATIONS =
+	String AUTHENTICATION_BUILTIN_ITERATIONS =
             "derby.authentication.builtin.iterations";
 
     /**
      * Default value for db.authentication.builtin.iterations.
      */
-    public static final int AUTHENTICATION_BUILTIN_ITERATIONS_DEFAULT = 1000;
+	int AUTHENTICATION_BUILTIN_ITERATIONS_DEFAULT = 1000;
 
 	/*
 	** Log
@@ -920,22 +920,22 @@ public interface Property {
 	/**
 		Property name for specifying log switch interval
 	 */
-	public static final String LOG_SWITCH_INTERVAL = "derby.storage.logSwitchInterval";
+	String LOG_SWITCH_INTERVAL = "derby.storage.logSwitchInterval";
 
 	/**
 		Property name for specifying checkpoint interval
 	 */
-	public static final String CHECKPOINT_INTERVAL = "derby.storage.checkpointInterval";
+	String CHECKPOINT_INTERVAL = "derby.storage.checkpointInterval";
 
 	/**
 		Property name for specifying log archival location
 	 */
-	public static final String LOG_ARCHIVAL_DIRECTORY = "derby.storage.logArchive";
+	String LOG_ARCHIVAL_DIRECTORY = "derby.storage.logArchive";
 
 	/**
 		Property name for specifying log Buffer Size
 	 */
-	public static final String LOG_BUFFER_SIZE = "derby.storage.logBufferSize";
+	String LOG_BUFFER_SIZE = "derby.storage.logBufferSize";
 	
 	
 	/*
@@ -943,17 +943,17 @@ public interface Property {
 	*/
 
 	/** Property name for specifying the size of the replication log buffers */
-	public static final String REPLICATION_LOG_BUFFER_SIZE= "derby.replication.logBufferSize";
+	String REPLICATION_LOG_BUFFER_SIZE= "derby.replication.logBufferSize";
 
 	/** Property name for specifying the minimum log shipping interval*/
-	public static final String REPLICATION_MIN_SHIPPING_INTERVAL = "derby.replication.minLogShippingInterval";
+	String REPLICATION_MIN_SHIPPING_INTERVAL = "derby.replication.minLogShippingInterval";
 
 	/** Property name for specifying the maximum log shipping interval*/
-	public static final String REPLICATION_MAX_SHIPPING_INTERVAL = "derby.replication.maxLogShippingInterval";
+	String REPLICATION_MAX_SHIPPING_INTERVAL = "derby.replication.maxLogShippingInterval";
 
 	/** Property name for specifying whether or not replication messages are
 	 * written to the log*/
-	public static final String REPLICATION_VERBOSE = "derby.replication.verbose";
+	String REPLICATION_VERBOSE = "derby.replication.verbose";
 
 	/*
 	** Upgrade
@@ -989,9 +989,9 @@ public interface Property {
 	*/
 	String DELETE_ROOT_ON_ERROR  = PROPERTY_RUNTIME_PREFIX  + "deleteRootOnError";
 	
-	public static final String HTTP_DB_FILE_OFFSET = "db2j.http.file.offset";
-	public static final String HTTP_DB_FILE_LENGTH = "db2j.http.file.length";
-	public static final String HTTP_DB_FILE_NAME =   "db2j.http.file.name";
+	String HTTP_DB_FILE_OFFSET = "db2j.http.file.offset";
+	String HTTP_DB_FILE_LENGTH = "db2j.http.file.length";
+	String HTTP_DB_FILE_NAME =   "db2j.http.file.name";
 
     /**
      * db.drda.startNetworkServer
@@ -1001,7 +1001,7 @@ public interface Property {
      *<BR>
      * Default: false
      */
-    public static final String START_DRDA = "derby.drda.startNetworkServer";
+	String START_DRDA = "derby.drda.startNetworkServer";
 
     /**
      * db.drda.logConnections
@@ -1010,7 +1010,7 @@ public interface Property {
      *<BR>
      * Default: false
      */
-	public final static String DRDA_PROP_LOGCONNECTIONS = "derby.drda.logConnections";
+	String DRDA_PROP_LOGCONNECTIONS = "derby.drda.logConnections";
     /**
      * db.drda.traceAll
      *<BR>
@@ -1018,8 +1018,8 @@ public interface Property {
      *<BR>
      * Default: false
      */
-	public final static String DRDA_PROP_TRACEALL = "derby.drda.traceAll";
-	public final static String DRDA_PROP_TRACE = "derby.drda.trace";
+	String DRDA_PROP_TRACEALL = "derby.drda.traceAll";
+	String DRDA_PROP_TRACE = "derby.drda.trace";
 
     /**
      * db.drda.traceDirectory
@@ -1029,11 +1029,11 @@ public interface Property {
      * Default: if the db.system.home property has been set,
      * it is the default. Otherwise, the default is the current directory.
      */
-	public final static String DRDA_PROP_TRACEDIRECTORY = "derby.drda.traceDirectory";
+	String DRDA_PROP_TRACEDIRECTORY = "derby.drda.traceDirectory";
 
-	public final static String DRDA_PROP_MINTHREADS = "derby.drda.minThreads";
-	public final static String DRDA_PROP_MAXTHREADS = "derby.drda.maxThreads";
-	public final static String DRDA_PROP_TIMESLICE = "derby.drda.timeSlice";
+	String DRDA_PROP_MINTHREADS = "derby.drda.minThreads";
+	String DRDA_PROP_MAXTHREADS = "derby.drda.maxThreads";
+	String DRDA_PROP_TIMESLICE = "derby.drda.timeSlice";
 
 
     /**
@@ -1046,7 +1046,7 @@ public interface Property {
      * authentication 
      */
 
-    public final static String DRDA_PROP_SSL_MODE = "derby.drda.sslMode";
+	String DRDA_PROP_SSL_MODE = "derby.drda.sslMode";
 
     /**
      * db.drda.securityMechanism
@@ -1070,15 +1070,15 @@ public interface Property {
      * Default value for this property is as though it is not set - in which case
      * the server will allow clients with supported security mechanisms to connect
      */
-    public final static String DRDA_PROP_SECURITYMECHANISM = "derby.drda.securityMechanism";
+	String DRDA_PROP_SECURITYMECHANISM = "derby.drda.securityMechanism";
 
     /**
      * db.drda.portNumber
      *<BR>
      * The port number used by the network server.
      */
-	public final static String DRDA_PROP_PORTNUMBER = "derby.drda.portNumber";
-	public final static String DRDA_PROP_HOSTNAME = "derby.drda.host";
+	String DRDA_PROP_PORTNUMBER = "derby.drda.portNumber";
+	String DRDA_PROP_HOSTNAME = "derby.drda.host";
 
 	/**
 	 * db.drda.keepAlive
@@ -1086,7 +1086,7 @@ public interface Property {
 	 *<BR>
 	 * client socket setKeepAlive value
 	 */
-	public final static String DRDA_PROP_KEEPALIVE = "derby.drda.keepAlive";
+	String DRDA_PROP_KEEPALIVE = "derby.drda.keepAlive";
 	
 
     /**
@@ -1094,33 +1094,33 @@ public interface Property {
      * size of buffer used when stream out for client.
      *
      */
-    public final static String DRDA_PROP_STREAMOUTBUFFERSIZE = "derby.drda.streamOutBufferSize";
+	String DRDA_PROP_STREAMOUTBUFFERSIZE = "derby.drda.streamOutBufferSize";
 
 	/*
 	** Internal properties, mainly used by Monitor.
 	*/
-	public static final String SERVICE_PROTOCOL = "derby.serviceProtocol";
-	public static final String SERVICE_LOCALE = "derby.serviceLocale";
+	String SERVICE_PROTOCOL = "derby.serviceProtocol";
+	String SERVICE_LOCALE = "derby.serviceLocale";
 
-	public static final String COLLATION = "derby.database.collation";
+	String COLLATION = "derby.database.collation";
 	// These are the six possible values for collation type if the collation
 	// derivation is not NONE. If collation derivation is NONE, then collation
 	// type should be ignored. The TERRITORY_BASED collation uses the default
 	// collator strength while the four with a colon uses a specific strength.
-	public static final String UCS_BASIC_COLLATION =
+	String UCS_BASIC_COLLATION =
 								"UCS_BASIC";
-	public static final String TERRITORY_BASED_COLLATION =
+	String TERRITORY_BASED_COLLATION =
 								"TERRITORY_BASED";
-	public static final String TERRITORY_BASED_PRIMARY_COLLATION =
+	String TERRITORY_BASED_PRIMARY_COLLATION =
 								"TERRITORY_BASED:PRIMARY";
-	public static final String TERRITORY_BASED_SECONDARY_COLLATION =
+	String TERRITORY_BASED_SECONDARY_COLLATION =
 								"TERRITORY_BASED:SECONDARY";
-	public static final String TERRITORY_BASED_TERTIARY_COLLATION =
+	String TERRITORY_BASED_TERTIARY_COLLATION =
 								"TERRITORY_BASED:TERTIARY";
-	public static final String TERRITORY_BASED_IDENTICAL_COLLATION =
+	String TERRITORY_BASED_IDENTICAL_COLLATION =
 								"TERRITORY_BASED:IDENTICAL";
 	// Define a static string for collation derivation NONE
-	public static final String COLLATION_NONE =
+	String COLLATION_NONE =
 		"NONE";
 
     /**
@@ -1136,7 +1136,7 @@ public interface Property {
      * <p>
      *
      **/
-	public static final String STORAGE_DATA_NOT_SYNCED_AT_CHECKPOINT = 
+	String STORAGE_DATA_NOT_SYNCED_AT_CHECKPOINT =
         "db2j.storage.dataNotSyncedAtCheckPoint";
 
     /**
@@ -1152,7 +1152,7 @@ public interface Property {
      * <p>
      *
      **/
-	public static final String STORAGE_DATA_NOT_SYNCED_AT_ALLOCATION = 
+	String STORAGE_DATA_NOT_SYNCED_AT_ALLOCATION =
         "db2j.storage.dataNotSyncedAtAllocation";
 
     /**
@@ -1168,7 +1168,7 @@ public interface Property {
      * <p>
      *
      **/
-	public static final String STORAGE_LOG_NOT_SYNCED = 
+	String STORAGE_LOG_NOT_SYNCED =
         "db2j.storage.logNotSynced";
 
 

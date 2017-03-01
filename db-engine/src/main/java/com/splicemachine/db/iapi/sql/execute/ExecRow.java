@@ -92,31 +92,31 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 
 		@see ExecRow#getRowArray
 	*/
-	public DataValueDescriptor[] getRowArrayClone();
+	DataValueDescriptor[] getRowArrayClone();
 
 	/**
 		Return the array of objects that the store needs.
 	*/
-	public DataValueDescriptor[] getRowArray();
+	DataValueDescriptor[] getRowArray();
 
 	/**
 		Set the array of objects
 	*/
-	public void setRowArray(DataValueDescriptor[] rowArray);
+	void setRowArray(DataValueDescriptor[] rowArray);
 
 	/**
 		Get a new DataValueDescriptor[]
 	 */
-	public void getNewObjectArray();
+	void getNewObjectArray();
 
-	public StructType createStructType();
+	StructType createStructType();
 
-	public org.apache.spark.sql.Row getSparkRow();
+	org.apache.spark.sql.Row getSparkRow();
 
-	public ExecRow fromSparkRow(org.apache.spark.sql.Row row);
+	ExecRow fromSparkRow(org.apache.spark.sql.Row row);
 
-	public long getRowSize() throws StandardException;
+	long getRowSize() throws StandardException;
 
-	public long getRowSize(BitSet validColumns) throws StandardException;
+	long getRowSize(BitSet validColumns) throws StandardException;
 
 }

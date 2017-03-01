@@ -60,12 +60,12 @@ public interface Parser
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public Visitable parseStatement(String statementSQLText,
-		Object[] paramDefaults) 
+	Visitable parseStatement(String statementSQLText,
+							 Object[] paramDefaults)
 		throws StandardException;
 
 
-	public Visitable parseStatement(String statementSQLText)
+	Visitable parseStatement(String statementSQLText)
 		throws StandardException;
 
 	/**
@@ -74,6 +74,6 @@ public interface Parser
 	 * @return	Current SQL text string.
 	 *
 	 */
-	public	String		getSQLtext();
+	String		getSQLtext();
 
 }

@@ -50,7 +50,7 @@ public interface UUID extends java.io.Externalizable
 
 	  The number of bytes in the array toByteArray returns.
 	  */
-	static int UUID_BYTE_LENGTH = 16;
+	int UUID_BYTE_LENGTH = 16;
 	
 	/**
 		Produce a string representation of this UUID which

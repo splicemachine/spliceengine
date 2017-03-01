@@ -44,7 +44,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 public interface VariableSizeDataValue 
 {
 
-	public static int IGNORE_PRECISION = -1;
+	int IGNORE_PRECISION = -1;
 
 	/*
 	 * Set the width and scale (if relevant).  Sort of a poor
@@ -59,8 +59,8 @@ public interface VariableSizeDataValue
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void setWidth(int desiredWidth,
-									int desiredScale,
-									boolean errorOnTrunc)
+	void setWidth(int desiredWidth,
+				  int desiredScale,
+				  boolean errorOnTrunc)
 							throws StandardException;
 }

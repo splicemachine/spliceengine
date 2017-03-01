@@ -55,16 +55,16 @@ public interface BitDataValue extends ConcatableDataValue, StreamStorable
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BitDataValue concatenate(
-				BitDataValue leftOperand,
-				BitDataValue rightOperand,
-				BitDataValue result)
+	BitDataValue concatenate(
+			BitDataValue leftOperand,
+			BitDataValue rightOperand,
+			BitDataValue result)
 		throws StandardException;
 
 	/**
 	 * Stuff a BitDataValue with a Blob.
 	 */
-	public void setValue( Blob value )
+	void setValue(Blob value)
 		throws StandardException;
 
 }

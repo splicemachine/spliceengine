@@ -51,13 +51,13 @@ public interface ClassFactory {
 		@exception 	StandardException	Standard Derby error policy
 
 	*/
-	public GeneratedClass loadGeneratedClass(String fullyQualifiedName, ByteArray classDump)
+	GeneratedClass loadGeneratedClass(String fullyQualifiedName, ByteArray classDump)
 		throws StandardException;
 
 	/**
 		Return a ClassInspector object
 	*/
-	public ClassInspector	getClassInspector();
+	ClassInspector	getClassInspector();
 
 	/**
 		Load an application class, or a class that is potentially an application class.
@@ -65,7 +65,7 @@ public interface ClassFactory {
 		@exception ClassNotFoundException Class cannot be found, or
 		a SecurityException or LinkageException was thrown loading the class.
 	*/
-	public Class loadApplicationClass(String className)
+	Class loadApplicationClass(String className)
 		throws ClassNotFoundException;
 
 	/**
@@ -74,7 +74,7 @@ public interface ClassFactory {
 		@exception ClassNotFoundException Class cannot be found, or
 		a SecurityException or LinkageException was thrown loading the class.
 	*/
-	public Class loadApplicationClass(ObjectStreamClass classDescriptor)
+	Class loadApplicationClass(ObjectStreamClass classDescriptor)
 		throws ClassNotFoundException;
 
 	/**
@@ -83,7 +83,7 @@ public interface ClassFactory {
 		@return true if the class was loaded by a Derby class manager,
 		false it is was loaded by the system class loader, or another class loader.
 	*/
-	public boolean isApplicationClass(Class theClass);
+	boolean isApplicationClass(Class theClass);
 
 	/**
 		Notify the class manager that a jar file has been modified.
@@ -91,18 +91,18 @@ public interface ClassFactory {
 
 		@exception StandardException thrown on error
 	*/
-	public void notifyModifyJar(boolean reload) throws StandardException ;
+	void notifyModifyJar(boolean reload) throws StandardException ;
 
 	/**
 		Notify the class manager that the classpath has been modified.
 
 		@exception StandardException thrown on error
 	*/
-	public void notifyModifyClasspath(String classpath) throws StandardException ;
+	void notifyModifyClasspath(String classpath) throws StandardException ;
 
 	/**
 		Return the in-memory "version" of the class manager. The version
 		is bumped everytime the classes are re-loaded.
 	*/
-	public int getClassLoaderVersion();
+	int getClassLoaderVersion();
 }

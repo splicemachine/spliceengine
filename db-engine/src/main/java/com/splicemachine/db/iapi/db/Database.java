@@ -85,23 +85,23 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 	 *
 	 * @exception StandardException thrown if unable to create the connection.
 	 */
-	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname, CompilerContext.DataSetProcessorType dataSetProcessorType) throws StandardException;
+	LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname, CompilerContext.DataSetProcessorType dataSetProcessorType) throws StandardException;
 
 	/**
 	  Push a DbContext onto the provided context stack. This conext will
 	  shut down the database in case of a DatabaseException being
 	  cleaned up.
 	 */
-	public void pushDbContext(ContextManager cm);
+	void pushDbContext(ContextManager cm);
 
 	/**
 		Is the database active (open).
 	*/
-	public boolean isActive();
+	boolean isActive();
 
 	/**
 	  */
-	public	int	getEngineType();
+	int	getEngineType();
 
 	/**
 	 * This method returns the authentication service handle for the
@@ -113,7 +113,7 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 	 * @return	The authentication service handle for the database
 	 * @exception StandardException Derby exception policy
 	 */
-	public AuthenticationService getAuthenticationService()
+	AuthenticationService getAuthenticationService()
 		throws StandardException;
 
 	/**
@@ -126,15 +126,15 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 	 * caller must cast result to ResourceAdapter.
 	 *
 	 */
-	public Object getResourceAdapter();
+	Object getResourceAdapter();
 
 	/** Set the Locale that is returned by this LocaleFinder */
-	public	void	setLocale(Locale locale);
+	void	setLocale(Locale locale);
 
     /**
      * Return the DataDictionary for this database, set up at boot time.
      */
-    public DataDictionary getDataDictionary();
+	DataDictionary getDataDictionary();
 
 	long addJar(final InputStream is, JarUtil util) throws StandardException;
 

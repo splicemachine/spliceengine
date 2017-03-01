@@ -61,7 +61,7 @@ public interface IndexDescriptor
 	 * base table, so, if entry 2 is the number 4, the second
 	 * column in the index is the fourth column in the table.
 	 */
-	public int[]	baseColumnPositions();
+	int[]	baseColumnPositions();
 
 	/**
      * Returns the postion of a column.
@@ -70,7 +70,7 @@ public interface IndexDescriptor
 	 * 0 means that the column is not in the key.  Same as the above
 	 * method, but it uses int instead of Integer.
 	 */
-	public int getKeyColumnPosition(int heapColumnPosition);
+	int getKeyColumnPosition(int heapColumnPosition);
 
 	/**
 	 * Returns the number of ordered columns.  
@@ -96,7 +96,7 @@ public interface IndexDescriptor
 	 * key column for convenience of using together with baseColumnPositions
 	 * method.  Both methods return an array with subscript starting from 0.
 	 */
-	public boolean[]	isAscending();
+	boolean[]	isAscending();
 
 	/**
 	 * Returns true if the specified column is ascending in the index
@@ -116,25 +116,25 @@ public interface IndexDescriptor
 	 * is for updating the field in operations such as "alter table drop
 	 * column" where baseColumnPositions is changed.
 	 */
-	public void     setBaseColumnPositions(int[] baseColumnPositions);
+	void     setBaseColumnPositions(int[] baseColumnPositions);
 
 	/**
 	 * set the isAscending field of the index descriptor.  This
 	 * is for updating the field in operations such as "alter table drop
 	 * column" where isAscending is changed.
 	 */
-	public void     setIsAscending(boolean[] isAscending);
+	void     setIsAscending(boolean[] isAscending);
 
 	/**
 	 * set the numberOfOrderedColumns field of the index descriptor.  This
 	 * is for updating the field in operations such as "alter table drop
 	 * column" where numberOfOrderedColumns is changed.
 	 */
-	public void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
+	void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
 
     /**
      * Checks whether the index descriptor is a primary key.
      * @return
      */
-    public boolean isPrimaryKey();
+	boolean isPrimaryKey();
 }

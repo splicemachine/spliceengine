@@ -20,5 +20,5 @@ package com.splicemachine.stream;
  */
 public interface Transformer<T,R> {
 
-    public R transform(T element) throws StreamException;
+    R transform(T element) throws StreamException;
 }

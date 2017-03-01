@@ -20,5 +20,5 @@ package com.splicemachine.metrics;
  */
 public interface LatencyTimer extends Timer {
 
-    public DistributionTimeView getDistribution();
+    DistributionTimeView getDistribution();
 }

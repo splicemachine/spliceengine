@@ -78,7 +78,7 @@ public interface CacheManager {
 		@see Cacheable#setIdentity
 
 	*/
-	public Cacheable find(Object key) throws StandardException;
+	Cacheable find(Object key) throws StandardException;
 
 	/**
         Find an object in the cache.
@@ -104,7 +104,7 @@ public interface CacheManager {
 		</PRE>
 		@exception StandardException Standard Derby error policy.
 	*/
-	public Cacheable findCached(Object key) throws StandardException;
+	Cacheable findCached(Object key) throws StandardException;
 
 	/**
 		Create an object in the cache. The resulting object will match the key provided using the equals()
@@ -147,7 +147,7 @@ public interface CacheManager {
 		@see Cacheable#createIdentity
 
 	*/
-	public Cacheable create(Object key, Object createParameter) throws StandardException;
+	Cacheable create(Object key, Object createParameter) throws StandardException;
 
 	/**
 		Release a <code>Cacheable</code> object previously found with
@@ -157,7 +157,7 @@ public interface CacheManager {
 
 		@param entry the cached object to release
 	*/
-	public void release(Cacheable entry);
+	void release(Cacheable entry);
 
 	/**
 		Delete and remove an object from the cache. It is up to the user of the cache
@@ -180,7 +180,7 @@ public interface CacheManager {
 
 		@exception StandardException Standard Derby error policy.
 	*/
-	public void remove(Cacheable entry) throws StandardException;
+	void remove(Cacheable entry) throws StandardException;
 
 	/**
 		Place all objects in their clean state by calling their clean method
@@ -195,7 +195,7 @@ public interface CacheManager {
 
 		@exception StandardException Standard Derby error policy.
 	*/
-	public void cleanAll() throws StandardException;
+	void cleanAll() throws StandardException;
 
 	/**
 		Clean all objects that match the partialKey (or exact key).
@@ -208,7 +208,7 @@ public interface CacheManager {
 
 		@exception StandardException Standard Derby error policy.
 	*/
-	public void clean(Matchable partialKey) throws StandardException;
+	void clean(Matchable partialKey) throws StandardException;
 
 	/**
 		Age as many objects as possible out of the cache.
@@ -224,7 +224,7 @@ public interface CacheManager {
 
 
 	*/
-	public void ageOut();
+	void ageOut();
 
 	/**
 		Shutdown the cache. This call stops the cache returning
@@ -236,7 +236,7 @@ public interface CacheManager {
 		@exception StandardException Standard Derby error policy.
 
 	*/
-	public void shutdown() throws StandardException;
+	void shutdown() throws StandardException;
 
 	/**
 		This cache can use this DaemonService if it needs some work to be done
@@ -244,7 +244,7 @@ public interface CacheManager {
         to the cache when this method is called. No synchronization is required
         in the implementations of this method.
 	*/
-	public void useDaemonService(DaemonService daemon);
+	void useDaemonService(DaemonService daemon);
 
 
 	/**
@@ -265,7 +265,7 @@ public interface CacheManager {
 		match the partial or exact key.  False if some objects that matches
 		were not gotten rid of because it was kept.
 	*/
-	public boolean discard(Matchable partialKey);
+	boolean discard(Matchable partialKey);
 
 	/**
 	 * Return a Collection of the Cacheables currently in the
@@ -277,5 +277,5 @@ public interface CacheManager {
 	 *
 	 * @return a Collection of all the elements in the cache
 	 */
-	public Collection values();
+	Collection values();
 }

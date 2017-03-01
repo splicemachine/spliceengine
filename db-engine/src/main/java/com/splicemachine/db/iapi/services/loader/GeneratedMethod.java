@@ -51,9 +51,9 @@ public interface GeneratedMethod {
 		@exception 	StandardException	Standard Derby error policy
 	*/
 
-	public Object invoke(Object ref)
+	Object invoke(Object ref)
 		throws StandardException;
 	
-	public String getMethodName();
+	String getMethodName();
 	
 }

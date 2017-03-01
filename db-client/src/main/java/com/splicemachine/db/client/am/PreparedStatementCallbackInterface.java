@@ -35,8 +35,8 @@ package com.splicemachine.db.client.am;
 
 public interface PreparedStatementCallbackInterface extends StatementCallbackInterface {
 
-    public void completeDescribeInput(ColumnMetaData parameterMetaData, Sqlca sqlca);
+    void completeDescribeInput(ColumnMetaData parameterMetaData, Sqlca sqlca);
 
-    public void completeDescribeOutput(ColumnMetaData resultSetMetaData, Sqlca sqlca);
+    void completeDescribeOutput(ColumnMetaData resultSetMetaData, Sqlca sqlca);
 
 }

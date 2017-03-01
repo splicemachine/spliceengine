@@ -68,12 +68,12 @@ public interface OptimizerFactory {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public Optimizer getOptimizer( OptimizableList optimizableList,
-								  OptimizablePredicateList predicateList,
-								  DataDictionary dDictionary,
-								  RequiredRowOrdering requiredRowOrdering,
-								  int numTablesInQuery,
-								  LanguageConnectionContext lcc)
+	Optimizer getOptimizer(OptimizableList optimizableList,
+						   OptimizablePredicateList predicateList,
+						   DataDictionary dDictionary,
+						   RequiredRowOrdering requiredRowOrdering,
+						   int numTablesInQuery,
+						   LanguageConnectionContext lcc)
 			throws StandardException;
 
 
@@ -82,7 +82,7 @@ public interface OptimizerFactory {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public CostEstimate getCostEstimate()
+	CostEstimate getCostEstimate()
 		throws StandardException;
 
 	/**
@@ -92,7 +92,7 @@ public interface OptimizerFactory {
 	 * @return Whether or not the optimizer associated with
 	 * this factory supports optimizer trace.
 	 */
-	public boolean supportsOptimizerTrace();
+	boolean supportsOptimizerTrace();
 
 	/**
 	 * Return the maxMemoryPerTable setting, this is used in
@@ -100,5 +100,5 @@ public interface OptimizerFactory {
 	 *
 	 * @return	maxMemoryPerTable value
 	 */
-	public int getMaxMemoryPerTable();
+	int getMaxMemoryPerTable();
 }

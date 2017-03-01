@@ -60,8 +60,8 @@ public interface DependableFinder
 	  *	@return	the associated Dependable
 	  * @exception StandardException		thrown if the object cannot be found or on error o
 	  */
-    public	Dependable	getDependable(DataDictionary dd,
-            UUID dependableObjectID) throws StandardException;
+	Dependable	getDependable(DataDictionary dd,
+								UUID dependableObjectID) throws StandardException;
 
 	/**
 	  * The name of the class of Dependables as a "SQL Object" which this
@@ -73,5 +73,5 @@ public interface DependableFinder
 	  *	@return	String type of the "SQL Object" which this Finder can find.
 	  * @see Dependable
 	  */
-	public	String	getSQLObjectType();
+	String	getSQLObjectType();
 }

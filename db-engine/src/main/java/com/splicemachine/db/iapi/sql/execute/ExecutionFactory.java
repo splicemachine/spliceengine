@@ -190,7 +190,7 @@ public interface ExecutionFactory {
 	  @param activation	The Activation.
 	  @exception StandardException		Thrown on error
 	  */
-	public RowChanger
+	RowChanger
 	getRowChanger(long heapConglom,
 				  StaticCompiledOpenConglomInfo heapSCOCI,
 				  DynamicCompiledOpenConglomInfo heapDCOCI,
@@ -235,7 +235,7 @@ public interface ExecutionFactory {
 
 	  @exception StandardException		Thrown on error
 	  */
-	public RowChanger
+	RowChanger
 	getRowChanger(long heapConglom,
 				  StaticCompiledOpenConglomInfo heapSCOCI,
 				  DynamicCompiledOpenConglomInfo heapDCOCI,
@@ -246,7 +246,7 @@ public interface ExecutionFactory {
 				  int numberOfColumns,
 				  TransactionController tc,
 				  int[] changedColumnIds,
-				  FormatableBitSet	baseRowReadList,
+				  FormatableBitSet baseRowReadList,
 				  int[] baseRowReadMap,
 				  int[] streamStorableColIds,
 				  Activation activation) throws StandardException;
@@ -256,15 +256,15 @@ public interface ExecutionFactory {
 	/**
 		This returns a new row that is storable but not indexable 
 	 */
-	public ExecRow getValueRow(int numColumns);
+	ExecRow getValueRow(int numColumns);
 
 	/**
 		This returns an indexable row
 	 */
-	public ExecIndexRow	getIndexableRow(int numColumns);
+	ExecIndexRow	getIndexableRow(int numColumns);
 
 	/**
 		This returns the value row as an indexable row 
 	 */
-	public ExecIndexRow	getIndexableRow(ExecRow valueRow);
+	ExecIndexRow	getIndexableRow(ExecRow valueRow);
 }

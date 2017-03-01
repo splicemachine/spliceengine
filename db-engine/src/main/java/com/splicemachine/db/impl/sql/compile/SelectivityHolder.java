@@ -43,8 +43,8 @@ import com.splicemachine.db.iapi.error.StandardException;
  *
  */
 public interface SelectivityHolder extends Comparable<SelectivityHolder> {
-        public double getSelectivity() throws StandardException;
-        public QualifierPhase getPhase();
-        public int getColNum();
-        public boolean isRangeSelectivity();
+        double getSelectivity() throws StandardException;
+        QualifierPhase getPhase();
+        int getColNum();
+        boolean isRangeSelectivity();
 }

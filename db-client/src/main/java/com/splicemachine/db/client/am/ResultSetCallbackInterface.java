@@ -32,14 +32,14 @@ package com.splicemachine.db.client.am;
 
 public interface ResultSetCallbackInterface extends UnitOfWorkListener {
     // The query was ended at the server because all rows have been retrieved.
-    public void earlyCloseComplete(Sqlca sqlca);
+    void earlyCloseComplete(Sqlca sqlca);
 
-    public int completeSqlca(Sqlca sqlca);
+    int completeSqlca(Sqlca sqlca);
 
     // Chain a warning on the result set object.
-    public void accumulateWarning(SqlWarning e);
+    void accumulateWarning(SqlWarning e);
 
-    public StatementCallbackInterface getStatementCallbackInterface();
+    StatementCallbackInterface getStatementCallbackInterface();
 
-    public ConnectionCallbackInterface getConnectionCallbackInterface();
+    ConnectionCallbackInterface getConnectionCallbackInterface();
 }

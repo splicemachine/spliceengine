@@ -88,9 +88,9 @@ import java.sql.SQLException;
 public interface DeferModification
 {
 
-    public static final int INSERT_STATEMENT = 1;
-    public static final int UPDATE_STATEMENT = 2;
-    public static final int DELETE_STATEMENT = 3;
+    int INSERT_STATEMENT = 1;
+    int UPDATE_STATEMENT = 2;
+    int DELETE_STATEMENT = 3;
 
     /**
      * This method is called during preparation of an insert, update, or delete statement with this VTI
@@ -106,7 +106,7 @@ public interface DeferModification
      *
      * @exception SQLException on an unexpected condition.
      */
-    public boolean alwaysDefer( int statementType)
+    boolean alwaysDefer(int statementType)
         throws SQLException;
 
     /**
@@ -126,9 +126,9 @@ public interface DeferModification
      *
      * @exception SQLException a parameter is invalid or there is another unexpected failure.
      */
-    public boolean columnRequiresDefer( int statementType,
-                                        String columnName,
-                                        boolean inWhereClause)
+    boolean columnRequiresDefer(int statementType,
+                                String columnName,
+                                boolean inWhereClause)
         throws SQLException;
 
     /**
@@ -146,9 +146,9 @@ public interface DeferModification
      *
      * @exception SQLException a parameter is invalid or there is another unexpected failure.
      */
-    public boolean subselectRequiresDefer( int statementType,
-                                           String schemaName,
-                                           String tableName)
+    boolean subselectRequiresDefer(int statementType,
+                                   String schemaName,
+                                   String tableName)
         throws SQLException;
 
     /**
@@ -165,8 +165,8 @@ public interface DeferModification
      *
      * @exception SQLException a parameter is invalid or there is another unexpected failure.
      */
-    public boolean subselectRequiresDefer( int statementType,
-                                           String VTIClassName)
+    boolean subselectRequiresDefer(int statementType,
+                                   String VTIClassName)
         throws SQLException;
 
     /**
@@ -179,7 +179,7 @@ public interface DeferModification
      *
      * @exception SQLException thrown on an unexpected failure
      */
-    public void modificationNotify( int statementType,
-                                    boolean deferred)
+    void modificationNotify(int statementType,
+                            boolean deferred)
         throws SQLException;
 }

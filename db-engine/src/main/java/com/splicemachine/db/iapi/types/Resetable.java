@@ -45,19 +45,19 @@ public interface Resetable
 	/**
 	 *  Reset the stream to the beginning.
 	 */
-	public void resetStream() throws IOException, StandardException;
+	void resetStream() throws IOException, StandardException;
 
 	/**
 	 *  Initialize. Needs to be called first, before a resetable stream can
      *  be used.
      *
 	 */
-    public void initStream() throws StandardException;
+	void initStream() throws StandardException;
 
 	/**
 	 *  Close. Free resources (such as open containers and locks) associated
      *  with the stream.
 	 */
-    public void closeStream();
+	void closeStream();
 
 }

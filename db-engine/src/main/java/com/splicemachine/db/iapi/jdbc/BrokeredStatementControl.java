@@ -44,56 +44,56 @@ public interface BrokeredStatementControl
         used which may be different from the passed
         in holdabilty.
 	*/
-	public int checkHoldCursors(int holdability) throws SQLException;
+	int checkHoldCursors(int holdability) throws SQLException;
 
 	/**
 	 * Close the real JDBC Statement when this is controlling a Statement.
 	 * @throws SQLException
 	 */
-	public void closeRealStatement() throws SQLException;
+	void closeRealStatement() throws SQLException;
 	
 	/**
 	 * Close the real JDBC CallableStatement when this is controlling a
 	 * CallableStatement. 
 	 * @throws SQLException
 	 */
-	public void closeRealCallableStatement() throws SQLException;
+	void closeRealCallableStatement() throws SQLException;
 	
 	/**
 	 * Close the real JDBC CallableStatement when this is controlling a
 	 * PreparedStatement. 
 	 * @throws SQLException
 	 */
-	public void closeRealPreparedStatement() throws SQLException;
+	void closeRealPreparedStatement() throws SQLException;
 	
 	/**
 		Return the real JDBC statement for the brokered statement
 		when this is controlling a Statement.
 	*/
-	public Statement	getRealStatement() throws SQLException;
+	Statement	getRealStatement() throws SQLException;
 
 	/**
 		Return the real JDBC PreparedStatement for the brokered statement
 		when this is controlling a PreparedStatement.
 	*/
-	public PreparedStatement	getRealPreparedStatement() throws SQLException;
+	PreparedStatement	getRealPreparedStatement() throws SQLException;
 
 
 	/**
 		Return the real JDBC CallableStatement for the brokered statement
 		when this is controlling a CallableStatement.
 	*/
-	public CallableStatement	getRealCallableStatement() throws SQLException;
+	CallableStatement	getRealCallableStatement() throws SQLException;
 
 	/**
 		Optionally wrap a returned ResultSet in another ResultSet.
         @param s Statement that created the ResultSet.
 	*/
-	public ResultSet	wrapResultSet(Statement s, ResultSet rs);
+	ResultSet	wrapResultSet(Statement s, ResultSet rs);
 
     /**
      * Return the exception factory for the underlying connection.
      * @return an exception factory instance
      */
-    public ExceptionFactory getExceptionFactory();
+	ExceptionFactory getExceptionFactory();
 }

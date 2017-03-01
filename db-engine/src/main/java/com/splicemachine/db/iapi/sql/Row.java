@@ -50,7 +50,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 public interface Row
 {
-	public int nColumns();
+	int nColumns();
 
 	/**
 	 * Get a DataValueDescriptor in a Row by ordinal position (1-based).

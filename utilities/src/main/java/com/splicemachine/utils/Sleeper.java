@@ -33,12 +33,12 @@ public interface Sleeper {
 
 		TimeView getSleepStats();
 
-		public static Sleeper THREAD_SLEEPER = new Sleeper() {
+		Sleeper THREAD_SLEEPER = new Sleeper() {
 				@Override public void sleep(long wait) throws InterruptedException { Thread.sleep(wait); }
 				@Override public TimeView getSleepStats() { return Metrics.noOpTimeView(); }
 		};
 
-		public static class TimedSleeper implements Sleeper{
+		class TimedSleeper implements Sleeper{
 				private final Timer sleepTimer;
 				private final Sleeper delegate;
 

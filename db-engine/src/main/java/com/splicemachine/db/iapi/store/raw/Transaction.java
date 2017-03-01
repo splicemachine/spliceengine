@@ -48,7 +48,7 @@ public interface Transaction {
 	/**
 		Return the context manager this transaction is associated with.
 	*/
-	public ContextManager getContextManager();
+	ContextManager getContextManager();
 
     /**
      * Get the compatibility space of the transaction.
@@ -87,7 +87,7 @@ public interface Transaction {
 		the property conglomerate is set up.
 		@exception StandardException  Standard Derby exception policy
 	*/
-	public void setup(PersistentSet set)
+	void setup(PersistentSet set)
 		throws StandardException;
 
 	/**
@@ -95,7 +95,7 @@ public interface Transaction {
         re-used for transactions that do not modify the raw store.
 		May return null if this transaction has no globalId.
 	*/
-	public GlobalTransactionId getGlobalId();
+	GlobalTransactionId getGlobalId();
 
 	/**
 		Commit this transaction. All savepoints within this transaction are 
@@ -117,7 +117,7 @@ public interface Transaction {
 
 	*/
 
-	public void commit() throws StandardException;
+	void commit() throws StandardException;
 
 	/**
 	    "Commit" this transaction without sync'ing the log.
@@ -141,9 +141,9 @@ public interface Transaction {
         The transaction will be aborted by the standard context mechanism.
 	*/
 
-	public void commitNoSync(int commitflag) throws StandardException;
-	public final int RELEASE_LOCKS = TransactionController.RELEASE_LOCKS;
-	public final int KEEP_LOCKS = TransactionController.KEEP_LOCKS;
+	void commitNoSync(int commitflag) throws StandardException;
+	int RELEASE_LOCKS = TransactionController.RELEASE_LOCKS;
+	int KEEP_LOCKS = TransactionController.KEEP_LOCKS;
 
 
 	/**
@@ -155,7 +155,7 @@ public interface Transaction {
         than ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
 		
 	*/
-	public void abort() throws StandardException;
+	void abort() throws StandardException;
 
 	/**
 		Close this transaction, the transaction must be idle. This close will
@@ -170,7 +170,7 @@ public interface Transaction {
 
 		
 	*/
-	public void close() throws StandardException;
+	void close() throws StandardException;
 
 	/**
         If this transaction is not idle, abort it.  After this call close().
@@ -183,7 +183,7 @@ public interface Transaction {
 
 		
 	*/
-	public void destroy() throws StandardException;
+	void destroy() throws StandardException;
 
 
 	/**
@@ -207,7 +207,7 @@ public interface Transaction {
 		
 	*/
 
-	public int setSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+	int setSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
 	/**
 		Release the save point of the given name. Relasing a savepoint removes 
@@ -228,7 +228,7 @@ public interface Transaction {
 
 	*/
 
-	public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+	int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
 	/**
 		Rollback all changes made since the named savepoint was set. The named
@@ -250,7 +250,7 @@ public interface Transaction {
         the given name.
 
 	*/
-	public int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+	int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
 	/**
 		Add to the list of post commit work that may be processed after this
@@ -260,7 +260,7 @@ public interface Transaction {
 
 		@param work the post commit work that is added
 	*/
-	public void addPostCommitWork(Serviceable work);
+	void addPostCommitWork(Serviceable work);
 
 	/**
 		Add to the list of post termination work that may be processed after this
@@ -268,31 +268,31 @@ public interface Transaction {
 
 		@param work the post termination work that is added
 	*/
-	public void addPostTerminationWork(Serviceable work);
+	void addPostTerminationWork(Serviceable work);
 
     /**
      * Reveals whether the transaction has ever read or written data.
      *
 	 * @return true If the transaction has never read or written data.
      **/
-	public boolean isIdle();
+	boolean isIdle();
 
     /**
 	  Reveal whether the transaction is in a pristine state, which
 	  means it hasn't done any updates since the last commit.
 	  @return true if so, false otherwise
 	  */
-    public boolean isPristine();
+	boolean isPristine();
 
 	/**
 		Get an object to handle non-transactional files.
 	*/
-	public FileResource getFileHandler();
+	FileResource getFileHandler();
 
 	/**
 		Return true if any transaction is blocked, even if not by this one.
 	 */
-	public  boolean anyoneBlocked();
+	boolean anyoneBlocked();
 
 	/**
      * Convert a local transaction to a global transaction.
@@ -337,8 +337,8 @@ public interface Transaction {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void xa_commit(
-    boolean onePhase)
+	void xa_commit(
+			boolean onePhase)
 		throws StandardException;
 
     /**
@@ -355,10 +355,10 @@ public interface Transaction {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public int xa_prepare()
+	int xa_prepare()
 		throws StandardException;
-    public static final int XA_RDONLY = 1; 
-    public static final int XA_OK     = 2; 
+    int XA_RDONLY = 1;
+    int XA_OK     = 2;
 
     /**
      * rollback the current global transaction.
@@ -369,7 +369,7 @@ public interface Transaction {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void xa_rollback()
+	void xa_rollback()
         throws StandardException;
 
 	
@@ -377,7 +377,7 @@ public interface Transaction {
 	 * get string ID of the actual transaction ID that will 
 	 * be used when transaction is in  active state. 
 	 */
-	public String getActiveStateTxIdString();
+	String getActiveStateTxIdString();
 
 
     /**
@@ -391,6 +391,6 @@ public interface Transaction {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public DataValueFactory getDataValueFactory()
+	DataValueFactory getDataValueFactory()
 		throws StandardException;
 }

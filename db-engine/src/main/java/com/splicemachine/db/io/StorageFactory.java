@@ -113,7 +113,7 @@ public interface StorageFactory
      *
      * @exception IOException
      */
-    public void init( String home, String databaseName, String tempDirName, String uniqueName)
+    void init(String home, String databaseName, String tempDirName, String uniqueName)
         throws IOException;
 
     /**
@@ -121,7 +121,7 @@ public interface StorageFactory
      * engine cannot guarantee that shutdown will be called. If the JVM terminates abnormally then it will
      * not be called.
      */
-    public void shutdown();
+    void shutdown();
 
     /**
      * Get the canonical name of the database. This is a name that uniquely identifies it. It is system dependent.
@@ -133,7 +133,7 @@ public interface StorageFactory
      *
      * @exception IOException if an IO error occurred during the construction of the name.
      */
-    public String getCanonicalName() throws IOException;
+    String getCanonicalName() throws IOException;
     
     /**
      * Construct a StorageFile from a path name.
@@ -146,7 +146,7 @@ public interface StorageFactory
      *
      * @return A corresponding StorageFile object
      */
-    public StorageFile newStorageFile( String path);
+    StorageFile newStorageFile(String path);
 
     /**
      * Construct a non-temporary StorageFile from a directory and file name.
@@ -160,7 +160,7 @@ public interface StorageFactory
      *
      * @return A corresponding StorageFile object
      */
-    public StorageFile newStorageFile( String directoryName, String fileName);
+    StorageFile newStorageFile(String directoryName, String fileName);
 
     /**
      * Construct a StorageFile from a directory and file name. The StorageFile may denote a temporary file
@@ -174,7 +174,7 @@ public interface StorageFactory
      *
      * @return A corresponding StorageFile object
      */
-    public StorageFile newStorageFile( StorageFile directoryName, String fileName);
+    StorageFile newStorageFile(StorageFile directoryName, String fileName);
 
     /**
      * Get the pathname separator character used by the StorageFile implementation. This is the
@@ -182,7 +182,7 @@ public interface StorageFactory
      *
      * @return the pathname separator character. (Normally '/' or '\').
      */
-    public char getSeparator();
+    char getSeparator();
 
     /**
      * Get the abstract name of the directory that holds temporary files.
@@ -196,7 +196,7 @@ public interface StorageFactory
      *
      * @return a directory name
      */
-    public StorageFile getTempDir();
+    StorageFile getTempDir();
 
     /**
      * This method is used to determine whether the storage is fast (RAM based) or slow (disk based).
@@ -204,7 +204,7 @@ public interface StorageFactory
      *
      * @return <b>true</b> if the storage is fast, <b>false</b> if it is slow.
      */
-    public boolean isFast();
+    boolean isFast();
 
     /**
      * Determine whether the database is read only. The database engine supports read-only databases, even
@@ -212,7 +212,7 @@ public interface StorageFactory
      *
      * @return <b>true</b> if the storage is read only, <b>false</b> if it is writable.
      */
-    public boolean isReadOnlyDatabase();
+    boolean isReadOnlyDatabase();
 
     /**
      * Determine whether the storage supports random access. If random access is not supported then
@@ -220,7 +220,7 @@ public interface StorageFactory
      *
      * @return <b>true</b> if the storage supports random access, <b>false</b> if it is writable.
      */
-    public boolean supportsRandomAccess();
+    boolean supportsRandomAccess();
 
     /**
      * The version number of this version of the StorageFactory interface and its subsidiary interfaces.
@@ -230,7 +230,7 @@ public interface StorageFactory
     /**
      * @return the StorageFactory version supported by this implementation
      */
-    public int getStorageFactoryVersion();
+    int getStorageFactoryVersion();
 
     /**
      * Create and returns a temporary file in temporary file system of database
@@ -239,7 +239,7 @@ public interface StorageFactory
      *               used if null.
      * @return StorageFile
      */
-    public StorageFile createTemporaryFile (String prefix, String suffix)
+    StorageFile createTemporaryFile(String prefix, String suffix)
                                                             throws IOException;
     
     /**
@@ -247,6 +247,6 @@ public interface StorageFactory
      * 
      * @param name uniquely identifiable name for this database
      */
-    public void setCanonicalName(String name);
+    void setCanonicalName(String name);
     
 }

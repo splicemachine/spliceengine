@@ -28,48 +28,48 @@ package com.splicemachine.db.client.am;
 
 
 public interface MaterialStatement {
-    public abstract void writeExecuteImmediate_(String sql, Section section) throws SqlException;
+    void writeExecuteImmediate_(String sql, Section section) throws SqlException;
 
-    public abstract void readExecuteImmediate_() throws SqlException;
+    void readExecuteImmediate_() throws SqlException;
 
     // The sql parameter is supplied in the read method for drivers that
     // process all commands on the "read-side" and do little/nothing on the "write-side".
     // Drivers that follow the write/read paradigm (e.g. NET) will likely ignore the sql parameter.
-    public abstract void readExecuteImmediateForBatch_(String sql) throws SqlException;
+    void readExecuteImmediateForBatch_(String sql) throws SqlException;
 
-    public abstract void writePrepareDescribeOutput_(String sql, Section section) throws SqlException;
+    void writePrepareDescribeOutput_(String sql, Section section) throws SqlException;
 
-    public abstract void readPrepareDescribeOutput_() throws SqlException;
+    void readPrepareDescribeOutput_() throws SqlException;
 
-    public abstract void writeOpenQuery_(Section section,
-                                         int fetchSize,
-                                         int resultSetType) throws SqlException;
+    void writeOpenQuery_(Section section,
+                         int fetchSize,
+                         int resultSetType) throws SqlException;
 
-    public abstract void readOpenQuery_() throws SqlException;
+    void readOpenQuery_() throws SqlException;
 
-    public abstract void writeExecuteCall_(boolean outputExpected,
-                                           String procedureName,
-                                           Section section,
-                                           int fetchSize,
-                                           boolean suppressResultSets, // for batch updates set to true, otherwise to false
-                                           int resultSetType,
-                                           ColumnMetaData parameterMetaData,
-                                           Object[] inputs) throws SqlException;
+    void writeExecuteCall_(boolean outputExpected,
+                           String procedureName,
+                           Section section,
+                           int fetchSize,
+                           boolean suppressResultSets, // for batch updates set to true, otherwise to false
+                           int resultSetType,
+                           ColumnMetaData parameterMetaData,
+                           Object[] inputs) throws SqlException;
 
-    public abstract void readExecuteCall_() throws SqlException;
+    void readExecuteCall_() throws SqlException;
 
     // Used for re-prepares across commit and other places as well
-    public abstract void writePrepare_(String sql, Section section) throws SqlException;
+    void writePrepare_(String sql, Section section) throws SqlException;
 
-    public abstract void readPrepare_() throws SqlException;
+    void readPrepare_() throws SqlException;
 
-    public abstract void markClosedOnServer_();
+    void markClosedOnServer_();
 
-    public abstract void writeSetSpecialRegister_(Section section, java.util.ArrayList sqlsttList) throws SqlException;
+    void writeSetSpecialRegister_(Section section, java.util.ArrayList sqlsttList) throws SqlException;
 
-    public abstract void readSetSpecialRegister_() throws SqlException;
+    void readSetSpecialRegister_() throws SqlException;
 
-    public abstract void reset_();
+    void reset_();
 
 }
 

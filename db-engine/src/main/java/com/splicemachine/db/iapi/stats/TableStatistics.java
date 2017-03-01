@@ -49,7 +49,7 @@ public interface TableStatistics {
      *
      * @return
      */
-    public String tableId();
+    String tableId();
 
     /**
      * @return the total number of entries in the table across all partitions

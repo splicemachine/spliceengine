@@ -68,12 +68,12 @@ public interface UUIDFactory
 	  to be unique "across space and time".
 	  @return		The UUID.
 	**/
- 	public UUID createUUID();
+	UUID createUUID();
 
 	/**
 	  Recreate a UUID from a string produced by UUID.toString.
 	  @return		The UUID.
 	**/
-	public UUID recreateUUID(String uuidstring);
+	UUID recreateUUID(String uuidstring);
 }
 

@@ -40,5 +40,5 @@ public interface UserDataValue extends DataValueDescriptor
 	 *
 	 * @param theValue	The value to set this UserDataValue to
 	 */
-	public void setValue(Object theValue) throws StandardException;
+	void setValue(Object theValue) throws StandardException;
 }

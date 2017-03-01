@@ -115,10 +115,10 @@ public interface ClientJDBCObjectFactory {
     *
     * @throws SqlException if creation of the logical connection fails
     */
-    public LogicalConnection newCachingLogicalConnection(
-            com.splicemachine.db.client.am.Connection physicalConnection,
-            ClientPooledConnection pooledConnection,
-            JDBCStatementCache stmtCache) throws SqlException;
+   LogicalConnection newCachingLogicalConnection(
+           com.splicemachine.db.client.am.Connection physicalConnection,
+           ClientPooledConnection pooledConnection,
+           JDBCStatementCache stmtCache) throws SqlException;
 
     /**
      * This method returns an instance of PreparedStatement

@@ -25,21 +25,21 @@ import java.util.Map;
 @MXBean
 public interface ErrorReport {
 
-    public List<String> getRecentThrowingClassNames();
+    List<String> getRecentThrowingClassNames();
 
-    public List<String> getRecentReportingClassNames();
+    List<String> getRecentReportingClassNames();
 
-    public Map<String,Long> getMostRecentErrors();
+    Map<String,Long> getMostRecentErrors();
 
-    public long getTotalErrors();
+    long getTotalErrors();
 
-    public long getTotalIOExceptions();
+    long getTotalIOExceptions();
 
-    public long getTotalDoNotRetryIOExceptions();
+    long getTotalDoNotRetryIOExceptions();
 
-    public long getTotalStandardExceptions();
+    long getTotalStandardExceptions();
 
-    public long getTotalExecutionExceptions();
+    long getTotalExecutionExceptions();
 
-    public long getTotalRuntimeExceptions();
+    long getTotalRuntimeExceptions();
 }

@@ -42,6 +42,6 @@ public interface IQualifyable {
 		The passed in qualifiers are only valid for the single
 		execution that follows.
 	*/
-	public void setQualifiers(VTIEnvironment vtiEnvironment, com.splicemachine.db.iapi.store.access.Qualifier[][] qualifiers)
+	void setQualifiers(VTIEnvironment vtiEnvironment, com.splicemachine.db.iapi.store.access.Qualifier[][] qualifiers)
 		throws SQLException;
 }

@@ -53,7 +53,7 @@ public interface LanguageProperties
 	** this should be dynamically sized -- in which
 	** case we wouldn't need this default.
 	*/
-    static final String BULK_FETCH_PROP = "derby.language.bulkFetchDefault";
-    static final String BULK_FETCH_DEFAULT = "16";
-    static final int BULK_FETCH_DEFAULT_INT = 16;
+    String BULK_FETCH_PROP = "derby.language.bulkFetchDefault";
+    String BULK_FETCH_DEFAULT = "16";
+    int BULK_FETCH_DEFAULT_INT = 16;
 }

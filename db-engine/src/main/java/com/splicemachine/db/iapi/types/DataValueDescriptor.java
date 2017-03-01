@@ -349,7 +349,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      *
      * @return A clone of this descriptor, which shares the internal state.
      */
-    public DataValueDescriptor cloneHolder();
+	DataValueDescriptor cloneHolder();
 
     /**
      * Clone this DataValueDescriptor. Results in a new object
@@ -369,8 +369,8 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @return A clone of the {@code DataValueDescriptor} with the same initial
      *      value as this.
      */
-    public abstract DataValueDescriptor cloneValue(
-            boolean forceMaterialization);
+	DataValueDescriptor cloneValue(
+			boolean forceMaterialization);
 
     /**
      * Recycle this DataValueDescriptor if possible. Create and return a new
@@ -385,7 +385,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * Get a new null value of the same type as this data value.
 	 *
 	 */
-	public DataValueDescriptor getNewNull();
+	DataValueDescriptor getNewNull();
 
 	/**
 	 * Set the value based on the value for the specified DataValueDescriptor
@@ -399,10 +399,10 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @exception StandardException		Thrown on error
 	 * @exception SQLException		Error accessing the result set
 	 */
-	public void setValueFromResultSet(
-    ResultSet   resultSet, 
-    int         colNumber,
-    boolean     isNullable)
+	void setValueFromResultSet(
+			ResultSet resultSet,
+			int colNumber,
+			boolean isNullable)
 		throws StandardException, SQLException;
 
 
@@ -413,7 +413,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 		@exception SQLException thrown by the PreparedStatement object
 		@exception StandardException thrown by me accessing my value.
 	*/
-	public void setInto(PreparedStatement ps, int position) throws SQLException, StandardException;
+	void setInto(PreparedStatement ps, int position) throws SQLException, StandardException;
 
 	/**
 		Set this value into a ResultSet for a subsequent ResultSet.insertRow
@@ -422,7 +422,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 		@exception SQLException thrown by the ResultSet object
 		@exception StandardException thrown by me accessing my value.
 	*/
-	public void setInto(ResultSet rs, int position) throws SQLException, StandardException;
+	void setInto(ResultSet rs, int position) throws SQLException, StandardException;
 	
 	/**
 	 * Set the value of this DataValueDescriptor to the given int value
@@ -431,7 +431,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void setValue(int theValue) throws StandardException;
+	void setValue(int theValue) throws StandardException;
 
 
 	/**
@@ -441,7 +441,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void setValue(double theValue) throws StandardException;
+	void setValue(double theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor to the given double value
@@ -453,7 +453,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void setValue(float theValue) throws StandardException;
+	void setValue(float theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor to the given short value
@@ -462,7 +462,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void setValue(short theValue) throws StandardException;
+	void setValue(short theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor to the given long value
@@ -471,7 +471,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void setValue(long theValue) throws StandardException;
+	void setValue(long theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor to the given byte value
@@ -479,7 +479,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	The value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(byte theValue) throws StandardException;
+	void setValue(byte theValue) throws StandardException;
 
 	
 	/**
@@ -488,7 +488,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	Contains the boolean value to set this to
 	 *
 	 */
-	public void setValue(boolean theValue) throws StandardException;
+	void setValue(boolean theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor to the given Object value
@@ -497,9 +497,9 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void setValue(Object theValue) throws StandardException;
+	void setValue(Object theValue) throws StandardException;
 
-    public void setValue(RowId theValue) throws StandardException;
+    void setValue(RowId theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor.
@@ -507,7 +507,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	The byte value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(byte[] theValue) throws StandardException;
+	void setValue(byte[] theValue) throws StandardException;
 
 	/**
 		Set this value from an application supplied java.math.BigDecimal.
@@ -520,7 +520,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 
 		@param bigDecimal required to be a BigDecimal or null.
 	 */
-	public void setBigDecimal(Number bigDecimal) throws StandardException;
+	void setBigDecimal(Number bigDecimal) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor.
@@ -528,7 +528,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	The String value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(String theValue) throws StandardException;
+	void setValue(String theValue) throws StandardException;
 
  	/**
 	 * Set the value of this DataValueDescriptor from a Blob.
@@ -536,7 +536,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	The Blob value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(Blob theValue) throws StandardException;
+	void setValue(Blob theValue) throws StandardException;
     
 	/**
 	 * Set the value of this DataValueDescriptor from a Clob.
@@ -544,7 +544,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	The Clob value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(Clob theValue) throws StandardException;
+	void setValue(Clob theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor.
@@ -552,7 +552,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	The Time value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(Time theValue) throws StandardException;
+	void setValue(Time theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor.
@@ -561,7 +561,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @param cal The time zone from the calendar is used to construct the database time value
 	 *
 	 */
-	public void setValue(Time theValue, Calendar cal) throws StandardException;
+	void setValue(Time theValue, Calendar cal) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor.
@@ -569,7 +569,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	The Timestamp value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(Timestamp theValue) throws StandardException;
+	void setValue(Timestamp theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor.
@@ -578,7 +578,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @param cal The time zone from the calendar is used to construct the database timestamp value
 	 *
 	 */
-	public void setValue(Timestamp theValue, Calendar cal) throws StandardException;
+	void setValue(Timestamp theValue, Calendar cal) throws StandardException;
 
     /**
      * Set the value of this DataValueDescriptor.
@@ -586,14 +586,14 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @param theValue	The Timestamp value to set this DataValueDescriptor to
      *
      */
-    public void setValue(DateTime theValue) throws StandardException;
+	void setValue(DateTime theValue) throws StandardException;
 	/**
 	 * Set the value of this DataValueDescriptor.
 	 *
 	 * @param theValue	The Date value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(Date theValue) throws StandardException;
+	void setValue(Date theValue) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor.
@@ -602,7 +602,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @param cal The time zone from the calendar is used to construct the database date value
 	 *
 	 */
-	public void setValue(Date theValue, Calendar cal) throws StandardException;
+	void setValue(Date theValue, Calendar cal) throws StandardException;
 
 	/**
 	 * Set the value of this DataValueDescriptor from another.
@@ -610,7 +610,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param theValue	The Date value to set this DataValueDescriptor to
 	 *
 	 */
-	public void setValue(DataValueDescriptor theValue) throws StandardException;
+	void setValue(DataValueDescriptor theValue) throws StandardException;
 
 
 	/**
@@ -624,7 +624,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 		and the passed in DataTypeDescriptor. The type of the DataTypeDescriptor
 		must match this class.
 	*/
-	public void normalize(DataTypeDescriptor dtd, DataValueDescriptor source)
+	void normalize(DataTypeDescriptor dtd, DataValueDescriptor source)
 		throws StandardException;
 
 	/**
@@ -634,7 +634,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @return	True if this value is null.
 	 *
 	 */
-	public BooleanDataValue isNullOp();
+	BooleanDataValue isNullOp();
 
 	/**
 	 * The SQL "IS NOT NULL" operator.  Returns true if this value
@@ -644,14 +644,14 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @return	True if this value is not null.
 	 *
 	 */
-	public BooleanDataValue isNotNull();
+	BooleanDataValue isNotNull();
 
 	/**
 	 * Get the SQL name of the datatype
 	 *
 	 * @return	The SQL name of the datatype
 	 */
-	public String	getTypeName();
+	String	getTypeName();
 
 	/**
 	 * Set this value from an Object. Used from CAST of a Java type to
@@ -667,10 +667,10 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void setObjectForCast(
-    Object  value, 
-    boolean instanceOfResultType, 
-    String  resultTypeClassName) 
+	void setObjectForCast(
+			Object value,
+			boolean instanceOfResultType,
+			String resultTypeClassName)
         throws StandardException;
 
     /**
@@ -690,8 +690,8 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      *                                      found while reading the object from
      *                                      the stream.
      **/
-    public void readExternalFromArray(
-    ArrayInputStream    ais)
+	void readExternalFromArray(
+			ArrayInputStream ais)
         throws IOException, ClassNotFoundException;
 
 	/**
@@ -723,8 +723,8 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue equals(DataValueDescriptor left,
-									DataValueDescriptor right)
+	BooleanDataValue equals(DataValueDescriptor left,
+							DataValueDescriptor right)
 						throws StandardException;
 
 	/**
@@ -738,8 +738,8 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue notEquals(DataValueDescriptor left,
-									DataValueDescriptor right)
+	BooleanDataValue notEquals(DataValueDescriptor left,
+							   DataValueDescriptor right)
 						throws StandardException;
 
 	/**
@@ -753,8 +753,8 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue lessThan(DataValueDescriptor left,
-									DataValueDescriptor right)
+	BooleanDataValue lessThan(DataValueDescriptor left,
+							  DataValueDescriptor right)
 						throws StandardException;
 
 	/**
@@ -768,8 +768,8 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue greaterThan(DataValueDescriptor left,
-									DataValueDescriptor right)
+	BooleanDataValue greaterThan(DataValueDescriptor left,
+								 DataValueDescriptor right)
 						throws StandardException;
 
 	/**
@@ -783,8 +783,8 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue lessOrEquals(DataValueDescriptor left,
-									DataValueDescriptor right)
+	BooleanDataValue lessOrEquals(DataValueDescriptor left,
+								  DataValueDescriptor right)
 						throws StandardException;
 
 	/**
@@ -798,8 +798,8 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue greaterOrEquals(DataValueDescriptor left,
-									DataValueDescriptor right)
+	BooleanDataValue greaterOrEquals(DataValueDescriptor left,
+									 DataValueDescriptor right)
 						throws StandardException;
 
 
@@ -815,7 +815,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public DataValueDescriptor coalesce(DataValueDescriptor[] list, DataValueDescriptor returnValue)
+	DataValueDescriptor coalesce(DataValueDescriptor[] list, DataValueDescriptor returnValue)
 						throws StandardException;
 
 	/**
@@ -827,7 +827,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @return
 	 * @throws StandardException
      */
-	public DataValueDescriptor setArray(DataValueDescriptor[] theValue, DataValueDescriptor dvd) throws
+	DataValueDescriptor setArray(DataValueDescriptor[] theValue, DataValueDescriptor dvd) throws
 			StandardException;
 
 	/**
@@ -844,9 +844,9 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue in(DataValueDescriptor left,
-							   DataValueDescriptor[] inList,
-							   boolean orderedList) 
+	BooleanDataValue in(DataValueDescriptor left,
+						DataValueDescriptor[] inList,
+						boolean orderedList)
 						throws StandardException;
 
 	/**
@@ -976,7 +976,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      *      type (e.g. chars for string types), or
      *      <code>UNKNOWN_LOGICAL_LENGTH</code> if the logical length is unknown
      */
-	public void setValue(InputStream theStream, int valueLength) throws StandardException;
+	void setValue(InputStream theStream, int valueLength) throws StandardException;
 
 	/**
 		Check the value to seem if it conforms to the restrictions
@@ -984,7 +984,7 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 
 		@exception StandardException Variable is too big.
 	*/
-	public void checkHostVariable(int declaredLength) throws StandardException;
+	void checkHostVariable(int declaredLength) throws StandardException;
 
     /**
      * Estimate the memory usage in bytes of the data value and the overhead of the class.

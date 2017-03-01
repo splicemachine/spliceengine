@@ -55,7 +55,7 @@ public interface TargetResultSet extends ResultSet
 	 *
 	 * @exception StandardException thrown if cursor finished.
 	 */
-	public void changedRow(ExecRow execRow, RowLocation rowLocation) throws StandardException;
+	void changedRow(ExecRow execRow, RowLocation rowLocation) throws StandardException;
 
 	/**
 	 * Preprocess the source row prior to getting it back from the source.
@@ -68,5 +68,5 @@ public interface TargetResultSet extends ResultSet
 	 *
 	 * @exception StandardException thrown if cursor finished.
 	 */
-	public ExecRow preprocessSourceRow(ExecRow sourceRow) throws StandardException;
+	ExecRow preprocessSourceRow(ExecRow sourceRow) throws StandardException;
 }

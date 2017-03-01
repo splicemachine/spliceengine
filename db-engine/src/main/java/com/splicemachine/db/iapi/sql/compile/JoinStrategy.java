@@ -50,7 +50,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 public interface JoinStrategy {
 
-    public enum JoinStrategyType {
+    enum JoinStrategyType {
         NESTED_LOOP ("NESTED_LOOP",0,"NestedLoop",true),
 		MERGE_SORT ("MERGE_SORT",1,"MergeSort",false),
         BROADCAST ("BROADCAST",2,"Broadcast",false),
@@ -364,6 +364,6 @@ public interface JoinStrategy {
      *
      * @return
      */
-    public abstract JoinStrategyType getJoinStrategyType();
+	JoinStrategyType getJoinStrategyType();
 
 }

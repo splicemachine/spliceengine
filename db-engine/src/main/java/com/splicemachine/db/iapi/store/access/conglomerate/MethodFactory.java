@@ -47,7 +47,7 @@ public interface MethodFactory extends ModuleSupportable
 	/**
 	Used to identify this interface when finding it with the Monitor.
 	**/
-	public static final String MODULE = 
+	String MODULE =
 	  "com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory";
 
 	/**

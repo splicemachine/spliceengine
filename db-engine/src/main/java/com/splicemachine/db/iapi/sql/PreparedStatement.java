@@ -220,49 +220,49 @@ public interface PreparedStatement
 	 * 
 	 * @return long		The total compile time for the associated query in milliseconds.
 	 */
-	public long getCompileTimeInMillis();
+	long getCompileTimeInMillis();
 
 	/**
 	 * Get the parse time for the associated query in milliseconds.
 	 * 
 	 * @return long		The parse time for the associated query in milliseconds.
 	 */
-	public long getParseTimeInMillis();
+	long getParseTimeInMillis();
 
 	/**
 	 * Get the bind time for the associated query in milliseconds.
 	 * 
 	 * @return long		The bind time for the associated query in milliseconds.
 	 */
-	public long getBindTimeInMillis();
+	long getBindTimeInMillis();
 
 	/**
 	 * Get the optimize time for the associated query in milliseconds.
 	 * 
 	 * @return long		The optimize time for the associated query in milliseconds.
 	 */
-	public long getOptimizeTimeInMillis();
+	long getOptimizeTimeInMillis();
 
 	/**
 	 * Get the generate time for the associated query in milliseconds.
 	 * 
 	 * @return long		The generate time for the associated query in milliseconds.
 	 */
-	public long getGenerateTimeInMillis();
+	long getGenerateTimeInMillis();
 
 	/**
 	 * Get the timestamp for the beginning of compilation
 	 *
 	 * @return Timestamp	The timestamp for the beginning of compilation.
 	 */
-	public Timestamp getBeginCompileTimestamp();
+	Timestamp getBeginCompileTimestamp();
 
 	/**
 	 * Get the timestamp for the end of compilation
 	 *
 	 * @return Timestamp	The timestamp for the end of compilation.
 	 */
-	public Timestamp getEndCompileTimestamp();
+	Timestamp getEndCompileTimestamp();
 
 	/**
 	 * Returns whether or not this Statement requires should
@@ -277,20 +277,20 @@ public interface PreparedStatement
 	/**
 		Return any compile time warnings. Null if no warnings exist.
 	*/
-	public SQLWarning getCompileTimeWarnings();
+	SQLWarning getCompileTimeWarnings();
 
     /**
      * Get the version counter. A change in the value indicates a recompile
      * has happened.
      * @return version counter
      */
-    public long getVersionCounter();
+	long getVersionCounter();
 
-    public boolean isAutoTraced();
+    boolean isAutoTraced();
 
-    public void setAutoTraced(boolean autoTraced);
+    void setAutoTraced(boolean autoTraced);
 
-    public boolean hasXPlainTableOrProcedure();
+    boolean hasXPlainTableOrProcedure();
 
-    public void setXPlainTableOrProcedure(boolean val);
+    void setXPlainTableOrProcedure(boolean val);
 }

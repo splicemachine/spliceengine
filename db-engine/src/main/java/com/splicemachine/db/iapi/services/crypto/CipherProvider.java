@@ -104,5 +104,5 @@ public interface CipherProvider
 	/**
 	 	Returns the encryption block size used during creation of the encrypted database
 	 */
-	public int getEncryptionBlockSize();
+	int getEncryptionBlockSize();
 }

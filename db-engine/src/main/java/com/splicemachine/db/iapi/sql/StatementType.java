@@ -37,33 +37,33 @@ package com.splicemachine.db.iapi.sql;
  */
 public interface StatementType
 {
-	public static final int UNKNOWN	= 0;
-	public static final int INSERT	= 1;
-	public static final int BULK_INSERT_REPLACE = 2;
-	public static final int UPDATE	= 3;
-	public static final int DELETE	= 4;
-	public static final int ENABLED = 5;
-	public static final int DISABLED = 6;
+	int UNKNOWN	= 0;
+	int INSERT	= 1;
+	int BULK_INSERT_REPLACE = 2;
+	int UPDATE	= 3;
+	int DELETE	= 4;
+	int ENABLED = 5;
+	int DISABLED = 6;
 
-	public static final int DROP_CASCADE = 0;
-	public static final int DROP_RESTRICT = 1;
-    public static final int DROP_DEFAULT = 2;
-    public static final int DROP_IF_EXISTS = 3;
+	int DROP_CASCADE = 0;
+	int DROP_RESTRICT = 1;
+    int DROP_DEFAULT = 2;
+    int DROP_IF_EXISTS = 3;
 
-	public static final int RENAME_TABLE = 1;
-	public static final int RENAME_COLUMN = 2;
-	public static final int RENAME_INDEX = 3;
+	int RENAME_TABLE = 1;
+	int RENAME_COLUMN = 2;
+	int RENAME_INDEX = 3;
 
-	public static final int RA_CASCADE = 0;
-	public static final int RA_RESTRICT = 1;
-	public static final int RA_NOACTION = 2;  //default value
-	public static final int RA_SETNULL = 3;
-	public static final int RA_SETDEFAULT = 4;
+	int RA_CASCADE = 0;
+	int RA_RESTRICT = 1;
+	int RA_NOACTION = 2;  //default value
+	int RA_SETNULL = 3;
+	int RA_SETDEFAULT = 4;
 	
-	public static final int SET_SCHEMA_USER = 1;
-	public static final int SET_SCHEMA_DYNAMIC = 2;
+	int SET_SCHEMA_USER = 1;
+	int SET_SCHEMA_DYNAMIC = 2;
 
-    public static final int SET_ROLE_DYNAMIC = 1;	
+    int SET_ROLE_DYNAMIC = 1;
 }
 
 

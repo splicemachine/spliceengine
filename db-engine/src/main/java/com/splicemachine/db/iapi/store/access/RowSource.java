@@ -80,7 +80,7 @@ public interface RowSource {
 
 		@exception StandardException Standard Derby Error Policy
 	 */
-	public DataValueDescriptor[] getNextRowFromRowSource() 
+	DataValueDescriptor[] getNextRowFromRowSource()
         throws StandardException;
 
 	/**
@@ -92,7 +92,7 @@ public interface RowSource {
         behavior is true for all rows in the RowSource).
 
 	 */
-	public boolean needsToClone();
+	boolean needsToClone();
 
 	/**
 	  getValidColumns describes the DataValueDescriptor[] returned by all calls

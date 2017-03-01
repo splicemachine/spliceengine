@@ -46,8 +46,8 @@ public interface CacheFactory {
 		@param maximumSize  The maximum number of objects the cache will hold
  
 	*/
-	
-	public CacheManager newCacheManager(CacheableFactory holderFactory, String name,
-										int initialSize, int maximumSize);
+
+	CacheManager newCacheManager(CacheableFactory holderFactory, String name,
+								 int initialSize, int maximumSize);
 }
 

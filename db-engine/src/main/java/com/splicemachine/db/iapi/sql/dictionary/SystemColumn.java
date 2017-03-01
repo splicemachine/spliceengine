@@ -48,12 +48,12 @@ public interface SystemColumn
 	 *
 	 * @return	The column name.
 	 */
-	public String	getName();
+	String	getName();
     
     /**
      * Return the type of this column.
       */
-    public DataTypeDescriptor getType();
+	DataTypeDescriptor getType();
 
 }
 

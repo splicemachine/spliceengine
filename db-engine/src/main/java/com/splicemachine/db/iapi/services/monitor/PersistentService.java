@@ -72,46 +72,46 @@ public interface PersistentService {
 	/**
 		Service stored in a directory.
 	*/
-	public static final String DIRECTORY = "directory";
+	String DIRECTORY = "directory";
 
 	/**
 		Service stored on the class path (can be in a zip/jar on the class path).
 	*/
-	public static final String CLASSPATH = "classpath";
+	String CLASSPATH = "classpath";
 
 	/**
 		Service stored in a jar/zip archive.
 	*/
-	public static final String JAR = "jar";
+	String JAR = "jar";
 
 	/**
 		Service stored in a web server .
 	*/
-	public static final String HTTP = "http";
-	public static final String HTTPS = "https";
+	String HTTP = "http";
+	String HTTPS = "https";
 
     /** Service stored in memory only (not persistent), virtual file memory. */
-    public static final String INMEMORY = "memory";
+	String INMEMORY = "memory";
 
 	/**
 		The typical name for the service's properties file.
 	*/
-	public static final String PROPERTIES_NAME = "service.properties";
+	String PROPERTIES_NAME = "service.properties";
 
 	/**
 		The root of any stored data.
 	*/
-	public static final String ROOT = Property.PROPERTY_RUNTIME_PREFIX + "serviceDirectory";
+	String ROOT = Property.PROPERTY_RUNTIME_PREFIX + "serviceDirectory";
 
 	/**
 		The type of PersistentService used to boot the service.
 	*/
-	public static final String TYPE = Property.PROPERTY_RUNTIME_PREFIX + "serviceType";
+	String TYPE = Property.PROPERTY_RUNTIME_PREFIX + "serviceType";
 
 	/**
 		Return the type of this service.
 	*/
-	public String getType();
+	String getType();
 
 	/**
 		Return an Enumeration of service names descriptors (Strings) that should be
@@ -124,7 +124,7 @@ public interface PersistentService {
 		<P>
 		The service name returned by the Enumeration must be in its canonical form.
 	*/
-	public Enumeration getBootTimeServices();
+	Enumeration getBootTimeServices();
 
 	/**
 		For a service return its service properties, typically from the service.properties
@@ -134,16 +134,16 @@ public interface PersistentService {
 
 		@exception StandardException Service appears valid but the properties cannot be created.
 	*/
-	public Properties getServiceProperties(String serviceName, Properties defaultProperties)
+	Properties getServiceProperties(String serviceName, Properties defaultProperties)
 		throws StandardException;
 
 	/**
 		@exception StandardException Properties cannot be saved.
 	*/
-	public void saveServiceProperties(String serviceName,
-                                      StorageFactory storageFactory,
-                                      Properties properties,
-                                      boolean replace)
+	void saveServiceProperties(String serviceName,
+							   StorageFactory storageFactory,
+							   Properties properties,
+							   boolean replace)
 		throws StandardException;
 
 	/**
@@ -151,8 +151,8 @@ public interface PersistentService {
        
 		@exception StandardException Properties cannot be saved.
 	*/
-	public void saveServiceProperties(String serviceName,
-                                      Properties properties)
+	void saveServiceProperties(String serviceName,
+							   Properties properties)
 		throws StandardException;
 
 	/**
@@ -160,13 +160,13 @@ public interface PersistentService {
 
 		@exception StandardException Service root cannot be created.
 	*/
-	public String createServiceRoot(String name, boolean deleteExisting)
+	String createServiceRoot(String name, boolean deleteExisting)
 		throws StandardException;
 
 	/**
 		Remove a service's root and its contents.
 	*/
-	public boolean removeServiceRoot(String serviceName);
+	boolean removeServiceRoot(String serviceName);
 
 	/**
 		Convert a service name into its canonical form. Returns null if the name
@@ -174,22 +174,22 @@ public interface PersistentService {
 		
 		@exception No canonical name, name probably invalid
 	*/
-	public String getCanonicalServiceName(String name)
+	String getCanonicalServiceName(String name)
 		throws StandardException;
 
 	/**
 		Return the user form of a service name. This name is only valid within
 		this system. The separator character used must be '/'
 	*/
-	public String getUserServiceName(String serviceName);
+	String getUserServiceName(String serviceName);
 
 
-	public boolean isSameService(String serviceName1, String serviceName2);
+	boolean isSameService(String serviceName1, String serviceName2);
 
     /**
      * @return true if the PersistentService has a StorageFactory, false if not.
      */
-    public boolean hasStorageFactory();
+	boolean hasStorageFactory();
     
     /**
      * Get an initialized StorageFactoryInstance
@@ -207,9 +207,9 @@ public interface PersistentService {
      *
      * @return An initialized StorageFactory.
      */
-    public StorageFactory getStorageFactoryInstance(boolean useHome,
-                                                    String databaseName,
-                                                    String tempDirName,
-                                                    String uniqueName)
+	StorageFactory getStorageFactoryInstance(boolean useHome,
+											 String databaseName,
+											 String tempDirName,
+											 String uniqueName)
         throws StandardException, IOException;
 }

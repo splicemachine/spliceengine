@@ -53,25 +53,25 @@ public interface ModuleFactory
 	    
      * @return The module instance if found, or null.
      */
-    public Object findModule(Object service, String protocol, String identifier);
+	Object findModule(Object service, String protocol, String identifier);
 
 	/**
 		Return the name of the service that the passed in module lives in.
 	*/
-	public String getServiceName(Object serviceModule);
+	String getServiceName(Object serviceModule);
 
 	/**
 		Return the locale of the service that the passed in module lives in.
 		Will return null if no-locale has been defined.
 	*/
-	public Locale getLocale(Object serviceModule);
+	Locale getLocale(Object serviceModule);
 
 	/**
 		Translate a string of the form ll[_CC[_variant]] to a Locale.
 		This is in the Monitor because we want this translation to be
 		in only one place in the code.
 	 */
-	public Locale getLocaleFromString(String localeDescription)
+	Locale getLocaleFromString(String localeDescription)
 					throws StandardException;
 
 
@@ -85,7 +85,7 @@ public interface ModuleFactory
 
 		@exception StandardException	Thrown on error
 	 */
-	public Locale setLocale(Object serviceModule, String userDefinedLocale)
+	Locale setLocale(Object serviceModule, String userDefinedLocale)
 						throws StandardException;
 
 	/**
@@ -94,15 +94,15 @@ public interface ModuleFactory
 
 		@exception StandardException	Derby error.
 	 */
-	public Locale setLocale(Properties serviceProperties,
-							String userDefinedLocale)
+	Locale setLocale(Properties serviceProperties,
+					 String userDefinedLocale)
 						throws StandardException;
 
 	/**
 		Return the PersistentService object for a service.
 		Will return null if the service does not exist.
 	*/
-	public PersistentService getServiceType(Object serviceModule);
+	PersistentService getServiceType(Object serviceModule);
 
     /**
      * Return the PersistentService for a subsubprotocol.
@@ -111,26 +111,26 @@ public interface ModuleFactory
      *
      * @exception StandardException
      */
-    public PersistentService getServiceProvider(String subSubProtocol) throws StandardException;
+	PersistentService getServiceProvider(String subSubProtocol) throws StandardException;
     
     /**
      * Return the application set of properties which correspond
      * to the set of properties in the file db.properties.
      */
-	public Properties getApplicationProperties();
+	Properties getApplicationProperties();
 
 	/**
 		Shut down the complete system that was started by this Monitor. Will
 		cause the stop() method to be called on each loaded module.
 	*/
-	public void shutdown();
+	void shutdown();
 
 	/**
 		Shut down a service that was started by this Monitor. Will
 		cause the stop() method to be called on each loaded module.
 		Requires that a context stack exist.
 	*/
-	public void shutdown(Object service);
+	void shutdown(Object service);
 
 
 	/**
@@ -142,7 +142,7 @@ public interface ModuleFactory
 
 		@exception StandardException See Monitor.classFromIdentifier
 	*/
-	public InstanceGetter classFromIdentifier(int identifier)
+	InstanceGetter classFromIdentifier(int identifier)
 		throws StandardException;
 
 	/**
@@ -155,7 +155,7 @@ public interface ModuleFactory
 		@exception StandardException See Monitor.newInstanceFromIdentifier
 	
 	*/
-	public Object newInstanceFromIdentifier(int identifier)
+	Object newInstanceFromIdentifier(int identifier)
 		throws StandardException;
 
 	/**
@@ -168,7 +168,7 @@ public interface ModuleFactory
 		Marimba store code knows that this will be set to a marimba application
 		context.
 	*/
-	public Object getEnvironment();
+	Object getEnvironment();
 
 
 	/**
@@ -181,7 +181,7 @@ public interface ModuleFactory
 		@return The list of service names, if no services exist that
 		implement the protocol an array with zero elements is returned.
 	*/
-	public String[] getServiceList(String protocol);
+	String[] getServiceList(String protocol);
 
 	/**
 		Start a persistent service.
@@ -202,7 +202,7 @@ public interface ModuleFactory
 
 		@see Monitor#startPersistentService
 	*/
-	public boolean startPersistentService(String serviceName, Properties properties)
+	boolean startPersistentService(String serviceName, Properties properties)
 		throws StandardException;
 
 	/**
@@ -214,9 +214,9 @@ public interface ModuleFactory
 
 		@see Monitor#createPersistentService
 	*/
-	public Object createPersistentService(String factoryInterface, String serviceName, Properties properties)
+	Object createPersistentService(String factoryInterface, String serviceName, Properties properties)
 		throws StandardException;
-    public void removePersistentService(String name)
+    void removePersistentService(String name)
         throws StandardException;
    
 	/**
@@ -229,7 +229,7 @@ public interface ModuleFactory
 
 		@see Monitor#startNonPersistentService
 	*/
-	public Object startNonPersistentService(String factoryInterface, String serviceName, Properties properties)
+	Object startNonPersistentService(String factoryInterface, String serviceName, Properties properties)
 		throws StandardException;
 
 
@@ -237,7 +237,7 @@ public interface ModuleFactory
 		Canonicalize a service name, mapping different user-specifications of a database name
         onto a single, standard name.
 	*/
-    public  String  getCanonicalServiceName( String userSpecifiedName )
+	String  getCanonicalServiceName(String userSpecifiedName)
         throws StandardException;
     
 	/**
@@ -250,7 +250,7 @@ public interface ModuleFactory
 
 		@see Monitor#findService
 	*/
-	public Object findService(String protocol, String identifier);
+	Object findService(String protocol, String identifier);
 
 
 	/**
@@ -264,15 +264,15 @@ public interface ModuleFactory
 		@see Monitor#startSystemModule
 		@see Monitor#bootServiceModule
 	*/
-	public Object startModule(boolean create, Object service, String protocol,
-									 String identifier, Properties properties)
+	Object startModule(boolean create, Object service, String protocol,
+					   String identifier, Properties properties)
 									 throws StandardException;
 
 
 	/**	
 		Get the defined default system streams object.
 	*/
-	public InfoStreams getSystemStreams();
+	InfoStreams getSystemStreams();
 
 
 	/**
@@ -280,7 +280,7 @@ public interface ModuleFactory
 		in the property set. If bootAll is true the services
 		that are persistent will be booted.
 	*/
-	public void startServices(Properties properties, boolean bootAll);
+	void startServices(Properties properties, boolean bootAll);
 
 	/**
 		Return a property from the JVM's system set.
@@ -288,27 +288,27 @@ public interface ModuleFactory
 		if and only if the property starts with 'db.'.
 		If a SecurityException occurs, null is returned.
 	*/
-	public String getJVMProperty(String key);
+	String getJVMProperty(String key);
 
 	/**
 		Get a newly created background thread.
 		The thread is set to be a daemon but is not started.
 	*/
-	public Thread getDaemonThread(Runnable task, String name, boolean setMinPriority);
+	Thread getDaemonThread(Runnable task, String name, boolean setMinPriority);
 
 	/**
 		Set the priority of the current thread.
 		If the current thread was not returned by getDaemonThread() then no action is taken.
 	*/
-	public void setThreadPriority(int priority);
+	void setThreadPriority(int priority);
 
-	public ProductVersionHolder getEngineVersion();
+	ProductVersionHolder getEngineVersion();
 
 	/**
 	 * Get the UUID factory for the system.  The UUID factory provides
 	 * methods to create and recreate database unique identifiers.
 	 */
-	public com.splicemachine.db.iapi.services.uuid.UUIDFactory getUUIDFactory();
+	com.splicemachine.db.iapi.services.uuid.UUIDFactory getUUIDFactory();
         
 	/**
 	 * Get the Timer factory for the system. The Timer factory provides
@@ -316,5 +316,5 @@ public interface ModuleFactory
      *
      * @return the system's Timer factory.
 	 */
-    public com.splicemachine.db.iapi.services.timer.TimerFactory getTimerFactory();
+	com.splicemachine.db.iapi.services.timer.TimerFactory getTimerFactory();
 }

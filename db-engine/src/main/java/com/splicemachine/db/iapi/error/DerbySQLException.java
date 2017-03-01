@@ -43,6 +43,6 @@ public interface DerbySQLException {
      * a StandardException object.
 	 * @return true if this exception wraps a StandardException object
 	 */
-    public boolean isSimpleWrapper();
+	boolean isSimpleWrapper();
 
 }

@@ -137,15 +137,15 @@ public interface GroupFetchScanController extends GenericScanController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public int fetchNextGroup(
-    DataValueDescriptor[][] row_array,
-    RowLocation[]           rowloc_array)
+    int fetchNextGroup(
+            DataValueDescriptor[][] row_array,
+            RowLocation[] rowloc_array)
         throws StandardException;
 
-    public int fetchNextGroup(
-    DataValueDescriptor[][] row_array,
-    RowLocation[]           oldrowloc_array,
-    RowLocation[]           newrowloc_array)
+    int fetchNextGroup(
+            DataValueDescriptor[][] row_array,
+            RowLocation[] oldrowloc_array,
+            RowLocation[] newrowloc_array)
         throws StandardException;
 
     /**

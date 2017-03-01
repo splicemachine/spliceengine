@@ -35,62 +35,62 @@ import com.splicemachine.db.client.am.SqlException;
 // but may dereference material layer Statement state if necessary for performance.
 
 public interface StatementRequestInterface {
-    public void writeExecuteImmediate(NetStatement materialStatement,
-                                      String sql,
-                                      Section section) throws SqlException;
+    void writeExecuteImmediate(NetStatement materialStatement,
+                               String sql,
+                               Section section) throws SqlException;
 
-    public void writePrepareDescribeOutput(NetStatement materialStatement,
-                                           String sql,
-                                           Section section) throws SqlException;
-
-    public void writePrepare(NetStatement materialStatement,
-                             String sql,
-                             Section section) throws SqlException;
-
-    public void writeOpenQuery(NetStatement materialStatement,
-                               Section section,
-                               int fetchSize,
-                               int resultSetType) throws SqlException;
-
-    public void writeExecute(NetPreparedStatement materialPreparedStatement,
-                             Section section,
-                             com.splicemachine.db.client.am.ColumnMetaData parameterMetaData,
-                             Object[] inputs,
-                             int numInputColumns,
-                             boolean outputExpected,
-                             // This is a hint to the material layer that more write commands will follow.
-                             // It is ignored by the driver in all cases except when blob data is written,
-                             // in which case this boolean is used to optimize the implementation.
-                             // Otherwise we wouldn't be able to chain after blob data is sent.
-                             // If we could always chain a no-op DDM after every execute that writes blobs
-                             // then we could just always set the chaining flag to on for blob send data
-                             boolean chainedWritesFollowingSetLob) throws SqlException;
-
-
-    public void writeOpenQuery(NetPreparedStatement materialPreparedStatement,
-                               Section section,
-                               int fetchSize,
-                               int resultSetType,
-                               int numInputColumns,
-                               ColumnMetaData parameterMetaData,
-                               Object[] inputs) throws SqlException;
-
-    public void writeDescribeInput(NetPreparedStatement materialPreparedStatement,
-                                   Section section) throws SqlException;
-
-    public void writeDescribeOutput(NetPreparedStatement materialPreparedStatement,
+    void writePrepareDescribeOutput(NetStatement materialStatement,
+                                    String sql,
                                     Section section) throws SqlException;
 
-    public void writeExecuteCall(NetStatement materialStatement,
-                                 boolean outputExpected,
-                                 String procedureName,
-                                 Section section,
-                                 int fetchSize,
-                                 boolean suppressResultSets, // set to true for batched calls
-                                 int resultSetType,
-                                 ColumnMetaData parameterMetaData,
-                                 Object[] inputs) throws SqlException;
+    void writePrepare(NetStatement materialStatement,
+                      String sql,
+                      Section section) throws SqlException;
+
+    void writeOpenQuery(NetStatement materialStatement,
+                        Section section,
+                        int fetchSize,
+                        int resultSetType) throws SqlException;
+
+    void writeExecute(NetPreparedStatement materialPreparedStatement,
+                      Section section,
+                      com.splicemachine.db.client.am.ColumnMetaData parameterMetaData,
+                      Object[] inputs,
+                      int numInputColumns,
+                      boolean outputExpected,
+                      // This is a hint to the material layer that more write commands will follow.
+                      // It is ignored by the driver in all cases except when blob data is written,
+                      // in which case this boolean is used to optimize the implementation.
+                      // Otherwise we wouldn't be able to chain after blob data is sent.
+                      // If we could always chain a no-op DDM after every execute that writes blobs
+                      // then we could just always set the chaining flag to on for blob send data
+                      boolean chainedWritesFollowingSetLob) throws SqlException;
 
 
-    public void writeSetSpecialRegister(Section section, java.util.ArrayList sqlsttList) throws SqlException;
+    void writeOpenQuery(NetPreparedStatement materialPreparedStatement,
+                        Section section,
+                        int fetchSize,
+                        int resultSetType,
+                        int numInputColumns,
+                        ColumnMetaData parameterMetaData,
+                        Object[] inputs) throws SqlException;
+
+    void writeDescribeInput(NetPreparedStatement materialPreparedStatement,
+                            Section section) throws SqlException;
+
+    void writeDescribeOutput(NetPreparedStatement materialPreparedStatement,
+                             Section section) throws SqlException;
+
+    void writeExecuteCall(NetStatement materialStatement,
+                          boolean outputExpected,
+                          String procedureName,
+                          Section section,
+                          int fetchSize,
+                          boolean suppressResultSets, // set to true for batched calls
+                          int resultSetType,
+                          ColumnMetaData parameterMetaData,
+                          Object[] inputs) throws SqlException;
+
+
+    void writeSetSpecialRegister(Section section, java.util.ArrayList sqlsttList) throws SqlException;
 }

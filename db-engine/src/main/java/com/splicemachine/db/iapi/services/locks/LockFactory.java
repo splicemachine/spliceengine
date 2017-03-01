@@ -56,7 +56,7 @@ public interface LockFactory extends PropertySetCallback {
 	 * transaction object). Might be <code>null</code>.
 	 * @return an object which represents a compatibility space
 	 */
-	public CompatibilitySpace createCompatibilitySpace(LockOwner owner);
+	CompatibilitySpace createCompatibilitySpace(LockOwner owner);
 
 	/**
 		Lock an object within a compatibility space
@@ -93,9 +93,9 @@ public interface LockFactory extends PropertySetCallback {
 		@exception StandardException Standard Derby error policy.
 
 	*/
-	public boolean lockObject(CompatibilitySpace compatibilitySpace,
-							  Object group, Lockable ref, Object qualifier,
-							  int timeout)
+	boolean lockObject(CompatibilitySpace compatibilitySpace,
+					   Object group, Lockable ref, Object qualifier,
+					   int timeout)
 		throws StandardException;
 
 	/**
@@ -109,8 +109,8 @@ public interface LockFactory extends PropertySetCallback {
 
 		@return number of locks released (one or zero).
 	*/
-	public int unlock(CompatibilitySpace compatibilitySpace, Object group,
-					  Lockable ref, Object qualifier);
+	int unlock(CompatibilitySpace compatibilitySpace, Object group,
+			   Lockable ref, Object qualifier);
 
 	/**
 		Unlock all locks in a group. 
@@ -118,25 +118,25 @@ public interface LockFactory extends PropertySetCallback {
 		@param compatibilitySpace object defining compatibility space
 		@param group handle of group that objects were locked with.
 	*/
-	public void unlockGroup(CompatibilitySpace compatibilitySpace,
-							Object group);
+	void unlockGroup(CompatibilitySpace compatibilitySpace,
+					 Object group);
 
 	/**
 		Unlock all locks on a group that match the passed in value.
 	*/
-	public void unlockGroup(CompatibilitySpace compatibilitySpace,
-							Object group, Matchable key);
+	void unlockGroup(CompatibilitySpace compatibilitySpace,
+					 Object group, Matchable key);
 
 	/**
 		Transfer a set of locks from one group to another.
 	*/
-	public void transfer(CompatibilitySpace compatibilitySpace,
-						 Object oldGroup, Object newGroup);
+	void transfer(CompatibilitySpace compatibilitySpace,
+				  Object oldGroup, Object newGroup);
 
 	/**
 		Returns true if locks held by anyone are blocking anyone else
 	*/
-	public boolean anyoneBlocked();
+	boolean anyoneBlocked();
 
 	/**
 		Return true if locks are held in this compatibility space and
@@ -145,13 +145,13 @@ public interface LockFactory extends PropertySetCallback {
 		@param group handle of group that objects were locked with.
 
 	*/
-	public boolean areLocksHeld(CompatibilitySpace compatibilitySpace,
-								Object group);
+	boolean areLocksHeld(CompatibilitySpace compatibilitySpace,
+						 Object group);
 
 	/**
 		Return true if locks are held in this compatibility space.
 	*/
-	public boolean areLocksHeld(CompatibilitySpace compatibilitySpace);
+	boolean areLocksHeld(CompatibilitySpace compatibilitySpace);
 
 	/**
 		Lock an object with zero duration within a compatibility space,
@@ -188,22 +188,22 @@ public interface LockFactory extends PropertySetCallback {
 		@exception StandardException Standard Derby error policy.
 
 	*/
-	public boolean zeroDurationlockObject(CompatibilitySpace compatibilitySpace,
-										  Lockable ref, Object qualifier,
-										  int timeout)
+	boolean zeroDurationlockObject(CompatibilitySpace compatibilitySpace,
+								   Lockable ref, Object qualifier,
+								   int timeout)
 		throws StandardException;
 
 	/**
 		Check to see if a specific lock is held.
 	*/
-	public boolean isLockHeld(CompatibilitySpace compatibilitySpace,
-							  Object group, Lockable ref, Object qualifier);
+	boolean isLockHeld(CompatibilitySpace compatibilitySpace,
+					   Object group, Lockable ref, Object qualifier);
 
 	/**
 		Get the lock timeout in milliseconds. A negative number means that
         there is no timeout.
 	*/
-	public int getWaitTimeout();
+	int getWaitTimeout();
 
 	/**
 		Install a limit that is called when the size of the group exceeds
@@ -221,18 +221,18 @@ public interface LockFactory extends PropertySetCallback {
 		Only one limit may be in place for a group at any time.
 		@see Limit
 	*/
-	public void setLimit(CompatibilitySpace compatibilitySpace, Object group,
-						 int limit, Limit callback);
+	void setLimit(CompatibilitySpace compatibilitySpace, Object group,
+				  int limit, Limit callback);
 
 	/**
 		Clear a limit set by setLimit.
 	*/
-	public void clearLimit(CompatibilitySpace compatibilitySpace, Object group);
+	void clearLimit(CompatibilitySpace compatibilitySpace, Object group);
 
 	/**
 		Make a virtual lock table for diagnostics.
 	 */
-	public Enumeration makeVirtualLockTable();
+	Enumeration makeVirtualLockTable();
 
 }
 

@@ -44,10 +44,10 @@ extends Formatable
 	  
 	  @return true if the value is null and false otherwise.
 	**/
-	public boolean isNull();
+	boolean isNull();
 
 	/**
 	  Restore this object to its (SQL)null value.
 	**/
-	public void restoreToNull();
+	void restoreToNull();
 }

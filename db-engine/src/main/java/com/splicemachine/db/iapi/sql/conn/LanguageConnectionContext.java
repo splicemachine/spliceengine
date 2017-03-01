@@ -73,32 +73,32 @@ public interface LanguageConnectionContext extends Context {
 	 * this is the ID we expect these contexts
 	 * to be stored into a context manager under.
 	 */
-	public static final String CONTEXT_ID = ContextId.LANG_CONNECTION;
+	String CONTEXT_ID = ContextId.LANG_CONNECTION;
 
-	public	static	final	int	OUTERMOST_STATEMENT = 1;
+	int	OUTERMOST_STATEMENT = 1;
 
     // Constants describing how this connection handles schemas
-    public static final int SQL92_SCHEMAS = 0;
-    public static final int USER_NAME_SCHEMA = 1; // User names are schema names.
-    public static final int NO_SCHEMAS = 2; // Schemas not implemented.
+	int SQL92_SCHEMAS = 0;
+    int USER_NAME_SCHEMA = 1; // User names are schema names.
+    int NO_SCHEMAS = 2; // Schemas not implemented.
 
 	/* String for logStatementText output */
-	public static final String xidStr = "(XID = ";
-	public static final String lccStr = "(SESSIONID = ";
-	public static final String dbnameStr = "(DATABASE = ";
-	public static final String drdaStr = "(DRDAID = ";
+	String xidStr = "(XID = ";
+	String lccStr = "(SESSIONID = ";
+	String dbnameStr = "(DATABASE = ";
+	String drdaStr = "(DRDAID = ";
 
 	// Lock Management
 
-	public	static	final	int	SINGLE_TRANSACTION_LOCK = 1;
-	public	static	final	int	MULTI_TRANSACTION_LOCK = 2;
+	int	SINGLE_TRANSACTION_LOCK = 1;
+	int	MULTI_TRANSACTION_LOCK = 2;
 
 	// controls casing of NON-delimited identifiers. ANSI casing forces all
 	// non-delimited identifiers to be lower case.
 
-	public	static	final	int	UNKNOWN_CASING = -1;
-	public	static	final	int	ANSI_CASING = 0;
-	public	static	final	int	ANTI_ANSI_CASING = 1;
+	int	UNKNOWN_CASING = -1;
+	int	ANSI_CASING = 0;
+	int	ANTI_ANSI_CASING = 1;
 
 	/**
 	 * Initialize. For use after pushing the contexts that initialization needs.
@@ -124,7 +124,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return value of logStatementText
 	 */
-	public boolean getLogStatementText();
+	boolean getLogStatementText();
 
 	/**
 	 * Set value of logStatementText
@@ -133,7 +133,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @param logStatementText	Whether or not logStatementText property is set.
 	 */
-	public void setLogStatementText(boolean logStatementText);
+	void setLogStatementText(boolean logStatementText);
 
 	/**
 	 * Get value of logQueryPlan.
@@ -142,7 +142,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return value of logQueryPlan
 	 */
-	public boolean getLogQueryPlan();
+	boolean getLogQueryPlan();
 
 	/**
 	 * get the lock escalation threshold to use with this connection.
@@ -189,29 +189,29 @@ public interface LanguageConnectionContext extends Context {
 	 * so we can add warning messages to the activation
 	 *
 	 */
-	public Activation getLastActivation();
+	Activation getLastActivation();
 
 	/**
 		Get a connection unique system generated name for a cursor.
 	*/
-	public String getUniqueCursorName();
+	String getUniqueCursorName();
 
 	/**
 		Get a connection unique system generated name for an unnamed savepoint.
 	*/
-	public String getUniqueSavepointName();
+	String getUniqueSavepointName();
 
 	/**
 		Get a connection unique system generated id for an unnamed savepoint.
 	*/
-	public int getUniqueSavepointID();
+	int getUniqueSavepointID();
 
 	/**
 	 * Check if there are any global temporary tables declared for this connection.
 	 * @return true if there are declared temp tables for this connectoin else false
 	 *
 	 */
-	public boolean checkIfAnyDeclaredGlobalTempTablesForThisConnection();
+	boolean checkIfAnyDeclaredGlobalTempTablesForThisConnection();
 
 	/**
 	 * Mark the passed temporary table as modified in the current unit of work. That information will be used at rollback time
@@ -219,14 +219,14 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @param tableName Mark the passed temporary table name as modified
 	 */
-	public void markTempTableAsModifiedInUnitOfWork(String tableName);
+	void markTempTableAsModifiedInUnitOfWork(String tableName);
   
 	/**
 	 * Add the declared global temporary table to the list of temporary tables known by this connection.
 	 * @param td Corresponding to the temporary table
 	 *
 	 */
-	public void addDeclaredGlobalTempTable(TableDescriptor td) throws StandardException;
+	void addDeclaredGlobalTempTable(TableDescriptor td) throws StandardException;
 
 	/**
 	 * Drop (mark the declared global temporary table for dropping) from the list of temporary tables known by this connection.
@@ -235,7 +235,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @see com.splicemachine.db.impl.sql.conn.TempTableInfo
 	 */
-	public boolean dropDeclaredGlobalTempTable(TableDescriptor td);
+	boolean dropDeclaredGlobalTempTable(TableDescriptor td);
 
 	/**
 	 * Get table descriptor for the declared global temporary table from the list of temporary
@@ -244,13 +244,13 @@ public interface LanguageConnectionContext extends Context {
 	 * @return TableDescriptor if found the temporary table. Else return null
 	 *
 	 */
-	public TableDescriptor getTableDescriptorForDeclaredGlobalTempTable(String tableName);
+	TableDescriptor getTableDescriptorForDeclaredGlobalTempTable(String tableName);
 
 	/**
 		Reset the connection before it is returned (indirectly) by
 		a PooledConnection object. See EmbeddedConnection.
 	 */
-	public void resetFromPool()
+	void resetFromPool()
 		 throws StandardException;
 
 	/**
@@ -411,7 +411,7 @@ public interface LanguageConnectionContext extends Context {
 		@return the data dictionary
 
 	 */
-	public DataDictionary getDataDictionary();
+	DataDictionary getDataDictionary();
 
 	/**
 		Get the data value factory to use with this language connection
@@ -442,14 +442,14 @@ public interface LanguageConnectionContext extends Context {
      * @param a activation
      * @return String the authorization id
      */
-    public String getCurrentUserId(Activation a);
+	String getCurrentUserId(Activation a);
 
     /**
      *  Get the Authorization Id of the session user
      *
      * @return String   the authorization id
      */
-    public String getSessionUserId();
+	String getSessionUserId();
 
 
 	/**
@@ -458,7 +458,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return SchemaDescriptor	the default schema
 	 */
-	public SchemaDescriptor getDefaultSchema(); 
+	SchemaDescriptor getDefaultSchema();
 
 	/**
 	 * Get the default schema (used at execution time).  At execution
@@ -471,7 +471,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return SchemaDescriptor	the default schema
 	 */
-	public SchemaDescriptor getDefaultSchema(Activation a);
+	SchemaDescriptor getDefaultSchema(Activation a);
 
 	/**
 	 * Set the default schema (at compile-time, see explanations for
@@ -482,7 +482,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException thrown on failure
 	 */
-	public void setDefaultSchema(SchemaDescriptor sd)
+	void setDefaultSchema(SchemaDescriptor sd)
 		throws StandardException;
 
 	/**
@@ -495,7 +495,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException thrown on failure
 	 */
-	public void setDefaultSchema(Activation a, SchemaDescriptor sd)
+	void setDefaultSchema(Activation a, SchemaDescriptor sd)
 		throws StandardException;
 
 	/**
@@ -508,7 +508,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @throws StandardException
 	 */
-	public void resetSchemaUsages(Activation activation, String schemaName)
+	void resetSchemaUsages(Activation activation, String schemaName)
 		throws StandardException;
 
 	/**
@@ -517,7 +517,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return SchemaDescriptor	the current schema
 	 */
-	public String getCurrentSchemaName();
+	String getCurrentSchemaName();
 
 	/**
 	 * Get the current schema name (at execution time, see explanations for
@@ -525,7 +525,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return SchemaDescriptor	the current schema
 	 */
-	public String getCurrentSchemaName(Activation a);
+	String getCurrentSchemaName(Activation a);
 
 
 	/**
@@ -534,21 +534,21 @@ public interface LanguageConnectionContext extends Context {
 	 * @param schemaName
 	 * @return true
 	 */
-	public boolean isInitialDefaultSchema(String schemaName);
+	boolean isInitialDefaultSchema(String schemaName);
 
 	/**
 	 * Get the identity column value most recently generated.
 	 *
 	 * @return the generated identity column value
 	 */
-	public Long getIdentityValue();
+	Long getIdentityValue();
 
 	/**
 	 * Set the field of most recently generated identity column value.
 	 *
 	 * @param val the generated identity column value
 	 */
-	public void setIdentityValue(long val);
+	void setIdentityValue(long val);
 
 	/**
 	 * Verify that there are no activations with open result sets
@@ -573,7 +573,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException thrown on failure
 	 */
-	public boolean verifyAllHeldResultSetsAreClosed()
+	boolean verifyAllHeldResultSetsAreClosed()
 			throws StandardException;
 
 	/**
@@ -585,7 +585,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException thrown on failure
 	 */
-	public	CompilerContext pushCompilerContext();
+	CompilerContext pushCompilerContext();
 
 	/**
 	 * Push a CompilerContext on the context stack with
@@ -598,7 +598,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException thrown on failure
 	 */
-	public	CompilerContext pushCompilerContext(SchemaDescriptor sd);
+	CompilerContext pushCompilerContext(SchemaDescriptor sd);
 
 	/**
 	 * Pop a CompilerContext off the context stack.
@@ -607,7 +607,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException thrown on failure
 	 */
-	public void popCompilerContext(CompilerContext compilerContext);
+	void popCompilerContext(CompilerContext compilerContext);
 
 	/**
 	 * Push a StatementContext on the context stack.
@@ -641,8 +641,8 @@ public interface LanguageConnectionContext extends Context {
 	 * @param statementContext  The statement context.
 	 * @param error				The error, if any  (Only relevant for DEBUG)
 	 */
-	public void popStatementContext(StatementContext statementContext,
-									Throwable error);
+	void popStatementContext(StatementContext statementContext,
+							 Throwable error);
 
 	/**
 	 * Push a new execution statement validator.  An execution statement 
@@ -659,7 +659,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @param validator the validator to add
 	 */
-	public void pushExecutionStmtValidator(ExecutionStmtValidator validator);
+	void pushExecutionStmtValidator(ExecutionStmtValidator validator);
 
 	/**
 	 * Remove the validator.  Does an object identity (validator == validator)
@@ -669,7 +669,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException on error
 	 */
-	public void popExecutionStmtValidator(ExecutionStmtValidator validator)
+	void popExecutionStmtValidator(ExecutionStmtValidator validator)
 		throws StandardException;
 
 	/**
@@ -682,7 +682,7 @@ public interface LanguageConnectionContext extends Context {
  	 *
 	 * @exception StandardException on validation failure
 	 */
-	public void validateStmtExecution(ConstantAction constantAction)
+	void validateStmtExecution(ConstantAction constantAction)
 		throws StandardException;
 	
 	/**
@@ -694,7 +694,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException on trigger recursion error
 	 */
-	public void pushTriggerExecutionContext(TriggerExecutionContext tec)
+	void pushTriggerExecutionContext(TriggerExecutionContext tec)
 		throws StandardException;
 
 	/**
@@ -705,7 +705,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException on error
 	 */
-	public void popTriggerExecutionContext(TriggerExecutionContext tec)
+	void popTriggerExecutionContext(TriggerExecutionContext tec)
 		throws StandardException;
 
     /**
@@ -719,7 +719,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return the tec
 	 */
-	public TriggerExecutionContext getTriggerExecutionContext();
+	TriggerExecutionContext getTriggerExecutionContext();
 
 	/**
 	 * Set the trigger table descriptor.  Used to compile
@@ -729,14 +729,14 @@ public interface LanguageConnectionContext extends Context {
 	 * defined upon
 	 *
 	 */
-	public void pushTriggerTable(TableDescriptor td);
+	void pushTriggerTable(TableDescriptor td);
 
 	/**
 	 * Remove the trigger table descriptor.
 	 *
 	 * @param td the table to remove from the stack.
 	 */
-	public void popTriggerTable(TableDescriptor td);
+	void popTriggerTable(TableDescriptor td);
 
 	/**
 	 * Get the topmost trigger table descriptor
@@ -745,7 +745,7 @@ public interface LanguageConnectionContext extends Context {
 	 * aren't in the middle of compiling a create
 	 * trigger.
 	 */
-	public TableDescriptor getTriggerTable();
+	TableDescriptor getTriggerTable();
 
 	/**
 	 * Increment the DataDictionary bind count.  This is for keeping track
@@ -775,17 +775,17 @@ public interface LanguageConnectionContext extends Context {
 	  *
 	  *	@return	a statement level >= OUTERMOST_STATEMENT
 	  */
-	public	int		getStatementDepth();
+	int		getStatementDepth();
 
 	/**
 	  Returns the Database of this connection.
      */
-    public Database getDatabase();
+	Database getDatabase();
 
 	/**
 	 * Returns true if isolation level has been set using JDBC/SQL.
 	 */
-	public boolean isIsolationLevelSetUsingSQLorJDBC();
+	boolean isIsolationLevelSetUsingSQLorJDBC();
 	/**
 	 * Reset the isolation level flag used to keep correct isolation level
 	 * state in BrokeredConnection. This resetting will happen at the start 
@@ -794,29 +794,29 @@ public interface LanguageConnectionContext extends Context {
 	 * isolation state.
 	 * The flag gets set to true when isolation level is set using JDBC/SQL.
 	 */
-	public void resetIsolationLevelFlagUsedForSQLandJDBC();
+	void resetIsolationLevelFlagUsedForSQLandJDBC();
 
 	/**
 	 * Set current isolation level.
 	 *
 	 * @param isolationLevel	The new isolationLevel.
 	 */
-	public void setIsolationLevel(int isolationLevel) throws StandardException;
+	void setIsolationLevel(int isolationLevel) throws StandardException;
 
 	/**
 	 * Get the current isolation level.
 	 *
 	 * @return The current isolation level.
 	 */
-	public int getCurrentIsolationLevel();
+	int getCurrentIsolationLevel();
 
 	/**
 	 * Get the current isolation level in DB2 format.
 	 *
 	 * @return The current isolation level as a 2 character string.
 	 */
-	public String getCurrentIsolationLevelStr();
-	public void setPrepareIsolationLevel(int isolationLevel) ;
+	String getCurrentIsolationLevelStr();
+	void setPrepareIsolationLevel(int isolationLevel) ;
 
 	/**
 	 * Get the prepare isolation level.
@@ -826,7 +826,7 @@ public interface LanguageConnectionContext extends Context {
 	 * SET ISOLATION always takes priority.
 	 * 
 	 */
-	public int getPrepareIsolationLevel();
+	int getPrepareIsolationLevel();
 
 	/**
 	 * Set the readOnly status for the current connection. This can
@@ -839,17 +839,17 @@ public interface LanguageConnectionContext extends Context {
 	 * @exception StandardException The call failed and the readOnly
 	 *                status has not changed.
 	 */
-	public void setReadOnly(boolean onOrOff) throws StandardException;
+	void setReadOnly(boolean onOrOff) throws StandardException;
 
 	/**
 	  * Get the readOnly status for the current connection. 
 	  */
-	public boolean isReadOnly();
+	boolean isReadOnly();
 
 	/**
 	 * Get an Authorizer for this connection.
 	 */
-	public Authorizer getAuthorizer(); 
+	Authorizer getAuthorizer();
 
 	/**
 	 *	Get the current StatementContext.
@@ -869,8 +869,8 @@ public interface LanguageConnectionContext extends Context {
 	 *                      sql syntax. One instance where this will be true is if a
 	 *                      metadata query is getting executed.
 	 */
-         public PreparedStatement prepareInternalStatement(SchemaDescriptor compilationSchema, 
-         		String sqlText, boolean isForReadOnly, boolean allowInternalSyntax) 
+	PreparedStatement prepareInternalStatement(SchemaDescriptor compilationSchema,
+											   String sqlText, boolean isForReadOnly, boolean allowInternalSyntax)
 	    throws StandardException;
 
         /**
@@ -886,7 +886,7 @@ public interface LanguageConnectionContext extends Context {
 	 * 
 	 * @param sqlText sql query string
 	 */
-        public PreparedStatement prepareInternalStatement(String sqlText) 
+		PreparedStatement prepareInternalStatement(String sqlText)
 	    throws StandardException;
 
 	/**
@@ -896,14 +896,14 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return Whether or not the call was successful.  (false will be returned when optimizer tracing is not supported.)
 	 */
-	public boolean setOptimizerTrace(boolean onOrOff);
+	boolean setOptimizerTrace(boolean onOrOff);
 
 	/** 
 	 * Get whether or not optimizer trace is on.
 	 *
 	 * @return Whether or not optimizer trace is on.
 	 */
-	public boolean getOptimizerTrace();
+	boolean getOptimizerTrace();
 
 	/**
 	 * Control whether or not optimizer trace is generated in html.
@@ -912,14 +912,14 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @return Whether or not the call was successful.  (false will be returned when optimizer tracing is not supported.)
 	 */
-	public boolean setOptimizerTraceHtml(boolean onOrOff);
+	boolean setOptimizerTraceHtml(boolean onOrOff);
 
 	/** 
 	 * Get whether or not optimizer trace html is on.
 	 *
 	 * @return Whether or not optimizer trace html is on.
 	 */
-	public boolean getOptimizerTraceHtml();
+	boolean getOptimizerTraceHtml();
 
 	/**
 	 * Get the optimizer trace output for the last optimized query as a String.  If optimizer trace
@@ -929,18 +929,18 @@ public interface LanguageConnectionContext extends Context {
 	 *    Null will be returned if optimizer trace output is off or not supported 
 	 *    or no trace output was found or an exception occurred.
 	 */
-	public String getOptimizerTraceOutput();
+	String getOptimizerTraceOutput();
 
 	/**
 	 * Set the optimizer trace output to the specified String.
 	 * (Done at the beginning of each statement.)
 	 */
-	public void setOptimizerTraceOutput(String startingText);
+	void setOptimizerTraceOutput(String startingText);
 
 	/**
 	 * Append the latest output to the optimizer trace output.
 	 */
-	public void appendOptimizerTraceOutput(String output);
+	void appendOptimizerTraceOutput(String output);
 
     /**
 	  *	Reports whether there is any outstanding work in the transaction.
@@ -948,7 +948,7 @@ public interface LanguageConnectionContext extends Context {
 	  *	@return		true if there is outstanding work in the transaction
 	  *				false otherwise
 	  */
-	public	boolean	isTransactionPristine();
+	boolean	isTransactionPristine();
 
 
 	/**
@@ -960,9 +960,9 @@ public interface LanguageConnectionContext extends Context {
 	 * @param tableName
 	 * @param columnName
 	 */
-	public Long lastAutoincrementValue(String schemaName,
-									   String tableName,
-									   String columnName);
+	Long lastAutoincrementValue(String schemaName,
+								String tableName,
+								String columnName);
 
 	/**
 	 * Sets autoincrementUpdate-- this variable allows updates to autoincrement
@@ -975,20 +975,20 @@ public interface LanguageConnectionContext extends Context {
 	 * @see com.splicemachine.db.impl.sql.execute.AlterTableConstantAction#updateNewAutoincrementColumn
 	 *
 	 */
-	public void setAutoincrementUpdate(boolean flag);
+	void setAutoincrementUpdate(boolean flag);
 
 	/**
 	 * Returns the current value of autoincrementUpdate.
 	 *
 	 * @return true if updates to autoincrement columns is permitted.
 	 */
-	public boolean getAutoincrementUpdate();
+	boolean getAutoincrementUpdate();
 
 	/**
 	 * Copy a map of autoincrement key value pairs into the cache of
 	 * ai values stored in the language connection context.
 	 */
-	public void copyHashtableToAIHT(Map<String, Long> from);
+	void copyHashtableToAIHT(Map<String, Long> from);
 	
 	/**
 	 * returns the <b>next</b> value to be inserted into an autoincrement col.
@@ -1003,8 +1003,8 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException on error.
 	 */
-	public long nextAutoincrementValue(String schemaName, String tableName,
-									   String columnName)
+	long nextAutoincrementValue(String schemaName, String tableName,
+								String columnName)
 		throws StandardException;
 
 	/**
@@ -1022,7 +1022,7 @@ public interface LanguageConnectionContext extends Context {
 	 * @see com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext#lastAutoincrementValue
 	 * @see com.splicemachine.db.iapi.db.ConnectionInfo#lastAutoincrementValue
 	 */
-	public void autoincrementFlushCache(UUID tableUUID)
+	void autoincrementFlushCache(UUID tableUUID)
 		throws StandardException;
 
 	/**
@@ -1040,49 +1040,49 @@ public interface LanguageConnectionContext extends Context {
 	 * @param		increment			increment for the counter.
 	 * @param		position			column position (1-based).
 	 */
-	public void autoincrementCreateCounter(String s, String t, String c,
-										   Long initialValue, long increment,
-										   int position);
+	void autoincrementCreateCounter(String s, String t, String c,
+									Long initialValue, long increment,
+									int position);
 	
 	/**
 	 * Get the instance number of this LCC.
 	 *
 	 * @return instance number of this LCC.
 	 */
-	public int getInstanceNumber();
+	int getInstanceNumber();
 
 	/**
 	 * Get the DRDA ID of this LCC.
 	 *
 	 * @return DRDA ID this LCC.
 	 */
-	public String getDrdaID();
+	String getDrdaID();
 
 	/**
 	 * Set the DRDA ID of this LCC.
 	 *
 	 * @param drdaID DRDA ID.
 	 */
-	public void setDrdaID(String drdaID);
+	void setDrdaID(String drdaID);
 
 	/**
 	 * Get the database name of this LCC.
 	 *
 	 * @return database name of this LCC.
 	 */
-	public String getDbname();
+	String getDbname();
 
 	/**
 	 * Check if in SQL standard mode, with support for Grant & Revoke
 	 *
 	 * @return True if SQL standard permissions are being used
 	 */
-	public boolean usesSqlAuthorization();
+	boolean usesSqlAuthorization();
 
 	/**
 	 * Close any unused activations in this connection context.
 	 */
-	public void closeUnusedActivations() throws StandardException;
+	void closeUnusedActivations() throws StandardException;
 
 	/**
 	 * Set the current role
@@ -1090,7 +1090,7 @@ public interface LanguageConnectionContext extends Context {
 	 * @param a activation of set role statement
 	 * @param role  the id of the role to be set to current
 	 */
-    public void setCurrentRole(Activation a, String role);
+	void setCurrentRole(Activation a, String role);
 
 	/**
 	 * Get the current role authorization identifier of the dynamic
@@ -1099,7 +1099,7 @@ public interface LanguageConnectionContext extends Context {
 	 * @param a activation of statement needing current role
 	 * @return String	the role id
 	 */
-	public String getCurrentRoleId(Activation a);
+	String getCurrentRoleId(Activation a);
 
 	/**
 	 * Get the current role authorization identifier in external delimited form
@@ -1111,7 +1111,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @throws StandardException  standard exception policy
 	 */
-	public String getCurrentRoleIdDelimited(Activation a)
+	String getCurrentRoleIdDelimited(Activation a)
 			throws StandardException;
 
 	/**
@@ -1126,7 +1126,7 @@ public interface LanguageConnectionContext extends Context {
 	 * @return true if the role can be set
 	 * @throws StandardException standard exception policy
 	 */
-    public boolean roleIsSettable(Activation a, String role)
+	boolean roleIsSettable(Activation a, String role)
             throws StandardException;
 
 	/**
@@ -1149,15 +1149,15 @@ public interface LanguageConnectionContext extends Context {
      * @param definersRights if the method should run with definer's rights
      * @param definer authorization id of the definer
 	 */
-    public void setupNestedSessionContext(Activation a,
-                                          boolean definersRights,
-                                          String definer)
+	void setupNestedSessionContext(Activation a,
+								   boolean definersRights,
+								   String definer)
             throws StandardException;
 
 	/**
 	 * Get the value of top level session context of the top level connection.
 	 */
-	public SQLSessionContext getTopLevelSQLSessionContext();
+	SQLSessionContext getTopLevelSQLSessionContext();
 
 	/**
 	 * Used when a statement as part of its operation executes an other
@@ -1180,24 +1180,24 @@ public interface LanguageConnectionContext extends Context {
 	 * </ul>
 	 * @see #setupNestedSessionContext
 	 */
-    public void setupSubStatementSessionContext(Activation a)
+	void setupSubStatementSessionContext(Activation a)
             throws StandardException;
 
 	/**
 	 * Create a fresh SQLSessionContext for this connection.
 	 * @return new SQLSessionContext
 	 */
-	public SQLSessionContext createSQLSessionContext();
+	SQLSessionContext createSQLSessionContext();
 
 	/**
      * Debug method for remembering the last query tree.
 	 */
-    public  void    setLastQueryTree( Object queryTree );
+	void    setLastQueryTree(Object queryTree);
 
 	/**
      * Debug method for retrieving the last query tree.
 	 */
-    public  Object    getLastQueryTree();
+	Object    getLastQueryTree();
 
 	/**
 	 * Return a map of AST nodes that have already been printed during a
@@ -1205,7 +1205,7 @@ public interface LanguageConnectionContext extends Context {
 	 * @see com.splicemachine.db.impl.sql.compile.QueryTreeNode#treePrint(int)
 	 * @return the map
 	 */
-    public Map getPrintedObjectsMap();
+	Map getPrintedObjectsMap();
 	
     /**
      * Set a Visitor which walks the AST at various stages. This is useful
@@ -1213,14 +1213,14 @@ public interface LanguageConnectionContext extends Context {
      *
      * @param visitor The Visitor which should walk the tree. Could be null.
      */
-    public void setASTVisitor( ASTVisitor visitor );
+	void setASTVisitor(ASTVisitor visitor);
 
     /**
      * Get the Visitor which should walk the AST.
      *
      * @return The Visitor for that phase. Could be null.
      */
-    public ASTVisitor getASTVisitor( );
+	ASTVisitor getASTVisitor();
 
     /**
      * Set the exception created and associated with the detected interruped
@@ -1228,7 +1228,7 @@ public interface LanguageConnectionContext extends Context {
      *
      * @param e the created exception
      */
-    public void setInterruptedException(StandardException e);
+	void setInterruptedException(StandardException e);
 
     /**
      * Get exception created when we detected interruped status
@@ -1236,14 +1236,14 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return saved exception
      */
-    public StandardException getInterruptedException();
+	StandardException getInterruptedException();
 
     /**
      * Get the referenced column map for a table
      *
      * @return the map
      */
-    public FormatableBitSet getReferencedColumnMap(TableDescriptor td);
+	FormatableBitSet getReferencedColumnMap(TableDescriptor td);
 
     /**
      * Set the referenced column map for a table
@@ -1251,14 +1251,14 @@ public interface LanguageConnectionContext extends Context {
      * @param td the table descriptor
      * @param map the map
      */
-    public void setReferencedColumnMap(TableDescriptor td,
-                                       FormatableBitSet map);
+	void setReferencedColumnMap(TableDescriptor td,
+								FormatableBitSet map);
 
     /**
      * Enter restore mode. In this mode no statements can be executed. It is reset when the
      * database is rebooted.
      */
-    public void enterRestoreMode();
+	void enterRestoreMode();
 
     /**
      * Set a trigger execution context (TEC) stack on this LCC.<br/>

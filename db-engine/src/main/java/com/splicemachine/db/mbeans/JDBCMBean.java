@@ -45,28 +45,28 @@ public interface JDBCMBean {
     /**
      * Get the JDBC driver's implementation level
      */
-    public String getDriverLevel();
+    String getDriverLevel();
 
     /**
      * Return the JDBC driver's major version.
      * @return major version
      * @see java.sql.Driver#getMajorVersion()
      */
-    public int getMajorVersion();
+    int getMajorVersion();
     
     /**
      * Return the JDBC driver's minor version.
      * @return minor version
      * @see java.sql.Driver#getMinorVersion()
      */
-    public int getMinorVersion();
+    int getMinorVersion();
     
     /**
      * Is the JDBC driver compliant.
      * @return compliance state
      * @see java.sql.Driver#jdbcCompliant()
      */
-    public boolean isCompliantDriver();
+    boolean isCompliantDriver();
     
     /**
      * Does the driver accept the passed in JDBC URL
@@ -74,6 +74,6 @@ public interface JDBCMBean {
      * @return True if it supports it, false otherwise.
      * @see java.sql.Driver#acceptsURL(String)
      */
-    public boolean acceptsURL(String url);
+    boolean acceptsURL(String url);
 
 }

@@ -34,5 +34,5 @@ package com.splicemachine.dbTesting.functionTests.util;
 public interface NoMethodInterface {
 
 	// this field is implicitly public
-	static int INTERFACE_FIELD = 6;
+	int INTERFACE_FIELD = 6;
 }

@@ -44,7 +44,7 @@ public interface GeneratedClass {
 	/**
 		Return the name of the generated class.
 	*/
-	public String getName();
+	String getName();
 
 	/**
 		Return a new object that is an instance of the represented
@@ -55,7 +55,7 @@ public interface GeneratedClass {
 		@exception 	StandardException	Standard Derby error policy
 
 	*/
-	public Object newInstance(Context context)
+	Object newInstance(Context context)
 		throws StandardException;
 
 	/**
@@ -64,12 +64,12 @@ public interface GeneratedClass {
 
 		@exception 	StandardException	Standard Derby error policy
 	*/
-	public GeneratedMethod getMethod(String simpleName)
+	GeneratedMethod getMethod(String simpleName)
 		throws StandardException;
 
 	/**
 		Return the class reload version that this class was built at.
 	*/
-	public int getClassLoaderVersion();
+	int getClassLoaderVersion();
 }
 

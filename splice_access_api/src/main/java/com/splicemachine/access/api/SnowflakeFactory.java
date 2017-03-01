@@ -21,6 +21,6 @@ import com.splicemachine.uuid.Snowflake;
  */
 public interface SnowflakeFactory {
 
-    public Snowflake getSnowFlake() throws Exception;
+    Snowflake getSnowFlake() throws Exception;
 
 }

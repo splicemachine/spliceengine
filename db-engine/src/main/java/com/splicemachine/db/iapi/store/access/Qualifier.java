@@ -196,10 +196,10 @@ public interface Qualifier
 	 * <b>NOTE</b>: the following is guaranteed: <i> 
 	 *		VARIANT < SCAN_INVARIANT < QUERY_INVARIANT < CONSTANT
 	 */
-	public static final int VARIANT = 0;
-	public static final int SCAN_INVARIANT = 1;
-	public static final int QUERY_INVARIANT = 2;
-	public static final int CONSTANT = 3;
+	int VARIANT = 0;
+	int SCAN_INVARIANT = 1;
+	int QUERY_INVARIANT = 2;
+	int CONSTANT = 3;
 
 	/** 
      * Get the (zero based) id of the column to be qualified.

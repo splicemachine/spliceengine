@@ -18,8 +18,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 public interface DVDSerializer {
 
-		public void deserialize(DataValueDescriptor ldvd,byte[] bytes, int offset, int length,boolean desc) throws Exception;
+		void deserialize(DataValueDescriptor ldvd, byte[] bytes, int offset, int length, boolean desc) throws Exception;
 
-    public byte[] serialize(DataValueDescriptor obj) throws Exception;
-		public byte[] serialize(DataValueDescriptor obj,boolean desc) throws Exception;
+    byte[] serialize(DataValueDescriptor obj) throws Exception;
+		byte[] serialize(DataValueDescriptor obj, boolean desc) throws Exception;
 }

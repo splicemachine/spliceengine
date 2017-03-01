@@ -42,5 +42,5 @@ public interface Matchable {
 		Return true if the passed in object matches
 		this object.
 	*/
-	public boolean match(Object other);
+	boolean match(Object other);
 }

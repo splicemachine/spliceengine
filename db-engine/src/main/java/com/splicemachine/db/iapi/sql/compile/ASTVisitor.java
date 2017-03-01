@@ -64,14 +64,14 @@ public interface ASTVisitor extends Visitor {
      * LanguageConnectionContext. For example, an
      * implementation of this method might open a trace file.
      */
-    public void initializeVisitor() throws StandardException;
+    void initializeVisitor() throws StandardException;
 
     /**
      * Final call to the Visitor. User-written code calls this method when it is
      * done inspecting query trees. For instance, an implementation of this method
      * might release resources, closing files it has opened.
      */
-    public void teardownVisitor() throws StandardException;
+    void teardownVisitor() throws StandardException;
 
     /**
      * The compiler calls this method just before walking a query tree.
@@ -79,13 +79,13 @@ public interface ASTVisitor extends Visitor {
      * @param statementText Text used to create the tree.
      * @param phase of compilation (AFTER_PARSE, AFTER_BIND, or AFTER_OPTIMIZE).
      */
-    public void begin( String statementText, CompilationPhase phase) throws StandardException;
+    void begin(String statementText, CompilationPhase phase) throws StandardException;
     
     /**
      * The compiler calls this method when it's done walking a tree.
      *
      * @param phase of compilation (AFTER_PARSE, AFTER_BIND, or AFTER_OPTIMIZE).
      */
-    public void end(CompilationPhase phase) throws StandardException;
+    void end(CompilationPhase phase) throws StandardException;
     
 }	

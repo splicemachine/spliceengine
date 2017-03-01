@@ -29,7 +29,7 @@ public interface KeyPostfix extends Closeable {
 		 *
 		 * @return the length of the postfix, in bytes
 		 */
-		public int getPostfixLength(byte[] hashBytes) throws StandardException;
+		int getPostfixLength(byte[] hashBytes) throws StandardException;
 
 		/**
 		 * Encode the postfix into the specified byte[], starting at {@code postfixPosition}.
@@ -38,5 +38,5 @@ public interface KeyPostfix extends Closeable {
 		 *                 to the specified lengths)
 		 * @param postfixPosition the position to begin the encoding.
 		 */
-		public void encodeInto(byte[] keyBytes, int postfixPosition,byte[] hashBytes);
+		void encodeInto(byte[] keyBytes, int postfixPosition, byte[] hashBytes);
 }

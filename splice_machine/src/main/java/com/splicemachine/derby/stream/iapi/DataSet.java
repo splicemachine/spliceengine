@@ -31,7 +31,7 @@ import java.util.concurrent.Future;
  */
 public interface DataSet<V> extends Iterable<V>, Serializable {
 
-    public enum JoinType {
+    enum JoinType {
         INNER("inner"),
         OUTER("outer"),
         FULL("full"),
@@ -266,8 +266,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param context
      * @return
      */
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
-                                                    OperationContext context) ;
+    DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+                                         OperationContext context) ;
 
     /**
      *
@@ -279,8 +279,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param context
      * @return
      */
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
-                                            OperationContext context) ;
+    DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+                                     OperationContext context) ;
 
     /**
      *
@@ -294,8 +294,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param context
      * @return
      */
-    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                             OperationContext context);
+    DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+                                      OperationContext context);
 
     /**
      *
@@ -304,7 +304,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param template
      * @param conglomId
      */
-    public void pin(ExecRow template, long conglomId) throws StandardException;
+    void pin(ExecRow template, long conglomId) throws StandardException;
 
 
 }

@@ -102,54 +102,54 @@ public interface RawStoreFactory {
      */
 
     /** Derby Store Minor Version (1) **/
-    public static final int DERBY_STORE_MINOR_VERSION_1    = 1;
+    int DERBY_STORE_MINOR_VERSION_1    = 1;
 
     /** Derby Store Minor Version (2) **/
-    public static final int DERBY_STORE_MINOR_VERSION_2    = 2;
+    int DERBY_STORE_MINOR_VERSION_2    = 2;
 
     /** Derby Store Minor Version (3) **/
-    public static final int DERBY_STORE_MINOR_VERSION_3    = 3;
+    int DERBY_STORE_MINOR_VERSION_3    = 3;
         
     /** Derby Store Minor Version (4) **/
-    public static final int DERBY_STORE_MINOR_VERSION_4    = 4;
+    int DERBY_STORE_MINOR_VERSION_4    = 4;
 
     /** Derby 10 Store Major version */
-    public static final int DERBY_STORE_MAJOR_VERSION_10   = 10;
+    int DERBY_STORE_MAJOR_VERSION_10   = 10;
 
     /**
         Default value for PAGE_SIZE_PARAMETER (4096).
     */
-    public static final int PAGE_SIZE_DEFAULT = 4096;
+    int PAGE_SIZE_DEFAULT = 4096;
 
     /**
         Minimum page size we will accept (1024).
     */
-    public static final int PAGE_SIZE_MINIMUM = 1024;
+    int PAGE_SIZE_MINIMUM = 1024;
 
 
-    public static final String PAGE_SIZE_STRING = "2048";
+    String PAGE_SIZE_STRING = "2048";
 
 
     /** Property name for the page cache size to be used in the storage area.
     Equal to 'db.storage.pageCacheSize'
     */
-    public static final String PAGE_CACHE_SIZE_PARAMETER = 
+    String PAGE_CACHE_SIZE_PARAMETER =
         "derby.storage.pageCacheSize";
 
     /**
         Default value for PAGE_CACHE_SIZE_PARAMETER (1000).
     */
-    public static final int PAGE_CACHE_SIZE_DEFAULT = 1000;
+    int PAGE_CACHE_SIZE_DEFAULT = 1000;
 
     /**
         Minimum page cache size we will accept (40).
     */
-    public static final int PAGE_CACHE_SIZE_MINIMUM = 40;
+    int PAGE_CACHE_SIZE_MINIMUM = 40;
 
     /**
         Maximum page cache size we will accept (MAXINT).
     */
-    public static final int PAGE_CACHE_SIZE_MAXIMUM = Integer.MAX_VALUE;
+    int PAGE_CACHE_SIZE_MAXIMUM = Integer.MAX_VALUE;
 
 
     /** Property name for the number of open files to maintain associated with
@@ -183,35 +183,35 @@ public interface RawStoreFactory {
 
         Equal to 'db.storage.fileCacheSize'
     */
-    public static final String CONTAINER_CACHE_SIZE_PARAMETER = 
+    String CONTAINER_CACHE_SIZE_PARAMETER =
         "derby.storage.fileCacheSize";
 
     /**
         Default value for CONTAINER_CACHE_SIZE_PARAMETER (100).
     */
-    public static final int CONTAINER_CACHE_SIZE_DEFAULT = 100;
+    int CONTAINER_CACHE_SIZE_DEFAULT = 100;
 
     /**
         Minimum container cache size accepted (2).
     */
-    public static final int CONTAINER_CACHE_SIZE_MINIMUM = 2;
+    int CONTAINER_CACHE_SIZE_MINIMUM = 2;
 
     /**
         Maximum container cache size we will accept (MAXINT).
     */
-    public static final int CONTAINER_CACHE_SIZE_MAXIMUM = Integer.MAX_VALUE;
+    int CONTAINER_CACHE_SIZE_MAXIMUM = Integer.MAX_VALUE;
 
     /**
         Maximum number of initial pages when a container is created
     */
-    public static final short MAX_CONTAINER_INITIAL_PAGES = 1000;
+    short MAX_CONTAINER_INITIAL_PAGES = 1000;
 
 
     /** Property name for the default minimum record size to be used in the 
         storage area. Minimum record size is the minimum number of bytes that a 
         record will reserve on disk.
     */
-    public static final String MINIMUM_RECORD_SIZE_PARAMETER = 
+    String MINIMUM_RECORD_SIZE_PARAMETER =
         "derby.storage.minimumRecordSize";
     /**
         Default value for MINIMUM_RECORD_SIZE_PARAMETER for heap tables that 
@@ -226,25 +226,25 @@ public interface RawStoreFactory {
         "non-user" portion which includes the offset table and the record
         header.
     */
-    public static final int MINIMUM_RECORD_SIZE_DEFAULT = 12;
+    int MINIMUM_RECORD_SIZE_DEFAULT = 12;
 
 
     /**
         Minimum value for MINIMUM_RECORD_SIZE_PARAMETER (1).
     */
-    public static final int MINIMUM_RECORD_SIZE_MINIMUM = 1;
+    int MINIMUM_RECORD_SIZE_MINIMUM = 1;
 
     /** Property name for percentage of space to leave free on page for updates.
     */
-    public static final String PAGE_RESERVED_SPACE_PARAMETER = 
+    String PAGE_RESERVED_SPACE_PARAMETER =
         "derby.storage.pageReservedSpace";
 
-    public static final String PAGE_RESERVED_ZERO_SPACE_STRING = "0";
+    String PAGE_RESERVED_ZERO_SPACE_STRING = "0";
 
     /** Property name for the number of pages we try to pre-allocate in one
     /** synchronous I/O
     */
-    public static final String PRE_ALLOCATE_PAGE = 
+    String PRE_ALLOCATE_PAGE =
         "derby.storage.pagePerAllocate";
 
 
@@ -256,30 +256,30 @@ public interface RawStoreFactory {
         it for special conglomerates which does not count on permanant unique
         recordIds for all records.
     */
-    public static final String PAGE_REUSABLE_RECORD_ID = 
+    String PAGE_REUSABLE_RECORD_ID =
         "derby.storage.reusableRecordId";
 
     /**
         Property name for buffer size to be used in the stream file container.
         Equal to 'db.storage.streamFileBufferSize'
     */
-    public static final String STREAM_FILE_BUFFER_SIZE_PARAMETER = 
+    String STREAM_FILE_BUFFER_SIZE_PARAMETER =
         "derby.storage.streamFileBufferSize";
 
     /**
         Default value for STREAM_FILE_BUFFER_SIZE_PARAMETER (16384).
     */
-    public static final int STREAM_FILE_BUFFER_SIZE_DEFAULT = 16384;
+    int STREAM_FILE_BUFFER_SIZE_DEFAULT = 16384;
 
     /**
         Minimum stream file buffer size we will accept (1024).
     */
-    public static final int STREAM_FILE_BUFFER_SIZE_MINIMUM = 1024;
+    int STREAM_FILE_BUFFER_SIZE_MINIMUM = 1024;
 
     /**
         Maximum stream file buffer size we will accept (MAXINT).
     */
-    public static final int STREAM_FILE_BUFFER_SIZE_MAXIMUM = 
+    int STREAM_FILE_BUFFER_SIZE_MAXIMUM =
         Integer.MAX_VALUE;
 
     /**
@@ -299,13 +299,13 @@ public interface RawStoreFactory {
         TABLE or CREATE INDEX statement.  The global setting of this property
         has no effect. 
     */
-    public static final String CONTAINER_INITIAL_PAGES = 
+    String CONTAINER_INITIAL_PAGES =
         "derby.storage.initialPages";
 
     /**
         encryption alignment requirement.
      */
-    public static final int ENCRYPTION_ALIGNMENT = 8;
+    int ENCRYPTION_ALIGNMENT = 8;
 
     /**
         default encryption block size
@@ -313,14 +313,14 @@ public interface RawStoreFactory {
         encryption block size used is 8. Do not change this value unless you 
         account for downgrade issues
      */
-    public static final int DEFAULT_ENCRYPTION_BLOCKSIZE = 8;
+    int DEFAULT_ENCRYPTION_BLOCKSIZE = 8;
 
     /**
         encryption block size used during creation of encrypted database
         This property is not set by the user; it is set by the engine when
         RawStore boots up during creation of an encrypted database
     */
-    public static final String ENCRYPTION_BLOCKSIZE = "derby.encryptionBlockSize";
+    String ENCRYPTION_BLOCKSIZE = "derby.encryptionBlockSize";
 
     /**
 
@@ -329,14 +329,14 @@ public interface RawStoreFactory {
         This property has been introduced in version 10
         Value starts at 1
      */
-    public static final String DATA_ENCRYPT_ALGORITHM_VERSION="data_encrypt_algorithm_version";
+    String DATA_ENCRYPT_ALGORITHM_VERSION="data_encrypt_algorithm_version";
 
     /**
                 Store the encryption scheme used for logging
         This will allow for any future changes in encryption schemes of logs
         This variable has been introduced in version 10 and value starts at 1.
      */
-    public static final String LOG_ENCRYPT_ALGORITHM_VERSION="log_encrypt_algorithm_version";
+    String LOG_ENCRYPT_ALGORITHM_VERSION="log_encrypt_algorithm_version";
 
     /**
         If dataEncryption is true, store the encrypted key in
@@ -344,7 +344,7 @@ public interface RawStoreFactory {
         key, but the property key is called the encryptedBootPassword.
 
      */
-    public static final String ENCRYPTED_KEY = 
+    String ENCRYPTED_KEY =
         "encryptedBootPassword";
 
 
@@ -355,7 +355,7 @@ public interface RawStoreFactory {
      * encryptedkey, but the property key is called the 
      * OldEncryptedBootPassword.
      */
-    public static final String OLD_ENCRYPTED_KEY = 
+    String OLD_ENCRYPTED_KEY =
         "OldEncryptedBootPassword";
 
 
@@ -365,24 +365,24 @@ public interface RawStoreFactory {
      * (re) encryption started, id (re) encryption of the database 
      * is aborted.
      */
-    public static final String DB_ENCRYPTION_STATUS =
+    String DB_ENCRYPTION_STATUS =
         "derby.storage.databaseEncryptionStatus";
 
     /* (re)encryption is in progress, if a crash 
      *  occurs after this flag is set, 
      * (re)encryption needs to  be undone.
      */
-    public static final int DB_ENCRYPTION_IN_PROGRESS   = 1;
+    int DB_ENCRYPTION_IN_PROGRESS   = 1;
 
     /* this flag is used to track crash during undo
        of (re) encryption during recovery .
     */
-    public static final int DB_ENCRYPTION_IN_UNDO      =  2;
+    int DB_ENCRYPTION_IN_UNDO      =  2;
 
     /*
      * Cleanup any (re) encryption related resources. 
      */
-    public static final int  DB_ENCRYPTION_IN_CLEANUP  =  3;
+    int  DB_ENCRYPTION_IN_CLEANUP  =  3;
 
     
     /**
@@ -397,7 +397,7 @@ public interface RawStoreFactory {
     /**
      *  for debugging, keep all transaction logs intact.
      */
-    public static final String KEEP_TRANSACTION_LOG = 
+    String KEEP_TRANSACTION_LOG =
         "derby.storage.keepTransactionLog";
 
     /**
@@ -411,23 +411,23 @@ public interface RawStoreFactory {
       * recovery process. If we discover this problem is actaully happening
       * at the recovery then this patch should be backed out.
       **/
-    public static final String PATCH_INITPAGE_RECOVER_ERROR = 
+    String PATCH_INITPAGE_RECOVER_ERROR =
         "derby.storage.patchInitPageRecoverError";
 
 
     /** module name */
-    public static final String MODULE = 
+    String MODULE =
         "com.splicemachine.db.iapi.store.raw.RawStoreFactory";
 
     /**
         Is the store read-only.
     */
-    public boolean isReadOnly();
+    boolean isReadOnly();
 
     /**
         Get the LockFactory to use with this store.
     */
-    public LockFactory getLockFactory();
+    LockFactory getLockFactory();
 
 
     /**
@@ -479,9 +479,9 @@ public interface RawStoreFactory {
         @see StandardException
     */
 
-    public Transaction startTransaction(
-    ContextManager contextMgr,
-    String transName)
+    Transaction startTransaction(
+            ContextManager contextMgr,
+            String transName)
         throws StandardException;
 
     /**
@@ -539,11 +539,11 @@ public interface RawStoreFactory {
         @see com.splicemachine.db.iapi.services.context.Context
         @see StandardException
     */
-    public Transaction startGlobalTransaction(
-    ContextManager contextMgr,
-    int            format_id,
-    byte[]         global_id,
-    byte[]         local_id)
+    Transaction startGlobalTransaction(
+            ContextManager contextMgr,
+            int format_id,
+            byte[] global_id,
+            byte[] local_id)
         throws StandardException;
 
 
@@ -562,9 +562,9 @@ public interface RawStoreFactory {
 
         @see #startTransaction
     */
-    public Transaction findUserTransaction(
-        ContextManager contextMgr,
-        String transName) throws StandardException;
+    Transaction findUserTransaction(
+            ContextManager contextMgr,
+            String transName) throws StandardException;
 
 
     /**
@@ -617,7 +617,7 @@ public interface RawStoreFactory {
         @see com.splicemachine.db.iapi.services.context.Context
         @see StandardException
     */
-    public Transaction startInternalTransaction(ContextManager contextMgr) throws StandardException;
+    Transaction startInternalTransaction(ContextManager contextMgr) throws StandardException;
 
     /**
         Create a nested user transaction, almost all work within the raw store 
@@ -673,10 +673,10 @@ public interface RawStoreFactory {
         @see StandardException
     */
 
-    public Transaction startNestedReadOnlyUserTransaction(
-    CompatibilitySpace compatibilitySpace,
-    ContextManager contextMgr,
-    String         transName)
+    Transaction startNestedReadOnlyUserTransaction(
+            CompatibilitySpace compatibilitySpace,
+            ContextManager contextMgr,
+            String transName)
         throws StandardException;
 
     /**
@@ -736,17 +736,17 @@ public interface RawStoreFactory {
         @see StandardException
     */
 
-    public Transaction startNestedUpdateUserTransaction(
-    ContextManager contextMgr,
-    String         transName,
-    boolean        flush_log_on_xact_end)
+    Transaction startNestedUpdateUserTransaction(
+            ContextManager contextMgr,
+            String transName,
+            boolean flush_log_on_xact_end)
         throws StandardException;
 
 
     /**
       @see com.splicemachine.db.iapi.store.access.AccessFactory#getTransactionInfo
      */
-    public TransactionInfo[] getTransactionInfo();
+    TransactionInfo[] getTransactionInfo();
 
     /**
       * Freeze the database temporarily so a backup can be taken.
@@ -754,7 +754,7 @@ public interface RawStoreFactory {
       *
       * @exception StandardException Thrown on error
       */
-    public void freeze() throws StandardException;
+    void freeze() throws StandardException;
 
     /**
       * Unfreeze the database after a backup has been taken.
@@ -762,7 +762,7 @@ public interface RawStoreFactory {
       *
       * @exception StandardException Thrown on error
       */
-    public void unfreeze() throws StandardException;
+    void unfreeze() throws StandardException;
 
     /**
       * Backup the database to backupDir.  
@@ -775,9 +775,9 @@ public interface RawStoreFactory {
       * 
       * @exception StandardException Thrown on error
       */
-    public void backup(
-    String backupDir, 
-    boolean wait) throws StandardException;
+    void backup(
+            String backupDir,
+            boolean wait) throws StandardException;
 
     /**
         Checkpoint the database.
@@ -788,7 +788,7 @@ public interface RawStoreFactory {
 
         @exception StandardException Standard Derby error policy
     */
-    public void checkpoint() throws StandardException;
+    void checkpoint() throws StandardException;
 
 
     /**
@@ -796,29 +796,29 @@ public interface RawStoreFactory {
         @exception StandardException Standard Derby error policy
 
     */
-    public void idle() throws StandardException;
+    void idle() throws StandardException;
     
     /**
         If this raw store has a daemon that services its need, return the
         daemon.  If not, return null
     */
-    public DaemonService getDaemon();
+    DaemonService getDaemon();
 
 
     /*
      * return the transaction factory module 
      */
-    public String getTransactionFactoryModule();
+    String getTransactionFactoryModule();
 
     /*
      * return the data factory module 
      */
-    public String getDataFactoryModule();
+    String getDataFactoryModule();
 
     /*
      * return the Log factory module 
      */
-    public String getLogFactoryModule();
+    String getLogFactoryModule();
 
     /*
      * Return the module providing XAresource interface to the transaction 
@@ -826,21 +826,21 @@ public interface RawStoreFactory {
      *
      * @exception StandardException Standard Derby exception policy.
      */
-    public /* XAResourceManager */ Object getXAResourceManager()
+    /* XAResourceManager */ Object getXAResourceManager()
         throws StandardException;
 
     /*
      * the database creation phase is finished
      * @exception StandardException Standard Derby exception policy.
      */
-    public void createFinished() throws StandardException;
+    void createFinished() throws StandardException;
 
     /**
      * Get JBMS properties relavent to raw store
      *
      * @exception StandardException Standard Derby exception policy.
      */
-    public void getRawStoreProperties(PersistentSet tc) 
+    void getRawStoreProperties(PersistentSet tc)
          throws StandardException; 
 
     /**
@@ -852,14 +852,14 @@ public interface RawStoreFactory {
      *
      * @exception StandardException Standard Derby exception policy.
      */
-    public void freezePersistentStore() throws StandardException;
+    void freezePersistentStore() throws StandardException;
 
     /**
      * Unfreeze the database, persistent storage can now be altered.
      *
      * @exception StandardException Standard Derby exception policy.
      */
-    public void unfreezePersistentStore() throws StandardException;
+    void unfreezePersistentStore() throws StandardException;
 
     /**
         Encrypt cleartext into ciphertext.
@@ -867,9 +867,9 @@ public interface RawStoreFactory {
         @see com.splicemachine.db.iapi.services.crypto.CipherProvider#encrypt
         @exception StandardException Standard Derby Error Policy
      */
-    public int encrypt(byte[] cleartext, int offset, int length, 
-                       byte[] ciphertext, int outputOffset,
-                       boolean newEngine) 
+    int encrypt(byte[] cleartext, int offset, int length,
+                byte[] ciphertext, int outputOffset,
+                boolean newEngine)
          throws StandardException ;
 
     /**
@@ -878,20 +878,20 @@ public interface RawStoreFactory {
         @see com.splicemachine.db.iapi.services.crypto.CipherProvider#decrypt
         @exception StandardException Standard Derby Error Policy
      */
-    public int decrypt(byte[] ciphertext, int offset, int length, 
-                       byte[] cleartext, int outputOffset) 
+    int decrypt(byte[] ciphertext, int offset, int length,
+                byte[] cleartext, int outputOffset)
          throws StandardException ;
 
     /**
         Returns the encryption block size used during creation of the encrypted database
      */
-    public int getEncryptionBlockSize();
+    int getEncryptionBlockSize();
 
     /**
         Returns a secure random number for this raw store - if database is not
         encrypted, returns 0.
      */
-    public int random();
+    int random();
 
     /**
         Change the boot password.  Return the encrypted form of the secret key.
@@ -899,7 +899,7 @@ public interface RawStoreFactory {
 
         @exception StandardException Standard Derby Error Policy
      */
-    public Serializable changeBootPassword(Properties properties, Serializable changePassword)
+    Serializable changeBootPassword(Properties properties, Serializable changePassword)
          throws StandardException ;
 
     /**
@@ -936,9 +936,9 @@ public interface RawStoreFactory {
      *             when <code>feature</code> feature is 
      *             not <code> null </code>. 
      */
-    public boolean checkVersion(
-    int     requiredMajorVersion, 
-    int     requiredMinorVersion, 
-    String  feature) 
+    boolean checkVersion(
+            int requiredMajorVersion,
+            int requiredMinorVersion,
+            String feature)
         throws StandardException;
 }

@@ -49,6 +49,6 @@ public interface PrintWriterGetHeader
 	 *  @see com.splicemachine.db.iapi.services.stream.HeaderPrintWriter
 	 **/
 
-	public String getHeader();
+	String getHeader();
 }
 	

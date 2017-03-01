@@ -25,19 +25,19 @@ public interface ResourcePool<E,K extends ResourcePool.Key>{
     /**
      * Unique reference Key for the pool
      */
-    public interface Key{
+    interface Key{
 
     }
 
-    public interface Generator<T,K extends Key>{
+    interface Generator<T,K extends Key>{
 
         T makeNew(K refKey) throws Exception;
 
         void close(T entity) throws Exception;
     }
 
-    public E get(K key) throws Exception;
+    E get(K key) throws Exception;
 
-    public void release(K key) throws Exception;
+    void release(K key) throws Exception;
 
 }

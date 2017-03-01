@@ -47,16 +47,16 @@ public interface IFastPath {
 	/**
 		Indicates nextRow() has completed its scan.
 	*/
-	public int SCAN_COMPLETED = -1;
+	int SCAN_COMPLETED = -1;
 	/**
 		Indicates nextRow() found a row..
 	*/
-	public int GOT_ROW = 0;
+	int GOT_ROW = 0;
 	/**
 		Indicates nextRow() has completed its scan but executeQuery must be called to
 		complete the query.
 	*/
-	public int NEED_RS = 1;
+	int NEED_RS = 1;
 
 	/**
 		Start a query.
@@ -66,7 +66,7 @@ public interface IFastPath {
 		Returns false if the engine must call the VTI's PreparedStatement.executeQuery()
 		method to execute as a regular ResultSet VTI.
 	*/
-	public boolean executeAsFastPath()
+	boolean executeAsFastPath()
 		throws StandardException, SQLException;
 
 	/**
@@ -77,7 +77,7 @@ public interface IFastPath {
 		the engine calling the VTI's PreparedStatement.executeQuery()
 
 	*/
-	public int nextRow(DataValueDescriptor[] row)
+	int nextRow(DataValueDescriptor[] row)
 		throws StandardException, SQLException;
 
 
@@ -86,7 +86,7 @@ public interface IFastPath {
 		Presents the row just processed as an array of DataValueDescriptors.
 		This only called when the VTI is being executed as a regular ResultSet VTI
 	*/
-	public void currentRow(ResultSet rs, DataValueDescriptor[] row)
+	void currentRow(ResultSet rs, DataValueDescriptor[] row)
 		throws StandardException, SQLException;
 
 
@@ -94,5 +94,5 @@ public interface IFastPath {
 		Called once the ResultSet returned by executeQuery() has emptied all of its
 		rows (next() has returned false).
      */
-    public void rowsDone() throws StandardException, SQLException;
+	void rowsDone() throws StandardException, SQLException;
 }

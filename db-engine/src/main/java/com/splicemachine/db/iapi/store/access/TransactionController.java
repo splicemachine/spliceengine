@@ -89,7 +89,7 @@ public interface TransactionController
      * to be opened with record level locking (but the system may override
      * this choice and provide table level locking instead).  
      **/
-	static final int MODE_RECORD    = 6;
+	int MODE_RECORD    = 6;
     /**
      * Constant used for the lock_level argument to openConglomerate() and 
      * openScan() calls.  Pass in MODE_TABLE if you want the conglomerate
@@ -97,7 +97,7 @@ public interface TransactionController
      * system will never use record level locking for the open scan or 
      * controller.
      **/
-	static final int MODE_TABLE     = 7;
+	int MODE_TABLE     = 7;
 
     /**
      * Constants used for the isolation_level argument to openConglomerate() and
@@ -117,7 +117,7 @@ public interface TransactionController
      *
      * ONLY USED INTERNALLY BY ACCESS, NOT VALID FOR EXTERNAL USERS.
      **/
-	static final int ISOLATION_NOLOCK = 0;
+	int ISOLATION_NOLOCK = 0;
 
     /**
      * No locks are requested for data that is read only.  Uncommitted data
@@ -134,7 +134,7 @@ public interface TransactionController
      * TODO - work in progress to support this locking mode in the 5.1 
      * storage system.  
      **/
-	static final int ISOLATION_READ_UNCOMMITTED = 1;
+	int ISOLATION_READ_UNCOMMITTED = 1;
 
     /**
      * No lost updates, no dirty reads, only committed data is returned.  
@@ -143,7 +143,7 @@ public interface TransactionController
      * possibly instantaneous duration locks) are set
      * on data that is read.  
      **/
-	static final int ISOLATION_READ_COMMITTED = 2;
+	int ISOLATION_READ_COMMITTED = 2;
 
     /**
      * No lost updates, no dirty reads, only committed data is returned.  
@@ -153,7 +153,7 @@ public interface TransactionController
      * on data that is read.  Read locks are requested for "zero" duration,
      * thus upon return from access no read row lock is held.
      **/
-	static final int ISOLATION_READ_COMMITTED_NOHOLDLOCK = 3;
+	int ISOLATION_READ_COMMITTED_NOHOLDLOCK = 3;
 
     /**
      * Read and write locks are held until end of transaction, but no
@@ -165,7 +165,7 @@ public interface TransactionController
      * read can be coded with the right isolation level, and will just work when
      * store provided real repeatable read isolation.
      **/
-	static final int ISOLATION_REPEATABLE_READ = 4;
+	int ISOLATION_REPEATABLE_READ = 4;
 
     /**
      * Gray's isolation degree 3, "Serializable, Repeatable Read".	Note that
@@ -173,7 +173,7 @@ public interface TransactionController
      * phantom protection under MODE_TABLE, while others can support this
      * under MODE_RECORD.
      **/
-	static final int ISOLATION_SERIALIZABLE = 5;
+	int ISOLATION_SERIALIZABLE = 5;
 
     /**
      * Constants used for the flag argument to openConglomerate() and 
@@ -200,7 +200,7 @@ public interface TransactionController
      * rows in the scan.  So to enable update locks for an updating scan one
      * provides (OPENMODE_FORUPDATE | OPENMODE_USE_UPDATE_LOCKS)
      **/
-    static final int OPENMODE_USE_UPDATE_LOCKS      = 0x00001000;
+	int OPENMODE_USE_UPDATE_LOCKS      = 0x00001000;
 
     /**
      * Use this mode to the openConglomerate() call which opens the base
@@ -211,7 +211,7 @@ public interface TransactionController
      * successfully opened before opening the base table so that
      * proper locking protocol is followed.
      **/
-    static final int OPENMODE_SECONDARY_LOCKED      = 0x00002000;
+	int OPENMODE_SECONDARY_LOCKED      = 0x00002000;
 
     /**
      * Use this mode to the openConglomerate() call used to open the
@@ -223,12 +223,12 @@ public interface TransactionController
      * successfully opened before opening the secondaryindex so that
      * proper locking protocol is followed.
      **/
-    static final int OPENMODE_BASEROW_INSERT_LOCKED = 0x00004000;
+	int OPENMODE_BASEROW_INSERT_LOCKED = 0x00004000;
 
     /**
      * open table for update, if not specified table will be opened for read.
      **/
-    static final int OPENMODE_FORUPDATE             = 0x00000004;
+	int OPENMODE_FORUPDATE             = 0x00000004;
 
     /**
      * Use this mode to the openConglomerate() call used to just get the
@@ -236,7 +236,7 @@ public interface TransactionController
      * Any operations other than close() performed on the "opened" container
      * will fail.
      **/
-    static final int OPENMODE_FOR_LOCK_ONLY         = 0x00000040;
+	int OPENMODE_FOR_LOCK_ONLY         = 0x00000040;
 
     /**
      * The table lock request will not wait.
@@ -247,21 +247,21 @@ public interface TransactionController
      * wait if the application has not set a 0 timeout and if the call does
      * not have a wait parameter (like OpenConglomerate.fetch().
      **/
-    static final int OPENMODE_LOCK_NOWAIT           = 0x00000080;
+	int OPENMODE_LOCK_NOWAIT           = 0x00000080;
 
     /**
      * Constants used for the countOpen() call.
      **/
-    public static final int OPEN_CONGLOMERATE   = 0x01;
-    public static final int OPEN_SCAN           = 0x02;
-    public static final int OPEN_CREATED_SORTS  = 0x03;
-    public static final int OPEN_SORT           = 0x04;
-    public static final int OPEN_TOTAL          = 0x05;
+	int OPEN_CONGLOMERATE   = 0x01;
+    int OPEN_SCAN           = 0x02;
+    int OPEN_CREATED_SORTS  = 0x03;
+    int OPEN_SORT           = 0x04;
+    int OPEN_TOTAL          = 0x05;
 
 
-	static final byte IS_DEFAULT	=	(byte) 0x00; // initialize the flag
-	static final byte IS_TEMPORARY	=	(byte) 0x01; // conglom is temporary
-	static final byte IS_KEPT		=	(byte) 0x02; // no auto remove
+	byte IS_DEFAULT	=	(byte) 0x00; // initialize the flag
+	byte IS_TEMPORARY	=	(byte) 0x01; // conglom is temporary
+	byte IS_KEPT		=	(byte) 0x02; // no auto remove
 
 
     /**************************************************************************
@@ -275,7 +275,7 @@ public interface TransactionController
      *
 	 * @return The AccessFactory which started this transaction.
      **/
-    public AccessFactory getAccessManager();
+	AccessFactory getAccessManager();
 
 	/**
 	Check whether a conglomerate exists.
@@ -623,11 +623,11 @@ public interface TransactionController
         column while "btree" conglomerates do not.  If the column can not be
         added an exception will be thrown.
     **/
-    public void addColumnToConglomerate(
-    long        conglomId, 
-    int         column_id, 
-    Storable    template_column,
-    int         collation_id)
+	void addColumnToConglomerate(
+			long conglomId,
+			int column_id,
+			Storable template_column,
+			int collation_id)
 		throws StandardException;
 
 
@@ -641,9 +641,9 @@ public interface TransactionController
      @exception StandardException Only base conglomerates support.  If the column can not be
      dropped an exception will be thrown.
      **/
-    public void dropColumnFromConglomerate(
-            long        conglomId,
-            int         column_id)
+	void dropColumnFromConglomerate(
+			long conglomId,
+			int column_id)
             throws StandardException;
 
 
@@ -783,9 +783,9 @@ public interface TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public TransactionController startNestedUserTransaction(
-    boolean readOnly,
-    boolean flush_log_on_xact_end)
+	TransactionController startNestedUserTransaction(
+			boolean readOnly,
+			boolean flush_log_on_xact_end)
         throws StandardException;
 
     TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException;
@@ -1251,13 +1251,13 @@ public interface TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public String debugOpened() throws StandardException;
+	String debugOpened() throws StandardException;
 
 
 	/**
 		Get an object to handle non-transactional files.
 	*/
-	public FileResource getFileHandler();
+	FileResource getFileHandler();
 
     /**
      * Return an object that when used as the compatibility space for a lock
@@ -1265,7 +1265,7 @@ public interface TransactionController
      * call to <code>getOwner()</code> on that object, guarantees that the lock
      * will be removed on a commit or an abort.
      */
-    public CompatibilitySpace getLockSpace();
+	CompatibilitySpace getLockSpace();
 
     /**
      * Tell this transaction whether it should time out immediately if a lock
@@ -1281,7 +1281,7 @@ public interface TransactionController
      * @see com.splicemachine.db.iapi.services.locks.LockOwner#noWait()
      * @see com.splicemachine.db.iapi.store.raw.Transaction#setNoLockWait(boolean)
      */
-    public void setNoLockWait(boolean noWait);
+	void setNoLockWait(boolean noWait);
 
     /**
      * Return static information about the conglomerate to be included in a
@@ -1302,8 +1302,8 @@ public interface TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public StaticCompiledOpenConglomInfo getStaticCompiledConglomInfo(
-    long        conglomId)
+	StaticCompiledOpenConglomInfo getStaticCompiledConglomInfo(
+			long conglomId)
 		throws StandardException;
 
     /**
@@ -1324,8 +1324,8 @@ public interface TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public DynamicCompiledOpenConglomInfo getDynamicCompiledConglomInfo(
-    long        conglomId)
+	DynamicCompiledOpenConglomInfo getDynamicCompiledConglomInfo(
+			long conglomId)
 		throws StandardException;
 
     /**************************************************************************
@@ -1365,7 +1365,7 @@ public interface TransactionController
 	Return true if any transaction is blocked (even if not by this one).
 
 	*/
-	public boolean anyoneBlocked();
+	boolean anyoneBlocked();
 
 	/**
 	Abort all changes made by this transaction since the last commit, abort
@@ -1376,7 +1376,7 @@ public interface TransactionController
 	@exception StandardException Only exceptions with severities greater than
 	ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
 	**/
-	public void abort()
+	void abort()
 		throws StandardException;
 
     /**
@@ -1387,7 +1387,7 @@ public interface TransactionController
      * @param tableName the name of the table to elevate
      * @throws StandardException If something goes wrong during elevation
      */
-    public void elevate(String tableName) throws StandardException;
+	void elevate(String tableName) throws StandardException;
 
 	/**
 	Commit this transaction.  All savepoints within this transaction are 
@@ -1402,7 +1402,7 @@ public interface TransactionController
     initiates cleanupOnError() processing, which will eventually abort the 
     transaction.
 	**/
-	public void commit()
+	void commit()
 		throws StandardException;
 
 	/**
@@ -1441,17 +1441,17 @@ public interface TransactionController
     initiates cleanupOnError() processing, which will eventually abort the 
     transaction.
 	**/
-	public void commitNoSync(int commitflag)
+	void commitNoSync(int commitflag)
 		throws StandardException;
 
-	public final int RELEASE_LOCKS                          = 0x1;
-	public final int KEEP_LOCKS                             = 0x2;
-    public final int READONLY_TRANSACTION_INITIALIZATION    = 0x4;
+	int RELEASE_LOCKS                          = 0x1;
+	int KEEP_LOCKS                             = 0x2;
+    int READONLY_TRANSACTION_INITIALIZATION    = 0x4;
 
 	/**
 	Abort the current transaction and pop the context.
 	**/
-	public void destroy();
+	void destroy();
 
     /**
      * Get the context manager that the transaction was created with.
@@ -1460,7 +1460,7 @@ public interface TransactionController
 	 * @return The context manager that the transaction was created with.
      *
      **/
-    public ContextManager getContextManager();
+	ContextManager getContextManager();
 
     /**
      * Get string id of the transaction.
@@ -1475,7 +1475,7 @@ public interface TransactionController
      *
 	 * @return The a string which identifies the transaction.  
      **/
-    public String getTransactionIdString();
+	String getTransactionIdString();
 
 	/**
      * Get string id of the transaction that would be when the Transaction
@@ -1484,21 +1484,21 @@ public interface TransactionController
 	 * Note: Use this method only  getTransactionIdString() is not suitable.
 	 * @return The string which identifies the transaction.  
      **/
-    public String getActiveStateTxIdString();
+	String getActiveStateTxIdString();
 
     /**
      * First step of 2-phase commit for a data dictionary change. Makes sure all
      * servers are in sync for committing a change to the DataDictionary.
      * It has to be called *before* the transaction that makes the change is committed.
      */
-    public void prepareDataDictionaryChange(String currentDDLChangeId) throws StandardException;
+	void prepareDataDictionaryChange(String currentDDLChangeId) throws StandardException;
 
     /**
      * Final step of 2-phase commit for a data dictionary change. Makes sure all
      * servers are in sync for committing a change to the DataDictionary.
      * It has to be called *after* the transaction that makes the change is committed.
      */
-    public void commitDataDictionaryChange() throws StandardException;
+	void commitDataDictionaryChange() throws StandardException;
 
     /**
      * Reveals whether the transaction has ever read or written data.
@@ -1545,7 +1545,7 @@ public interface TransactionController
                                   statement level exception is thrown if
                                   no savepoint exists with the given name.
 	**/
-	public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+	int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
 	/**
 	Rollback all changes made since the named savepoint was set. The named
@@ -1578,9 +1578,9 @@ public interface TransactionController
                                   statement level exception is thrown if
                                   no savepoint exists with the given name.
 	**/
-	public int rollbackToSavePoint(
-    String  name,
-    boolean close_controllers, Object kindOfSavepoint)
+	int rollbackToSavePoint(
+			String name,
+			boolean close_controllers, Object kindOfSavepoint)
         throws StandardException;
 
 
@@ -1602,7 +1602,7 @@ public interface TransactionController
                                   statement level exception is thrown if
                                   no savepoint exists with the given name.
 	**/
-	public int setSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+	int setSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
 	/**
      * Convert a local transaction to a global transaction.
@@ -1637,5 +1637,5 @@ public interface TransactionController
 		throws StandardException;
 
 
-    public boolean isElevated ();
+    boolean isElevated();
 }

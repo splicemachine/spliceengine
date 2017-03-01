@@ -47,7 +47,7 @@ public interface OptimizableList {
 	 *
 	 *  @return integer		The number of Optimizables in the list.
 	 */
-	public int size();
+	int size();
 
 	/**
 	 *  Return the nth Optimizable in the list.
@@ -56,7 +56,7 @@ public interface OptimizableList {
 	 *
 	 *  @return Optimizable		The nth Optimizables in the list.
 	 */
-	public Optimizable getOptimizable(int n);
+	Optimizable getOptimizable(int n);
 
 	/**
 	 * Set the nth Optimizable to the specified Optimizable.
@@ -64,7 +64,7 @@ public interface OptimizableList {
 	 *  @param n				"index" (0 based) into the list.
 	 *  @param optimizable		New nth Optimizable.
 	 */
-	public void setOptimizable(int n, Optimizable optimizable);
+	void setOptimizable(int n, Optimizable optimizable);
 
 	/** 
 	 * Verify that the Properties list with optimizer overrides, if specified, is valid
@@ -91,28 +91,28 @@ public interface OptimizableList {
 	 * number of elements in the array minus 1, and the values in the array
 	 * must be unique.
 	 */
-	public void reOrder(int[] joinOrder);
+	void reOrder(int[] joinOrder);
 
 	/**
 	 * user can specify that s/he doesn't want statistics to be considered when
 	 * optimizing the query.
 	 */
-	public boolean useStatistics();
+	boolean useStatistics();
 
 	/**
 	 * Tell whether the join order should be optimized.
 	 */
-	public boolean optimizeJoinOrder();
+	boolean optimizeJoinOrder();
 
 	/**
 	 * Tell whether the join order is legal.
 	 */
-	public boolean legalJoinOrder(int numTablesInQuery);
+	boolean legalJoinOrder(int numTablesInQuery);
 
 	/**
 	 * Init the access paths for these optimizables.
 	 *
 	 * @param optimizer The optimizer being used.
 	 */
-	public void initAccessPaths(Optimizer optimizer);
+	void initAccessPaths(Optimizer optimizer);
 }

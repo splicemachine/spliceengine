@@ -34,7 +34,7 @@ public interface Logging {
      *         currently registered <tt>Logger</tt> name.
      */
     @Description(value="Get the list of SpliceMachine logger names.")
-    public java.util.List<String> getLoggerNames();
+    java.util.List<String> getLoggerNames();
 
     /**
      * Returns the list of available log levels.
@@ -42,7 +42,7 @@ public interface Logging {
      *          available log level.
      */
     @Description(value="Get the list of available logging levels.")
-    public java.util.List<String> getAvailableLevels();
+    java.util.List<String> getAvailableLevels();
 
     /**
      * Gets the name of the log level associated with the specified logger.
@@ -69,7 +69,7 @@ public interface Logging {
      * @see java.util.logging.Logger#getLevel
      */
     @Description(value="Get the current logging level for the given logger.")
-    public String getLoggerLevel(@PName("loggerName") String loggerName );
+    String getLoggerLevel(@PName("loggerName") String loggerName);
 
     /**
      * Sets the specified logger to the specified new level.
@@ -96,6 +96,6 @@ public interface Logging {
      * @see java.util.logging.Logger#setLevel
      */
     @Description(value="Set the logging level for the given logger.")
-    public void setLoggerLevel(@PName("loggerName") String loggerName, @PName("levelName") String levelName );
+    void setLoggerLevel(@PName("loggerName") String loggerName, @PName("levelName") String levelName);
 
 }

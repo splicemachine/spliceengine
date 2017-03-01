@@ -57,7 +57,7 @@ public interface ManagementMBean {
      * @return true Derby has registered beans, false Derby has not
      * registered any beans.
      */
-    public boolean isManagementActive();
+    boolean isManagementActive();
     
     /**
      * Get the system identifier that this MBean is managing.
@@ -67,7 +67,7 @@ public interface ManagementMBean {
      * 
      * @return Runtime identifier for the system, null if Derby is not running.
      */
-    public String getSystemIdentifier();
+    String getSystemIdentifier();
     
     /**
      * Inform Derby to start its JMX management by registering
@@ -79,7 +79,7 @@ public interface ManagementMBean {
      * 
      * @see com.splicemachine.db.security.SystemPermission
      */
-    public void startManagement();
+    void startManagement();
     
     /**
      * Inform Derby to stop its JMX management by unregistering
@@ -90,5 +90,5 @@ public interface ManagementMBean {
      * 
      * @see com.splicemachine.db.security.SystemPermission
      */
-    public void stopManagement();
+    void stopManagement();
 }

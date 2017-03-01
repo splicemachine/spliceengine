@@ -87,7 +87,7 @@ public interface Visitor
 	 * @return {@code true} if {@code node}'s children should be visited
 	 * before {@code node}, {@code false} otherwise
 	 */
-	public boolean visitChildrenFirst(Visitable node);
+	boolean visitChildrenFirst(Visitable node);
 
 	/**
 	 * Method that is called to see
@@ -98,7 +98,7 @@ public interface Visitor
 	 *
 	 * @return true/false
 	 */
-	public boolean stopTraversal();
+	boolean stopTraversal();
 
 	/**
 	 * Method that is called to indicate whether
@@ -115,5 +115,5 @@ public interface Visitor
 	 * 
 	 * @return true/false
 	 */
-	public boolean skipChildren(Visitable node) throws StandardException;
+	boolean skipChildren(Visitable node) throws StandardException;
 }	

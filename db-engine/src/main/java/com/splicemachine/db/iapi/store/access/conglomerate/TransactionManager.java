@@ -56,20 +56,20 @@ public interface TransactionManager extends TransactionController
      * openScan() calls.  Pass in MODE_NONE if you want no table or row locks.
      * This is currently only supported from within access.
      **/
-	static final int MODE_NONE      = 5;
+    int MODE_NONE      = 5;
 
     /**
      * release lock immediately after getting lock.
      **/
-    public static final int LOCK_INSTANT_DURATION   = 1;
+    int LOCK_INSTANT_DURATION   = 1;
     /**
      * hold lock until end of transaction.
      **/
-    public static final int LOCK_COMMIT_DURATION    = 2;
+    int LOCK_COMMIT_DURATION    = 2;
     /**
      * Allow lock to be released manually prior to end transaction.
      **/
-    public static final int LOCK_MANUAL_DURATION    = 3;
+    int LOCK_MANUAL_DURATION    = 3;
 
     /**
      * Add to the list of post commit work.
@@ -84,7 +84,7 @@ public interface TransactionManager extends TransactionController
      * @param work  The post commit work to do.
      *
      **/
-	public void addPostCommitWork(Serviceable work);
+    void addPostCommitWork(Serviceable work);
 
     /**
      *  Check to see if a database has been upgraded to the required
@@ -103,10 +103,10 @@ public interface TransactionManager extends TransactionController
      *             when <code>feature</code> feature is 
      *             not <code> null </code>. 
      */
-	public boolean checkVersion(
-    int     requiredMajorVersion, 
-    int     requiredMinorVersion, 
-    String  feature) 
+    boolean checkVersion(
+            int requiredMajorVersion,
+            int requiredMinorVersion,
+            String feature)
         throws StandardException;
 
     /**
@@ -117,7 +117,7 @@ public interface TransactionManager extends TransactionController
      * was maintaining for cleanup purposes.
      *
      **/
-    public void closeMe(ScanManager scan);
+    void closeMe(ScanManager scan);
 
     /**
      * The ConglomerateController.close() method has been called on 
@@ -128,7 +128,7 @@ public interface TransactionManager extends TransactionController
      * references to the ConglomerateController object that it was maintaining
      * for cleanup purposes.
      **/
-    public void closeMe(ConglomerateController conglom_control);
+    void closeMe(ConglomerateController conglom_control);
 
     /**
      * Get an Internal transaction.
@@ -153,7 +153,7 @@ public interface TransactionManager extends TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public TransactionManager getInternalTransaction()
+    TransactionManager getInternalTransaction()
         throws StandardException;
 
     /**
@@ -166,6 +166,6 @@ public interface TransactionManager extends TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public Transaction getRawStoreXact()
+    Transaction getRawStoreXact()
         throws StandardException;
 }

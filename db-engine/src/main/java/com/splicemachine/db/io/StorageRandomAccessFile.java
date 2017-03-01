@@ -58,7 +58,7 @@ public interface StorageRandomAccessFile extends DataInput, DataOutput
      *
      * @exception IOException - if an I/O error occurs.
      */
-    public void close() throws IOException;
+    void close() throws IOException;
 
     /**
      * Get the current offset in this file.
@@ -67,7 +67,7 @@ public interface StorageRandomAccessFile extends DataInput, DataOutput
      *
      * @exception IOException - if an I/O error occurs.
      */
-    public long getFilePointer() throws IOException;
+    long getFilePointer() throws IOException;
 
     /**
      * Gets the length of this file.
@@ -76,7 +76,7 @@ public interface StorageRandomAccessFile extends DataInput, DataOutput
      *
      * @exception IOException - if an I/O error occurs.
      */
-    public long length() throws IOException;
+    long length() throws IOException;
 
     /**
      * Set the file pointer. It may be moved beyond the end of the file, but this does not change
@@ -86,7 +86,7 @@ public interface StorageRandomAccessFile extends DataInput, DataOutput
      *
      * @exception IOException - if newFilePointer is less than 0 or an I/O error occurs.
      */
-    public void seek(long newFilePointer) throws IOException;
+    void seek(long newFilePointer) throws IOException;
 
     /**
      * Sets the length of this file, either extending or truncating it.
@@ -100,7 +100,7 @@ public interface StorageRandomAccessFile extends DataInput, DataOutput
      *
      * @exception IOException If an I/O error occurs.
      */
-    public void setLength(long newLength) throws IOException;
+    void setLength(long newLength) throws IOException;
     
     /**
      * Force any changes out to the persistent store. If the database is to be transient, that is, if the database
@@ -110,7 +110,7 @@ public interface StorageRandomAccessFile extends DataInput, DataOutput
      * @exception SyncFailedException if a possibly recoverable error occurs.
      * @exception IOException If an IO error occurs.
      */
-    public void sync() throws IOException;
+    void sync() throws IOException;
 
     /**
      * Reads up to <code>len</code> bytes of data from this file into an
@@ -133,5 +133,5 @@ public interface StorageRandomAccessFile extends DataInput, DataOutput
      * <code>len</code> is negative, or <code>len</code> is greater than
      * <code>b.length - off</code>
      */
-    public int read(byte[] b, int off, int len) throws IOException;
+    int read(byte[] b, int off, int len) throws IOException;
 }

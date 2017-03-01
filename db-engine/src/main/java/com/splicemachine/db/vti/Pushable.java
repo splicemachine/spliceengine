@@ -77,7 +77,7 @@ public interface Pushable {
 
 		@exception SQLException Error processing the request.
 	*/
-	public boolean pushProjection(VTIEnvironment vtiEnvironment, int[] projectedColumns)
+	boolean pushProjection(VTIEnvironment vtiEnvironment, int[] projectedColumns)
 		throws SQLException;
 
 }

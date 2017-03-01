@@ -307,9 +307,9 @@ public interface DataDictionary{
     int getCollationTypeOfSystemSchemas();
 
 
-    public void startWriting(LanguageConnectionContext lcc) throws StandardException;
+    void startWriting(LanguageConnectionContext lcc) throws StandardException;
 
-    public void startWriting(LanguageConnectionContext lcc,boolean setDDMode) throws StandardException;
+    void startWriting(LanguageConnectionContext lcc, boolean setDDMode) throws StandardException;
 
     /**
      * Return the collation type for user schemas. In Derby 10.3, this is either
@@ -784,10 +784,10 @@ public interface DataDictionary{
      * @param collectStats
      * @throws StandardException
      */
-    public void setCollectStats(TransactionController tc,
-                                UUID tableUUID,
-                                String columnName,
-                                boolean collectStats) throws StandardException;
+    void setCollectStats(TransactionController tc,
+                         UUID tableUUID,
+                         String columnName,
+                         boolean collectStats) throws StandardException;
 
     /**
      * Removes Table Statistics from SYSTABLESTATS.
@@ -796,11 +796,11 @@ public interface DataDictionary{
      * @param tc
      * @throws StandardException
      */
-    public void deletePartitionStatistics(long conglomerate,
-                                          TransactionController tc) throws StandardException;
+    void deletePartitionStatistics(long conglomerate,
+                                   TransactionController tc) throws StandardException;
 
 
-    public void clearCaches();
+    void clearCaches();
 
 
     /**
@@ -810,8 +810,8 @@ public interface DataDictionary{
      * @param tc
      * @throws StandardException
      */
-    public void deleteColumnStatistics(long conglomerate,
-                                      TransactionController tc) throws StandardException;
+    void deleteColumnStatistics(long conglomerate,
+                                TransactionController tc) throws StandardException;
 
 
     /**
@@ -821,8 +821,8 @@ public interface DataDictionary{
      * @param tc
      * @throws StandardException
      */
-    public List<PartitionStatisticsDescriptor> getPartitionStatistics(long conglomerate,
-                                                                      TransactionController tc) throws StandardException;
+    List<PartitionStatisticsDescriptor> getPartitionStatistics(long conglomerate,
+                                                               TransactionController tc) throws StandardException;
 
     /**
      * Locate the Schema Row
@@ -832,7 +832,7 @@ public interface DataDictionary{
      * @return
      * @throws StandardException
      */
-    public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException;
+    SchemaDescriptor locateSchemaRow(String schemaName, TransactionController tc) throws StandardException;
 
     /**
      * Removes Column Statistics from SYSCOLUMNSTATS.
@@ -841,8 +841,8 @@ public interface DataDictionary{
      * @param tc
      * @throws StandardException
      */
-    public List<ColumnStatisticsDescriptor> getColumnStatistics(long conglomerate,
-                                                                TransactionController tc) throws StandardException;
+    List<ColumnStatisticsDescriptor> getColumnStatistics(long conglomerate,
+                                                         TransactionController tc) throws StandardException;
 
     /**
      * Add Column Statistics to SYS.SYSCOLUMNSTATS
@@ -851,8 +851,8 @@ public interface DataDictionary{
      * @param tc
      * @throws StandardException
      */
-    public void addColumnStatistics(ExecRow columnStatistics,
-                                       TransactionController tc) throws StandardException;
+    void addColumnStatistics(ExecRow columnStatistics,
+                             TransactionController tc) throws StandardException;
 
     /**
      *
@@ -862,8 +862,8 @@ public interface DataDictionary{
      * @param tc
      * @throws StandardException
      */
-    public void addTableStatistics(ExecRow tableStatistics,
-                                    TransactionController tc) throws StandardException;
+    void addTableStatistics(ExecRow tableStatistics,
+                            TransactionController tc) throws StandardException;
 
     /**
      * Convert a constraint descriptor list into a list
@@ -2089,9 +2089,9 @@ public interface DataDictionary{
      */
     void dropSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException;
 
-    public DataDictionaryCache getDataDictionaryCache();
+    DataDictionaryCache getDataDictionaryCache();
 
-    public boolean canUseCache(TransactionController xactMgr) throws StandardException;
+    boolean canUseCache(TransactionController xactMgr) throws StandardException;
 
     boolean canUseSPSCache() throws StandardException;
 

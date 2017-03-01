@@ -68,11 +68,11 @@ public  interface   SequencePreallocator
      * @param schemaName Name of schema holding the sequence.
      * @param sequenceName Specific name of the sequence.
      */
-    public  int nextRangeSize
-        (
-         String schemaName,
-         String sequenceName
-         );
+    int nextRangeSize
+    (
+            String schemaName,
+            String sequenceName
+    );
     
 }
 

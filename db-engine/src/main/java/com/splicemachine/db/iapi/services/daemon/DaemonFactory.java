@@ -71,5 +71,5 @@ public interface DaemonFactory
 
 		@exception StandardException Standard Derby error policy
 	 */
-	public DaemonService createNewDaemon(String name) throws StandardException;
+	DaemonService createNewDaemon(String name) throws StandardException;
 }

@@ -89,7 +89,7 @@ are described in RowUtil.
 
 public interface ConglomerateController extends ConglomPropertyQueryable
 {
-    public static final int ROWISDUPLICATE = 1;
+    int ROWISDUPLICATE = 1;
 
     /**
      * Close the conglomerate controller.
@@ -107,7 +107,7 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void close()
+	void close()
         throws StandardException;
 
     /**
@@ -390,11 +390,11 @@ public interface ConglomerateController extends ConglomPropertyQueryable
 	boolean isKeyed();
 
 
-    public static final int LOCK_READ         = (0x00000000);
-    public static final int LOCK_UPD          = (0x00000001);
-    public static final int LOCK_INS          = (0x00000002);
-    public static final int LOCK_INS_PREVKEY  = (0x00000004);
-    public static final int LOCK_UPDATE_LOCKS = (0x00000008);
+    int LOCK_READ         = (0x00000000);
+    int LOCK_UPD          = (0x00000001);
+    int LOCK_INS          = (0x00000002);
+    int LOCK_INS_PREVKEY  = (0x00000004);
+    int LOCK_UPDATE_LOCKS = (0x00000008);
 
     /**
      * Lock the given row location.
@@ -492,10 +492,10 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void unlockRowAfterRead(
-    RowLocation     loc,
-    boolean         forUpdate,
-    boolean         row_qualified)
+	void unlockRowAfterRead(
+			RowLocation loc,
+			boolean forUpdate,
+			boolean row_qualified)
         throws StandardException;
 
 	/**

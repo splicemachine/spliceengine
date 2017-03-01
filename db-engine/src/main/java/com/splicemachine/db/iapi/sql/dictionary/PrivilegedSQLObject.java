@@ -39,6 +39,6 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 public interface PrivilegedSQLObject extends UniqueSQLObjectDescriptor, Provider
 {
     /** Get the type of the object for storage in SYS.SYSPERMS */
-    public String getObjectTypeName();
+    String getObjectTypeName();
     
 }

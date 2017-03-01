@@ -64,8 +64,8 @@ public interface StatementContext extends Context {
      *  @param timeoutMillis timeout value for the statement, in milliseconds.
      *   Zero means no timeout.
 	 */
-    public void setInUse(boolean inTrigger, boolean isAtomic, boolean isForReadOnly,
-			 String stmtText, ParameterValueSet pvs, long timeoutMillis);
+	void setInUse(boolean inTrigger, boolean isAtomic, boolean isForReadOnly,
+				  String stmtText, ParameterValueSet pvs, long timeoutMillis);
 
 	/**
 	 * Mark this context as not in use.  This is important because we
@@ -73,7 +73,7 @@ public interface StatementContext extends Context {
 	 * want to clean it up if a statement level exception happens while the
 	 * context is not in use.
 	 */
-	public void clearInUse();
+	void clearInUse();
 
 	/**
 	 * Set a save point for the current statement.
@@ -82,7 +82,7 @@ public interface StatementContext extends Context {
 	 *
 	 * @exception StandardException Thrown on error
 	 */
-	public void setSavePoint() throws StandardException;
+	void setSavePoint() throws StandardException;
 
 	/**
 	 * If this statement context has a savepoint, then
@@ -91,14 +91,14 @@ public interface StatementContext extends Context {
 	 *
 	 * @exception StandardException Thrown on error
 	 */
-	public void resetSavePoint() throws StandardException;
+	void resetSavePoint() throws StandardException;
 
 	/**
 	 * Clear the save point for the current statement.
 	 *
 	 * @exception StandardException Thrown on error
 	 */
-	public void clearSavePoint() throws StandardException;
+	void clearSavePoint() throws StandardException;
 
 	/**
 	 * Set the top ResultSet in the ResultSet tree for close down on
@@ -109,8 +109,8 @@ public interface StatementContext extends Context {
 	 *
 	 * @exception StandardException Thrown on error
 	 */
-	public void setTopResultSet(ResultSet topResultSet,
-								NoPutResultSet[] subqueryTrackingArray)
+	void setTopResultSet(ResultSet topResultSet,
+						 NoPutResultSet[] subqueryTrackingArray)
 		 throws StandardException;
 
 	/**
@@ -124,9 +124,9 @@ public interface StatementContext extends Context {
 	 *
 	 * @exception StandardException Thrown on error
 	 */
-	public void setSubqueryResultSet(int subqueryNumber,
-									 NoPutResultSet subqueryResultSet,
-									 int numSubqueries)
+	void setSubqueryResultSet(int subqueryNumber,
+							  NoPutResultSet subqueryResultSet,
+							  int numSubqueries)
 		throws StandardException;
 
 	/**
@@ -136,7 +136,7 @@ public interface StatementContext extends Context {
 	 * @return NoPutResultSet[]	The	(sparse) array of tops of subquery ResultSet trees
 	 * @exception StandardException Thrown on error
 	 */
-	public NoPutResultSet[] getSubqueryTrackingArray()
+	NoPutResultSet[] getSubqueryTrackingArray()
 		throws StandardException;
 
 
@@ -149,7 +149,7 @@ public interface StatementContext extends Context {
 	 *
 	 * @exception StandardException Thrown on error
 	 */
-	public void addDependency(Dependency dy)
+	void addDependency(Dependency dy)
 		throws StandardException;
 
 	/**
@@ -157,7 +157,7 @@ public interface StatementContext extends Context {
 	  *
 	  *	@return	true if this StatementContext is on the context stack. false otherwise.
 	  */
-	public	boolean	onStack();
+	boolean	onStack();
 
 	/**
 	 * Returns whether we started from within the context of a trigger
@@ -165,7 +165,7 @@ public interface StatementContext extends Context {
 	 *
 	 * @return	true if we are in a trigger context
 	 */
-	public	boolean	inTrigger();
+	boolean	inTrigger();
 	
 	/**
 	 * Indicates whether the statement needs to be executed atomically
@@ -174,21 +174,21 @@ public interface StatementContext extends Context {
 	 *
 	 * @return true if needs to be atomic
 	 */
-	public boolean isAtomic();
+	boolean isAtomic();
 
 	/**
 	 * Is this statement context in use or not.
 	 *
 	 * @return true if in use
 	 */
-	public boolean inUse();
+	boolean inUse();
 
     /**
      * Is this statement for a read only, non-updatable ResultSet
      * @return true if the statement is for creating a 
      *         read only, non-updatable ResultSet
      */
-    public boolean isForReadOnly();
+	boolean isForReadOnly();
     
 	
     /**
@@ -197,7 +197,7 @@ public interface StatementContext extends Context {
      *
      * @return true if the statement execution should be cancelled.
      **/
-    public boolean isCancelled();
+	boolean isCancelled();
 
     /**
      * Indicate that the statement which has allocated this statement
@@ -205,7 +205,7 @@ public interface StatementContext extends Context {
      * Usually called as a consequence of Statement.cancel() or a query timeout
      * set with Statement.setQueryTimeout().
      */
-    public void cancel();
+	void cancel();
 
 	/**
 	 * Return the text of the current statement.
@@ -216,7 +216,7 @@ public interface StatementContext extends Context {
 	 *
 	 * @return the statement text
 	 */
-	public String getStatementText();
+	String getStatementText();
 
 	/**
 		Set the level of SQL allowed in this and subsequent
@@ -227,24 +227,24 @@ public interface StatementContext extends Context {
 		reset the permissions after a function call.
 
 	*/
-	public void setSQLAllowed(short allow, boolean force);
+	void setSQLAllowed(short allow, boolean force);
 
 	/**
 		Get the setting of the SQL allowed state.
 	*/
-	public short getSQLAllowed();
+	short getSQLAllowed();
 
 
 	/**
 		Set to indicate statement is system code.
 		For example a system procedure, view, function etc.
 	*/
-	public void setSystemCode();
+	void setSystemCode();
 
 	/**
 		Return true if this statement is system code.
 	*/
-	public boolean getSystemCode();
+	boolean getSystemCode();
 
 	/**
 		Indicate that, in the event of a statement-level exception,
@@ -253,47 +253,47 @@ public interface StatementContext extends Context {
 		context, and that other context needs to be rolled back,
 		too.
 	*/
-	public void setParentRollback();
+	void setParentRollback();
 
 	/**
      * Mark this statement context as associated with this activation.
 	 *
 	 * @param a activation
      */
-	public void setActivation(Activation a);
+	void setActivation(Activation a);
 
 	/**
      * Get activation associated with this statement context, if any.
 	 * Used to link up stack of activations of calls in nested
 	 * connections, see GenericPreparedStatement#getActivation.
      */
-	public Activation getActivation();
+	Activation getActivation();
 
 
 	/**
 	 * Get the current SQL session context
 	 */
-	public SQLSessionContext getSQLSessionContext();
+	SQLSessionContext getSQLSessionContext();
 
 	/**
 	 * Set the current SQL session context
 	 *
 	 * @param ctx the SQL session context
 	 */
-	public void setSQLSessionContext(SQLSessionContext ctx);
+	void setSQLSessionContext(SQLSessionContext ctx);
 
     /**
      * Tells if this statement has been invalidated.
      *
      * @return {@code true} if the statement was invalidated.
      */
-    public boolean getStatementWasInvalidated();
+	boolean getStatementWasInvalidated();
 
-    public void setMaxCardinality(int size);
+    void setMaxCardinality(int size);
 
-    public int getMaxCardinality();
+    int getMaxCardinality();
 
-    public void setXPlainTableOrProcedure(boolean val);
+    void setXPlainTableOrProcedure(boolean val);
 
-    public boolean hasXPlainTableOrProcedure();
+    boolean hasXPlainTableOrProcedure();
 }

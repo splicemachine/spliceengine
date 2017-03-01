@@ -40,9 +40,9 @@ import java.io.ObjectInput;
  */
 public interface ErrorObjectInput extends ObjectInput, ErrorInfo
 {
-	public String getErrorInfo();
+	String getErrorInfo();
 
-    public Exception getNestedException();
+    Exception getNestedException();
 
 }
 

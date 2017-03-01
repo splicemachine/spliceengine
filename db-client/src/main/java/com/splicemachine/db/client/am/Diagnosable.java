@@ -26,7 +26,7 @@
 package com.splicemachine.db.client.am;
 
 public interface Diagnosable {
-    public Sqlca getSqlca();
+    Sqlca getSqlca();
 
-    public void printTrace(java.io.PrintWriter printWriter, String messageHeader);
+    void printTrace(java.io.PrintWriter printWriter, String messageHeader);
 }

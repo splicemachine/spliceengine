@@ -63,7 +63,7 @@ public interface WritableStorageFactory extends StorageFactory
      *            or because the system cannot guarantee that all the buffers have been
      *            synchronized with physical media.
      */
-    public void sync( OutputStream stream, boolean metaData) throws IOException, SyncFailedException;
+    void sync(OutputStream stream, boolean metaData) throws IOException, SyncFailedException;
 
     /**
      * This method tests whether the StorageRandomAccessFile "rws" and "rwd" modes
@@ -75,5 +75,5 @@ public interface WritableStorageFactory extends StorageFactory
      * @return <b>true</b> if an StIRandomAccess file opened with "rws" or "rwd" modes immediately writes data to the
      *         underlying storage, <b>false</b> if not.
      */
-    public boolean supportsWriteSync();
+    boolean supportsWriteSync();
 }

@@ -33,7 +33,7 @@ public interface Restriction {
      */
     boolean apply(ExecRow row) throws StandardException;
 
-    static final Restriction noOpRestriction = new Restriction() {
+    Restriction noOpRestriction = new Restriction() {
         @Override
         public boolean apply(ExecRow row) throws StandardException {
             return true;

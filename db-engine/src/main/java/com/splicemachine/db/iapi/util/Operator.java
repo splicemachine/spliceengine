@@ -40,5 +40,5 @@ public interface Operator {
 	/**
 		Operate on an input object
 	*/
-	public void operate(Object other);
+	void operate(Object other);
 }

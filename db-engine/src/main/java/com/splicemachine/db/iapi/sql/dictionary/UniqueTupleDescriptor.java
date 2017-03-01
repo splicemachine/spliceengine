@@ -45,5 +45,5 @@ public interface UniqueTupleDescriptor
 	 *
 	 * @return the uuid
 	 */
-	public UUID getUUID();
+	UUID getUUID();
 }

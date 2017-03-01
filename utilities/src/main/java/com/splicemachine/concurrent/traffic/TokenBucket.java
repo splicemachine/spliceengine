@@ -210,7 +210,7 @@ public class TokenBucket implements TrafficController {
         this.maxTokens = newMaxPermits;
     }
 
-    public static interface TokenStrategy{
+    public interface TokenStrategy{
         /**
          * Get the number of tokens which can be added in the given time range.
          * @param timeDiffMs the time diff(in milliseconds);
