@@ -3313,15 +3313,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    //TODO : next version of Spark will support it
-    @Test @Ignore
+    @Test
     public void testNullsMultiFunctionSameOverClause() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
-//                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank " +
-//                              "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
-                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
-                              "FROM %s  --SPLICE-PROPERTIES useSpark = %s \n ORDER BY dept, salary, EMPNUM",
+                            "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
+                            "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
+                            "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
+                            "FROM %s --SPLICE-PROPERTIES useSpark = %s \n ORDER BY EMPNUM",
                           this.getTableReference(EMPTAB_NULLS), useSpark);
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
