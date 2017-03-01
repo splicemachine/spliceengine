@@ -168,5 +168,5 @@ public interface LanguageConnectionFactory {
 
 
 
-    public Parser newParser(CompilerContext cc);
+    Parser newParser(CompilerContext cc);
 }

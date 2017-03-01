@@ -140,22 +140,22 @@ public interface CharStream {
 
   // This method was added to support ability to get the input
   // between two tokens.
-  abstract int getBeginOffset();
+  int getBeginOffset();
 
   // This method was added to support ability to get the input
   // between two tokens.
-  abstract int getEndOffset();
+  int getEndOffset();
 
   // These methods were added to support re-initialization of CharStreams
-  abstract void ReInit(java.io.Reader dstream,
-						int startline, int startcolumn, int buffersize);
+  void ReInit(java.io.Reader dstream,
+              int startline, int startcolumn, int buffersize);
 
-  abstract void ReInit(java.io.Reader dstream, int startline, int startcolumn);
+  void ReInit(java.io.Reader dstream, int startline, int startcolumn);
 
-  abstract void ReInit(java.io.InputStream dstream, int startline,
-						int startcolumn, int buffersize);
+  void ReInit(java.io.InputStream dstream, int startline,
+              int startcolumn, int buffersize);
 
-  abstract void ReInit(java.io.InputStream dstream, int startline,
-						int startcolumn);
+  void ReInit(java.io.InputStream dstream, int startline,
+              int startcolumn);
 
 }

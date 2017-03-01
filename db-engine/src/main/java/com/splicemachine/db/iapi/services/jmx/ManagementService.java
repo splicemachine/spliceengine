@@ -56,7 +56,7 @@ public interface ManagementService extends ManagementMBean {
     /**
      * The domain for all of db's mbeans: com.splicemachine.db
      */
-    public static final String DERBY_JMX_DOMAIN = "com.splicemachine.db";
+    String DERBY_JMX_DOMAIN = "com.splicemachine.db";
     
     /**
      * Registers an MBean with the MBean server.
@@ -71,9 +71,9 @@ public interface ManagementService extends ManagementMBean {
      * 
      * @return An idenitifier that can later be used to unregister the mbean.
      */
-    public Object registerMBean(Object bean,
-            Class beanInterface,
-            String keyProperties)
+    Object registerMBean(Object bean,
+                         Class beanInterface,
+                         String keyProperties)
             throws StandardException;
     
     /**
@@ -82,5 +82,5 @@ public interface ManagementService extends ManagementMBean {
      * @param mbeanIdentifier An identifier returned by registerMBean.
      * @throws StandardException Error unregistering bean.
      */
-    public void unregisterMBean(Object mbeanIdentifier);
+    void unregisterMBean(Object mbeanIdentifier);
 }

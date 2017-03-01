@@ -414,11 +414,11 @@ public interface ResourceAdapter {
 	 */
 	boolean isActive();
 
-	public Object findConnection(XAXactId xid);
+	Object findConnection(XAXactId xid);
 
-	public boolean addConnection(XAXactId xid, Object conn);
+	boolean addConnection(XAXactId xid, Object conn);
 
-	public Object removeConnection(XAXactId xid);
+	Object removeConnection(XAXactId xid);
 
 	/**
 	 * Cancel the XA transaction identified by the specified xid.  The
@@ -428,6 +428,6 @@ public interface ResourceAdapter {
 	 * @param xid tranaction id to cancel
 	 * @param messageId error to report when canceling
 	 */
-	public void cancelXATransaction(XAXactId xid, String messageId) 
+	void cancelXATransaction(XAXactId xid, String messageId)
 		throws XAException;
 }

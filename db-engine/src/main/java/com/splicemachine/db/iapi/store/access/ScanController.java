@@ -77,7 +77,7 @@ public interface ScanController extends GenericScanController{
     /* The value of this must be the same value returned by the Orderable
      * interface when a key is > than another key.
      */
-    public static final int GE=1;
+    int GE=1;
 
     /**
      * GT is used to position a scan at values greater than the given key.
@@ -96,7 +96,7 @@ public interface ScanController extends GenericScanController{
     /* The value of this must be the same value returned by the Orderable
      * interface when a key is < than another key.
      */
-    public static final int GT=-1;
+    int GT=-1;
 
     /**
      * NA - argument is unused in call.  For some scans the key is set to null
@@ -108,7 +108,7 @@ public interface ScanController extends GenericScanController{
     /* The value of this must be the same value returned by the Orderable
      * interface when a key is < than another key.
      */
-    public static final int NA=0;
+    int NA=0;
 
     /**
      * Delete the row at the current position of the scan.

@@ -46,7 +46,7 @@ public interface Transaction {
 		didn't make any changes 
 	*/
 
-	public void commit() throws IOException;
+	void commit() throws IOException;
 
 	/**
 	    "Commit" this transaction without sync'ing the log.
@@ -59,7 +59,7 @@ public interface Transaction {
 		it will revert to the normal commit.
 	*/
 
-	public void commitNoSync(int commitflag) throws IOException;
+	void commitNoSync(int commitflag) throws IOException;
 
 	/**
 		Abort all changes made by this transaction since the last commit, abort
@@ -67,20 +67,20 @@ public interface Transaction {
 		All savepoints within this transaction are released.
 
 	*/
-	public void abort() throws IOException;
+	void abort() throws IOException;
 
 	/**
 		Close this transaction, the transaction must be idle. This close will
 		pop the transaction context off the stack that was pushed when the 
         transaction was started.
 	*/
-	public void close() throws IOException;
+	void close() throws IOException;
 
 	/**
         If this transaction is not idle, abort it.  After this call close().
 
 	*/
-	public void destroy() throws IOException;
+	void destroy() throws IOException;
 
 
 	/**
@@ -102,7 +102,7 @@ public interface Transaction {
 		
 	*/
 
-	public int setSavePoint(String name, Object kindOfSavepoint) throws IOException;
+	int setSavePoint(String name, Object kindOfSavepoint) throws IOException;
 
 	/**
 		Release the save point of the given name. Relasing a savepoint removes 
@@ -119,7 +119,7 @@ public interface Transaction {
 
 	*/
 
-	public int releaseSavePoint(String name, Object kindOfSavepoint) throws IOException;
+	int releaseSavePoint(String name, Object kindOfSavepoint) throws IOException;
 
 	/**
 		Rollback all changes made since the named savepoint was set. The named
@@ -137,26 +137,26 @@ public interface Transaction {
 		@return returns total number of savepoints in the stack.
 
 	*/
-	public int rollbackToSavePoint(String name, Object kindOfSavepoint) throws IOException;
+	int rollbackToSavePoint(String name, Object kindOfSavepoint) throws IOException;
 
     /**
      * Reveals whether the transaction has ever read or written data.
      *
 	 * @return true If the transaction has never read or written data.
      **/
-	public boolean isIdle();
+	boolean isIdle();
 
     /**
 	  Reveal whether the transaction is in a pristine state, which
 	  means it hasn't done any updates since the last commit.
 	  @return true if so, false otherwise
 	  */
-    public boolean isPristine();
+	boolean isPristine();
 
 	/**
 		Return true if any transaction is blocked, even if not by this one.
 	 */
-	public  boolean anyoneBlocked();
+	boolean anyoneBlocked();
 
 	/**
      * Convert a local transaction to a global transaction.
@@ -199,7 +199,7 @@ public interface Transaction {
      *                 current xid.
      *
      **/
-    public void xa_commit(
+	void xa_commit(
 			boolean onePhase)
 			throws IOException;
 
@@ -216,7 +216,7 @@ public interface Transaction {
      *                 method.
      *
      **/
-    public int xa_prepare()
+	int xa_prepare()
 			throws IOException;
 
     /**
@@ -227,7 +227,7 @@ public interface Transaction {
      * <p>
      *
      **/
-    public void xa_rollback()
+	void xa_rollback()
 			throws IOException;
 
 	
@@ -235,5 +235,5 @@ public interface Transaction {
 	 * get string ID of the actual transaction ID that will 
 	 * be used when transaction is in  active state. 
 	 */
-	public String getActiveStateTxIdString();
+	String getActiveStateTxIdString();
 }

@@ -55,8 +55,8 @@ public interface Limit {
 
         @exception StandardException Standard Derby error policy.
 	*/
-	public void reached(CompatibilitySpace compatibilitySpace, Object group,
-						int limit, Enumeration lockList, int lockCount)
+	void reached(CompatibilitySpace compatibilitySpace, Object group,
+				 int limit, Enumeration lockList, int lockCount)
 		throws StandardException;
 
 }

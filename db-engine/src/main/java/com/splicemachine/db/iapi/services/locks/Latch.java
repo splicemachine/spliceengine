@@ -39,17 +39,17 @@ public interface Latch {
 	/**	
 		Get the compatibility space the latch is held in.
 	*/
-	public CompatibilitySpace getCompatabilitySpace();
+	CompatibilitySpace getCompatabilitySpace();
 
 	/**
 		Gte the object the latch is held on.
 	*/
-	public Lockable getLockable();
+	Lockable getLockable();
 
 	/**
 		Get the qualifier used when the latch was obtained.
 	*/
-	public Object getQualifier();
+	Object getQualifier();
 
-	public int getCount();
+	int getCount();
 }

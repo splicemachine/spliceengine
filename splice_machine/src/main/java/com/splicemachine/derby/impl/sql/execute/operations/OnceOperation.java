@@ -183,7 +183,7 @@ public class OnceOperation extends SpliceBaseOperation {
 				return rowWithNulls;
 		}
 
-		private static interface RowSource{
+		private interface RowSource{
 				ExecRow next() throws StandardException,IOException;
 		}
 		protected ExecRow validateNextRow(RowSource rowSource,boolean returnNullRow) throws StandardException, IOException {

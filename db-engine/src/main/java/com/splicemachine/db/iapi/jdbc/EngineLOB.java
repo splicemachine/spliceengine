@@ -54,12 +54,12 @@ public interface EngineLOB {
      *
      * @return Locator key for this LOB
      */
-    public int getLocator();
+    int getLocator();
 
     /**
      * Frees all resources assoicated with this LOB.
      *
      * @throws SQLException if an error occurs during cleanup
      */
-    public void free() throws SQLException;
+    void free() throws SQLException;
 }

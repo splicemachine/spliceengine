@@ -39,18 +39,18 @@ public interface C_LockFactory {
 	/**
 		Timeout value that indicates wait for the lock or latch forever.
 	*/
-	public static final int WAIT_FOREVER = -1;
+	int WAIT_FOREVER = -1;
 
 	/**
 		Timeout value that indicates wait for the lock according to
 		db.locks.waitTimeout.
 	*/
-	public static final int TIMED_WAIT = -2;
+	int TIMED_WAIT = -2;
 
 	/**
 		Timeout value that indicates do not wait for the lock or latch at all
 		*/
-	public static final int NO_WAIT = 0;
+	int NO_WAIT = 0;
 }
 
 

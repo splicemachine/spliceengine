@@ -60,7 +60,7 @@ public interface ConcatableDataValue extends DataValueDescriptor, VariableSizeDa
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public NumberDataValue charLength(NumberDataValue result)
+	NumberDataValue charLength(NumberDataValue result)
 							throws StandardException;
 
 	/**
@@ -76,11 +76,11 @@ public interface ConcatableDataValue extends DataValueDescriptor, VariableSizeDa
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public ConcatableDataValue substring(
-				NumberDataValue start,
-				NumberDataValue length,
-				ConcatableDataValue result,
-				int maxLen)
+	ConcatableDataValue substring(
+			NumberDataValue start,
+			NumberDataValue length,
+			ConcatableDataValue result,
+			int maxLen)
 		throws StandardException;
 
 	/**
@@ -97,9 +97,9 @@ public interface ConcatableDataValue extends DataValueDescriptor, VariableSizeDa
 	 *
 	 * @exception StandardException if an error occurs
 	 */
-	public ConcatableDataValue replace(
-            StringDataValue fromStr,
-            StringDataValue toStr,
-            ConcatableDataValue result)
+	ConcatableDataValue replace(
+			StringDataValue fromStr,
+			StringDataValue toStr,
+			ConcatableDataValue result)
             throws StandardException;
 }

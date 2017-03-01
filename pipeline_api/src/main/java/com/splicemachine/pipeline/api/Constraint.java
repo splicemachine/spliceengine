@@ -34,7 +34,7 @@ public interface Constraint {
     /**
      * The type of the Constraint
      */
-    public static enum Type {
+    enum Type {
         /**
          * a PrimaryKey constraint. This is a unique, non-null constraint on one or more columns in the row.
          */
@@ -69,7 +69,7 @@ public interface Constraint {
     /**
      * The result of the Constraint
      */
-    public static enum Result {
+    enum Result {
         SUCCESS,
         FAILURE,
         ADDITIVE_WRITE_CONFLICT

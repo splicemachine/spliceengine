@@ -28,11 +28,11 @@ package com.splicemachine.db.client.net;
 import com.splicemachine.db.client.am.ResultSetCallbackInterface;
 
 public interface ResultSetReplyInterface {
-    public void readFetch(ResultSetCallbackInterface resultSet) throws com.splicemachine.db.client.am.DisconnectException;
+    void readFetch(ResultSetCallbackInterface resultSet) throws com.splicemachine.db.client.am.DisconnectException;
 
-    public void readScrollableFetch(ResultSetCallbackInterface resultSet) throws com.splicemachine.db.client.am.DisconnectException;
+    void readScrollableFetch(ResultSetCallbackInterface resultSet) throws com.splicemachine.db.client.am.DisconnectException;
 
-    public void readPositioningFetch(ResultSetCallbackInterface resultSet) throws com.splicemachine.db.client.am.DisconnectException;
+    void readPositioningFetch(ResultSetCallbackInterface resultSet) throws com.splicemachine.db.client.am.DisconnectException;
 
-    public void readCursorClose(ResultSetCallbackInterface resultSet) throws com.splicemachine.db.client.am.DisconnectException;
+    void readCursorClose(ResultSetCallbackInterface resultSet) throws com.splicemachine.db.client.am.DisconnectException;
 }

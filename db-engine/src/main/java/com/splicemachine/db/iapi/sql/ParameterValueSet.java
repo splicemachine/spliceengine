@@ -97,7 +97,7 @@ public interface ParameterValueSet
 	 *
 	 * @return	The number of parameters in this set.
 	 */
-	public	int	getParameterCount();
+	int	getParameterCount();
 
 	/**
 	 * Returns the parameter at the given position.
@@ -105,7 +105,7 @@ public interface ParameterValueSet
 	 * @return	The parameter at the given position.
 	 * @exception StandardException		Thrown on error
 	 */
-	public DataValueDescriptor getParameter( int position ) throws StandardException;
+	DataValueDescriptor getParameter(int position) throws StandardException;
 
 
 	/**
@@ -117,7 +117,7 @@ public interface ParameterValueSet
 	 * @return	The parameter at the given position.
 	 * @exception StandardException		Thrown on error
 	 */
-	public DataValueDescriptor getParameterForSet( int position ) throws StandardException;
+	DataValueDescriptor getParameterForSet(int position) throws StandardException;
 
 	/**
 		Set the value of this user defined parameter to the passed in Object.
@@ -132,7 +132,7 @@ public interface ParameterValueSet
 	 * @return Parameter's value holder.
 	 * @throws StandardException Position out of range or the parameter is not INOUT or OUT.
 	 */
-	public DataValueDescriptor getParameterForGet( int position ) throws StandardException;
+	DataValueDescriptor getParameterForGet(int position) throws StandardException;
 
 	/**
 	 * Tells whether all the parameters are set and ready for execution.
@@ -174,7 +174,7 @@ public interface ParameterValueSet
 	 * @return true if it has a return parameter
 	 *
 	 */
-	public boolean hasReturnOutputParameter();
+	boolean hasReturnOutputParameter();
 
 	/**
 		Check that there are not output parameters defined
@@ -184,7 +184,7 @@ public interface ParameterValueSet
 
 		@return true if a declared Java Procedure INOUT or OUT parameter is in the set, false otherwise.
 	*/
-	public boolean checkNoDeclaredOutputParameters();
+	boolean checkNoDeclaredOutputParameters();
 
 	/**
 	 * Set the parameter values of the pvstarget to equal those 
@@ -197,7 +197,7 @@ public interface ParameterValueSet
 
 		@exception StandardException values not compatible
 	 **/
-	public void transferDataValues(ParameterValueSet pvstarget) throws StandardException;
+	void transferDataValues(ParameterValueSet pvstarget) throws StandardException;
 
 	/**
 		Return the mode of the parameter according to JDBC 3.0 ParameterMetaData
@@ -206,7 +206,7 @@ public interface ParameterValueSet
 	 * @param parameterIndex the first parameter is 1, the second is 2, ...
 	 *
 	 */
-	public short getParameterMode(int parameterIndex);
+	short getParameterMode(int parameterIndex);
 
 
     /**
@@ -224,7 +224,7 @@ public interface ParameterValueSet
 	 *
 	 * @return scale
 	 */
-	public int getScale(int parameterIndex);
+	int getScale(int parameterIndex);
 
 	/**
 	 * Return the precision of the given parameter index in this pvs.
@@ -233,7 +233,7 @@ public interface ParameterValueSet
 	 *
 	 * @return precision
 	 */
-	public int getPrecision(int parameterIndex);
+	int getPrecision(int parameterIndex);
 
 
 }

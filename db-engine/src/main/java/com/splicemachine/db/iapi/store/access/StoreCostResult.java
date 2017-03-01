@@ -45,20 +45,20 @@ public interface StoreCostResult
     /**
      * Get the estimated row count.
      **/
-    public long getEstimatedRowCount();
+    long getEstimatedRowCount();
 
     /**
      * Set the estimated row count.
      **/
-    public void setEstimatedRowCount(long count);
+    void setEstimatedRowCount(long count);
 
     /**
      * Get the estimated cost.
      **/
-    public double getEstimatedCost();
+    double getEstimatedCost();
 
     /**
      * Set the estimated cost.
      **/
-    public void setEstimatedCost(double cost);
+    void setEstimatedCost(double cost);
 }

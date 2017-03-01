@@ -53,7 +53,7 @@ public interface TypeDescriptor
 	  width is unknown.
 	 */
 
-	public	static	int MAXIMUM_WIDTH_UNKNOWN = -1;
+	int MAXIMUM_WIDTH_UNKNOWN = -1;
     
     /**
      * Catalog type for nullable INTEGER
@@ -93,7 +93,7 @@ public interface TypeDescriptor
 	 *
 	 * @see java.sql.Types
 	 */
-	public int getJDBCTypeId();
+	int getJDBCTypeId();
 
 	/**
 	  Returns the maximum width of the type.  This may have
@@ -103,7 +103,7 @@ public interface TypeDescriptor
 
 	  @return	the maximum length of this Type; -1 means "unknown/no max length"
 	  */
-	public	int			getMaximumWidth();
+	int			getMaximumWidth();
 
 
 	/**
@@ -116,7 +116,7 @@ public interface TypeDescriptor
 	  @return	the maximum length of this Type IN BYTES;
 				-1 means "unknown/no max length"
 	  */
-	public	int			getMaximumWidthInBytes();
+	int			getMaximumWidthInBytes();
 
 
 	/**
@@ -125,7 +125,7 @@ public interface TypeDescriptor
 	  @return	The number of decimal digits for the type.  Returns
 	 		zero for non-numeric types.
 	  */
-	public	int			getPrecision();
+	int			getPrecision();
 
 
 	/**
@@ -135,7 +135,7 @@ public interface TypeDescriptor
 	  @return	The number of digits to the right of the decimal for
 	 		the type.  Returns zero for non-numeric types.
 	  */
-	public	int			getScale();
+	int			getScale();
 
 
 	/**
@@ -144,7 +144,7 @@ public interface TypeDescriptor
 
 	  @return	true if values of this type may be null. false otherwise
 	  */
-	public	boolean		isNullable();
+	boolean		isNullable();
 
 	/**
 	  Gets the name of this type.
@@ -152,7 +152,7 @@ public interface TypeDescriptor
 
 	  @return	the name of this type
 	  */
-	public	String		getTypeName();
+	String		getTypeName();
 
 
 	/**
@@ -170,7 +170,7 @@ public interface TypeDescriptor
 	 			a SQL Parser.
 	 
 	 */
-	public 	String		getSQLstring();
+	String		getSQLstring();
 
 	/**
 	 * Get the collation type for this type. This api applies only to character
@@ -188,17 +188,17 @@ public interface TypeDescriptor
      * @see StringDataValue#COLLATION_TYPE_TERRITORY_BASED
 	 * 
 	 */
-	public int getCollationType();
+	int getCollationType();
 
 	/**
 	 * Return true if this is a Row Multiset type
 	  */
-	public	boolean isRowMultiSet();
+	boolean isRowMultiSet();
     
 	/**
 	 * Return true if this is a user defined type
 	  */
-	public	boolean isUserDefinedType();
+	boolean isUserDefinedType();
     
     /**
      * If this catalog type is a row multi-set type
@@ -207,7 +207,7 @@ public interface TypeDescriptor
      * @return Catalog ypes comprising the row,
      * null if this is not a row type.
      */
-    public TypeDescriptor[] getRowTypes();
+	TypeDescriptor[] getRowTypes();
 
     /**
      * If this catalog type is a row multi-set type
@@ -216,6 +216,6 @@ public interface TypeDescriptor
      * @return Column names comprising the row,
      * null if this is not a row type.
      */
-    public String[] getRowColumnNames();
+	String[] getRowColumnNames();
 }
 

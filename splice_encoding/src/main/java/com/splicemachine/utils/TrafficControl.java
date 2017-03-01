@@ -20,11 +20,11 @@ package com.splicemachine.utils;
  */
 public interface TrafficControl  {
 
-    public void release(int permits);
+    void release(int permits);
 
-    public int tryAcquire(int minPermits, int maxPermits);
+    int tryAcquire(int minPermits, int maxPermits);
 
-    public void acquire(int permits) throws InterruptedException;
+    void acquire(int permits) throws InterruptedException;
 
     int getAvailablePermits();
 

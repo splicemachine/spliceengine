@@ -59,23 +59,23 @@ package com.splicemachine.db.mbeans;
 public interface VersionMBean {
     // attributes
     
-    public String getProductName();
-    public String getProductTechnologyName();
-    public String getProductVendorName();
+    String getProductName();
+    String getProductTechnologyName();
+    String getProductVendorName();
     
-    public int getMajorVersion();
-    public int getMinorVersion();
-    public int getMaintenanceVersion();
+    int getMajorVersion();
+    int getMinorVersion();
+    int getMaintenanceVersion();
     
     /**
      * Return the full version string.
      * @return Full version string.
      */
-    public String getVersionString();
+    String getVersionString();
     
-    public String getBuildNumber();
+    String getBuildNumber();
     
-    public boolean isBeta();
-    public boolean isAlpha();
+    boolean isBeta();
+    boolean isAlpha();
     
 }

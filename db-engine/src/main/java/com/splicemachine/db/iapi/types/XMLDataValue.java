@@ -51,10 +51,10 @@ public interface XMLDataValue extends DataValueDescriptor
      *  value returned; otherwise, an exception is thrown. 
      * @exception StandardException Thrown on error.
      */
-    public XMLDataValue XMLParse(
-            StringDataValue stringValue,
-            boolean preserveWS,
-            SqlXmlUtil sqlxUtil)
+   XMLDataValue XMLParse(
+           StringDataValue stringValue,
+           boolean preserveWS,
+           SqlXmlUtil sqlxUtil)
         throws StandardException;
 
     /**
@@ -74,8 +74,8 @@ public interface XMLDataValue extends DataValueDescriptor
      *  in the form of a StringDataValue object.
      * @exception StandardException Thrown on error
      */
-    public StringDataValue XMLSerialize(StringDataValue result,
-        int targetType, int targetWidth, int targetCollationType) 
+    StringDataValue XMLSerialize(StringDataValue result,
+                                 int targetType, int targetWidth, int targetCollationType)
     throws StandardException;
 
     /**
@@ -94,7 +94,7 @@ public interface XMLDataValue extends DataValueDescriptor
      *  unknown if the xml value is NULL; false otherwise.
      * @exception StandardException Thrown on error
      */
-    public BooleanDataValue XMLExists(SqlXmlUtil sqlxUtil)
+    BooleanDataValue XMLExists(SqlXmlUtil sqlxUtil)
 		throws StandardException;
 
     /**
@@ -114,7 +114,7 @@ public interface XMLDataValue extends DataValueDescriptor
      * @exception Exception thrown on error (and turned into a
      *  StandardException by the caller).
      */
-    public XMLDataValue XMLQuery(SqlXmlUtil sqlxUtil, XMLDataValue result)
+    XMLDataValue XMLQuery(SqlXmlUtil sqlxUtil, XMLDataValue result)
 		throws StandardException;
 
     /* ****
@@ -124,22 +124,22 @@ public interface XMLDataValue extends DataValueDescriptor
     /**
      * Set this XML value's qualified type.
      */
-    public void setXType(int xtype);
+    void setXType(int xtype);
 
     /**
      * Retrieve this XML value's qualified type.
      */
-    public int getXType();
+    int getXType();
 
     /**
      * Take note of the fact this XML value represents an XML
      * sequence that has one or more top-level attribute nodes.
      */
-    public void markAsHavingTopLevelAttr();
+    void markAsHavingTopLevelAttr();
 
     /**
      * Return whether or not this XML value represents a sequence
      * that has one or more top-level attribute nodes.
      */
-    public boolean hasTopLevelAttr();
+    boolean hasTopLevelAttr();
 }

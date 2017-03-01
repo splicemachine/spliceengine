@@ -35,31 +35,31 @@ package com.splicemachine.db.client.am;
 
 public interface StatementCallbackInterface extends UnitOfWorkListener {
     // A query has been opened on the server.
-    public void completeOpenQuery(Sqlca sqlca, ResultSet resultSet) throws DisconnectException;
+    void completeOpenQuery(Sqlca sqlca, ResultSet resultSet) throws DisconnectException;
 
-    public void completeExecuteCallOpenQuery(Sqlca sqlca, ResultSet resultSet, ColumnMetaData resultSetMetaData, Section generatedSection);
+    void completeExecuteCallOpenQuery(Sqlca sqlca, ResultSet resultSet, ColumnMetaData resultSetMetaData, Section generatedSection);
 
     // Chains a warning onto the statement.
-    public void accumulateWarning(SqlWarning e);
+    void accumulateWarning(SqlWarning e);
 
-    public void completePrepare(Sqlca sqlca);
+    void completePrepare(Sqlca sqlca);
 
-    public void completePrepareDescribeOutput(ColumnMetaData columnMetaData, Sqlca sqlca);
+    void completePrepareDescribeOutput(ColumnMetaData columnMetaData, Sqlca sqlca);
 
-    public void completeExecuteImmediate(Sqlca sqlca);
+    void completeExecuteImmediate(Sqlca sqlca);
 
-    public void completeExecuteSetStatement(Sqlca sqlca);
+    void completeExecuteSetStatement(Sqlca sqlca);
 
 
-    public void completeExecute(Sqlca sqlca);
+    void completeExecute(Sqlca sqlca);
 
-    public void completeExecuteCall(Sqlca sqlca, Cursor params, ResultSet[] resultSets);
+    void completeExecuteCall(Sqlca sqlca, Cursor params, ResultSet[] resultSets);
 
-    public void completeExecuteCall(Sqlca sqlca, Cursor params);
+    void completeExecuteCall(Sqlca sqlca, Cursor params);
 
-    public int completeSqlca(Sqlca sqlca);
+    int completeSqlca(Sqlca sqlca);
 
-    public ConnectionCallbackInterface getConnectionCallbackInterface();
+    ConnectionCallbackInterface getConnectionCallbackInterface();
 
-    public ColumnMetaData getGuessedResultSetMetaData();
+    ColumnMetaData getGuessedResultSetMetaData();
 }

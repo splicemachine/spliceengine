@@ -48,14 +48,14 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  */
 public interface RelationalOperator
 {
-	public final int EQUALS_RELOP = 1;
-	public final int NOT_EQUALS_RELOP = 2;
-	public final int GREATER_THAN_RELOP = 3;
-	public final int GREATER_EQUALS_RELOP = 4;
-	public final int LESS_THAN_RELOP = 5;
-	public final int LESS_EQUALS_RELOP = 6;
-	public final int IS_NULL_RELOP = 7;
-	public final int IS_NOT_NULL_RELOP = 8;
+	int EQUALS_RELOP = 1;
+	int NOT_EQUALS_RELOP = 2;
+	int GREATER_THAN_RELOP = 3;
+	int GREATER_EQUALS_RELOP = 4;
+	int LESS_THAN_RELOP = 5;
+	int LESS_EQUALS_RELOP = 6;
+	int IS_NULL_RELOP = 7;
+	int IS_NOT_NULL_RELOP = 8;
 
 	/**
 	 * Check whether this RelationalOperator is a comparison of the given
@@ -331,7 +331,7 @@ public interface RelationalOperator
 	 *
 	 * @return int		The operator for this RelationalOperator.
 	 */
-	public int getOperator();
+	int getOperator();
 
 	/**
 	 * Return the variant type for the Qualifier's Orderable.
@@ -342,14 +342,14 @@ public interface RelationalOperator
 	 * @return int		The variant type for the Qualifier's Orderable.
 	 * @exception StandardException	thrown on error
 	 */
-	public int getOrderableVariantType(Optimizable optTable)
+	int getOrderableVariantType(Optimizable optTable)
 		throws StandardException;
 
 	/**
 	 * Return whether this operator compares the given Optimizable with
 	 * a constant whose value is known at compile time.
 	 */
-	public boolean compareWithKnownConstant(Optimizable optTable, boolean considerParameters);
+	boolean compareWithKnownConstant(Optimizable optTable, boolean considerParameters);
 
 	/**
 	 * Return an Object representing the known value that this relational
@@ -357,14 +357,14 @@ public interface RelationalOperator
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public DataValueDescriptor getCompareValue(Optimizable optTable)
+	DataValueDescriptor getCompareValue(Optimizable optTable)
 					throws StandardException;
 
 	/**
 	 * Return whether this operator is an equality comparison of the given
 	 * optimizable with a constant expression.
 	 */
-	public boolean equalsComparisonWithConstantExpression(Optimizable optTable);
+	boolean equalsComparisonWithConstantExpression(Optimizable optTable);
 
 	/**
 	 * Return a relational operator which matches the current one
@@ -377,6 +377,6 @@ public interface RelationalOperator
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public RelationalOperator getTransitiveSearchClause(ColumnReference otherCR)
+	RelationalOperator getTransitiveSearchClause(ColumnReference otherCR)
 		throws StandardException;
 }

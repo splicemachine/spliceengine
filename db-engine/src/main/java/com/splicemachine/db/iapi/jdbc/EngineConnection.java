@@ -47,13 +47,13 @@ public interface EngineConnection extends Connection {
     /**
      * Set the DRDA identifier for this connection.
      */
-    public void setDrdaID(String drdaID);
+    void setDrdaID(String drdaID);
 
     /**
      * Is this a global transaction
      * @return true if this is a global XA transaction
      */
-    public boolean isInGlobalTransaction();
+    boolean isInGlobalTransaction();
     
     /** 
      * Set the transaction isolation level that will be used for the 
@@ -69,12 +69,12 @@ public interface EngineConnection extends Connection {
      * 
      * 
      */
-    public void setPrepareIsolation(int level) throws SQLException;
+    void setPrepareIsolation(int level) throws SQLException;
 
     /**
      * Return prepare isolation 
      */
-    public int getPrepareIsolation()
+    int getPrepareIsolation()
         throws SQLException;
 
     /**
@@ -84,14 +84,14 @@ public interface EngineConnection extends Connection {
      * e.g. when the client is jdk 1.4 or above.
      * Can be removed once JDK 1.3 is no longer supported.
      */
-    public int getHoldability() throws SQLException;
+    int getHoldability() throws SQLException;
     
     /**
      * Add a SQLWarning to this Connection object.
      * @param newWarning Warning to be added, will be chained to any
      * existing warnings.
      */
-    public void addWarning(SQLWarning newWarning)
+    void addWarning(SQLWarning newWarning)
         throws SQLException;
 
     /**
@@ -99,14 +99,14 @@ public interface EngineConnection extends Connection {
     * Called when a commit or rollback of the transaction
     * happens.
     */
-    public void clearLOBMapping() throws SQLException;
+    void clearLOBMapping() throws SQLException;
 
     /**
     * Get the LOB reference corresponding to the locator.
     * @param key the integer that represents the LOB locator value.
     * @return the LOB Object corresponding to this locator.
     */
-    public Object getLOBMapping(int key) throws SQLException;
+    Object getLOBMapping(int key) throws SQLException;
 
     /**
      * Obtain the name of the current schema, so that the NetworkServer can
@@ -114,7 +114,7 @@ public interface EngineConnection extends Connection {
      * @return the current schema name
      * @throws java.sql.SQLException
      */
-    public String getCurrentSchemaName() throws SQLException;
+    String getCurrentSchemaName() throws SQLException;
 
     /**
      * Resets the connection before it is returned from a PooledConnection
@@ -124,7 +124,7 @@ public interface EngineConnection extends Connection {
      * part of this method. Temporary tables, IDENTITY_VAL_LOCAL and current
      * schema are reset.
      */
-    public void resetFromPool() throws SQLException;
+    void resetFromPool() throws SQLException;
 
     /**
      * Return an exception factory that could be used to generate
@@ -132,7 +132,7 @@ public interface EngineConnection extends Connection {
      *
      * @return an exception factory instance
      */
-    public ExceptionFactory getExceptionFactory();
+    ExceptionFactory getExceptionFactory();
 
     ////////////////////////////////////////////////////////////////////
     //
@@ -143,11 +143,11 @@ public interface EngineConnection extends Connection {
     /**
      * Get the name of the current schema.
      */
-    public String   getSchema() throws SQLException;
+    String   getSchema() throws SQLException;
 
     /**
      * Set the default schema for the Connection.
      */
-    public void   setSchema(  String schemaName ) throws SQLException;
+    void   setSchema(String schemaName) throws SQLException;
     
 }

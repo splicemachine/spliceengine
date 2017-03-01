@@ -45,47 +45,47 @@ public interface GeneratedByteCode {
 		Called by the class manager just after
 		creating the instance of the new class.
 	*/
-	public void initFromContext(Context context)
+	void initFromContext(Context context)
 		throws StandardException;
 
 	/**
 		Set the Generated Class. Call by the class manager just after
 		calling initFromContext.
 	*/
-	public void setGC(GeneratedClass gc);
+	void setGC(GeneratedClass gc);
 
 	/**
 		Called by the class manager just after calling setGC().
 	*/
-	public void postConstructor() throws StandardException;
+	void postConstructor() throws StandardException;
 
 	/**
 		Get the GeneratedClass object for this object.
 	*/
-	public GeneratedClass getGC();
+	GeneratedClass getGC();
 
-	public GeneratedMethod getMethod(String methodName) throws StandardException;
+	GeneratedMethod getMethod(String methodName) throws StandardException;
 
 
-	public Object e0() throws StandardException ; 
-	public Object e1() throws StandardException ;
-	public Object e2() throws StandardException ;
-	public Object e3() throws StandardException ;
-	public Object e4() throws StandardException ; 
-	public Object e5() throws StandardException ;
-	public Object e6() throws StandardException ;
-	public Object e7() throws StandardException ;
-	public Object e8() throws StandardException ; 
-	public Object e9() throws StandardException ;
+	Object e0() throws StandardException ;
+	Object e1() throws StandardException ;
+	Object e2() throws StandardException ;
+	Object e3() throws StandardException ;
+	Object e4() throws StandardException ;
+	Object e5() throws StandardException ;
+	Object e6() throws StandardException ;
+	Object e7() throws StandardException ;
+	Object e8() throws StandardException ;
+	Object e9() throws StandardException ;
 
-    public String e0ToString() throws StandardException ;
-    public String e1ToString() throws StandardException ;
-    public String e2ToString() throws StandardException ;
-    public String e3ToString() throws StandardException ;
-    public String e4ToString() throws StandardException ;
-    public String e5ToString() throws StandardException ;
-    public String e6ToString() throws StandardException ;
-    public String e7ToString() throws StandardException ;
-    public String e8ToString() throws StandardException ;
-    public String e9ToString() throws StandardException ;
+    String e0ToString() throws StandardException ;
+    String e1ToString() throws StandardException ;
+    String e2ToString() throws StandardException ;
+    String e3ToString() throws StandardException ;
+    String e4ToString() throws StandardException ;
+    String e5ToString() throws StandardException ;
+    String e6ToString() throws StandardException ;
+    String e7ToString() throws StandardException ;
+    String e8ToString() throws StandardException ;
+    String e9ToString() throws StandardException ;
 }

@@ -240,35 +240,35 @@ public interface CostEstimate extends StoreCostResult {
 
     String prettyDmlStmtString(double cost, long rows, String attrDelim, String rowsLabel);
 
-    public double getProjectionRows();
+    double getProjectionRows();
 
-    public void setProjectionRows(double projectionRows);
+    void setProjectionRows(double projectionRows);
 
-    public double getProjectionCost();
+    double getProjectionCost();
 
-    public void setProjectionCost(double projectionCost);
+    void setProjectionCost(double projectionCost);
 
-    public double getIndexLookupRows() ;
+    double getIndexLookupRows() ;
 
-    public void setIndexLookupRows(double indexLookupRows) ;
+    void setIndexLookupRows(double indexLookupRows) ;
 
-    public double getIndexLookupCost() ;
+    double getIndexLookupCost() ;
 
-    public void setIndexLookupCost(double indexLookupCost) ;
+    void setIndexLookupCost(double indexLookupCost) ;
 
-    public double getFromBaseTableRows() ;
+    double getFromBaseTableRows() ;
 
-    public void setFromBaseTableRows(double fromBaseTableRows);
+    void setFromBaseTableRows(double fromBaseTableRows);
 
-    public double getFromBaseTableCost();
+    double getFromBaseTableCost();
 
-    public void setFromBaseTableCost(double fromBaseTableCost);
+    void setFromBaseTableCost(double fromBaseTableCost);
 
-    public double getLocalCost();
+    double getLocalCost();
 
-    public double getRemoteCost();
+    double getRemoteCost();
 
-    public double localCostPerPartition();
+    double localCostPerPartition();
 
-    public void setLocalCostPerPartition(double localCostPerPartition);
+    void setLocalCostPerPartition(double localCostPerPartition);
 }

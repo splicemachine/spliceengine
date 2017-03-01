@@ -66,8 +66,8 @@ public interface PropertyFactory
      *
      * @param who   which object is called
      **/
-	public void addPropertySetNotification(
-    PropertySetCallback     who);
+	void addPropertySetNotification(
+			PropertySetCallback who);
 
     /**
      * Validate a Property set.
@@ -81,25 +81,25 @@ public interface PropertyFactory
      *
 	 * @exception StandardException Throws if p fails a check.
      **/
-	public void verifyPropertySet(
-    Properties p, 
-    Properties ignore) 
+	void verifyPropertySet(
+			Properties p,
+			Properties ignore)
         throws StandardException;
 
 	/**
 	 * validation a single property
 	 */
-	public void validateSingleProperty(String key,
-						  Serializable value,
-						  Dictionary set)
+	void validateSingleProperty(String key,
+								Serializable value,
+								Dictionary set)
 		throws StandardException;
 
 	/**
 	   
 	 */
-	public Serializable doValidateApplyAndMap(TransactionController tc,
-											 String key, Serializable value,
-											 Dictionary d, boolean dbOnlyProperty)
+	Serializable doValidateApplyAndMap(TransactionController tc,
+									   String key, Serializable value,
+									   Dictionary d, boolean dbOnlyProperty)
 		throws StandardException;
 
 
@@ -111,8 +111,8 @@ public interface PropertyFactory
 	  to serialize validations with changes to the set of
 	  property callbacks
 	  */
-	public Serializable doMap(String key,
-							 Serializable value,
-							 Dictionary set)
+	Serializable doMap(String key,
+					   Serializable value,
+					   Dictionary set)
 		throws StandardException;
 }

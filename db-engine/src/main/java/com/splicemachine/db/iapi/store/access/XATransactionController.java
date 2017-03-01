@@ -67,8 +67,8 @@ public interface XATransactionController extends TransactionController
      * Public Methods of This class:
      **************************************************************************
      */
-    public static final int XA_RDONLY = 1;
-    public static final int XA_OK     = 2;
+    int XA_RDONLY = 1;
+    int XA_OK     = 2;
 
     /**
      * This method is called to commit the current XA global transaction.
@@ -83,8 +83,8 @@ public interface XATransactionController extends TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void xa_commit(
-    boolean onePhase)
+    void xa_commit(
+            boolean onePhase)
 		throws StandardException;
 
     /**
@@ -104,7 +104,7 @@ public interface XATransactionController extends TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public int xa_prepare()
+    int xa_prepare()
 		throws StandardException;
 
     /**
@@ -119,6 +119,6 @@ public interface XATransactionController extends TransactionController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void xa_rollback()
+    void xa_rollback()
         throws StandardException;
 }

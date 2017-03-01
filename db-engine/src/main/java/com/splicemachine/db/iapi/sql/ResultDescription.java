@@ -62,7 +62,7 @@ public interface ResultDescription
 	/**
 		Return information about all the columns.
 	*/
-	public ResultColumnDescriptor[] getColumnInfo();
+	ResultColumnDescriptor[] getColumnInfo();
 
 	/**
 	 * Returns a ResultColumnDescriptor for the column, given the ordiinal
@@ -91,7 +91,7 @@ public interface ResultDescription
 	 *
 	 * @return a new ResultDescription
 	 */
-	public ResultDescription truncateColumns(int truncateFrom);
+	ResultDescription truncateColumns(int truncateFrom);
     
     /**
      * Set the JDBC ResultSetMetaData for this ResultDescription.
@@ -108,7 +108,7 @@ public interface ResultDescription
      * It is assumed the JDBC layer passes in a ResultSetMetaData
      * object based upon this.
      */
-    public void setMetaData(java.sql.ResultSetMetaData rsmd);
+	void setMetaData(java.sql.ResultSetMetaData rsmd);
     
     /**
      * Get the saved JDBC ResultSetMetaData. Will return
@@ -116,7 +116,7 @@ public interface ResultDescription
      * object. The caller then should manufacture a
      * ResultSetMetaData object and pass it into setMetaData.
      */
-    public java.sql.ResultSetMetaData getMetaData();
+	java.sql.ResultSetMetaData getMetaData();
     
     /**
      * Return the position of the column matching the
@@ -128,5 +128,5 @@ public interface ResultDescription
      * @param name
      * @return Position of the column (1-based), -1 if no match.
      */
-    public int findColumnInsenstive(String name);
+	int findColumnInsenstive(String name);
 }

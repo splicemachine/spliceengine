@@ -61,6 +61,6 @@ public interface ModuleSupportable {
 
 		@return true if this instance can be used, false otherwise.
 	*/
-	public boolean canSupport(Properties properties);
+	boolean canSupport(Properties properties);
 
 }

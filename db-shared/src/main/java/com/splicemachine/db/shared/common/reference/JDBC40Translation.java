@@ -55,26 +55,26 @@ public interface JDBC40Translation {
     /*
     ** public statics from 4.0 version of java.sql.DatabaseMetaData
     */
-    public static final int FUNCTION_PARAMETER_UNKNOWN = 0;
-    public static final int FUNCTION_PARAMETER_IN      = 1;
-    public static final int FUNCTION_PARAMETER_INOUT   = 2;
-    public static final int FUNCTION_PARAMETER_OUT     = 3;
-    public static final int FUNCTION_RETURN            = 4;
-    public static final int FUNCTION_COLUMN_RESULT            = 5;
+    int FUNCTION_PARAMETER_UNKNOWN = 0;
+    int FUNCTION_PARAMETER_IN      = 1;
+    int FUNCTION_PARAMETER_INOUT   = 2;
+    int FUNCTION_PARAMETER_OUT     = 3;
+    int FUNCTION_RETURN            = 4;
+    int FUNCTION_COLUMN_RESULT            = 5;
     
-    public static final int FUNCTION_NO_NULLS          = 0;
-    public static final int FUNCTION_NULLABLE          = 1;
-    public static final int FUNCTION_NULLABLE_UNKNOWN  = 2;
+    int FUNCTION_NO_NULLS          = 0;
+    int FUNCTION_NULLABLE          = 1;
+    int FUNCTION_NULLABLE_UNKNOWN  = 2;
 
-    public static final int FUNCTION_RESULT_UNKNOWN          = 0;
-    public static final int FUNCTION_NO_TABLE          = 1;
-    public static final int FUNCTION_RETURNS_TABLE  = 2;
+    int FUNCTION_RESULT_UNKNOWN          = 0;
+    int FUNCTION_NO_TABLE          = 1;
+    int FUNCTION_RETURNS_TABLE  = 2;
 
     // constants from java.sql.Types
-    public static final int NCHAR = -15;
-    public static final int NVARCHAR = -9;
-    public static final int LONGNVARCHAR = -16;
-    public static final int NCLOB = 2011;
-    public static final int ROWID = -8;
-    public static final int SQLXML = 2009;
+    int NCHAR = -15;
+    int NVARCHAR = -9;
+    int LONGNVARCHAR = -16;
+    int NCLOB = 2011;
+    int ROWID = -8;
+    int SQLXML = 2009;
 }

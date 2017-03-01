@@ -23,16 +23,16 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
  * Created by jleach on 5/4/15.
  */
 public interface IterableJoinFunction {
-    public boolean hasNext();
-    public ExecRow getRightRow();
-    public ExecRow getLeftRow();
-    public RowLocation getLeftRowLocation();
-    public LocatedRow getLeftLocatedRow();
-    public boolean wasRightOuterJoin();
-    public ExecutionFactory getExecutionFactory();
-    public int getNumberOfColumns();
-    public void setCurrentLocatedRow(LocatedRow locatedRow);
-    public int getResultSetNumber();
-    public OperationContext getOperationContext();
+    boolean hasNext();
+    ExecRow getRightRow();
+    ExecRow getLeftRow();
+    RowLocation getLeftRowLocation();
+    LocatedRow getLeftLocatedRow();
+    boolean wasRightOuterJoin();
+    ExecutionFactory getExecutionFactory();
+    int getNumberOfColumns();
+    void setCurrentLocatedRow(LocatedRow locatedRow);
+    int getResultSetNumber();
+    OperationContext getOperationContext();
 
 }

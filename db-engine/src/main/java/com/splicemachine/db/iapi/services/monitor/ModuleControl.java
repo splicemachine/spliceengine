@@ -88,7 +88,7 @@ public interface ModuleControl {
 		
 	*/
 
-	public void boot(boolean create, Properties properties)
+	void boot(boolean create, Properties properties)
 		throws StandardException;
 
 	/**
@@ -104,7 +104,7 @@ public interface ModuleControl {
 		@see ModuleFactory
 	*/
 
-	public void stop();
+	void stop();
 
 
 }

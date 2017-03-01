@@ -49,17 +49,17 @@ public interface ExecutionContext extends Context {
 	
 	
 	/* Constants for scan isolation levels. */
-	public static final int UNSPECIFIED_ISOLATION_LEVEL = 0;
-	public static final int READ_UNCOMMITTED_ISOLATION_LEVEL = 1;
-	public static final int READ_COMMITTED_ISOLATION_LEVEL = 2;
-	public static final int REPEATABLE_READ_ISOLATION_LEVEL = 3;
-	public static final int SERIALIZABLE_ISOLATION_LEVEL = 4;
+	int UNSPECIFIED_ISOLATION_LEVEL = 0;
+	int READ_UNCOMMITTED_ISOLATION_LEVEL = 1;
+	int READ_COMMITTED_ISOLATION_LEVEL = 2;
+	int REPEATABLE_READ_ISOLATION_LEVEL = 3;
+	int SERIALIZABLE_ISOLATION_LEVEL = 4;
 
     /**
      * Map from Derby transaction isolation constants to
      * JDBC constants.
      */
-	public static final int[] CS_TO_JDBC_ISOLATION_LEVEL_MAP = {
+	int[] CS_TO_JDBC_ISOLATION_LEVEL_MAP = {
 		java.sql.Connection.TRANSACTION_NONE,				// UNSPECIFIED_ISOLATION_LEVEL
 		java.sql.Connection.TRANSACTION_READ_UNCOMMITTED,	// READ_UNCOMMITTED_ISOLATION_LEVEL
 		java.sql.Connection.TRANSACTION_READ_COMMITTED,		// READ_COMMITTED_ISOLATION_LEVEL
@@ -74,7 +74,7 @@ public interface ExecutionContext extends Context {
      * as a hang over from DB2 compatibility and now to preserve
      * backwards compatability.
      */
-	public static final String[][] CS_TO_SQL_ISOLATION_MAP = {
+	String[][] CS_TO_SQL_ISOLATION_MAP = {
 		{ "  "},					// UNSPECIFIED_ISOLATION_LEVEL
 		{ "UR", "DIRTY READ", "READ UNCOMMITTED"},
 		{ "CS", "CURSOR STABILITY", "READ COMMITTED"},

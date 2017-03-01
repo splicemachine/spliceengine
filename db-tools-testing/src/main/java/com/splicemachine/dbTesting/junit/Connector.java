@@ -56,28 +56,28 @@ interface Connector {
      * Link this connector to the given configuration.
      * Should be called once upon setup.
      */
-    abstract void setConfiguration(TestConfiguration config);
+    void setConfiguration(TestConfiguration config);
     
     /**
      * Open a connection with the database, user and password
      * defined by the configuration passed to setConfiguration.
      * If the database does not exist then it should be created.
      */
-    abstract Connection openConnection() throws SQLException;
+    Connection openConnection() throws SQLException;
    
     /**
      * Open a connection with the database, user and password
      * defined by the configuration passed to setConfiguration.
      * If the database does not exist then it should be created.
      */
-    abstract Connection openConnection(String databaseName) throws SQLException;
+    Connection openConnection(String databaseName) throws SQLException;
    
     /**
      * Open a connection to the database
      * defined by the configuration passed to setConfiguration.
      * If the database does not exist then it should be created.
      */
-     abstract Connection openConnection(String user, String password)
+    Connection openConnection(String user, String password)
          throws SQLException;
 
     /**
@@ -85,7 +85,7 @@ interface Connector {
      * defined by the configuration passed to setConfiguration.
      * If the database does not exist then it should be created.
      */
-     abstract Connection openConnection(String databaseName, String user, String password)
+    Connection openConnection(String databaseName, String user, String password)
          throws SQLException;
 
     /**
@@ -93,8 +93,8 @@ interface Connector {
      * defined by the configuration passed to setConfiguration.
      * If the database does not exist then it should be created.
      */
-    abstract Connection openConnection
-        (String databaseName, String user, String password, Properties connectionProperties)
+    Connection openConnection
+    (String databaseName, String user, String password, Properties connectionProperties)
          throws SQLException;
 
     /**
@@ -102,7 +102,7 @@ interface Connector {
      * defined by the configuration passed to setConfiguration.
      * Return nothing, exception is expected to be thrown with SQLState 08006
      */
-    abstract void shutDatabase() throws SQLException;
+    void shutDatabase() throws SQLException;
    
     /**
      * Shutdown the running db engine (not the network server).
@@ -110,5 +110,5 @@ interface Connector {
      * engine is running embedded in this JVM.
      * Return nothing, exception is expected to be thrown with SQLState XJ015
      */
-    abstract void shutEngine() throws SQLException;
+    void shutEngine() throws SQLException;
 }

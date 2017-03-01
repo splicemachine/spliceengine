@@ -24,15 +24,15 @@ import java.nio.ByteBuffer;
  */
 public interface Hash32 {
 
-    public int hash(String elem);
+    int hash(String elem);
 
-    public int hash(byte[] bytes, int offset,int length);
+    int hash(byte[] bytes, int offset, int length);
 
-    public int hash(ByteBuffer buffer);
+    int hash(ByteBuffer buffer);
 
-    public int hash(long element);
+    int hash(long element);
 
-    public int hash(int element);
+    int hash(int element);
 
-    public int hash(short element);
+    int hash(short element);
 }

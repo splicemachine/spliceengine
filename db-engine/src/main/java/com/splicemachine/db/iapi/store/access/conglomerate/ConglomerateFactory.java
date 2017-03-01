@@ -45,8 +45,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 public interface ConglomerateFactory extends MethodFactory
 {
 
-    static final int    HEAP_FACTORY_ID     = 0x00;
-    static final int    BTREE_FACTORY_ID    = 0x01;
+    int    HEAP_FACTORY_ID     = 0x00;
+    int    BTREE_FACTORY_ID    = 0x01;
 
 
     /**

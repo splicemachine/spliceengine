@@ -55,19 +55,19 @@ public interface MethodBuilder {
 	   Must be called before any code is added
 	   to the method.
 	 */
-	public void addThrownException(String exceptionClass);
+	void addThrownException(String exceptionClass);
 
 	/**
 	 * return the name of the method.
 	 */
-	public String getName();
+	String getName();
 
 	/**
 		Indicate the method is complete. Once this
 		call has been made the caller must discard
 		the reference to this object.
 	 */
-	public void complete();
+	void complete();
 
 	/**
 		Push a parameter value.
@@ -77,7 +77,7 @@ public interface MethodBuilder {
 		</PRE>
 		@param id position of the parameter (zero based).
 	*/
-	public void getParameter(int id);
+	void getParameter(int id);
 
 	/**
 		Push a byte constant onto the stack
@@ -86,7 +86,7 @@ public interface MethodBuilder {
 		      ...,byte_value
 		</PRE>
 	*/
-	public void push(byte value);
+	void push(byte value);
 
 	/**
 		Push a boolean constant onto the stack
@@ -95,7 +95,7 @@ public interface MethodBuilder {
 		      ...,boolean_value
 		</PRE>
 	*/
-	public void push(boolean value);
+	void push(boolean value);
 
 	/**
 		Push a short constant onto the stack
@@ -104,7 +104,7 @@ public interface MethodBuilder {
 		      ...,short_value
 		</PRE>
 	*/
-	public void push(short value);
+	void push(short value);
 
 	/**
 		Push a int constant onto the stack
@@ -113,7 +113,7 @@ public interface MethodBuilder {
 		      ...,int_value
 		</PRE>
 	*/
-	public void push(int value);
+	void push(int value);
 
 	/**
 		Push a long constant onto the stack
@@ -122,7 +122,7 @@ public interface MethodBuilder {
 		      ...,long_value
 		</PRE>
 	*/
-	public void push(long value);
+	void push(long value);
 
 	/**
 		Push a float constant onto the stack
@@ -131,7 +131,7 @@ public interface MethodBuilder {
 		      ...,float_value
 		</PRE>
 	*/
-	public void push(float value);
+	void push(float value);
 
 	/**
 		Push a double constant onto the stack
@@ -140,7 +140,7 @@ public interface MethodBuilder {
 		      ...,double_value
 		</PRE>
 	*/
-	public void push(double value);
+	void push(double value);
 
 	/**
 		Push a String constant onto the stack
@@ -149,7 +149,7 @@ public interface MethodBuilder {
 		      ...,String_value
 		</PRE>
 	*/
-	public void push(String value);
+	void push(String value);
 
 	/**
 		Push a typed null onto the stack
@@ -158,7 +158,7 @@ public interface MethodBuilder {
 		      ...,null
 		</PRE>
 	*/
-	public void pushNull(String className);
+	void pushNull(String className);
 
 	/**
 		Push the contents of the local field onto the stack.
@@ -169,7 +169,7 @@ public interface MethodBuilder {
 		</PRE>
 
 	*/
-	public void getField(LocalField field);
+	void getField(LocalField field);
 
 	/**
 		Push the contents of the described field onto the stack.
@@ -181,7 +181,7 @@ public interface MethodBuilder {
 		</PRE>
 		
 	*/
-	public void getField(String declaringClass, String fieldName, String fieldType);
+	void getField(String declaringClass, String fieldName, String fieldType);
 
 	/**
 		Push the contents of the described static field onto the stack.
@@ -190,7 +190,7 @@ public interface MethodBuilder {
 		      ...,field_value
 		</PRE>
 	*/
-	public void getStaticField(String declaringClass, String fieldName, String fieldType);
+	void getStaticField(String declaringClass, String fieldName, String fieldType);
 
 	/**
 	Pop the top stack value and store it in the local field. 
@@ -202,7 +202,7 @@ public interface MethodBuilder {
 	      ...
 	</PRE>
 	*/
-	public void setField(LocalField field);
+	void setField(LocalField field);
 
 	/**
 		Pop the top stack value and store it in the local field. 
@@ -214,7 +214,7 @@ public interface MethodBuilder {
 		      ...,value
 		</PRE>
 	*/
-	public void putField(LocalField field);
+	void putField(LocalField field);
 
 	/**
 		Pop the top stack value and store it in the instance field of this class.
@@ -226,7 +226,7 @@ public interface MethodBuilder {
 		      ...,value
 		</PRE>
 	*/
-	public void putField(String fieldName, String fieldType);
+	void putField(String fieldName, String fieldType);
 
 	/**
 		Pop the top stack value and store it in the field.
@@ -238,7 +238,7 @@ public interface MethodBuilder {
 		      ...,value
 		</PRE>
 	*/
-	public void putField(String declaringClass, String fieldName, String fieldType);
+	void putField(String declaringClass, String fieldName, String fieldType);
 
 	/**
 		Initiate a sequence that calls a constructor, equivalent to the new operator in Java.
@@ -254,7 +254,7 @@ public interface MethodBuilder {
 
 		@param className class name of object to be created.
 	*/
-	public void pushNewStart(String className);
+	void pushNewStart(String className);
 
 
 	/**
@@ -269,7 +269,7 @@ public interface MethodBuilder {
 
 		@param numArgs number of arguments to the constructor (can be 0).
 	*/
-	public void pushNewComplete(int numArgs);
+	void pushNewComplete(int numArgs);
 
 	/**
 		Create an instance of an array and push it onto the stack. 
@@ -282,7 +282,7 @@ public interface MethodBuilder {
 		@param className - type of array.
 		@param size - number of elements in the array
 	*/
-	public void pushNewArray(String className, int size);
+	void pushNewArray(String className, int size);
 
 
 	/**
@@ -292,7 +292,7 @@ public interface MethodBuilder {
 		      ...,this_ref
 		</PRE>
 	*/
-	public void pushThis();
+	void pushThis();
 
 	/**
 		Upcast the top stack value. This is used for correct method resolution
@@ -303,7 +303,7 @@ public interface MethodBuilder {
 		      ...,ref
 		</PRE>
 	*/
-	public void upCast(String className);
+	void upCast(String className);
 
 	/**
 		Cast the top stack value. Correctly down-casts a reference or casts
@@ -315,7 +315,7 @@ public interface MethodBuilder {
 
 		@param className type (primitive, interface or class) to cast to.
 	*/
-	public void cast(String className);
+	void cast(String className);
 
 	/**
 		Pop the top stack value and push a boolean that is the result of
@@ -325,7 +325,7 @@ public interface MethodBuilder {
 		      ...,boolean_value
 		</PRE>.
 	*/
-	public void isInstanceOf(String className);
+	void isInstanceOf(String className);
 	
 	/**
 	 * Pop the top value off the stack
@@ -334,7 +334,7 @@ public interface MethodBuilder {
 		      ...
 		</PRE>.
 	*/
-	public void pop();
+	void pop();
 		
 	/**
 		End a statement.
@@ -351,7 +351,7 @@ public interface MethodBuilder {
 
 		</PRE>.
 	*/
-	public void endStatement();
+	void endStatement();
 
 	/**
 		Return from a method, optionally with a value.
@@ -368,7 +368,7 @@ public interface MethodBuilder {
 
 		</PRE>.
 	*/
-	public void methodReturn();
+	void methodReturn();
 
 	/**
 		Initiate a conditional sequence.
@@ -402,7 +402,7 @@ public interface MethodBuilder {
 
 	*/
 
-	public void conditionalIfNull();
+	void conditionalIfNull();
 	
 	/**
 		Initiate a conditional sequence.
@@ -417,17 +417,17 @@ public interface MethodBuilder {
 		      ...
 		</PRE>.
 	*/
-	public void conditionalIf();
+	void conditionalIf();
 
 	/**
 		Complete the true code path of a conditional.
 	*/
-	public void startElseCode();
+	void startElseCode();
 
 	/**
 		Complete a conditional which completes the false code path.
 	*/
-	public void completeConditional();
+	void completeConditional();
 
 	/**
 		Call a method. The instance (receiver or reference) for non-static methods
@@ -469,8 +469,8 @@ public interface MethodBuilder {
 		@param numArgs number of arguments to the method (can be 0).
 
 	*/
-	public int callMethod(short type, String declaringClass, String methodName,
-		String returnType, int numArgs);
+	int callMethod(short type, String declaringClass, String methodName,
+				   String returnType, int numArgs);
 
 	/**	
 		Return an object that efficiently (to the implementation) describes a zero-argument method and
@@ -480,7 +480,7 @@ public interface MethodBuilder {
 		<BR>
 		This call does not affect the Stack.
 	*/
-	public Object describeMethod(short opcode, String declaringClass, String methodName, String returnType);
+	Object describeMethod(short opcode, String declaringClass, String methodName, String returnType);
 
 	/**
 		Call a method previously described by describeMethod().
@@ -497,7 +497,7 @@ public interface MethodBuilder {
 		</PRE>
 
 	*/
-	public int callMethod(Object methodDescriptor);
+	int callMethod(Object methodDescriptor);
 
 	/**
 		Call super(). Caller must only add this to a constructor.
@@ -508,7 +508,7 @@ public interface MethodBuilder {
 		</PRE>
 
 	*/
-	public void callSuper();
+	void callSuper();
 
 	/**
 		Pop an array refrence off the stack and push an element from that array.
@@ -519,7 +519,7 @@ public interface MethodBuilder {
 
 		@param element Offset into the array (zero based)
 	*/
-	public void getArrayElement(int element);
+	void getArrayElement(int element);
 
 	/**
 		Pop an array reference off the stack, store a value in the array at the passed in offset.
@@ -530,7 +530,7 @@ public interface MethodBuilder {
 
 		@param element Offset into the array (zero based)
 	*/
-	public void setArrayElement(int element);
+	void setArrayElement(int element);
 
 
 	/**
@@ -540,7 +540,7 @@ public interface MethodBuilder {
 		      ...,valueB,valueA
 		</PRE>
 	*/
-	public void swap();
+	void swap();
 
 	/**
 		Duplicate the top value on the stack.
@@ -549,7 +549,7 @@ public interface MethodBuilder {
 		      ...,value,value
 		</PRE>
 	*/
-	public void dup();
+	void dup();
 
 	/**
 		Tell if statement number in this method builder hits limit.  This
@@ -562,6 +562,6 @@ public interface MethodBuilder {
 		insert statement is issued, for example (see beetle 4293).  Counting
 		statement number is an approximation without too much overhead.
 	*/
-	public boolean statementNumHitLimit(int noStatementsAdded);
+	boolean statementNumHitLimit(int noStatementsAdded);
 }
 

@@ -31,15 +31,15 @@ package com.splicemachine.db.client.net;
 // but may dereference material layer Connection state if necessary for performance.
 
 public interface ConnectionRequestInterface {
-    public void writeCommitSubstitute(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
+    void writeCommitSubstitute(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
 
-    public void writeLocalCommit(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
+    void writeLocalCommit(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
 
-    public void writeLocalRollback(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
+    void writeLocalRollback(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
 
-    public void writeLocalXAStart(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
+    void writeLocalXAStart(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
 
-    public void writeLocalXACommit(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
+    void writeLocalXACommit(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
 
-    public void writeLocalXARollback(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
+    void writeLocalXARollback(NetConnection connection) throws com.splicemachine.db.client.am.SqlException;
 }

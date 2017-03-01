@@ -20,5 +20,5 @@ package com.splicemachine.stream;
  */
 public interface Predicate<T> {
 
-    public boolean apply(T element) throws StreamException;
+    boolean apply(T element) throws StreamException;
 }

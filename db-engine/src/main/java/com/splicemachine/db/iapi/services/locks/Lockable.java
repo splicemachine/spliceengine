@@ -102,20 +102,20 @@ public interface Lockable {
 		Must only be called by the lock manager. Synchronization will be handled
 		by the lock manager.
 	*/
-	public void lockEvent(Latch lockInfo);
+	void lockEvent(Latch lockInfo);
 
 	/**
 		Return true if the requested qualifier is compatible with the already granted
 		qualifier.
 	*/
-	public boolean requestCompatible(Object requestedQualifier, Object grantedQualifier);
+	boolean requestCompatible(Object requestedQualifier, Object grantedQualifier);
 
 	/**
 		Returns true if any lock request on a Lockable L in a compatibility space CS1 is compatible
 		with any other lock held on L in CS1.
 
 	*/
-	public boolean lockerAlwaysCompatible();
+	boolean lockerAlwaysCompatible();
 
 	/**
 		Note that the object has been unlocked 
@@ -123,7 +123,7 @@ public interface Lockable {
 		Must only be called by the lock manager. Synchronization will be handled
 		by the lock manager.
 	*/
-	public void unlockEvent(Latch lockInfo);
+	void unlockEvent(Latch lockInfo);
 
 	/**
 		If this lockable object wants to participate in a diagnostic virtual
@@ -157,5 +157,5 @@ public interface Lockable {
 
 		@see VirtualLockTable
 	 */
-	public boolean lockAttributes(int flag, Hashtable attributes);
+	boolean lockAttributes(int flag, Hashtable attributes);
 }

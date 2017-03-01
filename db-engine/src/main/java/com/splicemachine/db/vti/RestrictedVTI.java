@@ -140,6 +140,6 @@ public interface RestrictedVTI
      * Function is not required to enforce the entire <i>restriction</i>.
      * </p>
      */
-    public void initScan( String[] columnNames, Restriction restriction ) throws SQLException;
+    void initScan(String[] columnNames, Restriction restriction) throws SQLException;
 
 }

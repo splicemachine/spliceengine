@@ -55,7 +55,7 @@ interface ijResult {
 	boolean isMulti();
 	boolean isException();
 	boolean isMultipleResultSetResult();
-	public boolean isUnsupportedCommand();
+	boolean isUnsupportedCommand();
 	boolean hasWarnings() throws SQLException ;
 
 	Connection getConnection();

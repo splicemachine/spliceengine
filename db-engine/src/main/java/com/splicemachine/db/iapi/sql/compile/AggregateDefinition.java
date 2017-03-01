@@ -140,7 +140,7 @@ public interface AggregateDefinition {
 	 * @see com.splicemachine.db.catalog.TypeDescriptor
 	 *
 	 */
-	public	DataTypeDescriptor getAggregator
-       ( DataTypeDescriptor inputType, StringBuffer aggregatorClassName )
+	DataTypeDescriptor getAggregator
+	(DataTypeDescriptor inputType, StringBuffer aggregatorClassName)
        throws StandardException;
 }

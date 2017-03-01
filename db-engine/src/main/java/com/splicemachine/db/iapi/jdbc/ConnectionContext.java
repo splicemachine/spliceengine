@@ -43,7 +43,7 @@ import java.sql.SQLException;
  */
 public interface ConnectionContext 
 {
-	public static final String CONTEXT_ID = "JDBC_ConnectionContext";
+	String CONTEXT_ID = "JDBC_ConnectionContext";
 
 	/**
 		Get a new connection object equivalent to the call
@@ -53,7 +53,7 @@ public interface ConnectionContext
 
 		@exception SQLException Parent connection has been closed.
 	*/
-	public Connection getNestedConnection(boolean internal) throws SQLException;
+	Connection getNestedConnection(boolean internal) throws SQLException;
 
 	/**
 	 * Get a jdbc ResultSet based on the execution ResultSet.
@@ -61,10 +61,10 @@ public interface ConnectionContext
 	 * @param executionResultSet	a result set as gotten from execution
 	 *	
 	 * @exception java.sql.SQLException	on error
-	 */	
-	public java.sql.ResultSet getResultSet
+	 */
+	java.sql.ResultSet getResultSet
 	(
-		ResultSet 				executionResultSet
+			ResultSet executionResultSet
 	) throws java.sql.SQLException;
     
     /**
@@ -88,5 +88,5 @@ public interface ConnectionContext
      * @return True if this ResultSet was created by this connection
      * and the result set is open. False otherwise.
      */
-    public boolean processInaccessibleDynamicResult(java.sql.ResultSet resultSet);
+	boolean processInaccessibleDynamicResult(java.sql.ResultSet resultSet);
 }

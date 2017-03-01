@@ -61,13 +61,13 @@ public interface CipherFactory
 {
 
     /** Minimum bootPassword length */
-    public static final int MIN_BOOTPASS_LENGTH = 8;
+	int MIN_BOOTPASS_LENGTH = 8;
 
 	/**
 		Get a CipherProvider that either Encrypts or Decrypts.
 	 */
-	public static final int ENCRYPT = 1;
-	public static final int DECRYPT = 2;
+	int ENCRYPT = 1;
+	int DECRYPT = 2;
 
 
 	SecureRandom getSecureRandom();
@@ -82,7 +82,7 @@ public interface CipherFactory
 	CipherProvider createNewCipher(int mode)
 		 throws StandardException;
 
-	public String changeBootPassword(String changeString, Properties properties, CipherProvider verify)
+	String changeBootPassword(String changeString, Properties properties, CipherProvider verify)
 		throws StandardException;
 
 	/**
@@ -97,10 +97,10 @@ public interface CipherFactory
 					that might be needed for verification process of the encryption key
 		@param	properties	properties at time of database connection as well as those in service.properties
 	 */
-	public void verifyKey(boolean create, StorageFactory storageFactory,Properties properties)
+	void verifyKey(boolean create, StorageFactory storageFactory, Properties properties)
 		throws StandardException;
 
-    public void saveProperties(Properties properties);
+    void saveProperties(Properties properties);
 
 }
 

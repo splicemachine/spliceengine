@@ -30,11 +30,11 @@ public interface OperationInformation {
 
     void initialize(SpliceOperationContext operationContext) throws StandardException;
 
-		public double getEstimatedRowCount();
+		double getEstimatedRowCount();
 
-        public double getEstimatedCost();
+        double getEstimatedCost();
 
-        public int getResultSetNumber();
+        int getResultSetNumber();
 
 		/**
 		 * Return the map from the physical (encoded) column locations to the decoded column locations.
@@ -54,19 +54,19 @@ public interface OperationInformation {
 		 *
 		 * @return the map from physical location to logical location for columns in the row.
 		 */
-        public int[] getBaseColumnMap();
+		int[] getBaseColumnMap();
 
-        public ExecRow compactRow(ExecRow candidateRow,
-                                  FormatableBitSet accessedColumns,
-                                  boolean isKeyed) throws StandardException;
+        ExecRow compactRow(ExecRow candidateRow,
+						   FormatableBitSet accessedColumns,
+						   boolean isKeyed) throws StandardException;
 
-        public ExecRow compactRow(ExecRow candidateRow,
-                                  ScanInformation scanInfo) throws StandardException;
+        ExecRow compactRow(ExecRow candidateRow,
+						   ScanInformation scanInfo) throws StandardException;
 
-        public ExecRow getKeyTemplate(ExecRow candidateRow,
-                                  ScanInformation scanInfo) throws StandardException;
+        ExecRow getKeyTemplate(ExecRow candidateRow,
+							   ScanInformation scanInfo) throws StandardException;
 
-        public NoPutResultSet[] getSubqueryTrackingArray() throws StandardException;
+        NoPutResultSet[] getSubqueryTrackingArray() throws StandardException;
 
         void setCurrentRow(ExecRow row);
 

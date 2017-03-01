@@ -279,50 +279,50 @@ public interface DependencyManager {
 	/* NOTE - every value in this group (actions) must have a matching
 	 * String in the implementation of getActionString().
 	 */
-	public static final int COMPILE_FAILED = 0;
-	public static final int DROP_TABLE = 1;
-	public static final int DROP_INDEX = 2;
-	public static final int CREATE_INDEX = 3;
-	public static final int ROLLBACK = 4;
-	public static final int CHANGED_CURSOR = 5;
-	public static final int DROP_METHOD_ALIAS = 6;
-	public static final int DROP_VIEW = 9;
-	public static final int CREATE_VIEW = 10;
-	public static final int PREPARED_STATEMENT_RELEASE = 11;
-	public static final int ALTER_TABLE = 12;
-	public static final int DROP_SPS = 13;
-	public static final int USER_RECOMPILE_REQUEST = 14; 
-	public static final int BULK_INSERT = 15; 
-	public static final int DROP_JAR = 17;
-	public static final int REPLACE_JAR = 18;
-	public static final int DROP_CONSTRAINT = 19; 
-	public static final int SET_CONSTRAINTS_ENABLE = 20;
-	public static final int SET_CONSTRAINTS_DISABLE = 21;
-	public static final int CREATE_CONSTRAINT = 22;
-	public static final int INTERNAL_RECOMPILE_REQUEST = 23;
-	public static final int DROP_TRIGGER = 27;
-	public static final int CREATE_TRIGGER = 28;
-	public static final int SET_TRIGGERS_ENABLE = 29;
-	public static final int SET_TRIGGERS_DISABLE = 30;
-	public static final int MODIFY_COLUMN_DEFAULT = 31;
-	public static final int DROP_SCHEMA = 32;
-	public static final int COMPRESS_TABLE = 33;
+	int COMPILE_FAILED = 0;
+	int DROP_TABLE = 1;
+	int DROP_INDEX = 2;
+	int CREATE_INDEX = 3;
+	int ROLLBACK = 4;
+	int CHANGED_CURSOR = 5;
+	int DROP_METHOD_ALIAS = 6;
+	int DROP_VIEW = 9;
+	int CREATE_VIEW = 10;
+	int PREPARED_STATEMENT_RELEASE = 11;
+	int ALTER_TABLE = 12;
+	int DROP_SPS = 13;
+	int USER_RECOMPILE_REQUEST = 14;
+	int BULK_INSERT = 15;
+	int DROP_JAR = 17;
+	int REPLACE_JAR = 18;
+	int DROP_CONSTRAINT = 19;
+	int SET_CONSTRAINTS_ENABLE = 20;
+	int SET_CONSTRAINTS_DISABLE = 21;
+	int CREATE_CONSTRAINT = 22;
+	int INTERNAL_RECOMPILE_REQUEST = 23;
+	int DROP_TRIGGER = 27;
+	int CREATE_TRIGGER = 28;
+	int SET_TRIGGERS_ENABLE = 29;
+	int SET_TRIGGERS_DISABLE = 30;
+	int MODIFY_COLUMN_DEFAULT = 31;
+	int DROP_SCHEMA = 32;
+	int COMPRESS_TABLE = 33;
 	//using same action for rename table/column
-	public static final int RENAME = 34;
-	public static final int DROP_COLUMN = 37;
-	public static final int DROP_STATISTICS = 39;
-	public static final int UPDATE_STATISTICS = 40;
+	int RENAME = 34;
+	int DROP_COLUMN = 37;
+	int DROP_STATISTICS = 39;
+	int UPDATE_STATISTICS = 40;
 	//rename index dependency behavior is not as stringent as rename table and column and
 	//hence we need a different action for rename index. Rename index tries to imitate the
 	//drop index behavior for dependency which is not very strict.
-	public static final int RENAME_INDEX = 41;
+	int RENAME_INDEX = 41;
 
-	public static final int TRUNCATE_TABLE = 42;
-	public static final int DROP_SYNONYM = 43;
+	int TRUNCATE_TABLE = 42;
+	int DROP_SYNONYM = 43;
 	//A generic revoke action for TRIGGER, REFERENCES, SELECT, INSERT,
 	//  UPDATE and DELETE privileges. For all these privilege types,
 	//  a revoke statement causes the dependents to drop
-	public static final int REVOKE_PRIVILEGE = 44;
+	int REVOKE_PRIVILEGE = 44;
 	
 	//This special revoke action is for when revoke should fail if
 	//  there are dependents on the privilege being revoked. When
@@ -336,28 +336,28 @@ public interface DependencyManager {
 	//  that privilege. So, when a revoke execute..,restrict is
 	//  issued, this invalidation action will be sent to all
 	//  it's dependents.
-	public static final int REVOKE_PRIVILEGE_RESTRICT = 45;
-	public static final int DROP_COLUMN_RESTRICT = 46;
+	int REVOKE_PRIVILEGE_RESTRICT = 45;
+	int DROP_COLUMN_RESTRICT = 46;
 
 	// Revoke action when a granted role is dropped/revoked. A revoke statement
 	// causes the dependents to drop.
-	public static final int REVOKE_ROLE = 47;
+	int REVOKE_ROLE = 47;
 
 	// Action when the current role is changed in a session. Used to force
 	// rechecking of privileges for prepared statements that depend on the
 	// current role for privileges by recreating the activation.
-	public static final int RECHECK_PRIVILEGES = 48;
+	int RECHECK_PRIVILEGES = 48;
 
-    public static final int DROP_SEQUENCE = 49;
+    int DROP_SEQUENCE = 49;
 
-    public static final int DROP_UDT = 50;
-    public static final int DROP_AGGREGATE = 51;
+    int DROP_UDT = 50;
+    int DROP_AGGREGATE = 51;
     
     /**
      * Extensions to this interface may use action codes > MAX_ACTION_CODE without fear of
      * clashing with action codes in this base interface.
      */
-    public static final int MAX_ACTION_CODE = 0XFFFF;
+	int MAX_ACTION_CODE = 0XFFFF;
 
 	/**
 		adds a dependency from the dependent on the provider.
@@ -445,7 +445,7 @@ public interface DependencyManager {
 	   This method will handle Dependency's that have already been
 	   removed from the DependencyManager.
 	 */
-	public void clearInMemoryDependency(Dependency dy);
+	void clearInMemoryDependency(Dependency dy);
 
 	/**
 	 * Get a new array of ProviderInfos representing all the persistent
@@ -453,7 +453,7 @@ public interface DependencyManager {
 	 *
 	 * @exception StandardException		Thrown on error.
 	 */
-	public ProviderInfo[] getPersistentProviderInfos(Dependent dependent)
+	ProviderInfo[] getPersistentProviderInfos(Dependent dependent)
 			throws StandardException;
 
 	/**
@@ -462,7 +462,7 @@ public interface DependencyManager {
 	 *
 	 * @exception StandardException		Thrown on error.
 	 */
-	public ProviderInfo[] getPersistentProviderInfos(ProviderList pl)
+	ProviderInfo[] getPersistentProviderInfos(ProviderList pl)
 			throws StandardException;
 
 	/**
@@ -475,7 +475,7 @@ public interface DependencyManager {
 	 *
 	 * @exception StandardException		Thrown on error.
 	 */
-	public void clearColumnInfoInProviders(ProviderList pl)
+	void clearColumnInfoInProviders(ProviderList pl)
 			throws StandardException;
 
 
@@ -489,11 +489,11 @@ public interface DependencyManager {
 	 *
 	 * @exception StandardException		Thrown on error.
 	 */
-	public void copyDependencies(
-									Dependent	copy_From, 
-									Dependent	copyTo,
-									boolean		persistentOnly,
-									ContextManager cm)
+	void copyDependencies(
+			Dependent copy_From,
+			Dependent copyTo,
+			boolean persistentOnly,
+			ContextManager cm)
 			throws StandardException;
 	
 	/**
@@ -515,7 +515,7 @@ public interface DependencyManager {
 
 		@exception StandardException thrown if something goes wrong
 	 */
-	public int countDependencies() 		throws StandardException;
+	int countDependencies() 		throws StandardException;
 
 	/**
 	 	Erases all of the dependencies the dependent has, be they
@@ -541,9 +541,9 @@ public interface DependencyManager {
 	
 		@exception StandardException		Thrown on failure
 	*/
-	public void clearDependencies(LanguageConnectionContext lcc, 
-									Dependent d, 
-									TransactionController tc) 
+	void clearDependencies(LanguageConnectionContext lcc,
+						   Dependent d,
+						   TransactionController tc)
 		throws StandardException;
 
 
@@ -558,12 +558,12 @@ public interface DependencyManager {
 	 *
 	 * @exception StandardException		Thrown on error.
 	 */
-	public void copyDependencies(
-									Dependent	copy_From, 
-									Dependent	copyTo,
-									boolean		persistentOnly,
-									ContextManager cm, 
-									TransactionController tc)
+	void copyDependencies(
+			Dependent copy_From,
+			Dependent copyTo,
+			boolean persistentOnly,
+			ContextManager cm,
+			TransactionController tc)
 			throws StandardException;
 	
 }

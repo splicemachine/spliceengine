@@ -73,10 +73,10 @@ public interface LanguageFactory
 	 *
 	 * @return ResultDescription the rd
 	 */
-	public ResultDescription getResultDescription
+	ResultDescription getResultDescription
 	(
-		ResultDescription	inputResultDescription,
-		int[]				theCols
+			ResultDescription inputResultDescription,
+			int[] theCols
 	);
 
 	/**
@@ -87,9 +87,9 @@ public interface LanguageFactory
 	 *
 	 * @return ResultDescription the rd
 	 */
-	public ResultDescription getResultDescription
+	ResultDescription getResultDescription
 	(
-		ResultColumnDescriptor[]	cols,
-		String						type
+			ResultColumnDescriptor[] cols,
+			String type
 	);
 }

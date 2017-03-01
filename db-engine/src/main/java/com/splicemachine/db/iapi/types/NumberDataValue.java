@@ -40,8 +40,8 @@ public interface NumberDataValue extends DataValueDescriptor
 	/**
 	 * The minimum scale when dividing Decimals
 	 */
-	public static final int MIN_DECIMAL_DIVIDE_SCALE = 4;
-	public static final int MAX_DECIMAL_PRECISION_SCALE = 31;
+	int MIN_DECIMAL_DIVIDE_SCALE = 4;
+	int MAX_DECIMAL_PRECISION_SCALE = 31;
 
 	/**
 	 * The SQL + operator.
@@ -55,9 +55,9 @@ public interface NumberDataValue extends DataValueDescriptor
 	 *
 	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
 	 */
-	public NumberDataValue plus(NumberDataValue addend1,
-								NumberDataValue addend2,
-								NumberDataValue result)
+	NumberDataValue plus(NumberDataValue addend1,
+						 NumberDataValue addend2,
+						 NumberDataValue result)
 							throws StandardException;
 
 	/**
@@ -72,9 +72,9 @@ public interface NumberDataValue extends DataValueDescriptor
 	 *
 	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
 	 */
-	public NumberDataValue minus(NumberDataValue left,
-								 NumberDataValue right,
-								NumberDataValue result)
+	NumberDataValue minus(NumberDataValue left,
+						  NumberDataValue right,
+						  NumberDataValue result)
 							throws StandardException;
 
 	/**
@@ -89,9 +89,9 @@ public interface NumberDataValue extends DataValueDescriptor
 	 *
 	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
 	 */
-	public NumberDataValue times(NumberDataValue left,
-								NumberDataValue right,
-								NumberDataValue result)
+	NumberDataValue times(NumberDataValue left,
+						  NumberDataValue right,
+						  NumberDataValue result)
 							throws StandardException;
 
 	/**
@@ -106,9 +106,9 @@ public interface NumberDataValue extends DataValueDescriptor
 	 *
 	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
 	 */
-	public NumberDataValue divide(NumberDataValue dividend,
-								NumberDataValue divisor,
-								NumberDataValue result)
+	NumberDataValue divide(NumberDataValue dividend,
+						   NumberDataValue divisor,
+						   NumberDataValue result)
 							throws StandardException;
 
 	/**
@@ -125,10 +125,10 @@ public interface NumberDataValue extends DataValueDescriptor
 	 *
 	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
 	 */
-	public NumberDataValue divide(NumberDataValue dividend,
-								NumberDataValue divisor,
-								NumberDataValue result,
-								int scale)
+	NumberDataValue divide(NumberDataValue dividend,
+						   NumberDataValue divisor,
+						   NumberDataValue result,
+						   int scale)
 							throws StandardException;
 
 
@@ -144,9 +144,9 @@ public interface NumberDataValue extends DataValueDescriptor
 	 *
 	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
 	 */
-	public NumberDataValue mod(NumberDataValue dividend,
-								NumberDataValue divisor,
-								NumberDataValue result)
+	NumberDataValue mod(NumberDataValue dividend,
+						NumberDataValue divisor,
+						NumberDataValue result)
 							throws StandardException;
 
 	/**
@@ -159,7 +159,7 @@ public interface NumberDataValue extends DataValueDescriptor
 	 *
 	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
 	 */
-	public NumberDataValue minus(NumberDataValue result)
+	NumberDataValue minus(NumberDataValue result)
 							throws StandardException;
 
     /**
@@ -170,7 +170,7 @@ public interface NumberDataValue extends DataValueDescriptor
      *
      * @exception StandardException     Thrown on error, if result is non-null then its value will be unchanged.
      */
-    public NumberDataValue absolute(NumberDataValue result)
+	NumberDataValue absolute(NumberDataValue result)
                             throws StandardException;
 
     /**
@@ -181,7 +181,7 @@ public interface NumberDataValue extends DataValueDescriptor
      * 
      * @exception StandardException     Thrown on error (a negative number), if result is non-null then its value will be unchanged.
      */
-    public NumberDataValue sqrt(NumberDataValue result)
+	NumberDataValue sqrt(NumberDataValue result)
                             throws StandardException;
 
 	/**
@@ -204,7 +204,7 @@ public interface NumberDataValue extends DataValueDescriptor
 	 *					to SQL null.
 	 *
 	 */
-	public void setValue(Number theValue) throws StandardException;
+	void setValue(Number theValue) throws StandardException;
 
 	/**
 		Return the SQL precision of this specific DECIMAL value.
@@ -213,7 +213,7 @@ public interface NumberDataValue extends DataValueDescriptor
 		If the value does not represent a SQL DECIMAL then
 		the return is undefined.
 	*/
-	public int getDecimalValuePrecision();
+	int getDecimalValuePrecision();
 
 	/**
 		Return the SQL scale of this specific DECIMAL value.
@@ -222,14 +222,14 @@ public interface NumberDataValue extends DataValueDescriptor
 		If the value does not represent a SQL DECIMAL then
 		the return is undefined.
 	*/
-	public int getDecimalValueScale();
+	int getDecimalValueScale();
 
 	/**
 	 * Returns BigDecimal representation of value
 	 * @return BigDecimal value
 	 * @throws StandardException
 	 */
-	public BigDecimal getBigDecimal() throws StandardException;
+	BigDecimal getBigDecimal() throws StandardException;
 }
 
 

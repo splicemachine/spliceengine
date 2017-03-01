@@ -53,7 +53,7 @@ public interface ConsInfo	extends	Formatable
 	  *	@return	schema that referenced table lives in
 	  *	@exception	StandardException thrown on oops
 	  */
-	public SchemaDescriptor getReferencedTableSchemaDescriptor(DataDictionary dd)
+	SchemaDescriptor getReferencedTableSchemaDescriptor(DataDictionary dd)
 		throws StandardException;
 
 	/**
@@ -65,7 +65,7 @@ public interface ConsInfo	extends	Formatable
 	  *	@return	referenced table
 	  *	@exception	StandardException thrown on oops
 	  */
-	public TableDescriptor getReferencedTableDescriptor(DataDictionary dd)
+	TableDescriptor getReferencedTableDescriptor(DataDictionary dd)
 		throws StandardException;
 
 	/**
@@ -74,14 +74,14 @@ public interface ConsInfo	extends	Formatable
 	  *
 	  *	@return	array of referenced column names
 	  */
-	public String[] getReferencedColumnNames();
+	String[] getReferencedColumnNames();
 
 	/**
 	  *	Get the name of the table that these column live in.
 	  *
 	  *	@return	referenced table name
 	  */
-	public String getReferencedTableName();
+	String getReferencedTableName();
 
 
 	/**
@@ -90,14 +90,14 @@ public interface ConsInfo	extends	Formatable
 	  *	@return	referential Action for update
 	  */
 
-	public int getReferentialActionUpdateRule();
+	int getReferentialActionUpdateRule();
 	
 	/**
 	  *	Get the referential Action for a Delete.
 	  *
 	  *	@return	referential Action Delete rule
 	  */
-	public int getReferentialActionDeleteRule();
+	int getReferentialActionDeleteRule();
 
 }
 

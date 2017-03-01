@@ -29,15 +29,15 @@ import com.splicemachine.db.client.am.ConnectionCallbackInterface;
 import com.splicemachine.db.client.am.DisconnectException;
 
 public interface ConnectionReplyInterface {
-    public void readCommitSubstitute(ConnectionCallbackInterface connection) throws DisconnectException;
+    void readCommitSubstitute(ConnectionCallbackInterface connection) throws DisconnectException;
 
-    public void readLocalCommit(ConnectionCallbackInterface connection) throws DisconnectException;
+    void readLocalCommit(ConnectionCallbackInterface connection) throws DisconnectException;
 
-    public void readLocalRollback(ConnectionCallbackInterface connection) throws DisconnectException;
+    void readLocalRollback(ConnectionCallbackInterface connection) throws DisconnectException;
 
-    public void readLocalXAStart(ConnectionCallbackInterface connection) throws DisconnectException;
+    void readLocalXAStart(ConnectionCallbackInterface connection) throws DisconnectException;
 
-    public void readLocalXACommit(ConnectionCallbackInterface connection) throws DisconnectException;
+    void readLocalXACommit(ConnectionCallbackInterface connection) throws DisconnectException;
 
-    public void readLocalXARollback(ConnectionCallbackInterface connection) throws DisconnectException;
+    void readLocalXARollback(ConnectionCallbackInterface connection) throws DisconnectException;
 }

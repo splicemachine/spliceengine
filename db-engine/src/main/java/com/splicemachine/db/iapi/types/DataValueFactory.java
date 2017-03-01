@@ -65,7 +65,7 @@ public interface DataValueFactory
          * to hold the return value.
          *
          */
-        public NumberDataValue getDataValue(char value, NumberDataValue previous)
+        NumberDataValue getDataValue(char value, NumberDataValue previous)
                                                         throws StandardException;
 
         /**
@@ -482,7 +482,7 @@ public interface DataValueFactory
      * @param truncValue
      * @throws StandardException
      */
-    public NumberDataValue truncDecimal(DataValueDescriptor decimal, DataValueDescriptor truncValue) throws StandardException;
+    NumberDataValue truncDecimal(DataValueDescriptor decimal, DataValueDescriptor truncValue) throws StandardException;
 
         /**
          * Implements the SQL date function
@@ -493,7 +493,7 @@ public interface DataValueFactory
          *
          * @exception StandardException if the syntax is invalid or the date is out of range.
          */
-        public DateTimeDataValue getDate( DataValueDescriptor operand) throws StandardException;
+        DateTimeDataValue getDate(DataValueDescriptor operand) throws StandardException;
 
         /**
          * @param dateStr A date in one of the DB2 standard date formats or the local format.
@@ -503,7 +503,7 @@ public interface DataValueFactory
          *
          * @exception StandardException if the syntax is invalid or the date is out of range.
          */
-        public DateTimeDataValue getDateValue( String dateStr, boolean isJdbcEscape) throws StandardException;
+        DateTimeDataValue getDateValue(String dateStr, boolean isJdbcEscape) throws StandardException;
 
         /**
          * @param timeStr A date in one of the DB2 standard time formats or the local format.
@@ -513,7 +513,7 @@ public interface DataValueFactory
          *
          * @exception StandardException if the syntax is invalid or the time is out of range.
          */
-        public DateTimeDataValue getTimeValue( String timeStr, boolean isJdbcEscape) throws StandardException;
+        DateTimeDataValue getTimeValue(String timeStr, boolean isJdbcEscape) throws StandardException;
 
         /**
          * @param timestampStr A time in string format.
@@ -523,7 +523,7 @@ public interface DataValueFactory
          *
          * @exception StandardException if the syntax is invalid or the timestamp is out of range.
          */
-        public DateTimeDataValue getTimestampValue( String timestampStr, boolean isJdbcEscape) throws StandardException;
+        DateTimeDataValue getTimestampValue(String timestampStr, boolean isJdbcEscape) throws StandardException;
 
         /**
          * Get a null XML value. Uses the previous value,

@@ -50,18 +50,18 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 {
 	// method names for use with SQLState.LANG_RESULT_SET_NOT_OPEN exception
 
-	public	static	final	String	ABSOLUTE		=	"absolute";
-	public	static	final	String	RELATIVE		=	"relative";
-	public	static	final	String	FIRST			=	"first";
-	public	static	final	String	NEXT			=	"next";
-	public	static	final	String	LAST			=	"last";
-	public	static	final	String	PREVIOUS		=	"previous";
+	String	ABSOLUTE		=	"absolute";
+	String	RELATIVE		=	"relative";
+	String	FIRST			=	"first";
+	String	NEXT			=	"next";
+	String	LAST			=	"last";
+	String	PREVIOUS		=	"previous";
 
 	/**
 	 * Mark the ResultSet as the topmost one in the ResultSet tree.
 	 * Useful for closing down the ResultSet on an error.
 	 */
-	public void markAsTopResultSet();
+	void markAsTopResultSet();
 
 	/**
 	 * open a scan on the table. scan parameters are evaluated
@@ -79,7 +79,7 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 *
 	 * @exception StandardException thrown if cursor finished.
 	 */
-	public void openCore() throws StandardException;
+	void openCore() throws StandardException;
 
 	/**
      * reopen the scan.  behaves like openCore() but is 
@@ -94,7 +94,7 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 *
 	 * @exception StandardException thrown if cursor finished.
      */
-	public void reopenCore() throws StandardException;
+	void reopenCore() throws StandardException;
 
 	/**
      * Return the requested values computed
@@ -108,7 +108,7 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 *
 	 * @return the next row in the result
 	 */
-	public ExecRow	getNextRowCore() throws StandardException;
+	ExecRow	getNextRowCore() throws StandardException;
 
 	/**
 	 * Return the point of attachment for this subquery.
@@ -118,7 +118,7 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 * @return int	Point of attachment (result set number) for this
 	 *			    subquery.  (-1 if not a subquery - also Sanity violation)
 	 */
-	public int getPointOfAttachment();
+	int getPointOfAttachment();
 
 	/**
 	 * Return the isolation level of the scan in the result set.
@@ -127,7 +127,7 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 *
 	 * @return The isolation level of the scan (in TransactionController constants).
 	 */
-	public int getScanIsolationLevel();
+	int getScanIsolationLevel();
 
 	/**
 	 * Notify a NPRS that it is the source for the specified 
@@ -135,26 +135,26 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 *
 	 * @param trs	The TargetResultSet.
 	 */
-	public void setTargetResultSet(TargetResultSet trs);
+	void setTargetResultSet(TargetResultSet trs);
 
 	/**
 	 * Set whether or not the NPRS need the row location when acting
 	 * as a row source.  (The target result set determines this.)
 	 */
-	public void setNeedsRowLocation(boolean needsRowLocation);
+	void setNeedsRowLocation(boolean needsRowLocation);
 
 	/**
 	 * Get the estimated row count from this result set.
 	 *
 	 * @return	The estimated row count (as a double) from this result set.
 	 */
-	public double getEstimatedRowCount();
+	double getEstimatedRowCount();
 
 	/**
 	 * Get the number of this ResultSet, which is guaranteed to be unique
 	 * within a statement.
 	 */
-	public int resultSetNumber();
+	int resultSetNumber();
 
 	/**
 	 * Set the current row to the row passed in.
@@ -162,7 +162,7 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 * @param row the new current row
 	 *
 	 */
-	public void setCurrentRow(ExecRow row);
+	void setCurrentRow(ExecRow row);
 
 	/**
 	 * Do we need to relock the row when going to the heap.
@@ -170,14 +170,14 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 * @return Whether or not we need to relock the row when going to the heap.
 	 */
 
-	public boolean requiresRelocking();
+	boolean requiresRelocking();
 	
 	/**
 	 * Is this ResultSet or it's source result set for update
 	 *
 	 * @return Whether or not the result set is for update.
 	 */
-	public boolean isForUpdate();
+	boolean isForUpdate();
 
 	/* 
 	 * New methods for supporting detectability of own changes for
@@ -197,7 +197,7 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 *
 	 * @exception StandardException thrown on failure.
 	 */
-	public void updateRow(ExecRow row, RowChanger rowChanger)
+	void updateRow(ExecRow row, RowChanger rowChanger)
 			throws StandardException;
 	
 	/**
@@ -207,7 +207,7 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	 *
 	 * @exception StandardException thrown on failure.
 	 */
-	public void markRowAsDeleted() throws StandardException;
+	void markRowAsDeleted() throws StandardException;
 
 	/**
 	 * Positions the cursor in the specified rowLocation. Used for

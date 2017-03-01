@@ -37,29 +37,29 @@ import java.util.Calendar;
 
 public interface DateTimeDataValue extends DataValueDescriptor
 {
-	public static final int YEAR_FIELD = 0;
-    public static final int QUARTER_FIELD = 1;
-	public static final int MONTH_FIELD = 2;
-    public static final int MONTHNAME_FIELD = 3;
-    public static final int WEEK_FIELD = 4;
-    public static final int WEEK_DAY_FIELD = 5;
-    public static final int WEEKDAYNAME_FIELD = 6;
-	public static final int DAY_OF_YEAR_FIELD = 7;
-	public static final int DAY_FIELD = 8;
-	public static final int HOUR_FIELD = 9;
-	public static final int MINUTE_FIELD = 10;
-	public static final int SECOND_FIELD = 11;
+	int YEAR_FIELD = 0;
+    int QUARTER_FIELD = 1;
+	int MONTH_FIELD = 2;
+    int MONTHNAME_FIELD = 3;
+    int WEEK_FIELD = 4;
+    int WEEK_DAY_FIELD = 5;
+    int WEEKDAYNAME_FIELD = 6;
+	int DAY_OF_YEAR_FIELD = 7;
+	int DAY_FIELD = 8;
+	int HOUR_FIELD = 9;
+	int MINUTE_FIELD = 10;
+	int SECOND_FIELD = 11;
 
     // The JDBC interval types
-    public static final int FRAC_SECOND_INTERVAL = 0;
-    public static final int SECOND_INTERVAL = 1;
-    public static final int MINUTE_INTERVAL = 2;
-    public static final int HOUR_INTERVAL = 3;
-    public static final int DAY_INTERVAL = 4;
-    public static final int WEEK_INTERVAL = 5;
-    public static final int MONTH_INTERVAL = 6;
-    public static final int QUARTER_INTERVAL = 7;
-    public static final int YEAR_INTERVAL = 8;
+	int FRAC_SECOND_INTERVAL = 0;
+    int SECOND_INTERVAL = 1;
+    int MINUTE_INTERVAL = 2;
+    int HOUR_INTERVAL = 3;
+    int DAY_INTERVAL = 4;
+    int WEEK_INTERVAL = 5;
+    int MONTH_INTERVAL = 6;
+    int QUARTER_INTERVAL = 7;
+    int YEAR_INTERVAL = 8;
 
 	/**
 	 * Get the year number out of a date.

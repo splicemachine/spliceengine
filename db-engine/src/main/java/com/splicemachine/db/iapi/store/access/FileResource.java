@@ -69,7 +69,7 @@ public interface FileResource {
     /**
        The name of the jar directory
     */
-    public static final String JAR_DIRECTORY_NAME = "jar";
+	String JAR_DIRECTORY_NAME = "jar";
 
 	/**
 	  Add a file resource, copying from the input stream.
@@ -83,7 +83,7 @@ public interface FileResource {
 
 	  @exception StandardException some error occured.
 	*/
-	public long add(String name,InputStream source)
+	long add(String name, InputStream source)
 		throws StandardException;
 
 	/**
@@ -94,7 +94,7 @@ public interface FileResource {
 	  
 	  @exception StandardException some error occured.
 	  */
-	public void remove(String name, long currentGenerationId)
+	void remove(String name, long currentGenerationId)
 		throws StandardException;
 
     /**
@@ -103,7 +103,7 @@ public interface FileResource {
      * @param f
      * @exception standard error policy
      */
-    public void removeJarDir(String f) throws StandardException;
+	void removeJarDir(String f) throws StandardException;
     
 	/**
 	  Replace a file resource with a new version.
@@ -117,7 +117,7 @@ public interface FileResource {
 	          file resource. 
 	  @exception StandardException some error occured.
 	*/
-	public long replace(String name, long currentGenerationId, InputStream source)
+	long replace(String name, long currentGenerationId, InputStream source)
 		throws StandardException;
 
 	/**
@@ -128,10 +128,10 @@ public interface FileResource {
 	  
 	  @return A StorageFile object representing the file.
 	  */
-	public StorageFile getAsFile(String name, long generationId);
+	StorageFile getAsFile(String name, long generationId);
 
     /**
      * @return the separator character to be used in file names.
      */
-    public char getSeparatorChar();
+	char getSeparatorChar();
 }

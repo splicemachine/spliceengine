@@ -98,13 +98,13 @@ public interface Statement
 	 *	   execution-only version of the module (the prepare() method
 	 *	   relies on compilation).
 	 */
-	public	PreparedStatement	prepareStorable
-	( 
-		LanguageConnectionContext lcc,
-		PreparedStatement ps, 
-		Object[]			paramDefaults,
-		SchemaDescriptor	spsSchema,
-		boolean	internalSQL
+	PreparedStatement	prepareStorable
+	(
+			LanguageConnectionContext lcc,
+			PreparedStatement ps,
+			Object[] paramDefaults,
+			SchemaDescriptor spsSchema,
+			boolean internalSQL
 	)
 		throws StandardException;
 

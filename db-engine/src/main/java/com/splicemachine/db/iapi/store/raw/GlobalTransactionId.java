@@ -49,7 +49,7 @@ public interface GlobalTransactionId extends Formatable
      *
 	 * @return Format identifier. O means the OSI CCR format.
      **/
-    public int getFormat_Id();
+	int getFormat_Id();
 
     /**
      * Obtain the global transaction identifier part of GlobalTransactionId 
@@ -58,7 +58,7 @@ public interface GlobalTransactionId extends Formatable
      *
 	 * @return A byte array containing the global transaction identifier.
      **/
-    public byte[] getGlobalTransactionId();
+	byte[] getGlobalTransactionId();
 
     /**
      * Obtain the transaction branch qualifier part of the GlobalTransactionId
@@ -67,7 +67,7 @@ public interface GlobalTransactionId extends Formatable
      *
 	 * @return A byte array containing the branch qualifier of the transaction.
      **/
-    public byte[] getBranchQualifier();
+	byte[] getBranchQualifier();
 
 	/* need to write a value based HashCode() method. */
 }

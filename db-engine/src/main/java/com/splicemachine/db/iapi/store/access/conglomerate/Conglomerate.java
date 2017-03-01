@@ -82,9 +82,9 @@ public interface Conglomerate extends Storable, DataValueDescriptor
      *
      * @exception  StandardException  Standard exception policy.
      **/
-    public void dropColumn(
-            TransactionManager  xact_manager,
-            int                 column_id)
+    void dropColumn(
+            TransactionManager xact_manager,
+            int column_id)
             throws StandardException;
 
 
@@ -105,11 +105,11 @@ public interface Conglomerate extends Storable, DataValueDescriptor
      *
      * @exception  StandardException  Standard exception policy.
      **/
-    public void addColumn(
-            TransactionManager  xact_manager,
-            int                 column_id,
-            Storable            template_column,
-            int                 collation_id)
+    void addColumn(
+            TransactionManager xact_manager,
+            int column_id,
+            Storable template_column,
+            int collation_id)
             throws StandardException;
 
     /**
@@ -166,9 +166,9 @@ public interface Conglomerate extends Storable, DataValueDescriptor
      *
      * @exception  StandardException  Standard exception policy.
      **/
-    public StaticCompiledOpenConglomInfo getStaticCompiledConglomInfo(
-            TransactionController   tc,
-            long                    conglomId)
+    StaticCompiledOpenConglomInfo getStaticCompiledConglomInfo(
+            TransactionController tc,
+            long conglomId)
             throws StandardException;
 
     /**
@@ -187,7 +187,7 @@ public interface Conglomerate extends Storable, DataValueDescriptor
      *
      * @exception  StandardException  Standard exception policy.
      **/
-    public DynamicCompiledOpenConglomInfo getDynamicCompiledConglomInfo()
+    DynamicCompiledOpenConglomInfo getDynamicCompiledConglomInfo()
             throws StandardException;
 
     /**
@@ -226,9 +226,9 @@ public interface Conglomerate extends Storable, DataValueDescriptor
      * raise SQLState.STORE_CONGLOMERATE_DUPLICATE_KEY_EXCEPTION.
      *
      **/
-    public long load(
-            TransactionManager      xact_manager,
-            boolean                 createConglom,
+    long load(
+            TransactionManager xact_manager,
+            boolean createConglom,
             RowLocationRetRowSource rowSource)
             throws StandardException;
 

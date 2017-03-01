@@ -51,7 +51,7 @@ public interface EngineParameterMetaData  {
      *
      * @return the number of parameters
      */
-    public int getParameterCount();
+    int getParameterCount();
     
     /**
      * Retrieves whether null values are allowed in the designated parameter.
@@ -62,7 +62,7 @@ public interface EngineParameterMetaData  {
      * ParameterMetaData.parameterNullableUnknown
      * @exception SQLException if a database access error occurs
      */
-    public int isNullable(int param) throws SQLException;
+    int isNullable(int param) throws SQLException;
     
     /**
      * Retrieves whether values for the designated parameter can be signed numbers.
@@ -71,7 +71,7 @@ public interface EngineParameterMetaData  {
      * @return true if it can be signed numbers
      * @exception SQLException if a database access error occurs
      */
-    public boolean isSigned(int param) throws SQLException;
+    boolean isSigned(int param) throws SQLException;
     
     /**
      * Retrieves the designated parameter's number of decimal digits.
@@ -80,7 +80,7 @@ public interface EngineParameterMetaData  {
      * @return precision
      * @exception SQLException if a database access error occurs
      */
-    public int getPrecision(int param) throws SQLException;        
+    int getPrecision(int param) throws SQLException;
     
     /**
      * Retrieves the designated parameter's number of digits to right of the decimal point.
@@ -89,7 +89,7 @@ public interface EngineParameterMetaData  {
      * @return scale
      * @exception SQLException if a database access error occurs
      */
-    public int getScale(int param) throws SQLException;
+    int getScale(int param) throws SQLException;
     /**
      *
      * Retrieves the designated parameter's SQL type.
@@ -98,7 +98,7 @@ public interface EngineParameterMetaData  {
      * @return SQL type from java.sql.Types
      * @exception SQLException if a database access error occurs
      */
-    public int getParameterType(int param) throws SQLException;
+    int getParameterType(int param) throws SQLException;
     /**
      *
      * Retrieves the designated parameter's database-specific type name.
@@ -108,7 +108,7 @@ public interface EngineParameterMetaData  {
      * type is a user-defined type, then a fully-qualified type name is returned.
      * @exception SQLException if a database access error occurs
      */
-    public String getParameterTypeName(int param) throws SQLException;
+    String getParameterTypeName(int param) throws SQLException;
     
     /**
      * Retrieves the fully-qualified name of the Java class whose instances should be
@@ -121,7 +121,7 @@ public interface EngineParameterMetaData  {
      * This is the class name used for custom mapping.
      * @exception SQLException if a database access error occurs
      */
-    public String getParameterClassName(int param) throws SQLException;
+    String getParameterClassName(int param) throws SQLException;
     
     /**
      * Retrieves the designated parameter's mode.
@@ -132,6 +132,6 @@ public interface EngineParameterMetaData  {
      * ParameterMetaData.parameterModeUnknown.
      * @exception SQLException if a database access error occurs
      */
-    public int getParameterMode(int param) throws SQLException;
+    int getParameterMode(int param) throws SQLException;
     
 }

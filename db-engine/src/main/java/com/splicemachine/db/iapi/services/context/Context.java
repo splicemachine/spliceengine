@@ -70,7 +70,7 @@ public interface Context
 	 * Returns the context manager that has stored this
 	 * context in its stack.
 	 */
-	public ContextManager getContextManager();
+	ContextManager getContextManager();
 
 	/**
 	 * Returns the current id name associated
@@ -86,7 +86,7 @@ public interface Context
 	 * see com.splicemachine.db.iapi.sql.compile.CompilerContext.CONTEXT_ID.
 	 * @see com.splicemachine.db.iapi.sql.compile.CompilerContext
 	 */
-	public String getIdName();
+	String getIdName();
 
 	/**
 	 * Contexts will be passed errors that are caught
@@ -121,18 +121,18 @@ public interface Context
 	 *
 	 * @exception StandardException thrown if cleanup goes awry
 	 */
-	public void cleanupOnError(Throwable error)
+	void cleanupOnError(Throwable error)
 		throws StandardException;
 
 	/**
 		Push myself onto my context stack.
 	*/
-	public void pushMe();
+	void pushMe();
 
 	/**
 		Pop myself of the context stack.
 	*/
-	public void popMe();
+	void popMe();
 
 	/**
 	 * Return whether or not this context is the "last" handler for a
@@ -149,5 +149,5 @@ public interface Context
 	 * This method allows both of them to return false so that all such handlers
 	 * under them can do their clean up.
 	 */
-	public boolean isLastHandler(int severity);
+	boolean isLastHandler(int severity);
 }

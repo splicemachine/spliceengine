@@ -54,36 +54,36 @@ public interface TypeCompiler
 	 * Various fixed numbers related to datatypes.
 	 */
 	// Need to leave space for '-'
-	public static final int LONGINT_MAXWIDTH_AS_CHAR	= 20;
+	int LONGINT_MAXWIDTH_AS_CHAR	= 20;
 
 	// Need to leave space for '-'
-	public static final int INT_MAXWIDTH_AS_CHAR	= 11;
+	int INT_MAXWIDTH_AS_CHAR	= 11;
 
 	// Need to leave space for '-'
-	public static final int SMALLINT_MAXWIDTH_AS_CHAR	= 6;
+	int SMALLINT_MAXWIDTH_AS_CHAR	= 6;
 
 	// Need to leave space for '-'
-	public static final int TINYINT_MAXWIDTH_AS_CHAR	= 4;
+	int TINYINT_MAXWIDTH_AS_CHAR	= 4;
 
 	// Need to leave space for '-' and decimal point
-	public static final int DOUBLE_MAXWIDTH_AS_CHAR		= 54;
+	int DOUBLE_MAXWIDTH_AS_CHAR		= 54;
 
 	// Need to leave space for '-' and decimal point
-	public static final int REAL_MAXWIDTH_AS_CHAR	= 25;
+	int REAL_MAXWIDTH_AS_CHAR	= 25;
 
-	public static final int DEFAULT_DECIMAL_PRECISION	= Limits.DB2_DEFAULT_DECIMAL_PRECISION;
-	public static final int DEFAULT_DECIMAL_SCALE 		= Limits.DB2_DEFAULT_DECIMAL_SCALE;
-	public static final int MAX_DECIMAL_PRECISION_SCALE = Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
+	int DEFAULT_DECIMAL_PRECISION	= Limits.DB2_DEFAULT_DECIMAL_PRECISION;
+	int DEFAULT_DECIMAL_SCALE 		= Limits.DB2_DEFAULT_DECIMAL_SCALE;
+	int MAX_DECIMAL_PRECISION_SCALE = Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
 
-	public static final int BOOLEAN_MAXWIDTH_AS_CHAR	= 5;
+	int BOOLEAN_MAXWIDTH_AS_CHAR	= 5;
 
-	public static final String PLUS_OP 		= "+";
-	public static final String DIVIDE_OP	= "/";
-	public static final String MINUS_OP 	= "-";
-	public static final String TIMES_OP 	= "*";
-	public static final String SUM_OP 		= "sum";
-	public static final String AVG_OP 		= "avg";
-	public static final String MOD_OP		= "mod";
+	String PLUS_OP 		= "+";
+	String DIVIDE_OP	= "/";
+	String MINUS_OP 	= "-";
+	String TIMES_OP 	= "*";
+	String SUM_OP 		= "sum";
+	String AVG_OP 		= "avg";
+	String MOD_OP		= "mod";
 
 	/**
 	 * Type resolution methods on binary operators

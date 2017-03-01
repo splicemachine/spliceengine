@@ -53,5 +53,5 @@ public interface CloneableStream {
      *
      * @return The cloned stream.
      */
-    public InputStream cloneStream() ;
+    InputStream cloneStream() ;
 }

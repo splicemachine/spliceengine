@@ -20,7 +20,7 @@ package com.splicemachine.metrics;
  */
 public interface DistributionTimeView extends TimeView{
 
-    public LatencyView wallLatency();
-    public LatencyView cpuLatency();
-    public LatencyView userLatency();
+    LatencyView wallLatency();
+    LatencyView cpuLatency();
+    LatencyView userLatency();
 }

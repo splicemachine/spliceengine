@@ -79,10 +79,10 @@ public interface XAResourceManager
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void commit(
-    ContextManager  cm,
-    Xid             xid,
-    boolean         onePhase)
+    void commit(
+            ContextManager cm,
+            Xid xid,
+            boolean onePhase)
 		throws StandardException;
 
     /**
@@ -103,8 +103,8 @@ public interface XAResourceManager
      *
      * @param xid      A global transaction identifier.
      **/
-    public ContextManager find(
-    Xid     xid);
+    ContextManager find(
+            Xid xid);
 
     /**
      * This method is called to remove the given transaction 
@@ -125,9 +125,9 @@ public interface XAResourceManager
 	 * @exception  StandardException  Standard exception policy.
      *
      **/
-    public void forget(
-    ContextManager  cm,
-    Xid             xid)
+    void forget(
+            ContextManager cm,
+            Xid xid)
 		throws StandardException;
 
     /**
@@ -152,7 +152,7 @@ public interface XAResourceManager
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public Xid[] recover(int flags)
+    Xid[] recover(int flags)
         throws StandardException;
 
     /**
@@ -167,8 +167,8 @@ public interface XAResourceManager
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void rollback(
-    ContextManager  cm,
-    Xid             xid)
+    void rollback(
+            ContextManager cm,
+            Xid xid)
         throws StandardException;
 }

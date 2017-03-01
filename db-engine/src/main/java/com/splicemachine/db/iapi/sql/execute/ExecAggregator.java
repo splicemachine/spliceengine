@@ -67,7 +67,7 @@ public interface ExecAggregator extends Formatable
         @param  returnDataType  The type returned by the getResult() method.
 
 	 */
-	public ExecAggregator setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType );
+	ExecAggregator setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType);
 
 	/**
 	 * Iteratively accumulates the addend into the aggregator.
@@ -80,17 +80,17 @@ public interface ExecAggregator extends Formatable
 	 *
 	 * @exception StandardException on error
 	 */
-	public void accumulate
+	void accumulate
 	(
-		DataValueDescriptor addend, 
-		Object				ga 	
+			DataValueDescriptor addend,
+			Object ga
 	) throws StandardException;
 
 	/**
    * Add a value to this aggregator. Much like merge, but without
 	 * requiring the ExecAggregator set.
    */
-	public void add(DataValueDescriptor addend) throws StandardException;
+	void add(DataValueDescriptor addend) throws StandardException;
 
 	/**
 	 * Merges one aggregator into a another aggregator.
@@ -117,7 +117,7 @@ public interface ExecAggregator extends Formatable
 	 *
 	 * @exception StandardException on error
 	 */
-	public void merge(ExecAggregator inputAggregator) throws StandardException;
+	void merge(ExecAggregator inputAggregator) throws StandardException;
 
 	/**
 	 * Produces the result to be returned by the query.
@@ -125,7 +125,7 @@ public interface ExecAggregator extends Formatable
 	 *
 	 * @exception StandardException on error
  	 */
-	public DataValueDescriptor getResult() throws StandardException;
+	DataValueDescriptor getResult() throws StandardException;
 
 	/**
  	   Return a new initialized copy of this aggregator, ANY STATE
@@ -134,13 +134,13 @@ public interface ExecAggregator extends Formatable
 	 *
 	 * @return ExecAggregator the new aggregator
 	 */
-	public ExecAggregator newAggregator();
+	ExecAggregator newAggregator();
 	
 	/**
 		Return true if the aggregation eliminated at least one
 		null from the input data set.
 	*/
-	public boolean didEliminateNulls();
+	boolean didEliminateNulls();
 
-	public boolean isUserDefinedAggregator();
+	boolean isUserDefinedAggregator();
 }

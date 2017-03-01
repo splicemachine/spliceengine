@@ -45,41 +45,41 @@ package com.splicemachine.db.iapi.services.locks;
 public interface VirtualLockTable {
 
 	// flags for Lockable.lockAttributes
-	public static final int LATCH = 1;
-	public static final int TABLE_AND_ROWLOCK = 2;
-    public static final int SHEXLOCK = 4;
-	public static final int ALL = ~0;	// turn on all bits
+	int LATCH = 1;
+	int TABLE_AND_ROWLOCK = 2;
+    int SHEXLOCK = 4;
+	int ALL = ~0;	// turn on all bits
 
 	// This is a list of attributes that is known to the Virtual Lock Table.
 
 	// list of attributes to be supplied by a participating Lockable
-	public static final String LOCKTYPE		= "TYPE";	// mandatory
-	public static final String LOCKNAME		= "LOCKNAME"; // mandatory
+	String LOCKTYPE		= "TYPE";	// mandatory
+	String LOCKNAME		= "LOCKNAME"; // mandatory
 		 // either one of conglomId or containerId mandatory
-	public static final String CONGLOMID	= "CONGLOMID"; 
-	public static final String CONTAINERID	= "CONTAINERID";
-	public static final String SEGMENTID	= "SEGMENTID";	 // optional
-    public static final String PAGENUM		= "PAGENUM"; // optional
-    public static final String RECID		= "RECID"; // optional
+		 String CONGLOMID	= "CONGLOMID";
+	String CONTAINERID	= "CONTAINERID";
+	String SEGMENTID	= "SEGMENTID";	 // optional
+    String PAGENUM		= "PAGENUM"; // optional
+    String RECID		= "RECID"; // optional
 
 	// list of attributes added by the virtual lock table by asking
 	// the lock for its compatibility space and count
-	public static final String XACTID		= "XID";
-    public static final String LOCKCOUNT	= "LOCKCOUNT";
+	String XACTID		= "XID";
+    String LOCKCOUNT	= "LOCKCOUNT";
 
 	// list of attributes added by the virtual lock table by asking
 	// the lock qualifier
-	public static final String LOCKMODE		= "MODE";
+	String LOCKMODE		= "MODE";
 
 	// list of attributes to be supplied the virtual lock table by looking at 
 	// the lock table
-    public static final String STATE		= "STATE";
-	public static final String LOCKOBJ		= "LOCKOBJ";
+	String STATE		= "STATE";
+	String LOCKOBJ		= "LOCKOBJ";
 
 	// list of attributes filled in by virtual lock table with help from data
 	// dictionary 
-	public static final String TABLENAME	= "TABLENAME";
-	public static final String INDEXNAME	= "INDEXNAME";
-	public static final String TABLETYPE	= "TABLETYPE";
+	String TABLENAME	= "TABLENAME";
+	String INDEXNAME	= "INDEXNAME";
+	String TABLETYPE	= "TABLETYPE";
 
 }

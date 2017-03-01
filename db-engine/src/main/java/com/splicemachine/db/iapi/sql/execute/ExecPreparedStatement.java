@@ -143,7 +143,7 @@ public interface ExecPreparedStatement
 	 *
 	 * @exception StandardException on error 
 	 */
-	public ExecPreparedStatement getClone() throws StandardException;
+	ExecPreparedStatement getClone() throws StandardException;
 
 	/* Methods from old CursorPreparedStatement */
 

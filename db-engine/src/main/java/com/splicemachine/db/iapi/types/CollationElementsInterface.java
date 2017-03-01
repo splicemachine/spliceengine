@@ -48,7 +48,7 @@ interface CollationElementsInterface
 	 * @return an array of collation elements for the string
 	 * @throws StandardException
 	 */
-	public int[] getCollationElementsForString() throws StandardException; 
+	int[] getCollationElementsForString() throws StandardException;
 
 	/**
 	 * This method returns the count of collation elements for this instance of
@@ -58,5 +58,5 @@ interface CollationElementsInterface
 	 *
 	 * @return count of collation elements for this instance of CollatorSQLChar
 	 */
-	public int getCountOfCollationElements();
+	int getCountOfCollationElements();
 }

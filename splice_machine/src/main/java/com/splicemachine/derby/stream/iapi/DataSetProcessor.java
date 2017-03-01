@@ -136,8 +136,8 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
+    <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
+                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
 
     /**
      *  Create a empty external file based on the storage format specified in the method
@@ -152,7 +152,7 @@ public interface DataSetProcessor {
      * @param location
      * @throws StandardException
      */
-    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy,String storageAs,  String location, String compression) throws StandardException ;
+    void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException ;
 
     /**
      * Get external schema. This used to verify and make sure that what is really provided in the external fil
@@ -162,7 +162,7 @@ public interface DataSetProcessor {
      * @param location
      * @return
      */
-    public StructType getExternalFileSchema(String storedAs, String location);
+    StructType getExternalFileSchema(String storedAs, String location);
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because
@@ -170,7 +170,7 @@ public interface DataSetProcessor {
      * This method is used with a procedure look at SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE
      * @param location
      */
-    public void refreshTable(String location);
+    void refreshTable(String location);
     /**
      *
      * Reads in-memory version given the scan variables.  The qualifiers are applied to the in-memory version.
@@ -186,8 +186,8 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
+    <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location,
+                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
 
     /**
      *
@@ -204,8 +204,8 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
-                                      OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException;
+    <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
+                               OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException;
 
     /**
      *
@@ -223,8 +223,8 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException;
+    <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+                                         OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException;
 
     /**
      *
@@ -233,6 +233,6 @@ public interface DataSetProcessor {
      * @param conglomerateId
      * @throws StandardException
      */
-    public void dropPinnedTable(long conglomerateId) throws StandardException;
+    void dropPinnedTable(long conglomerateId) throws StandardException;
 
 }

@@ -41,13 +41,13 @@ public interface DefaultInfo
 	 *
 	 * @return The text of the default.
 	 */
-	public String getDefaultText();
+	String getDefaultText();
 	
 	/**
 	 * If this default is a generation clause, then return the names of
 	 * other columns in the row which the generation clause references.
 	 */
-	public String[] getReferencedColumnNames();
+	String[] getReferencedColumnNames();
 	
 	
 	/**
@@ -61,18 +61,18 @@ public interface DefaultInfo
 	//such as autoIncrementStart and autoInrementInc 
 	//should be gotten from this interface.
 
-	public boolean isDefaultValueAutoinc();
+	boolean isDefaultValueAutoinc();
 
 	/**
 	 * Return true if this is the generation clause for a generated column.
 	 */
-	public boolean isGeneratedColumn();
+	boolean isGeneratedColumn();
 	
 	/**
 	 * Return the name of the current schema when the default was created. This
 	 * is filled in for generated columns.
 	 */
-	public String   getOriginalCurrentSchema();
+	String   getOriginalCurrentSchema();
 	
 
 }

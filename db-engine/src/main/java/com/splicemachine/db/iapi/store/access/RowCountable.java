@@ -62,7 +62,7 @@ public interface RowCountable
      *
      * @throws  StandardException  Standard exception policy.
      */
-    public long getEstimatedRowCount()
+    long getEstimatedRowCount()
         throws StandardException;
 
 }

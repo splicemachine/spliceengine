@@ -103,7 +103,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
  */
 public interface JavaFactory {
 
-	public	final	static	String	JAVA_FACTORY_PROPERTY = "derby.module.JavaCompiler";
+	String	JAVA_FACTORY_PROPERTY = "derby.module.JavaCompiler";
 
 	/**
 	 * a class.  Once it is created, fields, methods,

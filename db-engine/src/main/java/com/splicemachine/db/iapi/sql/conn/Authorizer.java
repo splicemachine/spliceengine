@@ -44,30 +44,30 @@ import com.splicemachine.db.iapi.error.StandardException;
 public interface Authorizer
 {
 	/** SQL write (insert,update,delete) operation */
-	public static final int SQL_WRITE_OP = 0;
+	int SQL_WRITE_OP = 0;
 	/** SQL SELECT  operation */
-	public static final int	SQL_SELECT_OP = 1;
+	int	SQL_SELECT_OP = 1;
 	/** Any other SQL operation	*/
-	public static final int	SQL_ARBITARY_OP = 2;
+	int	SQL_ARBITARY_OP = 2;
 	/** SQL CALL/VALUE  operation */
-	public static final int	SQL_CALL_OP = 3;
+	int	SQL_CALL_OP = 3;
 	/** SQL DDL operation */
-	public static final int SQL_DDL_OP   = 4;
+	int SQL_DDL_OP   = 4;
 	/** database property write operation */
-	public static final int PROPERTY_WRITE_OP = 5;
-	/**  database jar write operation */	
-	public static final int JAR_WRITE_OP = 6;
+	int PROPERTY_WRITE_OP = 5;
+	/**  database jar write operation */
+	int JAR_WRITE_OP = 6;
 	
 	/* Privilege types for SQL standard (grant/revoke) permissions checking. */
-	public static final int NULL_PRIV = -1;
-	public static final int SELECT_PRIV = 0;
-	public static final int UPDATE_PRIV = 1;
-	public static final int REFERENCES_PRIV = 2;
-	public static final int INSERT_PRIV = 3;
-	public static final int DELETE_PRIV = 4;
-	public static final int TRIGGER_PRIV = 5;
-	public static final int EXECUTE_PRIV = 6;
-	public static final int USAGE_PRIV = 7;
+	int NULL_PRIV = -1;
+	int SELECT_PRIV = 0;
+	int UPDATE_PRIV = 1;
+	int REFERENCES_PRIV = 2;
+	int INSERT_PRIV = 3;
+	int DELETE_PRIV = 4;
+	int TRIGGER_PRIV = 5;
+	int EXECUTE_PRIV = 6;
+	int USAGE_PRIV = 7;
     /* 
      * DERBY-4191
      * Used to check if user has a table level select privilege/any column 
@@ -82,28 +82,28 @@ public interface Authorizer
      * query, we were not requiring any select privilege on t2 since no
      * column was selected from t2
      */
-	public static final int MIN_SELECT_PRIV = 8;
-    public static final int PRIV_TYPE_COUNT = 9;
+	int MIN_SELECT_PRIV = 8;
+    int PRIV_TYPE_COUNT = 9;
     
 	/* Used to check who can create schemas or who can modify objects in schema */
-	public static final int CREATE_SCHEMA_PRIV = 16;
-	public static final int MODIFY_SCHEMA_PRIV = 17;
-	public static final int DROP_SCHEMA_PRIV = 18;
+	int CREATE_SCHEMA_PRIV = 16;
+	int MODIFY_SCHEMA_PRIV = 17;
+	int DROP_SCHEMA_PRIV = 18;
 
     /* Check who can create and drop roles */
-	public static final int CREATE_ROLE_PRIV = 19;
-	public static final int DROP_ROLE_PRIV = 20;
+	int CREATE_ROLE_PRIV = 19;
+	int DROP_ROLE_PRIV = 20;
 
 	/**
 	 * The system authorization ID is defined by the SQL2003 spec as the grantor
 	 * of privileges to object owners.
 	 */
-	public static final String SYSTEM_AUTHORIZATION_ID = "_SYSTEM";
+	String SYSTEM_AUTHORIZATION_ID = "_SYSTEM";
 
 	/**
 	 * The public authorization ID is defined by the SQL2003 spec as implying all users.
 	 */
-	public static final String PUBLIC_AUTHORIZATION_ID = "PUBLIC";
+	String PUBLIC_AUTHORIZATION_ID = "PUBLIC";
 
 	/**
 	  Verify the connected user is authorized to perform the requested
@@ -118,7 +118,7 @@ public interface Authorizer
 
 	  @exception StandardException Thrown if the operation is not allowed
 	 */
-	public void authorize( int operation) throws StandardException;
+	void authorize(int operation) throws StandardException;
     
 	/**
 	  Verify the connected user is authorized to perform the requested
@@ -129,13 +129,13 @@ public interface Authorizer
 
 	  @exception StandardException Thrown if the operation is not allowed
 	*/
-	public void authorize(Activation activation, int operation)
+	void authorize(Activation activation, int operation)
 				throws StandardException;
 
    /**
 	 Get the readOnly status for this authorizer's connection.
 	 */
-   public boolean isReadOnlyConnection();
+   boolean isReadOnlyConnection();
 
    /**
 	 Set the readOnly status for this authorizer's connection.
@@ -145,7 +145,7 @@ public interface Authorizer
 	        to set the connection and false means do not check. 
 	 @exception StandardException Oops not allowed.
 	 */
-   public void setReadOnlyConnection(boolean on, boolean authorize)
+   void setReadOnlyConnection(boolean on, boolean authorize)
 		 throws StandardException;
 
    /**
@@ -155,5 +155,5 @@ public interface Authorizer
 	 @exception AuthorizerSessionException Connect permission gone.
 	 @exception StandardException Oops.
 	 */
-   public void refresh() throws StandardException;  
+   void refresh() throws StandardException;
 }

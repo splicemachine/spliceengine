@@ -43,7 +43,7 @@ public interface EngineResultSet extends ResultSet {
     /**
      * Is this result set from a select for update statement?
      */
-    public boolean isForUpdate();
+    boolean isForUpdate();
     
     /**
      * Is the designated columnIndex a null data value?
@@ -53,7 +53,7 @@ public interface EngineResultSet extends ResultSet {
      * @return true if the data value at columnIndex for the current row is null 
      * @throws SQLException 
      */
-    public boolean isNull(int columnIndex) throws SQLException;
+    boolean isNull(int columnIndex) throws SQLException;
     
     /**
      * Return the length of the designated columnIndex data value.
@@ -64,7 +64,7 @@ public interface EngineResultSet extends ResultSet {
      * @throws SQLException
      * @see com.splicemachine.db.iapi.types.DataValueDescriptor#getLength()
      */
-    public int getLength(int columnIndex) throws SQLException;
+    int getLength(int columnIndex) throws SQLException;
     
     /**
      * Fetch the holdability of this ResultSet which may be different
@@ -72,6 +72,6 @@ public interface EngineResultSet extends ResultSet {
      * @return HOLD_CURSORS_OVER_COMMIT or CLOSE_CURSORS_AT_COMMIT
      * @throws SQLException Error.
      */
-    public int getHoldability() throws SQLException;
+    int getHoldability() throws SQLException;
     
 }

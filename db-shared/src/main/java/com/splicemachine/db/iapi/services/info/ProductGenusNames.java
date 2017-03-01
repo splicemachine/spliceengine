@@ -55,20 +55,20 @@ public interface ProductGenusNames
 {
 
 	/**Genus name for dbms products.*/
-	public static String DBMS = "DBMS";
-	public static String DBMS_INFO = "/com/splicemachine/db/info/DBMS.properties";
+	String DBMS = "DBMS";
+	String DBMS_INFO = "/com/splicemachine/db/info/DBMS.properties";
 
 	/**Genus name for tools products.*/
-	public static String TOOLS = "tools";
-	public static String TOOLS_INFO = "/com/splicemachine/db/info/tools.properties";
+	String TOOLS = "tools";
+	String TOOLS_INFO = "/com/splicemachine/db/info/tools.properties";
 
 	/**Genus name for net products.*/
-	public static String NET = "net";
-	public static String NET_INFO = "/com/splicemachine/db/info/net.properties";
+	String NET = "net";
+	String NET_INFO = "/com/splicemachine/db/info/net.properties";
 
 	/**Genus name for network client */
-	public static String DNC = "dnc";
-	public static String DNC_INFO = "/com/splicemachine/db/info/dnc.properties";
+	String DNC = "dnc";
+	String DNC_INFO = "/com/splicemachine/db/info/dnc.properties";
 
 }
 

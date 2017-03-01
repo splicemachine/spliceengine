@@ -44,10 +44,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 public interface Aggregator<V,R,A extends Aggregator<V,R,A>>    extends Serializable
 {
     /** Initialize the Aggregator */
-    public void init();
+    void init();
 
     /** Accumulate the next scalar value */
-    public  void    accumulate( V value ) throws StandardException;
+    void    accumulate(V value) throws StandardException;
 
     /**
      * <p>
@@ -67,9 +67,9 @@ public interface Aggregator<V,R,A extends Aggregator<V,R,A>>    extends Serializ
      * select a, mode( b ) from mode_inputs group by a order by a
      * </pre>
      */
-    public  void    merge( A otherAggregator );
+    void    merge(A otherAggregator);
 
     /** Return the result scalar value */
-    public  R   terminate();
+    R   terminate();
 }
 

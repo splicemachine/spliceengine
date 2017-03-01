@@ -88,7 +88,7 @@ public interface NetworkServerMBean {
      * @return the the network interface address on which the Network Server is 
      *         listening (<code>db.drda.host</code>)
      */
-    public String getDrdaHost();
+    String getDrdaHost();
     
     /**
      * <p>
@@ -113,7 +113,7 @@ public interface NetworkServerMBean {
      *         probes and attempt to clean up connections for disconnected 
      *         clients (<code>db.drda.keepAlive</code>)
      */
-    public boolean getDrdaKeepAlive();
+    boolean getDrdaKeepAlive();
     
     /**
      * <p>
@@ -128,7 +128,7 @@ public interface NetworkServerMBean {
      *         Server will allocate at any given time 
      *         (<code>db.drda.maxThreads</code>)
      */
-    public int getDrdaMaxThreads();
+    int getDrdaMaxThreads();
     //public void setDrdaMaxThreads(int max) throws Exception;
     
     /**
@@ -143,7 +143,7 @@ public interface NetworkServerMBean {
      * @return the port number on which the Network Server is listening
      *         for client connections.
      */
-    public int getDrdaPortNumber();
+    int getDrdaPortNumber();
     
     /**
      * <p>
@@ -165,7 +165,7 @@ public interface NetworkServerMBean {
      * @return the security mechanism required by the Network Server for all 
      *         client connections (<code>db.drda.securityMechanism</code>)
      */
-    public String getDrdaSecurityMechanism();
+    String getDrdaSecurityMechanism();
     
     /**
      * <p>
@@ -189,7 +189,7 @@ public interface NetworkServerMBean {
      *         Sockets Layer (SSL), and whether certificate based peer 
      *         authentication is enabled (<code>db.drda.sslMode</code>)
      */
-    public String getDrdaSslMode();
+    String getDrdaSslMode();
     
     /**
      * <p>
@@ -207,7 +207,7 @@ public interface NetworkServerMBean {
      * @return the size of the buffer used for streaming blob/clob from server 
      *         to client (<code>db.drda.streamOutBufferSize</code>)
      */
-    public int getDrdaStreamOutBufferSize();
+    int getDrdaStreamOutBufferSize();
     
     /**
      * <p>
@@ -227,7 +227,7 @@ public interface NetworkServerMBean {
      *         another connection (<code>db.drda.timeSlice</code>)
      * @see #getDrdaMaxThreads()
      */
-    public int getDrdaTimeSlice();
+    int getDrdaTimeSlice();
     //public void setDrdaTimeSlice(int timeSlice) throws Exception;
     
     /**
@@ -253,7 +253,7 @@ public interface NetworkServerMBean {
      *         (<code>db.drda.traceAll</code>)
      * @see #getDrdaTraceDirectory()
      */
-    public boolean getDrdaTraceAll();
+    boolean getDrdaTraceAll();
     //public void setDrdaTraceAll(boolean on) throws Exception;
     
     /**
@@ -271,7 +271,7 @@ public interface NetworkServerMBean {
      * @return the potential location of tracing files on the server host
      * @see #getDrdaTraceAll()
      */
-    public String getDrdaTraceDirectory();
+    String getDrdaTraceDirectory();
     //public void setDrdaTraceDirectory(String dir) throws Exception;
     
     /**
@@ -286,7 +286,7 @@ public interface NetworkServerMBean {
      * @see #getActiveConnectionCount()
      * @see #getWaitingConnectionCount()
      */
-    public int getConnectionCount();
+    int getConnectionCount();
 
     /**
      * <p>
@@ -312,7 +312,7 @@ public interface NetworkServerMBean {
      * @see #getDrdaTimeSlice()
      * @see #getWaitingConnectionCount()
      */
-    public int getActiveConnectionCount();
+    int getActiveConnectionCount();
     
     /**
      * <p>
@@ -329,7 +329,7 @@ public interface NetworkServerMBean {
      * @see #getDrdaMaxThreads()
      * @see #getDrdaTimeSlice()
      */
-    public int getWaitingConnectionCount();
+    int getWaitingConnectionCount();
     
     /**
      * <p>
@@ -343,7 +343,7 @@ public interface NetworkServerMBean {
      * @return the size of the Network Server's connection thread pool
      * @see #getDrdaMaxThreads()
      */
-    public int getConnectionThreadPoolSize();
+    int getConnectionThreadPoolSize();
     
     /**
      * <p>
@@ -356,7 +356,7 @@ public interface NetworkServerMBean {
      * 
      * @return the accumulated number of connections made since server startup
      */
-    public int getAccumulatedConnectionCount();
+    int getAccumulatedConnectionCount();
     
     /**
      * <p>
@@ -368,7 +368,7 @@ public interface NetworkServerMBean {
      * 
      * @return the total number of bytes received by the server
      */
-    public long getBytesReceived();
+    long getBytesReceived();
     
     /**
      * <p> 
@@ -380,7 +380,7 @@ public interface NetworkServerMBean {
      * 
      * @return the total number of bytes sent by the server
      */
-    public long getBytesSent();
+    long getBytesSent();
     
     /**
      * <p>
@@ -398,7 +398,7 @@ public interface NetworkServerMBean {
      * 
      * @return the number of bytes received per second
      */
-    public int getBytesReceivedPerSecond();
+    int getBytesReceivedPerSecond();
     
      /**
      * <p>
@@ -416,7 +416,7 @@ public interface NetworkServerMBean {
      * 
      * @return the number of bytes sent per millisecond
      */
-    public int getBytesSentPerSecond();
+     int getBytesSentPerSecond();
     
     /**
      * <p>
@@ -433,7 +433,7 @@ public interface NetworkServerMBean {
      *         Network Server was started and Unix epoch (1970-01-01T00:00:00Z)
      * @see java.lang.System#currentTimeMillis()
      */
-    public long getStartTime();
+    long getStartTime();
     
     /**
      * <p>
@@ -447,7 +447,7 @@ public interface NetworkServerMBean {
      *         time and the time the Network Server was started
      * @see #getStartTime()
      */
-    public long getUptime(); 
+    long getUptime();
     
     
     
@@ -492,7 +492,7 @@ public interface NetworkServerMBean {
      * @see com.splicemachine.db.drda.NetworkServerControl#ping()
      * @see java.net.SocketPermission
      */
-    public void ping() throws Exception;
+    void ping() throws Exception;
     
     // No other management operations yet due to security concerns, see 
     // DERBY-1387 for details.

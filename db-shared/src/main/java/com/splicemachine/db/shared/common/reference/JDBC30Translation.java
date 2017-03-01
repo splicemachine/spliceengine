@@ -60,16 +60,16 @@ public interface JDBC30Translation {
     /*
     ** public statics from 3.0 version of java.sql.ParameterMetaData
     */
-    public static final int PARAMETER_NO_NULLS = ParameterMetaData.parameterNoNulls;
-    public static final int PARAMETER_NULLABLE = ParameterMetaData.parameterNullable;
-    public static final int PARAMETER_NULLABLE_UNKNOWN = ParameterMetaData.parameterNullableUnknown;
-    public static final int PARAMETER_MODE_UNKNOWN = ParameterMetaData.parameterModeUnknown;
-    public static final int PARAMETER_MODE_IN = ParameterMetaData.parameterModeIn;
-    public static final int PARAMETER_MODE_IN_OUT = ParameterMetaData.parameterModeInOut;
-    public static final int PARAMETER_MODE_OUT = ParameterMetaData.parameterModeOut;
+    int PARAMETER_NO_NULLS = ParameterMetaData.parameterNoNulls;
+    int PARAMETER_NULLABLE = ParameterMetaData.parameterNullable;
+    int PARAMETER_NULLABLE_UNKNOWN = ParameterMetaData.parameterNullableUnknown;
+    int PARAMETER_MODE_UNKNOWN = ParameterMetaData.parameterModeUnknown;
+    int PARAMETER_MODE_IN = ParameterMetaData.parameterModeIn;
+    int PARAMETER_MODE_IN_OUT = ParameterMetaData.parameterModeInOut;
+    int PARAMETER_MODE_OUT = ParameterMetaData.parameterModeOut;
 
     // Constants shared by network client and server
-    public static final int DEFAULT_COLUMN_DISPLAY_SIZE = 15;
-    public static final int UNKNOWN_SCALE = 0;
-    public static final int UNKNOWN_PRECISION = 0;
+    int DEFAULT_COLUMN_DISPLAY_SIZE = 15;
+    int UNKNOWN_SCALE = 0;
+    int UNKNOWN_PRECISION = 0;
 }

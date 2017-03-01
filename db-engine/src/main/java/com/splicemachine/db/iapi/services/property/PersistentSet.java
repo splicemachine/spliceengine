@@ -64,8 +64,8 @@ public interface PersistentSet
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public Serializable getProperty(
-    String key) 
+	Serializable getProperty(
+			String key)
         throws StandardException;
 
     /**
@@ -92,8 +92,8 @@ public interface PersistentSet
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public Serializable getPropertyDefault(
-    String key) 
+	Serializable getPropertyDefault(
+			String key)
         throws StandardException;
 
 
@@ -104,7 +104,7 @@ public interface PersistentSet
      * @param key     The "key" of the property that is being requested.
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public boolean propertyDefaultIsVisible(String key) throws StandardException;
+	boolean propertyDefaultIsVisible(String key) throws StandardException;
 
     /**
      * Sets the Serializable object associated with a property key.
@@ -123,10 +123,10 @@ public interface PersistentSet
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void	setProperty(
-    String          key, 
-    Serializable    value,
-	boolean dbOnlyProperty) 
+	void	setProperty(
+			String key,
+			Serializable value,
+			boolean dbOnlyProperty)
         throws StandardException;
 
     /**
@@ -147,9 +147,9 @@ public interface PersistentSet
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public void	setPropertyDefault(
-    String          key, 
-    Serializable    value) 
+	void	setPropertyDefault(
+			String key,
+			Serializable value)
         throws StandardException;
 
     /**
@@ -167,6 +167,6 @@ public interface PersistentSet
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-	public Properties getProperties() 
+	Properties getProperties()
         throws StandardException;
 }

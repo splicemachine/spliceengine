@@ -60,7 +60,7 @@ public interface AccessFactory
 	/**
 	 * Used to identify this interface when finding it with the Monitor.
      **/
-	public static final String MODULE = 
+	String MODULE =
         "com.splicemachine.db.iapi.store.access.AccessFactory";
 
 	/**
@@ -73,7 +73,7 @@ public interface AccessFactory
      *
 	 * @exception StandardException Standard exception policy.
 	 **/
-	public void createFinished() throws StandardException;
+	void createFinished() throws StandardException;
 
 	/**
 	 *Find an access method that implements an implementation type.
@@ -94,7 +94,7 @@ public interface AccessFactory
 	 * @return The lock factory to use with this store.
      *
      **/
-	public LockFactory getLockFactory();
+	LockFactory getLockFactory();
 
 
     /**
@@ -109,14 +109,14 @@ public interface AccessFactory
 	 * @exception StandardException Standard exception policy.
      *
      **/
-	public /* XAResourceManager */ Object getXAResourceManager()
+	/* XAResourceManager */ Object getXAResourceManager()
 		throws StandardException;
 
 
 	/**
 	 * Is the store read-only.
 	 */
-	public boolean isReadOnly();
+	boolean isReadOnly();
 
 
 
@@ -174,7 +174,7 @@ public interface AccessFactory
      *         no transaction in the database.
      *
      **/
-	public TransactionInfo[] getTransactionInfo();
+	TransactionInfo[] getTransactionInfo();
 
 	/**
      * Start a global transaction.
@@ -226,7 +226,7 @@ public interface AccessFactory
 	  *
 	  * @exception StandardException Thrown on error
 	  */
-	public void freeze() throws StandardException;
+	void freeze() throws StandardException;
 
 	/**
 	  * Unfreeze the database after a backup has been taken.
@@ -234,7 +234,7 @@ public interface AccessFactory
 	  *
 	  * @exception StandardException Thrown on error
 	  */
-	public void unfreeze() throws StandardException;
+	void unfreeze() throws StandardException;
 
 	/**
      * Backup the database to backupDir.  
@@ -247,7 +247,7 @@ public interface AccessFactory
      *
      * @exception StandardException Thrown on error
      */
-    public void backup(String backupDir, boolean wait) 
+	void backup(String backupDir, boolean wait)
         throws StandardException;
 
 
@@ -257,6 +257,6 @@ public interface AccessFactory
 	 *
 	 * @exception StandardException Thrown on error
 	 */
-	public void checkpoint() throws StandardException;
+	void checkpoint() throws StandardException;
 
 }

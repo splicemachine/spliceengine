@@ -55,7 +55,7 @@ public interface Limit {
 		@exception EOFException The set limit would exceed
 		the available data in the stream.
 	*/
-	public void setLimit(int length)
+	void setLimit(int length)
 		throws IOException;
 
 	/**
@@ -64,5 +64,5 @@ public interface Limit {
 
 		@return the number of bytes within the limit that have not been read or written.
 	*/
-	public int clearLimit();
+	int clearLimit();
 }

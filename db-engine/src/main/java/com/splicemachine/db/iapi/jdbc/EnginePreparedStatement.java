@@ -44,10 +44,10 @@ import java.sql.PreparedStatement;
  */
 public interface EnginePreparedStatement extends PreparedStatement {
     
-    public void setBinaryStream(int parameterIndex, InputStream x)
+    void setBinaryStream(int parameterIndex, InputStream x)
         throws SQLException; 
     
-    public void setCharacterStream(int parameterIndex, Reader reader)
+    void setCharacterStream(int parameterIndex, Reader reader)
         throws SQLException;
 
     /**
@@ -56,5 +56,5 @@ public interface EnginePreparedStatement extends PreparedStatement {
      * meta-data are (also) unchanged.
      * @return version counter
      */
-    public long getVersionCounter() throws SQLException;
+    long getVersionCounter() throws SQLException;
 }

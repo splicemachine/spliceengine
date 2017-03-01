@@ -45,7 +45,7 @@ public interface SortFactory extends MethodFactory
 	/**
 	Used to identify this interface when finding it with the Monitor.
 	**/
-	public static final String MODULE = 
+	String MODULE =
 	  "com.splicemachine.db.iapi.store.access.conglomerate.SortFactory";
 
     /**

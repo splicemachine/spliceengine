@@ -51,7 +51,7 @@ public interface RowChanger
 
 	  @exception StandardException thrown on failure to convert
 	  */
-	public void open(int lockMode)
+	void open(int lockMode)
 		 throws StandardException;
 
 	/**
@@ -63,14 +63,14 @@ public interface RowChanger
 	 *
 	 * @param rowHolder	the row holder
 	 */
-	public void setRowHolder(TemporaryRowHolder rowHolder);
+	void setRowHolder(TemporaryRowHolder rowHolder);
 
 	/**
 	 * Sets the index names of the tables indices. Used for error reporting.
 	 * 
 	 * @param indexNames		Names of all the indices on this table.
 	 */
-	public void setIndexNames(String[] indexNames);
+	void setIndexNames(String[] indexNames);
 
 	/**
 	  Open this RowChanger to avoid fixing indexes that do not change
@@ -86,7 +86,7 @@ public interface RowChanger
 
 	  @exception StandardException thrown on failure to convert
 	  */
-	public void openForUpdate( boolean[] fixOnUpdate, int lockMode, boolean wait )
+	void openForUpdate(boolean[] fixOnUpdate, int lockMode, boolean wait)
 		 throws StandardException;
 
 	/**
@@ -95,7 +95,7 @@ public interface RowChanger
 	  @param baseRow the row.
 	  @exception StandardException		Thrown on error
 	  */
-	public void insertRow(ExecRow baseRow)
+	void insertRow(ExecRow baseRow)
 		 throws StandardException;
 		
 	/**
@@ -106,7 +106,7 @@ public interface RowChanger
 	     location
 	  @exception StandardException		Thrown on error
 	  */
-	public void deleteRow(ExecRow baseRow, RowLocation baseRowLocation)
+	void deleteRow(ExecRow baseRow, RowLocation baseRowLocation)
 		 throws StandardException;
 
 	/**
@@ -118,9 +118,9 @@ public interface RowChanger
 	     location
 	  @exception StandardException		Thrown on error
 	  */
-	public void updateRow(ExecRow oldBaseRow,
-						  ExecRow newBaseRow,
-						  RowLocation baseRowLocation)
+	void updateRow(ExecRow oldBaseRow,
+				   ExecRow newBaseRow,
+				   RowLocation baseRowLocation)
 		 throws StandardException;
 
 	/**
@@ -129,7 +129,7 @@ public interface RowChanger
 
 	  @exception StandardException		Thrown on error
 	 */
-	public void finish()
+	void finish()
 		throws StandardException;
 
 	/**
@@ -137,7 +137,7 @@ public interface RowChanger
 
 	  @exception StandardException		Thrown on error
 	  */
-	public void close()
+	void close()
 		throws StandardException;
 
 	/** 
@@ -147,7 +147,7 @@ public interface RowChanger
 	 *
 	 * @return The ConglomerateController from this RowChanger.
 	 */
-	public ConglomerateController getHeapConglomerateController();
+	ConglomerateController getHeapConglomerateController();
 
 	/**
 	  Open this RowChanger.
@@ -162,7 +162,7 @@ public interface RowChanger
 
 	  @exception StandardException thrown on failure to convert
 	  */
-	public void open(int lockMode, boolean wait)
+	void open(int lockMode, boolean wait)
 		 throws StandardException;
 
 	/**
@@ -174,5 +174,5 @@ public interface RowChanger
 	 *                    column, e.g. i+4).
 	 * @return column no, or -1 if not found or not a base column
 	 */
-	public int findSelectedCol(int selectedCol);
+	int findSelectedCol(int selectedCol);
 }

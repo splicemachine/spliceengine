@@ -45,5 +45,5 @@ public interface TimerFactory
      *
      * @return a Timer object for cancelling statements.
      */
-    public Timer getCancellationTimer();
+    Timer getCancellationTimer();
 }

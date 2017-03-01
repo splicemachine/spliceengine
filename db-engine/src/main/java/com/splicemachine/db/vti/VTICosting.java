@@ -91,12 +91,12 @@ public interface VTICosting
 	 * A useful constant: the default estimated number of rows returned by a
 	 * Table Function.
 	 */
-	public static final double defaultEstimatedRowCount		= 10000d;
+	double defaultEstimatedRowCount		= 10000d;
 	/**
 	   A useful constant: The default estimated cost of instantiating and
 	   iterating throught a Table Function.
 	 */
-	public static final double defaultEstimatedCost			= 100000d;
+	double defaultEstimatedCost			= 100000d;
 
 	/**
 	 *  Get the estimated row count for a single scan of a Table Function.
@@ -107,7 +107,7 @@ public interface VTICosting
 	 *
 	 *  @exception SQLException thrown if the costing fails.
 	 */
-	public double getEstimatedRowCount(VTIEnvironment vtiEnvironment)
+	double getEstimatedRowCount(VTIEnvironment vtiEnvironment)
 		throws SQLException;
 
 	/**
@@ -119,7 +119,7 @@ public interface VTICosting
 	 *
 	 *  @exception SQLException thrown if the costing fails.
 	 */
-	public double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment)
+	double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment)
 		throws SQLException;
 
 	/**
@@ -132,6 +132,6 @@ public interface VTICosting
 
 		 @exception SQLException thrown if the costing fails.
 	 */
-	public boolean supportsMultipleInstantiations(VTIEnvironment vtiEnvironment)
+	boolean supportsMultipleInstantiations(VTIEnvironment vtiEnvironment)
 		throws SQLException;
 }

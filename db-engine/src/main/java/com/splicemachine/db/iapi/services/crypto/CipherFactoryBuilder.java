@@ -54,8 +54,8 @@ public interface CipherFactoryBuilder
      *                  the new attributes specified by the user. 
      *                 
      */
-    public CipherFactory createCipherFactory(boolean create, 
-                                             Properties props, 
-                                             boolean newAttrs) 
+    CipherFactory createCipherFactory(boolean create,
+                                      Properties props,
+                                      boolean newAttrs)
         throws StandardException;
 }

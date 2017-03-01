@@ -52,11 +52,11 @@ public interface Orderable
 {
 
 	/**	 Ordering operation constant representing '<' **/
-	static final int ORDER_OP_LESSTHAN = 1;
+	int ORDER_OP_LESSTHAN = 1;
 	/**	 Ordering operation constant representing '=' **/
-	static final int ORDER_OP_EQUALS = 2;
+	int ORDER_OP_EQUALS = 2;
 	/**	 Ordering operation constant representing '<=' **/
-	static final int ORDER_OP_LESSOREQUALS = 3;
+	int ORDER_OP_LESSOREQUALS = 3;
 
 	/** 
 	 * These 2 ordering operations are used by the language layer
@@ -64,9 +64,9 @@ public interface Orderable
 	 * (For example, 1 < 1.1 -> 1.1 > 1)
 	 */
 	/**	 Ordering operation constant representing '>' **/
-	static final int ORDER_OP_GREATERTHAN = 4;
+	int ORDER_OP_GREATERTHAN = 4;
 	/**	 Ordering operation constant representing '>=' **/
-	static final int ORDER_OP_GREATEROREQUALS = 5;
+	int ORDER_OP_GREATEROREQUALS = 5;
 
 
 }

@@ -66,6 +66,6 @@ package com.splicemachine.db.iapi.services.cache;
 */
 public interface CacheableFactory  {
 
-	public Cacheable newCacheable(CacheManager cm);
+	Cacheable newCacheable(CacheManager cm);
 }
 

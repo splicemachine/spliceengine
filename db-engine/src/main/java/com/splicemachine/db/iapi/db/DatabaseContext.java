@@ -38,6 +38,6 @@ import com.splicemachine.db.iapi.services.context.Context;
   A context for a database.
   */
 public interface DatabaseContext extends Context {
-	public static final String CONTEXT_ID = "Database";
-	public Database getDatabase();
+	String CONTEXT_ID = "Database";
+	Database getDatabase();
 }

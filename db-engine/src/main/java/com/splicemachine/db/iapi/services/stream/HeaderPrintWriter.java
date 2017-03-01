@@ -50,12 +50,12 @@ public interface HeaderPrintWriter
 	 * All other writes to the stream use the
 	 * PrintStream interface.
 	 */
-	public void printlnWithHeader(String message);
+	void printlnWithHeader(String message);
 
 	/**
 	 * Return the header for the stream.
 	 */
-	public PrintWriterGetHeader getHeader();
+	PrintWriterGetHeader getHeader();
 	
 	/**
 	 * Gets a PrintWriter object for writing to this HeaderPrintWriter.
@@ -67,12 +67,12 @@ public interface HeaderPrintWriter
 	 * is not supported.
 	 * 
 	 */
-	public PrintWriter getPrintWriter();
+	PrintWriter getPrintWriter();
 
 	/**
 	 * Gets the name of the wrapped writer or stream
 	 */
-	public String getName ();
+	String getName();
 
 	/*
 	 * The routines that mimic java.io.PrintWriter...
@@ -80,21 +80,21 @@ public interface HeaderPrintWriter
 	/**
 	 * @see java.io.PrintWriter#print
 	 */
-	public void print(String message);
+	void print(String message);
 
 	/**
 	 * @see java.io.PrintWriter#println
 	 */
-	public void println(String message);
+	void println(String message);
 
 	/**
 	 * @see java.io.PrintWriter#println
 	 */
-	public void println(Object message);
+	void println(Object message);
 
 	/**
 	* @see java.io.PrintWriter#flush
 	 */
-	public void flush();
+	void flush();
 }
 

@@ -26,9 +26,9 @@
 package com.splicemachine.db.client.am;
 
 public interface UnitOfWorkListener {
-    public void listenToUnitOfWork();
+    void listenToUnitOfWork();
 
-    public void completeLocalCommit(java.util.Iterator listenerIterator);
+    void completeLocalCommit(java.util.Iterator listenerIterator);
 
-    public void completeLocalRollback(java.util.Iterator listenerIterator);
+    void completeLocalRollback(java.util.Iterator listenerIterator);
 }

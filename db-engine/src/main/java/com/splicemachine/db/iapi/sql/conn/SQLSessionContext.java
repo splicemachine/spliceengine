@@ -81,30 +81,30 @@ public interface SQLSessionContext {
     /**
      * Set the SQL role of this SQL connection context
      */
-    public void setRole(String role);
+    void setRole(String role);
 
     /**
      * Get the SQL role of this SQL connection context
      */
-    public String getRole();
+    String getRole();
 
     /**
      * Set the SQL current user of this SQL connection context
      */
-    public void setUser(String user);
+    void setUser(String user);
 
     /**
      * Get the SQL current user of this SQL connection context
      */
-    public String getCurrentUser();
+    String getCurrentUser();
 
     /**
      * Set the schema of this SQL connection context
      */
-    public void setDefaultSchema(SchemaDescriptor sd);
+    void setDefaultSchema(SchemaDescriptor sd);
 
     /**
      * Get the schema of this SQL connection context
      */
-    public SchemaDescriptor getDefaultSchema();
+    SchemaDescriptor getDefaultSchema();
 }

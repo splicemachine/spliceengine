@@ -61,9 +61,9 @@ public interface StorageFile
 {
 
 	//constant values related to exclusive lock mechanism
-	public static final int NO_FILE_LOCK_SUPPORT              = 0;
-	public static final int EXCLUSIVE_FILE_LOCK               = 1;
-	public static final int EXCLUSIVE_FILE_LOCK_NOT_AVAILABLE = 2;
+    int NO_FILE_LOCK_SUPPORT              = 0;
+	int EXCLUSIVE_FILE_LOCK               = 1;
+	int EXCLUSIVE_FILE_LOCK_NOT_AVAILABLE = 2;
 
     /**
      * Get the names of all files and sub-directories in the directory named by this path name.
@@ -75,21 +75,21 @@ public interface StorageFile
      *         if this directory is empty. Returns null if this StorageFile is not  a directory, or
      *         if an I/O error occurs. The return value is undefined if the database is read-only.
      */
-    public String[] list();
+    String[] list();
 
     /**
      * Determine whether the named file is writable.
      *
      * @return <b>true</b> if the file exists and is writable, <b>false</b> if not.
      */
-    public boolean canWrite();
+    boolean canWrite();
 
     /**
      * Tests whether the named file exists.
      *
      * @return <b>true</b> if the named file exists, <b>false</b> if not.
      */
-    public boolean exists();
+    boolean exists();
 
     /**
      * Tests whether the named file is a directory, or not. This is only called in writable storage factories.
@@ -97,21 +97,21 @@ public interface StorageFile
      * @return <b>true</b> if named file exists and is a directory, <b>false</b> if not.
      *          The return value is undefined if the storage is read-only.
      */
-    public boolean isDirectory();
+    boolean isDirectory();
 
     /**
      * Deletes the named file or empty directory. This method does not delete non-empty directories.
      *
      * @return <b>true</b> if the named file or directory is successfully deleted, <b>false</b> if not
      */
-    public boolean delete();
+    boolean delete();
 
     /**
      * Deletes the named file and, if it is a directory, all the files and directories it contains.
      *
      * @return <b>true</b> if the named file or directory is successfully deleted, <b>false</b> if not
      */
-    public boolean deleteAll();
+    boolean deleteAll();
 
     /**
      * Converts this StorageFile into a pathname string. The character returned by StorageFactory.getSeparator()
@@ -125,7 +125,7 @@ public interface StorageFile
      *
      * @see StorageFactory#getSeparator
      */
-    public String getPath();
+    String getPath();
 
     /**
      * Converts this StorageFile into a canonical pathname string. The form of the canonical path is system dependent.
@@ -134,12 +134,12 @@ public interface StorageFile
      *
      * @exception IOException if an I/O error occurred while finding the canonical name
      */
-    public String getCanonicalPath() throws IOException;
+    String getCanonicalPath() throws IOException;
 
     /**
      * @return The last segment in the path name, "" if the path name sequence is empty.
      */
-    public String getName();
+    String getName();
     
     /**
      * Get a URL representing this file. A valid URL does not indicate the file exists,
@@ -147,7 +147,7 @@ public interface StorageFile
      * return null if the file does not exist. 
      * @throws MalformedURLException File cannot be represented as a URL.
      */
-    public URL getURL() throws MalformedURLException;
+    URL getURL() throws MalformedURLException;
     
     /**
      * If the named file does not already exist then create it as an empty normal file.
@@ -162,7 +162,7 @@ public interface StorageFile
      *
      * @exception IOException - If the directory does not exist or some other I/O error occurred
      */
-    public boolean createNewFile() throws IOException;
+    boolean createNewFile() throws IOException;
 
     /**
      * Rename the file denoted by this name. Note that StorageFile objects are immutable. This method
@@ -176,21 +176,21 @@ public interface StorageFile
      *
      * @return <b>true</b> if the rename succeeded, <b>false</b> if not.
      */
-    public boolean renameTo( StorageFile newName);
+    boolean renameTo(StorageFile newName);
     
     /**
      * Creates the named directory.
      *
      * @return <b>true</b> if the directory was created; <b>false</b> if not.
      */
-    public boolean mkdir();
+    boolean mkdir();
 
     /**
      * Creates the named directory, and all nonexistent parent directories.
      *
      * @return <b>true</b> if the directory was created, <b>false</b> if not
      */
-    public boolean mkdirs();
+    boolean mkdirs();
 
     /**
      * Returns the length of the named file if it is not a directory. The return value is not specified
@@ -199,7 +199,7 @@ public interface StorageFile
      * @return The length, in bytes, of the named file if it exists and is not a directory,
      *         0 if the file does not exist, or any value if the named file is a directory.
      */
-    public long length();
+    long length();
 
     /**
      * Get the name of the parent directory if this name includes a parent.
@@ -207,7 +207,7 @@ public interface StorageFile
      * @return An StorageFile denoting the parent directory of this StorageFile, if it has a parent, null if
      *         it does not have a parent.
      */
-    public StorageFile getParentDir();
+    StorageFile getParentDir();
 
     /**
      * Make the named file or directory read-only. This interface does not specify whether this
@@ -216,7 +216,7 @@ public interface StorageFile
      * @return <b>true</b> if the named file or directory was made read-only, or it already was read-only;
      *         <b>false</b> if not.
      */
-    public boolean setReadOnly();
+    boolean setReadOnly();
 
     /**
      * Creates an output stream from a file name. If a normal file already exists with this name it
@@ -228,7 +228,7 @@ public interface StorageFile
      *            rather than a regular file, does not exist but cannot be created, or
      *            cannot be opened for any other reason.
      */
-    public OutputStream getOutputStream( ) throws FileNotFoundException;
+    OutputStream getOutputStream() throws FileNotFoundException;
 
     /**
      * Creates an output stream from a file name.
@@ -243,7 +243,7 @@ public interface StorageFile
      *            rather than a regular file, does not exist but cannot be created, or
      *            cannot be opened for any other reason.
      */
-    public OutputStream getOutputStream( boolean append) throws FileNotFoundException;
+    OutputStream getOutputStream(boolean append) throws FileNotFoundException;
     
     /**
      * Creates an input stream from a file name.
@@ -252,7 +252,7 @@ public interface StorageFile
      *
      * @exception FileNotFoundException if the file is not found.
      */
-    public InputStream getInputStream( ) throws FileNotFoundException;
+    InputStream getInputStream() throws FileNotFoundException;
 
     /**
      * Get an exclusive lock with this name. This is used to ensure that two or more JVMs do not open the same database
@@ -264,7 +264,7 @@ public interface StorageFile
      *    EXCLUSIVE_FILE_LOCK if the lock was successfully acquired.<br>
      *    NO_FILE_LOCK_SUPPORT if the system does not support exclusive locks.<br>
      */
-    public int getExclusiveFileLock() throws StandardException;
+    int getExclusiveFileLock() throws StandardException;
 
 	/**
      * Release the resource associated with an earlier acquired exclusive lock
@@ -272,7 +272,7 @@ public interface StorageFile
 
      * @see #getExclusiveFileLock
      */
-	public void releaseExclusiveFileLock();
+    void releaseExclusiveFileLock();
 
     /**
      * Get a random access file.
@@ -301,7 +301,7 @@ public interface StorageFile
      *
      * @see <a href="http://java.sun.com/j2se/1.4.2/docs/api/java/io/RandomAccessFile.html">java.io.RandomAccessFile</a>
      */
-    public StorageRandomAccessFile getRandomAccessFile( String mode) throws FileNotFoundException;
+    StorageRandomAccessFile getRandomAccessFile(String mode) throws FileNotFoundException;
 
     /**
      * Use when creating a new file. By default, a file created in an
@@ -309,5 +309,5 @@ public interface StorageFile
      * for the file owner unless the property {@code
      * db.useDefaultFilePermissions} is set to {@code true}.
      */
-    public void limitAccessToOwner();
+    void limitAccessToOwner();
 }

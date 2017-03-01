@@ -92,5 +92,5 @@ public interface RoleClosureIterator
      *         is not defined, except that the root is always returned first (h
      *         and a1 in the above examples).
      */
-    public String next() throws StandardException;
+    String next() throws StandardException;
 }

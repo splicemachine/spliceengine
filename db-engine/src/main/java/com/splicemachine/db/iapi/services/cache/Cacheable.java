@@ -96,7 +96,7 @@ public interface Cacheable  {
 		@see CacheManager#find
 
 	*/
-	public Cacheable setIdentity(Object key) throws StandardException;
+	Cacheable setIdentity(Object key) throws StandardException;
 
 	/**
         Create a new item.
@@ -127,7 +127,7 @@ public interface Cacheable  {
 		@see CacheManager#create
 
 	*/
-	public Cacheable createIdentity(Object key, Object createParameter) throws StandardException;
+	Cacheable createIdentity(Object key, Object createParameter) throws StandardException;
 
 
 	/**
@@ -137,7 +137,7 @@ public interface Cacheable  {
 		and the cache manager will guarantee only one thread can be calling it.
 
 	*/
-	public void clearIdentity();
+	void clearIdentity();
 
 	/**
 		Get the identity of this object.
@@ -145,7 +145,7 @@ public interface Cacheable  {
 		<BR> MT - thread safe.
 
 	*/
-	public Object getIdentity();
+	Object getIdentity();
 
 
 	/**
@@ -155,7 +155,7 @@ public interface Cacheable  {
 		<BR> MT - thread safe 
 
 	*/
-	public boolean isDirty();
+	boolean isDirty();
 
 	/**
 		Clean the object.
@@ -177,6 +177,6 @@ public interface Cacheable  {
 		@exception StandardException Standard Derby error policy.
 
 	*/
-	public void clean(boolean forRemove) throws StandardException;
+	void clean(boolean forRemove) throws StandardException;
 }
 

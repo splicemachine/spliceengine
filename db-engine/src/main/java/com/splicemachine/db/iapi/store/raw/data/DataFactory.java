@@ -37,38 +37,38 @@ import com.splicemachine.db.catalog.UUID;
 
 public interface DataFactory {
 
-	public static final String MODULE = "com.splicemachine.db.iapi.store.raw.data.DataFactory";
+	String MODULE = "com.splicemachine.db.iapi.store.raw.data.DataFactory";
 
 	/**
 		The temporary segment is called "tmp"
 	 */
-	public static final String TEMP_SEGMENT_NAME = "tmp";
+	String TEMP_SEGMENT_NAME = "tmp";
 
 	/**
 		The database lock
 	 */
-	public static final String DB_LOCKFILE_NAME =  "db.lck";
+	String DB_LOCKFILE_NAME =  "db.lck";
 
 	/**
 	** file name that is used to acquire exclusive lock on DB.
 	**/
-	public static final String DB_EX_LOCKFILE_NAME = "dbex.lck";
+	String DB_EX_LOCKFILE_NAME = "dbex.lck";
 
 	/**
 		Is the store read-only.
 	*/
-	public boolean isReadOnly();
+	boolean isReadOnly();
 
-	public void checkpoint() throws StandardException;
+	void checkpoint() throws StandardException;
 
-	public void idle() throws StandardException;
+	void idle() throws StandardException;
 
 	/**
 		Return the identifier that uniquely identifies this raw store at runtime.
 		This identifier is to be used as part of the lokcing key for objects
 		locked in the raw store by value (e.g. Containers).
 	*/
-	public UUID getIdentifier();
+	UUID getIdentifier();
 
 	/**
 		Encrypt cleartext into ciphertext.
@@ -76,9 +76,9 @@ public interface DataFactory {
 		@see com.splicemachine.db.iapi.services.crypto.CipherProvider#encrypt
 		@exception StandardException Standard Derby Error Policy
 	 */
-	public int encrypt(byte[] cleartext, int offset, int length,
-					   byte[] ciphertext, int outputOffset, 
-                       boolean newEngine)
+	int encrypt(byte[] cleartext, int offset, int length,
+				byte[] ciphertext, int outputOffset,
+				boolean newEngine)
 		 throws StandardException ;
 
 	/**
@@ -87,26 +87,26 @@ public interface DataFactory {
 		@see com.splicemachine.db.iapi.services.crypto.CipherProvider#decrypt
 		@exception StandardException Standard Derby Error Policy
 	 */
-	public int decrypt(byte[] ciphertext, int offset, int length,
-					   byte[] cleartext, int outputOffset)
+	int decrypt(byte[] ciphertext, int offset, int length,
+				byte[] cleartext, int outputOffset)
 		 throws StandardException ;
 
 	/**
 		Return the encryption block size used by the algorithm at time of
 		encrypted database creation
 	 */
-	public int getEncryptionBlockSize();
+	int getEncryptionBlockSize();
 
     /**
      * @return The StorageFactory used by this dataFactory
      */
-    public StorageFactory getStorageFactory();
+	StorageFactory getStorageFactory();
 
-	public void	stop();
+	void	stop();
 
     /**
      * Returns if data base is in encrypted mode.
      * @return true if database encrypted false otherwise
      */
-    public boolean databaseEncrypted();
+	boolean databaseEncrypted();
 }

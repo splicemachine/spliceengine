@@ -33,23 +33,23 @@ import com.splicemachine.db.client.am.Section;
 // but may dereference material layer ResultSet state if necessary for performance.
 
 public interface ResultSetRequestInterface {
-    public void writeFetch(NetResultSet resultSet,
-                           Section section,
-                           int fetchSize) throws com.splicemachine.db.client.am.SqlException;
+    void writeFetch(NetResultSet resultSet,
+                    Section section,
+                    int fetchSize) throws com.splicemachine.db.client.am.SqlException;
 
-    public void writeScrollableFetch(NetResultSet resultSet,
-                                     Section section,
-                                     int fetchSize,
-                                     int orientation,
-                                     long rowToFetch,
-                                     boolean resetQueryBlocks) throws com.splicemachine.db.client.am.SqlException;
+    void writeScrollableFetch(NetResultSet resultSet,
+                              Section section,
+                              int fetchSize,
+                              int orientation,
+                              long rowToFetch,
+                              boolean resetQueryBlocks) throws com.splicemachine.db.client.am.SqlException;
 
-    public void writePositioningFetch(NetResultSet resultSet,
-                                      Section section,
-                                      int orientation,
-                                      long rowToFetch) throws com.splicemachine.db.client.am.SqlException;
+    void writePositioningFetch(NetResultSet resultSet,
+                               Section section,
+                               int orientation,
+                               long rowToFetch) throws com.splicemachine.db.client.am.SqlException;
 
-    public void writeCursorClose(NetResultSet resultSet,
-                                 Section section) throws com.splicemachine.db.client.am.SqlException;
+    void writeCursorClose(NetResultSet resultSet,
+                          Section section) throws com.splicemachine.db.client.am.SqlException;
 
 }

@@ -48,7 +48,7 @@ public interface TupleFilter
 	  *
 	  * @exception StandardException		Thrown on error
 	  */
-    public	void	init( ExecRow parameters )
+	void	init(ExecRow parameters)
 				throws StandardException;
 
 	/**
@@ -60,6 +60,6 @@ public interface TupleFilter
 	  *
 	  * @exception StandardException		Thrown on error
 	  */
-    public	BooleanDataValue	execute( ExecRow currentRow )
+	BooleanDataValue	execute(ExecRow currentRow)
 				throws StandardException;
 }

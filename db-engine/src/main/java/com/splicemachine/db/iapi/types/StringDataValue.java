@@ -41,9 +41,9 @@ import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
 public interface StringDataValue extends ConcatableDataValue
 {
 	// TRIM() types
-	public static final int BOTH		= 0;
-	public static final int TRAILING	= 1;
-	public static final int LEADING		= 2;
+	int BOTH		= 0;
+	int TRAILING	= 1;
+	int LEADING		= 2;
 
 	/**
 	  For a character string type, the collation derivation should always be 
@@ -54,11 +54,11 @@ public interface StringDataValue extends ConcatableDataValue
 	  derivation of "none". All the other character string types should have 
 	  their collation derivation set to "implicit". 
 	 */
-	public	static final int COLLATION_DERIVATION_NONE = 0;
+	int COLLATION_DERIVATION_NONE = 0;
 	/** @see StringDataValue#COLLATION_DERIVATION_NONE */
-	public	static final int COLLATION_DERIVATION_IMPLICIT = 1;
+	int COLLATION_DERIVATION_IMPLICIT = 1;
 	/** @see StringDataValue#COLLATION_DERIVATION_NONE */
-	public	static final int COLLATION_DERIVATION_EXPLICIT = 2;
+	int COLLATION_DERIVATION_EXPLICIT = 2;
 	/**
 	 * In Derby 10.3, it is possible to have database with one of the following
 	 * two configurations
@@ -77,13 +77,13 @@ public interface StringDataValue extends ConcatableDataValue
 	 * The collation types TERRITORY_BASED:PRIMARY through TERRITORY_BASED:IDENTICAL
 	 * are variants of the TERRITORY_BASED type, with explicit collation strength.
 	 */
-	public	static final int COLLATION_TYPE_UCS_BASIC = 0;
+	int COLLATION_TYPE_UCS_BASIC = 0;
 	/** @see StringDataValue#COLLATION_TYPE_UCS_BASIC */
-	public	static final int COLLATION_TYPE_TERRITORY_BASED = 1;
-	public	static final int COLLATION_TYPE_TERRITORY_BASED_PRIMARY = 2;
-	public	static final int COLLATION_TYPE_TERRITORY_BASED_SECONDARY = 3;
-	public	static final int COLLATION_TYPE_TERRITORY_BASED_TERTIARY = 4;
-	public	static final int COLLATION_TYPE_TERRITORY_BASED_IDENTICAL = 5;
+	int COLLATION_TYPE_TERRITORY_BASED = 1;
+	int COLLATION_TYPE_TERRITORY_BASED_PRIMARY = 2;
+	int COLLATION_TYPE_TERRITORY_BASED_SECONDARY = 3;
+	int COLLATION_TYPE_TERRITORY_BASED_TERTIARY = 4;
+	int COLLATION_TYPE_TERRITORY_BASED_IDENTICAL = 5;
 
 	/**
 	 * The SQL concatenation '||' operator.
@@ -97,10 +97,10 @@ public interface StringDataValue extends ConcatableDataValue
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public StringDataValue concatenate(
-				StringDataValue leftOperand,
-				StringDataValue rightOperand,
-				StringDataValue result)
+	StringDataValue concatenate(
+			StringDataValue leftOperand,
+			StringDataValue rightOperand,
+			StringDataValue result)
 		throws StandardException;
 
 	/**
@@ -112,7 +112,7 @@ public interface StringDataValue extends ConcatableDataValue
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue like(DataValueDescriptor pattern)
+	BooleanDataValue like(DataValueDescriptor pattern)
 							throws StandardException;
 
 	/**
@@ -125,8 +125,8 @@ public interface StringDataValue extends ConcatableDataValue
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public BooleanDataValue like(DataValueDescriptor pattern,
-									DataValueDescriptor escape)
+	BooleanDataValue like(DataValueDescriptor pattern,
+						  DataValueDescriptor escape)
 							throws StandardException;
 
 
@@ -141,7 +141,7 @@ public interface StringDataValue extends ConcatableDataValue
 	 * @return A StringDataValue containing the result of the trim().
 	 * @throws StandardException
 	 */
-	public StringDataValue ansiTrim(
+	StringDataValue ansiTrim(
 			int trimType,
 			StringDataValue trimChar,
 			StringDataValue result)
@@ -156,7 +156,7 @@ public interface StringDataValue extends ConcatableDataValue
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public StringDataValue upper(StringDataValue result)
+	StringDataValue upper(StringDataValue result)
 							throws StandardException;
 
 	/** 
@@ -168,7 +168,7 @@ public interface StringDataValue extends ConcatableDataValue
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public StringDataValue lower(StringDataValue result)
+	StringDataValue lower(StringDataValue result)
 							throws StandardException;
 
     /**
@@ -184,9 +184,9 @@ public interface StringDataValue extends ConcatableDataValue
      *              0 is returned if searchFrom does not contain this.value.
      * @exception StandardException     Thrown on error
      */
-    public NumberDataValue locate(  StringDataValue searchFrom, 
-                                    NumberDataValue start,
-                                    NumberDataValue result)
+	NumberDataValue locate(StringDataValue searchFrom,
+						   NumberDataValue start,
+						   NumberDataValue result)
                                     throws StandardException;
 
 
@@ -203,7 +203,7 @@ public interface StringDataValue extends ConcatableDataValue
 	 * 
 	 * @exception StandardException		Thrown on error
 	 */
-	public char[] getCharArray() throws StandardException;
+	char[] getCharArray() throws StandardException;
 
 	/**
 	 * Gets either SQLChar/SQLVarchar/SQLLongvarchar/SQLClob(base classes) or 
@@ -213,7 +213,7 @@ public interface StringDataValue extends ConcatableDataValue
 	 * null, then the object returned would be baseclass otherwise it would be 
 	 * subcalss.
 	 */
-	public StringDataValue getValue(RuleBasedCollator collatorForComparison);
+	StringDataValue getValue(RuleBasedCollator collatorForComparison);
 
     /**
      * Returns the stream header generator for the string data value.
@@ -227,7 +227,7 @@ public interface StringDataValue extends ConcatableDataValue
      * set explicitly.
      * @see #setStreamHeaderFormat
      */
-    public StreamHeaderGenerator getStreamHeaderGenerator();
+	StreamHeaderGenerator getStreamHeaderGenerator();
 
     /**
      * Tells the data value descriptor which CLOB stream header format to use.
@@ -236,7 +236,7 @@ public interface StringDataValue extends ConcatableDataValue
      *      prior to version 10.5, {@code false} if the version is 10.5 or
      *      newer, and {@code null} if unknown at this time
      */
-    public void setStreamHeaderFormat(Boolean usePreTenFiveHdrFormat);
+	void setStreamHeaderFormat(Boolean usePreTenFiveHdrFormat);
 
     /**
      * Returns a descriptor for the input stream for this data value.
@@ -250,13 +250,13 @@ public interface StringDataValue extends ConcatableDataValue
      * @throws StandardException if obtaining the descriptor fails, or if the
      *      value isn't represented as a stream.
      */
-    public CharacterStreamDescriptor getStreamWithDescriptor()
+	CharacterStreamDescriptor getStreamWithDescriptor()
             throws StandardException;
 
 
 	/**
 	 * Stuff a StringDataValue with a Clob.
 	 */
-	public void setValue( Clob value )
+	void setValue(Clob value)
 		throws StandardException;
 }

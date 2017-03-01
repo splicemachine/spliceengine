@@ -107,10 +107,10 @@ public interface UserAuthenticator
      *            connection request will be denied.  The SQL exception will 
      *            be returned to the connection attempt.
 	 */
-	public boolean	authenticateUser(String userName,
-								 String userPassword,
-								 String databaseName,
-								 Properties info
-								)
+	boolean	authenticateUser(String userName,
+								String userPassword,
+								String databaseName,
+								Properties info
+	)
 		throws SQLException;
 }

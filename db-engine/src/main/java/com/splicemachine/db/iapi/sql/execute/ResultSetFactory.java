@@ -241,8 +241,8 @@ public interface ResultSetFactory {
      * @return the update operation as a result set.
      * @exception StandardException thrown on error
 	 */
-	public ResultSet getUpdateVTIResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
-                                           double optimizerEstimatedCost)
+	ResultSet getUpdateVTIResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
+									double optimizerEstimatedCost)
         throws StandardException;
 
 	/**
@@ -383,19 +383,19 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
-	public NoPutResultSet getHashTableResultSet(NoPutResultSet source,
-		GeneratedMethod singleTableRestriction, 
-		String equijoinQualifiersField,
-		GeneratedMethod projection, int resultSetNumber,
-		int mapRefItem,
-		boolean reuseResult,
-		int keyColItem,
-		boolean removeDuplicates,
-		long maxInMemoryRowCount,
-		int	initialCapacity,
-		float loadFactor,
-		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost)
+	NoPutResultSet getHashTableResultSet(NoPutResultSet source,
+										 GeneratedMethod singleTableRestriction,
+										 String equijoinQualifiersField,
+										 GeneratedMethod projection, int resultSetNumber,
+										 int mapRefItem,
+										 boolean reuseResult,
+										 int keyColItem,
+										 boolean removeDuplicates,
+										 long maxInMemoryRowCount,
+										 int initialCapacity,
+										 float loadFactor,
+										 double optimizerEstimatedRowCount,
+										 double optimizerEstimatedCost)
 			 throws StandardException;
 
 	/**
@@ -718,22 +718,22 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
-	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
-									 int resultSetNumber,
-									 GeneratedMethod constructor,
-									 String javaClassName,
-									 String pushedQualifiersField,
-									 int erdNumber,
-									 int ctcNumber,
-									 boolean isTarget,
-									 int scanIsolationLevel,
-									 double optimizerEstimatedRowCount,
-									 double optimizerEstimatedCost,
-                                     boolean isDerbyStyleTableFunction,
-                                     int returnTypeNumber,
-                                     int vtiProjectionNumber,
-                                     int vtiRestrictionNumber,
-	                                 String explainPlan)
+	NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+								   int resultSetNumber,
+								   GeneratedMethod constructor,
+								   String javaClassName,
+								   String pushedQualifiersField,
+								   int erdNumber,
+								   int ctcNumber,
+								   boolean isTarget,
+								   int scanIsolationLevel,
+								   double optimizerEstimatedRowCount,
+								   double optimizerEstimatedCost,
+								   boolean isDerbyStyleTableFunction,
+								   int returnTypeNumber,
+								   int vtiProjectionNumber,
+								   int vtiRestrictionNumber,
+								   String explainPlan)
 		 throws StandardException;
 
 	/*
@@ -742,7 +742,7 @@ public interface ResultSetFactory {
 	 * was passed into the constructor.  So this method does the same thing and ignores the pushedQualifiersField which is
 	 * an com.splicemachine.db.iapi.store.access.Qualifier[][].
 	 */
-	public NoPutResultSet getVTIResultSet(
+	NoPutResultSet getVTIResultSet(
 			Activation activation,
 			GeneratedMethod row,
 			int resultSetNumber,
@@ -760,7 +760,7 @@ public interface ResultSetFactory {
 			int vtiProjectionNumber,
 			int vtiRestrictionNumber,
 			String explainPlan
-			)
+	)
 					throws StandardException;
 	/**
 		A distinct scan result set pushes duplicate elimination into
@@ -1016,23 +1016,23 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
-	public NoPutResultSet getIndexRowToBaseRowResultSet(
-								long conglomId,
-								int scoci,
-								NoPutResultSet source,
-								GeneratedMethod resultRowAllocator,
-								int resultSetNumber,
-								String indexName,
-								int heapColRefItem,
-								int allColRefItem,
-								int heapOnlyColRefItem,
-								int indexColMapItem,
-								GeneratedMethod restriction,
-								boolean forUpdate,
-								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost,
-                                String tableVersion,
-								String explainPlan)
+	NoPutResultSet getIndexRowToBaseRowResultSet(
+			long conglomId,
+			int scoci,
+			NoPutResultSet source,
+			GeneratedMethod resultRowAllocator,
+			int resultSetNumber,
+			String indexName,
+			int heapColRefItem,
+			int allColRefItem,
+			int heapOnlyColRefItem,
+			int indexColMapItem,
+			GeneratedMethod restriction,
+			boolean forUpdate,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			String tableVersion,
+			String explainPlan)
 			throws StandardException;
 
 
@@ -1103,82 +1103,82 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
-    public NoPutResultSet getNestedLoopJoinResultSet(NoPutResultSet leftResultSet,
-								   int leftNumCols,
-								   NoPutResultSet rightResultSet,
-								   int rightNumCols,
-								   GeneratedMethod joinClause,
-								   int resultSetNumber,
-								   boolean oneRowRightSide,
-								   boolean notExistsRightSide,
-								   double optimizerEstimatedRowCount,
-								   double optimizerEstimatedCost,
-								   String userSuppliedOptimizerOverrides,
-					               String explainPlan)
+	NoPutResultSet getNestedLoopJoinResultSet(NoPutResultSet leftResultSet,
+											  int leftNumCols,
+											  NoPutResultSet rightResultSet,
+											  int rightNumCols,
+											  GeneratedMethod joinClause,
+											  int resultSetNumber,
+											  boolean oneRowRightSide,
+											  boolean notExistsRightSide,
+											  double optimizerEstimatedRowCount,
+											  double optimizerEstimatedCost,
+											  String userSuppliedOptimizerOverrides,
+											  String explainPlan)
 			throws StandardException;
 
-	public NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
-													int leftNumCols,
-													NoPutResultSet rightResultSet,
-													int rightNumCols,
-													int leftHashKeyItem,
-													int rightHashKeyItem,
-													GeneratedMethod joinClause,
-													int resultSetNumber,
-													boolean oneRowRightSide,
-													boolean notExistsRightSide,
-													double optimizerEstimatedRowCount,
-													double optimizerEstimatedCost,
-													String userSuppliedOptimizerOverrides,
-													String explainPlan)
+	NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
+											 int leftNumCols,
+											 NoPutResultSet rightResultSet,
+											 int rightNumCols,
+											 int leftHashKeyItem,
+											 int rightHashKeyItem,
+											 GeneratedMethod joinClause,
+											 int resultSetNumber,
+											 boolean oneRowRightSide,
+											 boolean notExistsRightSide,
+											 double optimizerEstimatedRowCount,
+											 double optimizerEstimatedCost,
+											 String userSuppliedOptimizerOverrides,
+											 String explainPlan)
 			throws StandardException;
 
-	public NoPutResultSet getHalfMergeSortJoinResultSet(NoPutResultSet leftResultSet,
-													int leftNumCols,
-													NoPutResultSet rightResultSet,
-													int rightNumCols,
-													int leftHashKeyItem,
-													int rightHashKeyItem,
-													GeneratedMethod joinClause,
-													int resultSetNumber,
-													boolean oneRowRightSide,
-													boolean notExistsRightSide,
-													double optimizerEstimatedRowCount,
-													double optimizerEstimatedCost,
-													String userSuppliedOptimizerOverrides,
-													String explainPlan)
+	NoPutResultSet getHalfMergeSortJoinResultSet(NoPutResultSet leftResultSet,
+												 int leftNumCols,
+												 NoPutResultSet rightResultSet,
+												 int rightNumCols,
+												 int leftHashKeyItem,
+												 int rightHashKeyItem,
+												 GeneratedMethod joinClause,
+												 int resultSetNumber,
+												 boolean oneRowRightSide,
+												 boolean notExistsRightSide,
+												 double optimizerEstimatedRowCount,
+												 double optimizerEstimatedCost,
+												 String userSuppliedOptimizerOverrides,
+												 String explainPlan)
 			throws StandardException;
 
-    public NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
-			   int leftNumCols,
-			   NoPutResultSet rightResultSet,
-			   int rightNumCols,
-			   int leftHashKeyItem,
-			   int rightHashKeyItem,
-			   GeneratedMethod joinClause,
-			   int resultSetNumber,
-			   boolean oneRowRightSide,
-			   boolean notExistsRightSide,
-			   double optimizerEstimatedRowCount,
-			   double optimizerEstimatedCost,
-			   String userSuppliedOptimizerOverrides,
-               String explainPlan)
+    NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
+										 int leftNumCols,
+										 NoPutResultSet rightResultSet,
+										 int rightNumCols,
+										 int leftHashKeyItem,
+										 int rightHashKeyItem,
+										 GeneratedMethod joinClause,
+										 int resultSetNumber,
+										 boolean oneRowRightSide,
+										 boolean notExistsRightSide,
+										 double optimizerEstimatedRowCount,
+										 double optimizerEstimatedCost,
+										 String userSuppliedOptimizerOverrides,
+										 String explainPlan)
 					   throws StandardException;
 
-    public NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
-			   int leftNumCols,
-			   NoPutResultSet rightResultSet,
-			   int rightNumCols,
-			   int leftHashKeyItem,
-			   int rightHashKeyItem,
-			   GeneratedMethod joinClause,
-			   int resultSetNumber,
-			   boolean oneRowRightSide,
-			   boolean notExistsRightSide,
-			   double optimizerEstimatedRowCount,
-			   double optimizerEstimatedCost,
-			   String userSuppliedOptimizerOverrides,
-			   String explainPlan)
+    NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
+											 int leftNumCols,
+											 NoPutResultSet rightResultSet,
+											 int rightNumCols,
+											 int leftHashKeyItem,
+											 int rightHashKeyItem,
+											 GeneratedMethod joinClause,
+											 int resultSetNumber,
+											 boolean oneRowRightSide,
+											 boolean notExistsRightSide,
+											 double optimizerEstimatedRowCount,
+											 double optimizerEstimatedCost,
+											 String userSuppliedOptimizerOverrides,
+											 String explainPlan)
 			           throws StandardException;
 
 	/**
@@ -1218,20 +1218,20 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
-    public NoPutResultSet getNestedLoopLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-								   int leftNumCols,
-								   NoPutResultSet rightResultSet,
-								   int rightNumCols,
-								   GeneratedMethod joinClause,
-								   int resultSetNumber,
-								   GeneratedMethod emptyRowFun,
-								   boolean wasRightOuterJoin,
-								   boolean oneRowRightSide,
-								   boolean notExistsRightSide,
-								   double optimizerEstimatedRowCount,
-								   double optimizerEstimatedCost,
-								   String userSuppliedOptimizerOverrides,
-					               String explainPlan)
+	NoPutResultSet getNestedLoopLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+													   int leftNumCols,
+													   NoPutResultSet rightResultSet,
+													   int rightNumCols,
+													   GeneratedMethod joinClause,
+													   int resultSetNumber,
+													   GeneratedMethod emptyRowFun,
+													   boolean wasRightOuterJoin,
+													   boolean oneRowRightSide,
+													   boolean notExistsRightSide,
+													   double optimizerEstimatedRowCount,
+													   double optimizerEstimatedCost,
+													   String userSuppliedOptimizerOverrides,
+													   String explainPlan)
 			throws StandardException;
 
 	/**
@@ -1264,22 +1264,22 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
-    public NoPutResultSet getHashLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-								   int leftNumCols,
-								   NoPutResultSet rightResultSet,
-								   int rightNumCols,
-                   int leftHashKeyItem,
-                   int rightHashKeyItem,
-								   GeneratedMethod joinClause,
-								   int resultSetNumber,
-								   GeneratedMethod emptyRowFun,
-								   boolean wasRightOuterJoin,
-								   boolean oneRowRightSide,
-								   boolean notExistsRightSide,
-								   double optimizerEstimatedRowCount,
-								   double optimizerEstimatedCost,
-								   String userSuppliedOptimizerOverrides,
-					               String explainPlan)
+	NoPutResultSet getHashLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+												 int leftNumCols,
+												 NoPutResultSet rightResultSet,
+												 int rightNumCols,
+												 int leftHashKeyItem,
+												 int rightHashKeyItem,
+												 GeneratedMethod joinClause,
+												 int resultSetNumber,
+												 GeneratedMethod emptyRowFun,
+												 boolean wasRightOuterJoin,
+												 boolean oneRowRightSide,
+												 boolean notExistsRightSide,
+												 double optimizerEstimatedRowCount,
+												 double optimizerEstimatedCost,
+												 String userSuppliedOptimizerOverrides,
+												 String explainPlan)
 			throws StandardException;
 
 	/**
@@ -1358,76 +1358,76 @@ public interface ResultSetFactory {
 	@exception StandardException thrown when unable to create the 
 		result set
 	*/
-	public NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-															 int leftNumCols,
-															 NoPutResultSet rightResultSet,
-															 int rightNumCols,
-															 int leftHashKeyItem,
-															 int rightHashKeyItem,
-															 GeneratedMethod joinClause,
-															 int resultSetNUmber,
-															 GeneratedMethod emptyRowFun,
-															 boolean wasRightOuterJoin,
-															 boolean oneRowRightSide,
-															 boolean noExistsRightSide,
-															 double optimizerEstimatedRowCount,
-															 double optimizerEstimatedCost,
-															 String userSuppliedOptimizerOverrides,
-															 String explainPlan)
+	NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+													  int leftNumCols,
+													  NoPutResultSet rightResultSet,
+													  int rightNumCols,
+													  int leftHashKeyItem,
+													  int rightHashKeyItem,
+													  GeneratedMethod joinClause,
+													  int resultSetNUmber,
+													  GeneratedMethod emptyRowFun,
+													  boolean wasRightOuterJoin,
+													  boolean oneRowRightSide,
+													  boolean noExistsRightSide,
+													  double optimizerEstimatedRowCount,
+													  double optimizerEstimatedCost,
+													  String userSuppliedOptimizerOverrides,
+													  String explainPlan)
 			throws StandardException;
 
-	public NoPutResultSet getHalfMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-															 int leftNumCols,
-															 NoPutResultSet rightResultSet,
-															 int rightNumCols,
-															 int leftHashKeyItem,
-															 int rightHashKeyItem,
-															 GeneratedMethod joinClause,
-															 int resultSetNUmber,
-															 GeneratedMethod emptyRowFun,
-															 boolean wasRightOuterJoin,
-															 boolean oneRowRightSide,
-															 boolean noExistsRightSide,
-															 double optimizerEstimatedRowCount,
-															 double optimizerEstimatedCost,
-															 String userSuppliedOptimizerOverrides,
-															 String explainPlan)
+	NoPutResultSet getHalfMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+														  int leftNumCols,
+														  NoPutResultSet rightResultSet,
+														  int rightNumCols,
+														  int leftHashKeyItem,
+														  int rightHashKeyItem,
+														  GeneratedMethod joinClause,
+														  int resultSetNUmber,
+														  GeneratedMethod emptyRowFun,
+														  boolean wasRightOuterJoin,
+														  boolean oneRowRightSide,
+														  boolean noExistsRightSide,
+														  double optimizerEstimatedRowCount,
+														  double optimizerEstimatedCost,
+														  String userSuppliedOptimizerOverrides,
+														  String explainPlan)
 			throws StandardException;
 
-	public NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-				int leftNumCols,
-				NoPutResultSet rightResultSet,
-				int rightNumCols,
-				int leftHashKeyItem,
-				int rightHashKeyItem,
-				GeneratedMethod joinClause,
-				int resultSetNUmber,
-				GeneratedMethod emptyRowFun,
-				boolean wasRightOuterJoin,
-				boolean oneRowRightSide,
-				boolean noExistsRightSide,
-				double optimizerEstimatedRowCount,
-				double optimizerEstimatedCost,
-                String userSuppliedOptimizerOverrides,
-                String explainPlan)
+	NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+												  int leftNumCols,
+												  NoPutResultSet rightResultSet,
+												  int rightNumCols,
+												  int leftHashKeyItem,
+												  int rightHashKeyItem,
+												  GeneratedMethod joinClause,
+												  int resultSetNUmber,
+												  GeneratedMethod emptyRowFun,
+												  boolean wasRightOuterJoin,
+												  boolean oneRowRightSide,
+												  boolean noExistsRightSide,
+												  double optimizerEstimatedRowCount,
+												  double optimizerEstimatedCost,
+												  String userSuppliedOptimizerOverrides,
+												  String explainPlan)
 	throws StandardException;
 
-	public NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-				int leftNumCols,
-				NoPutResultSet rightResultSet,
-				int rightNumCols,
-				int leftHashKeyItem,
-				int rightHashKeyItem,
-				GeneratedMethod joinClause,
-				int resultSetNUmber,
-				GeneratedMethod emptyRowFun,
-				boolean wasRightOuterJoin,
-				boolean oneRowRightSide,
-				boolean noExistsRightSide,
-				double optimizerEstimatedRowCount,
-				double optimizerEstimatedCost,
-				String userSuppliedOptimizerOverrides,
-				String explainPlan)
+	NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+													  int leftNumCols,
+													  NoPutResultSet rightResultSet,
+													  int rightNumCols,
+													  int leftHashKeyItem,
+													  int rightHashKeyItem,
+													  GeneratedMethod joinClause,
+													  int resultSetNUmber,
+													  GeneratedMethod emptyRowFun,
+													  boolean wasRightOuterJoin,
+													  boolean oneRowRightSide,
+													  boolean noExistsRightSide,
+													  double optimizerEstimatedRowCount,
+													  double optimizerEstimatedCost,
+													  String userSuppliedOptimizerOverrides,
+													  String explainPlan)
 	throws StandardException;
 
 	/**
@@ -1656,36 +1656,36 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
-	public NoPutResultSet getRaDependentTableScanResultSet(
-			                        Activation activation,
-									long conglomId,
-									int scociItem,							
-									GeneratedMethod resultRowAllocator,
-									int resultSetNumber,
-									GeneratedMethod startKeyGetter,
-									int startSearchOperator,
-									GeneratedMethod stopKeyGetter,
-									int stopSearchOperator,
-									boolean sameStartStopPosition,
-                                    boolean rowIdKey,
-									String qualifiersField,
-									String tableName,
-									String userSuppliedOptimizerOverrides,
-									String indexName,
-									boolean isConstraint,
-									boolean forUpdate,
-									int colRefItem,
-									int indexColItem,
-									int lockMode,
-									boolean tableLocked,
-									int isolationLevel,
-									boolean oneRowScan,
-									double optimizerEstimatedRowCount,
-									double optimizerEstimatedCost,
-									String parentResultSetId,
-									long fkIndexConglomId,
-									int fkColArrayItem,
-									int rltItem)
+	NoPutResultSet getRaDependentTableScanResultSet(
+			Activation activation,
+			long conglomId,
+			int scociItem,
+			GeneratedMethod resultRowAllocator,
+			int resultSetNumber,
+			GeneratedMethod startKeyGetter,
+			int startSearchOperator,
+			GeneratedMethod stopKeyGetter,
+			int stopSearchOperator,
+			boolean sameStartStopPosition,
+			boolean rowIdKey,
+			String qualifiersField,
+			String tableName,
+			String userSuppliedOptimizerOverrides,
+			String indexName,
+			boolean isConstraint,
+			boolean forUpdate,
+			int colRefItem,
+			int indexColItem,
+			int lockMode,
+			boolean tableLocked,
+			int isolationLevel,
+			boolean oneRowScan,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			String parentResultSetId,
+			long fkIndexConglomId,
+			int fkColArrayItem,
+			int rltItem)
 		throws StandardException;
 
     /**
@@ -1708,44 +1708,44 @@ public interface ResultSetFactory {
 	 * @exception StandardException Standard error policy
 	 */
 
-	public NoPutResultSet getRowCountResultSet(
-		NoPutResultSet source,
-		Activation activation,
-		int resultSetNumber,
-		GeneratedMethod offsetMethod,
-		GeneratedMethod fetchFirstMethod,
-        boolean hasJDBClimitClause,
-		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost,
-		String explainPlan) throws StandardException;
+	NoPutResultSet getRowCountResultSet(
+			NoPutResultSet source,
+			Activation activation,
+			int resultSetNumber,
+			GeneratedMethod offsetMethod,
+			GeneratedMethod fetchFirstMethod,
+			boolean hasJDBClimitClause,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			String explainPlan) throws StandardException;
 
-    public NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber) throws StandardException;
+    NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber) throws StandardException;
 
-    public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException;
+    NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException;
 
     /**
      * Export
      */
-    public NoPutResultSet getExportResultSet(NoPutResultSet source,
-                                             Activation activation,
-                                             int resultSetNumber,
-                                             String exportPath,
-                                             boolean compression,
-                                             int replicationCount,
-                                             String encoding,
-                                             String fieldSeparator,
-                                             String quoteChar,
-                                             int srcResultDescriptionSavedObjectNum) throws StandardException;
+	NoPutResultSet getExportResultSet(NoPutResultSet source,
+									  Activation activation,
+									  int resultSetNumber,
+									  String exportPath,
+									  boolean compression,
+									  int replicationCount,
+									  String encoding,
+									  String fieldSeparator,
+									  String quoteChar,
+									  int srcResultDescriptionSavedObjectNum) throws StandardException;
 
     /**
      * Batch Once
      */
-    public NoPutResultSet getBatchOnceResultSet(NoPutResultSet source,
-                                                Activation activation,
-                                                int resultSetNumber,
-                                                NoPutResultSet subqueryResultSet,
-                                                String updateResultSetFieldName,
-                                                int sourceCorrelatedColumnItem,
-                                                int subqueryCorrelatedColumnItem) throws StandardException;
+	NoPutResultSet getBatchOnceResultSet(NoPutResultSet source,
+										 Activation activation,
+										 int resultSetNumber,
+										 NoPutResultSet subqueryResultSet,
+										 String updateResultSetFieldName,
+										 int sourceCorrelatedColumnItem,
+										 int subqueryCorrelatedColumnItem) throws StandardException;
 
 }

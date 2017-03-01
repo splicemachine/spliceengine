@@ -52,12 +52,12 @@ public interface StreamStorable
 	  Return the on-disk stream state of the object.
 	  
 	**/
-	public InputStream returnStream();
+	InputStream returnStream();
 
 	/**
 	  sets the on-disk stream state for the object.
 	**/
-	public void setStream(InputStream newStream);
+	void setStream(InputStream newStream);
 
 	/**
      * Set the value by reading the stream and
@@ -65,5 +65,5 @@ public interface StreamStorable
      * 
 		@exception StandardException on error
 	**/
-	public void loadStream() throws StandardException;
+	void loadStream() throws StandardException;
 }

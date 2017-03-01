@@ -40,7 +40,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 
 public interface TypeCompilerFactory
 {
-	public static final String MODULE = "com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory";
+	String MODULE = "com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory";
 
 	/**
 	 * Get a TypeCompiler corresponding to the given TypeId.
@@ -49,6 +49,6 @@ public interface TypeCompilerFactory
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public TypeCompiler getTypeCompiler(TypeId typeId);
+	TypeCompiler getTypeCompiler(TypeId typeId);
 }
 
