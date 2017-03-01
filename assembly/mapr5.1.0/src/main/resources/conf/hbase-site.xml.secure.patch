@@ -83,6 +83,7 @@
 +  <property><name>hbase.regionserver.thread.compaction.large</name><value>4</value></property>
 +  <property><name>hbase.regionserver.thread.compaction.small</name><value>4</value></property>
 +  <property><name>hbase.regionserver.wal.enablecompression</name><value>true</value></property>
++  <property><name>hbase.rowlock.wait.duration</name><value>0</value></property>
 +  <property><name>hbase.rpc.timeout</name><value>1200000</value></property>
 +  <property><name>hbase.server.thread.wakefrequency</name><value>10000</value></property>
 +  <property><name>hbase.splitlog.manager.timeout</name><value>300000</value></property>
