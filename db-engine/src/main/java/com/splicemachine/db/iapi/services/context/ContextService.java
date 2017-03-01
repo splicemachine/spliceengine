@@ -32,8 +32,8 @@
 package com.splicemachine.db.iapi.services.context;
 
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import org.apache.log4j.Logger;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -43,6 +43,8 @@ import java.util.*;
  * A set of static methods to supply easier access to contexts.
  */
 public final class ContextService{
+
+    private static final Logger LOG = Logger.getLogger(ContextService.class);
 
     private static volatile ContextService factory;
 
@@ -314,14 +316,14 @@ public final class ContextService{
             return;
         }
 
-        if(SanityManager.DEBUG){
+        if (LOG.isTraceEnabled()) {
             Thread currThread = Thread.currentThread();
             Thread activeThread = cm.activeThread;
             if (currThread != activeThread) {
-                SanityManager.THROWASSERT("resetCurrentContextManager - mismatch threads - current"+currThread+" - cm's "+activeThread);
+                LOG.trace("resetCurrentContextManager - mismatch threads - current"+currThread+" - cm's "+activeThread);
             }
             if (getCurrentContextManager() != cm) {
-                SanityManager.THROWASSERT("resetCurrentContextManager - mismatch contexts - "+currThread+" : "+getCurrentContextManager()+" : "+cm);
+                LOG.trace("resetCurrentContextManager - mismatch contexts - "+currThread+" : "+getCurrentContextManager()+" : "+cm);
             }
         }
 
@@ -413,12 +415,11 @@ public final class ContextService{
         threadContextList.set(link);
         associateCM.activeCount=-1;
 
-        if(SanityManager.DEBUG){
-            if(SanityManager.DEBUG_ON("memoryLeakTrace")) {
-                int size = 0;
-                for (; link != null; link = link.next) ++size;
-                if (size > 10)
-                    System.out.println("memoryLeakTrace:ContextService:threadLocal " + size);
+        if (LOG.isTraceEnabled()) {
+            int size = 0;
+            for (; link != null; link = link.next) ++size;
+            if (size > 10) {
+                LOG.trace("memoryLeakTrace:threadLocal " + size);
             }
         }
 
@@ -456,13 +457,11 @@ public final class ContextService{
             return;
         }
 
-        if(SanityManager.DEBUG){
-            Thread me=Thread.currentThread();
-
-            if(cm.activeThread!=null && me!=cm.activeThread){
-                SanityManager.THROWASSERT("setCurrentContextManager - mismatch threads - current "+me+" - cm's "+cm.activeThread);
+        if (LOG.isTraceEnabled()) {
+            Thread me = Thread.currentThread();
+            if (cm.activeThread != null && me != cm.activeThread) {
+                LOG.trace("setCurrentContextManager - mismatch threads - current " + me + " - cm's " + cm.activeThread);
             }
-
         }
 
         if (cm.activeThread == null) {
@@ -489,11 +488,9 @@ public final class ContextService{
             allContexts.add(cm);
         }
 
-        if (SanityManager.DEBUG) {
-            if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
-                if (allContexts.size()>50) {
-                    System.out.println("memoryLeakTrace:ContextService:allContexts " + allContexts.size());
-                }
+        if (LOG.isTraceEnabled()) {
+            if (allContexts.size() > 1000) {
+                LOG.trace("memoryLeakTrace:allContexts " + allContexts.size());
             }
         }
 
