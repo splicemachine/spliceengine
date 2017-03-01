@@ -18,6 +18,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
@@ -26,9 +27,16 @@ import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.commons.io.IOExceptionWithCause;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 /**
  * @author Scott Fines
@@ -99,5 +107,37 @@ public class ActivationSerializerTest {
         ActivationSerializer.DataValueStorage dvs = (ActivationSerializer.DataValueStorage)koi.readObject();
 
         Assert.assertEquals("Incorrect ser/de", dvd.getString(), ((DataValueDescriptor) dvs.getValue(null)).getString());
+    }
+
+    @Test
+    public void canSerdeStatementTextLargerThanUTF8Limit() throws Exception {
+        ObjectOutputStream oos = null;
+        ObjectInputStream ois = null;
+        try {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 65535 + 1; i++) {
+                sb.append('A');
+            }
+            SpliceObserverInstructions.ActivationContext context =
+                    new SpliceObserverInstructions.ActivationContext(null,
+                            true, true,
+                            sb.toString(), false, 100,
+                            "foo".getBytes());
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(baos);
+            context.writeExternal(oos);
+            oos.flush();
+            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            ois = new ObjectInputStream(bais);
+            SpliceObserverInstructions.ActivationContext context2 = new SpliceObserverInstructions.ActivationContext();
+            context2.readExternal(ois);
+            Assert.assertEquals("Serde Incorrect",context.getStatementTxt(),context2.getStatementTxt());
+        } finally {
+            if (oos!=null)
+                oos.close();
+            if (ois !=null)
+                ois.close();
+            }
+
     }
 }
