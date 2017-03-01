@@ -185,9 +185,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         fourthRowContainsQuery(
             format("explain select a2.pid from %s a2 left outer join " +
             		  "(select person.pid from %s) as a3 " +
-            		  " on a2.pid = a3.pid " + 
+            		  " on a2.pid = a3.pid " +
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
-		    LO_MERGE_SORT_JOIN, methodWatcher);
+		    LO_BROADCAST_JOIN, methodWatcher);
     }
     
     // should be Broadcast but comes back with MergeSort?
@@ -197,7 +197,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         	format("explain select a2.pid from %s a2 left outer join " +
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher),
-    		LO_MERGE_SORT_JOIN, methodWatcher);
+    		LO_BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
@@ -219,7 +219,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID " +
             				  "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-			  LO_MERGE_SORT_JOIN, methodWatcher);
+			  LO_BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
@@ -504,5 +504,30 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                 "explain select * from a, b where (a.i = b.i and a.j=1) or ((a.i = b.i or a.j=2) and a.i=1)",
                 "preds=[(((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 1) and true)) or ((((A.I[1:1] = B.I[2:1]) or ((A.J[1:2] = 2) or false)) and ((A.I[1:1] = 1) and true)) or false))]", methodWatcher);
 
+    }
+
+    @Test
+    public void testBroadcastJoinWithSelect() throws Exception {
+        fourthRowContainsQuery(
+                format("explain select a2.pid from --SPLICE-PROPERTIES joinOrder=fixed \n" +
+                        "%s a2 join (select person.pid from %s person) as a3 --SPLICE-PROPERTIES joinStrategy=broadcast\n" +
+                        " on a2.pid = a3.pid where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
+                BROADCAST_JOIN, methodWatcher);
+
+        String sqlText =  format("select a2.pid from --SPLICE-PROPERTIES joinOrder=fixed \n" +
+                "%s a2 join (select person.pid from %s person) as a3 --SPLICE-PROPERTIES joinStrategy=broadcast\n" +
+                        " on a2.pid = a3.pid where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("wrong result", 100, rs.getInt(1));
+
+        sqlText =  format("select count(*) from --SPLICE-PROPERTIES joinOrder=fixed \n" +
+                "%s a2 join (select person.pid from %s person) as a3 --SPLICE-PROPERTIES joinStrategy=broadcast\n" +
+                " on a2.pid = a3.pid", spliceTableWatcher2, spliceTableWatcher);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("wrong result", 1280, rs.getInt(1));
     }
 }

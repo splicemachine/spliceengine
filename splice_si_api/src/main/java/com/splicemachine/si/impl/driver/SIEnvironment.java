@@ -67,8 +67,6 @@ public interface SIEnvironment{
 
     KeyedReadResolver keyedReadResolver();
 
-    DistributedFileSystem fileSystem();
-
     /**
      *
      * Retrieve the appropriate filesystem based on the path and configuration.

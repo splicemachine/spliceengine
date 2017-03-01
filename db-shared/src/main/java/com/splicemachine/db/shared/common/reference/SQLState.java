@@ -1932,6 +1932,7 @@ public interface SQLState {
 
 	//general SPlice errors
 	String LANG_INVALID_DAY										   = "SE022";
+	String ERROR_PARSING_EXCEPTION								   = "SE023";
 	/*
      * Backup and restore
      */
@@ -1978,6 +1979,11 @@ public interface SQLState {
 	String FILESYSTEM_URI_EXCEPTION				    				= "EXT25";
 	String FILESYSTEM_IO_EXCEPTION				    				= "EXT26";
 	String NO_ARRAY_IN_PRIMARY_KEY				    				= "EXT27";
+    String INSERT_PIN_VIOLATION				    					= "EXT29";
+    String UPDATE_PIN_VIOLATION				    					= "EXT30";
+    String DELETE_PIN_VIOLATION				    					= "EXT31";
+	String TABLE_NOT_PINNED				    						= "EXT32";
+	String DIRECTORY_REQUIRED			    						= "EXT33";
 
 
 }

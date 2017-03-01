@@ -25,7 +25,16 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.sql.execute.pin.DistributedPopulatePinJob;
+import com.splicemachine.derby.impl.sql.execute.pin.RemoteDropPinJob;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.TxnView;
 
 
 /**
@@ -68,11 +77,10 @@ public class DropPinConstantOperation extends DDLSingleTableConstantOperation {
      */
     @Override
     public void executeConstantAction(Activation activation) throws StandardException {
-
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
-        TransactionController tc = lcc.getTransactionExecute();
+        TransactionController userTransaction = lcc.getTransactionExecute();
 
         /* Get the table descriptor. */
         TableDescriptor td = dd.getTableDescriptor(tableId);
@@ -80,9 +88,63 @@ public class DropPinConstantOperation extends DDLSingleTableConstantOperation {
         if (td == null) {
             throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
         }
+        if(!td.isPinned()){
+            throw StandardException.newException(SQLState.TABLE_NOT_PINNED, fullTableName);
+        }
+
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+        dd.startWriting(lcc);
+        // Drop the table and then recreate it with the pin marked.
+        try {
+            dd.dropTableDescriptor(td,sd,userTransaction);
+        } catch (StandardException e) {
+            if (ErrorState.WRITE_WRITE_CONFLICT.getSqlState().equals(e.getSQLState())) {
+                throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("Drop Pin ()",
+                        e.getMessage());
+            }
+            throw e;
+        }
+
+        // Change the table name of the table descriptor
+        td.setColumnSequence(td.getColumnSequence()+1);
+
+        //Mark the table not pinned
+        td.setPinned(false);
+        		    /* Prepare all dependents to invalidate.  (This is their chance
+		     * to say that they can't be invalidated.  For example, an open
+		     * cursor referencing a table/view that the user is attempting to
+		     * alter.) If no one objects, then invalidate any dependent objects.
+		     */
+        dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
+
+        TransactionController tc = lcc.getTransactionExecute();
+
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                (BasicUUID) td.getUUID());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+
+        // Save the TableDescriptor off in the Activation
+        activation.setDDLTableDescriptor(td);
+
+
+        dd.addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,userTransaction);
+
         long heapId = td.getHeapConglomerateId();
-        DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        dsp.dropPinnedTable(heapId);
+        try {
+            EngineDriver.driver().getOlapClient().execute(new RemoteDropPinJob(heapId));
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
 
     }
 

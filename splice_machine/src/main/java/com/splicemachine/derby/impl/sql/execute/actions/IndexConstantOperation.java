@@ -120,6 +120,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
 			List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
 			List<Integer> columnOrdering = tentativeIndex.getTable().getColumnOrderingList();
+			td.getColumnDescriptorList().elementAt(0).getType().getNull();
 			int[] rowDecodingMap = new int[allFormatIds.size()];
 			int[] baseColumnMap = new int[allFormatIds.size()];
 			int counter = 0;

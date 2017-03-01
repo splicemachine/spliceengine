@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -51,7 +52,7 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
 
     private long badRecordTolerance;
     private long numberOfBadRecords = 0L;
-    private Path badRecordMasterPath;
+    private String badRecordMasterPath;
     private transient OutputStream fileOut;
     private String filePath;
     private int fileCounter = 0; // When we close the stream we increment the counter so there's no collision
@@ -170,9 +171,9 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         // lazily init when we don't have a stream to which write
         if (fileOut == null) {
             try {
-                DistributedFileSystem dfs = SIDriver.driver().fileSystem();
                 String postfix = java.util.UUID.randomUUID().toString().replaceAll("-","");
                 filePath = badRecordMasterPath.toString() + "_" + postfix + "_" + fileCounter;
+                DistributedFileSystem dfs = SIDriver.driver().getSIEnvironment().fileSystem(filePath);
                 fileOut = dfs.newOutputStream(filePath, StandardOpenOption.CREATE);
             } catch (Exception e) {
                 close();
@@ -200,29 +201,34 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
      * @return a writable file path to which to write.
      * @throws StandardException if an error occurs checking file writablility.
      */
-    private static Path generateWritableFilePath(String badDirectory,
+    private static String generateWritableFilePath(String badDirectory,
                                                  String vtiFilePath,
                                                  String extension) throws StandardException {
-        DistributedFileSystem fileSystem = SIDriver.driver().fileSystem();
-        Path inputFilePath = fileSystem.getPath(vtiFilePath);
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "BadRecordsRecorder: badDirectory=%s, filePath=%s", badDirectory, inputFilePath);
-        assert inputFilePath != null;
+        try {
+            DistributedFileSystem fileSystem = SIDriver.driver().getSIEnvironment().fileSystem(vtiFilePath);
+            String inputFileName = fileSystem.getFileName(vtiFilePath);
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "BadRecordsRecorder: badDirectory=%s, filePath=%s", badDirectory, vtiFilePath);
 
-        if (badDirectory == null || badDirectory.isEmpty() || badDirectory.toUpperCase().equals("NULL")) {
-            badDirectory = inputFilePath.getParent().toString();
-        }
-
-        ImportUtils.validateWritable(badDirectory, true);
-        int i = 0;
-        while (true) {
-            String fileName = badDirectory + "/" + inputFilePath.getFileName();
-            fileName = fileName + (i == 0 ? extension : "_" + i + extension);
-            Path fileSystemPathForWrites = fileSystem.getPath(fileName);
-            if (! Files.exists(fileSystemPathForWrites)) {
-                return fileSystemPathForWrites;
+            if (badDirectory == null || badDirectory.isEmpty() || badDirectory.toUpperCase().equals("NULL")) {
+                badDirectory = vtiFilePath.substring(0, vtiFilePath.lastIndexOf("/"));
             }
-            i++;
+
+            ImportUtils.validateWritable(badDirectory, true);
+
+            fileSystem = SIDriver.driver().getSIEnvironment().fileSystem(badDirectory);
+            int i = 0;
+            while (true) {
+                String fileName = badDirectory + "/" + inputFileName;
+                fileName = fileName + (i == 0 ? extension : "_" + i + extension);
+                if (!fileSystem.exists(fileName)) {
+                    return fileName;
+                }
+                i++;
+            }
+        }
+        catch(Exception e) {
+            throw StandardException.plainWrapException(e);
         }
     }
 
@@ -233,15 +239,14 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         close();
         out.writeLong(badRecordTolerance);
         out.writeLong(numberOfBadRecords);
-        out.writeUTF(badRecordMasterPath.toString());
+        out.writeUTF(badRecordMasterPath);
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        DistributedFileSystem fileSystem = SIDriver.driver().fileSystem();
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         badRecordTolerance = in.readLong();
         numberOfBadRecords = in.readLong();
-        badRecordMasterPath = fileSystem.getPath(in.readUTF());
+        badRecordMasterPath = in.readUTF();
     }
 
     @Override

@@ -288,7 +288,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     public void saveAsTextFile(String path) {
         OutputStream fileOut = null;
         try {
-            DistributedFileSystem dfs = SIDriver.driver().fileSystem();
+            DistributedFileSystem dfs = SIDriver.driver().getFileSystem(path);
             fileOut = dfs.newOutputStream(path, StandardOpenOption.CREATE);
             while (iterator.hasNext()) {
                 fileOut.write(Bytes.toBytes(iterator.next().toString()));
@@ -474,14 +474,6 @@ public class ControlDataSet<V> implements DataSet<V> {
         throw new UnsupportedOperationException("Pin Not Supported in Control Mode");
     }
 
-    /**
-     * Not Supported
-     * @param conglomId
-     */
-    @Override
-    public void dropPin(long conglomId) {
-        throw new UnsupportedOperationException("Un Pin Not Supported in Control Mode");
-    }
 
     /**
      *

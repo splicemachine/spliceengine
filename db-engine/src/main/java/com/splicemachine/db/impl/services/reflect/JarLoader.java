@@ -188,6 +188,11 @@ public final class JarLoader extends SecureClassLoader {
                 && !className.startsWith("com.splicemachine.db.vti.")
                 && !className.startsWith("com.splicemachine.db.agg.")
 				&& !className.startsWith("com.splicemachine.db.shared.common.udt.")
+				&& !className.startsWith("com.splicemachine.db.iapi.types.")      // DataValueDescriptor
+				&& !className.startsWith("com.splicemachine.db.iapi.error.")      // StandardException
+				&& !className.startsWith("com.splicemachine.db.iapi.sql.")        // ExecRow, ResultColumnDescriptor
+				&& !className.startsWith("com.splicemachine.db.impl.jdbc.")       // EmbedResultSetMetaData
+				&& !className.startsWith("com.splicemachine.db.impl.sql.execute.")// ValueRow
                 )
 
         {

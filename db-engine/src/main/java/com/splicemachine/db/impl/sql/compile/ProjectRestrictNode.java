@@ -1669,6 +1669,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
     }
 
+    public boolean hasSubqueries() {
+        return (projectSubquerys != null && projectSubquerys.size()>0) ||
+                (restrictSubquerys != null && restrictSubquerys.size()>0);
+    }
+
     @Override
     public String toHTMLString() {
         return "" +

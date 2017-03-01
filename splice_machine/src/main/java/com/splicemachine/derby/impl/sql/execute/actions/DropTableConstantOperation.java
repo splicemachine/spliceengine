@@ -20,6 +20,7 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.sql.execute.pin.RemoteDropPinJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -178,8 +179,12 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             tc.dropConglomerate(heapId);
 
             /* is the table pinned ? , if yes we need to drop it */
-            if(td.isPined()){
-                EngineDriver.driver().processorFactory().distributedProcessor().dropPinnedTable(td.getHeapConglomerateId());
+            if(td.isPinned()){
+                try {
+                    EngineDriver.driver().getOlapClient().execute(new RemoteDropPinJob(heapId));
+                } catch (Exception e) {
+                    throw StandardException.plainWrapException(e);
+                }
             }
 
         } catch (Exception e) {

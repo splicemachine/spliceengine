@@ -15,9 +15,11 @@
 package com.splicemachine.si.impl.store;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ForwardingTxnView;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -27,6 +29,8 @@ import org.spark_project.guava.primitives.Longs;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * Simple Transaction store useful for Unit testing. NOT TO BE USED OUTSIDE OF TESTING. This is not thread safe!
@@ -56,10 +60,15 @@ public class TestingTxnStore implements TxnStore{
 
     @Override
     public Txn getTransaction(long txnId) throws IOException{
-        TxnHolder txn=txnMap.get(txnId);
+        long subId = txnId & SIConstants.SUBTRANSANCTION_ID_MASK;
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        TxnHolder txn=txnMap.get(beginTS);
         if(txn==null) return null;
 
         if(isTimedOut(txn))
+            return getRolledbackTxn(txn.txn);
+        if(subId == 0) return txn.txn;
+        else if (txn.txn.getRolledback().contains(subId))
             return getRolledbackTxn(txn.txn);
         else return txn.txn;
     }
@@ -106,6 +115,30 @@ public class TestingTxnStore implements TxnStore{
         Txn.State state=txn.getState();
         if(state!=Txn.State.ACTIVE) return; //nothing to do if we aren't active
         txnHolder.txn=getRolledbackTxn(txn);
+    }
+
+    private Txn getRolledbackSubtxns(long txnId, Txn txn, LongOpenHashSet subtransactions) {
+        final LongOpenHashSet subs = subtransactions.clone();
+        return new ForwardingTxnView(txn){
+            @Override
+            public LongOpenHashSet getRolledback() {
+                return subs;
+            }
+        };
+    }
+
+    @Override
+    public void rollbackSubtransactions(long txnId, LongOpenHashSet subtransactions) throws IOException {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+
+        TxnHolder txnHolder=txnMap.get(beginTS);
+        if(txnHolder==null) return; //no transaction exists
+
+        Txn txn=txnHolder.txn;
+
+        Txn.State state=txn.getState();
+        if(state!=Txn.State.ACTIVE) return; //nothing to do if we aren't active
+        txnHolder.txn=getRolledbackSubtxns(beginTS,txn,subtransactions);
     }
 
     private Txn getRolledbackTxn(final Txn txn){

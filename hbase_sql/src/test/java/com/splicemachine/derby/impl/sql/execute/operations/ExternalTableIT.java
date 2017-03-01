@@ -222,9 +222,6 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
     }
 
-
-
-
     @Test
     public void testFileExistingNotDeleted() throws  Exception{
         String tablePath = getResourceDirectory()+"parquet_sample_one";
@@ -240,6 +237,28 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testEmptyDirectory() throws  Exception{
+        String tablePath = getExternalResourceDirectory()+"empty_directory";
+        new File(tablePath).mkdir();
+
+        methodWatcher.executeUpdate(String.format("create external table empty_directory (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+    }
+
+    @Test
+    public void testLocationCannotBeAFile() throws  Exception{
+        File temp = File.createTempFile("temp-file", ".tmp");
+
+        try {
+            methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'",temp.getAbsolutePath()));
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT33",e.getSQLState());
+        }
+    }
+
+    @Test
     public void refreshRequireExternalTable() throws  Exception{
         String tablePath = getExternalResourceDirectory()+"external_table_refresh";
 
@@ -249,13 +268,41 @@ public class ExternalTableIT extends SpliceUnitTest{
         PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
         ps.setString(1, "EXTERNALTABLEIT");
         ps.setString(2, "EXTERNAL_TABLE_REFRESH");
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-
-        Assert.assertEquals("Error with refresh external table","EXTERNALTABLEIT.EXTERNAL_TABLE_REFRESH schema table refreshed",  rs.getString(1));
+        ps.execute();
 
 
     }
+
+    @Test
+    public void refreshRequireExternalTableNotFound() throws  Exception{
+
+        try {
+            PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
+            ps.setString(1, "EXTERNALTABLEIT");
+            ps.setString(2, "NOT_EXIST");
+            ResultSet rs = ps.executeQuery();
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","42X05",e.getSQLState());
+        }
+
+    }
+
+    //SPLICE-1387
+    @Test
+    public void refreshRequireExternalTableWrongParameters() throws  Exception{
+
+        try {
+            PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE('arg1','arg2','arg3') ");
+
+            ResultSet rs = ps.executeQuery();
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","42Y03",e.getSQLState());
+        }
+
+    }
+
 
     @Test
     public void testWriteReadNullValues() throws Exception {
@@ -406,7 +453,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     }
 
-    @Test @Ignore
+    @Test
     public void testWriteReadFromSimpleORCExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table simple_orc (col1 int, col2 varchar(24))" +
                 " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_orc"));
@@ -422,7 +469,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test @Ignore
+    @Test
     public void testWriteReadFromPartitionedORCExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table partitioned_orc (col1 int, col2 varchar(24))" +
                 "partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"partitioned_orc"));
@@ -586,6 +633,50 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    @Test
+    public void testPinExternalOrcTable() throws Exception {
+        String path = getExternalResourceDirectory()+"orc_pin";
+        methodWatcher.executeUpdate(String.format("create external table orc_pin (col1 int, col2 varchar(24))" +
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"orc_pin"));
+        methodWatcher.executeUpdate("insert into orc_pin values (1,'test')");
+
+        methodWatcher.executeUpdate("pin table orc_pin");
+        ResultSet rs = methodWatcher.executeQuery("select * from orc_pin --splice-properties pin=true");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |test |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
+
+    @Test
+    public void testPinExternalParquetTable() throws Exception {
+        String path = getExternalResourceDirectory()+"parquet_pin";
+        methodWatcher.executeUpdate(String.format("create external table parquet_pin (col1 int, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"parquet_pin"));
+        methodWatcher.executeUpdate("insert into parquet_pin values (1,'test')");
+
+        methodWatcher.executeUpdate("pin table parquet_pin");
+        ResultSet rs = methodWatcher.executeQuery("select * from parquet_pin --splice-properties pin=true");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |test |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testPinExternalTextTable() throws Exception {
+        String path = getExternalResourceDirectory()+"parquet_pin";
+        methodWatcher.executeUpdate(String.format("create external table textfile_pin (col1 int, col2 varchar(24))" +
+                " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"textfile_pin"));
+        methodWatcher.executeUpdate("insert into textfile_pin values (1,'test')");
+
+        methodWatcher.executeUpdate("pin table textfile_pin");
+        ResultSet rs = methodWatcher.executeQuery("select * from textfile_pin --splice-properties pin=true");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |test |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
     // look like it will be resolve in the next Spark version
     // https://issues.apache.org/jira/browse/SPARK-15474
     // for now ignoring
@@ -699,8 +790,6 @@ public class ExternalTableIT extends SpliceUnitTest{
         return getHBaseDirectory()+"/target/external/";
 
     }
-
-
 
 
     @Test
@@ -871,6 +960,36 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testWriteReadArraysWithStatsParquet() throws Exception {
+
+        String tablePath = getExternalResourceDirectory()+"parquet_array_stats";
+        methodWatcher.executeUpdate(String.format("create external table parquet_array_stats (col1 int array, col2 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into parquet_array_stats values ([1,1,1],'XXXX')," +
+                "([2,2,2],'YYYY')," +
+                "([3,3,3],'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        methodWatcher.executeQuery("analyze table parquet_array_stats");
+
+        ResultSet rs = methodWatcher.executeQuery("select * from parquet_array_stats");
+        Assert.assertEquals("COL1    |COL2 |\n" +
+                "-----------------\n" +
+                "[1, 1, 1] |XXXX |\n" +
+                "[2, 2, 2] |YYYY |\n" +
+                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from parquet_array_stats");
+        Assert.assertEquals("COL1    |\n" +
+                "-----------\n" +
+                "[1, 1, 1] |\n" +
+                "[2, 2, 2] |\n" +
+                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        //Make sure empty file is created
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+    }
+
+
+    @Test
     public void testWriteReadArraysORC() throws Exception {
 
         String tablePath = getExternalResourceDirectory()+"orc_array";
@@ -899,4 +1018,34 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
 
+    @Test
+    public void testUsingExsitingCsvFile() throws Exception {
+
+        // Create an external table stored as text
+        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE EXT_TEXT (id INT, c_text varchar(30)) \n" +
+                "ROW FORMAT DELIMITED \n" +
+                "FIELDS TERMINATED BY ','\n" +
+                "STORED AS TEXTFILE\n" +
+                "location '%s'", getExternalResourceDirectory() + "testUsingExsitingCsvFile"));
+
+        // insert into the table
+        methodWatcher.execute("insert into EXT_TEXT values (1, 'text1'), (2, 'text2'), (3, 'text3'), (4, 'text4')");
+        ResultSet rs = methodWatcher.executeQuery("select * from ext_text order by 1");
+        String before = TestUtils.FormattedResult.ResultFactory.toString(rs);
+
+        // drop and recreate another external table using previous data
+        methodWatcher.execute("drop table ext_text");
+
+        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE EXT_TEXT2 (id INT, c_text varchar(30)) \n" +
+                "ROW FORMAT DELIMITED \n" +
+                "FIELDS TERMINATED BY ','\n" +
+                "STORED AS TEXTFILE\n" +
+                "location '%s'", getExternalResourceDirectory() + "testUsingExsitingCsvFile"));
+
+        rs = methodWatcher.executeQuery("select * from ext_text2 order by 1");
+        String after = TestUtils.FormattedResult.ResultFactory.toString(rs);
+
+        Assert.assertEquals(after, before, after);
+
+    }
 }

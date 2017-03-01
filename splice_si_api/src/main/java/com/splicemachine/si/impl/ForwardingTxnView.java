@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.AbstractTxn;
@@ -30,7 +31,7 @@ public abstract class ForwardingTxnView extends AbstractTxn {
     private final Txn delegate;
 
     protected ForwardingTxnView(Txn delegate) {
-        super(delegate.getTxnId(),delegate.getBeginTimestamp(),delegate.getIsolationLevel());
+        super(delegate.getParentReference(), delegate.getTxnId(),delegate.getBeginTimestamp(),delegate.getIsolationLevel());
         this.delegate = delegate;
     }
 
@@ -57,7 +58,17 @@ public abstract class ForwardingTxnView extends AbstractTxn {
     @Override public long getParentTxnId() { return delegate.getParentTxnId(); }
     @Override public Txn.State getState() { return delegate.getState(); }
     @Override public boolean allowsWrites() { return delegate.allowsWrites(); }
+    @Override public void subRollback() { delegate.subRollback(); }
+    @Override
+    public LongOpenHashSet getRolledback() {
+        return delegate.getRolledback();
+    }
 
     @Override public boolean isAdditive() { return delegate.isAdditive(); }
     @Override public Iterator<ByteSlice> getDestinationTables() { return delegate.getDestinationTables(); }
+
+    @Override
+    public boolean equivalent(TxnView o) {
+        return delegate.equivalent(o);
+    }
 }

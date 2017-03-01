@@ -15,6 +15,7 @@
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
@@ -61,14 +62,8 @@ public class CreateExternalTableJob implements Callable<Void> {
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.getJobGroup(), "");
+        dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
 
-        // look at the file, if it doesn't exist create it.
-
-        if(!SIDriver.driver().fileSystem().getInfo(request.getLocation()).exists()){
-            Path pathToParent = SIDriver.driver().fileSystem().getPath(request.getLocation()).getParent();
-            ImportUtils.validateWritable(pathToParent.toString(),false);
-            dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
-        }
 
         jobStatus.markCompleted(new SuccessfulOlapResult());
         return null;

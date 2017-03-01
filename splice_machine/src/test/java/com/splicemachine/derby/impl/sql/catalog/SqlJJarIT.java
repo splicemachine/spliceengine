@@ -37,7 +37,7 @@ import com.splicemachine.test.SerialTest;
  * database with the SQLJ JAR file loading system procedures.  If your tests require a custom stored procedure,
  * you can add it to that JAR file and load into your 'IT' tests like you see below in the tests.
  *
- * @see org.splicetest.sqlj.SqlJTestProcs
+ * See org.splicetest.sqlj.SqlJTestProcs
  *
  * @author David Winters
  *		 Created on: 9/25/14
@@ -69,6 +69,10 @@ public class SqlJJarIT extends SpliceUnitTest {
 	private static final String CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING = "CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')";
 	private static final String CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', NULL)";
 	private static final String CALL_GET_GLOBAL_CLASSPATH = "CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath')";
+
+	// SQL statements to use VTI
+	private static final String SELECT_FROM_VTI_STRING = "select * from new org.splicetest.sqlj.PropertiesFileVTI('log4j.properties') a (key1 varchar(200), value varchar(200))";
+
 
 	// SQL queries.
 	private static final String SELECT_FROM_SYSFILES = "SELECT * FROM SYS.SYSFILES, sys.sysschemas " +
@@ -125,6 +129,12 @@ public class SqlJJarIT extends SpliceUnitTest {
 		rc = methodWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
+		// Select from the user defined VTI
+		rs = methodWatcher.executeQuery(SELECT_FROM_VTI_STRING);
+		int numRows = resultSetSize(rs);
+		Assert.assertTrue("Incorrect return code or result count returned!", numRows > 0);
+
+
 		// Create the user-defined stored procedure.
 		rc = methodWatcher.executeUpdate(CREATE_PROC_SIMPLE_ONE_ARG);
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
@@ -175,6 +185,11 @@ public class SqlJJarIT extends SpliceUnitTest {
 		// Add the jar file into the global DB class path.
 		rc = methodWatcher.executeUpdate(String.format(CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Select from the user defined VTI
+		rs = methodWatcher.executeQuery(SELECT_FROM_VTI_STRING);
+		numRows = resultSetSize(rs);
+		Assert.assertTrue("Incorrect return code or result count returned!", numRows > 0);
 
 		// Create the user-defined stored procedure.
 		rc = methodWatcher.executeUpdate(CREATE_PROC_SIMPLE_ONE_ARG);

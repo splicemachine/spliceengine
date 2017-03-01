@@ -17,6 +17,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -40,11 +42,11 @@ public class ExportFile {
     private final byte[] taskId;
     private static Logger LOG=Logger.getLogger(ExportFile.class);
 
-    ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        this(exportParams, taskId, SIDriver.driver().getFileSystem(exportParams.getDirectory()));
+    ExportFile(ExportParams exportParams, byte[] taskId) throws StandardException {
+        this(exportParams, taskId, ImportUtils.getFileSystem(exportParams.getDirectory()));
     }
 
-    ExportFile(ExportParams exportParams, byte[] taskId, DistributedFileSystem fileSystem) throws IOException {
+    ExportFile(ExportParams exportParams, byte[] taskId, DistributedFileSystem fileSystem) {
         this.exportParams = exportParams;
         this.taskId = taskId;
         this.fileSystem = fileSystem;
@@ -52,7 +54,7 @@ public class ExportFile {
     
     public OutputStream getOutputStream() throws IOException {
         // Filename
-        Path fullyQualifiedExportFilePath = buildOutputFilePath();
+        String fullyQualifiedExportFilePath = buildOutputFilePath();
 
         // OutputStream
         OutputStream rawOutputStream =fileSystem.newOutputStream(fullyQualifiedExportFilePath,
@@ -61,15 +63,13 @@ public class ExportFile {
         return exportParams.isCompression() ? new GZIPOutputStream(rawOutputStream) : rawOutputStream;
     }
 
-    public boolean createDirectory() {
+    public boolean createDirectory() throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "createDirectory(): export directory=%s", exportParams.getDirectory());
         try {
-            return fileSystem.createDirectory(exportParams.getDirectory(),false);
-        } catch (IOException e) {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "createDirectory(): exception trying to create directory %s: %s", exportParams.getDirectory(), e);
-            return false;
+            return fileSystem.createDirectory(exportParams.getDirectory(), false);
+        } catch (Exception ioe) { // Runtime is added to handle Amazon S3 Issues
+            throw StandardException.newException(SQLState.FILESYSTEM_IO_EXCEPTION, ioe.getMessage());
         }
     }
 
@@ -134,8 +134,8 @@ public class ExportFile {
         }
     }
 
-    protected Path buildOutputFilePath() {
-        return fileSystem.getPath(exportParams.getDirectory(),buildFilenameFromTaskId(taskId));
+    protected String buildOutputFilePath() {
+        return exportParams.getDirectory() + "/" + buildFilenameFromTaskId(taskId);
     }
 
     protected String buildFilenameFromTaskId(byte[] taskId) {

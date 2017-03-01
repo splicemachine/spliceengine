@@ -22,7 +22,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.6.0.1705-SNAPSHOT</version>
+        <version>2.6.0.1708-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -87,6 +87,7 @@
                                     <exclude>com.amazonaws:*</exclude>
                                     <exclude>com.mapr*:*</exclude>
                                     <exclude>mapr.fs*:*</exclude>
+                                    <exclude>com.sun.jersey:*</exclude>
                                     <exclude>com.splicemachine:db-client</exclude>
                                     <exclude>com.splicemachine:db-tools-i18n</exclude>
                                     <exclude>com.splicemachine:db-tools-ij</exclude>
@@ -116,7 +117,10 @@
                                     <shadedPattern>splice.io.netty</shadedPattern>
                                 </relocation>
 
-
+                                <relocation>
+                                    <pattern>javax.ws</pattern>
+                                    <shadedPattern>splice.javax.ws</shadedPattern>
+                                </relocation>
 
                             </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
@@ -174,7 +178,10 @@
                                     <pattern>io.netty</pattern>
                                     <shadedPattern>splice.io.netty</shadedPattern>
                                 </relocation>
-
+                                <relocation>
+                                    <pattern>javax.ws</pattern>
+                                    <shadedPattern>splice.javax.ws</shadedPattern>
+                                </relocation>
                             </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>splice-yarn-webproxy</shadedClassifierName>
@@ -227,7 +234,8 @@
                                 db-tools-ij,
                                 db-shared,
                                 db-drda,
-                                javax.servlet-api
+                                javax.servlet-api,
+                                javax.ws.rs-api
                             </includeArtifactIds>
 
 
@@ -250,27 +258,27 @@
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_ee-${envClassifier}</artifactId>
-                    <version>2.6.0.1705-SNAPSHOT</version>
+                    <version>2.6.0.1708-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup-${envClassifier}</artifactId>
-                    <version>2.6.0.1705-SNAPSHOT</version>
+                    <version>2.6.0.1708-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_auth</artifactId>
-                    <version>2.6.0.1705-SNAPSHOT</version>
+                    <version>2.6.0.1708-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_colperms</artifactId>
-                    <version>2.6.0.1705-SNAPSHOT</version>
+                    <version>2.6.0.1708-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_encryption</artifactId>
-                    <version>2.6.0.1705-SNAPSHOT</version>
+                    <version>2.6.0.1708-SNAPSHOT</version>
                 </dependency>
             </dependencies>
         </profile>

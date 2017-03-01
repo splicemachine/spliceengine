@@ -47,6 +47,7 @@ import java.util.Date;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -76,6 +77,10 @@ import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
  * for return to the application requester.
  */
 class DRDAConnThread extends Thread {
+
+	private static final Pattern PARSE_TIMESTAMP_PATTERN =
+			Pattern.compile("[-.]");
+
 
     private static final String leftBrace = "{";
 	private static final String rightBrace = "}";
@@ -5045,7 +5050,7 @@ class DRDAConnThread extends Thread {
      */
     private Timestamp parseTimestamp(String timeString, Calendar cal) {
         // Get each component out of YYYY-MM-DD-HH.MM.SS.fffffffff
-        String[] components = timeString.split("[-.]");
+        String[] components = PARSE_TIMESTAMP_PATTERN.split(timeString);
         if (components.length != 7) {
             throw new IllegalArgumentException();
         }

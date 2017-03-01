@@ -90,8 +90,8 @@ public class ExportOperation extends SpliceBaseOperation {
             checker.verify();
             checker.cleanup();
             init();
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
         }
     }
 

@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>2.6.0.1705-SNAPSHOT</version>
+    <version>2.6.0.1708-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -77,6 +77,7 @@
         <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+	<maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
         <spark.version>2.1.0</spark.version>
     </properties>
@@ -255,7 +256,7 @@
             <dependency>
                 <groupId>com.sun.jersey</groupId>
                 <artifactId>jersey-core</artifactId>
-                <version>1.8</version>
+                <version>1.9</version>
                 <exclusions>
                     <exclusion>
                         <groupId>asm</groupId>
@@ -326,6 +327,11 @@
                 <groupId>javax.servlet</groupId>
                 <artifactId>javax.servlet-api</artifactId>
                 <version>3.1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.ws.rs</groupId>
+                <artifactId>javax.ws.rs-api</artifactId>
+                <version>2.0.1</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
@@ -493,6 +499,7 @@
                         <encoding>UTF-8</encoding>
                         <compilerArgs>
                             <arg>-XDignore.symbol.file</arg>
+			    <arg>-Xpkginfo:always</arg>
                         </compilerArgs>
                         <fork>true</fork>
                         <showWarnings>true</showWarnings>
