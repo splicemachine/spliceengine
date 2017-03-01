@@ -202,7 +202,7 @@ public class SpliceObserverInstructions implements Externalizable{
         public void writeExternal(ObjectOutput out) throws IOException{
             out.writeBoolean(statementAtomic);
             out.writeBoolean(statementReadOnly);
-            out.writeUTF(stmtText);
+            out.writeObject(stmtText);
             out.writeBoolean(stmtRollBackParentContext);
             out.writeLong(stmtTimeout);
             out.writeBoolean(pvs!=null);
@@ -217,7 +217,7 @@ public class SpliceObserverInstructions implements Externalizable{
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
             this.statementAtomic=in.readBoolean();
             this.statementReadOnly=in.readBoolean();
-            this.stmtText=in.readUTF();
+            this.stmtText=(String)in.readObject();
             this.stmtRollBackParentContext=in.readBoolean();
             this.stmtTimeout=in.readLong();
             if(in.readBoolean()){
@@ -255,6 +255,9 @@ public class SpliceObserverInstructions implements Externalizable{
             return null;
         }
 
+        public String getStatementTxt() {
+            return stmtText;
+        }
     }
 
     public SchemaDescriptor getDefaultSchemaDescriptor(){
