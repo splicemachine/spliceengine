@@ -114,6 +114,10 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
             throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
         }
 
+        if(td.isPinned()){
+            throw StandardException.newException(SQLState.EXISTING_PIN_VIOLATION);
+        }
+
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         TxnView parentTxn = ((SpliceTransactionManager)userTransaction).getActiveStateTxn();
         /*
@@ -204,6 +208,8 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
         String prefix = StreamUtils.getScopeString(this);
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         String jobGroup = userId + " <" +parentTxn.getTxnId() +">";
+
+
         try {
             EngineDriver.driver().getOlapClient().execute(new DistributedPopulatePinJob(builder, scope, jobGroup, prefix, conglomerate.getContainerid()));
         } catch (Exception e) {
