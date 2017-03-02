@@ -17,6 +17,7 @@ package com.splicemachine.pipeline;
 
 import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.db.iapi.reference.SQLState;
+import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -30,12 +31,17 @@ import java.io.IOException;
  */
 public class Exceptions {
 
-//    private static final Logger LOG = Logger.getLogger(Exceptions.class);
+    private static final Logger LOG = Logger.getLogger(Exceptions.class);
 
     private Exceptions(){} //can't make me
 
     public static StandardException parseException(Throwable e) {
-        return parseException(e,PipelineDriver.driver().exceptionFactory(),SIDriver.driver().getExceptionFactory());
+        try {
+            return parseException(e,PipelineDriver.driver().exceptionFactory(),SIDriver.driver().getExceptionFactory());
+        } catch (Throwable t) {
+            LOG.error("Unexpected error while parsing exception, root:", e);
+            return StandardException.newException(SQLState.ERROR_PARSING_EXCEPTION, e, t.getMessage());
+        }
     }
 
     public static StandardException parseException(Throwable e,PipelineExceptionFactory pef, ExceptionFactory baseEf) {
@@ -57,6 +63,7 @@ public class Exceptions {
 
             return state.newException(rootCause);
         } catch (Throwable t) {
+            LOG.error("Unexpected error while parsing exception, root:", e);
             return StandardException.newException(SQLState.ERROR_PARSING_EXCEPTION, e, t.getMessage());
         }
     }
