@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import org.apache.hadoop.hbase.client.Durability;
 import org.spark_project.guava.collect.Iterables;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
@@ -31,6 +32,7 @@ public class HPut implements HMutation,DataPut{
 
     public HPut(byte[] rowKey){
         this.put = new Put(rowKey);
+        this.put.setDurability(Durability.SKIP_WAL);
     }
 
     public HPut(ByteSlice key){

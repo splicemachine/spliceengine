@@ -396,6 +396,7 @@ public class SITransactor implements Transactor{
 
         if(rollForwardQueue!=null)
             rollForwardQueue.submitForResolution(kvPair.rowKeySlice(),txnIdLong);
+
         return newPut;
     }
 
