@@ -234,7 +234,7 @@ public class SITransactor implements Transactor{
                                                                    MutationStatus[] finalStatus) throws IOException {
         IntObjectOpenHashMap<DataPut> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(dataAndLocks.length, 0.9f);
         DataResult possibleConflicts = null;
-        BitSet bloomInMemoryCheck  = table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
+//        BitSet bloomInMemoryCheck  = table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
         for(int i=0;i<dataAndLocks.length;i++){
             Pair<KVPair, Lock> baseDataAndLock=dataAndLocks[i];
             if(baseDataAndLock==null) continue;
@@ -253,20 +253,20 @@ public class SITransactor implements Transactor{
                  * applied on key elements.
                  */
                 //todo -sf remove the Row key copy here
-                possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
-                if(possibleConflicts!=null){
-                    //we need to check for write conflicts
-                    try {
-                        conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts);
-                    } catch (IOException ioe) {
-                        if (ioe instanceof WriteConflict) {
-                            finalStatus[i] = operationStatusLib.failure(ioe);
-                            continue;
-                        } else throw ioe;
-                    }
-                    if(applyConstraint(constraintChecker,constraintStateFilter,i,kvPair,possibleConflicts,finalStatus,conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
-                        continue;
-                }
+//                possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
+//                if(possibleConflicts!=null){
+//                    //we need to check for write conflicts
+//                    try {
+//                        conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts);
+//                    } catch (IOException ioe) {
+//                        if (ioe instanceof WriteConflict) {
+//                            finalStatus[i] = operationStatusLib.failure(ioe);
+//                            continue;
+//                        } else throw ioe;
+//                    }
+//                    if(applyConstraint(constraintChecker,constraintStateFilter,i,kvPair,possibleConflicts,finalStatus,conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
+//                        continue;
+//                }
                 //TODO -sf- if type is an UPSERT, and conflict type is ADDITIVE_CONFLICT, then we
                 //set the status on the row to ADDITIVE_CONFLICT_DURING_UPSERT
                 if(KVPair.Type.UPSERT.equals(writeType)){
