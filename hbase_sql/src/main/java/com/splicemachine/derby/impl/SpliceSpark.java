@@ -196,6 +196,7 @@ public class SpliceSpark {
         conf.set("spark.extraListeners", System.getProperty("splice.spark.extraListeners", ""));
         conf.set("spark.local.dir", System.getProperty("splice.spark.local.dir", System.getProperty("java.io.tmpdir")));
         conf.set("spark.logConf", System.getProperty("splice.spark.logConf", "true"));
+        conf.set("spark.sql.orc.filterPushdown", System.getProperty("spark.sql.orc.filterPushdown", "true"));
         conf.set("spark.master", master);
 
         if (master.startsWith("local[8]")) {
