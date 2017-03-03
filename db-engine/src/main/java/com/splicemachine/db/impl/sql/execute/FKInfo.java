@@ -352,8 +352,8 @@ public class FKInfo implements Formatable {
 			str.append("\ntype:\t\t\t\t");
 			str.append((type == FOREIGN_KEY) ? "FOREIGN_KEY" : "REFERENCED_KEY");
 
-			str.append("\nReferenced Key UUID:\t\t"+refUUID);
-			str.append("\nReferenced Key ConglomNum:\t"+refConglomNumber);
+			str.append("\nReferenced Key UUID:\t\t").append(refUUID);
+			str.append("\nReferenced Key ConglomNum:\t").append(refConglomNumber);
 
 			str.append("\nForeign Key Names:\t\t(");
 			for (int i = 0; i < fkUUIDs.length; i++)

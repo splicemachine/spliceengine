@@ -247,7 +247,7 @@ public abstract class Restriction implements Serializable
             StringBuffer buffer = new StringBuffer();
 
             buffer.append( IdUtil.normalToDelimited( _columnName ) );
-            buffer.append( " " + OPERATOR_SYMBOLS[ _comparisonOperator ] + " " );
+            buffer.append(" ").append(OPERATOR_SYMBOLS[_comparisonOperator]).append(" ");
             if ( _constantOperand != null ) { buffer.append( toEscapedString( _constantOperand ) ); }
 
             return buffer.toString();

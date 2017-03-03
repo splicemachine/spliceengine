@@ -515,7 +515,7 @@ public class ColumnDefinitionNode extends TableElementNode
 	public void validateAutoincrement(DataDictionary dd, TableDescriptor td, int tableType)
 	     throws StandardException
 	{
-		if (isAutoincrement == false)
+		if (!isAutoincrement)
 			return;
 
 		if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
@@ -818,18 +818,14 @@ public class ColumnDefinitionNode extends TableElementNode
 						((precision - scale) <=
 						(columnDesc.getPrecision() - columnDesc.getScale())));
 				}
-				else if ((defType == StoredFormatIds.LONGINT_TYPE_ID) ||
-					(defType == StoredFormatIds.INT_TYPE_ID)) {
-				// only valid if number of digits is within limits of
-				// the decimal column.  We'll check this at insertion time;
-				// see Beetle 5585 regarding the need to move that check to
-				// here instead of waiting until insert time.  Until that's
-				// done, just allow this and wait for insertion...
-					return true;
-				}
-				else
-				// no other types allowed.
-					return false;
+				else // only valid if number of digits is within limits of
+// the decimal column.  We'll check this at insertion time;
+// see Beetle 5585 regarding the need to move that check to
+// here instead of waiting until insert time.  Until that's
+// done, just allow this and wait for insertion...
+// no other types allowed.
+					return (defType == StoredFormatIds.LONGINT_TYPE_ID) ||
+							(defType == StoredFormatIds.INT_TYPE_ID);
 
 			case StoredFormatIds.CHAR_TYPE_ID:
 			case StoredFormatIds.VARCHAR_TYPE_ID:

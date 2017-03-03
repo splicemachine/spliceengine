@@ -79,7 +79,7 @@ public class CurrentDatetime {
 	}
 
 	// class implementation
-	final private void setCurrentDatetime() {
+	private void setCurrentDatetime() {
 		if (currentDatetime == null)
 			currentDatetime = new java.util.Date();
 	}

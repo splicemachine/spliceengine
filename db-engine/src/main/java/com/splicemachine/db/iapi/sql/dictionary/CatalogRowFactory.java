@@ -206,7 +206,7 @@ public abstract	class CatalogRowFactory
 	public int getNumIndexes() { return indexCount; }
 
 	/** get the name of the catalog */
-	public String getCatalogName() { return catalogName; };
+	public String getCatalogName() { return catalogName; }
 
 	/**
 	  *	Initialize info, including array of index names and array of

@@ -71,8 +71,6 @@ import java.util.*;
 
 import org.apache.commons.lang3.text.WordUtils;
 import org.spark_project.guava.base.Strings;
-import org.spark_project.guava.collect.ArrayListMultimap;
-import org.spark_project.guava.collect.Multimap;
 
 /**
  * QueryTreeNode is the root class for all query tree nodes. All

@@ -212,7 +212,7 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 	//
 	///////////////////////////////////////////////////////////////////////
 
-	private	final void	beginConstructor()
+	private void	beginConstructor()
 	{
 		// create a constructor that just calls super.  
 		MethodBuilder realConstructor =

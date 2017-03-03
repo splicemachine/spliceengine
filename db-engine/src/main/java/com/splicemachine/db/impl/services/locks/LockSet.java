@@ -797,7 +797,7 @@ forever:	for (;;) {
 	 * <br>
 	 * MT - must be synchronized on this <code>LockSet</code> object.
 	 */
-	private final Control getControl(Lockable ref) {
+	private Control getControl(Lockable ref) {
 		return (Control) locks.get(ref);
 	}
 }

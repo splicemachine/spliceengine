@@ -3234,7 +3234,7 @@ public class FromBaseTable extends FromTable {
      */
     public boolean isDistinctScan() {
         return distinctScan;
-    };
+    }
 
     public void setAntiJoin (boolean isAntiJoin) {
         this.isAntiJoin = isAntiJoin;
@@ -3254,7 +3254,7 @@ public class FromBaseTable extends FromTable {
             sb.append(",baseTable=").append(getPrettyTableName());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && qualifiers.size()>0) //add
-            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+            sb.append(",preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
         sb.append(")");
         return sb.toString();
     }
@@ -3271,7 +3271,7 @@ public class FromBaseTable extends FromTable {
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
         List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if (qualifiers != null && qualifiers.size() > 0)
-            sb.append(attrDelim).append("preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+            sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
         sb.append(")");
         return sb.toString();
     }

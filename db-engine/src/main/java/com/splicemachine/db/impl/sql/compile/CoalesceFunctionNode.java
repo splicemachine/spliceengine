@@ -361,12 +361,8 @@ public class CoalesceFunctionNode extends ValueNode
 		
 		CoalesceFunctionNode other = (CoalesceFunctionNode)o;
 
-        if (!argumentsList.isEquivalent(other.argumentsList))
-		{
-			return false;
-		}
+		return argumentsList.isEquivalent(other.argumentsList);
 
-		return true;
 	}
 
 	/**

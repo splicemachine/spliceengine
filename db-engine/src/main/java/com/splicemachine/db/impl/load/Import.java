@@ -222,17 +222,14 @@ public class Import extends ImportAbstract{
                 throw formatImportError( (Import) _importers.get( importCounter ), inputFileName, t );
             }
 
-            StringBuffer sb = new StringBuffer("new ");
-            sb.append("com.splicemachine.derby.vti.SpliceFileVTI");
-            sb.append("(") ;
-            sb.append(quoteStringArgument(inputFileName));
-            sb.append(",") ;
-            sb.append(quoteStringArgument(characterDelimiter));
-            sb.append(",") ;
-            sb.append(quoteStringArgument(columnDelimiter));
-            sb.append(" )") ;
-            
-            String importvti = sb.toString();
+            String importvti = "new " + "com.splicemachine.derby.vti.SpliceFileVTI" +
+                    "(" +
+                    quoteStringArgument(inputFileName) +
+                    "," +
+                    quoteStringArgument(characterDelimiter) +
+                    "," +
+                    quoteStringArgument(columnDelimiter) +
+                    " )";
             
             // delimit the table and schema names with quotes.
             // because they might have been  created as quoted

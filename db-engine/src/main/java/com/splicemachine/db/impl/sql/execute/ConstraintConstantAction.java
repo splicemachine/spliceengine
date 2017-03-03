@@ -162,8 +162,8 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
                 fk.getIndexConglomerateDescriptor(dd).getConglomerateNumber(),
                 false,                       			// hold 
                 0, 										// read only
-                tc.MODE_TABLE,							// already locked
-                tc.ISOLATION_READ_COMMITTED,			// whatever
+					TransactionController.MODE_TABLE,							// already locked
+					TransactionController.ISOLATION_READ_COMMITTED,			// whatever
                 (FormatableBitSet)null, 							// retrieve all fields
                 (DataValueDescriptor[])null,    	    // startKeyValue
                 ScanController.GE,            			// startSearchOp
@@ -212,8 +212,8 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 					refcd.getIndexConglomerateDescriptor(dd).getConglomerateNumber(),
                         false,                       	// hold 
                         0, 								// read only
-                        tc.MODE_RECORD,
-                        tc.ISOLATION_READ_COMMITTED,	// read committed is good enough
+						TransactionController.MODE_RECORD,
+						TransactionController.ISOLATION_READ_COMMITTED,	// read committed is good enough
                         (FormatableBitSet)null, 					// retrieve all fields
                         (DataValueDescriptor[])null,    // startKeyValue
                         ScanController.GE,            	// startSearchOp

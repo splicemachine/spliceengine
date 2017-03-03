@@ -151,10 +151,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
     public boolean checkOwner(String authorizationId) throws StandardException
     {
         SchemaDescriptor sc = getDataDictionary().getSchemaDescriptor(schemaUUID,null);
-        if (sc.getAuthorizationId().equals(authorizationId))
-            return true;
-        else
-            return false;
+        return sc.getAuthorizationId().equals(authorizationId);
     }
 
     //////////////////////////////////////////////

@@ -579,12 +579,9 @@ public class PropertyUtil {
 				set,
 				Property.DATABASE_PROPERTIES_ONLY)).booleanValue();
 
-		if (!dbOnly &&
-				systemPropertiesExistsBuiltinUser(username)){
-			return true;
-		}
+		return !dbOnly &&
+				systemPropertiesExistsBuiltinUser(username);
 
-		return false;
 	}
 
 	/**

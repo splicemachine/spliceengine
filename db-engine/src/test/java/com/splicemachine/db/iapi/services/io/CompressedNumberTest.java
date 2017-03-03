@@ -42,7 +42,6 @@ import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.ArrayOutputStream;
 import com.splicemachine.db.iapi.services.io.CompressedNumber;
 
-import junit.framework.TestCase;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

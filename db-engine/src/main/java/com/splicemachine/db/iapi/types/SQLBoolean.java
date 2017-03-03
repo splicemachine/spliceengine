@@ -154,7 +154,7 @@ public final class SQLBoolean
 	{
 		if (isNull())
 			return null;
-		else if (value == true)
+		else if (value)
 			return "true";
 		else
 			return "false";
@@ -615,7 +615,7 @@ public final class SQLBoolean
 		/* By convention, false is less than true */
 		return truthValue(left,
 							right,
-							leftBoolean == false && rightBoolean == true);
+				!leftBoolean && rightBoolean);
 	}
 
 	/**
@@ -643,7 +643,7 @@ public final class SQLBoolean
 		/* By convention, true is greater than false */
 		return truthValue(left,
 							right,
-							leftBoolean == true && rightBoolean == false);
+				leftBoolean && !rightBoolean);
 	}
 
 	/**
@@ -671,7 +671,7 @@ public final class SQLBoolean
 		/* By convention, false is less than true */
 		return truthValue(left,
 							right,
-							leftBoolean == false || rightBoolean == true);
+				!leftBoolean || rightBoolean);
 	}
 
 	/**
@@ -699,7 +699,7 @@ public final class SQLBoolean
 		/* By convention, true is greater than false */
 		return truthValue(left,
 							right,
-							leftBoolean == true || rightBoolean == false);
+				leftBoolean || !rightBoolean);
 	}
 
 	/**
@@ -828,7 +828,7 @@ public final class SQLBoolean
 									String constraintName)
 							throws StandardException
 	{
-		if ( ( ! isNull() ) && (value == false) )
+		if ( ( ! isNull() ) && (!value) )
 		{
 			throw StandardException.newException(sqlState,
 												tableName,
@@ -890,7 +890,7 @@ public final class SQLBoolean
 		}
 
 		/* Return the appropriate SQLBoolean for the given truth value */
-		if (truth == true)
+		if (truth)
 		{
 			return BOOLEAN_TRUE;
 		}
@@ -938,7 +938,7 @@ public final class SQLBoolean
 		** Return the non-nullable versions of TRUE and FALSE, since they
 		** can never be null.
 		*/
-		if (value == true)
+		if (value)
 			return BOOLEAN_TRUE;
 		else
 			return BOOLEAN_FALSE;
@@ -1017,7 +1017,7 @@ public final class SQLBoolean
 	{
 		if (isNull())
 			return "NULL";
-		else if (value == true)
+		else if (value)
 			return "true";
 		else
 			return "false";

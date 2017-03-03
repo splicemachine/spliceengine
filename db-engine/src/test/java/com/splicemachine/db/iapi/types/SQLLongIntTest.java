@@ -56,16 +56,16 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void addTwo() throws StandardException {
-            SQLLongint long1 = new SQLLongint(100l);
-            SQLLongint long2 = new SQLLongint(100l);
-            Assert.assertEquals("Integer Add Fails", 200l, long1.plus(long1, long2, null).getLong(),0l);
+            SQLLongint long1 = new SQLLongint(100L);
+            SQLLongint long2 = new SQLLongint(100L);
+            Assert.assertEquals("Integer Add Fails", 200L, long1.plus(long1, long2, null).getLong(), 0L);
         }
     
         @Test
         public void subtractTwo() throws StandardException {
-            SQLLongint long1 = new SQLLongint(200l);
-            SQLLongint long2 = new SQLLongint(100l);
-            Assert.assertEquals("Integer subtract Fails",100l,long1.minus(long1, long2, null).getLong(),0l);
+            SQLLongint long1 = new SQLLongint(200L);
+            SQLLongint long2 = new SQLLongint(100L);
+            Assert.assertEquals("Integer subtract Fails", 100L,long1.minus(long1, long2, null).getLong(), 0L);
         }
         @Test(expected = StandardException.class)
         public void testPositiveOverFlow() throws StandardException {
@@ -85,12 +85,12 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
         public void serdeValueData() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLLongint value = new SQLLongint(100l);
+                SQLLongint value = new SQLLongint(100L);
                 SQLLongint valueA = new SQLLongint();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",100l,row.getLong(0),0l);
+                Assert.assertEquals("SerdeIncorrect", 100L,row.getLong(0), 0L);
                 valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",100l,valueA.getLong(),0l);
+                Assert.assertEquals("SerdeIncorrect", 100L,valueA.getLong(), 0L);
             }
 
         @Test
@@ -107,8 +107,8 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
     
         @Test
         public void serdeKeyData() throws Exception {
-                SQLLongint value1 = new SQLLongint(100l);
-                SQLLongint value2 = new SQLLongint(200l);
+                SQLLongint value1 = new SQLLongint(100L);
+                SQLLongint value2 = new SQLLongint(200L);
                 SQLLongint value1a = new SQLLongint();
                 SQLLongint value2a = new SQLLongint();
                 PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
@@ -120,8 +120,8 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                 range2.setPosition(0);
                 value1a.decodeFromKey(range1);
                 value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getLong(),value1a.getLong(),0l);
-                Assert.assertEquals("2 incorrect",value2.getLong(),value2a.getLong(),0l);
+                Assert.assertEquals("1 incorrect",value1.getLong(),value1a.getLong(), 0L);
+                Assert.assertEquals("2 incorrect",value2.getLong(),value2a.getLong(), 0L);
         }
 
         @Test
@@ -173,7 +173,7 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                 ValueRow execRow = new ValueRow(1);
                 execRow.setRowArray(new DataValueDescriptor[]{new SQLLongint(1234)});
                 Row row = execRow.getSparkRow();
-                Assert.assertEquals(1234l,row.getLong(0));
+                Assert.assertEquals(1234L,row.getLong(0));
                 ValueRow execRow2 = new ValueRow(1);
                 execRow2.setRowArray(new DataValueDescriptor[]{new SQLLongint()});
                 execRow2.getColumn(1).setSparkObject(row.get(0));

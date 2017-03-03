@@ -331,10 +331,8 @@ public class RenameNode extends DDLStatementNode
 			return true;
 
 		//new name in rename action
-		if (renamingWhat == StatementType.RENAME_TABLE && isSessionSchema(getSchemaDescriptor()))
-			return true;
+		return renamingWhat == StatementType.RENAME_TABLE && isSessionSchema(getSchemaDescriptor());
 
-		return false;
 	}
 
 	//do any checking needs to be done at bind time for rename table

@@ -330,7 +330,7 @@ public class SQLBlob extends SQLBinary
      * @return <code>true</code> if the length of the blob is not known,
      *      <code>false</code> otherwise
      */
-    private final boolean isLengthLess() {
+    private boolean isLengthLess() {
         return (stream != null && streamValueLength < 0);
     }
     

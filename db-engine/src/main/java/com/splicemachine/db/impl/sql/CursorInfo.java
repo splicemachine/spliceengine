@@ -154,10 +154,7 @@ public class CursorInfo
 		{
 			StringBuffer strbuf = new StringBuffer();
 		
-			strbuf.append("CursorInfo"+
-				"\n\tupdateMode: "+updateMode+
-				"\n\ttargetTable: "+targetTable+
-				"\n\tupdateColumns: ");
+			strbuf.append("CursorInfo" + "\n\tupdateMode: ").append(updateMode).append("\n\ttargetTable: ").append(targetTable).append("\n\tupdateColumns: ");
 
 			if (updateColumns == null)
 			{

@@ -32,10 +32,8 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 

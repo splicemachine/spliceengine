@@ -83,7 +83,7 @@ public final class FormatableBitSet implements Formatable, Cloneable
 
 	private transient int	lengthAsBits;
 
-	private final void checkPosition(int p) {
+	private void checkPosition(int p) {
 		if (p < 0 || lengthAsBits <= p) {
 			throw new
 				IllegalArgumentException("Bit position "+p+

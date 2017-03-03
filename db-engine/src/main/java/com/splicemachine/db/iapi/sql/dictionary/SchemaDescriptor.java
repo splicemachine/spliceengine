@@ -385,10 +385,8 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		if (!isSystem)
 			return true;
 
-		if (name.equals(STD_SQLJ_SCHEMA_NAME) || name.equals(STD_SYSTEM_UTIL_SCHEMA_NAME))
-			return true;
+		return name.equals(STD_SQLJ_SCHEMA_NAME) || name.equals(STD_SYSTEM_UTIL_SCHEMA_NAME);
 
-		return false;
 	}
 
 	public boolean isSYSIBM()

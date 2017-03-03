@@ -40,7 +40,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
  */
 public class StatementUtil
 {
-	private StatementUtil(){};	// Do not instantiate
+	private StatementUtil(){}    // Do not instantiate
 
 	public static String typeName(int typeNumber)
 	{

@@ -243,7 +243,6 @@ public class TypeId{
         */
 
     private static final TypeId TINYINT_ID=create(StoredFormatIds.TINYINT_TYPE_ID,StoredFormatIds.TINYINT_TYPE_ID_IMPL);
-    ;
 
     private static final TypeId BIGINT_ID=create(StoredFormatIds.LONGINT_TYPE_ID,StoredFormatIds.LONGINT_TYPE_ID_IMPL);
     private static final TypeId REAL_ID=create(StoredFormatIds.REAL_TYPE_ID,StoredFormatIds.REAL_TYPE_ID_IMPL);

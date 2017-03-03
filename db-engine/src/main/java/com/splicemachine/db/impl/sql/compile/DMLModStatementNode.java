@@ -169,7 +169,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 		throws StandardException
 	{
 		if (targetTableDescriptor != null && targetTableDescriptor.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE &&
-			targetTableDescriptor.isOnRollbackDeleteRows() == true)
+				targetTableDescriptor.isOnRollbackDeleteRows())
 		{
 			mb.pushThis();
 			mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Activation,

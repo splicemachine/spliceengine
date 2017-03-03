@@ -782,7 +782,7 @@ public	class	DDUtils
 		
 		//find the tables that are referring to the table we 
 		//are adding the foreign key and check whether we violate their existing rules.
-		String addTableName = td.getSchemaName() + "." + td.getName();;
+		String addTableName = td.getSchemaName() + "." + td.getName();
 		ConstraintDescriptorList refCDL = dd.getConstraintDescriptors(td);
 		int refCDLSize = refCDL.size();
 		for (int index = 0; index < refCDLSize; index++)

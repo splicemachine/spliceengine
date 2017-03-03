@@ -418,9 +418,8 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 
 		IndexRowGenerator that = (IndexRowGenerator) other;
 
-		if (id != null ? !id.equals(that.id) : that.id != null) return false;
+		return id != null ? id.equals(that.id) : that.id == null;
 
-		return true;
 	}
 
 	@Override

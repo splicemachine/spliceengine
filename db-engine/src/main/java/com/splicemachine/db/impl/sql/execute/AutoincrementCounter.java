@@ -120,7 +120,7 @@ public class AutoincrementCounter
 	 */
 	public void reset(boolean begin)
 	{
-		if (begin == true)
+		if (begin)
 			initialized = false;
 		else
 		{
@@ -154,7 +154,7 @@ public class AutoincrementCounter
 	{
 		long counterVal;
 
-		if (initialized == false)
+		if (!initialized)
 		{
 			// The first time around, counter simply gets the start
 			// value. 
@@ -181,7 +181,7 @@ public class AutoincrementCounter
 	 */
 	public Long getCurrentValue()
 	{
-		if (initialized == false)
+		if (!initialized)
 			return null;
 		return new Long(counter);
 	}

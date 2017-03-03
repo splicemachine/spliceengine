@@ -287,7 +287,7 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 			raRule = StatementType.RA_SETDEFAULT;
 			break;
 		default: 
-			raRule =StatementType.RA_NOACTION; ;
+			raRule =StatementType.RA_NOACTION;
 			if (SanityManager.DEBUG)
 			{
 				SanityManager.THROWASSERT("Invalid  value '"

@@ -487,10 +487,7 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 			case Types.CLOB:
 				//if we are dealing with character types, then we should 
 				//also compare the collation information on them.
-				if(this.collationType != typeDescriptor.getCollationType())
-					return false;
-				else
-					return true;
+				return this.collationType == typeDescriptor.getCollationType();
 			default:
 				//no collation checking required if we are dealing with 
 				//non-char datatypes.

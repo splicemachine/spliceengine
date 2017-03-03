@@ -439,5 +439,5 @@ abstract class InputStreamFile implements StorageFile
 		throw new MalformedURLException(toString());
 	}
 
-    public void limitAccessToOwner() {};
+    public void limitAccessToOwner() {}
 }

@@ -143,11 +143,11 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
     // a boolean so we don't keep re-testing for it.
     if (recordSeparatorLength >0) {
       recordSeparatorChar0=recordSeparator[0];
-      recordSepStartNotWhite = (Character.isWhitespace(recordSeparatorChar0)==false);
+      recordSepStartNotWhite = (!Character.isWhitespace(recordSeparatorChar0));
     }
     if (fieldSeparatorLength >0) {
       fieldSeparatorChar0=fieldSeparator[0];
-      fieldSepStartNotWhite = (Character.isWhitespace(fieldSeparatorChar0)==false);
+      fieldSepStartNotWhite = (!Character.isWhitespace(fieldSeparatorChar0));
     }
   }
   //inputFileName: File to read data from
@@ -348,7 +348,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
 		   // i18n - check for whitespace - avoid doing a hard coded character
 		   // check and use the isWhitespace method to cover all the Unicode
 		   // options
-		   Character.isWhitespace(currentChar) == true) {
+               Character.isWhitespace(currentChar)) {
 
              if ((recordSepStartNotWhite || (currentChar != recordSeparatorChar0))
                   &&
@@ -374,7 +374,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
 	   // i18n - check for whitespace - avoid doing a hard coded character
 	   // check and use the isWhitespace method to cover all the Unicode
 	   // options
-       if (Character.isWhitespace(currentChar)==true) {
+       if (Character.isWhitespace(currentChar)) {
 
              if ((recordSepStartNotWhite || (currentChar != recordSeparatorChar0))
                   &&
@@ -769,7 +769,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
           // i18n - check for whitespace - avoid doing a hard coded
           // character check and use the isWhitespace method to cover all
           // the Unicode options
-          if (Character.isWhitespace(currentToken[k])==false) {
+          if (!Character.isWhitespace(currentToken[k])) {
               throw LoadError.dataAfterStopDelimiter(lineNumber+1, i+1);
           }
         }
@@ -810,7 +810,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
         // i18n - check for whitespace - avoid doing a hard coded character
         // check and use the isWhitespace method to cover all the Unicode
         // options
-        if (Character.isWhitespace(currentToken[i])==false) {
+        if (!Character.isWhitespace(currentToken[i])) {
           throw LoadError.dataAfterStopDelimiter(lineNumber+1, numberOfColumns);
         }
       }

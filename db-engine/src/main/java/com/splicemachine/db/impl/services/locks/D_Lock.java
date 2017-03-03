@@ -65,20 +65,15 @@ public class D_Lock implements Diagnosticable
     public String diag()
         throws StandardException
     {
-		StringBuffer sb = new StringBuffer(128);
+        String sb = "Lockable=" +
+                DiagnosticUtil.toDiagString(lock.getLockable()) +
+                " Qual=" +
+                DiagnosticUtil.toDiagString(lock.getQualifier()) +
+                " CSpc=" +
+                lock.getCompatabilitySpace() +
+                " count=" + lock.count + " ";
 
-		sb.append("Lockable=");
-		sb.append(DiagnosticUtil.toDiagString(lock.getLockable()));
-
-		sb.append(" Qual=");
-		sb.append(DiagnosticUtil.toDiagString(lock.getQualifier()));
-
-		sb.append(" CSpc=");
-		sb.append(lock.getCompatabilitySpace());
-
-		sb.append(" count=" + lock.count + " ");
-
-		return sb.toString();
+        return sb;
     }
 
 	public void diag_detail(Properties prop) {}

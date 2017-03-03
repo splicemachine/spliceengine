@@ -612,7 +612,7 @@ readChars:
      * @param csd stream descriptor
      * @return An (sub)optimal buffer size.
      */
-    private final int calculateBufferSize(CharacterStreamDescriptor csd) {
+    private int calculateBufferSize(CharacterStreamDescriptor csd) {
         // Using the maximum buffer size will be optimal,
         // unless the data is smaller than the maximum buffer.
         int bufferSize = MAXIMUM_BUFFER_SIZE;
@@ -638,7 +638,7 @@ readChars:
      * @throws EOFException if there are too few characters in the stream
      * @throws IOException if reading from the stream fails
      */
-    private final void persistentSkip(long toSkip)
+    private void persistentSkip(long toSkip)
             throws IOException {
         long remaining = toSkip;
         while (remaining > 0) {

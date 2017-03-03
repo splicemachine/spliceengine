@@ -108,8 +108,8 @@ final public class SystemPermission extends BasicPermission {
         LEGAL_NAMES.add(SERVER);
         LEGAL_NAMES.add(ENGINE);
         LEGAL_NAMES.add(JMX);
-    };
-    
+    }
+
     /**
      * Set of legal actions in their canonical form.
      */

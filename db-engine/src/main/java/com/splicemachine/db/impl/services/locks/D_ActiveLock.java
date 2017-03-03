@@ -46,12 +46,10 @@ public class D_ActiveLock extends D_Lock  {
     {
 		String s = super.diag();
 
-		StringBuffer sb = new StringBuffer(s);
+		String sb = s + " potentiallyGranted=" + ((ActiveLock) lock).potentiallyGranted + " " +
+				" wakeUpNow=" + ((ActiveLock) lock).wakeUpNow;
 
-		sb.append(" potentiallyGranted=" + ((ActiveLock) lock).potentiallyGranted + " ");
-		sb.append(" wakeUpNow=" + ((ActiveLock) lock).wakeUpNow);
-
-		return sb.toString();
+		return sb;
 	}
 }
 

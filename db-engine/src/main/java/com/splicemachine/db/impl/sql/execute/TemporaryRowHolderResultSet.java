@@ -688,8 +688,6 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         return 0;
     }
 
-    ;
-
     /**
      * Returns a ResultDescription object, which describes the results
      * of the statement this ResultSet is in. This will *not* be a

@@ -123,7 +123,7 @@ public class ExecSPSNode extends StatementNode
 			throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND, "STATEMENT", name);
 		}
 
-		if (spsd.getType() == spsd.SPS_TYPE_TRIGGER)
+		if (spsd.getType() == SPSDescriptor.SPS_TYPE_TRIGGER)
 		{
 			throw StandardException.newException(SQLState.LANG_TRIGGER_SPS_CANNOT_BE_EXECED, name);
 		}
@@ -171,7 +171,7 @@ public class ExecSPSNode extends StatementNode
 		//Bug 4821 - commiting the nested transaction will release any bind time locks
 		//This way we won't get lock time out errors while trying to update sysstatement
 		//table during stale sps recompilation later in the getPreparedstatement() call.
-		if (spsd.isValid() == false) {
+		if (!spsd.isValid()) {
 			getLanguageConnectionContext().commitNestedTransaction();
 			getLanguageConnectionContext().beginNestedTransaction(true);
 		}  
@@ -344,7 +344,7 @@ public class ExecSPSNode extends StatementNode
 	}
 
 	// called after bind only
-	private final SPSDescriptor getSPSDescriptor()
+	private SPSDescriptor getSPSDescriptor()
 	{
 		return spsd;
 	}

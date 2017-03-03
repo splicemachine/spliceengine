@@ -925,13 +925,10 @@ public class BinaryRelationalOperatorNode
             return false;
         ColumnReference left=(ColumnReference)leftOperand;
         ColumnReference right=(ColumnReference)rightOperand;
-        if((left.getTableNumber()==leftTableNumber && left.getColumnNumber()==leftColumnNumber &&
-                right.getTableNumber()==rightTableNumber && right.getColumnNumber()==rightColumnNumber) ||
-                (left.getTableNumber()==rightTableNumber && left.getColumnNumber()==rightColumnNumber &&
-                        right.getTableNumber()==leftTableNumber && right.getColumnNumber()==leftColumnNumber)){
-            return true;
-        }
-        return false;
+        return (left.getTableNumber() == leftTableNumber && left.getColumnNumber() == leftColumnNumber &&
+                right.getTableNumber() == rightTableNumber && right.getColumnNumber() == rightColumnNumber) ||
+                (left.getTableNumber() == rightTableNumber && left.getColumnNumber() == rightColumnNumber &&
+                        right.getTableNumber() == leftTableNumber && right.getColumnNumber() == leftColumnNumber);
     }
 
 
@@ -1646,10 +1643,8 @@ public class BinaryRelationalOperatorNode
         if(selfComparison(cr))
             return false;
 
-        if(implicitVarcharComparison())
-            return false;
+        return !implicitVarcharComparison();
 
-        return true;
     }
 
     /**
@@ -1671,10 +1666,8 @@ public class BinaryRelationalOperatorNode
         if(leftType.isStringTypeId() && !rightType.isStringTypeId())
             return true;
 
-        if(rightType.isStringTypeId() && (!leftType.isStringTypeId()))
-            return true;
+        return rightType.isStringTypeId() && (!leftType.isStringTypeId());
 
-        return false;
     }
 
     /* @see BinaryOperatorNode#genSQLJavaSQLTree

@@ -238,11 +238,9 @@ public class RowUtil
 		if (row == null)
 			return true;
 
-		if (row.length == 0)
-			return true;
+        return row.length == 0;
 
-		return false;
-	}
+    }
 
 	/**
 		Return the column number of the first column out of range, or a number

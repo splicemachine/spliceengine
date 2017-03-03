@@ -2868,7 +2868,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             ResultSet activationResultSet=a.getResultSet();
             boolean resultsetReturnsRows=
                     (activationResultSet!=null) && activationResultSet.returnsRows();
-            ;
 
             if(forRollback){
                 if(resultsetReturnsRows)
@@ -3418,8 +3417,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.restoreMode=true;
     }
 
-    ;
-
     @Override
     public void setTriggerStack(TriggerExecutionStack triggerStack){
         if(this.triggerStack!=null){
@@ -3440,12 +3437,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void setFailedRecords(long failedRecords) {
-        this.failedRecords.set(failedRecords);
+        GenericLanguageConnectionContext.failedRecords.set(failedRecords);
     }
 
     @Override
     public void setBadFile(String badFile) {
-        this.badFile.set(badFile);
+        GenericLanguageConnectionContext.badFile.set(badFile);
     }
 
     @Override
@@ -3475,7 +3472,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void setRecordsImported(long recordsImported) {
-        this.recordsImported.set(recordsImported);
+        GenericLanguageConnectionContext.recordsImported.set(recordsImported);
     }
 
     @Override

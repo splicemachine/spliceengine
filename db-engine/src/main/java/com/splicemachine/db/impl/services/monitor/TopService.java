@@ -201,10 +201,8 @@ final class TopService {
 				}
 			}
 
-			if (inShutdown)
-				return false;
+			return !inShutdown;
 
-			return true;
 		}
 	}
 
@@ -428,10 +426,8 @@ final class TopService {
 				return true;
 			}
 
-			if (value == module)
-				return true;
+			return value == module;
 
-			return false;
 		}
 	}
 

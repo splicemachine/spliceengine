@@ -53,7 +53,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
 
-import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.PreparedStatement;
@@ -828,7 +827,7 @@ public final class SQLDate extends DataType
 	 *
 	 * @return Whether or not value is logically null.
 	 */
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
 		return (encodedDate == 0);
 	}

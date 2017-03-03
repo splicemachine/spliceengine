@@ -2154,8 +2154,8 @@ nextModule:
                                     return;
                             }
                         }
-                        catch( StandardException se){};
-                    }
+                        catch( StandardException se){}
+					}
                 }
             }
             if( ! enumeratedDirectoryProvider)

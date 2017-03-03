@@ -559,7 +559,7 @@ final class TemporaryClob implements InternalClob {
      *
      * @throws IllegalStateException if the Clob has been released
      */
-    private final void checkIfValid() {
+    private void checkIfValid() {
         if (this.released) {
             throw new IllegalStateException(
                 "The Clob has been released and is not valid");
@@ -576,7 +576,7 @@ final class TemporaryClob implements InternalClob {
      *
      * @param charChangePosition the position where the Clob change started
      */
-    private final void updateInternalState(long charChangePosition) {
+    private void updateInternalState(long charChangePosition) {
         // Discard the internal reader, don't want to deliver stale data.
         if (internalReader != null) {
             internalReader.close();
@@ -602,7 +602,7 @@ final class TemporaryClob implements InternalClob {
      * @return A character stream descriptor.
      * @throws IOException if obtaining the length of the stream fails
      */
-    private final CharacterStreamDescriptor getCSD()
+    private CharacterStreamDescriptor getCSD()
             throws IOException {
         return new CharacterStreamDescriptor.Builder().
                     // Static values.

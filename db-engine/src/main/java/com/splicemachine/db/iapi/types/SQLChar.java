@@ -892,7 +892,7 @@ public class SQLChar
      * see if the String value is null.
      * @see Storable#isNull
 	 */
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
         return ((value == null) && (rawLength == -1) && (stream == null) && (_clobValue == null));
     }
@@ -1019,8 +1019,8 @@ public class SQLChar
      * @param characterReader Reader from _clobValue if it exists
      * @throws IOException if writing to the destination stream fails
      */
-    private final void writeUTF(ObjectOutput out, int strLen,
-                                final boolean isRaw, Reader characterReader)
+    private void writeUTF(ObjectOutput out, int strLen,
+                          final boolean isRaw, Reader characterReader)
             throws IOException {
         // Copy the source reference into a local variable (optimization).
         final char[] data = isRaw ? rawData : null;

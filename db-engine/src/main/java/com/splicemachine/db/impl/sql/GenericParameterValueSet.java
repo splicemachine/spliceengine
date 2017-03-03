@@ -53,7 +53,7 @@ import java.sql.Types;
 
 public final class GenericParameterValueSet implements ParameterValueSet, Externalizable {
 
-    public static final long serialVerionUID = 1l;
+    public static final long serialVerionUID = 1L;
 
     //all this has to be copied in the clone constructor
     private GenericParameter[] parms;
@@ -273,7 +273,7 @@ public final class GenericParameterValueSet implements ParameterValueSet, Extern
         StringBuilder strbuf = new StringBuilder();
 
         for (int ctr = 0; ctr < parms.length; ctr++) {
-            strbuf.append("begin parameter #" + (ctr + 1) + ": ");
+            strbuf.append("begin parameter #").append(ctr + 1).append(": ");
             strbuf.append(parms[ctr].toString());
             strbuf.append(" :end parameter ");
         }

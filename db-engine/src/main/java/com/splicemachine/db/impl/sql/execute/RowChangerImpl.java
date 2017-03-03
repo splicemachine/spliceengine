@@ -627,7 +627,7 @@ class RowChangerImpl	implements	RowChanger
 	public String toString() {
 		if (SanityManager.DEBUG) {
 			StringBuffer sb = new StringBuffer();
-			sb.append("changedColumnBitSet: " + changedColumnBitSet + "\n");
+			sb.append("changedColumnBitSet: ").append(changedColumnBitSet).append("\n");
 
 			int[] changedColumnArray = (partialChangedColumnIds == null) ?
 				changedColumnIds : partialChangedColumnIds;

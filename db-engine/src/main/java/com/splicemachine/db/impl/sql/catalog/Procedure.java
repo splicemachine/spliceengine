@@ -82,7 +82,7 @@ public class Procedure {
         return new Builder(name,numberOutputParameters,numResultSets,routineSqlControl,isDeterministic,returnType,ownerClass,args);
     }
 
-    public static Builder newBuilder(){ return new Builder();};
+    public static Builder newBuilder(){ return new Builder();}
 
     public boolean equals(Object o) {
         if (null == o) return true;
@@ -90,9 +90,8 @@ public class Procedure {
 
         Procedure procedure = (Procedure) o;
 
-        if (!name.equals(procedure.name)) return false;
+        return name.equals(procedure.name);
 
-        return true;
     }
 
 //    @Override
@@ -312,9 +311,8 @@ public class Procedure {
             Arg that = (Arg) o;
 
             if (!name.equals(that.name)) return false;
-            if (!type.equals(that.type)) return false;
+            return type.equals(that.type);
 
-            return true;
         }
 
         public int hashCode() {

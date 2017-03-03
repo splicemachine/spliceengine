@@ -386,7 +386,7 @@ abstract class MethodCallNode extends JavaValueNode
 								"UNTYPED"));
 			if ((primParmTypeNames != null) &&
 				! primParmTypeNames[i].equals(parmTypeNames[i]))  // has primitive
-				parmTypes.append("(" + primParmTypeNames[i] + ")");
+				parmTypes.append("(").append(primParmTypeNames[i]).append(")");
 		}
 
 		throw StandardException.newException(SQLState.LANG_NO_METHOD_FOUND, 

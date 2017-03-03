@@ -220,7 +220,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     protected ExecRow scanStopOverride;
 	protected int[] scanKeys;
 
-	private long numRowsSeen = 0l;
+	private long numRowsSeen = 0L;
 	//
 	// constructors
 	//
@@ -580,7 +580,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		if (!inUse)
 			return false;
 
-		if (resultSetHoldability == false) //if this activation is not held over commit, do not need to worry about it
+		if (!resultSetHoldability) //if this activation is not held over commit, do not need to worry about it
 			return false;
 
 		if (indexOfSessionTableNamesInSavedObjects == -1) //if this activation does not refer to session schema tables, do not need to worry about it

@@ -1643,7 +1643,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 .append(attrDelim).append(getFinalCostEstimate().prettyProjectionString(attrDelim));
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && qualifiers.size()>0) //add
-            sb.append(attrDelim).append("preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+            sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
         sb.append(")");
         return sb.toString();
     }

@@ -173,7 +173,7 @@ public class DoubleParser {
 
 
     // Calculate the value of the specified exponent - reuse a precalculated value if possible
-    private final static double getExponentValue(int exp){
+    private static double getExponentValue(int exp){
     	if (exp > -PRE_COMPUTED_EXP_RANGE){
     		if (exp <= 0){
     			return NEG_EXPS[-exp];
@@ -186,7 +186,7 @@ public class DoubleParser {
     }
 
     // A number can be prefixed with a "+" but this makes no difference, so we can remove it
-    private final static String stripUnnecessaryPlus(String str){
+    private static String stripUnnecessaryPlus(String str){
         if (str.startsWith("+")){
             return str.substring(1);
         }
@@ -194,7 +194,7 @@ public class DoubleParser {
     }
     
     // Returns the location of an 'e' or 'E' in the provided string
-    private final static int getExponentIdx(String str){
+    private static int getExponentIdx(String str){
         int expIdx = str.indexOf("E");
         if (expIdx < 0){
             expIdx = str.indexOf("e");

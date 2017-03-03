@@ -58,7 +58,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
 
 public class DDdependableFinder implements	DependableFinder, Formatable
 {
-	private static final long serialVersionUID = 1l;
+	private static final long serialVersionUID = 1L;
 	////////////////////////////////////////////////////////////////////////
 	//
 	//	STATE

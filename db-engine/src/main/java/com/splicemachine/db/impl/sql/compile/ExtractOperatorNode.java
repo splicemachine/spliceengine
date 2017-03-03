@@ -63,7 +63,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 	};
 
     static private final long fieldCardinality[] = {
-        5l, 4l, 12l, 12l, 52l, 7l, 7l, 365l, 31l, 24l, 60l, 60l
+			5L, 4L, 12L, 12L, 52L, 7L, 7L, 365L, 31L, 24L, 60L, 60L
     };
 
 	private int extractField;

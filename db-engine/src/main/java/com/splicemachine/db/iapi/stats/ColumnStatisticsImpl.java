@@ -67,7 +67,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
      * @throws StandardException
      */
     public ColumnStatisticsImpl(DataValueDescriptor dvd) throws StandardException {
-        this(dvd, dvd.getQuantilesSketch(),dvd.getFrequenciesSketch(),dvd.getThetaSketch(),0l);
+        this(dvd, dvd.getQuantilesSketch(),dvd.getFrequenciesSketch(),dvd.getThetaSketch(), 0L);
     }
 
     /**

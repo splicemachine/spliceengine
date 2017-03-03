@@ -343,7 +343,7 @@ public class AggregateNode extends UnaryOperatorNode
 			 * We need to support nested aggregate for queries: 12,20,47,53,57,63,89,98.
 			 * in TPC-DS
 			 */
-			if (visitor.hasNode() && this.isWindowFunction == false)
+			if (visitor.hasNode() && !this.isWindowFunction)
 			{
 				throw StandardException.newException
 				                    (

@@ -278,7 +278,7 @@ public class UnaryOperatorNode extends OperatorNode
 	 */
 	public ParameterNode getParameterOperand() throws StandardException
 	{
-		if (requiresTypeFromContext() == false)
+		if (!requiresTypeFromContext())
 			return null;
 		else {
 			UnaryOperatorNode tempUON = this;

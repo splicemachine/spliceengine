@@ -316,10 +316,7 @@ public class ColumnReference extends ValueNode {
 
 	@Override
 	public boolean checkCRLevel(int level){
-		if(sourceLevel < level){
-			return true;
-		}
-		return false;
+		return sourceLevel < level;
 	}
 
 	/**

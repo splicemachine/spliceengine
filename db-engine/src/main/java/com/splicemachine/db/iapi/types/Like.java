@@ -694,12 +694,8 @@ public class Like {
 		/* Needed if string contains and anyString in any place
 		 * other than the last character.
 		 */
-		if (firstAnyString != pattern.length() - 1)
-		{
-			return true;
-		}
+		return firstAnyString != pattern.length() - 1;
 
-		return false;
 	}
 
 	/**

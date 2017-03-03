@@ -3719,7 +3719,7 @@ public abstract class EmbedResultSet extends ConnectionChild
         LanguageConnectionContext lcc = getEmbedConnection().getLanguageConnection();
         StatementContext statementContext = null;
         try {
-            if (currentRowHasBeenUpdated == false) //nothing got updated on this row 
+            if (!currentRowHasBeenUpdated) //nothing got updated on this row
                 return; //nothing to do since no updates were made to this row
 
             //now construct the update where current of sql
@@ -3739,13 +3739,12 @@ public abstract class EmbedResultSet extends ConnectionChild
                         updateWhereCurrentOfSQL.append(",");
                     //using quotes around the column name to preserve case sensitivity
                     updateWhereCurrentOfSQL.append(IdUtil.normalToDelimited(
-                            rd.getColumnDescriptor(i).getName()) + "=?");
+							rd.getColumnDescriptor(i).getName())).append("=?");
                     foundOneColumnAlready = true;
                 }
             }
             //using quotes around the cursor name to preserve case sensitivity
-            updateWhereCurrentOfSQL.append(" WHERE CURRENT OF " + 
-                    IdUtil.normalToDelimited(getCursorName()));
+            updateWhereCurrentOfSQL.append(" WHERE CURRENT OF ").append(IdUtil.normalToDelimited(getCursorName()));
 
             StatementContext currSC = lcc.getStatementContext();
             Activation parentAct = null;
@@ -3828,8 +3827,7 @@ public abstract class EmbedResultSet extends ConnectionChild
                 CursorActivation activation = lcc.lookupCursorActivation(getCursorName());
                 deleteWhereCurrentOfSQL.append(getFullBaseTableName(activation.getPreparedStatement().getTargetTable()));//get the underlying (schema.)table name
                 //using quotes around the cursor name to preserve case sensitivity
-                deleteWhereCurrentOfSQL.append(" WHERE CURRENT OF " + 
-                        IdUtil.normalToDelimited(getCursorName()));
+                deleteWhereCurrentOfSQL.append(" WHERE CURRENT OF ").append(IdUtil.normalToDelimited(getCursorName()));
 
                 StatementContext currSC = lcc.getStatementContext();
                 Activation parentAct = null;
@@ -4304,7 +4302,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 * Documented behaviour for streams is that they are implicitly closed on
 	 * the next get*() method call.
 	 */
-	private final void closeCurrentStream() {
+	private void closeCurrentStream() {
 
 		if (currentStream != null) {
 			try {
@@ -4626,17 +4624,17 @@ public abstract class EmbedResultSet extends ConnectionChild
      * @param columnIndex the 1-based index of the column
      * @return the maximum length of the column
      */
-    private final int getMaxColumnWidth(int columnIndex) {
+    private int getMaxColumnWidth(int columnIndex) {
         return resultDescription.getColumnDescriptor(columnIndex).
                     getType().getMaximumWidth();
     }
 
-	private final SQLException dataTypeConversion(String targetType, int column) {
+	private SQLException dataTypeConversion(String targetType, int column) {
 		return newSQLException(SQLState.LANG_DATA_TYPE_GET_MISMATCH,targetType,
 				getColumnSQLType(column));
 	}
 
-	private final SQLException dataTypeConversion(int column, String targetType) {
+	private SQLException dataTypeConversion(int column, String targetType) {
 		return newSQLException(SQLState.LANG_DATA_TYPE_GET_MISMATCH,
 				getColumnSQLType(column),targetType);
 	}
