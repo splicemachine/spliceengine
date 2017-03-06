@@ -22,7 +22,9 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 /**
- * Created by jleach on 4/6/16.
+ *
+ * Row Partition Implementation.
+ *
  */
     public class RowPartition implements Comparable<ExecRow>, Externalizable {
         ExecRow firstRow;

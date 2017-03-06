@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Created by jleach on 5/4/16.
+ *
+ * Stub Scanner for Unit Tests.
+ *
  */
 public class StubInternalScanner extends Scan implements InternalScanner {
 

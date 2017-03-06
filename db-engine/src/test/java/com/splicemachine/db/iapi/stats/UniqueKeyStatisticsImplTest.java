@@ -37,7 +37,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Created by jleach on 8/5/16.
+ *
+ * Unique Key Tests.
+ *
  */
 public class UniqueKeyStatisticsImplTest extends AbstractKeyStatisticsImplTest {
 

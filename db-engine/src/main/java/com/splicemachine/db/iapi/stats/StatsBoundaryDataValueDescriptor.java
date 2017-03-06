@@ -56,7 +56,9 @@ import java.sql.*;
 import java.util.Calendar;
 
 /**
- * Created by jleach on 10/18/16.
+ *
+ * Implementation that allows for (,[ bounding to be applied to start and stop keys for statistics.
+ *
  */
 public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     DataValueDescriptor dvd;

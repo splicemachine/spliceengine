@@ -34,7 +34,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
- * Created by jleach on 10/18/16.
+ *
+ * DVD for excluding the start point.
+ *
  */
 public class StatsExcludeStartDVD extends StatsBoundaryDataValueDescriptor {
 

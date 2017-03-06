@@ -28,7 +28,9 @@ import org.apache.spark.mllib.linalg.Vector;
 import com.splicemachine.db.iapi.sql.ResultSet;
 
 /**
- * Created by jleach on 12/15/15.
+ *
+ * Utils for converting to and from MLib structures.
+ *
  */
 public class SparkMLibUtils {
 

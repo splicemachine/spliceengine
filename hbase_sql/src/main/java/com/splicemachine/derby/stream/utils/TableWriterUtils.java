@@ -28,7 +28,6 @@ import java.io.IOException;
 /**
  *  Utilities for encoding and decoding writers.
  *
- * Created by jleach on 5/20/15.
  */
 public class TableWriterUtils {
 
