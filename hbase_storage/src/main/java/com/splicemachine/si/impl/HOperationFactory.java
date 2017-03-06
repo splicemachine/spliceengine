@@ -109,7 +109,7 @@ public class HOperationFactory implements OperationFactory{
 
     @Override
     public DataPut toDataPut(KVPair kvPair,byte[] family,byte[] column,long timestamp){
-        HPut hp = new HPut(kvPair.getRowKey());
+        HPut hp = new HPut(kvPair.rowKeySlice(),timestamp);
         hp.addCell(family,column,timestamp,kvPair.getValue());
         return hp;
     }

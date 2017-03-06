@@ -37,6 +37,10 @@ public class HPut implements HMutation,DataPut{
         this.put = new Put(key.array(),key.offset(),key.length());
     }
 
+    public HPut(ByteSlice key, long timestamp){
+        this.put = new Put(key.array(),key.offset(),key.length(),timestamp);
+    }
+
     public HPut(Put put){
         this.put = put;
     }
