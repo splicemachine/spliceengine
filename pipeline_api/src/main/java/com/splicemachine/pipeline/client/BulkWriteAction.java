@@ -276,10 +276,10 @@ public class BulkWriteAction implements Callable<WriteStats>{
 						 */
                         ctx.rejected();
 
-                            SpliceLogUtils.warn(RETRY_LOG,
-                                    "[Retry] Retrying write after receiving global RETRY response: id=%d, bulkWriteResult=%s, bulkWrite=%s",
+                        if(RETRY_LOG.isDebugEnabled())
+                            SpliceLogUtils.debug(RETRY_LOG,
+                                    "Retrying write after receiving global RETRY response: id=%d, bulkWriteResult=%s, bulkWrite=%s",
                                     id,bulkWriteResult,currentBulkWrite);
-                        if(RETRY_LOG.isDebugEnabled()) {}
                         else if(ctx.attemptCount>100 && ctx.attemptCount%50==0){
                             SpliceLogUtils.warn(LOG,
                                     "Retrying write after receiving global RETRY response: id=%d, bulkWriteResult=%s, bulkWrite=%s",
@@ -300,14 +300,14 @@ public class BulkWriteAction implements Callable<WriteStats>{
                                 thrown=true;
                                 throw parseIntoException(bulkWriteResult);
                             case RETRY:
-                                SpliceLogUtils.warn(RETRY_LOG,
-                                        "[Partial] Retrying write after receiving partial %s response: id=%d, bulkWriteResult=%s",
-                                        writeResponse,id,bulkWriteResult);
                                 if(RETRY_LOG.isTraceEnabled()){
                                     SpliceLogUtils.trace(RETRY_LOG,
                                             "Retrying write after receiving partial %s response: id=%d, bulkWriteResult=%s, failureCountsByType=%s",
                                             writeResponse,id,bulkWriteResult,getFailedRowsMessage(bulkWriteResult.getFailedRows()));
                                 }else if(RETRY_LOG.isDebugEnabled()){
+                                    SpliceLogUtils.debug(RETRY_LOG,
+                                            "Retrying write after receiving partial %s response: id=%d, bulkWriteResult=%s",
+                                            writeResponse,id,bulkWriteResult);
                                 } else if(ctx.attemptCount>100 && ctx.attemptCount%50==0){
                                     SpliceLogUtils.warn(LOG,
                                             "Retrying write after receiving partial RETRY response: id=%d, bulkWriteResult=%s, bulkWrite=%s",
@@ -359,8 +359,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
                  * there's no need to refresh caches on our account. However, we *do* need to do a backoff to ensure
                  * that we let the Pipeline cool down a bit.
                  */
-//                if(RETRY_LOG.isDebugEnabled())
-                    SpliceLogUtils.warn(RETRY_LOG,"[Busy] Retrying write after receiving RegionTooBusyException: id=%d",id);
+                if(RETRY_LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(RETRY_LOG,"Retrying write after receiving RegionTooBusyException: id=%d",id);
 
                 regionTooBusy.increment();
                 ctx.sleep = true;
@@ -378,8 +378,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 case RETRY:
                     errors.add(e);
                     ctx.rejected();
-                    SpliceLogUtils.warn(RETRY_LOG,"[Catch] Retrying write after receiving global error: id=%d, class=%s, message=%s",id,e.getClass(),e.getMessage());
                     if(RETRY_LOG.isDebugEnabled()){
+                        SpliceLogUtils.debug(RETRY_LOG,"Retrying write after receiving global error: id=%d, class=%s, message=%s",id,e.getClass(),e.getMessage());
                         if(RETRY_LOG.isTraceEnabled()){
                             RETRY_LOG.trace("Global error exception received: ",e);
                         }
