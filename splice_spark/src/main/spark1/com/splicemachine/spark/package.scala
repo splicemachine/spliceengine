@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.splicemachine.spark
+package com.splicemachine.spark;
 
 import org.apache.spark.sql.{DataFrame, DataFrameReader, DataFrameWriter}
 
 package object splicemachine {
 
   /**
-   * Adds a method, `splicemachine`, to DataFrameReader that allows you to read SpliceMachine tables using
-   * the DataFrameReader.
-   */
+    * Adds a method, `splicemachine`, to DataFrameReader that allows you to read SpliceMachine tables using
+    * the DataFrameReader.
+    */
   implicit class SplicemachineDataFrameReader(reader: DataFrameReader) {
     def splicemachine: DataFrame = reader.format("com.splicemachine.spark.splicemachine").load
   }
@@ -32,7 +32,7 @@ package object splicemachine {
     * Adds a method, `splicemachine`, to DataFrameWriter that allows writes to Splicemachine using
     * the DataFileWriter
     */
-  implicit class SplicemachineDataFrameWriter[T](writer: DataFrameWriter[T]) {
+  implicit class SplicemachineDataFrameWriter(writer: DataFrameWriter) {
     def splicemachine = writer.format("com.splicemachine.spark.splicemachine").save
   }
 }
