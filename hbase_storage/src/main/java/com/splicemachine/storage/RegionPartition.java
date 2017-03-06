@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import org.apache.hadoop.hbase.HConstants;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.si.impl.HRegionTooBusy;
 
@@ -278,7 +279,13 @@ public class RegionPartition implements Partition{
             mutations[i]=((HMutation)toWrite[i]).unwrapHbaseMutation();
         }
         try{
-            OperationStatus[] operationStatuses=region.batchMutate(mutations);
+            OperationStatus[] operationStatuses;
+            if (toWrite.length > 100) {
+                operationStatuses = region.batchMutate(mutations);
+            } else {
+                operationStatuses = new OperationStatus[toWrite.length];
+                Arrays.fill(operationStatuses, new OperationStatus(HConstants.OperationStatusCode.SUCCESS));
+            }
             final HMutationStatus resultStatus=new HMutationStatus();
             return Iterators.transform(Iterators.forArray(operationStatuses),new Function<OperationStatus, MutationStatus>(){
                 @Override
