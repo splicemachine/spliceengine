@@ -53,6 +53,7 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
     private long badRecordTolerance;
     private long numberOfBadRecords = 0L;
     private String badRecordMasterPath;
+    private String statusDirectory;
     private transient OutputStream fileOut;
     private String filePath;
     private int fileCounter = 0; // When we close the stream we increment the counter so there's no collision
@@ -70,6 +71,7 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
      *                           bad records.
      */
     public BadRecordsRecorder(String statusDirectory, String inputFilePath, long badRecordTolerance) {
+        this.statusDirectory = statusDirectory;
         this.badRecordTolerance = badRecordTolerance;
         try {
             this.badRecordMasterPath = generateWritableFilePath(statusDirectory, inputFilePath, BAD_EXTENSION);
@@ -240,6 +242,7 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         out.writeLong(badRecordTolerance);
         out.writeLong(numberOfBadRecords);
         out.writeUTF(badRecordMasterPath);
+        out.writeUTF(statusDirectory);
     }
 
     @Override
@@ -247,10 +250,15 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
         badRecordTolerance = in.readLong();
         numberOfBadRecords = in.readLong();
         badRecordMasterPath = in.readUTF();
+        statusDirectory = in.readUTF();
     }
 
     @Override
     public String toString(){
         return Long.toString(numberOfBadRecords);
+    }
+
+    public String getStatusDirectory() {
+        return statusDirectory;
     }
 }

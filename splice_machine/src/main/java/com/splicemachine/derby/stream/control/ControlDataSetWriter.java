@@ -97,7 +97,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                 badRecords = (brr != null ? brr.getNumberOfBadRecords() : 0);
                 operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
                 if(badRecords > 0){
-                    String fileName = operationContext.getBadRecordFileName();
+                    String fileName = operationContext.getStatusDirectory();
                     operationContext.getActivation().getLanguageConnectionContext().setBadFile(fileName);
                     if (insertOperation.isAboveFailThreshold(badRecords)) {
                         throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
@@ -108,7 +108,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
             if (badRecords > 0) {
                 valueRow = new ValueRow(3);
                 valueRow.setColumn(2, new SQLLongint(badRecords));
-                valueRow.setColumn(3, new SQLVarchar(operationContext.getBadRecordFileName()));
+                valueRow.setColumn(3, new SQLVarchar(operationContext.getStatusDirectory()));
             }
             else {
                 valueRow = new ValueRow(1);

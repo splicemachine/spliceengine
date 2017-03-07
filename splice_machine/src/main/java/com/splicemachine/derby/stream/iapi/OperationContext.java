@@ -46,7 +46,7 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold);
     boolean isFailed();
     long getBadRecords();
-    String getBadRecordFileName();
+    String getStatusDirectory();
 
     enum Scope{
         READ_TEXT_FILE("Read File"),
