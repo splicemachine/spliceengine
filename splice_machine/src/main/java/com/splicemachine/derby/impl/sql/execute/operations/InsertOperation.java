@@ -70,6 +70,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     public InsertNode.InsertMode insertMode;
     public String statusDirectory;
     private int failBadRecordCount;
+    private boolean skipConflictDetection;
 
 
     @Override
@@ -88,12 +89,14 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String insertMode,
                            String statusDirectory,
                            int failBadRecordCount,
+                           boolean skipConflictDetection,
                            double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost,
                            String tableVersion) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
+        this.skipConflictDetection=skipConflictDetection;
         this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
         init();
     }
@@ -214,6 +217,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(in.readBoolean())
             statusDirectory=in.readUTF();
         failBadRecordCount=in.readInt();
+        skipConflictDetection=in.readBoolean();
     }
 
     @Override
@@ -229,6 +233,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(statusDirectory!=null)
             out.writeUTF(statusDirectory);
         out.writeInt(failBadRecordCount);
+        out.writeBoolean(skipConflictDetection);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -276,4 +281,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     }
 
 
+    public boolean skipConflictDetection() {
+        return skipConflictDetection;
+    }
 }

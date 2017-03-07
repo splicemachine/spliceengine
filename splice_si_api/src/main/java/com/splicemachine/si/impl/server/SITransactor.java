@@ -48,7 +48,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
-import static com.splicemachine.si.constants.SIConstants.*;
 
 /**
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
@@ -144,7 +143,7 @@ public class SITransactor implements Transactor{
                                             long txnId,
                                             ConstraintChecker constraintChecker) throws IOException{
         TxnView txn=txnSupplier.getTransaction(txnId);
-        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker);
+        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false);
     }
 
     @Override
@@ -154,9 +153,9 @@ public class SITransactor implements Transactor{
                                            byte[] packedColumnBytes,
                                            Collection<KVPair> toProcess,
                                            TxnView txn,
-                                           ConstraintChecker constraintChecker) throws IOException{
+                                           ConstraintChecker constraintChecker, boolean skipConflictDetection) throws IOException{
         ensureTransactionAllowsWrites(txn);
-        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
+        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection);
     }
 
     private MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
@@ -166,9 +165,9 @@ public class SITransactor implements Transactor{
     private MutationStatus[] processInternal(Partition table,
                                              RollForward rollForwardQueue,
                                              TxnView txn,
-                                             byte[] family,byte[] qualifier,
+                                             byte[] family, byte[] qualifier,
                                              Collection<KVPair> mutations,
-                                             ConstraintChecker constraintChecker) throws IOException{
+                                             ConstraintChecker constraintChecker, boolean skipConflictDetection) throws IOException{
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("processInternal: table = %s, txnId = %s", table.toString(), txn.getTxnId()));
         MutationStatus[] finalStatus=new MutationStatus[mutations.size()];
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
@@ -185,7 +184,7 @@ public class SITransactor implements Transactor{
              * the region can't close until after this method is complete, we don't need the calls.
              */
             IntObjectOpenHashMap<DataPut> writes=checkConflictsForKvBatch(table,rollForwardQueue,lockPairs,
-                    conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus);
+                    conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus,skipConflictDetection);
 
             //TODO -sf- this can probably be made more efficient
             //convert into array for usefulness
@@ -230,13 +229,13 @@ public class SITransactor implements Transactor{
                                                                    Pair<KVPair, Lock>[] dataAndLocks,
                                                                    LongOpenHashSet[] conflictingChildren,
                                                                    TxnView transaction,
-                                                                   byte[] family,byte[] qualifier,
+                                                                   byte[] family, byte[] qualifier,
                                                                    ConstraintChecker constraintChecker,
                                                                    TxnFilter constraintStateFilter,
-                                                                   MutationStatus[] finalStatus) throws IOException {
+                                                                   MutationStatus[] finalStatus, boolean skipConflictDetection) throws IOException {
         IntObjectOpenHashMap<DataPut> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(dataAndLocks.length, 0.9f);
         DataResult possibleConflicts = null;
-        BitSet bloomInMemoryCheck  = table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
+        BitSet bloomInMemoryCheck  = skipConflictDetection ? null : table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
         for(int i=0;i<dataAndLocks.length;i++){
             Pair<KVPair, Lock> baseDataAndLock=dataAndLocks[i];
             if(baseDataAndLock==null) continue;
@@ -244,7 +243,7 @@ public class SITransactor implements Transactor{
             ConflictResults conflictResults=ConflictResults.NO_CONFLICT;
             KVPair kvPair=baseDataAndLock.getFirst();
             KVPair.Type writeType=kvPair.getType();
-            if(constraintChecker!=null || !KVPair.Type.INSERT.equals(writeType)){
+            if(!skipConflictDetection && (constraintChecker!=null || !KVPair.Type.INSERT.equals(writeType))){
                 /*
                  *
                  * If the table has no keys, then the hbase row key is a randomly generated UUID, so it's not
