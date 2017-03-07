@@ -320,8 +320,8 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
-    public String getBadRecordFileName() {
-        return (badRecordsRecorder != null ? badRecordsRecorder.getBadRecordFileName() : "");
+    public String getStatusDirectory() {
+        return (badRecordsRecorder != null ? badRecordsRecorder.getStatusDirectory() : "");
     }
 
     @Override
