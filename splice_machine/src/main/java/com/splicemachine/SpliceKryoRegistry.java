@@ -616,7 +616,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BulkWrite.class,new Serializer<BulkWrite>(){
             @Override
             public void write(Kryo kryo,Output output,BulkWrite object){
-                output.writeByte(object.getSkipIndexWrite());
+                output.writeByte(object.getFlags());
                 output.writeString(object.getEncodedStringName());
                 kryo.writeClassAndObject(output,object.getMutations());
             }

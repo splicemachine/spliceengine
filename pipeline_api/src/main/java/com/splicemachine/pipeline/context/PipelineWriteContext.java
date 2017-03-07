@@ -55,6 +55,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     private final ServerControl env;
     private final WriteNode head;
     private final PipelineExceptionFactory pef;
+    private final boolean skipConflictDetection;
 
     private WriteNode tail;
 
@@ -63,6 +64,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
                                  TxnView txn,
                                  TransactionalRegion rce,
                                  boolean skipIndexWrites,
+                                 boolean skipConflictDetection,
                                  ServerControl env,
                                 PipelineExceptionFactory pef) {
         this.indexSharedCallBuffer = indexSharedCallBuffer;
@@ -74,6 +76,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
         this.head = this.tail = new WriteNode(null, this);
         this.partitionFactory = partitionFactory;
         this.pef = pef;
+        this.skipConflictDetection = skipConflictDetection;
     }
 
     public void addLast(WriteHandler handler) {
@@ -225,6 +228,11 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public boolean skipIndexWrites() {
         return this.skipIndexWrites;
+    }
+
+    @Override
+    public boolean skipConflictDetection() {
+        return this.skipConflictDetection;
     }
 
     @Override

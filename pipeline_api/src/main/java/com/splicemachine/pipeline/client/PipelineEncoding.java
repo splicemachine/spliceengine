@@ -41,7 +41,7 @@ public class PipelineEncoding {
          * for 1...# of BulkWrites:
          *  encodedStringName
          * for 1...# of BulkWrites:
-         *  skipWriteIndex
+         *  flags
          * for 1...# of BulkWrites:
          *  KVPairs
          *
@@ -65,7 +65,7 @@ public class PipelineEncoding {
         }
 
         for(BulkWrite bw:bws){
-            buffer.encode(bw.getSkipIndexWrite());
+            buffer.encode(bw.getFlags());
         }
 
         for(BulkWrite bw:bws){
@@ -91,12 +91,12 @@ public class PipelineEncoding {
         for(int i=0;i<bwSize;i++) {
             stringNames.add(decoder.decodeString());
         }
-        byte[] skipIndexWrites = new byte[bwSize];
+        byte[] flags = new byte[bwSize];
         for (int i=0; i<bwSize; i++) {
-            skipIndexWrites[i] = decoder.decodeByte();
+            flags[i] = decoder.decodeByte();
         }
 
-        return new BulkWrites(new BulkWriteCol(skipIndexWrites,data,decoder.currentOffset(),stringNames),txn);
+        return new BulkWrites(new BulkWriteCol(flags,data,decoder.currentOffset(),stringNames),txn);
     }
 
 
@@ -105,7 +105,7 @@ public class PipelineEncoding {
     private static class BulkWriteCol extends AbstractCollection<BulkWrite>{
         private final int kvOffset;
         private final List<String> encodedStringNames;
-        private final byte[] skipIndexWrites;
+        private final byte[] flags;
         private final byte[] buffer;
         /*
          * we keep a cache of previously created BulkWrites, so that we can have
@@ -116,11 +116,11 @@ public class PipelineEncoding {
         private transient ExpandedDecoder decoder;
         private transient int lastIndex = 0;
 
-        public BulkWriteCol(byte[] skipIndexWrites, byte[] buffer,int kvOffset, List<String> encodedStringNames) {
+        public BulkWriteCol(byte[] flags, byte[] buffer,int kvOffset, List<String> encodedStringNames) {
             this.kvOffset = kvOffset;
             this.encodedStringNames = encodedStringNames;
             this.buffer = buffer;
-            this.skipIndexWrites = skipIndexWrites;
+            this.flags = flags;
         }
 
         @Override
@@ -162,7 +162,7 @@ public class PipelineEncoding {
             @Override
             public BulkWrite next() {
                 String esN = encodedStrings.next();
-                byte skipIndexWrite = skipIndexWrites[index++];
+                byte elementFlags = flags[index++];
                 int size = decoder.decodeInt();
                 Collection<KVPair> kvPairs = new ArrayList<>(size);
                 KVPair template = new KVPair();
@@ -176,7 +176,7 @@ public class PipelineEncoding {
                 }
 
 
-                BulkWrite bulkWrite = new BulkWrite(kvPairs, esN, skipIndexWrite);
+                BulkWrite bulkWrite = new BulkWrite(kvPairs, esN, elementFlags);
                 cache.add(bulkWrite);
                 lastIndex=index;
                 return bulkWrite;
