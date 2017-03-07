@@ -93,6 +93,7 @@ public final class InsertNode extends DMLModStatementNode {
     public static final String STATUS_DIRECTORY = "statusDirectory";
 	public static final String BAD_RECORDS_ALLOWED = "badRecordsAllowed";
 	public static final String USE_SPARK = "useSpark";
+	public static final String SKIP_CONFLICT_DETECTION = "skipConflictDetection";
     public static final String INSERT = "INSERT";
     public static final String PIN = "pin";
 
@@ -107,7 +108,8 @@ public final class InsertNode extends DMLModStatementNode {
     private     ValueNode           fetchFirst;
     private     boolean           hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
     private     String              statusDirectory;
-    private     int              badRecordsAllowed = 0;
+	private     int              badRecordsAllowed = 0;
+	private     boolean              skipConflictDetection = false;
 	private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
 
 
@@ -724,7 +726,7 @@ public final class InsertNode extends DMLModStatementNode {
         if(pin){
 			throw StandardException.newException(SQLState.INSERT_PIN_VIOLATION);
 		}
-
+		String skipConflictDetectionString = targetProperties.getProperty(SKIP_CONFLICT_DETECTION);
 
 		if (insertModeString != null) {
 			String upperValue = StringUtil.SQLToUpperCase(insertModeString);
@@ -743,6 +745,9 @@ public final class InsertNode extends DMLModStatementNode {
 		if (statusDirectoryString != null) {
 			// validated for writing in ImportUtils.generateFileSystemPathForWrite()
 			statusDirectory = statusDirectoryString;
+		}
+		if (skipConflictDetectionString != null) {
+			skipConflictDetection = Boolean.parseBoolean(StringUtil.SQLToUpperCase(skipConflictDetectionString));
 		}
 
 		if (useSparkString != null) {
@@ -985,7 +990,8 @@ public final class InsertNode extends DMLModStatementNode {
                 mb.pushNull("java.lang.String");
             else
                 mb.push(statusDirectory);
-            mb.push(badRecordsAllowed);
+			mb.push(badRecordsAllowed);
+			mb.push(skipConflictDetection);
             mb.push((double) this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
             mb.push(targetTableDescriptor.getVersion());
@@ -997,7 +1003,7 @@ public final class InsertNode extends DMLModStatementNode {
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLocation());
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getCompression());
 			mb.push(partitionReferenceItem);
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 17);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 18);
 		}
 		else
 		{

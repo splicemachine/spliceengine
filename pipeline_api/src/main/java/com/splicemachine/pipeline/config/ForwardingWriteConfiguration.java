@@ -48,6 +48,11 @@ public class ForwardingWriteConfiguration implements WriteConfiguration {
     }
 
     @Override
+    public boolean skipConflictDetection() {
+        return delegate.skipConflictDetection();
+    }
+
+    @Override
     public int getMaximumRetries() {
         return delegate.getMaximumRetries();
     }

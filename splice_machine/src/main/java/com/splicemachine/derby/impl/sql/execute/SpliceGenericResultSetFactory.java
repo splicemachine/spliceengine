@@ -1116,6 +1116,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String insertMode,
                                              String statusDirectory,
                                              int failBadRecordCount,
+                                             boolean skipConflictDetection,
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
                                              String tableVersion,
@@ -1131,7 +1132,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
-                    statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
+                    statusDirectory, failBadRecordCount, skipConflictDetection, optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
                     delimited,escaped,lines,storedAs,location, compression, partitionBy);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();

@@ -187,6 +187,7 @@ public class HdfsImport {
                  charset,
                  true,
                  false,
+                 false,
                  results);
     }
 
@@ -267,8 +268,44 @@ public class HdfsImport {
                  charset,
                  false,
                  false,
+                 false,
                  results);
     }
+
+    public static void IMPORT_DATA_UNSAFE(String schemaName,
+                                   String tableName,
+                                   String insertColumnList,
+                                   String fileName,
+                                   String columnDelimiter,
+                                   String characterDelimiter,
+                                   String timestampFormat,
+                                   String dateFormat,
+                                   String timeFormat,
+                                   long badRecordsAllowed,
+                                   String badRecordDirectory,
+                                   String oneLineRecords,
+                                   String charset,
+                                   ResultSet[] results
+    ) throws SQLException {
+        doImport(schemaName,
+                tableName,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                badRecordsAllowed,
+                badRecordDirectory,
+                oneLineRecords,
+                charset,
+                false,
+                false,
+                true,
+                results);
+    }
+
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     private static void doImport(String schemaName,
@@ -286,15 +323,16 @@ public class HdfsImport {
                                  String charset,
                                  boolean isUpsert,
                                  boolean isCheckScan,
+                                 boolean skipConflictDetection,
                                  ResultSet[] results) throws SQLException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doImport {schemaName=%s, tableName=%s, insertColumnList=%s, fileName=%s, " +
                                      "columnDelimiter=%s, characterDelimiter=%s, timestampFormat=%s, dateFormat=%s, " +
                 "timeFormat=%s, badRecordsAllowed=%d, badRecordDirectory=%s, oneLineRecords=%s, charset=%s, " +
-                "isUpsert=%s, isCheckScan=%s}",
+                "isUpsert=%s, isCheckScan=%s, skipConflictDetection=%b}",
                                  schemaName, tableName, insertColumnListString, fileName, columnDelimiter, characterDelimiter,
                                  timestampFormat, dateFormat, timeFormat, badRecordsAllowed, badRecordDirectory,
-                                 oneLineRecords, charset, isUpsert, isCheckScan);
+                                 oneLineRecords, charset, isUpsert, isCheckScan, skipConflictDetection);
 
         if (charset == null) {
             charset = StandardCharsets.UTF_8.name();
@@ -376,7 +414,7 @@ public class HdfsImport {
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                 "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
-                badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n" +
+                badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + (skipConflictDetection ? ", skipConflictDetection=true" : "") + "\n" +
                 " SELECT "+
                     generateColumnList(((EmbedConnection)conn).getLanguageConnection(),schemaName,tableName,insertColumnList) +
                     " from " +
