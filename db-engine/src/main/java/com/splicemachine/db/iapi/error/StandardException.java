@@ -536,7 +536,12 @@ public class StandardException extends Exception
 			}
 		}
 
-		// Look for simple wrappers for 3.0.1 - will be cleaned up in main
+        if (t instanceof SQLException && t.getMessage().contains("amazonaws")) {
+            StandardException se = StandardException.newException(SQLState.ACCESSING_S3_EXCEPTION, t.getMessage());
+            return se;
+        }
+
+        // Look for simple wrappers for 3.0.1 - will be cleaned up in main
 		if (ferry != null) {
 			if (ferry.isSimpleWrapper()) {
 				Throwable wrapped = ((SQLException)ferry).getCause();
