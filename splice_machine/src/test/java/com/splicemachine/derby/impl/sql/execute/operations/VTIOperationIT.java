@@ -223,5 +223,20 @@ public class VTIOperationIT extends SpliceUnitTest {
         }
     }
 
-
+    @Test
+    public void testVtiTabDelimiter() throws Exception {
+        String location = getResourceDirectory() + "filevtitest_tab.csv";
+        ResultSet rs = spliceClassWatcher.executeQuery(
+                String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s', '', '\t') as b " +
+                        "(name VARCHAR(10), title VARCHAR(30), age INT, something VARCHAR(12), date_hired TIMESTAMP, clock TIME) order by 1",location));
+        String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String expected = "NAME    |     TITLE     | AGE | SOMETHING |     DATE_HIRED       |  CLOCK  |\n" +
+                        "-------------------------------------------------------------------------------\n" +
+                        "  gbrown   | Batting Coach | 46  |08-24-2015 |2015-08-21 08:11:08.0 |11:08:08 |\n" +
+                        "  jardson  | Left Fielder  | 34  |08-23-2015 |2015-08-22 08:12:08.0 |11:08:08 |\n" +
+                        " jpeepers  |    Catcher    | 37  |08-26-2015 |2015-08-21 08:09:08.0 |08:08:08 |\n" +
+                        "mbamburger |    Manager    | 47  |08-25-2015 |2015-08-20 08:10:08.0 |10:08:08 |\n" +
+                        " sculligan |Relief Pitcher | 27  |08-27-2015 |2015-08-27 08:08:08.0 |06:08:08 |";
+        Assert.assertEquals(actual, expected);
+    }
 }
