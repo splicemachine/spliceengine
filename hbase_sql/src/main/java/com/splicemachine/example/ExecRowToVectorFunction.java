@@ -22,7 +22,9 @@ import org.apache.spark.mllib.linalg.Vector;
 import java.io.*;
 
 /**
- * Created by jleach on 12/15/15.
+ *
+ * Convert an ExecRow to a vector.  Vector is a common input for MLib libraries.
+ *
  */
 public class ExecRowToVectorFunction implements Function<LocatedRow,Vector>, Externalizable{
     private int[] fieldsToConvert;

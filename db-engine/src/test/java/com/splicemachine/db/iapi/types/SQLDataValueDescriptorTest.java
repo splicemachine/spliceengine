@@ -40,7 +40,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 /**
- * Created by jleach on 8/12/16.
+ *
+ * Abstract Test Class for reuse.
+ *
  */
 public abstract class SQLDataValueDescriptorTest {
     protected static double RANGE_SELECTIVITY_ERRROR_BOUNDS = 100.0d;

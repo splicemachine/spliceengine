@@ -18,7 +18,9 @@ import com.lmax.disruptor.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * Created by jleach on 9/28/15.
+ *
+ * Strategy that provides better write throughput in HBase.
+ *
  */
 public class HBaseWALBlockingWaitStrategy implements WaitStrategy {
         // 2 Millisecond Delay by default

@@ -17,7 +17,9 @@ package com.splicemachine.hbase;
 import org.apache.hadoop.hbase.HTableDescriptor;
 
 /**
- * Created by jleach on 12/16/15.
+ *
+ * Read Only HTable Descriptor for reading HBase from the filesystem.
+ *
  */
 public class ReadOnlyHTableDescriptor extends HTableDescriptor {
     public ReadOnlyHTableDescriptor(HTableDescriptor desc) {

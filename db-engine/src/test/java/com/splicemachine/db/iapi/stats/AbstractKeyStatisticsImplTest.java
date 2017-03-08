@@ -39,8 +39,11 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.junit.BeforeClass;
 
+
 /**
- * Created by jleach on 8/5/16.
+ *
+ * Abstract Test.
+ *
  */
 public class AbstractKeyStatisticsImplTest {
     protected static NonUniqueKeyStatisticsImpl impl;

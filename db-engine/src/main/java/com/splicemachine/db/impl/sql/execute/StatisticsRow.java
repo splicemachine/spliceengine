@@ -37,7 +37,9 @@ import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 /**
- * Created by jleach on 8/1/16.
+ *
+ * Wrapper that updates statistics as data is put in the row format.
+ *
  */
 public class StatisticsRow extends ValueRow {
     private ItemStatistics[] statistics;

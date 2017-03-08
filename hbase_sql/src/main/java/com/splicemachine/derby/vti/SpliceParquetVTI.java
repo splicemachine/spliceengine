@@ -28,7 +28,9 @@ import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import java.sql.*;
 
 /**
- * Created by jleach on 10/7/15.
+ *
+ * Parquet VTI
+ *
  */
 public class SpliceParquetVTI implements DatasetProvider, VTICosting {
     private String connectionUrl;

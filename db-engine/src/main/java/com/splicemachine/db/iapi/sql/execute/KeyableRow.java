@@ -34,7 +34,9 @@ package com.splicemachine.db.iapi.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 
 /**
- * Created by jleach on 4/17/15.
+ *
+ * Create an ExecRow from an ExecRow that just contains the keyed columns.
+ *
  */
 public interface KeyableRow {
     /**

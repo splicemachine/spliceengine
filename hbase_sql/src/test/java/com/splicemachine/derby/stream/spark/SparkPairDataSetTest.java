@@ -21,7 +21,9 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import org.junit.Ignore;
 
 /**
- * Created by jleach on 4/15/15.
+ *
+ * Spark Pair Data Set Test
+ *
  */
 @Ignore
 public class SparkPairDataSetTest extends AbstractPairDataSetTest{

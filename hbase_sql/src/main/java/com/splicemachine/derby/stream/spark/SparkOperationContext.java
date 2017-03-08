@@ -35,7 +35,9 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Created by jleach on 4/17/15.
+ *
+ * Operation Context for recording Operation activities and state.
+ *
  */
 public class SparkOperationContext<Op extends SpliceOperation> implements OperationContext<Op>{
     protected static Logger LOG=Logger.getLogger(SparkOperationContext.class);

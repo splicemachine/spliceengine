@@ -25,7 +25,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Created by jleach on 7/8/16.
+ *
+ * Test SpliceHRegionInfo
+ *
  */
 public class SpliceHRegionInfoTest {
     private static final byte[] rowKey = "1234".getBytes();
