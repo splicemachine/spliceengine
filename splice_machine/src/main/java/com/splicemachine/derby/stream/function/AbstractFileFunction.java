@@ -22,6 +22,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
@@ -178,13 +179,13 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     }
 
 
-    void checkPreference() {
+    void checkPreference() throws IOException{
         if (preference==null){
             SConfiguration config =EngineDriver.driver().getConfiguration();
             int maxQuotedLines = config.getImportMaxQuotedColumnLines();
             preference=new CsvPreference.Builder(
-                    characterDelimiter!=null && characterDelimiter.length()>0?characterDelimiter.charAt(0):DEFAULT_STRIP_STRING,
-                    columnDelimiter!=null && columnDelimiter.length()>0?columnDelimiter.charAt(0):DEFAULT_COLUMN_DELIMITTER,
+                    characterDelimiter!=null && characterDelimiter.length()>0? ImportUtils.unescape(characterDelimiter):DEFAULT_STRIP_STRING,
+                    columnDelimiter!=null && columnDelimiter.length()>0?ImportUtils.unescape(columnDelimiter):DEFAULT_COLUMN_DELIMITTER,
                     "\n").maxLinesPerRow(maxQuotedLines).build();
         }
     }
