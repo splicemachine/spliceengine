@@ -423,9 +423,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
-    public String getBadRecordFileName() {
+    public String getStatusDirectory() {
         // can only be called after we're back on the client side since we need to reference accumulator value
-        return (getBadRecordsRecorder() != null ? getBadRecordsRecorder().getBadRecordFileName() : "");
+        return (getBadRecordsRecorder() != null ? getBadRecordsRecorder().getStatusDirectory() : "");
     }
 
     @Override

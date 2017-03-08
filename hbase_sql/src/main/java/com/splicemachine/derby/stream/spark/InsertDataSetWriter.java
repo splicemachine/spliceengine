@@ -96,7 +96,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 long numBadRecords = opContext.getBadRecords();
                 valueRow.setColumn(2,new SQLLongint(numBadRecords));
                 if (numBadRecords > 0) {
-                    String fileName = opContext.getBadRecordFileName();
+                    String fileName = opContext.getStatusDirectory();
                     valueRow.setColumn(3,new SQLVarchar(fileName));
                     if (insertOperation.isAboveFailThreshold(numBadRecords)) {
                         throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);

@@ -370,7 +370,8 @@ public class HdfsImport {
                 ! insertColumnListString.toLowerCase().equals("null")) {
                 insertColumnList = normalizeIdentifierList(insertColumnListString);
             }
-
+            // Remove trailing back slash
+            badRecordDirectory = badRecordDirectory.replaceAll("/$", "");
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                 "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
