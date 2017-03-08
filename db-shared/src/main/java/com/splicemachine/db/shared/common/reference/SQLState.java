@@ -1984,7 +1984,7 @@ public interface SQLState {
     String DELETE_PIN_VIOLATION				    					= "EXT31";
 	String TABLE_NOT_PINNED				    						= "EXT32";
 	String DIRECTORY_REQUIRED			    						= "EXT33";
-
+	String ACCESSING_S3_EXCEPTION                                   = "EXT34";
 
 }
 
