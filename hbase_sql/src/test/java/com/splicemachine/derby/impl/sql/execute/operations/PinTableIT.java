@@ -46,6 +46,7 @@ public class PinTableIT extends SpliceUnitTest{
     private static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("PinTable5",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("PinTable6",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("PinTable7",SCHEMA_NAME,"(col1 int)");
+    private static final SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("PinTable8",SCHEMA_NAME,"(col1 int)");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -59,7 +60,8 @@ public class PinTableIT extends SpliceUnitTest{
             .around(spliceTableWatcher4)
             .around(spliceTableWatcher5)
             .around(spliceTableWatcher6)
-            .around(spliceTableWatcher7);
+            .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8);
     @Test
     public void testPinTableDoesNotExist() throws Exception {
         try {
@@ -88,6 +90,8 @@ public class PinTableIT extends SpliceUnitTest{
             Assert.assertEquals("Wrong Exception","EXT16",e.getSQLState());
         }
     }
+
+
 
     @Test
     public void selectFromPinThatDoesNotExist() throws Exception {
@@ -154,7 +158,7 @@ public class PinTableIT extends SpliceUnitTest{
             methodWatcher.executeUpdate("DELETE FROM PinTable5 --splice-properties pin=true \n");
             Assert.fail("UPDATE is not allowed in pin table but it didn't failed");
         } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT30",e.getSQLState());
+            Assert.assertEquals("Wrong Exception","EXT31",e.getSQLState());
         }
     }
 
@@ -181,5 +185,18 @@ public class PinTableIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate("unpin table PinTable7");
         methodWatcher.executeUpdate("drop table PinTable7");
+    }
+
+    @Test
+    public void testPinTableAlreadyPinned() throws Exception {
+        methodWatcher.executeUpdate("insert into PinTable8 values (1)");
+
+        try {
+            methodWatcher.executeUpdate("pin table PinTable8");
+            methodWatcher.executeUpdate("pin table PinTable8");
+            Assert.fail("UPDATE is not allowed in pin table but it didn't failed");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT33",e.getSQLState());
+        }
     }
 }
