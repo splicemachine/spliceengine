@@ -26,6 +26,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.Assert;
+import static org.junit.Assert.*;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -322,6 +324,36 @@ public class ImportErrorIT extends SpliceUnitTest {
                 SpliceUnitTest.assertBadFileContainsError(BADDIR, importFileName, expectedErrorCode, expectedErrorMsg);
             }
         });
+    }
+
+    @Test
+    public void testImportFromS3Error() throws Exception {
+        try {
+            String sqlText =
+                    String.format("CALL SYSCS_UTIL.IMPORT_DATA(" +
+                            "'%s', " +
+                            "'%s', " +
+                            "null, " +
+                            "?, " +
+                            "',', " +
+                            "null, " +
+                            "null, " +
+                            "null, " +
+                            "null, " +
+                            "1, " +
+                            "'/BAD', " +
+                            "true, " +
+                            "null)", schema, TABLE);
+
+            PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+            ps.setString(1, "s3a://splice-qa/temp/impo/test.csv");
+            ps.execute();
+            fail();
+        } catch (SQLException sqle) {
+            String sqlState = sqle.getSQLState();
+            Assert.assertTrue(sqlState, sqlState.compareToIgnoreCase("EXT34") == 0 || sqlState.compareToIgnoreCase("X0X14") == 0);
+        }
+
     }
 
     private void helpTestImportError(final String importFileName, final String expectedErrorCode, final String
