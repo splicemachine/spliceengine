@@ -193,8 +193,8 @@ class SpliceTestPlatformConfig {
         // AWS Credentials for test...
         //
 
-        config.set(ACCESS_KEY,"AKIAJ6HBMCK5ALHVBFPQ");
-        config.set(SECRET_KEY,"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");
+        config.set(ACCESS_KEY,"AKIAJ4YJKO4MWOFWPXKA");
+        config.set(SECRET_KEY,"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");
 
 
         //
@@ -203,6 +203,9 @@ class SpliceTestPlatformConfig {
 
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
+
+        config.set("fs.s3a.impl","com.facebook.presto.hive.PrestoS3FileSystem");
+
         //
         // Snapshots
         //
