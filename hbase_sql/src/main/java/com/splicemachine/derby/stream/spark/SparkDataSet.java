@@ -79,6 +79,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     public SparkDataSet(JavaRDD<V> rdd, String rddname) {
+        Dataset<V> set;
         this.rdd = rdd;
         if (rdd != null && rddname != null) this.rdd.setName(rddname);
     }

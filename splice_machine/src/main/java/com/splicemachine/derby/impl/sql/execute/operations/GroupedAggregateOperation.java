@@ -33,6 +33,29 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+/**
+ *
+ *
+ * Multiple Distinct Design
+ *
+ * Mixed record representation...
+ *
+ * (1) Remove Need for Join on the back end
+ * (2) Do not traverse the base data twice.
+ * (3) execution vs. planning strategy?
+ *
+ * emit N records corresponding to number of distincts + non distinct aggregates
+ * [distinct1 aggregate columns (value, compute)],[distinct position 0],[distinct value],[group by columns]
+ * [distinct2 aggregate columns (value, compute)],[distinct position 1],[distinct value],[group by columns]
+ * [non distinct aggregate columns],[null],[null],[group by columns]
+ *
+ * keyBy distinctPosition,group by columns
+ * flatMap --> apply distincts and non distincts based on key
+ * key by group by columns
+ * merge back together
+ *
+ *
+ */
 public class GroupedAggregateOperation extends GenericAggregateOperation {
     private static final long serialVersionUID = 1l;
     private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
@@ -134,16 +157,15 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         operationContext.pushScope();
         set = set.map(new CountReadFunction(operationContext));
         operationContext.popScope();
-
+        // Have distinct Aggregates?
         if (groupedAggregateContext.getNonGroupedUniqueColumns() != null &&
             groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
             // Distinct Aggregate Path
-            int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(), groupedAggregateContext.getNonGroupedUniqueColumns());
-
             operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
-            PairDataSet set2 = set.keyBy(new KeyerFunction(operationContext, allKeys));
+            PairDataSet set2 = set.keyBy(new DistinctAggregateKeyCreation(operationContext,groupedAggregateContext.getGroupingKeys()));
+            set2.
+
             operationContext.popScope();
-            
             operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
             PairDataSet set3 = set2.reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext));
             operationContext.popScope();
