@@ -34,4 +34,6 @@ public interface DataPut extends DataMutation{
     Iterable<DataCell> cells();
 
     void addCell(DataCell kv);
+
+    void skipWAL();
 }

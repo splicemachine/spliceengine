@@ -54,6 +54,11 @@ public class ForwardingWriteConfiguration implements WriteConfiguration {
     }
 
     @Override
+    public boolean skipWAL() {
+        return delegate.skipWAL();
+    }
+
+    @Override
     public int getMaximumRetries() {
         return delegate.getMaximumRetries();
     }

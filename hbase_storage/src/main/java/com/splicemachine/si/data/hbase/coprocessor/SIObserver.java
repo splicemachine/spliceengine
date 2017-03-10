@@ -24,10 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
-import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
@@ -230,7 +228,7 @@ public class SIObserver extends BaseRegionObserver{
                 boolean processed=false;
                 while (!processed) {
                     @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
-                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false);
+                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false);
                     Iterator<MutationStatus> itr = status.iterator();
                     if (!itr.hasNext())
                         throw new IllegalStateException();

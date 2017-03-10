@@ -234,7 +234,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
 //                }
 
             	// Create a new PartitionBuffer, add it to the map, and add it to the ServerCallBuffer.
-                PartitionBuffer newBuffer = new PartitionBuffer(region, preFlushHook, skipIndexWrites, writeConfiguration.skipConflictDetection());
+                PartitionBuffer newBuffer = new PartitionBuffer(region, preFlushHook, skipIndexWrites,
+                        writeConfiguration.skipConflictDetection(), writeConfiguration.skipWAL());
                 startKeyToRegionCBMap.put(startKey, Pair.newPair(newBuffer,server));
                 regionServerCB.add(Pair.newPair(startKey, newBuffer));
             } else {
