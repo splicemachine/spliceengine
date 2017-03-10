@@ -61,7 +61,43 @@
             <artifactId>spark-mesos_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_presto</artifactId>
+            <version>2.6.0.1708-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-jdk14</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>commons-logging</artifactId>
+                    <groupId>commons-logging</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>aws-java-sdk-core</artifactId>
+                    <groupId>com.amazonaws</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>aws-java-sdk-s3</artifactId>
+                    <groupId>com.amazonaws</groupId>
+                </exclusion>
 
+                <exclusion>
+                    <artifactId>jmespath-java</artifactId>
+                    <groupId>com.amazonaws</groupId>
+                </exclusion>
+
+            </exclusions>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -369,6 +405,7 @@
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
         </dependency>
+        <!--
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-aws</artifactId>
@@ -392,6 +429,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        -->
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-beeline</artifactId>
