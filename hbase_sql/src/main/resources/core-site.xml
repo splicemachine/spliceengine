@@ -53,10 +53,24 @@
         <value>zVOJbTpLfGO8Ujlr17PX2iwat4qqSFkLpcornpYe</value>
     </property>
 
+
+    <property>
+        <name>presto.s3.access-key</name>
+        <value>AKIAJ4YJKO4MWOFWPXKA</value>
+    </property>
+
+    <property>
+        <name>presto.s3.secret-key</name>
+        <value>zVOJbTpLfGO8Ujlr17PX2iwat4qqSFkLpcornpYe</value>
+    </property>
+
+
     <property>
         <name>fs.s3a.impl</name>
-        <value>com.facebook.presto.hive.PrestoS3FileSystem</value>
+        <value>splice.presto.com.facebook.presto.hive.PrestoS3FileSystem</value>
     </property>
+
+
 
 
 </configuration>

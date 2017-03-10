@@ -21,8 +21,6 @@ import java.util.List;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.ImmutableList;
-import static org.apache.hadoop.fs.s3a.Constants.ACCESS_KEY;
-import static org.apache.hadoop.fs.s3a.Constants.SECRET_KEY;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.hbase.*;
 import org.apache.hadoop.conf.Configuration;
@@ -190,13 +188,6 @@ class SpliceTestPlatformConfig {
         config.set("hbase.cluster.distributed", "true");  // don't start zookeeper for us
         config.set("hbase.master.distributed.log.splitting", "false"); // TODO: explain why we are setting this
 
-        // AWS Credentials for test...
-        //
-
-        config.set(ACCESS_KEY,"AKIAJ4YJKO4MWOFWPXKA");
-        config.set(SECRET_KEY,"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");
-
-
         //
         // Splice
         //
@@ -204,7 +195,11 @@ class SpliceTestPlatformConfig {
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
 
-        config.set("fs.s3a.impl","com.facebook.presto.hive.PrestoS3FileSystem");
+
+        config.set("presto.s3.access-key","AKIAJ4YJKO4MWOFWPXKA");
+        config.set("presto.s3.secret-key","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");
+
+        config.set("fs.s3a.impl","splice.presto.com.facebook.presto.hive.PrestoS3FileSystem");
 
         //
         // Snapshots
