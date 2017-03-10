@@ -22,6 +22,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -81,5 +82,7 @@ public interface SIEnvironment{
     OperationFactory baseOperationFactory();
 
     SnowflakeFactory snowflakeFactory();
+
+    ClusterHealth clusterHealthFactory();
 
 }
