@@ -111,6 +111,8 @@ public interface WriteContext {
 
     boolean skipConflictDetection();
 
+    boolean skipWAL();
+
     TransactionalRegion txnRegion();
 
     PipelineExceptionFactory exceptionFactory();

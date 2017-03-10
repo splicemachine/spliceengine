@@ -1894,7 +1894,8 @@ public interface SQLState {
     String EXPORT_PARAMETER_IS_WRONG                               ="XIE0U.S";
     String EXPORT_PARAMETER_VALUE_IS_WRONG                         ="XIE0X.S";
     String UNEXPECTED_IMPORT_READING_ERROR                         ="XIE10.S";
-    String UNEXPECTED_IMPORT_CSV_ERROR                             ="XIE11.S";
+	String UNEXPECTED_IMPORT_CSV_ERROR                             ="XIE11.S";
+	String REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR                 ="XIE12.S";
 
 
 

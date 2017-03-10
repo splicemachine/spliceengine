@@ -205,4 +205,9 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
     public boolean skipConflictDetection() {
         return false;
     }
+
+    @Override
+    public boolean skipWAL() {
+        return false;
+    }
 }

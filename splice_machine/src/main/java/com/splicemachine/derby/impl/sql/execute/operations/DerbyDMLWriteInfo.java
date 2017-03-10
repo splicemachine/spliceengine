@@ -73,6 +73,11 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
     }
 
     @Override
+    public long[] getIndexConglomerateIds() {
+        return ((WriteCursorConstantOperation)getConstantAction()).getIndexCIDS();
+    }
+
+    @Override
 		public ResultDescription getResultDescription() {
 				return activation.getResultDescription();
 		}
