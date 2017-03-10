@@ -27,6 +27,7 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.PermissiveInsertWriteConfiguration;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
+import com.splicemachine.pipeline.config.UnsafeWriteConfiguration;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -95,7 +96,10 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             if(insertOperation!=null && operationContext.isPermissive())
                     writeConfiguration = new PermissiveInsertWriteConfiguration(writeConfiguration,
                             operationContext,
-                            encoder, execRowDefinition, insertOperation.skipConflictDetection(), insertOperation.skipWAL());
+                            encoder, execRowDefinition);
+            if(insertOperation.skipConflictDetection() || insertOperation.skipWAL()) {
+                writeConfiguration = new UnsafeWriteConfiguration(writeConfiguration, insertOperation.skipConflictDetection(), insertOperation.skipWAL());
+            }
 
             writeConfiguration.setRecordingContext(operationContext);
             this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
