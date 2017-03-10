@@ -147,7 +147,7 @@ public class ColumnInfo {
 			foundTheColumn = true;
 			if(importExportSupportedType(dataType)) {
 				insertColumnNames.add(columnName);
-				String sqlType = typeName + getTypeOption(typeName , columnSize , columnSize , decimalDigits);
+				String sqlType = getSqlType(typeName, columnSize, decimalDigits);
 				columnTypes.add(sqlType);
                 jdbcColumnTypes.add(new Integer(dataType));
 				noOfColumns++;
@@ -167,6 +167,17 @@ public class ColumnInfo {
 		return foundTheColumn;
 	}
 
+	private String getSqlType(String typeName, int columnSize, int decimalDigits) {
+	    if (typeName.equals("VARCHAR () FOR BIT DATA")) {
+            return  "VARCHAR (" + columnSize + ") FOR BIT DATA";
+        }
+        else if (typeName.equals("CHAR () FOR BIT DATA")) {
+            return  "CHAR (" + columnSize + ") FOR BIT DATA";
+        }
+        else {
+            return typeName +  getTypeOption(typeName , columnSize , columnSize , decimalDigits);
+        }
+    }
     // look up the class name of a UDT
     private String getUDTClassName( DatabaseMetaData dmd, String sqlTypeName )
         throws SQLException
@@ -237,7 +248,7 @@ public class ColumnInfo {
 			if ((type.equals("DECIMAL") ||
 				 type.equals("NUMERIC")) && scale != 0)
 				return "(" + scale + ")";
-
+        
 			//no special type option
 			return "";
 	}

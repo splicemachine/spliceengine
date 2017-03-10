@@ -87,6 +87,9 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static String TABLE_18 = "R";
     protected static String TABLE_19 = "S";
     protected static String TABLE_20 = "T";
+    protected static String TABLE_21 = "U";
+    protected static String TABLE_22 = "V";
+
     private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 
@@ -170,6 +173,10 @@ public class HdfsImportIT extends SpliceUnitTest {
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableWatcher19 = new SpliceTableWatcher(TABLE_19, spliceSchemaWatcher
             .schemaName, "(order_date TIMESTAMP)");
+    protected static SpliceTableWatcher spliceTableWatcher21 = new SpliceTableWatcher(TABLE_21, spliceSchemaWatcher
+            .schemaName, "(c1 char(10) for bit data )");
+    protected static SpliceTableWatcher spliceTableWatcher22 = new SpliceTableWatcher(TABLE_22, spliceSchemaWatcher
+            .schemaName, "(c1 varchar(10) for bit data )");
 
     private static SpliceTableWatcher  multiLine = new SpliceTableWatcher("mytable",spliceSchemaWatcher.schemaName,
             "(a int, b char(10),c timestamp, d varchar(100),e bigint)");
@@ -205,12 +212,14 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher18)
             .around(spliceTableWatcher19)
             .around(spliceTableWatcher20)
+            .around(spliceTableWatcher21)
+            .around(spliceTableWatcher22)
             .around(multiLine)
             .around(multiPK)
             .around(autoIncTableWatcher);
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -1545,6 +1554,42 @@ public class HdfsImportIT extends SpliceUnitTest {
         // No error -- we are tolerating ALL errors so 1 row should be inserted
         // Notice ANYTHING < 0 is considered -1 (permissive)
         helpTestConstraints(-20, 1, false);
+    }
+
+    @Test
+    public void testImportCharForBit() throws Exception {
+        importCharForBit(TABLE_21);
+        importCharForBit(TABLE_22);
+    }
+    
+    private void importCharForBit(String table) throws Exception {
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, table,
+                getResourceDirectory() + "charForBit.csv", 0,
+                BADDIR.getCanonicalPath()));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s order by 1", table));
+        String[] result = {"ab", "cd", "ef"};
+        int i = 0;
+        while(rs.next()) {
+            String s = rs.getString(1);
+            Assert.assertEquals(result[i], rs.getString(1));
+            i++;
+        }
     }
 
     public void helpTestConstraints(long maxBadRecords, int insertRowsExpected, boolean expectException) throws Exception {
