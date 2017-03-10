@@ -30,9 +30,10 @@ import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType};
 import org.junit.Assert._
 import org.junit.runner.RunWith
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.scalatest.{Ignore, BeforeAndAfter, FunSuite, Matchers}
 import org.scalatest.junit.JUnitRunner
 
+@Ignore
 @RunWith(classOf[JUnitRunner])
 class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter with Matchers {
 
