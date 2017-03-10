@@ -21,6 +21,9 @@ import java.net.URISyntaxException;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.si.api.server.ClusterHealth;
+import com.splicemachine.storage.HClusterHealthFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
@@ -77,6 +80,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final Clock clock;
     private final DistributedFileSystem fileSystem;
     private final SnowflakeFactory snowflakeFactory;
+    private final HClusterHealthFactory clusterHealthFactory;
     private SIDriver siDriver;
 
 
@@ -118,6 +122,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
                 config.getTransactionTimeout(),
                 config.getTransactionKeepAliveThreads(),
                 txnStore);
+        this.clusterHealthFactory = new HClusterHealthFactory(ZkUtils.getRecoverableZooKeeper());
         siDriver = SIDriver.loadDriver(this);
     }
 
@@ -140,6 +145,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.clock = clock;
         this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
         this.snowflakeFactory = new HSnowflakeFactory();
+        this.clusterHealthFactory = new HClusterHealthFactory(rzk);
 
 
         this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
@@ -239,5 +245,10 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public SnowflakeFactory snowflakeFactory() {
         return snowflakeFactory;
+    }
+
+    @Override
+    public ClusterHealth clusterHealthFactory() {
+        return clusterHealthFactory;
     }
 }

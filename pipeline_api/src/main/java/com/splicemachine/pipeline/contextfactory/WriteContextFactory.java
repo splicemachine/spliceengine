@@ -39,6 +39,7 @@ public interface WriteContextFactory<T> {
                         int expectedWrites,
                         boolean skipIndexWrites,
                         boolean skipConflictDetection,
+                        boolean skipWAL,
                         ServerControl env) throws IOException, InterruptedException;
 
     /**

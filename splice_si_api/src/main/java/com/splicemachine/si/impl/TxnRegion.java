@@ -115,11 +115,12 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     public Iterable<MutationStatus> bulkWrite(TxnView txn,
                                               byte[] family, byte[] qualifier,
                                               ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
-                                              Collection<KVPair> data, boolean skipConflictDetection) throws IOException{
+                                              Collection<KVPair> data, boolean skipConflictDetection, boolean skipWAL) throws IOException{
         /*
          * Designed for subclasses. Override this if you want to bypass transactional writes
          */
-        final MutationStatus[] status = transactor.processKvBatch(region, rollForward, family, qualifier, data,txn,constraintChecker,skipConflictDetection);
+        final MutationStatus[] status = transactor.processKvBatch(region, rollForward, family, qualifier, data,txn,
+                constraintChecker,skipConflictDetection,skipWAL);
         return new Iterable<MutationStatus>(){
             @Override public Iterator<MutationStatus> iterator(){ return Iterators.forArray(status); }
         };

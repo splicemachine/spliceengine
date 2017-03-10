@@ -195,6 +195,7 @@ public class HdfsImport {
                  true,
                  false,
                  false,
+                 false,
                  results);
     }
 
@@ -276,6 +277,7 @@ public class HdfsImport {
                  false,
                  false,
                  false,
+                 false,
                  results);
     }
 
@@ -310,6 +312,7 @@ public class HdfsImport {
                 false,
                 false,
                 true,
+                true,
                 results);
     }
 
@@ -331,15 +334,16 @@ public class HdfsImport {
                                  boolean isUpsert,
                                  boolean isCheckScan,
                                  boolean skipConflictDetection,
+                                 boolean skipWAL,
                                  ResultSet[] results) throws SQLException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doImport {schemaName=%s, tableName=%s, insertColumnList=%s, fileName=%s, " +
                                      "columnDelimiter=%s, characterDelimiter=%s, timestampFormat=%s, dateFormat=%s, " +
                 "timeFormat=%s, badRecordsAllowed=%d, badRecordDirectory=%s, oneLineRecords=%s, charset=%s, " +
-                "isUpsert=%s, isCheckScan=%s, skipConflictDetection=%b}",
+                "isUpsert=%s, isCheckScan=%s, skipConflictDetection=%b, skipWAL=%b}",
                                  schemaName, tableName, insertColumnListString, fileName, columnDelimiter, characterDelimiter,
                                  timestampFormat, dateFormat, timeFormat, badRecordsAllowed, badRecordDirectory,
-                                 oneLineRecords, charset, isUpsert, isCheckScan, skipConflictDetection);
+                                 oneLineRecords, charset, isUpsert, isCheckScan, skipConflictDetection, skipWAL);
 
         if (charset == null) {
             charset = StandardCharsets.UTF_8.name();
@@ -419,7 +423,9 @@ public class HdfsImport {
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                 "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
-                badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + (skipConflictDetection ? ", skipConflictDetection=true" : "") + "\n" +
+                badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed +
+                    (skipConflictDetection ? ", skipConflictDetection=true" : "") +
+                    (skipWAL ? ", skipWAL=true" : "") + "\n" +
                 " SELECT "+
                     generateColumnList(((EmbedConnection)conn).getLanguageConnection(),schemaName,tableName,insertColumnList) +
                     " from " +

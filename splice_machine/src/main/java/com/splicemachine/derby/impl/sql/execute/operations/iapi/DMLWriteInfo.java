@@ -43,6 +43,8 @@ public interface DMLWriteInfo extends Externalizable {
 
     long getConglomerateId();
 
+    long[] getIndexConglomerateIds();
+
     ResultDescription getResultDescription();
 
 }
