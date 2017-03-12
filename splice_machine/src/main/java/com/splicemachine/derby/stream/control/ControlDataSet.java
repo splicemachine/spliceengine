@@ -17,8 +17,11 @@ package com.splicemachine.derby.stream.control;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.output.HBaseBulkImporter;
+import com.splicemachine.derby.stream.output.HBaseBulkImporterBuilder;
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
+import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.*;
 import org.spark_project.guava.util.concurrent.Futures;
 import com.splicemachine.access.api.DistributedFileSystem;
@@ -474,6 +477,23 @@ public class ControlDataSet<V> implements DataSet<V> {
         throw new UnsupportedOperationException("Pin Not Supported in Control Mode");
     }
 
+    @Override
+    public DataSet<V> sampleWithoutReplacement(final double fraction) {
+
+        Iterators.filter(iterator, new Predicate<V>() {
+            @Override
+            public boolean apply(@Nullable V v) {
+                return false;
+            }
+        });
+        //this.
+        return null;
+    }
+
+    @Override
+    public HBaseBulkImporterBuilder bulkImportData(OperationContext operationContext) {
+       return null;
+    };
 
     /**
      *
