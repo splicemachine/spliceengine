@@ -179,23 +179,23 @@ public final class SQLLongint
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
-		out.writeLong(value);
+		out.writeBoolean(isNull);
+		if (!isNull)
+			out.writeLong(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-
-		setValue(in.readLong());
+		setIsNull(in.readBoolean());
+		if (!isNull)
+			setValue(in.readLong());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-
-		setValue(in.readLong());
+		setIsNull(in.readBoolean());
+		if (!isNull)
+			setValue(in.readLong());
 	}
+
 
 	/**
 	 * @see Storable#restoreToNull

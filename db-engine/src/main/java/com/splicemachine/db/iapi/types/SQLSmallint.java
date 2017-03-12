@@ -195,22 +195,21 @@ public final class SQLSmallint
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
-		out.writeShort(value);
+		out.writeBoolean(isNull);
+		if (!isNull)
+			out.writeShort(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-
-		setValue(in.readShort());
+		isNull = in.readBoolean();
+		if (!isNull)
+			setValue(in.readShort());
 	}
 	public void readExternal(ObjectInput in) throws IOException {
-
-		setValue(in.readShort());
+		isNull = in.readBoolean();
+		if (!isNull)
+			setValue(in.readShort());
 	}
 
 	/**

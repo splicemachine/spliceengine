@@ -201,26 +201,26 @@ public final class SQLBoolean
 		return StoredFormatIds.SQL_BOOLEAN_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull);
+        if (!isNull)
+            out.writeBoolean(value);
+    }
 
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
+    /** @see java.io.Externalizable#readExternal */
+    public void readExternal(ObjectInput in) throws IOException {
+        isNull = in.readBoolean();
+        if (!isNull)
+            value = in.readBoolean();
+    }
+    public void readExternalFromArray(ArrayInputStream in) throws IOException {
+        isNull = in.readBoolean();
+        if (!isNull)
+            value = in.readBoolean();
+    }
 
-		out.writeBoolean(value);
-	}
 
-	/** @see java.io.Externalizable#readExternal */
-	public void readExternal(ObjectInput in) throws IOException {
-		value = in.readBoolean();
-		isNull = false;
-	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-		value = in.readBoolean();
-		isNull = false;
-	}
-
-	/**
+    /**
 	 * @see Storable#restoreToNull
 	 *
 	 */

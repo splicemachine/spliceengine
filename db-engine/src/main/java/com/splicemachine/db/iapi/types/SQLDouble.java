@@ -221,28 +221,24 @@ public final class SQLDouble extends NumberDataType
 
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
-		out.writeDouble(value);
+		out.writeBoolean(isNull);
+		if (!isNull)
+			out.writeDouble(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-
-		value = in.readDouble();
-		isNull = false;
+		isNull = in.readBoolean();
+		if (!isNull)
+			value = in.readDouble();
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-
-		value = in.readDouble();
-		isNull = false;
+		isNull = in.readBoolean();
+		if (!isNull)
+			value = in.readDouble();
 	}
-
 	/**
 	 * @see Storable#restoreToNull
 	 *
