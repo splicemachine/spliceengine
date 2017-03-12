@@ -68,6 +68,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Calendar;
 
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.types.OrderedString;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
@@ -933,9 +934,10 @@ public class SQLChar
     */
     public void writeExternal(ObjectOutput out) throws IOException
     {
-        // never called when value is null
-        if (SanityManager.DEBUG)
-            SanityManager.ASSERT(!isNull());
+        out.writeBoolean(isNull);
+        if (isNull()) {
+            return;
+        }
 
         //
         // This handles the case that a CHAR or VARCHAR value was populated from
@@ -1172,12 +1174,16 @@ public class SQLChar
 		isNull = evaluateNull();
     }
 
-    public void readExternal(ObjectInput in) throws IOException
-    {
+    public void readExternal(ObjectInput in) throws IOException {
+        isNull = in.readBoolean();
+        if (isNull()) {
+            return;
+        }
+
         // Read the stored length in the stream header.
         int utflen = in.readUnsignedShort();
         readExternal(in, utflen, 0);
-		isNull = evaluateNull();
+        isNull = evaluateNull();
     }
 
     /**
@@ -3380,5 +3386,9 @@ public class SQLChar
     @Override
     public void decodeFromKey(PositionedByteRange src) throws StandardException {
         value = OrderedBytes.decodeString(src);
+    }
+
+    public void updateThetaSketch(UpdateSketch updateSketch) {
+        updateSketch.update(value);
     }
 }

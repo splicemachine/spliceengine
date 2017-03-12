@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -333,5 +334,4 @@ public class LazyDate extends LazyDataValueDescriptor implements DateTimeDataVal
         forceDeserialization();
         dvd.write(unsafeRowWriter, ordinal);
     }
-
 }

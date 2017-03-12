@@ -16,10 +16,12 @@
 package com.splicemachine.access.hbase;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import org.apache.hadoop.hbase.*;
@@ -90,15 +92,61 @@ public class H10PartitionAdmin implements PartitionAdmin{
     @Override
     public void splitTable(String tableName,byte[]... splitPoints) throws IOException{
         TableName tableInfo=tableInfoFactory.getTableInfo(tableName);
+
         if (splitPoints != null && splitPoints.length > 0) {
             for(byte[] splitPoint:splitPoints){
-                admin.split(tableInfo,splitPoint);
+                retriableSplit(tableInfo, splitPoint);
             }
         } else {
-            admin.split(tableInfo);
+            retriableSplit(tableInfo, null);
         }
     }
 
+    private void retriableSplit(TableName tableInfo, byte[] splitPoint) throws IOException{
+
+        List<HRegionInfo> regions = admin.getTableRegions(tableInfo);
+        int size1 = regions.size();
+        boolean done = false;
+        while (!done) {
+            try {
+                if (splitPoint != null) {
+                    admin.split(tableInfo, splitPoint);
+                }
+                else {
+                    admin.split(tableInfo);
+                }
+                done = true;
+            } catch (NotServingRegionException e) {
+                
+                done = false;
+                try {
+                    timeKeeper.sleep(100, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException ie) {
+                    throw new InterruptedIOException();
+                }
+            }
+        }
+
+        // Wait until split takes effect or timeout.
+        done = false;
+        int wait = 0;
+        while (!done && wait < 100) {
+            regions = admin.getTableRegions(tableInfo);
+            int size2 = regions.size();
+            if (size2 > size1) {
+                done = true;
+            }
+            else {
+                try {
+                    timeKeeper.sleep(100, TimeUnit.MILLISECONDS);
+                    wait++;
+                } catch (InterruptedException ie) {
+                    throw new InterruptedIOException();
+                }
+            }
+        }
+
+    }
     @Override
     public void splitRegion(byte[] regionName, byte[]... splitPoints) throws IOException {
         if (splitPoints != null && splitPoints.length > 0) {

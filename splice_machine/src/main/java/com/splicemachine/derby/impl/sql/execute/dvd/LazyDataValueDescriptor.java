@@ -18,6 +18,7 @@ package com.splicemachine.derby.impl.sql.execute.dvd;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -26,6 +27,7 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -44,7 +46,8 @@ import java.util.Calendar;
  * in the variables below and in the subclasses. See the specific variables below for
  * rationale.
  */
-public abstract class LazyDataValueDescriptor<DVD extends DataValueDescriptor> extends NullValueData implements DataValueDescriptor {
+public abstract class LazyDataValueDescriptor<DVD extends DataValueDescriptor>
+        extends NullValueData implements DataValueDescriptor, Comparable {
     private static final long serialVersionUID=3l;
     private static Logger LOG=Logger.getLogger(LazyDataValueDescriptor.class);
 
@@ -938,6 +941,70 @@ public abstract class LazyDataValueDescriptor<DVD extends DataValueDescriptor> e
             data[i] ^=0xff;
         }
         return data;
+    }
+    
+    @Override
+    public int compare(Object o1, Object o2) {
+        try {
+            DataValueDescriptor dvd1 = (DataValueDescriptor)o1;
+            DataValueDescriptor dvd2 = (DataValueDescriptor)o2;
+            return dvd1.compare(dvd2);
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
+        }
+    }
+
+    @Override
+    public int compareTo(Object otherDVD) {
+        LazyDataValueDescriptor other = (LazyDataValueDescriptor) otherDVD;
+        try {
+
+            // Use compare method from the dominant type.
+            if (typePrecedence() < other.typePrecedence())
+                return (-1 * other.compare(this));
+
+            return compare(other);
+
+        } catch (StandardException se) {
+
+            if (SanityManager.DEBUG) {
+                SanityManager.THROWASSERT("Encountered error while " +
+                        "trying to compare two DataValueDescriptors: " +
+                        se.getMessage());
+            }
+
+			/* In case of an error in insane mode, just treat the
+			 * values as "equal".
+			 */
+            return 0;
+        }
+    }
+    @Override
+    public void updateThetaSketch(UpdateSketch updateSketch) {
+        forceDeserialization();
+        dvd.updateThetaSketch(updateSketch);
+    }
+
+    @Override
+    public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
+        return new com.yahoo.sketches.frequencies.ItemsSketch(1024);
+    }
+
+    @Override
+    public int getRowWidth() {
+        forceDeserialization();
+        return dvd.getRowWidth();
+    }
+
+    @Override
+    public UpdateSketch getThetaSketch() throws StandardException {
+        return UpdateSketch.builder().build(4096);
+    }
+
+    @Override
+    public com.yahoo.sketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException {
+        forceDeserialization();
+        return com.yahoo.sketches.quantiles.ItemsSketch.getInstance(256,dvd);
     }
 }
 
