@@ -15,10 +15,13 @@
 package com.splicemachine.derby.stream.spark;
 
 import java.util.Collections;
+import java.util.Iterator;
 
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.derby.stream.function.HFileFlatMapFunction;
+import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 
@@ -38,6 +41,7 @@ import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
+import scala.Tuple2;
 
 /**
  * @author Scott Fines

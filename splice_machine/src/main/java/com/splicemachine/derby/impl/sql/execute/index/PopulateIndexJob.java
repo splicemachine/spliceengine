@@ -66,7 +66,7 @@ public class PopulateIndexJob implements Callable<Void> {
         DataSet<LocatedRow> dataSet = scanSetBuilder.buildDataSet(prefix);
         OperationContext operationContext = scanSetBuilder.getOperationContext();
         PairDataSet dsToWrite = dataSet
-                .map(new IndexTransformFunction(tentativeIndex,indexFormatIds), null, false, true, scope + ": Prepare Index")
+                .map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
                 .index(new KVPairFunction(), false, true, scope + ": Populate Index");
         DataSetWriter writer = dsToWrite.directWriteData()
                 .operationContext(operationContext)

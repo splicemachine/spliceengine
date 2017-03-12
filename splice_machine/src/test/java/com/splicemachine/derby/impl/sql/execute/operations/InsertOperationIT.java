@@ -427,4 +427,5 @@ public class InsertOperationIT {
         }
         rs.close();
     }
+
 }

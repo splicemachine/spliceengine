@@ -95,6 +95,8 @@ public final class InsertNode extends DMLModStatementNode {
 	public static final String USE_SPARK = "useSpark";
     public static final String INSERT = "INSERT";
     public static final String PIN = "pin";
+	public static final String BULK_IMPORT_DIRECTORY = "bulkImportDirectory";
+
 
 
 	public		ResultColumnList	targetColumnList;
@@ -105,9 +107,10 @@ public final class InsertNode extends DMLModStatementNode {
 	private     OrderByList         orderByList;
     private     ValueNode           offset;
     private     ValueNode           fetchFirst;
-    private     boolean           hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
+    private     boolean           	hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
     private     String              statusDirectory;
-    private     int              badRecordsAllowed = 0;
+    private     int              	badRecordsAllowed = 0;
+	private		String 				bulkImportDirectory;
 	private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
 
 
@@ -719,6 +722,7 @@ public final class InsertNode extends DMLModStatementNode {
 		String insertModeString = targetProperties.getProperty(INSERT_MODE);
 		String useSparkString = targetProperties.getProperty(USE_SPARK);
         String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
+		bulkImportDirectory = targetProperties.getProperty(BULK_IMPORT_DIRECTORY);
         String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
         Boolean pin = Boolean.parseBoolean(targetProperties.getProperty(PIN));
         if(pin){
@@ -997,7 +1001,8 @@ public final class InsertNode extends DMLModStatementNode {
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLocation());
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getCompression());
 			mb.push(partitionReferenceItem);
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 17);
+			BaseJoinStrategy.pushNullableString(mb,bulkImportDirectory);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 18);
 		}
 		else
 		{

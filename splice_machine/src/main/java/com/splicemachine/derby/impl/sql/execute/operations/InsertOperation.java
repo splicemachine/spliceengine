@@ -17,14 +17,28 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.stream.function.HFileGenerator;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.IntArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
@@ -81,6 +95,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected String compression;
     protected int partitionByRefItem;
     protected int[] partitionBy;
+    protected String bulkImportDirectory;
 
 
 
@@ -109,7 +124,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String storedAs,
                            String location,
                            String compression,
-                           int partitionByRefItem) throws StandardException{
+                           int partitionByRefItem,
+                           String bulkImportDirectory) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
@@ -121,6 +137,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.location = location;
         this.compression = compression;
         this.partitionByRefItem = partitionByRefItem;
+        this.bulkImportDirectory = bulkImportDirectory;
         init();
     }
 
@@ -252,6 +269,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         storedAs = in.readBoolean()?in.readUTF():null;
         location = in.readBoolean()?in.readUTF():null;
         compression = in.readBoolean()?in.readUTF():null;
+        bulkImportDirectory = in.readBoolean()?in.readUTF():null;
         this.partitionByRefItem = in.readInt();
     }
 
@@ -286,6 +304,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeBoolean(compression!=null);
         if (compression!=null)
             out.writeUTF(compression);
+        out.writeBoolean(bulkImportDirectory!=null);
+        if (bulkImportDirectory!=null)
+            out.writeUTF(bulkImportDirectory);
         out.writeInt(partitionByRefItem);
     }
 
@@ -320,8 +341,57 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 new RuntimeException("storedAs type not supported -> " + storedAs);
             }
 
+            if (bulkImportDirectory!=null) {
+                    SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(heapConglom);
+                    DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
+                    ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
+                    TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
+                    ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
+                    ArrayList <DDLMessage.TentativeIndex> tentativeIndexList = new ArrayList();
+                    for (ConglomerateDescriptor searchCD :list) {
+                        if (searchCD.isIndex() && !searchCD.isPrimaryKey()) {
+                            DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
+                                    activation.getLanguageConnectionContext(),
+                                    td.getHeapConglomerateId(), searchCD.getConglomerateNumber(), td, searchCD.getIndexDescriptor());
+                            tentativeIndexList.add(ddlChange.getTentativeIndex());
+                        }
+                    }
+                    set = set.flatMap(new HFileGenerator(pkCols,tableVersion,getExecRowDefinition(),autoIncrementRowLocationArray,spliceSequences,heapConglom,
+                        txn,operationContext,tentativeIndexList));
 
+                // Bulk Import Tool
 
+                ValueRow valueRow=new ValueRow(3);
+                valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
+                valueRow.setColumn(2,new SQLLongint());
+                valueRow.setColumn(3,new SQLVarchar());
+                InsertOperation insertOperation=((InsertOperation)operationContext.getOperation());
+                if(insertOperation!=null && operationContext.isPermissive()) {
+                    long numBadRecords = operationContext.getBadRecords();
+                    valueRow.setColumn(2,new SQLLongint(numBadRecords));
+                    if (numBadRecords > 0) {
+                        String fileName = operationContext.getBadRecordFileName();
+                        valueRow.setColumn(3,new SQLVarchar(fileName));
+                        if (insertOperation.isAboveFailThreshold(numBadRecords)) {
+                            throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
+                        }
+                    }
+                }
+               return dsp.createDataSet(new SingletonIterator(new LocatedRow(valueRow)));
+            }
+
+            /*
+
+            int[] pkCols,
+                          String tableVersion,
+                          ExecRow execRowDefinition,
+                          RowLocation[] autoIncrementRowLocationArray,
+                          SpliceSequence[] spliceSequences,
+                          long heapConglom,
+                          TxnView txn,
+                          OperationContext operationContext,
+                          boolean isUpsert
+             */
 
             PairDataSet dataSet=set.index(new InsertPairFunction(operationContext),true);
             DataSetWriter writer=dataSet.insertData(operationContext)
