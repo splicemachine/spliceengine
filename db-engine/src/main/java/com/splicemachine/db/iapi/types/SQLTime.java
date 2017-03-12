@@ -187,17 +187,16 @@ public final class SQLTime extends DataType
 		return StoredFormatIds.SQL_TIME_ID;
 	}
 
-	/** 
-		@exception IOException error writing data
+	/**
+	 @exception IOException error writing data
 
-	*/
+	 */
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
-
-		out.writeInt(encodedTime);
-		out.writeInt(encodedTimeFraction);
+		out.writeBoolean(isNull);
+		if (!isNull) {
+			out.writeInt(encodedTime);
+			out.writeInt(encodedTimeFraction);
+		}
 	}
 
 	/**
@@ -205,13 +204,15 @@ public final class SQLTime extends DataType
 	 *
 	 * @exception IOException	Thrown on error reading the object
 	 */
-	public void readExternal(ObjectInput in) throws IOException
-	{
-		setValue(in.readInt(), in.readInt());
+	public void readExternal(ObjectInput in) throws IOException {
+		isNull = in.readBoolean();
+		if (!isNull)
+			setValue(in.readInt(), in.readInt());
 	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException
-	{
-		setValue(in.readInt(), in.readInt());
+	public void readExternalFromArray(ArrayInputStream in) throws IOException {
+		isNull = in.readBoolean();
+		if (!isNull)
+			setValue(in.readInt(), in.readInt());
 	}
 
 	/*

@@ -236,24 +236,32 @@ public final class SQLTinyint
 		return StoredFormatIds.SQL_TINYINT_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
 
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
-		out.writeByte(value);
-	}
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull());
+        if (!isNull)
+            out.writeByte(value);
+    }
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
+		if (!in.readBoolean()) {
+			setValue(in.readByte());
+			setIsNull(false);
+		} else {
+			setIsNull(true);
+		}
 
-		setValue(in.readByte());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-
-		setValue(in.readByte());
+		if (!in.readBoolean()) {
+			setValue(in.readByte());
+			setIsNull(false);
+		} else {
+			setIsNull(true);
+		}
 	}
+
 
 
 	/**

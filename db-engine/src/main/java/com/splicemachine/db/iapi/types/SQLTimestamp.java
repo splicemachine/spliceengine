@@ -237,16 +237,16 @@ public final class SQLTimestamp extends DataType
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
-
-		/*
-		** Timestamp is written out 3 ints, encoded date, encoded time, and
-		** nanoseconds
-		*/
-		out.writeInt(encodedDate);
-		out.writeInt(encodedTime);
-		out.writeInt(nanos);
+		out.writeBoolean(isNull);
+		if (!isNull) {
+            /*
+            ** Timestamp is written out 3 ints, encoded date, encoded time, and
+            ** nanoseconds
+            */
+            out.writeInt(encodedDate);
+            out.writeInt(encodedTime);
+            out.writeInt(nanos);
+        }
 	}
 
 	/**
@@ -258,20 +258,28 @@ public final class SQLTimestamp extends DataType
 	{
 		int date;
 		int time;
-
-		date = in.readInt();
-		time = in.readInt();
-		setValue(date, time);
+		int nanos;
+		isNull = in.readBoolean();
+		if (!isNull) {
+            date = in.readInt();
+            time = in.readInt();
+            nanos = in.readInt();
+            setValue(date, time, nanos);
+        }
 	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
 		int date;
 		int time;
 		int nanos;
-
-		date = in.readInt();
-		time = in.readInt();
-		setValue(date, time);
+		isNull = in.readBoolean();
+		if (!isNull) {
+            date = in.readInt();
+            time = in.readInt();
+            nanos = in.readInt();
+            setValue(date, time, nanos);
+        }
 	}
 
 	/*

@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.splicemachine.pipeline.ErrorState;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Splitter;
 
@@ -31,9 +32,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -229,13 +228,8 @@ public class TableSplit{
              * Because of that, if you just feed in ints, then we will parse them as ints first,
              * rather than as Strings.
              */
-            byte[] pos;
-            try{
-                pos = Encoding.encode(Integer.parseInt(split));
-            }catch(NumberFormatException nfe){
-                //not an integer, so assume you know what you're doing.
-                pos = Encoding.encode(Bytes.toBytes(split));
-            }
+            byte[] pos = Bytes.toBytesBinary(split);
+
             sps.add(pos);
         }
         return sps.toArray(new byte[sps.size()][]);

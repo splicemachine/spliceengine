@@ -21,6 +21,9 @@ import org.sparkproject.guava.collect.Iterables;
 import org.sparkproject.guava.collect.Multimaps;
 import org.sparkproject.guava.collect.Sets;
 import org.sparkproject.guava.util.concurrent.Futures;
+import com.splicemachine.derby.stream.output.HBaseBulkImporterBuilder;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.*;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -346,4 +349,21 @@ public class ControlDataSet<V> implements DataSet<V> {
             return null;
         return attributes.get(name);
     }
+    @Override
+    public DataSet<V> sampleWithoutReplacement(final double fraction) {
+
+        Iterators.filter(iterable.iterator(), new Predicate<V>() {
+            @Override
+            public boolean apply(@Nullable V v) {
+                return false;
+            }
+        });
+        //this.
+        return null;
+    }
+
+    @Override
+    public HBaseBulkImporterBuilder bulkImportData(OperationContext operationContext) {
+       return null;
+    };
 }

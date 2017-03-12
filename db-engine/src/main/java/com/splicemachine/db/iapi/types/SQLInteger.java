@@ -157,24 +157,25 @@ public final class SQLInteger
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
-
-		out.writeInt(value);
+		out.writeBoolean(isNull());
+		if (!isNull())
+			out.writeInt(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
-	public final void readExternal(ObjectInput in) 
-        throws IOException {
-
-		setValue(in.readInt());
+	public final void readExternal(ObjectInput in)
+			throws IOException {
+		if (!in.readBoolean())
+			setValue(in.readInt());
+		else
+			setToNull();
 	}
-	public final void readExternalFromArray(ArrayInputStream in) 
-        throws IOException {
-
-		setValue(in.readInt());
+	public final void readExternalFromArray(ArrayInputStream in)
+			throws IOException {
+		if (!in.readBoolean())
+			setValue(in.readInt());
+		else
+			setToNull();
 	}
 
 	/**
