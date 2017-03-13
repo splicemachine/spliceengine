@@ -23,6 +23,7 @@ import org.junit.*;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
@@ -369,6 +370,37 @@ public class Subquery_Table_IT {
                 "--------\n" +
                 "20 |30 |\n" +
                 "20 |40 |");
+    }
+
+    @Test
+    public void orderByInSubQuery() throws Exception {
+        try {
+            methodWatcher.executeQuery("select * from (select a, b from s order by d ) as vt order by d ");
+            Assert.fail("Error not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X04", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeQuery("select * from (select a, b, c from s order by c, d ) as vt order by d ");
+            Assert.fail("Error not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X04", e.getSQLState());
+        }
+
+        ResultSet rs = methodWatcher.executeQuery("select * from (select a, b, d from s order by d ) as vt order by d ");
+        assertUnorderedResult(rs, "" +
+                "A | B | D |\n" +
+                "------------\n" +
+                " 0 | 1 | 3 |\n" +
+                "10 |11 |13 |");
+
+        ResultSet rs1 = methodWatcher.executeQuery("select a, b, d from (select * from s order by d ) as vt order by d ");
+        assertUnorderedResult(rs1, "" +
+                "A | B | D |\n" +
+                "------------\n" +
+                " 0 | 1 | 3 |\n" +
+                "10 |11 |13 |");
     }
 
     private static void assertUnorderedResult(ResultSet rs, String expectedResult) throws Exception {
