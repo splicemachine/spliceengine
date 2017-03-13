@@ -412,6 +412,7 @@ public class OrderByColumn extends OrderedColumn {
 										    cr.getColumnName(),
 										    cr,
 										    getContextManager());
+				resultCol.markAsPulledupOrderingColumn();
 				targetCols.addResultColumn(resultCol);
                 addedColumnOffset = targetCols.getOrderBySelect();
 				targetCols.incOrderBySelect();
