@@ -144,7 +144,7 @@ public class SYSPRIMARYKEYSRowFactory extends CatalogRowFactory {
 
         BasicUUID one = new BasicUUID(50369424,System.currentTimeMillis(),136724499);
 
-        BasicUUID two = new BasicUUID(50369424,1362416594897l,-1607811053);
+        BasicUUID two = new BasicUUID(50369424, 1362416594897L,-1607811053);
 
         System.out.printf("one=%s,two=%s,one.toString().equals(two.toString())=%s%n",
                 one,two,one.toString().equals(two.toString()));

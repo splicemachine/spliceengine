@@ -172,7 +172,7 @@ public class CreateTableNode extends DDLStatementNode
 
 		if (SanityManager.DEBUG)
 		{
-			if (this.onRollbackDeleteRows == false)
+			if (!this.onRollbackDeleteRows)
 			{
 				SanityManager.THROWASSERT(
 				"Unexpected value for onRollbackDeleteRows = " + this.onRollbackDeleteRows);

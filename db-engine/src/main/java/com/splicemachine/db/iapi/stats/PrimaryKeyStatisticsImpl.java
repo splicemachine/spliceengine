@@ -50,7 +50,7 @@ public class PrimaryKeyStatisticsImpl implements ItemStatistics<ExecRow> {
     private ExecRow execRow;
 
     public PrimaryKeyStatisticsImpl(ExecRow execRow) throws StandardException {
-        this(execRow,com.yahoo.sketches.quantiles.ItemsSketch.getInstance(execRow),0l);
+        this(execRow,com.yahoo.sketches.quantiles.ItemsSketch.getInstance(execRow), 0L);
     }
 
     public PrimaryKeyStatisticsImpl(ExecRow execRow, ItemsSketch quantilesSketch,
@@ -93,7 +93,7 @@ public class PrimaryKeyStatisticsImpl implements ItemStatistics<ExecRow> {
 
     @Override
     public long selectivity(ExecRow element) {
-        return 1l;
+        return 1L;
     }
 
     @Override

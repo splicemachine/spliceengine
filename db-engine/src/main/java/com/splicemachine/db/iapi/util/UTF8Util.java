@@ -110,8 +110,8 @@ public final class UTF8Util {
      * @throws IOException if reading from the stream fails
      * @throws UTFDataFormatException if an invalid UTF-8 encoding is detected
      */
-    private static final SkipCount internalSkip(final InputStream in,
-                                                final long charsToSkip)
+    private static SkipCount internalSkip(final InputStream in,
+                                          final long charsToSkip)
             throws IOException {
         long charsSkipped = 0;
         long bytesSkipped = 0;

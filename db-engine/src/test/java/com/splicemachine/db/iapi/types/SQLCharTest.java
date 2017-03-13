@@ -35,8 +35,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
-import com.yahoo.memory.Memory;
-import com.yahoo.memory.NativeMemory;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;

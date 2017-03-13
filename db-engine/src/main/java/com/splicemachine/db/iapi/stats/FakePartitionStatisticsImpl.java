@@ -202,7 +202,7 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public <T extends Comparator<T>> long selectivity(T element, int positionNumber) {
-        return 0l;
+        return 0L;
     }
 
     /**

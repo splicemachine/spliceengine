@@ -1769,13 +1769,12 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
     @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append("VTI:").append(getName()).append("(")
-                .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
-        sb.append(")");
-        return sb.toString();
+        String sb = spaceToLevel() +
+                "VTI:" + getName() + "(" +
+                "n=" + order +
+                attrDelim + getFinalCostEstimate().prettyProcessingString(attrDelim) +
+                ")";
+        return sb;
     }
 
 

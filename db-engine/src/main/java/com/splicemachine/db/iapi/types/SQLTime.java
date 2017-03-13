@@ -54,19 +54,16 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.unsafe.Platform;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 /**
@@ -834,7 +831,7 @@ public final class SQLTime extends DataType
 	 *
 	 * @return Whether or not value is logically null.
 	 */
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
 		return (encodedTime ==  -1);
 	}

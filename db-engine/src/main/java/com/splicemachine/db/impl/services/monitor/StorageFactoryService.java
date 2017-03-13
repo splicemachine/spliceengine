@@ -971,7 +971,7 @@ final class StorageFactoryService implements PersistentService
      * @return {@code true} if the file exists, {@code false} if not.
      * @throws SecurityException if the required privileges are missing
      */
-    private final boolean fileExists(final File file) {
+    private boolean fileExists(final File file) {
         return ((Boolean)AccessController.doPrivileged(
                 new PrivilegedAction() {
                     public Object run() {

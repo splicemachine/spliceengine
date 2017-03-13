@@ -40,7 +40,6 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.sql.Blob;
 import java.util.Arrays;
 
 /**

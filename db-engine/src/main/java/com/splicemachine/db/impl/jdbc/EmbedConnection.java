@@ -1951,7 +1951,7 @@ public abstract class EmbedConnection implements EngineConnection
 
 	public final void setInactive() {
 
-		if (active == false)
+		if (!active)
 			return;
 		// active = false
 		// tr = null !-> active = false
@@ -2718,13 +2718,13 @@ public abstract class EmbedConnection implements EngineConnection
 
             connString = 
               this.getClass().getName() + "@" + this.hashCode() + " " +
-                lcc.xidStr +                  
+					  LanguageConnectionContext.xidStr +
                     lcc.getTransactionExecute().getTransactionIdString() + 
                     "), " +
-                lcc.lccStr + 
+					  LanguageConnectionContext.lccStr +
                     Integer.toString(lcc.getInstanceNumber()) + "), " +
-                lcc.dbnameStr + lcc.getDbname() + "), " +
-                lcc.drdaStr + lcc.getDrdaID() + ") ";
+					  LanguageConnectionContext.dbnameStr + lcc.getDbname() + "), " +
+					  LanguageConnectionContext.drdaStr + lcc.getDrdaID() + ") ";
         }       
         
         return connString;

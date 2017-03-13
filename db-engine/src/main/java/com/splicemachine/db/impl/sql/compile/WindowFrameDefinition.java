@@ -230,9 +230,8 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
 
         if (frameEnd != null ? !frameEnd.equals(that.frameEnd) : that.frameEnd != null) return false;
         if (frameMode != that.frameMode) return false;
-        if (frameStart != null ? !frameStart.equals(that.frameStart) : that.frameStart != null) return false;
+        return frameStart != null ? frameStart.equals(that.frameStart) : that.frameStart == null;
 
-        return true;
     }
 
     @Override

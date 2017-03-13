@@ -266,7 +266,7 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
      */
     @Override
     public long nonZeroCardinality(long numberOfRows) {
-        return Math.min(2l, numberOfRows);
+        return Math.min(2L, numberOfRows);
     }
 
 

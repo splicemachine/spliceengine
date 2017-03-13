@@ -374,7 +374,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 */
 	/* @see Storable#isNull
 	 */
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
 		return (value == null) && (rawData == null);
 	}

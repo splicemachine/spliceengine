@@ -53,7 +53,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
     protected Union thetaSketchUnion;
     protected ItemsUnion quantilesSketchUnion;
     protected com.yahoo.sketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
-    protected long nullCount = 0l;
+    protected long nullCount = 0L;
     protected DataValueDescriptor dvd;
 
     public ColumnStatisticsMerge() {

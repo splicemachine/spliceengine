@@ -54,7 +54,6 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.StringUtil;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -1199,12 +1198,8 @@ public class ResultColumn extends ValueNode
 			return false;
 
 		/* Is the source nullable and the target non-nullable? */
-		if ((! getTypeServices().isNullable()) && expressionType.isNullable())
-		{
-			return false;
-		}
+		return !((!getTypeServices().isNullable()) && expressionType.isNullable());
 
-		return true;
 	}
 
 	boolean columnTypeAndLengthMatch(ResultColumn otherColumn)
@@ -1335,14 +1330,10 @@ public class ResultColumn extends ValueNode
 		 * RCType.isNullable() returns false for the generated source RC for 
 		 * non_nullable.  In this case, we want to see it as
 		 */
-		if ((! resultColumnType.isNullable()) &&
+		return !((!resultColumnType.isNullable()) &&
 				(otherResultColumnType.isNullable() ||
-						otherColumn.isGeneratedForUnmatchedColumnInInsert()))
-		{
-			return false;
-		}
+						otherColumn.isGeneratedForUnmatchedColumnInInsert()));
 
-		return true;
 	}
 
 	/**
@@ -1352,7 +1343,7 @@ public class ResultColumn extends ValueNode
 	 */
 	public boolean isGenerated()
 	{
-		return (isGenerated == true);
+		return (isGenerated);
 	}
 
 	/**
@@ -1362,7 +1353,7 @@ public class ResultColumn extends ValueNode
 	 */
 	public boolean isGeneratedForUnmatchedColumnInInsert()
 	{
-		return (isGeneratedForUnmatchedColumnInInsert == true);
+		return (isGeneratedForUnmatchedColumnInInsert);
 	}
 
 	/**
@@ -1960,8 +1951,7 @@ public class ResultColumn extends ValueNode
 	 */
 	public boolean hasGenerationClause()
 	{
-		if ( (columnDescriptor != null) && columnDescriptor.hasGenerationClause() ) { return true; }
-		else { return false; }
+		return (columnDescriptor != null) && columnDescriptor.hasGenerationClause();
 	}
 
 	public List getChildren() {

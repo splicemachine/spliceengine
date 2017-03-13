@@ -406,7 +406,7 @@ public class RoutineAliasInfo extends MethodAliasInfo
 
 		if (returnType != null) {
 		// this a FUNCTION, so syntax requires us to append the return type.
-			sb.append(" RETURNS " + returnType.getSQLstring());
+			sb.append(" RETURNS ").append(returnType.getSQLstring());
 		}
 
 		sb.append(" LANGUAGE JAVA PARAMETER STYLE " );

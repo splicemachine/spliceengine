@@ -69,10 +69,7 @@ public class RefTypeCompiler extends BaseTypeCompiler
 	public boolean convertible(TypeId otherType, 
 							   boolean forDataTypeFunction)
 	{
-        if (otherType.getJDBCTypeId() == Types.VARCHAR) {
-            return true;
-        }
-		return false;
+		return otherType.getJDBCTypeId() == Types.VARCHAR;
 	}
 
 	/**

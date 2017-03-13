@@ -212,7 +212,7 @@ public final class Timeout
             }
             else
             {
-                sb.append( "*** A victim was chosen, but it cannot be printed because the lockable object, " + currentLock + ", does not want to participate ***" );
+                sb.append("*** A victim was chosen, but it cannot be printed because the lockable object, ").append(currentLock).append(", does not want to participate ***");
                 sb.append( newline );
             }
         }
@@ -231,7 +231,7 @@ public final class Timeout
                 }
                 else
                 {
-                    sb.append( "*** A latch/lock, " + currentLock + ", exist in the lockTable that cannot be printed ***" );
+                    sb.append("*** A latch/lock, ").append(currentLock).append(", exist in the lockTable that cannot be printed ***");
                     sb.append( newline );
                 }
             }

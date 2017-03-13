@@ -143,10 +143,8 @@ public class ClassInspector
 			return false;
 
 		/* Classes must be public to be accessible */
-		if (! Modifier.isPublic(theClass.getModifiers()))
-			return false;
+		return Modifier.isPublic(theClass.getModifiers());
 
-		return true;
 	}
 
 

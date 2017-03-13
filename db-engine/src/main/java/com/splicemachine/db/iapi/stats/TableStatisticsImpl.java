@@ -41,7 +41,7 @@ public class TableStatisticsImpl implements TableStatistics {
     private String tableId;
     private List<? extends PartitionStatistics> partitionStatistics;
     private PartitionStatistics effectivePartitionStatistics;
-    private long rowCount = 0l;
+    private long rowCount = 0L;
     private long totalSize = 0;
     private int avgRowWidth = 0;
     private double fallbackNullFraction;
@@ -244,8 +244,8 @@ public class TableStatisticsImpl implements TableStatistics {
      */
     @Override
     public <T extends Comparator<T>> double rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
-        long selectivity = 0l;
-        long rowCount = 0l;
+        long selectivity = 0L;
+        long rowCount = 0L;
         for (PartitionStatistics partitionStatistic :partitionStatistics) {
             selectivity += partitionStatistic.rangeSelectivity(start,stop,includeStart,includeStop,positionNumber);
             rowCount += partitionStatistic.rowCount();

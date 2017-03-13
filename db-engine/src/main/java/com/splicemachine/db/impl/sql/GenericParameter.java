@@ -54,7 +54,7 @@ import java.sql.Types;
  */
 public final class GenericParameter implements Externalizable {
 
-    public static final long serialVersionUID = 4l;
+    public static final long serialVersionUID = 4L;
 
     // These defaults match the Network Server/ JCC max precision and
     // The JCC "guessed" scale. They are used as the defaults for

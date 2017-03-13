@@ -53,7 +53,7 @@ import java.io.IOException;
 
 public class DDColumnDependableFinder extends DDdependableFinder
 {
-	private static final long serialVersionUID = 1l;
+	private static final long serialVersionUID = 1L;
 	////////////////////////////////////////////////////////////////////////
 	//
 	//  STATE

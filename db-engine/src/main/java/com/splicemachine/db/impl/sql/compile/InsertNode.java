@@ -85,8 +85,9 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
  * After optimizing, ...
  */
 public final class InsertNode extends DMLModStatementNode {
-    public enum InsertMode {INSERT,UPSERT};
-    public InsertMode insertMode = InsertMode.INSERT;
+    public enum InsertMode {INSERT,UPSERT}
+
+	public InsertMode insertMode = InsertMode.INSERT;
 
     public static final String INSERT_MODE = "insertMode";
     public static final String STATUS_DIRECTORY = "statusDirectory";
@@ -696,7 +697,7 @@ public final class InsertNode extends DMLModStatementNode {
 		if (targetTableDescriptor != null)
 			returnValue = isSessionSchema(targetTableDescriptor.getSchemaDescriptor());
 
-		if (returnValue == false)
+		if (!returnValue)
 			returnValue = resultSet.referencesSessionSchema();
 
 		return returnValue;

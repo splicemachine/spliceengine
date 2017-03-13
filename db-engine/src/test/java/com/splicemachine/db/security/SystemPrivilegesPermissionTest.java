@@ -89,8 +89,6 @@ public class SystemPrivilegesPermissionTest {
         }
     }
 
-    ;
-
     /**
      * Some relative directory path aliases for testing DatabasePermissions.
      */
@@ -101,8 +99,6 @@ public class SystemPrivilegesPermissionTest {
             relDirPathAliases[i] = "directory:./" + dirPaths[i];
         }
     }
-
-    ;
 
     /**
      * Some absolute directory paths for testing DatabasePermissions.
@@ -115,8 +111,6 @@ public class SystemPrivilegesPermissionTest {
         }
     }
 
-    ;
-
     /**
      * Some absolute directory path aliases for testing DatabasePermissions.
      */
@@ -127,8 +121,6 @@ public class SystemPrivilegesPermissionTest {
             absDirPathAliases[i] = "directory:/dummy/../" + dirPaths[i];
         }
     }
-
-    ;
 
     /**
      * The matrix defining which of the above directory paths imply each other.

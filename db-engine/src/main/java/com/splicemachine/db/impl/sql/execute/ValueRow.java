@@ -346,10 +346,8 @@ public class ValueRow implements ExecRow, Externalizable {
         ValueRow other = (ValueRow) obj;
         if (!Arrays.equals(column, other.column))
             return false;
-        if (ncols != other.ncols)
-            return false;
-        return true;
-    }
+		return ncols == other.ncols;
+	}
 
     @Override
     public ExecRow getKeyedExecRow(int[] keyColumns) throws StandardException {
@@ -623,7 +621,7 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	@Override
 	public long getRowSize() throws StandardException {
-		long rowSize = 0l;
+		long rowSize = 0L;
 		for (DataValueDescriptor dvd: column) {
 			int length = dvd.getLength();
 
@@ -636,7 +634,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	public long getRowSize(BitSet validColumns) throws StandardException {
 		if (validColumns ==null)
 				return getRowSize();
-		long rowSize = 0l;
+		long rowSize = 0L;
 		int nextSetBit = 0;
 		while ( (nextSetBit = validColumns.nextSetBit(nextSetBit)) != -1)
 			rowSize += (long) column[nextSetBit].getLength();

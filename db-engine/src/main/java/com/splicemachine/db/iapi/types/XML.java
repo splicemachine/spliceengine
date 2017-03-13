@@ -497,7 +497,7 @@ public class XML
     /**
      * @see Storable#isNull
 	 */
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
     {
         return ((xmlStringValue == null) || xmlStringValue.isNull());
     }

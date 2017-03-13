@@ -271,13 +271,8 @@ public final class NativeAuthenticationServiceImpl
 		 * native credentials database after the Splice/Derby database has been created.
 		 * This is useful for beta Splice customers that wish to enable AnA.
 		 */
-		if ((create || PropertyUtil.createNativeAuthenticationCredentialsDatabaseEnabled(properties)) &&
-			authenticatingInThisService( getCanonicalServiceName()))
-		{
-			_creatingCredentialsDB = true;
-		} else {
-			_creatingCredentialsDB = false;
-		}
+        _creatingCredentialsDB = (create || PropertyUtil.createNativeAuthenticationCredentialsDatabaseEnabled(properties)) &&
+                authenticatingInThisService(getCanonicalServiceName());
 
 		// Set ourselves as being ready, having loaded the proper
 		// authentication scheme for this service

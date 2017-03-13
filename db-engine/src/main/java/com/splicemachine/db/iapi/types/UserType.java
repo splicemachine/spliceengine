@@ -614,7 +614,7 @@ public class UserType extends DataType
 	 *
 	 * @return Whether or not value is logically null.
 	 */
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
 		return (value == null);
 	}

@@ -112,10 +112,7 @@ public class ConditionalNode extends ValueNode
 	 * @return 		True if this node is a CastNode, false otherwise.
 	 */
 	private boolean isCastNode(ValueNode node) {
-		if (node.getNodeType() == C_NodeTypes.CAST_NODE)
-			return true;
-		else
-			return false;
+		return node.getNodeType() == C_NodeTypes.CAST_NODE;
 	}
 
 	/**
@@ -127,10 +124,7 @@ public class ConditionalNode extends ValueNode
 	 * @throws StandardException 
 	 */
 	private boolean isCastToChar(ValueNode node) throws StandardException {
-		if (node.getTypeServices().getTypeName().equals(TypeId.CHAR_NAME))
-			return true;
-		else
-			return false;
+		return node.getTypeServices().getTypeName().equals(TypeId.CHAR_NAME);
 	}
 
 	/**
@@ -141,11 +135,8 @@ public class ConditionalNode extends ValueNode
 	 * @return      True if this node represents a SQL NULL, false otherwise.
 	 */
 	private boolean isNullNode(ValueNode node) {
-		if (isCastNode(node) &&
-			(((CastNode)node).castOperand instanceof UntypedNullConstantNode))
-			return true;
-		else
-			return false;
+		return isCastNode(node) &&
+				(((CastNode) node).castOperand instanceof UntypedNullConstantNode);
 	}
 
  	/**
@@ -156,10 +147,7 @@ public class ConditionalNode extends ValueNode
 	 * @return        True if this node is a CondtionalNode, false otherwise.
 	 */
 	private boolean isConditionalNode(ValueNode node) {
-		if (node.getNodeType() == C_NodeTypes.CONDITIONAL_NODE)
-			return true;
-		else
-			return false;
+		return node.getNodeType() == C_NodeTypes.CONDITIONAL_NODE;
 	}
 
 	/**
@@ -177,12 +165,9 @@ public class ConditionalNode extends ValueNode
 	private boolean shouldCast(DataTypeDescriptor newType,
 		DataTypeDescriptor oldType) throws StandardException
 	{
-		if ((newType != null) &&
-			((oldType == null) ||
-			 (!oldType.getTypeId().equals(newType.getTypeId()))))
-			return true;
-		else
-			return false;
+		return (newType != null) &&
+				((oldType == null) ||
+						(!oldType.getTypeId().equals(newType.getTypeId())));
 	}
 
 	/**

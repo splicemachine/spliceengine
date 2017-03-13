@@ -397,7 +397,7 @@ public class ModifyColumnNode extends ColumnDefinitionNode
 				throw StandardException.newException(SQLState.LANG_INVALID_ALTER_TABLE_ATTRIBUTES,
 								td.getQualifiedName(), name);
 		}
-		if (isAutoincrement == false)
+		if (!isAutoincrement)
 			return;
 		
 		super.validateAutoincrement(dd, td, tableType);

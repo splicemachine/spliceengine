@@ -142,14 +142,7 @@ class MemberTableHash
 			return false;
 		}
 
-		if (name.equals(mth.name) && descriptor.equals(mth.descriptor))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return name.equals(mth.name) && descriptor.equals(mth.descriptor);
 	}
 
 	public int hashCode()

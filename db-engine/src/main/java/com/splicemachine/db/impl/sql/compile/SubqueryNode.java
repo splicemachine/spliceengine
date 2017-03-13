@@ -1880,7 +1880,7 @@ public class SubqueryNode extends ValueNode{
         boolean matchRowId = false;
         if(leftOperand instanceof ColumnReference) {
             ColumnReference cr = (ColumnReference) leftOperand;
-            matchRowId = cr.isRowIdColumn();;
+            matchRowId = cr.isRowIdColumn();
         }
         // Replace the FromBaseTables in the from list with ExistBaseTables
         select.getFromList().genExistsBaseTables(resultSet.getReferencedTableMap(),

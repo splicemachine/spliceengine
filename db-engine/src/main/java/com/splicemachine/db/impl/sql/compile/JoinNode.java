@@ -1892,7 +1892,7 @@ public class JoinNode extends TableOperatorNode{
         if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (joinPreds != null && joinPreds.size() > 0)
-                sb.append(attrDelim).append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+                sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(joinPreds)).append("]");
         }
         sb.append(")");
         return sb.toString();

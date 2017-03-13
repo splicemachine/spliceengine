@@ -1210,7 +1210,7 @@ public class TableElementList extends QueryTreeNodeVector {
 					break;
 				}
 			}
-			if (match == false)
+			if (!match)
 				return false;
 		}
 

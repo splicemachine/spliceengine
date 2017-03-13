@@ -39,11 +39,9 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
-import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.sql.Date;
 import java.sql.Time;
 import java.util.Arrays;
 import java.util.GregorianCalendar;

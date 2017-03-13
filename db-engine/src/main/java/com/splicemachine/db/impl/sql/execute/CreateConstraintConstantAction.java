@@ -535,7 +535,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 		// Do not put this under SanityManager.DEBUG - it is needed for
 		// error reporting.
 		StringBuffer strbuf = new StringBuffer();
-		strbuf.append( "CREATE CONSTRAINT " + constraintName );
+		strbuf.append("CREATE CONSTRAINT ").append(constraintName);
 		strbuf.append("\n=========================\n");
 
 		if (columnNames == null)
@@ -546,7 +546,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 		{
 			for (int ix=0; ix < columnNames.length; ix++)
 			{
-				strbuf.append("\n\tcol["+ix+"]"+ columnNames[ix]);
+				strbuf.append("\n\tcol[").append(ix).append("]").append(columnNames[ix]);
 			}
 		}
 		

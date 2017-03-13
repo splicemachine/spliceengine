@@ -168,11 +168,8 @@ public class ArrayOperatorNode extends ValueNode {
 
 		ArrayOperatorNode other = (ArrayOperatorNode) o;
 
-		if (!operand.isEquivalent(other.operand)) {
-			return false;
-		}
+		return operand.isEquivalent(other.operand);
 
-		return true;
 	}
 
 	/**

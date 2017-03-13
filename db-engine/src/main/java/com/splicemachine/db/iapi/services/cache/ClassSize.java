@@ -324,11 +324,11 @@ public class ClassSize
      * @return The reference size in bytes as specified or implied by the VM,
      *      or {@code -1} if the reference size couldn't be determined.
      */
-    private static final int fetchRefSizeFromSystemProperties() {
+    private static int fetchRefSizeFromSystemProperties() {
         // Try the direct way first, by looking for 'sun.arch.data.model'
         String dataModel = getSystemProperty("sun.arch.data.model");
         try {
-            return (new Integer(dataModel).intValue() / 8);
+            return (Integer.parseInt(dataModel) / 8);
         } catch (NumberFormatException ignoreNFE) {}
 
         // Try 'os.arch'
@@ -359,7 +359,7 @@ public class ClassSize
      * @return The property value, or {@code null} if it doesn't exist or the
      *      required permission to read the property is missing.
      */
-    private static final String getSystemProperty(final String propName) {
+    private static String getSystemProperty(final String propName) {
         try {
             return (String)AccessController.doPrivileged(
                     new PrivilegedAction() {

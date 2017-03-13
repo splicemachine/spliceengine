@@ -177,7 +177,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		return StoredFormatIds.SQL_ARRAY_ID;
 	}
 
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
 		return (value == null);
 	}

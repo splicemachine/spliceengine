@@ -92,7 +92,7 @@ public class SelectivityUtil {
             }
         }
         return selectivity;
-    };
+    }
 
     public static double estimateScanSelectivity(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException {
         double selectivity = 1d;

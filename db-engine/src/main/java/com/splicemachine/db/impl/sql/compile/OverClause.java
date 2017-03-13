@@ -237,9 +237,8 @@ public class OverClause extends QueryTreeNode {
 
         if (frameDefinition != null ? !frameDefinition.isEquivalent(other.frameDefinition) : other.frameDefinition != null) return false;
         if (orderByClause != null ? !isEquivalent(orderByClause, other.orderByClause) : other.orderByClause != null) return false;
-        if (partition != null ? !partition.isEquivalent(other.partition) : other.partition != null) return false;
+        return partition != null ? partition.isEquivalent(other.partition) : other.partition == null;
 
-        return true;
     }
 
     private boolean isEquivalent(OrderByList thisOne, OrderByList thatOne) throws StandardException {

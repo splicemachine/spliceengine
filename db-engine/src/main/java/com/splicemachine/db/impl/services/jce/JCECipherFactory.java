@@ -769,7 +769,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		String oldBP = changeString.substring(0, seperator).trim();
 		byte[] oldBPAscii = StringUtil.getAsciiBytes(oldBP);
 		if (oldBPAscii == null || oldBPAscii.length < CipherFactory.MIN_BOOTPASS_LENGTH)
-			throw StandardException.newException(SQLState.WRONG_BOOT_PASSWORD);;
+			throw StandardException.newException(SQLState.WRONG_BOOT_PASSWORD);
 
 		String newBP = changeString.substring(seperator+1).trim();
 		byte[] newBPAscii = StringUtil.getAsciiBytes(newBP);

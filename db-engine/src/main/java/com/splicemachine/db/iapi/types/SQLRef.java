@@ -124,7 +124,7 @@ public class SQLRef extends DataType implements RefDataValue {
 		return StoredFormatIds.SQL_REF_ID;
 	}  
 
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
 		return (value == null);
 	}

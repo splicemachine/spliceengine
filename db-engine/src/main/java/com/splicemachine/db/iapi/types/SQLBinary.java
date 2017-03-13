@@ -343,7 +343,7 @@ abstract class SQLBinary
 	 * @see com.splicemachine.db.iapi.services.io.Storable#isNull
 	 */
 
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
 		return (dataValue == null) && (stream == null) && (_blobValue == null);
 	}

@@ -480,13 +480,11 @@ public class EmbeddedDataSource extends ReferenceableDataSource implements
 		if (attributesAsPassword && requestPassword && password != null) {
 
 
-			StringBuffer sb = new StringBuffer(url.length() + password.length() + 1);
+			String sb = url +
+					';' +
+					password;
 
-			sb.append(url);
-			sb.append(';');
-			sb.append(password); // these are now request attributes on the URL
-
-			url = sb.toString();
+			url = sb;
 
 		}
 		Connection conn =  findDriver().connect(url, info);

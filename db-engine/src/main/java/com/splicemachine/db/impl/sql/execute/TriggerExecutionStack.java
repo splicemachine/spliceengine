@@ -48,7 +48,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
  * This class is pulled out of LCC for serialization.
  */
 public class TriggerExecutionStack implements Externalizable {
-    private List<TriggerExecutionContext> triggerExecutionContexts = new ArrayList<>();;
+    private List<TriggerExecutionContext> triggerExecutionContexts = new ArrayList<>();
 
     public List<TriggerExecutionContext> asList() {
         return this.triggerExecutionContexts;

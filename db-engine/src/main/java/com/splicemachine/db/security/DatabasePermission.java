@@ -133,7 +133,7 @@ final public class DatabasePermission extends Permission {
     static {
         // when adding new actions, check: implies(Permission), getActions()
         LEGAL_ACTIONS.add(CREATE);
-    };
+    }
 
     /**
      * The original location URL passed to constructor.

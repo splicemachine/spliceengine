@@ -272,7 +272,7 @@ public final class GenericResultDescription
 			StringBuffer colStr = new StringBuffer();
 			for (int i = 0; i < columns.length; i++)
 			{
-				colStr.append("column["+i+"]\n");
+				colStr.append("column[").append(i).append("]\n");
 				colStr.append(columns[i].toString());
 			}	
 			return "GenericResultDescription\n" +

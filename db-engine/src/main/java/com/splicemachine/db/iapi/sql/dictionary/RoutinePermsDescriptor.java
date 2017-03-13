@@ -132,10 +132,7 @@ public class RoutinePermsDescriptor extends PermissionsDescriptor
 	public boolean checkOwner(String authorizationId) throws StandardException
 	{
 		UUID sd = getDataDictionary().getAliasDescriptor(routineUUID).getSchemaUUID();
-		if (getDataDictionary().getSchemaDescriptor(sd, null).getAuthorizationId().equals(authorizationId))
-			return true;
-		else
-			return false;
+		return getDataDictionary().getSchemaDescriptor(sd, null).getAuthorizationId().equals(authorizationId);
 	}
 
 	//////////////////////////////////////////////

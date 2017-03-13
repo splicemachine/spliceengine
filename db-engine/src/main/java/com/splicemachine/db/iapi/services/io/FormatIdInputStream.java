@@ -122,7 +122,7 @@ public final class FormatIdInputStream extends DataInputStream
 				if (f instanceof Storable)
 				{
 					boolean isNull = this.readBoolean();
-					if (isNull == true)
+					if (isNull)
 					{
 						Storable s = (Storable)f;
 						s.restoreToNull();

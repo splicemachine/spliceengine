@@ -3257,16 +3257,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @see Connection
      */
 	public boolean supportsResultSetConcurrency(int type, int concurrency) {
- 		if (type == ResultSet.TYPE_SCROLL_SENSITIVE) {
- 			// (TYPE_SCROLL_SENSITIVE, *)
-  			return false;
- 		} else {
- 			// (FORWARD_ONLY, CONCUR_UPDATABLE)
- 			// (FORWARD_ONLY, CONCUR_READ_ONLY)
- 			// (TYPE_SCROLL_INSENSITIVE, CONCUR_UPDATABLE)
- 			// (TYPE_SCROLL_INSENSITIVE, READ_ONLY)
- 			return true;
- 		}
+		return type != ResultSet.TYPE_SCROLL_SENSITIVE;
 	}
 
     /**
@@ -3278,11 +3269,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return true if updates are visible for the result set type
      */
     public boolean ownUpdatesAreVisible(int type)   {
- 		if (type == ResultSet.TYPE_SCROLL_INSENSITIVE) {
- 			return true;
- 		} else {
- 			return false;
- 		}
+		return type == ResultSet.TYPE_SCROLL_INSENSITIVE;
 	}
  
     /**
@@ -3294,11 +3281,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return true if deletes are visible for the result set type
      */
     public boolean ownDeletesAreVisible(int type)   {
- 		if (type == ResultSet.TYPE_SCROLL_INSENSITIVE) {
- 			return true;
- 		} else {
- 			return false;
- 		}
+		return type == ResultSet.TYPE_SCROLL_INSENSITIVE;
 	}
  
      /**
@@ -3326,9 +3309,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
        * @return true if updates are visible for the result set type
        */
     public boolean othersUpdatesAreVisible(int type) {
-		if (type == ResultSet.TYPE_FORWARD_ONLY)
-			return true;
-		return false;
+		return type == ResultSet.TYPE_FORWARD_ONLY;
 	}
 
     /**
@@ -3340,9 +3321,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return true if deletes are visible for the result set type
      */
     public boolean othersDeletesAreVisible(int type)  {
-		if (type == ResultSet.TYPE_FORWARD_ONLY)
-			return true;
-		return false;
+		return type == ResultSet.TYPE_FORWARD_ONLY;
 	}
 
     /**
@@ -3354,9 +3333,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return true if inserts are visible for the result set type
      */
     public boolean othersInsertsAreVisible(int type)  {
-		if (type == ResultSet.TYPE_FORWARD_ONLY)
-			return true;
-		return false;
+		return type == ResultSet.TYPE_FORWARD_ONLY;
 	}
 
     /**
@@ -3369,14 +3346,10 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return true if updates are detected by the resultset type
      */
     public boolean updatesAreDetected(int type) {
-		if (type == ResultSet.TYPE_SCROLL_INSENSITIVE) {
-			return true;
-		} else {
-			// For forward only resultsets, we move to before the next
-			// row after a update and that is why updatesAreDetected
-			// returns false.
-			return false;
-		}
+		// For forward only resultsets, we move to before the next
+// row after a update and that is why updatesAreDetected
+// returns false.
+		return type == ResultSet.TYPE_SCROLL_INSENSITIVE;
 	}
 
     /**
@@ -3390,14 +3363,10 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return true if deletes are detected by the resultset type
      */
     public boolean deletesAreDetected(int type) {
-		if (type == ResultSet.TYPE_SCROLL_INSENSITIVE) {
-			return true;
-		} else {
-			// For forward only resultsets, we move to before the next
-			// row after a delete and that is why deletesAreDetected
-			// returns false
-			return false;
-		}
+		// For forward only resultsets, we move to before the next
+// row after a delete and that is why deletesAreDetected
+// returns false
+		return type == ResultSet.TYPE_SCROLL_INSENSITIVE;
 	}
 
     /**

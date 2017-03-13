@@ -53,11 +53,9 @@ public class ThreadDump {
         for (Map.Entry<Thread, StackTraceElement[]> e : st.entrySet()) {
             StackTraceElement[] lines = e.getValue();
             Thread t = e.getKey();
-            sb.append("Thread name=" + t.getName() + " id=" + t.getId()
-                    + " priority=" + t.getPriority() + " state=" + t.getState()
-                    + " isdaemon=" + t.isDaemon() + "\n");
+            sb.append("Thread name=").append(t.getName()).append(" id=").append(t.getId()).append(" priority=").append(t.getPriority()).append(" state=").append(t.getState()).append(" isdaemon=").append(t.isDaemon()).append("\n");
             for (int i = 0; i < lines.length; i++) {
-                sb.append("\t" + lines[i] + "\n");
+                sb.append("\t").append(lines[i]).append("\n");
 
             }
             sb.append("\n");

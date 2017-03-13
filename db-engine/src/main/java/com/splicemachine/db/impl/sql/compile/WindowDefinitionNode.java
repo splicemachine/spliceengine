@@ -251,9 +251,8 @@ public final class WindowDefinitionNode extends WindowNode
         WindowDefinitionNode that = (WindowDefinitionNode) o;
 
         if (inlined != that.inlined) return false;
-        if (overClause != null ? !overClause.equals(that.overClause) : that.overClause != null) return false;
+        return overClause != null ? overClause.equals(that.overClause) : that.overClause == null;
 
-        return true;
     }
 
     @Override

@@ -717,14 +717,13 @@ public class StandardException extends Exception
 	*/
 	public String toString() {
 		String msg = getMessage();
-		StringBuffer buf = new StringBuffer(256);
-		buf.append("ERROR ").append(getSQLState()).append(": ").append(msg).append("\n");
+		String buf = "ERROR " + getSQLState() + ": " + msg + "\n" +
+				"Splice Machine Release: " + System.getProperty(Property.SPLICE_RELEASE) + "\n" +
+				"Splice Machine Version Hash: " + System.getProperty(Property.SPLICE_VERSION_HASH) + "\n" +
+				"Splice Machine Build Time: " + System.getProperty(Property.SPLICE_BUILD_TIME);
 		// Include the Splice Machine version/release information.
-		buf.append("Splice Machine Release: ").append(System.getProperty(Property.SPLICE_RELEASE)).append("\n");
-		buf.append("Splice Machine Version Hash: ").append(System.getProperty(Property.SPLICE_VERSION_HASH)).append("\n");
-		buf.append("Splice Machine Build Time: ").append(System.getProperty(Property.SPLICE_BUILD_TIME));
 
-		return buf.toString();
+		return buf;
 	}
 
 	/*

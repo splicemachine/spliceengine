@@ -1340,7 +1340,6 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
                     try {
                         a.close();
                     } catch (Throwable tt) {
-                        ;
                     }
                 }
                 throw handleException(t);

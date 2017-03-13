@@ -119,6 +119,6 @@ public abstract class ConstantPoolEntry /*implements PoolEntry*/
 		<LI> CONSTANT_NameAndType
 		</UL>
 	*/	
-	int getI2() { return 0; };
+	int getI2() { return 0; }
 }
 

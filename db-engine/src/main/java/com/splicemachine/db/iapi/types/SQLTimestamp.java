@@ -978,7 +978,7 @@ public final class SQLTimestamp extends DataType
 	 *
 	 * @return Whether or not value is logically null.
 	 */
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
 		return (encodedDate == 0);
 	}

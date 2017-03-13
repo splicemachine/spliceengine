@@ -392,13 +392,12 @@ public class IndexToBaseRowNode extends FromTable{
 
     @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append("IndexLookup").append("(")
-                .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyIndexLookupString(attrDelim));
-        sb.append(")");
-        return sb.toString();
+        String sb = spaceToLevel() +
+                "IndexLookup" + "(" +
+                "n=" + order +
+                attrDelim + getFinalCostEstimate().prettyIndexLookupString(attrDelim) +
+                ")";
+        return sb;
     }
 
 }

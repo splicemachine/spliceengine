@@ -86,17 +86,13 @@ public class SpecificAuthenticationServiceImpl
 		specificAuthenticationScheme = PropertyUtil.getPropertyFromSet(
 					properties,
 					Property.AUTHENTICATION_PROVIDER_PARAMETER);
-		if (
-			 ((specificAuthenticationScheme != null) &&
-			  (specificAuthenticationScheme.length() != 0) &&
+		return ((specificAuthenticationScheme != null) &&
+				(specificAuthenticationScheme.length() != 0) &&
 
-			  (!((StringUtil.SQLEqualsIgnoreCase(specificAuthenticationScheme,
-					  Property.AUTHENTICATION_PROVIDER_BUILTIN)) ||
-			  (specificAuthenticationScheme.equalsIgnoreCase(
-                                                             Property.AUTHENTICATION_PROVIDER_LDAP))  ))))
-			return true;
-		else
-			return false;
+				(!((StringUtil.SQLEqualsIgnoreCase(specificAuthenticationScheme,
+						Property.AUTHENTICATION_PROVIDER_BUILTIN)) ||
+						(specificAuthenticationScheme.equalsIgnoreCase(
+								Property.AUTHENTICATION_PROVIDER_LDAP)))));
 	}
 
 	/**

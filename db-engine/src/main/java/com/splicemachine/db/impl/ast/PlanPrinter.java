@@ -97,7 +97,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 Iterator<String> nodes = planToIterator(orderedNodes, useSpark);
                 StringBuffer sb = new StringBuffer();
                 while (nodes.hasNext())
-                    sb.append(nodes.next()+"\n");
+                    sb.append(nodes.next()).append("\n");
                 LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>%s\n",
                         query,sb.toString()));
             }

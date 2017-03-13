@@ -187,7 +187,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
     }
 
 
-	private final boolean evaluateNull()
+	private boolean evaluateNull()
 	{
         return bytes == null;
     }

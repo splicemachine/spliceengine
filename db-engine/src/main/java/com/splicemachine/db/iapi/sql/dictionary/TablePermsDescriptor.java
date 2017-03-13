@@ -152,10 +152,7 @@ public class TablePermsDescriptor extends PermissionsDescriptor
 	public boolean checkOwner(String authorizationId) throws StandardException
 	{
 		TableDescriptor td = getDataDictionary().getTableDescriptor(tableUUID);
-		if (td.getSchemaDescriptor().getAuthorizationId().equals(authorizationId))
-			return true;
-		else
-			return false;
+        return td.getSchemaDescriptor().getAuthorizationId().equals(authorizationId);
 	}
 
 	//////////////////////////////////////////////

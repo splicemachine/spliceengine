@@ -808,7 +808,7 @@ public class HalfOuterJoinNode extends JoinNode{
         if (joinPredicates !=null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (!joinPreds.isEmpty()) {
-                sb.append(attrDelim).append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+                sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(joinPreds)).append("]");
             }
         }
         sb.append(")");

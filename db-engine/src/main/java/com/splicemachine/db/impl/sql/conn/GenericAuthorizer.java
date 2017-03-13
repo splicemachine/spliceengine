@@ -81,11 +81,8 @@ implements Authorizer
 	  */
 	private boolean connectionMustRemainReadOnly()
 	{
-		if (lcc.getDatabase().isReadOnly() ||
-			(userAccessLevel==READ_ACCESS))
-			return true;
-		else
-			return false;
+		return lcc.getDatabase().isReadOnly() ||
+				(userAccessLevel == READ_ACCESS);
 	}
 
 	/**

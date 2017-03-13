@@ -93,7 +93,7 @@ public class DVDArrayOfItemsSerDe extends ArrayOfItemsSerDe<DataValueDescriptor>
         try {
             dataValueDescriptorArray = new DataValueDescriptor[length];
             byte[] dvdByteArray = new byte[(int)memory.getCapacity()];
-            memory.getByteArray(0l,dvdByteArray,0,(int)memory.getCapacity());
+            memory.getByteArray(0L,dvdByteArray,0,(int)memory.getCapacity());
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(dvdByteArray);
             inputStream = new ObjectInputStream(byteArrayInputStream);
             for (int i = 0; i<length; i++) {

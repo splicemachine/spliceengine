@@ -50,7 +50,7 @@ public class UniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
     private ExecRow execRow;
 
     public UniqueKeyStatisticsImpl(ExecRow execRow) throws StandardException {
-        this(execRow,ItemsSketch.getInstance(execRow),0l);
+        this(execRow,ItemsSketch.getInstance(execRow), 0L);
     }
 
     public UniqueKeyStatisticsImpl(ExecRow execRow, ItemsSketch quantilesSketch,
@@ -93,7 +93,7 @@ public class UniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
 
     @Override
     public long selectivity(ExecRow element) {
-        return 1l;
+        return 1L;
     }
 
     @Override

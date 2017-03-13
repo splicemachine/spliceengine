@@ -368,12 +368,9 @@ abstract class ImportAbstract extends VTITemplate {
      */
 	private boolean isColumnInExtFile(int colIndex) 
 	{
-		if (lobsInExtFile && 
-            (tableColumnTypes[colIndex -1] == java.sql.Types.BLOB || 
-             tableColumnTypes[colIndex -1] == java.sql.Types.CLOB ))
-			return true;
-		else 
-			return false;
+        return lobsInExtFile &&
+                (tableColumnTypes[colIndex - 1] == java.sql.Types.BLOB ||
+                        tableColumnTypes[colIndex - 1] == java.sql.Types.CLOB);
 
 	}
         

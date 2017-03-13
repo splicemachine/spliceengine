@@ -342,10 +342,9 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 
         IndexValueRow that = (IndexValueRow) o;
 
-        if (valueRow != null ? !valueRow.equals(that.valueRow) : that.valueRow != null) return false;
+		return valueRow != null ? valueRow.equals(that.valueRow) : that.valueRow == null;
 
-        return true;
-    }
+	}
     @Override
     public ExecRow getKeyedExecRow(int[] keyColumns) throws StandardException {
         ValueRow key = new ValueRow(keyColumns.length);
