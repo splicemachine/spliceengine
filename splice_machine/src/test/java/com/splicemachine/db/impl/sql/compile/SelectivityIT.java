@@ -136,6 +136,14 @@ public class SelectivityIT extends SpliceUnitTest {
                         row(4, "4", "1990-01-01 23:03:20", false),
                         row(5, "5", "1995-01-01 23:03:20", false))).create();
 
+        new TableCreator(conn)
+                .withCreate("create table ts_allnulls(i int, j int)")
+                .withInsert("insert into ts_allnulls values (?, ?)")
+                .withRows(rows(
+                        row(null, null),
+                        row(null, null),
+                        row(null, null))).create();
+
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 schemaName));
@@ -399,6 +407,11 @@ public class SelectivityIT extends SpliceUnitTest {
         rowContainsQuery(2, "explain select distinct trim(cast(c1 as char(5))) as j from ts_nulls", "outputRows=5,", methodWatcher);
     }
 
+    @Test
+    public void testAllNullSelectivity() throws Exception {
+        rowContainsQuery(3, "explain select * from ts_allnulls t1, ts_allnulls t2 where t1.i = t2.i", "outputRows=1", methodWatcher);
+    }
+    
     @Test
     @Ignore
     public void testSelectColumnStatistics() throws Exception {
