@@ -103,7 +103,7 @@ public class ResultColumn extends ValueNode
 	boolean			updatableByCursor;
 	private boolean defaultColumn;
 	private boolean wasDefault;
-	private DataTypeDescriptor castToType;
+	private boolean isPulledupOrderingColumn;
 
 	//Following 2 fields have been added for DERBY-4631.
 	//rightOuterJoinUsingClause will be set to true for following 2 cases
@@ -1478,6 +1478,10 @@ public class ResultColumn extends ValueNode
 		isGroupingColumn = true;
 	}
 
+	public void markAsPulledupOrderingColumn() { isPulledupOrderingColumn = true; }
+
+	public boolean pulledupOrderingColumn() { return isPulledupOrderingColumn; }
+
 	/**
 	 * Look for and reject ?/-?/+? parameter under this ResultColumn.  This is
 	 * called for SELECT statements.
@@ -1636,6 +1640,9 @@ public class ResultColumn extends ValueNode
 
 		if (isGenerated()) {
 			newResultColumn.markGenerated();
+		}
+		if (pulledupOrderingColumn()) {
+			newResultColumn.markAsPulledupOrderingColumn();
 		}
 
 		return newResultColumn;

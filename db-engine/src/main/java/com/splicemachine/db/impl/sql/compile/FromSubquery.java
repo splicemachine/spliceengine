@@ -358,10 +358,14 @@ public class FromSubquery extends FromTable
 		{
 		    resultColumn = resultColumns.getAtMostOneResultColumn(columnReference, correlationName, false);
 		}
-		    
+
 
 		if (resultColumn != null)
 		{
+		    if (resultColumn.pulledupOrderingColumn()) {
+		        // do not return match if the ordering column is not only in ordering list
+                return null;
+			}
 			columnReference.setTableNumber(tableNumber);
             columnReference.setColumnNumber(resultColumn.getColumnPosition());
 		}
