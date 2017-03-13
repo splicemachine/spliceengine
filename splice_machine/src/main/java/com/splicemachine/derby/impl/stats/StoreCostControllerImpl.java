@@ -219,8 +219,18 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @Override
     public double nullSelectivity(int columnNumber) {
-        return  tableStatistics.rowCount() ==0?0.0d:((double) (tableStatistics.rowCount() - tableStatistics.notNullCount(columnNumber-1)))
-                / ((double)tableStatistics.rowCount());
+        long rowCount = tableStatistics.rowCount();
+        long nonNullCount = tableStatistics.notNullCount(columnNumber-1);
+        // If a column has null values for all rows, set its null selectivity to be slightly less than 1 to prevent
+        // nonnull selectivity from being 0.
+        if (rowCount == 0)
+            return 0.0d;
+        else if (nonNullCount == 0)
+            return (double)(rowCount - 1) / (double)rowCount;
+        else
+            return (double)(rowCount - nonNullCount) / (double)rowCount;
+
+
     }
 
     @Override
