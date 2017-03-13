@@ -29,6 +29,7 @@ import com.splicemachine.pipeline.MappedPipelineFactory;
 import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.PipelineEnvironment;
+import com.splicemachine.pipeline.SnappyPipelineCompressor;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
@@ -98,8 +99,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
 
         KryoPool kryoPool=new KryoPool(pipelineConfiguration.getPipelineKryoPoolSize());
         kryoPool.setKryoRegistry(new PipelineKryoRegistry());
-        //TODO -sf- enable snappy compression here
-        this.compressor = new SimplePipelineCompressor(kryoPool,env.getSIDriver().getOperationFactory());
+        this.compressor = new SnappyPipelineCompressor(new SimplePipelineCompressor(kryoPool,env.getSIDriver().getOperationFactory()));
 
         RpcChannelFactory channelFactory = ChannelFactoryService.loadChannelFactory(this.pipelineConfiguration);
         this.writerFactory = new CoprocessorWriterFactory(compressor,partitionInfoCache(),pipelineExceptionFactory,channelFactory,
