@@ -30,11 +30,11 @@ public class SparkPairDataSetTest extends AbstractPairDataSetTest{
 
     @Override
     protected PairDataSet<ExecRow, ExecRow> getTenRows() {
-        return new SparkPairDataSet<>(SpliceSpark.getContext().parallelizePairs(tenRows));
+        return new SparkPairDataSet<>(SpliceSpark.getContextUnsafe().parallelizePairs(tenRows));
     }
 
     @Override
     protected PairDataSet<ExecRow, ExecRow> getEvenRows() {
-        return new SparkPairDataSet<>(SpliceSpark.getContext().parallelizePairs(evenRows));
+        return new SparkPairDataSet<>(SpliceSpark.getContextUnsafe().parallelizePairs(evenRows));
     }
 }

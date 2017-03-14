@@ -53,7 +53,7 @@ public class SparkDataSetTest extends AbstractDataSetTest{
 
     @Override
     protected DataSet<ExecRow> getTenRowsTwoDuplicateRecordsDataSet() {
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(tenRowsTwoDuplicateRecords));
+        return new SparkDataSet<>(SpliceSpark.getContextUnsafe().parallelize(tenRowsTwoDuplicateRecords));
     }
 // Supported join types include: 'inner', 'outer', 'full', 'fullouter', 'leftouter', 'left', 'rightouter', 'right', 'leftsemi', 'leftanti'
     @Test
@@ -77,12 +77,12 @@ public class SparkDataSetTest extends AbstractDataSetTest{
                 .select(new Column("0"),new Column("1"))
                 .filter(col("0").gt(1).or(col("0").lt(4))).explain(true);
 */
-        SpliceSpark.getSession().createDataFrame(foo,schema).write().format("orc").mode(SaveMode.Append)
+        SpliceSpark.getSessionUnsafe().createDataFrame(foo,schema).write().format("orc").mode(SaveMode.Append)
                 .orc("/Users/jleach/Documents/workspace/spliceengine/hbase_sql/target/external/orc_it");
 
         Column filter = (new Column("col1")).gt(1l).and(new Column("col1").lt(1l));
 
-        SpliceSpark.getSession().read().schema(schema)
+        SpliceSpark.getSessionUnsafe().read().schema(schema)
                 .orc("/Users/jleach/Documents/workspace/spliceengine/hbase_sql/target/external/orc_it")
                 .filter(filter).show();
 //                .select(new Column("0"),new Column("1")).show();
