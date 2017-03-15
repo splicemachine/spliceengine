@@ -14,12 +14,14 @@
 
 package com.splicemachine.pipeline;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 
+import com.google.common.io.ByteStreams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.log4j.Logger;
@@ -97,6 +99,17 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
 
     @Override
     public <T> T decompress(byte[] bytes,Class<T> clazz) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        byte[] d = bytes;
+        if (supportsNative) {
+            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(d.length);
+            InputStream is = snappy.createInputStream(bais);
+            ByteStreams.copy(is, baos);
+            baos.flush();
+            d = baos.toByteArray();
+            baos.close();
+            is.close();
+        }
+        return delegate.decompress(d, clazz);
     }
 }
