@@ -1,21 +1,19 @@
 package com.splicemachine.orc;
 
-import com.splicemachine.hive.orc.HdfsOrcDataSource;
-import com.splicemachine.orc.block.Block;
+import com.splicemachine.fs.s3.PrestoS3FileSystem;
 import com.splicemachine.orc.memory.AggregatedMemoryContext;
 import com.splicemachine.orc.metadata.OrcMetadataReader;
-import com.splicemachine.spi.block.Block;
 import com.google.common.collect.ImmutableMap;
 import io.airlift.units.DataSize;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.execution.vectorized.ColumnVector;
+import org.apache.spark.sql.types.DataTypes;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
 import java.net.URI;
-import static com.splicemachine.spi.type.VarcharType.VARCHAR;
-import static com.splicemachine.spi.type.IntegerType.INTEGER;
 import static io.airlift.units.DataSize.Unit.MEGABYTE;
 
 /**
@@ -35,7 +33,7 @@ public class SpliceTestOrcReader {
         config.set("presto.s3.access-key","AKIAJ4YJKO4MWOFWPXKA");
         config.set("presto.s3.secret-key","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");
 
-        config.set("fs.s3a.impl","com.splicemachine.hive.PrestoS3FileSystem");
+        config.set("fs.s3a.impl", PrestoS3FileSystem.class.getCanonicalName());
 
 
         FileSystem fs = FileSystem.get(new URI("s3a://splice-qa/externaltables/TPCH100/orc/lineitem/"),
@@ -46,15 +44,14 @@ public class SpliceTestOrcReader {
         OrcDataSource orcDataSource = new HdfsOrcDataSource(path.toString(), size, orcMaxMergeDistance,
                 orcMaxBufferSize, orcStreamBufferSize, is);
         OrcPredicate orcPredicate;
-
         OrcReader reader = new OrcReader(orcDataSource,new OrcMetadataReader(), DataSize.succinctDataSize(16, DataSize.Unit.KILOBYTE),DataSize.succinctDataSize(16, DataSize.Unit.MEGABYTE));
         OrcRecordReader orcRecordReader =
         reader.createRecordReader(
-                ImmutableMap.of(0, INTEGER),
+                ImmutableMap.of(0,DataTypes.LongType),
                 (numberOfRows, statisticsByColumnIndex) -> true,
                 DateTimeZone.UTC,new AggregatedMemoryContext());
         int foo = orcRecordReader.nextBatch();
-        Block block = orcRecordReader.readBlock(INTEGER,0);
+        ColumnVector columnVector = orcRecordReader.readBlock(DataTypes.LongType,0);
         System.out.println(reader.getColumnNames());
         //OrcDataSource orcDataSource, MetadataReader metadataReader, DataSize maxMergeDistance, DataSize maxReadSize)
     }

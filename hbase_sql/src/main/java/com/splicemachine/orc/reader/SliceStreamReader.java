@@ -19,7 +19,6 @@ import com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind;
 import com.splicemachine.orc.stream.StreamSources;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
-
 import java.io.IOException;
 import java.util.List;
 import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.*;

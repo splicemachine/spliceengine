@@ -30,6 +30,7 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.airlift.units.DataSize;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTimeZone;
 
@@ -77,7 +78,7 @@ public class OrcRecordReader
     private final AbstractAggregatedMemoryContext systemMemoryUsage;
 
     public OrcRecordReader(
-            Map<Integer, StructType> includedColumns,
+            Map<Integer, DataType> includedColumns,
             OrcPredicate predicate,
             long numberOfRows,
             List<StripeInformation> fileStripes,
@@ -111,9 +112,9 @@ public class OrcRecordReader
 
         // reduce the included columns to the set that is also present
         ImmutableSet.Builder<Integer> presentColumns = ImmutableSet.builder();
-        ImmutableMap.Builder<Integer, StructType> presentColumnsAndTypes = ImmutableMap.builder();
+        ImmutableMap.Builder<Integer, DataType> presentColumnsAndTypes = ImmutableMap.builder();
         OrcType root = types.get(0);
-        for (Map.Entry<Integer, StructType> entry : includedColumns.entrySet()) {
+        for (Map.Entry<Integer, DataType> entry : includedColumns.entrySet()) {
             // an old file can have less columns since columns can be added
             // after the file was written
             if (entry.getKey() < root.getFieldCount()) {
@@ -307,7 +308,7 @@ public class OrcRecordReader
         return currentBatchSize;
     }
 
-    public ColumnVector readBlock(StructType type, int columnIndex)
+    public ColumnVector readBlock(DataType type, int columnIndex)
             throws IOException
     {
         return streamReaders[columnIndex].readBlock(type);
@@ -391,7 +392,7 @@ public class OrcRecordReader
     private static StreamReader[] createStreamReaders(OrcDataSource orcDataSource,
             List<OrcType> types,
             DateTimeZone hiveStorageTimeZone,
-            Map<Integer, StructType> includedColumns)
+            Map<Integer, DataType> includedColumns)
     {
         List<StreamDescriptor> streamDescriptors = createStreamDescriptor("", "", 0, types, orcDataSource).getNestedStreams();
 

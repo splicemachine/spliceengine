@@ -62,6 +62,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.http.HttpStatus.*;
 import static com.splicemachine.fs.s3.RetryDriver.retry;
 import static java.lang.Math.max;
+import com.splicemachine.orc.HiveS3Config;
 
 public class PrestoS3FileSystem
         extends FileSystem

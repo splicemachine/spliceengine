@@ -133,23 +133,17 @@ public class SliceDirectStreamReader
             }
             data = dataStream.next(totalLength);
         }
-
-        Slice[] sliceVector = new Slice[nextBatchSize];
-
-        int offset = 0;
+        // Take another look at this JL TODO
         for (int i = 0; i < nextBatchSize; i++) {
             if (!isNullVector[i]) {
                 int length = lengthVector[i];
-                Slice value = Slices.wrappedBuffer(data, offset, length);
-                sliceVector[i] = value;
-                offset += length;
+                vector.putByteArray(i,data);
             }
         }
 
         readOffset = 0;
         nextBatchSize = 0;
         return vector;
-//         return new SliceArrayBlock(sliceVector.length, sliceVector); TODO JL
     }
 
     private void openRowGroup()

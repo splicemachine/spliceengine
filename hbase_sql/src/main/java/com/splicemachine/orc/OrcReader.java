@@ -23,6 +23,7 @@ import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.airlift.units.DataSize;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTimeZone;
 import java.io.IOException;
@@ -163,14 +164,14 @@ public class OrcReader
         return bufferSize;
     }
 
-    public OrcRecordReader createRecordReader(Map<Integer, StructType> includedColumns, OrcPredicate predicate, DateTimeZone hiveStorageTimeZone, AbstractAggregatedMemoryContext systemMemoryUsage)
+    public OrcRecordReader createRecordReader(Map<Integer, DataType> includedColumns, OrcPredicate predicate, DateTimeZone hiveStorageTimeZone, AbstractAggregatedMemoryContext systemMemoryUsage)
             throws IOException
     {
         return createRecordReader(includedColumns, predicate, 0, orcDataSource.getSize(), hiveStorageTimeZone, systemMemoryUsage);
     }
 
     public OrcRecordReader createRecordReader(
-            Map<Integer, StructType> includedColumns,
+            Map<Integer, DataType> includedColumns,
             OrcPredicate predicate,
             long offset,
             long length,

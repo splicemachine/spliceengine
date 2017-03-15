@@ -29,6 +29,7 @@ import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.*
 import static com.splicemachine.orc.metadata.Stream.StreamKind.*;
 import static com.google.common.base.Predicates.equalTo;
 import static java.util.Objects.requireNonNull;
+import static java.lang.String.format;
 
 public final class Checkpoints
 {

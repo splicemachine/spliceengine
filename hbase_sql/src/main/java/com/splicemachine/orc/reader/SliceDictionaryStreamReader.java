@@ -31,11 +31,10 @@ import java.util.List;
 import static com.splicemachine.orc.metadata.Stream.StreamKind.*;
 import static com.splicemachine.orc.stream.MissingStreamSource.missingStreamSource;
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
-public class SliceDictionaryStreamReader {
-//        extends AbstractStreamReader {
+public class SliceDictionaryStreamReader extends AbstractStreamReader {
 
-    /*
     private final StreamDescriptor streamDescriptor;
 
     @Nonnull
@@ -51,7 +50,7 @@ public class SliceDictionaryStreamReader {
     @Nonnull
     private Slice[] stripeDictionary = new Slice[1];
 
-    private SliceArrayBlock dictionaryBlock = new SliceArrayBlock(stripeDictionary.length, stripeDictionary, true);
+    private SliceDictionary dictionaryBlock = new SliceDictionary(stripeDictionary);
 
     @Nonnull
     private StreamSource<LongStream> stripeDictionaryLengthStreamSource = missingStreamSource(LongStream.class);
@@ -152,7 +151,7 @@ public class SliceDictionaryStreamReader {
         for (int i = 0; i < nextBatchSize; i++) {
             if (isNullVector[i]) {
                 // null is the last entry in the slice dictionary
-                dataVector[i] = dictionaryBlock.getPositionCount() - 1;
+                dataVector[i] = dictionaryBlock.size() - 1;
             }
             else if (inDictionary[i]) {
                 // stripe dictionary elements have the same dictionary id
@@ -163,20 +162,18 @@ public class SliceDictionaryStreamReader {
             }
         }
 
-        // copy ids into a private array for this block since data vector is reused
-        Block block = new DictionaryBlock(nextBatchSize, dictionaryBlock, dataVector);
-
+        vector.setDictionary(dictionaryBlock);
         readOffset = 0;
         nextBatchSize = 0;
-        return block;
+        return vector;
     }
 
     private void setDictionaryBlockData(Slice[] dictionary)
     {
         // only update the block if the array changed to prevent creation of new Block objects, since
         // the engine currently uses identity equality to test if dictionaries are the same
-        if (dictionaryBlock.getValues() != dictionary) {
-            dictionaryBlock = new SliceArrayBlock(dictionary.length, dictionary, true);
+        if (!dictionaryBlock.equals(dictionary)) {
+            dictionaryBlock = new SliceDictionary(dictionary);
         }
     }
 
@@ -256,12 +253,14 @@ public class SliceDictionaryStreamReader {
             }
             else {
                 Slice value = Slices.wrappedBuffer(dictionaryDataStream.next(length));
+                /* DO WE NEED THIS?
                 if (isVarcharType(type)) {
                     value = truncateToLength(value, type);
                 }
                 if (isCharType(type)) {
                     value = trimSpacesAndTruncateToLength(value, type);
                 }
+                */
                 dictionary[dictionaryOutputOffset + i] = value;
             }
         }
@@ -322,5 +321,4 @@ public class SliceDictionaryStreamReader {
                 .addValue(streamDescriptor)
                 .toString();
     }
-    */
 }
