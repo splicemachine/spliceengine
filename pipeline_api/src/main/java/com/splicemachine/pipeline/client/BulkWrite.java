@@ -26,9 +26,24 @@ import java.util.List;
  */
 public class BulkWrite {
 
+    enum Flags {
+        SKIP_INDEX_WRITE((byte)0x01),
+        SKIP_CONFLICT_DETECTION((byte)0x02);
+
+        final byte mask;
+        Flags(byte mask) {
+            this.mask = mask;
+        }
+
+        boolean isSetIn(byte flags) {
+            return (flags & mask) != 0;
+        }
+    }
+
     public Collection<KVPair> mutations;
     private String encodedStringName;
-    private byte skipIndexWrite;
+    private boolean skipIndexWrite;
+    private boolean skipConflictDetection;
 
     /*non serialized field*/
     private transient long bufferHeapSize = -1;
@@ -37,9 +52,10 @@ public class BulkWrite {
         this(-1,mutations,encodedStringName);
     }
 
-    public BulkWrite(Collection<KVPair> mutations, String encodedStringName, byte skipIndexWrite) {
+    public BulkWrite(Collection<KVPair> mutations, String encodedStringName, byte flags) {
         this(-1, mutations, encodedStringName);
-        this.skipIndexWrite = skipIndexWrite;
+        this.skipIndexWrite = Flags.SKIP_INDEX_WRITE.isSetIn(flags);
+        this.skipConflictDetection = Flags.SKIP_CONFLICT_DETECTION.isSetIn(flags);
     }
 
     public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName) {
@@ -47,13 +63,13 @@ public class BulkWrite {
         this.mutations = mutations;
         this.encodedStringName = encodedStringName;
         this.bufferHeapSize = heapSizeEstimate;
-        this.skipIndexWrite = 0x02; // default to false - do not skip
+        this.skipIndexWrite = false; // default to false - do not skip
     }
 
-    public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName, boolean skipIndexWrite) {
+    public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName, boolean skipIndexWrite, boolean skipConflictDetection) {
         this(heapSizeEstimate, mutations, encodedStringName);
-        if (skipIndexWrite)
-            this.skipIndexWrite = 0x01;  // true - skip writing to index
+        this.skipIndexWrite = skipIndexWrite;
+        this.skipConflictDetection = skipConflictDetection;
     }
 
     public Collection<KVPair> getMutations() {
@@ -91,10 +107,19 @@ public class BulkWrite {
     public int getSize() { return mutations.size(); }
 
     public boolean skipIndexWrite() {
-        return this.skipIndexWrite == 0x01;
+        return this.skipIndexWrite;
     }
 
-    public byte getSkipIndexWrite() {
-        return this.skipIndexWrite;
+    public byte getFlags() {
+        byte result = 0;
+        if (skipIndexWrite)
+            result |= Flags.SKIP_INDEX_WRITE.mask;
+        if (skipConflictDetection)
+            result |= Flags.SKIP_CONFLICT_DETECTION.mask;
+        return result;
+    }
+
+    public boolean skipConflictDetection() {
+        return skipConflictDetection;
     }
 }

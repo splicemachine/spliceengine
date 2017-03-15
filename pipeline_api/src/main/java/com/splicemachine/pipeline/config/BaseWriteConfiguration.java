@@ -201,4 +201,8 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
         return exceptionFactory;
     }
 
+    @Override
+    public boolean skipConflictDetection() {
+        return false;
+    }
 }

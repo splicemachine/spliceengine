@@ -48,6 +48,6 @@ public interface Transactor{
                                     byte[] packedColumnBytes,
                                     Collection<KVPair> toProcess,
                                     TxnView txn,
-                                    ConstraintChecker constraintChecker) throws IOException;
+                                    ConstraintChecker constraintChecker, boolean skipConflictDetection) throws IOException;
 
 }

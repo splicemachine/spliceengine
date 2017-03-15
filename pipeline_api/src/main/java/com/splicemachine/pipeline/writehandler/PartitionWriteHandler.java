@@ -163,7 +163,8 @@ public class PartitionWriteHandler implements WriteHandler {
                 SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.PACKED_COLUMN_BYTES,
                 constraintChecker,
-                toProcess
+                toProcess,
+                ctx.skipConflictDetection()
         );
 
         int i = 0;

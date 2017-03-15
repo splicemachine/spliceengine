@@ -81,7 +81,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected String compression;
     protected int partitionByRefItem;
     protected int[] partitionBy;
-
+    private boolean skipConflictDetection;
 
 
     @Override
@@ -100,6 +100,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String insertMode,
                            String statusDirectory,
                            int failBadRecordCount,
+                           boolean skipConflictDetection,
                            double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost,
                            String tableVersion,
@@ -113,6 +114,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
+        this.skipConflictDetection=skipConflictDetection;
         this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
         this.delimited = delimited;
         this.escaped = escaped;
@@ -253,6 +255,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         location = in.readBoolean()?in.readUTF():null;
         compression = in.readBoolean()?in.readUTF():null;
         this.partitionByRefItem = in.readInt();
+        skipConflictDetection=in.readBoolean();
     }
 
     @Override
@@ -287,6 +290,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if (compression!=null)
             out.writeUTF(compression);
         out.writeInt(partitionByRefItem);
+        out.writeBoolean(skipConflictDetection);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -349,4 +353,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     }
 
 
+    public boolean skipConflictDetection() {
+        return skipConflictDetection;
+    }
 }

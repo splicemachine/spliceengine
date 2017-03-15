@@ -52,4 +52,6 @@ public interface WriteConfiguration {
     RecordingContext getRecordingContext();
 
     void setRecordingContext(RecordingContext recordingContext);
+
+    boolean skipConflictDetection();
 }
