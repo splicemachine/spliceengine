@@ -35,6 +35,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.function.HFileGenerator;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.output.HBaseBulkImporter;
+import com.splicemachine.derby.stream.output.HBaseBulkImporterBuilder;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.IntArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -341,72 +343,47 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 new RuntimeException("storedAs type not supported -> " + storedAs);
             }
 
-            if (bulkImportDirectory!=null) {
-                    SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(heapConglom);
-                    DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
-                    ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
-                    TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
-                    ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
-                    ArrayList <DDLMessage.TentativeIndex> tentativeIndexList = new ArrayList();
-                    for (ConglomerateDescriptor searchCD :list) {
-                        if (searchCD.isIndex() && !searchCD.isPrimaryKey()) {
-                            DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
-                                    activation.getLanguageConnectionContext(),
-                                    td.getHeapConglomerateId(), searchCD.getConglomerateNumber(), td, searchCD.getIndexDescriptor());
-                            tentativeIndexList.add(ddlChange.getTentativeIndex());
-                        }
-                    }
-                    set = set.flatMap(new HFileGenerator(pkCols,tableVersion,getExecRowDefinition(),autoIncrementRowLocationArray,spliceSequences,heapConglom,
-                        txn,operationContext,tentativeIndexList));
-
-                // Bulk Import Tool
-
-                ValueRow valueRow=new ValueRow(3);
-                valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
-                valueRow.setColumn(2,new SQLLongint());
-                valueRow.setColumn(3,new SQLVarchar());
-                InsertOperation insertOperation=((InsertOperation)operationContext.getOperation());
-                if(insertOperation!=null && operationContext.isPermissive()) {
-                    long numBadRecords = operationContext.getBadRecords();
-                    valueRow.setColumn(2,new SQLLongint(numBadRecords));
-                    if (numBadRecords > 0) {
-                        String fileName = operationContext.getBadRecordFileName();
-                        valueRow.setColumn(3,new SQLVarchar(fileName));
-                        if (insertOperation.isAboveFailThreshold(numBadRecords)) {
-                            throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
-                        }
-                    }
-                }
-               return dsp.createDataSet(new SingletonIterator(new LocatedRow(valueRow)));
+            if (bulkImportDirectory!=null && bulkImportDirectory.compareToIgnoreCase("NULL") !=0) {
+                HBaseBulkImporter importer = set.bulkImportData(operationContext)
+                        .heapConglom(heapConglom)
+                        .tableVersion(tableVersion)
+                        .operationContext(operationContext)
+                        .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
+                        .sequences(spliceSequences)
+                        .pkCols(pkCols)
+                        .execRow(getExecRowDefinition())
+                        .txn(txn)
+                        .build();
+                return importer.write();
             }
+            else {
+                /*
 
-            /*
-
-            int[] pkCols,
-                          String tableVersion,
-                          ExecRow execRowDefinition,
-                          RowLocation[] autoIncrementRowLocationArray,
-                          SpliceSequence[] spliceSequences,
-                          long heapConglom,
-                          TxnView txn,
-                          OperationContext operationContext,
-                          boolean isUpsert
-             */
-
-            PairDataSet dataSet=set.index(new InsertPairFunction(operationContext),true);
-            DataSetWriter writer=dataSet.insertData(operationContext)
-                    .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
-                    .execRowDefinition(getExecRowDefinition())
-                    .execRowTypeFormatIds(execRowTypeFormatIds)
-                    .sequences(spliceSequences)
-                    .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
-                    .pkCols(pkCols)
-                    .tableVersion(tableVersion)
-                    .destConglomerate(heapConglom)
-                    .operationContext(operationContext)
-                    .txn(txn)
-                    .build();
-            return writer.write();
+                int[] pkCols,
+                              String tableVersion,
+                              ExecRow execRowDefinition,
+                              RowLocation[] autoIncrementRowLocationArray,
+                              SpliceSequence[] spliceSequences,
+                              long heapConglom,
+                              TxnView txn,
+                              OperationContext operationContext,
+                              boolean isUpsert
+                 */
+                PairDataSet dataSet = set.index(new InsertPairFunction(operationContext), true);
+                DataSetWriter writer = dataSet.insertData(operationContext)
+                        .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
+                        .execRowDefinition(getExecRowDefinition())
+                        .execRowTypeFormatIds(execRowTypeFormatIds)
+                        .sequences(spliceSequences)
+                        .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
+                        .pkCols(pkCols)
+                        .tableVersion(tableVersion)
+                        .destConglomerate(heapConglom)
+                        .operationContext(operationContext)
+                        .txn(txn)
+                        .build();
+                return writer.write();
+            }
         }finally{
             operationContext.popScope();
         }

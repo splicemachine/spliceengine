@@ -132,7 +132,12 @@ public interface SConfiguration {
     String getSparkIoCompressionCodec();
 
     int getSparkResultStreamingBatches();
+
     int getSparkResultStreamingBatchSize();
+
+    double getBulkImportSampleFraction();
+
+    int getBulkImportPartitionCount();
 
     // SIConfigurations
     int getActiveTransactionCacheSize();

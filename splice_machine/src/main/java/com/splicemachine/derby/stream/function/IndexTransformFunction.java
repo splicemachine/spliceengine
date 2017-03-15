@@ -60,7 +60,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         if (!initialized)
             init();
         ExecRow misMatchedRow = locatedRow.getRow();
-        ExecRow row = new ValueRow(misMatchedRow.nColumns());
+        ExecRow row = new ValueRow(projectedMapping.length);
         for (int i = 0; i<projectedMapping.length;i++) {
               row.setColumn(i+1,misMatchedRow.getColumn(projectedMapping[i]+1));
         }

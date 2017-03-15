@@ -11,6 +11,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -63,6 +64,7 @@ public class HFileGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, L
                           TxnView txn,
                           OperationContext operationContext,
                           ArrayList<DDLMessage.TentativeIndex> tentativeIndices) {
+        super(operationContext);
         assert txn !=null:"txn not supplied";
         this.txn = txn;
         this.pkCols = pkCols;
@@ -152,7 +154,9 @@ public class HFileGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, L
                 return EmptyListIterator.INSTANCE;
             beforeRow(execRow);
             ArrayList<Tuple2<Long,KVPair>> list = new ArrayList();
-            list.add(new Tuple2<Long, KVPair>(heapConglom,encoder.encode(execRow)));
+            KVPair mainRow = encoder.encode(execRow);
+            locatedRow.setRowLocation(new HBaseRowLocation(mainRow.rowKeySlice()));
+            list.add(new Tuple2<Long, KVPair>(heapConglom,mainRow));
             for (int i = 0; i< indexTransformFunctions.length; i++) {
                 list.add(new Tuple2<Long, KVPair>(indexTransformFunctions[i].getIndexConglomerateId(),indexTransformFunctions[i].call(locatedRow)));
             }

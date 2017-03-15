@@ -104,6 +104,59 @@ public class HdfsImport {
     };
 
     /**
+     *
+     * @param schemaName
+     * @param tableName
+     * @param insertColumnList
+     * @param fileName
+     * @param columnDelimiter
+     * @param characterDelimiter
+     * @param timestampFormat
+     * @param dateFormat
+     * @param timeFormat
+     * @param badRecordsAllowed
+     * @param badRecordDirectory
+     * @param oneLineRecords
+     * @param charset
+     * @param bulkImportDirectory
+     * @param results
+     * @throws SQLException
+     */
+    public static void BULK_IMPORT_DATA(String schemaName,
+                                          String tableName,
+                                          String insertColumnList,
+                                          String fileName,
+                                          String columnDelimiter,
+                                          String characterDelimiter,
+                                          String timestampFormat,
+                                          String dateFormat,
+                                          String timeFormat,
+                                          long badRecordsAllowed,
+                                          String badRecordDirectory,
+                                          String oneLineRecords,
+                                          String charset,
+                                          String bulkImportDirectory,
+                                          ResultSet[] results
+    ) throws SQLException {
+        doImport(schemaName,
+                tableName,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                badRecordsAllowed,
+                badRecordDirectory,
+                oneLineRecords,
+                charset,
+                false,
+                false,
+                bulkImportDirectory,
+                results);
+    }
+    /**
      * The SYSCS_UTIL.UPSERT_DATA_FROM_FILE system procedure updates or inserts data from a file to a subset of columns
      * in a table. You choose the subset of columns by specifying insert columns.
      * <p/>
@@ -173,21 +226,22 @@ public class HdfsImport {
                                              ResultSet[] results
     ) throws SQLException {
         doImport(schemaName,
-                 tableName,
-                 insertColumnList,
-                 fileName,
-                 columnDelimiter,
-                 characterDelimiter,
-                 timestampFormat,
-                 dateFormat,
-                 timeFormat,
-                 badRecordsAllowed,
-                 badRecordDirectory,
-                 oneLineRecords,
-                 charset,
-                 true,
-                 false,
-                 results);
+                tableName,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                badRecordsAllowed,
+                badRecordDirectory,
+                oneLineRecords,
+                charset,
+                true,
+                false,
+                null,
+                results);
     }
 
     /**
@@ -253,21 +307,22 @@ public class HdfsImport {
                                    ResultSet[] results
     ) throws SQLException {
         doImport(schemaName,
-                 tableName,
-                 insertColumnList,
-                 fileName,
-                 columnDelimiter,
-                 characterDelimiter,
-                 timestampFormat,
-                 dateFormat,
-                 timeFormat,
-                 badRecordsAllowed,
-                 badRecordDirectory,
-                 oneLineRecords,
-                 charset,
-                 false,
-                 false,
-                 results);
+                tableName,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                badRecordsAllowed,
+                badRecordDirectory,
+                oneLineRecords,
+                charset,
+                false,
+                false,
+                null,
+                results);
     }
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
@@ -286,6 +341,7 @@ public class HdfsImport {
                                  String charset,
                                  boolean isUpsert,
                                  boolean isCheckScan,
+                                 String bulkImportDirectory,
                                  ResultSet[] results) throws SQLException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doImport {schemaName=%s, tableName=%s, insertColumnList=%s, fileName=%s, " +
@@ -375,12 +431,12 @@ public class HdfsImport {
                 badRecordDirectory = badRecordDirectory.replaceAll("/$", "");
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
-                "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
-                badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n" +
-                " SELECT "+
+                    "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
+                    badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + ", bulkImportDirectory=" + bulkImportDirectory + "\n" +
+                    " SELECT "+
                     generateColumnList(((EmbedConnection)conn).getLanguageConnection(),schemaName,tableName,insertColumnList) +
                     " from " +
-                importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
+                    importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
 
             //prepare the import statement to hit any errors before locking the table
             //execute the import operation.
