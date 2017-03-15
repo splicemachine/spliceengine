@@ -27,5 +27,7 @@ public interface HBaseBulkImporterBuilder {
 
     HBaseBulkImporterBuilder txn(TxnView txn);
 
+    HBaseBulkImporterBuilder bulkImportDirectory(String bulkImportDirectory);
+    
     HBaseBulkImporter build();
 }

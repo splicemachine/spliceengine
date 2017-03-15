@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -29,12 +30,14 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by jleach on 3/6/17.
  */
-public class HFileGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, LocatedRow, Tuple2<Long,KVPair>> {
+public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, LocatedRow, Tuple2<Long,KVPair>> {
     private static final long serialVersionUID = 844136943916989111L;
     protected int[] pkCols;
     protected String tableVersion;
@@ -51,11 +54,11 @@ public class HFileGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, L
     protected ArrayList<DDLMessage.TentativeIndex> tentativeIndices;
     protected IndexTransformFunction[] indexTransformFunctions;
 
-    public HFileGenerator() {
+    public RowAndIndexGenerator() {
 
     }
 
-    public HFileGenerator(int[] pkCols,
+    public RowAndIndexGenerator(int[] pkCols,
                           String tableVersion,
                           ExecRow execRowDefinition,
                           RowLocation[] autoIncrementRowLocationArray,
@@ -150,18 +153,16 @@ public class HFileGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, L
             }
         }
         try {
-            if (operationContext!=null && operationContext.isFailed())
-                return EmptyListIterator.INSTANCE;
-            beforeRow(execRow);
+
             ArrayList<Tuple2<Long,KVPair>> list = new ArrayList();
             KVPair mainRow = encoder.encode(execRow);
             locatedRow.setRowLocation(new HBaseRowLocation(mainRow.rowKeySlice()));
-            list.add(new Tuple2<Long, KVPair>(heapConglom,mainRow));
+            list.add(new Tuple2<>(heapConglom,mainRow));
             for (int i = 0; i< indexTransformFunctions.length; i++) {
-                list.add(new Tuple2<Long, KVPair>(indexTransformFunctions[i].getIndexConglomerateId(),indexTransformFunctions[i].call(locatedRow)));
+                LocatedRow indexRow = getIndexRow(indexTransformFunctions[i], locatedRow);
+                list.add(new Tuple2<>(indexTransformFunctions[i].getIndexConglomerateId(),indexTransformFunctions[i].call(indexRow)));
             }
-            if (operationContext!=null)
-                operationContext.recordWrite();
+
             return list.iterator();
         } catch (Exception e) {
             if (operationContext!=null && operationContext.isPermissive()) {
@@ -171,7 +172,21 @@ public class HFileGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, L
             throw Exceptions.parseException(e);
         }
     }
-
+    
+    private LocatedRow getIndexRow(IndexTransformFunction indexTransformFunction, LocatedRow locatedRow) throws StandardException{
+        ExecRow execRow = locatedRow.getRow();
+        List<Integer> indexColToMainCol = indexTransformFunction.getIndexColsToMainColMapList();
+        List<Integer> sortedList = new ArrayList<>(indexColToMainCol);
+        Collections.sort(sortedList);
+        ExecRow row = new ValueRow(indexColToMainCol.size());
+        int col = 1;
+        for (Integer n : sortedList) {
+            row.setColumn(col, execRow.getColumn(n));
+            col++;
+        }
+        LocatedRow lr = new LocatedRow(locatedRow.getRowLocation(), row);
+        return lr;
+    }
     public void beforeRow(ExecRow row) throws StandardException {
         if (insertOperation != null)
             insertOperation.evaluateGenerationClauses(row);

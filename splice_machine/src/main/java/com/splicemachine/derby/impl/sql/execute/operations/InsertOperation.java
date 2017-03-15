@@ -17,30 +17,15 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Collections;
 
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.stream.function.HFileGenerator;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.HBaseBulkImporter;
-import com.splicemachine.derby.stream.output.HBaseBulkImporterBuilder;
-import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.IntArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
@@ -353,6 +338,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                         .pkCols(pkCols)
                         .execRow(getExecRowDefinition())
                         .txn(txn)
+                        .bulkImportDirectory(bulkImportDirectory)
                         .build();
                 return importer.write();
             }

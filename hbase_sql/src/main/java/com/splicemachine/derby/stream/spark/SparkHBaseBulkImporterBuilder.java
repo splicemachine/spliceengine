@@ -25,6 +25,7 @@ public class SparkHBaseBulkImporterBuilder<V> implements HBaseBulkImporterBuilde
     private SpliceSequence[] spliceSequences;
     private OperationContext operationContext;
     private TxnView txn;
+    private String bulkImportDirectory;
 
     public SparkHBaseBulkImporterBuilder(){
     }
@@ -81,8 +82,13 @@ public class SparkHBaseBulkImporterBuilder<V> implements HBaseBulkImporterBuilde
     }
 
     @Override
+    public HBaseBulkImporterBuilder bulkImportDirectory(String bulkImportDirectory) {
+        this.bulkImportDirectory = bulkImportDirectory;
+        return this;
+    }
+    @Override
     public HBaseBulkImporter build() {
         return new SparkHBaseBulkImport(dataSet, tableVersion, pkCols, autoIncrementRowLocationArray, heapConglom,
-                execRow, spliceSequences, operationContext, txn);
+                execRow, spliceSequences, operationContext, txn, bulkImportDirectory);
     }
 }
