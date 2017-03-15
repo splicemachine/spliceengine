@@ -17,7 +17,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>spliceengine-parent</artifactId>
-        <version>2.6.0.1708-SNAPSHOT</version>
+        <version>2.6.0.1710-SNAPSHOT</version>
     </parent>
 
     <artifactId>splice_presto</artifactId>
@@ -45,10 +45,80 @@
                     <artifactId>commons-logging</artifactId>
                     <groupId>commons-logging</groupId>
                 </exclusion>
-
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-hive</artifactId>
+            <classifier>tests</classifier>
+            <version>0.167</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-jdk14</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>commons-logging</artifactId>
+                    <groupId>commons-logging</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-orc</artifactId>
+            <version>0.167</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-jdk14</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>commons-logging</artifactId>
+                    <groupId>commons-logging</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-main</artifactId>
+            <version>0.167</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-jdk14</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>commons-logging</artifactId>
+                    <groupId>commons-logging</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
     </dependencies>
 
@@ -119,6 +189,8 @@
 
                     </relocations>
 
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                    <shadedClassifierName>shade</shadedClassifierName>
                 </configuration>
                 <executions>
                     <execution>

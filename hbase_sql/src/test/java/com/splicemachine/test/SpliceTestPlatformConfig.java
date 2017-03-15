@@ -200,7 +200,7 @@ class SpliceTestPlatformConfig {
         config.set("presto.s3.access-key","AKIAJ4YJKO4MWOFWPXKA");
         config.set("presto.s3.secret-key","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");
 
-        config.set("fs.s3a.impl","splice.presto.com.facebook.presto.hive.PrestoS3FileSystem");
+        config.set("fs.s3a.impl","splice.presto.com.splicemachine.hive.PrestoS3FileSystem");
 
         //
         // Snapshots

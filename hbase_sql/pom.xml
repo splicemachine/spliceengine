@@ -50,53 +50,70 @@
             <artifactId>akka-remote_${scala.binary.version}</artifactId>
             <version>2.4.8</version>
         </dependency>
-
+<!--
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
+    -->
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-mesos_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
+
         <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>splice_presto</artifactId>
-            <version>2.6.0.1708-SNAPSHOT</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>20.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.11.30</version>
             <exclusions>
                 <exclusion>
-                    <artifactId>slf4j-jdk14</artifactId>
-                    <groupId>org.slf4j</groupId>
+                    <groupId>joda-time</groupId>
+                    <artifactId>joda-time</artifactId>
                 </exclusion>
-                <exclusion>
-                    <artifactId>log4j-over-slf4j</artifactId>
-                    <groupId>org.slf4j</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jcl-over-slf4j</artifactId>
-                    <groupId>org.slf4j</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-logging</artifactId>
-                    <groupId>commons-logging</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>aws-java-sdk-core</artifactId>
-                    <groupId>com.amazonaws</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>aws-java-sdk-s3</artifactId>
-                    <groupId>com.amazonaws</groupId>
-                </exclusion>
-
-                <exclusion>
-                    <artifactId>jmespath-java</artifactId>
-                    <groupId>com.amazonaws</groupId>
-                </exclusion>
-
             </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>units</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>log</artifactId>
+            <version>0.144</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>stats</artifactId>
+            <version>0.144</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>slice</artifactId>
+            <version>0.28</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto.orc</groupId>
+            <artifactId>orc-protobuf</artifactId>
+            <version>1</version>
         </dependency>
 
         <dependency>
