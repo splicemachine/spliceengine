@@ -13,10 +13,10 @@
  */
 package com.splicemachine.orc.predicate;
 
-import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.hadoop.hive.ql.exec.vector.ColumnVector;
+import org.apache.spark.sql.types.DataType;
 
 import java.util.Objects;
 
@@ -25,10 +25,10 @@ import static java.util.Objects.requireNonNull;
 // TODO: When we move RowExpressions to the SPI, we should get rid of this. This is effectively a ConstantExpression.
 public final class NullableValue
 {
-    private final Type type;
+    private final DataType type;
     private final Object value;
 
-    public NullableValue(Type type, Object value)
+    public NullableValue(DataType type, Object value)
     {
         requireNonNull(type, "type is null");
         if (value != null && !Primitives.wrap(type.getJavaType()).isInstance(value)) {
@@ -39,13 +39,13 @@ public final class NullableValue
         this.value = value;
     }
 
-    public static NullableValue of(Type type, Object value)
+    public static NullableValue of(DataType type, Object value)
     {
         requireNonNull(value, "value is null");
         return new NullableValue(type, value);
     }
 
-    public static NullableValue asNull(Type type)
+    public static NullableValue asNull(DataType type)
     {
         return new NullableValue(type, null);
     }
@@ -66,12 +66,12 @@ public final class NullableValue
         return new Serializable(type, value == null ? null : Utils.nativeValueToBlock(type, value));
     }
 
-    public Block asBlock()
+    public ColumnVector asBlock()
     {
         return Utils.nativeValueToBlock(type, value);
     }
 
-    public Type getType()
+    public DataType getType()
     {
         return type;
     }
@@ -123,26 +123,26 @@ public final class NullableValue
 
     public static class Serializable
     {
-        private final Type type;
-        private final Block block;
+        private final DataType type;
+        private final ColumnVector block;
 
         @JsonCreator
         public Serializable(
-                @JsonProperty("type") Type type,
-                @JsonProperty("block") Block block)
+                @JsonProperty("type") DataType type,
+                @JsonProperty("block") ColumnVector block)
         {
             this.type = requireNonNull(type, "type is null");
             this.block = block;
         }
 
         @JsonProperty
-        public Type getType()
+        public DataType getType()
         {
             return type;
         }
 
         @JsonProperty
-        public Block getBlock()
+        public ColumnVector getBlock()
         {
             return block;
         }

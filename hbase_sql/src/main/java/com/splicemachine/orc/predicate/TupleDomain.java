@@ -13,15 +13,12 @@
  */
 package com.splicemachine.orc.predicate;
 
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import org.apache.spark.sql.types.DataType;
 import java.util.*;
 import java.util.function.Function;
-
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -99,7 +96,7 @@ public final class TupleDomain<T>
                 .collect(toMap(
                         Map.Entry::getKey,
                         entry -> {
-                            Type type = entry.getValue().getType();
+                            DataType type = entry.getValue().getType();
                             Object value = entry.getValue().getValue();
                             return value == null ? Domain.onlyNull(type) : Domain.singleValue(type, value);
                         })));

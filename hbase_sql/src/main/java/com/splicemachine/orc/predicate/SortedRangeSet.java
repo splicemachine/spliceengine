@@ -13,10 +13,9 @@
  */
 package com.splicemachine.orc.predicate;
 
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.spark.sql.types.DataType;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -34,10 +33,10 @@ import static java.util.Objects.requireNonNull;
 public final class SortedRangeSet
         implements ValueSet
 {
-    private final Type type;
+    private final DataType type;
     private final NavigableMap<Marker, Range> lowIndexedRanges;
 
-    private SortedRangeSet(Type type, NavigableMap<Marker, Range> lowIndexedRanges)
+    private SortedRangeSet(DataType type, NavigableMap<Marker, Range> lowIndexedRanges)
     {
         requireNonNull(type, "type is null");
         requireNonNull(lowIndexedRanges, "lowIndexedRanges is null");
@@ -49,12 +48,12 @@ public final class SortedRangeSet
         this.lowIndexedRanges = lowIndexedRanges;
     }
 
-    static SortedRangeSet none(Type type)
+    static SortedRangeSet none(DataType type)
     {
         return copyOf(type, Collections.emptyList());
     }
 
-    static SortedRangeSet all(Type type)
+    static SortedRangeSet all(DataType type)
     {
         return copyOf(type, Collections.singletonList(Range.all(type)));
     }
@@ -62,7 +61,7 @@ public final class SortedRangeSet
     /**
      * Provided discrete values that are unioned together to form the SortedRangeSet
      */
-    static SortedRangeSet of(Type type, Object first, Object... rest)
+    static SortedRangeSet of(DataType type, Object first, Object... rest)
     {
         List<Range> ranges = new ArrayList<>(rest.length + 1);
         ranges.add(Range.equal(type, first));
@@ -88,14 +87,14 @@ public final class SortedRangeSet
     /**
      * Provided Ranges are unioned together to form the SortedRangeSet
      */
-    static SortedRangeSet copyOf(Type type, Iterable<Range> ranges)
+    static SortedRangeSet copyOf(DataType type, Iterable<Range> ranges)
     {
         return new Builder(type).addAll(ranges).build();
     }
 
     @JsonCreator
     public static SortedRangeSet copyOf(
-            @JsonProperty("type") Type type,
+            @JsonProperty("type") DataType type,
             @JsonProperty("ranges") List<Range> ranges)
     {
         return copyOf(type, (Iterable<Range>) ranges);
@@ -103,7 +102,7 @@ public final class SortedRangeSet
 
     @Override
     @JsonProperty
-    public Type getType()
+    public DataType getType()
     {
         return type;
     }
@@ -344,19 +343,19 @@ public final class SortedRangeSet
     }
 
     @Override
-    public String toString(ConnectorSession session)
+    public String toString()
     {
         return "[" + lowIndexedRanges.values().stream()
-                .map(range -> range.toString(session))
+                .map(range -> "")
                 .collect(Collectors.joining(", ")) + "]";
     }
 
     static class Builder
     {
-        private final Type type;
+        private final DataType type;
         private final List<Range> ranges = new ArrayList<>();
 
-        Builder(Type type)
+        Builder(DataType type)
         {
             requireNonNull(type, "type is null");
 

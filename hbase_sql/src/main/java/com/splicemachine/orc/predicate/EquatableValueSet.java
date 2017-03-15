@@ -15,6 +15,7 @@ package com.splicemachine.orc.predicate;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 
 import java.util.*;
@@ -290,35 +291,35 @@ public class EquatableValueSet
 
     public static class ValueEntry
     {
-        private final Type type;
-        private final Block block;
+        private final DataType type;
+        private final ColumnVector block;
 
         @JsonCreator
         public ValueEntry(
-                @JsonProperty("type") Type type,
-                @JsonProperty("block") Block block)
+                @JsonProperty("type") DataType type,
+                @JsonProperty("block") ColumnVector block)
         {
             this.type = requireNonNull(type, "type is null");
             this.block = requireNonNull(block, "block is null");
 
-            if (block.getPositionCount() != 1) {
+            if (block.getElementsAppended() != 1) {
                 throw new IllegalArgumentException("Block should only have one position");
             }
         }
 
-        public static ValueEntry create(Type type, Object value)
+        public static ValueEntry create(DataType type, Object value)
         {
             return new ValueEntry(type, Utils.nativeValueToBlock(type, value));
         }
 
         @JsonProperty
-        public Type getType()
+        public DataType getType()
         {
             return type;
         }
 
         @JsonProperty
-        public Block getBlock()
+        public ColumnVector getBlock()
         {
             return block;
         }

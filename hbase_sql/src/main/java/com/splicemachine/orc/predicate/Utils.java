@@ -13,13 +13,9 @@
  */
 package com.splicemachine.orc.predicate;
 
-import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.block.BlockBuilder;
-import com.facebook.presto.spi.block.BlockBuilderStatus;
-import com.facebook.presto.spi.type.Type;
-
-import static com.facebook.presto.spi.type.TypeUtils.readNativeValue;
-import static com.facebook.presto.spi.type.TypeUtils.writeNativeValue;
+import org.apache.spark.memory.MemoryMode;
+import org.apache.spark.sql.execution.vectorized.ColumnVector;
+import org.apache.spark.sql.types.DataType;
 
 public final class Utils
 {
@@ -27,18 +23,17 @@ public final class Utils
     {
     }
 
-    public static Block nativeValueToBlock(Type type, Object object)
+    public static ColumnVector nativeValueToBlock(DataType type, Object object)
     {
         if (object != null && !Primitives.wrap(type.getJavaType()).isInstance(object)) {
             throw new IllegalArgumentException(String.format("Object '%s' does not match type %s", object, type.getJavaType()));
         }
-        BlockBuilder blockBuilder = type.createBlockBuilder(new BlockBuilderStatus(), 1);
+        ColumnVector vector = ColumnVector.allocate(1,type, MemoryMode.ON_HEAP);
         writeNativeValue(type, blockBuilder, object);
         return blockBuilder.build();
     }
 
-    static Object blockToNativeValue(Type type, Block block)
-    {
+    static Object blockToNativeValue(DataType type, ColumnVector columnVector) {
         return readNativeValue(type, block, 0);
     }
 }

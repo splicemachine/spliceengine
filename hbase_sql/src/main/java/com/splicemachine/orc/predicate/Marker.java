@@ -13,15 +13,13 @@
  */
 package com.splicemachine.orc.predicate;
 
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.spark.sql.execution.vectorized.ColumnVector;
+import org.apache.spark.sql.types.DataType;
 
 import java.util.Objects;
 import java.util.Optional;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -38,8 +36,8 @@ public final class Marker
         ABOVE    // higher than the value, but infinitesimally close to the value
     }
 
-    private final Type type;
-    private final Optional<Block> valueBlock;
+    private final DataType type;
+    private final Optional<ColumnVector> valueBlock;
     private final Bound bound;
 
     /**
@@ -48,8 +46,8 @@ public final class Marker
      */
     @JsonCreator
     public Marker(
-            @JsonProperty("type") Type type,
-            @JsonProperty("valueBlock") Optional<Block> valueBlock,
+            @JsonProperty("type") DataType type,
+            @JsonProperty("valueBlock") Optional<ColumnVector> valueBlock,
             @JsonProperty("bound") Bound bound)
     {
         requireNonNull(type, "type is null");
@@ -70,38 +68,38 @@ public final class Marker
         this.bound = bound;
     }
 
-    private static Marker create(Type type, Optional<Object> value, Bound bound)
+    private static Marker create(DataType type, Optional<Object> value, Bound bound)
     {
         return new Marker(type, value.map(object -> Utils.nativeValueToBlock(type, object)), bound);
     }
 
-    public static Marker upperUnbounded(Type type)
+    public static Marker upperUnbounded(DataType type)
     {
         requireNonNull(type, "type is null");
         return create(type, Optional.empty(), Bound.BELOW);
     }
 
-    public static Marker lowerUnbounded(Type type)
+    public static Marker lowerUnbounded(DataType type)
     {
         requireNonNull(type, "type is null");
         return create(type, Optional.empty(), Bound.ABOVE);
     }
 
-    public static Marker above(Type type, Object value)
+    public static Marker above(DataType type, Object value)
     {
         requireNonNull(type, "type is null");
         requireNonNull(value, "value is null");
         return create(type, Optional.of(value), Bound.ABOVE);
     }
 
-    public static Marker exactly(Type type, Object value)
+    public static Marker exactly(DataType type, Object value)
     {
         requireNonNull(type, "type is null");
         requireNonNull(value, "value is null");
         return create(type, Optional.of(value), Bound.EXACTLY);
     }
 
-    public static Marker below(Type type, Object value)
+    public static Marker below(DataType type, Object value)
     {
         requireNonNull(type, "type is null");
         requireNonNull(value, "value is null");
@@ -109,13 +107,13 @@ public final class Marker
     }
 
     @JsonProperty
-    public Type getType()
+    public DataType getType()
     {
         return type;
     }
 
     @JsonProperty
-    public Optional<Block> getValueBlock()
+    public Optional<ColumnVector> getValueBlock()
     {
         return valueBlock;
     }
@@ -128,7 +126,7 @@ public final class Marker
         return Utils.blockToNativeValue(type, valueBlock.get());
     }
 
-    public Object getPrintableValue(ConnectorSession session)
+    public Object getPrintableValue()
     {
         if (!valueBlock.isPresent()) {
             throw new IllegalStateException("No value to get");
@@ -281,7 +279,7 @@ public final class Marker
                 && (!this.valueBlock.isPresent() || type.equalTo(this.valueBlock.get(), 0, other.valueBlock.get(), 0));
     }
 
-    public String toString(ConnectorSession session)
+    public String toString()
     {
         StringBuilder buffer = new StringBuilder("{");
         buffer.append("type=").append(type);
@@ -293,7 +291,7 @@ public final class Marker
             buffer.append("<max>");
         }
         else {
-            buffer.append(getPrintableValue(session));
+            buffer.append("----");
         }
         buffer.append(", bound=").append(bound);
         buffer.append("}");
