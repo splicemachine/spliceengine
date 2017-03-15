@@ -136,7 +136,7 @@ public class AllOrNoneValueSet
     }
 
     @Override
-    public String toString(ConnectorSession session)
+    public String toString()
     {
         return "[" + (all ? "ALL" : "NONE") + "]";
     }

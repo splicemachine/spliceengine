@@ -13,15 +13,12 @@
  */
 package com.splicemachine.orc.predicate;
 
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import org.apache.spark.sql.types.DataType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -56,32 +53,32 @@ public final class Domain
         return new Domain(values, nullAllowed);
     }
 
-    public static Domain none(Type type)
+    public static Domain none(DataType type)
     {
         return new Domain(ValueSet.none(type), false);
     }
 
-    public static Domain all(Type type)
+    public static Domain all(DataType type)
     {
         return new Domain(ValueSet.all(type), true);
     }
 
-    public static Domain onlyNull(Type type)
+    public static Domain onlyNull(DataType type)
     {
         return new Domain(ValueSet.none(type), true);
     }
 
-    public static Domain notNull(Type type)
+    public static Domain notNull(DataType type)
     {
         return new Domain(ValueSet.all(type), false);
     }
 
-    public static Domain singleValue(Type type, Object value)
+    public static Domain singleValue(DataType type, Object value)
     {
         return new Domain(ValueSet.of(type, value), false);
     }
 
-    public static Domain multipleValues(Type type, List<Object> values)
+    public static Domain multipleValues(DataType type, List<Object> values)
     {
         if (values.isEmpty()) {
             throw new IllegalArgumentException("values cannot be empty");
@@ -92,7 +89,7 @@ public final class Domain
         return new Domain(ValueSet.of(type, values.get(0), values.subList(1, values.size()).toArray()), false);
     }
 
-    public Type getType()
+    public DataType getType()
     {
         return values.getType();
     }
@@ -251,9 +248,9 @@ public final class Domain
         return Objects.equals(this.values, other.values) &&
                 this.nullAllowed == other.nullAllowed;
     }
-
-    public String toString(ConnectorSession session)
+    @Override
+    public String toString()
     {
-        return "[ " + (nullAllowed ? "NULL, " : "") + values.toString(session) + " ]";
+        return "[ " + (nullAllowed ? "NULL, " : "") +" ]";
     }
 }

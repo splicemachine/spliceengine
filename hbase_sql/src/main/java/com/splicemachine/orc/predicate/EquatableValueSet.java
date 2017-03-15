@@ -13,11 +13,9 @@
  */
 package com.splicemachine.orc.predicate;
 
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.spark.sql.types.DataType;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -38,13 +36,13 @@ import static java.util.stream.Collectors.toSet;
 public class EquatableValueSet
         implements ValueSet
 {
-    private final Type type;
+    private final DataType type;
     private final boolean whiteList;
     private final Set<ValueEntry> entries;
 
     @JsonCreator
     public EquatableValueSet(
-            @JsonProperty("type") Type type,
+            @JsonProperty("type") DataType type,
             @JsonProperty("whiteList") boolean whiteList,
             @JsonProperty("entries") Set<ValueEntry> entries)
     {
@@ -62,17 +60,17 @@ public class EquatableValueSet
         this.entries = Collections.unmodifiableSet(new HashSet<>(entries));
     }
 
-    static EquatableValueSet none(Type type)
+    static EquatableValueSet none(DataType type)
     {
         return new EquatableValueSet(type, true, Collections.emptySet());
     }
 
-    static EquatableValueSet all(Type type)
+    static EquatableValueSet all(DataType type)
     {
         return new EquatableValueSet(type, false, Collections.emptySet());
     }
 
-    static EquatableValueSet of(Type type, Object first, Object... rest)
+    static EquatableValueSet of(DataType type, Object first, Object... rest)
     {
         HashSet<ValueEntry> set = new HashSet<>(rest.length + 1);
         set.add(ValueEntry.create(type, first));
@@ -82,7 +80,7 @@ public class EquatableValueSet
         return new EquatableValueSet(type, true, set);
     }
 
-    static EquatableValueSet copyOf(Type type, Collection<Object> values)
+    static EquatableValueSet copyOf(DataType type, Collection<Object> values)
     {
         return new EquatableValueSet(type, true, values.stream()
                 .map(value -> ValueEntry.create(type, value))
@@ -91,7 +89,7 @@ public class EquatableValueSet
 
     @JsonProperty
     @Override
-    public Type getType()
+    public DataType getType()
     {
         return type;
     }
@@ -231,7 +229,7 @@ public class EquatableValueSet
     }
 
     @Override
-    public String toString(ConnectorSession session)
+    public String toString()
     {
         return (whiteList ? "[ " : "EXCLUDES[ ") + entries.stream()
                 .map(entry -> type.getObjectValue(session, entry.getBlock(), 0).toString())
