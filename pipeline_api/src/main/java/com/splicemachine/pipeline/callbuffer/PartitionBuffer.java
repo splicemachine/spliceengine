@@ -35,12 +35,14 @@ public class PartitionBuffer{
     private Partition partition;
     private PreFlushHook preFlushHook;
     private boolean skipIndexWrites;
+    private boolean skipConflictDetection;
 
-    public PartitionBuffer(Partition partition,PreFlushHook preFlushHook,boolean skipIndexWrites) {
+    public PartitionBuffer(Partition partition,PreFlushHook preFlushHook,boolean skipIndexWrites,boolean skipConflictDetection) {
         this.partition=partition;
         this.buffer = new ArrayList<>();
         this.preFlushHook = preFlushHook;
         this.skipIndexWrites = skipIndexWrites;
+        this.skipConflictDetection = skipConflictDetection;
     }
 
     public void add(KVPair element) throws Exception {
@@ -73,7 +75,7 @@ public class PartitionBuffer{
     }
 
     public BulkWrite getBulkWrite() throws Exception {
-        return new BulkWrite(heapSize, preFlushHook.transform(buffer), partition.getName(), skipIndexWrites);
+        return new BulkWrite(heapSize, preFlushHook.transform(buffer), partition.getName(), skipIndexWrites, skipConflictDetection);
     }
 
     /**

@@ -151,6 +151,11 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
+    public boolean skipConflictDetection() {
+        return pipelineWriteContext.skipConflictDetection();
+    }
+
+    @Override
     public TransactionalRegion txnRegion(){
         return pipelineWriteContext.txnRegion();
     }
