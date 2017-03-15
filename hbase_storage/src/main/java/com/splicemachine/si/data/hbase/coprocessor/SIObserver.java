@@ -227,7 +227,7 @@ public class SIObserver extends BaseRegionObserver{
                 boolean processed=false;
                 while (!processed) {
                     @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
-                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()));
+                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false);
                     Iterator<MutationStatus> itr = status.iterator();
                     if (!itr.hasNext())
                         throw new IllegalStateException();
