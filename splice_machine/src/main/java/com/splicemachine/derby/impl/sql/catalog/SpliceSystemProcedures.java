@@ -45,6 +45,7 @@ import com.splicemachine.db.impl.sql.catalog.Procedure;
 public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
     private static final String IMPORT_DATA_NAME = "SYSCS_IMPORT_DATA";
+    private static final String IMPORT_DATA_UNSAFE_NAME = "SYSCS_IMPORT_DATA_UNSAFE";
     public static final String RESTORE_DATABASE_NAME = "SYSCS_RESTORE_DATABASE";
     public static final String BACKUP_DATABASE_NAME = "SYSCS_BACKUP_DATABASE";
 
@@ -285,6 +286,24 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("charset",32672)
                             .build();
                     procedures.add(importWithBadRecords);
+
+                    Procedure importUnsafe = Procedure.newBuilder().name("IMPORT_DATA_UNSAFE")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("insertColumnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .build();
+                    procedures.add(importUnsafe);
 
                     Procedure upport = Procedure.newBuilder().name("UPSERT_DATA_FROM_FILE")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
