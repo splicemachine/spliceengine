@@ -188,12 +188,7 @@ public class HdfsUnsafeImportIT extends SpliceUnitTest {
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
 
-                int failed = rs.getInt(2);
-                // With import_unsafe we shouldn't catch PK violations
-                assertEquals("Failed rows don't match", 0, failed);
-
-                boolean exists = existsBadFile(BADDIR, "multiFilePKViolation.bad");
-                assertFalse("Bad file exists.",exists);
+                // IMPORT_DATA_UNSAFE can report PK violations under some circumstances (repeated PK on same batch)
             }
         }
         try(ResultSet rs = methodWatcher.executeQuery("select count(*) from "+multiPK)){
