@@ -132,6 +132,39 @@ public class InsertInsertTransactionIT {
     }
 
     @Test
+    public void testUnsafeWritesDoNotConflict() throws Exception {
+        int a = 4;
+        int b = 4;
+        PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + table + " (a,b) values (?,?)");
+        preparedStatement.setInt(1,a);
+        preparedStatement.setInt(2,b);
+
+        preparedStatement.execute();
+
+        PreparedStatement preparedStatement2 = conn2.prepareStatement("insert into " + table + " (a,b) --splice-properties skipConflictDetection=true\n" +
+                " values (?,?)");
+        preparedStatement2.setInt(1,a);
+        preparedStatement2.setInt(2,b+1);
+
+        preparedStatement2.execute();
+
+        long conn1Count = conn1.count("select * from "+ table+" where a = "+a);
+        Assert.assertEquals("Rows are not visible to my own transaction!",1l,conn1Count);
+
+        long conn1CountB = conn1.count("select * from "+ table+" where b = "+b);
+        Assert.assertEquals("Rows are not visible to my own transaction!",1l,conn1CountB);
+
+        conn2.commit();
+        conn1.commit();
+
+        conn1Count = conn1.count("select * from "+ table+" where a = "+a);
+        Assert.assertEquals("Rows are not visible to my own transaction!",1l,conn1Count);
+
+        conn1CountB = conn1.count("select * from "+ table+" where b = "+b);
+        Assert.assertEquals("Value hasn't been updated!",0l,conn1CountB);
+    }
+
+    @Test
     public void testRollbacksNeverVisibleSnapshotIsolation() throws Exception {
         int a = 1;
         int b = 1;
