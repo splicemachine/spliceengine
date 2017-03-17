@@ -133,5 +133,13 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
             //no-op
             return null;
         }
+
+        @Override
+        public Boolean isCached(long conglomerateId) throws StandardException {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "DistributedWrapper#isCached()");
+            //no-op
+            return false;
+        }
     }
 }
