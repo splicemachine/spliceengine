@@ -1985,6 +1985,7 @@ public interface SQLState {
 	String TABLE_NOT_PINNED				    						= "EXT32";
 	String DIRECTORY_REQUIRED			    						= "EXT33";
 	String ACCESSING_S3_EXCEPTION                                   = "EXT34";
+	String EXISTING_PIN_VIOLATION									= "EXT35";
 
 }
 
