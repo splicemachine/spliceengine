@@ -72,6 +72,10 @@ public class HFileGenerator <Op extends SpliceOperation>
         return generatedHFiles.iterator();
     }
 
+    /**
+     * Sort data and flush to HFile
+     * @throws Exception
+     */
     private void flushBuffers() throws Exception {
         // For each conglomerate, write to HFiles
         for (HashBucketKey hashBucketKey : buffer.keySet()) {
@@ -90,17 +94,28 @@ public class HFileGenerator <Op extends SpliceOperation>
         }
     }
 
+    /**
+     * Write key/value to HFile
+     * @param conglom
+     * @param path
+     * @param kvPairs
+     * @throws Exception
+     */
     private void writeToHFile (Long conglom, Path path, List<KVPair> kvPairs) throws Exception {
         StoreFile.Writer writer = getNewWriter(conf, path);
-        for (KVPair pair : kvPairs) {
-            KeyValue kv = new KeyValue(pair.getRowKey(), SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, txnId, pair.getValue());
-            writer.append(kv);
-            if (conglom == heapConglom) {
-                operationContext.recordWrite();
+        try {
+            for (KVPair pair : kvPairs) {
+                KeyValue kv = new KeyValue(pair.getRowKey(), SIConstants.DEFAULT_FAMILY_BYTES,
+                        SIConstants.PACKED_COLUMN_BYTES, txnId, pair.getValue());
+                writer.append(kv);
+                if (conglom == heapConglom) {
+                    operationContext.recordWrite();
+                }
             }
+            generatedHFiles.add(path.toString());
+        } finally {
+            close(writer);
         }
-        generatedHFiles.add(path.toString());
-        close(writer);
     }
 
     private StoreFile.Writer getNewWriter(Configuration conf, Path familyPath)
@@ -132,6 +147,7 @@ public class HFileGenerator <Op extends SpliceOperation>
             throw new IOException(e);
         }
     }
+
     private void close(final StoreFile.Writer w) throws IOException {
         if (w != null) {
             w.appendFileInfo(StoreFile.BULKLOAD_TIME_KEY,

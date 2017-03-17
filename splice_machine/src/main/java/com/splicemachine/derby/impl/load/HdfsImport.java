@@ -122,21 +122,22 @@ public class HdfsImport {
      * @param results
      * @throws SQLException
      */
-    public static void BULK_IMPORT_DATA(String schemaName,
-                                          String tableName,
-                                          String insertColumnList,
-                                          String fileName,
-                                          String columnDelimiter,
-                                          String characterDelimiter,
-                                          String timestampFormat,
-                                          String dateFormat,
-                                          String timeFormat,
-                                          long badRecordsAllowed,
-                                          String badRecordDirectory,
-                                          String oneLineRecords,
-                                          String charset,
-                                          String bulkImportDirectory,
-                                          ResultSet[] results
+    public static void BULK_IMPORT_HFILE(String schemaName,
+                                         String tableName,
+                                         String insertColumnList,
+                                         String fileName,
+                                         String columnDelimiter,
+                                         String characterDelimiter,
+                                         String timestampFormat,
+                                         String dateFormat,
+                                         String timeFormat,
+                                         long badRecordsAllowed,
+                                         String badRecordDirectory,
+                                         String oneLineRecords,
+                                         String charset,
+                                         String bulkImportDirectory,
+                                         String samplingOnly,
+                                         ResultSet[] results
     ) throws SQLException {
         doImport(schemaName,
                 tableName,
@@ -154,6 +155,7 @@ public class HdfsImport {
                 false,
                 false,
                 bulkImportDirectory,
+                samplingOnly,
                 results);
     }
     /**
@@ -241,6 +243,7 @@ public class HdfsImport {
                 true,
                 false,
                 null,
+                null,
                 results);
     }
 
@@ -322,6 +325,7 @@ public class HdfsImport {
                 false,
                 false,
                 null,
+                null,
                 results);
     }
 
@@ -342,6 +346,7 @@ public class HdfsImport {
                                  boolean isUpsert,
                                  boolean isCheckScan,
                                  String bulkImportDirectory,
+                                 String samplingOnly,
                                  ResultSet[] results) throws SQLException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doImport {schemaName=%s, tableName=%s, insertColumnList=%s, fileName=%s, " +
@@ -429,10 +434,14 @@ public class HdfsImport {
             // Remove trailing back slash
             if (badRecordDirectory != null)
                 badRecordDirectory = badRecordDirectory.replaceAll("/$", "");
+
+            if (samplingOnly == null)
+                samplingOnly ="false";
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                     "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
-                    badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + ", bulkImportDirectory=" + bulkImportDirectory + "\n" +
+                    badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + ", bulkImportDirectory=" + bulkImportDirectory
+                    + ", samplingOnly=" + samplingOnly + "\n" +
                     " SELECT "+
                     generateColumnList(((EmbedConnection)conn).getLanguageConnection(),schemaName,tableName,insertColumnList) +
                     " from " +

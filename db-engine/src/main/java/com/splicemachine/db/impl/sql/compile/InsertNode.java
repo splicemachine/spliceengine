@@ -96,7 +96,7 @@ public final class InsertNode extends DMLModStatementNode {
     public static final String INSERT = "INSERT";
     public static final String PIN = "pin";
 	public static final String BULK_IMPORT_DIRECTORY = "bulkImportDirectory";
-
+	public static final String SAMPLING_ONLY = "samplingOnly";
 
 
 	public		ResultColumnList	targetColumnList;
@@ -111,6 +111,7 @@ public final class InsertNode extends DMLModStatementNode {
     private     String              statusDirectory;
     private     int              	badRecordsAllowed = 0;
 	private		String 				bulkImportDirectory;
+	private     boolean             samplingOnly;
 	private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
 
 
@@ -723,6 +724,7 @@ public final class InsertNode extends DMLModStatementNode {
 		String useSparkString = targetProperties.getProperty(USE_SPARK);
         String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
 		bulkImportDirectory = targetProperties.getProperty(BULK_IMPORT_DIRECTORY);
+		samplingOnly = Boolean.parseBoolean(targetProperties.getProperty(SAMPLING_ONLY));
         String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
         Boolean pin = Boolean.parseBoolean(targetProperties.getProperty(PIN));
         if(pin){
@@ -1002,7 +1004,8 @@ public final class InsertNode extends DMLModStatementNode {
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getCompression());
 			mb.push(partitionReferenceItem);
 			BaseJoinStrategy.pushNullableString(mb,bulkImportDirectory);
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 18);
+            mb.push(samplingOnly);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 19);
 		}
 		else
 		{

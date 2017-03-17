@@ -100,7 +100,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapCompactionMaximumWait;
     private final int reservedSlotsTimeout;
     private final double bulkImportSampleFraction;
-    private final int bulkImportPartitionCount;
+
     // OLAP client/server configurations
     private final int olapClientWaitTime;
     private final int olapClientTickTime;
@@ -356,10 +356,6 @@ public final class SConfigurationImpl implements SConfiguration {
         return bulkImportSampleFraction;
     }
 
-    @Override
-    public int getBulkImportPartitionCount() {
-        return bulkImportPartitionCount;
-    }
     @Override
     public int getSparkResultStreamingBatches() {
         return sparkResultStreamingBatches;
@@ -703,7 +699,6 @@ public final class SConfigurationImpl implements SConfiguration {
         storageFactoryHome = builder.storageFactoryHome;
         nestedLoopJoinBatchSize = builder.nestedLoopJoinBatchSize;
         bulkImportSampleFraction = builder.bulkImportSampleFraction;
-        bulkImportPartitionCount = builder.bulkImportPartitionCount;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

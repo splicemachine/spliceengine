@@ -137,8 +137,6 @@ public interface SConfiguration {
 
     double getBulkImportSampleFraction();
 
-    int getBulkImportPartitionCount();
-
     // SIConfigurations
     int getActiveTransactionCacheSize();
 

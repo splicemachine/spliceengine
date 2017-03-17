@@ -159,9 +159,6 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
     private static final double DEFAULT_BULK_IMPORT_SAMPLE_FRACTION = 0.1d;
 
-    public static final String BULK_IMPORT_PARTITION_COUNT = "splice.bulkImport.partition.count";
-    public static final int DEFAULT_BULK_IMPORT_PARTITION_COUNT = 20;
-
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.ipcThreads = configurationSource.getInt(IPC_THREADS, DEFAULT_IPC_THREADS);
@@ -186,6 +183,5 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.olapCompactionMaximumWait = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_WAIT, DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT);
         builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);
         builder.bulkImportSampleFraction = configurationSource.getDouble(BULK_IMPORT_SAMPLE_FRACTION, DEFAULT_BULK_IMPORT_SAMPLE_FRACTION);
-        builder.bulkImportPartitionCount = configurationSource.getInt(BULK_IMPORT_PARTITION_COUNT, DEFAULT_BULK_IMPORT_PARTITION_COUNT);
     }
 }

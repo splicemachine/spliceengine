@@ -83,7 +83,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected int partitionByRefItem;
     protected int[] partitionBy;
     protected String bulkImportDirectory;
-
+    protected boolean samplingOnly;
 
 
     @Override
@@ -112,7 +112,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String location,
                            String compression,
                            int partitionByRefItem,
-                           String bulkImportDirectory) throws StandardException{
+                           String bulkImportDirectory,
+                           boolean samplingOnly) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
@@ -125,6 +126,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.compression = compression;
         this.partitionByRefItem = partitionByRefItem;
         this.bulkImportDirectory = bulkImportDirectory;
+        this.samplingOnly = samplingOnly;
         init();
     }
 
@@ -258,6 +260,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         compression = in.readBoolean()?in.readUTF():null;
         bulkImportDirectory = in.readBoolean()?in.readUTF():null;
         this.partitionByRefItem = in.readInt();
+        samplingOnly = in.readBoolean();
     }
 
     @Override
@@ -295,6 +298,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if (bulkImportDirectory!=null)
             out.writeUTF(bulkImportDirectory);
         out.writeInt(partitionByRefItem);
+        out.writeBoolean(samplingOnly);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -339,6 +343,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                         .execRow(getExecRowDefinition())
                         .txn(txn)
                         .bulkImportDirectory(bulkImportDirectory)
+                        .samplingOnly(samplingOnly)
                         .build();
                 return importer.write();
             }

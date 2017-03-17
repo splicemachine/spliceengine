@@ -294,7 +294,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(importWithBadRecords);
 
-                    Procedure hbaseBulkLoad = Procedure.newBuilder().name("BULK_IMPORT_DATA")
+                    Procedure bulkImportHFile = Procedure.newBuilder().name("BULK_IMPORT_HFILE")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
                             .catalog("schemaName")
                             .catalog("tableName")
@@ -310,8 +310,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("oneLineRecords",5)
                             .varchar("charset",32672)
                             .varchar("bulkImportDirectory", 32672)
+                            .varchar("samplingOnly", 5)
                             .build();
-                    procedures.add(hbaseBulkLoad);
+                    procedures.add(bulkImportHFile);
 
                     Procedure upport = Procedure.newBuilder().name("UPSERT_DATA_FROM_FILE")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())

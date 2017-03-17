@@ -28,6 +28,8 @@ public interface HBaseBulkImporterBuilder {
     HBaseBulkImporterBuilder txn(TxnView txn);
 
     HBaseBulkImporterBuilder bulkImportDirectory(String bulkImportDirectory);
+
+    HBaseBulkImporterBuilder samplingOnly(boolean samplingOnly);
     
     HBaseBulkImporter build();
 }

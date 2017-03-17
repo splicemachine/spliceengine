@@ -20,9 +20,10 @@ import java.util.*;
  * Created by jyuan on 3/14/17.
  */
 public class RowKeyStatisticsFunction <Op extends SpliceOperation>
-        extends SpliceFlatMapFunction<Op,Iterator<Tuple2<Long,KVPair>>, Tuple2<Long, ColumnStatisticsImpl>> implements Serializable {
+        extends SpliceFlatMapFunction<Op,Iterator<Tuple2<Long,KVPair>>, Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> implements Serializable {
 
     protected Map<Long, ColumnStatisticsImpl> keyStatisticsMap;
+    protected Map<Long, Long> rowSizeMap;
     protected List<DDLMessage.TentativeIndex> tentativeIndexList;
     protected long heapConglom;
     protected boolean initialized;
@@ -36,7 +37,7 @@ public class RowKeyStatisticsFunction <Op extends SpliceOperation>
     }
 
     @Override
-    public Iterator<Tuple2<Long, ColumnStatisticsImpl>> call(Iterator<Tuple2<Long,KVPair>> mainAndIndexRows) throws Exception {
+    public Iterator<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> call(Iterator<Tuple2<Long,KVPair>> mainAndIndexRows) throws Exception {
 
         if (!initialized) {
             init();
@@ -47,22 +48,30 @@ public class RowKeyStatisticsFunction <Op extends SpliceOperation>
             Long conglomId = t._1;
             KVPair kvPair = t._2;
             byte[] key = kvPair.getRowKey();
+            byte[] value = kvPair.getValue();
 
+            int length = value.length + key.length;
             ColumnStatisticsImpl columnStatistics = keyStatisticsMap.get(conglomId);
             if (columnStatistics == null) {
                 columnStatistics = new ColumnStatisticsImpl(new SQLBlob(key));
                 keyStatisticsMap.put(conglomId, columnStatistics);
             }
             else {
-                //blob.setValue(key);
                 columnStatistics.update(new SQLBlob(key));
             }
 
+            Long size = rowSizeMap.get(conglomId);
+            if (size == null) {
+                size = new Long(0);
+            }
+            size += length;
+            rowSizeMap.put(conglomId, size);
         }
-        List<Tuple2<Long, ColumnStatisticsImpl>> l = Lists.newArrayList();
+        List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> l = Lists.newArrayList();
         for (Long c : keyStatisticsMap.keySet()) {
-            ColumnStatisticsImpl statistics = keyStatisticsMap.get(c);
-            l.add(new Tuple2<>(c, statistics));
+            ColumnStatisticsImpl stats = keyStatisticsMap.get(c);
+            Long size = rowSizeMap.get(c);
+            l.add(new Tuple2<>(c,new Tuple2<>(size, stats)));
         }
         return l.iterator();
     }
@@ -95,5 +104,6 @@ public class RowKeyStatisticsFunction <Op extends SpliceOperation>
     private void init() {
         keyStatisticsMap = new HashMap<>();
         blob = new SQLBlob();
+        rowSizeMap = new HashMap<>();
     }
 }

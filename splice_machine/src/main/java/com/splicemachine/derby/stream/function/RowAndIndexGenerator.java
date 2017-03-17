@@ -152,8 +152,8 @@ public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperat
                 i++;
             }
         }
-        try {
 
+        try {
             ArrayList<Tuple2<Long,KVPair>> list = new ArrayList();
             KVPair mainRow = encoder.encode(execRow);
             locatedRow.setRowLocation(new HBaseRowLocation(mainRow.rowKeySlice()));
@@ -162,8 +162,8 @@ public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperat
                 LocatedRow indexRow = getIndexRow(indexTransformFunctions[i], locatedRow);
                 list.add(new Tuple2<>(indexTransformFunctions[i].getIndexConglomerateId(),indexTransformFunctions[i].call(indexRow)));
             }
-
             return list.iterator();
+
         } catch (Exception e) {
             if (operationContext!=null && operationContext.isPermissive()) {
                 operationContext.recordBadRecord(e.getLocalizedMessage() + execRow.toString(), e);
@@ -172,7 +172,10 @@ public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperat
             throw Exceptions.parseException(e);
         }
     }
-    
+
+    /**
+     * Strip off all non-index columns from a main table row
+     */
     private LocatedRow getIndexRow(IndexTransformFunction indexTransformFunction, LocatedRow locatedRow) throws StandardException{
         ExecRow execRow = locatedRow.getRow();
         List<Integer> indexColToMainCol = indexTransformFunction.getIndexColsToMainColMapList();
@@ -187,10 +190,8 @@ public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperat
         LocatedRow lr = new LocatedRow(locatedRow.getRowLocation(), row);
         return lr;
     }
-    public void beforeRow(ExecRow row) throws StandardException {
-        if (insertOperation != null)
-            insertOperation.evaluateGenerationClauses(row);
-    }
+
+
     public KeyEncoder getKeyEncoder() throws StandardException {
         HashPrefix prefix;
         DataHash dataHash;

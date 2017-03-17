@@ -140,7 +140,6 @@ public class ConfigurationBuilder {
     public int olapCompactionMaximumWait;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
-    public int bulkImportPartitionCount;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

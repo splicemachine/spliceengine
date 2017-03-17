@@ -26,6 +26,7 @@ public class SparkHBaseBulkImporterBuilder<V> implements HBaseBulkImporterBuilde
     private OperationContext operationContext;
     private TxnView txn;
     private String bulkImportDirectory;
+    private boolean samplingOnly;
 
     public SparkHBaseBulkImporterBuilder(){
     }
@@ -86,9 +87,16 @@ public class SparkHBaseBulkImporterBuilder<V> implements HBaseBulkImporterBuilde
         this.bulkImportDirectory = bulkImportDirectory;
         return this;
     }
+
+    @Override
+    public HBaseBulkImporterBuilder samplingOnly(boolean samplingOnly) {
+        this.samplingOnly = samplingOnly;
+        return this;
+    }
+
     @Override
     public HBaseBulkImporter build() {
         return new SparkHBaseBulkImport(dataSet, tableVersion, pkCols, autoIncrementRowLocationArray, heapConglom,
-                execRow, spliceSequences, operationContext, txn, bulkImportDirectory);
+                execRow, spliceSequences, operationContext, txn, bulkImportDirectory, samplingOnly);
     }
 }
