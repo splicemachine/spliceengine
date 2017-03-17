@@ -15,13 +15,10 @@
 package com.splicemachine.derby.stream.spark;
 
 import java.util.Collections;
-import java.util.Iterator;
 
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.derby.stream.function.HFileFlatMapFunction;
-import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 

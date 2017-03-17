@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.derby.stream.spark;
 
 import com.clearspring.analytics.util.Lists;
@@ -58,9 +72,6 @@ import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.util.*;
 
-/**
- * Created by jyuan on 3/14/17.
- */
 public class SparkHBaseBulkImport implements HBaseBulkImporter {
 
     private static final Logger LOG=Logger.getLogger(SparkHBaseBulkImport.class);
@@ -156,7 +167,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
         List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> result = keyStatistics.collect();
 
         // Calculate cut points for main table and index tables
-        List<Tuple2<Long, byte[][]>> cutPoints = getCutPoints(result);
+        List<Tuple2<Long, byte[][]>> cutPoints = getCutPoints(sampleFraction, result);
 
         // dump cut points to file system for reference
         dumpCutPoints(cutPoints);
@@ -339,7 +350,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
      * @return
      * @throws StandardException
      */
-    private List<Tuple2<Long, byte[][]>> getCutPoints(
+    private List<Tuple2<Long, byte[][]>> getCutPoints(double sampleFraction,
             List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> statistics) throws StandardException{
         Map<Long, Tuple2<Long, ColumnStatisticsImpl>> mergedStatistics = mergeResults(statistics);
         List<Tuple2<Long, byte[][]>> result = Lists.newArrayList();
@@ -352,7 +363,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
         for (Long conglomId : mergedStatistics.keySet()) {
             Tuple2<Long, ColumnStatisticsImpl> stats = mergedStatistics.get(conglomId);
             long size = stats._1;
-            int numPartition = (int)(size/(maxRegionSize)) + 1;
+            int numPartition = (int)(size/(maxRegionSize)/sampleFraction) + 1;
             if (numPartition > 1) {
                 numPartitions.put(conglomId, numPartition);
             }
