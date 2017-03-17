@@ -23,6 +23,9 @@ import java.lang.reflect.Method;
 
 import com.google.common.io.ByteStreams;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.compress.CodecPool;
+import org.apache.hadoop.io.compress.Compressor;
+import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.log4j.Logger;
 
@@ -90,10 +93,15 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
         byte[] d = delegate.compress(o);
         if(!supportsNative) return d;
         ByteArrayOutputStream baos = new ByteArrayOutputStream(d.length);
-        OutputStream os = snappy.createOutputStream(baos);
-        os.write(d);
-        os.flush();
-        os.close();
+        Compressor snappyCompressor = CodecPool.getCompressor(snappy);
+        try {
+            OutputStream os = snappy.createOutputStream(baos, snappyCompressor);
+            os.write(d);
+            os.flush();
+            os.close();
+        } finally {
+            CodecPool.returnCompressor(snappyCompressor);
+        }
         return baos.toByteArray();
     }
 
@@ -103,12 +111,18 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
         if (supportsNative) {
             ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
             ByteArrayOutputStream baos = new ByteArrayOutputStream(d.length);
-            InputStream is = snappy.createInputStream(bais);
-            ByteStreams.copy(is, baos);
-            baos.flush();
-            d = baos.toByteArray();
-            baos.close();
-            is.close();
+
+            Decompressor snappyDecompressor = CodecPool.getDecompressor(snappy);
+            try {
+                InputStream is = snappy.createInputStream(bais, snappyDecompressor);
+                ByteStreams.copy(is, baos);
+                baos.flush();
+                d = baos.toByteArray();
+                baos.close();
+                is.close();
+            } finally {
+                CodecPool.returnDecompressor(snappyDecompressor);
+            }
         }
         return delegate.decompress(d, clazz);
     }
