@@ -41,6 +41,8 @@ public interface HBaseBulkImporterBuilder {
     HBaseBulkImporterBuilder bulkImportDirectory(String bulkImportDirectory);
 
     HBaseBulkImporterBuilder samplingOnly(boolean samplingOnly);
-    
+
+    HBaseBulkImporterBuilder outputKeysOnly(boolean outputKeysOnly);
+
     HBaseBulkImporter build();
 }

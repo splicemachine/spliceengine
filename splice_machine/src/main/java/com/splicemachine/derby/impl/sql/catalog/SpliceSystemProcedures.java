@@ -311,6 +311,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("charset",32672)
                             .varchar("bulkImportDirectory", 32672)
                             .varchar("samplingOnly", 5)
+                            .varchar("outputKeysOnly", 5)
                             .build();
                     procedures.add(bulkImportHFile);
 

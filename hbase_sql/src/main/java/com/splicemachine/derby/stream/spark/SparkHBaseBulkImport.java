@@ -42,6 +42,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.function.HFileGenerator;
 import com.splicemachine.derby.stream.function.RowAndIndexGenerator;
+import com.splicemachine.derby.stream.function.RowKeyGenerator;
 import com.splicemachine.derby.stream.function.RowKeyStatisticsFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -87,6 +88,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
     private TxnView txn;
     private String bulkImportDirectory;
     private boolean samplingOnly;
+    private boolean outputKeysOnly;
 
     public SparkHBaseBulkImport(){
     }
@@ -101,7 +103,8 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
                                 OperationContext operationContext,
                                 TxnView txn,
                                 String bulkImportDirectory,
-                                boolean samplingOnly) {
+                                boolean samplingOnly,
+                                boolean outputKeysOnly) {
         this.dataSet = dataSet;
         this.tableVersion = tableVersion;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
@@ -113,6 +116,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
         this.txn = txn;
         this.bulkImportDirectory = bulkImportDirectory;
         this.samplingOnly = samplingOnly;
+        this.outputKeysOnly = outputKeysOnly;
     }
 
     /**
@@ -147,76 +151,86 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
             }
         }
 
-        // TODO: an option to skip sampling and statistics collection
-        // Sample the data set and collect statistics for key distributions
-        SConfiguration sConfiguration = HConfiguration.getConfiguration();
-        double sampleFraction = sConfiguration.getBulkImportSampleFraction();
-        DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
-
-        // encode key/vale pairs for table and indexes
-        RowAndIndexGenerator rowAndIndexGenerator =
-                new RowAndIndexGenerator(pkCols,tableVersion,execRow,autoIncrementRowLocationArray,
-                        spliceSequences,heapConglom, txn,operationContext,tentativeIndexList);
-        DataSet sampleRowAndIndexes = sampledDataSet.flatMap(rowAndIndexGenerator);
-
-        // collect statistics for encoded key/value, include size and histgram
-        RowKeyStatisticsFunction statisticsFunction =
-                new RowKeyStatisticsFunction(td.getHeapConglomerateId(), tentativeIndexList);
-        DataSet keyStatistics = sampleRowAndIndexes.mapPartitions(statisticsFunction);
-
-        List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> result = keyStatistics.collect();
-
-        // Calculate cut points for main table and index tables
-        List<Tuple2<Long, byte[][]>> cutPoints = getCutPoints(sampleFraction, result);
-
-        // dump cut points to file system for reference
-        dumpCutPoints(cutPoints);
-
-        if (!samplingOnly) {
-
-            // split table and indexes using the calculated cutpoints
-            splitTables(cutPoints);
-
-
-            // get the actual start/end key for each partition after split
-            List<Tuple2<Long, List<HFileGenerator.HashBucketKey>>> hashBucketKeys =
-                    getHashBucketKeys(allCongloms, bulkImportDirectory);
-
-            // Read data again and encode rows in main table and index
-            rowAndIndexGenerator = new RowAndIndexGenerator(pkCols, tableVersion, execRow,
-                    autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
-                    operationContext, tentativeIndexList);
+        if (outputKeysOnly) {
+            RowAndIndexGenerator rowAndIndexGenerator =
+                    new RowAndIndexGenerator(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
+                            spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
             DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
-
-            // Generate HFiles
-            HFileGenerator writer = new HFileGenerator(operationContext, txn.getTxnId(),
-                    heapConglom, bulkImportDirectory, hashBucketKeys);
-            DataSet HFileSet = rowAndIndexes.mapPartitions(writer);
-            List<String> files = HFileSet.collect();
-
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "created %d HFiles", files.size());
-            }
-
-            bulkLoad(hashBucketKeys);
+            DataSet keys = rowAndIndexes.mapPartitions(new RowKeyGenerator(bulkImportDirectory));
+            List<String> files = keys.collect();
         }
+        else {
+            // TODO: an option to skip sampling and statistics collection
+            // Sample the data set and collect statistics for key distributions
+            SConfiguration sConfiguration = HConfiguration.getConfiguration();
+            double sampleFraction = sConfiguration.getBulkImportSampleFraction();
+            DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
 
-        ValueRow valueRow=new ValueRow(3);
-        valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
-        valueRow.setColumn(2,new SQLLongint());
-        valueRow.setColumn(3,new SQLVarchar());
-        InsertOperation insertOperation=((InsertOperation)operationContext.getOperation());
-        if(insertOperation!=null && operationContext.isPermissive()) {
+            // encode key/vale pairs for table and indexes
+            RowAndIndexGenerator rowAndIndexGenerator =
+                    new RowAndIndexGenerator(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
+                            spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
+            DataSet sampleRowAndIndexes = sampledDataSet.flatMap(rowAndIndexGenerator);
+
+            // collect statistics for encoded key/value, include size and histgram
+            RowKeyStatisticsFunction statisticsFunction =
+                    new RowKeyStatisticsFunction(td.getHeapConglomerateId(), tentativeIndexList);
+            DataSet keyStatistics = sampleRowAndIndexes.mapPartitions(statisticsFunction);
+
+            List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> result = keyStatistics.collect();
+
+            // Calculate cut points for main table and index tables
+            List<Tuple2<Long, byte[][]>> cutPoints = getCutPoints(sampleFraction, result);
+
+            // dump cut points to file system for reference
+            dumpCutPoints(cutPoints);
+
+            if (!samplingOnly && !outputKeysOnly) {
+
+                // split table and indexes using the calculated cutpoints
+                splitTables(cutPoints);
+
+
+                // get the actual start/end key for each partition after split
+                List<Tuple2<Long, List<HFileGenerator.HashBucketKey>>> hashBucketKeys =
+                        getHashBucketKeys(allCongloms, bulkImportDirectory);
+
+                // Read data again and encode rows in main table and index
+                rowAndIndexGenerator = new RowAndIndexGenerator(pkCols, tableVersion, execRow,
+                        autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
+                        operationContext, tentativeIndexList);
+                DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
+
+                // Generate HFiles
+                HFileGenerator writer = new HFileGenerator(operationContext, txn.getTxnId(),
+                        heapConglom, bulkImportDirectory, hashBucketKeys);
+                DataSet HFileSet = rowAndIndexes.mapPartitions(writer);
+                List<String> files = HFileSet.collect();
+
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "created %d HFiles", files.size());
+                }
+
+                bulkLoad(hashBucketKeys);
+            }
+        }
+        ValueRow valueRow = new ValueRow(3);
+        valueRow.setColumn(1, new SQLLongint(operationContext.getRecordsWritten()));
+        valueRow.setColumn(2, new SQLLongint());
+        valueRow.setColumn(3, new SQLVarchar());
+        InsertOperation insertOperation = ((InsertOperation) operationContext.getOperation());
+        if (insertOperation != null && operationContext.isPermissive()) {
             long numBadRecords = operationContext.getBadRecords();
-            valueRow.setColumn(2,new SQLLongint(numBadRecords));
+            valueRow.setColumn(2, new SQLLongint(numBadRecords));
             if (numBadRecords > 0) {
                 String fileName = operationContext.getStatusDirectory();
-                valueRow.setColumn(3,new SQLVarchar(fileName));
+                valueRow.setColumn(3, new SQLVarchar(fileName));
                 if (insertOperation.isAboveFailThreshold(numBadRecords)) {
                     throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
                 }
             }
         }
+
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
     }
 

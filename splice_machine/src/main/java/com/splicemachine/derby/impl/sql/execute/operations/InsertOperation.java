@@ -84,7 +84,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected int[] partitionBy;
     protected String bulkImportDirectory;
     protected boolean samplingOnly;
-
+    protected boolean outputKeysOnly;
 
     @Override
     public String getName(){
@@ -113,7 +113,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String compression,
                            int partitionByRefItem,
                            String bulkImportDirectory,
-                           boolean samplingOnly) throws StandardException{
+                           boolean samplingOnly,
+                           boolean outputKeysOnly) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
@@ -127,6 +128,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.partitionByRefItem = partitionByRefItem;
         this.bulkImportDirectory = bulkImportDirectory;
         this.samplingOnly = samplingOnly;
+        this.outputKeysOnly = outputKeysOnly;
         init();
     }
 
@@ -261,6 +263,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         bulkImportDirectory = in.readBoolean()?in.readUTF():null;
         this.partitionByRefItem = in.readInt();
         samplingOnly = in.readBoolean();
+        outputKeysOnly = in.readBoolean();
     }
 
     @Override
@@ -299,6 +302,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             out.writeUTF(bulkImportDirectory);
         out.writeInt(partitionByRefItem);
         out.writeBoolean(samplingOnly);
+        out.writeBoolean(outputKeysOnly);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -344,6 +348,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                         .txn(txn)
                         .bulkImportDirectory(bulkImportDirectory)
                         .samplingOnly(samplingOnly)
+                        .outputKeysOnly(outputKeysOnly)
                         .build();
                 return importer.write();
             }
