@@ -9,7 +9,7 @@
      <!-- default is 25 -->
    </property>
  
-@@ -76,4 +76,101 @@
+@@ -76,4 +76,102 @@
      <name>mapr.hbase.default.db</name>
      <value>hbase</value>
    </property>
