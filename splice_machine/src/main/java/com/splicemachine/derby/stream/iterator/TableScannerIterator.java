@@ -17,11 +17,14 @@ package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
+import com.splicemachine.derby.utils.Scans;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -40,10 +43,18 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
     boolean hasNext;
     int rows = 0;
     protected SpliceOperation operation;
+    protected Qualifier[][] qualifiers;
+    protected int[] baseColumnMap;
+    protected boolean rowIdKey; // HACK Row ID Qualifiers point to the projection above them ?  TODO JL
 
-    public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceOperation operation) {
+    public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceOperation operation) throws StandardException {
         this.siTableBuilder = siTableBuilder;
         this.operation = operation;
+        if (operation != null) {
+            this.qualifiers = ((ScanOperation) operation).getScanInformation().getScanQualifiers();
+            this.baseColumnMap = ((ScanOperation) operation).getOperationInformation().getBaseColumnMap();
+            this.rowIdKey = ((ScanOperation) operation).getRowIdKey();
+        }
     }
 
     @Override
@@ -75,14 +86,18 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
                     });
                 }
             }
-            execRow = tableScanner.next();
-            if (execRow==null) {
-                tableScanner.close();
-                initialized = false;
-                hasNext = false;
-                return hasNext;
-            } else {
-                hasNext = true;
+            while (true) {
+                execRow = tableScanner.next();
+                if (execRow == null) {
+                    tableScanner.close();
+                    initialized = false;
+                    hasNext = false;
+                    return hasNext;
+                } else {
+                    hasNext = true;
+                    if (qualifiers == null || rowIdKey || Scans.qualifyRecordFromRow(execRow.getRowArray(), qualifiers, baseColumnMap, siTableBuilder.getOptionalProbeValue()))
+                        break;
+                }
             }
             return hasNext;
         } catch (Exception e) {

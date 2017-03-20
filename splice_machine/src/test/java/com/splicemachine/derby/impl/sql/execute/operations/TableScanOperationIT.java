@@ -58,6 +58,7 @@ public class TableScanOperationIT{
     private static SpliceTableWatcher spliceTableWatcher8=new SpliceTableWatcher("CHICKEN3",SCHEMA,"(c1 timestamp, c2 date, c3 time, primary key (c3))");
     private static SpliceTableWatcher spliceTableWatcher9=new SpliceTableWatcher("NUMBERS",SCHEMA,"(i int, l bigint, s smallint, d double precision, r real, dc decimal(10,2), PRIMARY KEY(i))");
     private static SpliceTableWatcher spliceTableWatcher10=new SpliceTableWatcher("CONSUMER_DATA",SCHEMA,"(SEQUENCE_ID bigint NOT NULL,CONSUMER_ID bigint NOT NULL,CONTRIBUTOR_ID varchar(128) NOT NULL,WINDOW_KEY_ADDRESS varchar(128) NOT NULL,ADDRESS_HASH varchar(128) NOT NULL,PRIMARY KEY (WINDOW_KEY_ADDRESS, CONSUMER_ID, CONTRIBUTOR_ID))");
+    private static SpliceTableWatcher spliceTableWatcher11=new SpliceTableWatcher("FOO",SCHEMA,"(c1 int primary key, c2 int)");
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -71,6 +72,7 @@ public class TableScanOperationIT{
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
             .around(spliceTableWatcher10)
+            .around(spliceTableWatcher11)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description){
@@ -91,6 +93,7 @@ public class TableScanOperationIT{
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",SCHEMA,"CHICKEN2"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",SCHEMA,"CHICKEN3"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,1,'contributor_id','window_key_address','address_hash')",SCHEMA,"CONSUMER_DATA"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1, 1), (2,2), (3, 3), (4,4), (5,5)",SCHEMA,"FOO"));
                     }catch(Exception e){
                         throw new RuntimeException(e);
                     }finally{
@@ -926,5 +929,31 @@ public class TableScanOperationIT{
             }
         }
         Assert.assertEquals("Incorrect return count!",expectedCount,count);
+    }
+
+    @Test
+    public void testScanOfORWithPKandNonPK() throws Exception{
+        try(Statement s=conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(format("select * from %s where c1=1 or c2=5",spliceTableWatcher11))){
+                int count=0;
+                while(rs.next()){
+                    count++;
+                }
+                assertEquals("Incorrect count returned!",2,count);
+            }
+        }
+    }
+
+    @Test
+    public void testScanOfORWithPKandNonPKThroughSpark() throws Exception{
+        try(Statement s=conn.createStatement()){
+            try(ResultSet rs=s.executeQuery(format("select * from %s --splice-properties useSpark=true\n where c1=1 or c2=5",spliceTableWatcher11))){
+                int count=0;
+                while(rs.next()){
+                    count++;
+                }
+                assertEquals("Incorrect count returned!",2,count);
+            }
+        }
     }
 }

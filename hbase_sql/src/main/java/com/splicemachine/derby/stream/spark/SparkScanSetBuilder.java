@@ -87,11 +87,10 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         // rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableDisplayName));
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
-
-        SparkSpliceFunctionWrapper f = new SparkSpliceFunctionWrapper<>(new TableScanTupleFunction<SpliceOperation>(operationContext));
+        SparkFlatMapFunction f = new SparkFlatMapFunction(new TableScanTupleFunction<SpliceOperation>(operationContext,this.optionalProbeValue));
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
-            return new SparkDataSet<>(rawRDD.map(f), op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
+            return new SparkDataSet<>(rawRDD.flatMap(f), op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
         } finally {
             SpliceSpark.popScope();
         }

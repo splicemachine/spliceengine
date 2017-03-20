@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.google.common.base.Supplier;
 import org.sparkproject.guava.base.Suppliers;
 import org.sparkproject.guava.base.Throwables;
@@ -82,6 +83,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private EntryDecoder entryDecoder;
     private final Counter outputBytesCounter;
     private long demarcationPoint;
+    private DataValueDescriptor optionalProbeValue;
 
     protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
@@ -144,6 +146,29 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.demarcationPoint = demarcationPoint;
         if(filterFactory==null)
             this.filterFactory = createFilterFactory(txn, demarcationPoint);
+    }
+
+    protected SITableScanner(DataScanner scanner,
+                             final TransactionalRegion region,
+                             final ExecRow template,
+                             DataScan scan,
+                             final int[] rowDecodingMap,
+                             final TxnView txn,
+                             int[] keyColumnEncodingOrder,
+                             boolean[] keyColumnSortOrder,
+                             int[] keyColumnTypes,
+                             int[] keyDecodingMap,
+                             FormatableBitSet accessedPks,
+                             boolean reuseRowLocation,
+                             String indexName,
+                             final String tableVersion,
+                             SIFilterFactory filterFactory,
+                             final long demarcationPoint,
+                             DataValueDescriptor optionalProbeValue) {
+        this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
+                keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
+                tableVersion, filterFactory,demarcationPoint);
+        this.optionalProbeValue = optionalProbeValue;
     }
 
     @Override

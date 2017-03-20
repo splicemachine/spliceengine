@@ -78,4 +78,9 @@ public class AutoCastedQualifier implements Qualifier {
     public String getText() {
         return originalQualifier.getText();
     }
+
+    @Override
+    public int getVariantType() {
+        return originalQualifier.getVariantType();
+    }
 }

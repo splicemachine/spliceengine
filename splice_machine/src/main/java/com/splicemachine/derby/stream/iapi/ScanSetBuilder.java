@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.metrics.MetricFactory;
@@ -48,7 +49,11 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> transaction(TxnView txn);
 
+    ScanSetBuilder<V> optionalProbeValue(DataValueDescriptor optionalProbeValue);
+
     ScanSetBuilder<V> rowDecodingMap(int[] rowDecodingMap);
+
+    ScanSetBuilder<V> baseColumnMap(int[] baseColumnMap);
 
     ScanSetBuilder<V> reuseRowLocation(boolean reuseRowLocation);
 

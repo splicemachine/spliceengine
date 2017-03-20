@@ -61,6 +61,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected int[] keyColumnEncodingOrder;
     protected int[] keyColumnTypes;
     protected int[] keyDecodingMap;
+    protected int[] baseColumnMap;
     protected FormatableBitSet accessedKeys;
     protected boolean reuseRowLocation=true;
     protected String indexName;
@@ -78,6 +79,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected boolean oneSplitPerRegion=false;
     protected Activation activation;
     protected MetricFactory metricFactory =Metrics.noOpMetricFactory();
+    protected DataValueDescriptor optionalProbeValue;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
@@ -95,6 +97,12 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public ScanSetBuilder<V> scanner(DataScanner scanner){
         assert scanner!=null:"Null scanners are not allowed!";
         this.scanner=scanner;
+        return this;
+    }
+
+    public ScanSetBuilder<V> optionalProbeValue(DataValueDescriptor optionalProbeValue){
+        assert optionalProbeValue!=null:"Null optionalProbeValues are not allowed!";
+        this.optionalProbeValue=optionalProbeValue;
         return this;
     }
 
@@ -152,6 +160,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public ScanSetBuilder<V> rowDecodingMap(int[] rowDecodingMap){
         assert rowDecodingMap!=null:"Null column maps are not allowed";
         this.rowColumnMap=rowDecodingMap;
+        return this;
+    }
+
+    @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+    public ScanSetBuilder<V> baseColumnMap(int[] baseColumnMap){
+        assert baseColumnMap!=null:"Null column maps are not allowed";
+        this.baseColumnMap=baseColumnMap;
         return this;
     }
 
@@ -361,7 +377,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     indexName,
                     tableVersion,
                     filterFactory,
-                    demarcationPoint);
+                    demarcationPoint,
+                    optionalProbeValue);
         }
     }
 
@@ -410,6 +427,10 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             if(keyDecodingMap!=null){
                 ArrayUtil.writeIntArray(out,keyDecodingMap);
             }
+            out.writeBoolean(baseColumnMap!=null);
+            if(baseColumnMap!=null){
+                ArrayUtil.writeIntArray(out,baseColumnMap);
+            }
             out.writeObject(accessedKeys);
             out.writeBoolean(reuseRowLocation);
             out.writeBoolean(oneSplitPerRegion);
@@ -438,6 +459,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 out.writeLong(baseTableConglomId);
             }
             out.writeLong(demarcationPoint);
+            out.writeBoolean(optionalProbeValue !=null);
+            if (optionalProbeValue!=null)
+                out.writeObject(optionalProbeValue);
         }catch(StandardException e){
             throw new IOException(e.getCause());
         }
@@ -488,6 +512,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             if(in.readBoolean()){
                 keyDecodingMap=ArrayUtil.readIntArray(in);
             }
+            if(in.readBoolean()){
+                baseColumnMap=ArrayUtil.readIntArray(in);
+            }
             accessedKeys=(FormatableBitSet)in.readObject();
             reuseRowLocation = in.readBoolean();
             oneSplitPerRegion = in.readBoolean();
@@ -512,6 +539,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 baseTableConglomId=in.readLong();
             }
             demarcationPoint=in.readLong();
+            if (in.readBoolean())
+                optionalProbeValue = (DataValueDescriptor) in.readObject();
         }catch(StandardException e){
             throw new IOException(e.getCause());
         }
@@ -579,5 +608,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
     public long getDemarcationPoint() {
         return this.demarcationPoint;
+    }
+
+    public DataValueDescriptor getOptionalProbeValue() {
+        return this.optionalProbeValue;
     }
 }

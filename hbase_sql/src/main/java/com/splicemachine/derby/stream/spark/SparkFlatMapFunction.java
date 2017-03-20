@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.ExternalizableFlatMapFunction;
 import org.apache.spark.api.java.function.FlatMapFunction;
 
@@ -51,5 +52,9 @@ public class SparkFlatMapFunction<T,R> implements FlatMapFunction<T,R>,Externali
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         delegate = (ExternalizableFlatMapFunction<T,R>)in.readObject();
+    }
+
+    public String getPrettyFunctionName() {
+        return ((AbstractSpliceFunction)delegate).getPrettyFunctionName();
     }
 }

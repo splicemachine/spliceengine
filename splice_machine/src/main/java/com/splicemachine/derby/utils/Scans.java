@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.iapi.types.DataType;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -310,6 +311,135 @@ public class Scans extends SpliceUtils {
     private static boolean isEmpty(int[] array) {
         if (array == null || array.length == 0) {
             return true;
+        }
+        return false;
+    }
+
+    /**
+     * Process the qualifier list on the row, return true if it qualifies.
+     * <p>
+     * A two dimensional array is to be used to pass around a AND's and OR's in
+     * conjunctive normal form.  The top slot of the 2 dimensional array is
+     * optimized for the more frequent where no OR's are present.  The first
+     * array slot is always a list of AND's to be treated as described above
+     * for single dimensional AND qualifier arrays.  The subsequent slots are
+     * to be treated as AND'd arrays or OR's.  Thus the 2 dimensional array
+     * qual[][] argument is to be treated as the following, note if
+     * qual.length = 1 then only the first array is valid and it is and an
+     * array of and clauses:
+     *
+     * (qual[0][0] and qual[0][0] ... and qual[0][qual[0].length - 1])
+     * and
+     * (qual[1][0] or  qual[1][1] ... or  qual[1][qual[1].length - 1])
+     * and
+     * (qual[2][0] or  qual[2][1] ... or  qual[2][qual[2].length - 1])
+     * ...
+     * and
+     * (qual[qual.length - 1][0] or  qual[1][1] ... or  qual[1][2])
+     *
+     *
+     * @return true if the row qualifies.
+     *
+     * @param row               The row being qualified.
+     * @param qual_list         2 dimensional array representing conjunctive
+     *                          normal form of simple qualifiers.
+     *
+     * @exception  StandardException  Standard exception policy.
+     **/
+    public static boolean qualifyRecordFromRow(
+            Object[]        row,
+            Qualifier[][]   qual_list,
+            int[] baseColumnMap,
+            DataValueDescriptor probeValue)
+            throws StandardException {
+        assert row!=null:"row passed in is null";
+        assert qual_list!=null:"qualifier[][] passed in is null";
+        boolean     row_qualifies = true;
+        for (int i = 0; i < qual_list[0].length; i++) {
+            // process each AND clause
+            row_qualifies = false;
+            // process each OR clause.
+            Qualifier q = qual_list[0][i];
+            q.clearOrderableCache();
+            // Get the column from the possibly partial row, of the
+            // q.getColumnId()'th column in the full row.
+            DataValueDescriptor columnValue =
+                    (DataValueDescriptor) row[baseColumnMap!=null?baseColumnMap[q.getStoragePosition()]:q.getStoragePosition()];
+            if ( filterNull(q.getOperator(),columnValue,probeValue==null || i!=0?q.getOrderable():probeValue,q.getVariantType())) {
+                return false;
+            }
+            row_qualifies =
+                    columnValue.compare(
+                            q.getOperator(),
+                            probeValue==null || i!=0?q.getOrderable():probeValue,
+                            q.getOrderedNulls(),
+                            q.getUnknownRV());
+            if (q.negateCompareResult())
+                row_qualifies = !row_qualifies;
+//            System.out.println(String.format("And Clause -> value={%s}, operator={%s}, orderable={%s}, " +
+//                    "orderedNulls={%s}, unknownRV={%s}",
+//                    columnValue, q.getOperator(),q.getOrderable(),q.getOrderedNulls(),q.getUnknownRV()));
+            // Once an AND fails the whole Qualification fails - do a return!
+            if (!row_qualifies)
+                return(false);
+        }
+
+        // all the qual[0] and terms passed, now process the OR clauses
+        for (int and_idx = 1; and_idx < qual_list.length; and_idx++) {
+            // loop through each of the "and" clause.
+            row_qualifies = false;
+            for (int or_idx = 0; or_idx < qual_list[and_idx].length; or_idx++) {
+                // Apply one qualifier to the row.
+                Qualifier q      = qual_list[and_idx][or_idx];
+                q.clearOrderableCache();
+                // Get the column from the possibly partial row, of the
+                // q.getColumnId()'th column in the full row.
+                DataValueDescriptor columnValue =
+                        (DataValueDescriptor) row[baseColumnMap!=null?baseColumnMap[q.getStoragePosition()]:q.getStoragePosition()];
+                // do the compare between the column value and value in the
+                // qualifier.
+                if ( filterNull(q.getOperator(),columnValue,q.getOrderable(),q.getVariantType())) {
+                    return false;
+                }
+                row_qualifies =
+                        columnValue.compare(
+                                q.getOperator(),
+                                q.getOrderable(),
+                                q.getOrderedNulls(),
+                                q.getUnknownRV());
+
+                if (q.negateCompareResult())
+                    row_qualifies = !row_qualifies;
+                // processing "OR" clauses, so as soon as one is true, break
+                // to go and process next AND clause.
+                if (row_qualifies)
+                    break;
+
+            }
+
+            // The qualifier list represented a set of "AND'd"
+            // qualifications so as soon as one is false processing is done.
+            if (!row_qualifies)
+                break;
+        }
+        return(row_qualifies);
+    }
+
+    private static boolean filterNull(int operator, DataValueDescriptor columnValue, DataValueDescriptor orderable, int variantType) {
+        if (orderable==null||orderable.isNull()) {
+            switch (operator) {
+                case DataType.ORDER_OP_LESSTHAN:
+                case DataType.ORDER_OP_LESSOREQUALS:
+                case DataType.ORDER_OP_GREATERTHAN:
+                case DataType.ORDER_OP_GREATEROREQUALS:
+                    return true;
+                case DataType.ORDER_OP_EQUALS:
+                    if (variantType != 1)
+                        return true;
+//                    if (columnValue == null || columnValue.isNull())
+//                            return true;
+                    return false;
+            }
         }
         return false;
     }
