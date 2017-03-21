@@ -15,6 +15,6 @@ public class TimestampColumnBlock extends AbstractColumnBlock {
 
     @Override
     public Object getObject(int i) {
-        return null;
+        return columnVector.isNullAt(i)?null:columnVector.getLong(i);
     }
 }

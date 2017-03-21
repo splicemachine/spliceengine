@@ -30,8 +30,8 @@ public final class StreamReaders
             case BYTE:
                 return new ByteStreamReader(streamDescriptor);
             case INT:
-            case DATE:
                 return new IntStreamReader(streamDescriptor);
+            case DATE:
             case SHORT:
             case LONG:
                 return new LongStreamReader(streamDescriptor);

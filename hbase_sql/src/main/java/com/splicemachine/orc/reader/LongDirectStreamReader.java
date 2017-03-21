@@ -23,6 +23,8 @@ import com.splicemachine.orc.stream.StreamSources;
 import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DateType;
+import org.apache.spark.sql.types.IntegerType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -90,7 +92,11 @@ public class LongDirectStreamReader
             if (dataStream == null) {
                 throw new OrcCorruptionException("Value is not null but data stream is not present");
             }
-            dataStream.nextLongVector(type, nextBatchSize, vector);
+            if (type instanceof DateType || type instanceof IntegerType) {
+                dataStream.nextIntVector(type, nextBatchSize, vector);
+            } else {
+                dataStream.nextLongVector(type, nextBatchSize, vector);
+            }
         }
         else {
             if (nullVector.length < nextBatchSize) {
@@ -101,7 +107,11 @@ public class LongDirectStreamReader
                 if (dataStream == null) {
                     throw new OrcCorruptionException("Value is not null but data stream is not present");
                 }
-                dataStream.nextLongVector(type, nextBatchSize, vector, nullVector);
+                if (type instanceof DateType || type instanceof IntegerType) {
+                    dataStream.nextIntVector(type, nextBatchSize, vector, nullVector);
+                } else {
+                    dataStream.nextLongVector(type, nextBatchSize, vector, nullVector);
+                }
             }
             else {
                 for (int i = 0, j = 0; i < nextBatchSize; i++) {

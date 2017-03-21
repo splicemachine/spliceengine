@@ -41,9 +41,6 @@ public class TimestampStreamReader
     private final StreamDescriptor streamDescriptor;
     private final long baseTimestampInSeconds;
 
-    private int readOffset;
-    private int nextBatchSize;
-
     @Nonnull
     private StreamSource<BooleanStream> presentStreamSource = missingStreamSource(BooleanStream.class);
     @Nullable

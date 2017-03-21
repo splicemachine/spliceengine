@@ -9,6 +9,7 @@ import com.splicemachine.orc.stream.StreamSource;
 import com.splicemachine.orc.stream.StreamSources;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DateType;
 import org.apache.spark.sql.types.LongType;
 
 import javax.annotation.Nonnull;
@@ -77,7 +78,7 @@ public class IntDirectStreamReader
             if (dataStream == null) {
                 throw new OrcCorruptionException("Value is not null but data stream is not present");
             }
-            if (type instanceof LongType)
+            if (type instanceof LongType || type instanceof DateType)
                 dataStream.nextLongVector(type, nextBatchSize, vector);
             else
                 dataStream.nextIntVector(type, nextBatchSize, vector);
@@ -91,7 +92,7 @@ public class IntDirectStreamReader
                 if (dataStream == null) {
                     throw new OrcCorruptionException("Value is not null but data stream is not present");
                 }
-                if (type instanceof LongType)
+                if (type instanceof LongType || type instanceof DateType)
                     dataStream.nextLongVector(type, nextBatchSize, vector, nullVector);
                 else
                     dataStream.nextIntVector(type, nextBatchSize, vector, nullVector);

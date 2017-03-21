@@ -29,7 +29,9 @@ import com.google.common.collect.Maps;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.airlift.units.DataSize;
+import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
+import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTimeZone;
@@ -312,6 +314,14 @@ public class OrcRecordReader
             throws IOException
     {
         return streamReaders[columnIndex].readBlock(type);
+    }
+
+    public ColumnarBatch getColumnarBatch(StructType schema) throws IOException {
+        ColumnarBatch columnarBatch = ColumnarBatch.allocate(schema, MemoryMode.ON_HEAP,currentBatchSize);
+        for (int i = 0; i< streamReaders.length; i++) {
+            columnarBatch.setColumn(0,streamReaders[i].readBlock(schema.fields()[i].dataType()));
+        }
+        return columnarBatch;
     }
 
     public StreamReader getStreamReader(int index)

@@ -20,10 +20,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveCharObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveDecimalObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Decimal;
-import org.apache.spark.sql.types.DecimalType;
-import org.apache.spark.sql.types.StringType;
+import org.apache.spark.sql.types.*;
 import org.joda.time.DateTimeZone;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -168,19 +165,17 @@ public abstract class AbstractTestOrcReader
 
         tester.testRoundTrip(javaIntObjectInspector, writeValues, DataTypes.LongType);
         tester.testRoundTrip(javaLongObjectInspector, writeValues, DataTypes.LongType);
-
+        DateType type;
         tester.testRoundTrip(
                 javaDateObjectInspector,
                 writeValues.stream()
                         .map(Long::intValue)
-                        .map(Date::new)
                         .collect(toList()),
                 DataTypes.DateType);
 
         tester.testRoundTrip(
                 javaTimestampObjectInspector,
                 writeValues.stream()
-                        .map(timestamp -> new Timestamp(timestamp))
                         .collect(toList()),
                 DataTypes.TimestampType);
     }

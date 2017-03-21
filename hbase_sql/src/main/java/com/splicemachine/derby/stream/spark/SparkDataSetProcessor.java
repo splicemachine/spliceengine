@@ -28,10 +28,13 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.vti.SpliceFileVTI;
+import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.ql.io.orc.OrcNewInputFormat;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -42,6 +45,7 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
@@ -457,8 +461,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
-            return new SparkDataSet(table
-                    .rdd().toJavaRDD()
+
+            ColumnarBatch columnarBatch = null;
+            columnarBatch.rowIterator();
+
+            return SpliceSpark.getContext().newAPIHadoopFile(
+                    location,
+                    SpliceOrcNewInputFormat.class,
+                    NullWritable.class,
+                    ColumnarBatch.Row.class,
+                    new Configuration(HConfiguration.unwrapDelegate()))
+                            .values()
                     .map(new RowToLocatedRowFunction(context,execRow)));
         } catch (Exception e) {
             throw StandardException.newException(

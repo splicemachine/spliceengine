@@ -524,7 +524,8 @@ public class OrcTester
                         date.setTime(millis);
                         return date;
                     case TIMESTAMP:
-                        return new Timestamp((long)value);
+                        long millisUtc = ((Long)value).intValue();
+                        return new Timestamp(millisUtc);
                     case BINARY:
                         return (byte[])value;
                 }

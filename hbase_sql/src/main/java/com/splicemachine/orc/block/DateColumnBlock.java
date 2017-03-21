@@ -14,7 +14,7 @@ public class DateColumnBlock extends AbstractColumnBlock {
 
     @Override
     public Object getObject(int i) {
-        return columnVector.isNullAt(i)?null:columnVector.getLong(i);
+        return columnVector.isNullAt(i)?null:columnVector.getInt(i);
     }
 
 }
