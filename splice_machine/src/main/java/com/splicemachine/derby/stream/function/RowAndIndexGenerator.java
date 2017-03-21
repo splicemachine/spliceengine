@@ -48,7 +48,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, LocatedRow, Tuple2<Long,KVPair>> {
+public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, LocatedRow, Tuple2<Long, Tuple2<byte[], byte[]>>> {
     private static final long serialVersionUID = 844136943916989111L;
     protected int[] pkCols;
     protected String tableVersion;
@@ -152,7 +152,7 @@ public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperat
     }
 
     @Override
-    public Iterator<Tuple2<Long,KVPair>> call(LocatedRow locatedRow) throws Exception {
+    public Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> call(LocatedRow locatedRow) throws Exception {
         ExecRow execRow = locatedRow.getRow();
         if (!initialized) {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
@@ -165,13 +165,15 @@ public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperat
         }
 
         try {
-            ArrayList<Tuple2<Long,KVPair>> list = new ArrayList();
+            ArrayList<Tuple2<Long,Tuple2<byte[], byte[]>>> list = new ArrayList();
             KVPair mainRow = encoder.encode(execRow);
             locatedRow.setRowLocation(new HBaseRowLocation(mainRow.rowKeySlice()));
-            list.add(new Tuple2<>(heapConglom,mainRow));
+            list.add(new Tuple2<>(heapConglom,new Tuple2<>(mainRow.getRowKey(), mainRow.getValue())));
             for (int i = 0; i< indexTransformFunctions.length; i++) {
                 LocatedRow indexRow = getIndexRow(indexTransformFunctions[i], locatedRow);
-                list.add(new Tuple2<>(indexTransformFunctions[i].getIndexConglomerateId(),indexTransformFunctions[i].call(indexRow)));
+                Long indexConglomerate = indexTransformFunctions[i].getIndexConglomerateId();
+                KVPair indexKVPair = indexTransformFunctions[i].call(indexRow);
+                list.add(new Tuple2<>(indexConglomerate, new Tuple2<>(indexKVPair.getRowKey(), indexKVPair.getValue())));
             }
             return list.iterator();
 

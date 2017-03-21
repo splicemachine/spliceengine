@@ -42,91 +42,67 @@ import java.net.URI;
 import java.util.*;
 
 public class HFileGenerator <Op extends SpliceOperation>
-        extends SpliceFlatMapFunction<Op,Iterator<Tuple2<Long,KVPair>>, String> implements Serializable {
+        extends SpliceFlatMapFunction<Op,Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>>, String> implements Serializable {
 
-    private long heapConglom;
-    private List<Tuple2<Long, List<HFileGenerator.HashBucketKey>>> hashBucketKeys;
-    private String bulkImportDirectory;
+    private List<BulkImportPartition> bulkImportPartitions;
     private boolean initialized;
-    private Map<HashBucketKey, List<KVPair>> buffer;
-    private Map<Long, List<HFileGenerator.HashBucketKey>> conglomMap;
     private List<String> generatedHFiles;
     private FileSystem fs;
     private long txnId;
+    private Long heapConglom;
     private Configuration conf;
+    private StoreFile.Writer writer;
 
     public HFileGenerator() {
     }
 
-    public HFileGenerator(OperationContext operationContext, long txnId, long heapConglom, String bulkImportDirectory,
-                          List<Tuple2<Long, List<HFileGenerator.HashBucketKey>>> hashBucketKeys) {
+    public HFileGenerator(OperationContext operationContext,
+                          Long heapConglom,
+                          long txnId,
+                          List<BulkImportPartition> bulkImportPartitions) {
         this.operationContext = operationContext;
-        this.txnId = txnId;
         this.heapConglom = heapConglom;
-        this.bulkImportDirectory = bulkImportDirectory;
-        this.hashBucketKeys = hashBucketKeys;
+        this.txnId = txnId;
+        this.bulkImportPartitions = bulkImportPartitions;
     }
 
     @Override
-    public Iterator<String> call(Iterator<Tuple2<Long, KVPair>> mainAndIndexRows) throws Exception {
-        if (!initialized) {
-            init();
-            initialized = true;
+    public Iterator<String> call(Iterator<Tuple2<Long, Tuple2<byte[], byte[]>>> mainAndIndexRows) throws Exception {
+
+        try {
+            while (mainAndIndexRows.hasNext()) {
+                Tuple2<Long, Tuple2<byte[], byte[]>> t = mainAndIndexRows.next();
+                Long conglom = t._1;
+                Tuple2<byte[], byte[]> kvPair = t._2;
+                byte[] rowKey = kvPair._1;
+                byte[] value = kvPair._2;
+                if (!initialized) {
+                    init(conglom, rowKey);
+                    initialized = true;
+                }
+                writeToHFile(rowKey, value);
+                if (conglom.equals(heapConglom)) {
+                    operationContext.recordWrite();
+                }
+            }
         }
-        while(mainAndIndexRows.hasNext()) {
-            Tuple2<Long, KVPair> t = mainAndIndexRows.next();
-            Long conglom = t._1;
-            KVPair kvPair = t._2;
-            hashKVPair(conglom, kvPair);
+        finally {
+            close(writer);
         }
-        flushBuffers();
         return generatedHFiles.iterator();
     }
 
     /**
-     * Sort data and flush to HFile
+     *
+     * @param rowKey
+     * @param value
      * @throws Exception
      */
-    private void flushBuffers() throws Exception {
-        // For each conglomerate, write to HFiles
-        for (HashBucketKey hashBucketKey : buffer.keySet()) {
-            Long conglom = hashBucketKey.getConglom();
-            String dir = hashBucketKey.getPath();
-            List<KVPair> kvPairs = buffer.get(hashBucketKey);
-            if (kvPairs.size() > 0) {
-                Collections.sort(kvPairs, new Comparator<KVPair>() {
-                    @Override
-                    public int compare(KVPair o1, KVPair o2) {
-                        return Bytes.compareTo(o1.getRowKey(), o2.getRowKey());
-                    }
-                });
-                writeToHFile(conglom, new Path(dir), kvPairs);
-            }
-        }
-    }
+    private void writeToHFile (byte[] rowKey, byte[] value) throws Exception {
+        KeyValue kv = new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
+                SIConstants.PACKED_COLUMN_BYTES, txnId, value);
+        writer.append(kv);
 
-    /**
-     * Write key/value to HFile
-     * @param conglom
-     * @param path
-     * @param kvPairs
-     * @throws Exception
-     */
-    private void writeToHFile (Long conglom, Path path, List<KVPair> kvPairs) throws Exception {
-        StoreFile.Writer writer = getNewWriter(conf, path);
-        try {
-            for (KVPair pair : kvPairs) {
-                KeyValue kv = new KeyValue(pair.getRowKey(), SIConstants.DEFAULT_FAMILY_BYTES,
-                        SIConstants.PACKED_COLUMN_BYTES, txnId, pair.getValue());
-                writer.append(kv);
-                if (conglom == heapConglom) {
-                    operationContext.recordWrite();
-                }
-            }
-            generatedHFiles.add(path.toString());
-        } finally {
-            close(writer);
-        }
     }
 
     private StoreFile.Writer getNewWriter(Configuration conf, Path familyPath)
@@ -174,176 +150,39 @@ public class HFileGenerator <Op extends SpliceOperation>
         }
     }
 
-    private void init() throws Exception {
+    private void init(Long conglomerateId, byte[] rowKey) throws Exception {
         conf = HConfiguration.unwrapDelegate();
-        fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
-
-        buffer = new HashMap<>();
-        conglomMap = new HashMap<>();
         generatedHFiles = Lists.newArrayList();
-        for (Tuple2<Long, List<HFileGenerator.HashBucketKey>> t : hashBucketKeys) {
-            Long conglom = t._1;
-            List<HFileGenerator.HashBucketKey> keys = t._2;
-            Collections.sort(keys, HashBucketKey.getSortComparator());
-            conglomMap.put(conglom, keys);
-            for (HFileGenerator.HashBucketKey key : keys)
-            buffer.put(key, Lists.newArrayList());
-        }
-    }
-
-    private void hashKVPair(Long conglom, KVPair kvPair) {
-        // Find a matching bucket
-        List<HashBucketKey> keys = conglomMap.get(conglom);
-        byte[] rowkey = kvPair.getRowKey();
-        int i = Collections.binarySearch(keys, new HashBucketKey(-1, rowkey, rowkey, null),
-                HashBucketKey.getSearchComparator());
-        HashBucketKey key = keys.get(i);
-        List<KVPair> rows = buffer.get(key);
-        rows.add(kvPair);
+        BulkImportPartition partition = new BulkImportPartition(conglomerateId, rowKey, rowKey, null);
+        int index = Collections.binarySearch(bulkImportPartitions, partition, BulkImportUtils.getSearchComparator());
+        BulkImportPartition thisPartition = bulkImportPartitions.get(index);
+        String filePath = thisPartition.getFilePath();
+        fs = FileSystem.get(URI.create(filePath), conf);
+        writer = getNewWriter(conf, new Path(filePath));
     }
 
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeLong(txnId);
         out.writeLong(heapConglom);
-        out.writeUTF(bulkImportDirectory);
-        out.writeInt(hashBucketKeys.size());
-        for (Tuple2<Long, List<HFileGenerator.HashBucketKey>> keys : hashBucketKeys) {
-            long table = keys._1;
-            out.writeLong(table);
-            List<HFileGenerator.HashBucketKey> k = keys._2;
-            out.writeInt(k.size());
-            for (HFileGenerator.HashBucketKey hashBucketKey: k) {
-                out.writeObject(hashBucketKey);
-            }
+        out.writeLong(txnId);
+        out.writeInt(bulkImportPartitions.size());
+        for (BulkImportPartition partition : bulkImportPartitions) {
+            out.writeObject(partition);
         }
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        txnId = in.readLong();
         heapConglom = in.readLong();
-        bulkImportDirectory = in.readUTF();
+        txnId = in.readLong();
         int n = in.readInt();
-        hashBucketKeys = Lists.newArrayList();
+        bulkImportPartitions = Lists.newArrayList();
         for (int i = 0; i < n; ++i) {
-            long table = in.readLong();
-            int m = in.readInt();
-            List<HFileGenerator.HashBucketKey> keys = Lists.newArrayList();
-            for (int j = 0; j < m; ++j) {
-                HFileGenerator.HashBucketKey k = (HFileGenerator.HashBucketKey)in.readObject();
-                keys.add(k);
-            }
-            hashBucketKeys.add(new Tuple2<>(table, keys));
-        }
-    }
-
-    public static class HashBucketKey implements Externalizable{
-        private long conglom;
-        private byte[] startKey;
-        private byte[] endKey;
-        private String path;
-
-
-        public HashBucketKey() {
-        }
-
-        public HashBucketKey(long conglom, byte[] startKey, byte[] endKey, String path) {
-            this.conglom = conglom;
-            this.startKey = startKey;
-            this.endKey = endKey;
-            this.path = path;
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeLong(conglom);
-            ArrayUtil.writeByteArray(out, startKey);
-            ArrayUtil.writeByteArray(out, endKey);
-            out.writeUTF(path);
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            conglom = in.readLong();
-            startKey = ArrayUtil.readByteArray(in);
-            endKey = ArrayUtil.readByteArray(in);
-            path = in.readUTF();
-        }
-
-        public long getConglom() {
-            return conglom;
-        }
-        
-        public byte[] getStartKey() {
-            return startKey;
-        }
-
-        public byte[] getEndKey() {
-            return endKey;
-        }
-
-        public String getPath() {
-            return path;
-        }
-
-        public static Comparator<HashBucketKey> getSearchComparator() {
-            return new Comparator<HashBucketKey>() {
-                @Override
-                public int compare(HashBucketKey o1, HashBucketKey o2) {
-                    // only compare with start key of o2, which is encoded key for
-                    // a kvpair.
-                    byte[] key = o2.startKey;
-                    byte[] start = o1.getStartKey();
-                    byte[] end = o1.getEndKey();
-
-                    // both start key and end key are empty
-                    if ((start == null  || start.length == 0) &&
-                            (end == null || end.length == 0)) {
-                        return 0;
-                    }
-                    if (start == null  || start.length == 0) {
-                        // start key is empty
-                        if (Bytes.compareTo(end, key) < 0)
-                            return -1;
-                        else
-                            return 0;
-                    }
-                    else if (end == null || end.length == 0) {
-                        // end key is empty
-                        if (Bytes.compareTo(start, key) > 0)
-                            return 1;
-                        else
-                            return 0;
-                    }
-                    if (Bytes.compareTo(start, key) <= 0 && Bytes.compareTo(end, key)>=0)
-                        return 0;
-                    else if (Bytes.compareTo(start, key) > 0)
-                        return 1;
-                    else
-                        return -1;
-                }
-            };
-        }
-
-        public static Comparator<HashBucketKey> getSortComparator() {
-            return new Comparator<HashBucketKey>() {
-                @Override
-                public int compare(HashBucketKey o1, HashBucketKey o2) {
-                    // Compare using start key
-                    byte[] key1 = o1.startKey;
-                    byte[] key2 = o2.startKey;
-
-                    if (key1 == null || key1.length == 0)
-                        return -1;
-                    else if (key2 == null || key2.length == 0)
-                        return 1;
-                    return Bytes.compareTo(key1, key2);
-                }
-            };
+            BulkImportPartition partition = (BulkImportPartition) in.readObject();
+            bulkImportPartitions.add(partition);
         }
     }
 }

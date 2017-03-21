@@ -40,12 +40,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.stream.function.HFileGenerator;
-import com.splicemachine.derby.stream.function.RowAndIndexGenerator;
-import com.splicemachine.derby.stream.function.RowKeyGenerator;
-import com.splicemachine.derby.stream.function.RowKeyStatisticsFunction;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.HBaseBulkImporter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
@@ -192,8 +190,8 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
 
 
                 // get the actual start/end key for each partition after split
-                List<Tuple2<Long, List<HFileGenerator.HashBucketKey>>> hashBucketKeys =
-                        getHashBucketKeys(allCongloms, bulkImportDirectory);
+                List<BulkImportPartition> bulkImportPartitions =
+                        getBulkImportPartitions(allCongloms, bulkImportDirectory);
 
                 // Read data again and encode rows in main table and index
                 rowAndIndexGenerator = new RowAndIndexGenerator(pkCols, tableVersion, execRow,
@@ -201,17 +199,22 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
                         operationContext, tentativeIndexList);
                 DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
 
+                // Repartition and sort within a partition
+                PairDataSet pairDataSet = rowAndIndexes.keyBy(new BulkImportKeyerFunction());
+
+                DataSet partitionAndSorted =
+                        pairDataSet.partitionBy(new BulkImportPartitioner(bulkImportPartitions),
+                                BulkImportUtils.getSortDataComparator()).values();
                 // Generate HFiles
-                HFileGenerator writer = new HFileGenerator(operationContext, txn.getTxnId(),
-                        heapConglom, bulkImportDirectory, hashBucketKeys);
-                DataSet HFileSet = rowAndIndexes.mapPartitions(writer);
+                HFileGenerator writer = new HFileGenerator(operationContext, heapConglom, txn.getTxnId(), bulkImportPartitions);
+                DataSet HFileSet = partitionAndSorted.mapPartitions(writer);
                 List<String> files = HFileSet.collect();
 
                 if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.debug(LOG, "created %d HFiles", files.size());
                 }
 
-                bulkLoad(hashBucketKeys);
+                bulkLoad(bulkImportPartitions);
             }
         }
         ValueRow valueRow = new ValueRow(3);
@@ -271,26 +274,24 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
             }
         }
     }
+
     /**
-     * Bulk load HFiles to HBase
-     * @param hashBucketKeys
+     *
+     * @param bulkImportPartitions
      * @throws StandardException
      */
-    private void bulkLoad(List<Tuple2<Long, List<HFileGenerator.HashBucketKey>>> hashBucketKeys) throws StandardException{
+    private void bulkLoad(List<BulkImportPartition> bulkImportPartitions) throws StandardException{
         try {
             Configuration conf = HConfiguration.unwrapDelegate();
             LoadIncrementalHFiles loader = new LoadIncrementalHFiles(conf);
 
-            for (Tuple2<Long, List<HFileGenerator.HashBucketKey>> t : hashBucketKeys) {
-                Long conglom = t._1;
-                List<HFileGenerator.HashBucketKey> l = t._2;
-                HTable table = new HTable(conf, TableName.valueOf("splice:" + conglom));
-                for (HFileGenerator.HashBucketKey hashBucketKey : l) {
-                    Path path = new Path(hashBucketKey.getPath()).getParent();
-                    loader.doBulkLoad(path, table);
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "Loaded file %s", path.toString());
-                    }
+            for (BulkImportPartition partition : bulkImportPartitions) {
+                Long conglomerateId = partition.getConglomerateId();
+                HTable table = new HTable(conf, TableName.valueOf("splice:" + conglomerateId));
+                Path path = new Path(partition.getFilePath()).getParent();
+                loader.doBulkLoad(path, table);
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "Loaded file %s", path.toString());
                 }
             }
         } catch (Exception e) {
@@ -315,21 +316,21 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
      * @param congloms
      * @return
      */
-    private List<Tuple2<Long, List<HFileGenerator.HashBucketKey>>> getHashBucketKeys(
+    private List<BulkImportPartition> getBulkImportPartitions(
             List<Long> congloms,
             String bulkImportDirectory) throws StandardException {
 
         try {
-            // Create bulk import dorectory if it does not exist
+            // Create bulk import directory if it does not exist
             Path bulkImportPath = new Path(bulkImportDirectory);
 
-            List<Tuple2<Long, List<HFileGenerator.HashBucketKey>>> tablePartitionBoundaries = Lists.newArrayList();
+            List<BulkImportPartition> bulkImportPartitions = Lists.newArrayList();
             for (Long conglom : congloms) {
                 Path tablePath = new Path(bulkImportPath, conglom.toString());
                 SIDriver driver = SIDriver.driver();
                 try (PartitionAdmin pa = driver.getTableFactory().getAdmin()) {
                     Iterable<? extends Partition> partitions = pa.allPartitions(conglom.toString());
-                    List<HFileGenerator.HashBucketKey> b = Lists.newArrayList();
+
                     if (LOG.isDebugEnabled()) {
                         SpliceLogUtils.debug(LOG, "partition information for table %d", conglom);
                     }
@@ -339,7 +340,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
                         byte[] endKey = partition.getEndKey();
                         Path regionPath = getRandomFilename(tablePath);
                         Path familyPath = new Path(regionPath, "V");
-                        b.add(new HFileGenerator.HashBucketKey(conglom, startKey, endKey, familyPath.toString()));
+                        bulkImportPartitions.add(new BulkImportPartition(conglom, startKey, endKey, familyPath.toString()));
                         count++;
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG, "start key: %s", Bytes.toHex(startKey));
@@ -350,10 +351,10 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
                     if (LOG.isDebugEnabled()) {
                         SpliceLogUtils.debug(LOG, "number of partition: %d", count);
                     }
-                    tablePartitionBoundaries.add(new Tuple2<>(conglom, b));
                 }
             }
-            return tablePartitionBoundaries;
+            Collections.sort(bulkImportPartitions, BulkImportUtils.getSortComparator());
+            return bulkImportPartitions;
         } catch (IOException e) {
             throw StandardException.plainWrapException(e);
         }

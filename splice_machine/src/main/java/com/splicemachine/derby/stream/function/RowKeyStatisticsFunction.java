@@ -31,7 +31,7 @@ import java.io.Serializable;
 import java.util.*;
 
 public class RowKeyStatisticsFunction <Op extends SpliceOperation>
-        extends SpliceFlatMapFunction<Op,Iterator<Tuple2<Long,KVPair>>, Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> implements Serializable {
+        extends SpliceFlatMapFunction<Op,Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>>, Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> implements Serializable {
 
     protected Map<Long, ColumnStatisticsImpl> keyStatisticsMap;
     protected Map<Long, Long> rowSizeMap;
@@ -48,18 +48,18 @@ public class RowKeyStatisticsFunction <Op extends SpliceOperation>
     }
 
     @Override
-    public Iterator<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> call(Iterator<Tuple2<Long,KVPair>> mainAndIndexRows) throws Exception {
+    public Iterator<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> call(Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> mainAndIndexRows) throws Exception {
 
         if (!initialized) {
             init();
             initialized = true;
         }
         while (mainAndIndexRows.hasNext()) {
-            Tuple2<Long, KVPair> t = mainAndIndexRows.next();
+            Tuple2<Long, Tuple2<byte[], byte[]>> t = mainAndIndexRows.next();
             Long conglomId = t._1;
-            KVPair kvPair = t._2;
-            byte[] key = kvPair.getRowKey();
-            byte[] value = kvPair.getValue();
+            Tuple2<byte[], byte[]> kvPair = t._2;
+            byte[] key = kvPair._1;
+            byte[] value = kvPair._2;
 
             int length = value.length + key.length;
             ColumnStatisticsImpl columnStatistics = keyStatisticsMap.get(conglomId);
