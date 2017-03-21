@@ -85,6 +85,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected String bulkImportDirectory;
     protected boolean samplingOnly;
     protected boolean outputKeysOnly;
+    protected boolean skipSampling;
 
     @Override
     public String getName(){
@@ -114,7 +115,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            int partitionByRefItem,
                            String bulkImportDirectory,
                            boolean samplingOnly,
-                           boolean outputKeysOnly) throws StandardException{
+                           boolean outputKeysOnly,
+                           boolean skipSampling) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
@@ -129,6 +131,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.bulkImportDirectory = bulkImportDirectory;
         this.samplingOnly = samplingOnly;
         this.outputKeysOnly = outputKeysOnly;
+        this.skipSampling = skipSampling;
         init();
     }
 
@@ -264,6 +267,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.partitionByRefItem = in.readInt();
         samplingOnly = in.readBoolean();
         outputKeysOnly = in.readBoolean();
+        skipSampling = in.readBoolean();
     }
 
     @Override
@@ -303,6 +307,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeInt(partitionByRefItem);
         out.writeBoolean(samplingOnly);
         out.writeBoolean(outputKeysOnly);
+        out.writeBoolean(skipSampling);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -349,6 +354,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                         .bulkImportDirectory(bulkImportDirectory)
                         .samplingOnly(samplingOnly)
                         .outputKeysOnly(outputKeysOnly)
+                        .skipSampling(skipSampling)
                         .build();
                 return importer.write();
             }

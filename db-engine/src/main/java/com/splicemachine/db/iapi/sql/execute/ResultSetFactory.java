@@ -138,7 +138,8 @@ public interface ResultSetFactory {
 								 int partitionBy,
 								 String bulkImportDirectory,
 								 boolean samplingOnly,
-                                 boolean outputKeysOnly)
+                                 boolean outputKeysOnly,
+								 boolean skipSampling)
         throws StandardException;
 
 	/**

@@ -31,10 +31,10 @@ import java.io.Serializable;
 import java.util.*;
 
 public class RowKeyStatisticsFunction <Op extends SpliceOperation>
-        extends SpliceFlatMapFunction<Op,Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>>, Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> implements Serializable {
+        extends SpliceFlatMapFunction<Op,Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>>, Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> implements Serializable {
 
     protected Map<Long, ColumnStatisticsImpl> keyStatisticsMap;
-    protected Map<Long, Long> rowSizeMap;
+    protected Map<Long, Double> rowSizeMap;
     protected List<DDLMessage.TentativeIndex> tentativeIndexList;
     protected long heapConglom;
     protected boolean initialized;
@@ -48,7 +48,7 @@ public class RowKeyStatisticsFunction <Op extends SpliceOperation>
     }
 
     @Override
-    public Iterator<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> call(Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> mainAndIndexRows) throws Exception {
+    public Iterator<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> call(Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> mainAndIndexRows) throws Exception {
 
         if (!initialized) {
             init();
@@ -61,7 +61,7 @@ public class RowKeyStatisticsFunction <Op extends SpliceOperation>
             byte[] key = kvPair._1;
             byte[] value = kvPair._2;
 
-            int length = value.length + key.length;
+            long length = value.length + key.length;
             ColumnStatisticsImpl columnStatistics = keyStatisticsMap.get(conglomId);
             if (columnStatistics == null) {
                 columnStatistics = new ColumnStatisticsImpl(new SQLBlob(key));
@@ -71,17 +71,17 @@ public class RowKeyStatisticsFunction <Op extends SpliceOperation>
                 columnStatistics.update(new SQLBlob(key));
             }
 
-            Long size = rowSizeMap.get(conglomId);
+            Double size = rowSizeMap.get(conglomId);
             if (size == null) {
-                size = new Long(0);
+                size = new Double(0);
             }
             size += length;
             rowSizeMap.put(conglomId, size);
         }
-        List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> l = Lists.newArrayList();
+        List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> l = Lists.newArrayList();
         for (Long c : keyStatisticsMap.keySet()) {
             ColumnStatisticsImpl stats = keyStatisticsMap.get(c);
-            Long size = rowSizeMap.get(c);
+            Double size = rowSizeMap.get(c);
             l.add(new Tuple2<>(c,new Tuple2<>(size, stats)));
         }
         return l.iterator();

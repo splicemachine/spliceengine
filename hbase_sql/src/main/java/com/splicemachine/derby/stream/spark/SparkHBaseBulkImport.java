@@ -87,6 +87,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
     private String bulkImportDirectory;
     private boolean samplingOnly;
     private boolean outputKeysOnly;
+    private boolean skipSampling;
 
     public SparkHBaseBulkImport(){
     }
@@ -102,7 +103,8 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
                                 TxnView txn,
                                 String bulkImportDirectory,
                                 boolean samplingOnly,
-                                boolean outputKeysOnly) {
+                                boolean outputKeysOnly,
+                                boolean skipSampling) {
         this.dataSet = dataSet;
         this.tableVersion = tableVersion;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
@@ -115,6 +117,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
         this.bulkImportDirectory = bulkImportDirectory;
         this.samplingOnly = samplingOnly;
         this.outputKeysOnly = outputKeysOnly;
+        this.skipSampling = skipSampling;
     }
 
     /**
@@ -158,35 +161,37 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
             List<String> files = keys.collect();
         }
         else {
-            // TODO: an option to skip sampling and statistics collection
-            // Sample the data set and collect statistics for key distributions
-            SConfiguration sConfiguration = HConfiguration.getConfiguration();
-            double sampleFraction = sConfiguration.getBulkImportSampleFraction();
-            DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
+            List<Tuple2<Long, byte[][]>> cutPoints = null;
+            if (!skipSampling) {
+                SConfiguration sConfiguration = HConfiguration.getConfiguration();
+                double sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
 
-            // encode key/vale pairs for table and indexes
-            RowAndIndexGenerator rowAndIndexGenerator =
-                    new RowAndIndexGenerator(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
-                            spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
-            DataSet sampleRowAndIndexes = sampledDataSet.flatMap(rowAndIndexGenerator);
+                // encode key/vale pairs for table and indexes
+                RowAndIndexGenerator rowAndIndexGenerator =
+                        new RowAndIndexGenerator(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
+                                spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
+                DataSet sampleRowAndIndexes = sampledDataSet.flatMap(rowAndIndexGenerator);
 
-            // collect statistics for encoded key/value, include size and histgram
-            RowKeyStatisticsFunction statisticsFunction =
-                    new RowKeyStatisticsFunction(td.getHeapConglomerateId(), tentativeIndexList);
-            DataSet keyStatistics = sampleRowAndIndexes.mapPartitions(statisticsFunction);
+                // collect statistics for encoded key/value, include size and histgram
+                RowKeyStatisticsFunction statisticsFunction =
+                        new RowKeyStatisticsFunction(td.getHeapConglomerateId(), tentativeIndexList);
+                DataSet keyStatistics = sampleRowAndIndexes.mapPartitions(statisticsFunction);
 
-            List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> result = keyStatistics.collect();
+                List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> result = keyStatistics.collect();
 
-            // Calculate cut points for main table and index tables
-            List<Tuple2<Long, byte[][]>> cutPoints = getCutPoints(sampleFraction, result);
+                // Calculate cut points for main table and index tables
+                cutPoints = getCutPoints(sampleFraction, result);
 
-            // dump cut points to file system for reference
-            dumpCutPoints(cutPoints);
-
+                // dump cut points to file system for reference
+                dumpCutPoints(cutPoints);
+            }
             if (!samplingOnly && !outputKeysOnly) {
 
                 // split table and indexes using the calculated cutpoints
-                splitTables(cutPoints);
+                if (cutPoints != null && cutPoints.size() > 0) {
+                    splitTables(cutPoints);
+                }
 
 
                 // get the actual start/end key for each partition after split
@@ -194,7 +199,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
                         getBulkImportPartitions(allCongloms, bulkImportDirectory);
 
                 // Read data again and encode rows in main table and index
-                rowAndIndexGenerator = new RowAndIndexGenerator(pkCols, tableVersion, execRow,
+                RowAndIndexGenerator rowAndIndexGenerator = new RowAndIndexGenerator(pkCols, tableVersion, execRow,
                         autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
                         operationContext, tentativeIndexList);
                 DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
@@ -366,19 +371,26 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
      * @throws StandardException
      */
     private List<Tuple2<Long, byte[][]>> getCutPoints(double sampleFraction,
-            List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> statistics) throws StandardException{
-        Map<Long, Tuple2<Long, ColumnStatisticsImpl>> mergedStatistics = mergeResults(statistics);
+            List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> statistics) throws StandardException{
+        Map<Long, Tuple2<Double, ColumnStatisticsImpl>> mergedStatistics = mergeResults(statistics);
         List<Tuple2<Long, byte[][]>> result = Lists.newArrayList();
 
         SConfiguration sConfiguration = HConfiguration.getConfiguration();
         long maxRegionSize = sConfiguration.getRegionMaxFileSize();
 
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "maxRegionSize = %d", maxRegionSize);
+
         // determine how many regions the table/index should be split into
         Map<Long, Integer> numPartitions = new HashMap<>();
         for (Long conglomId : mergedStatistics.keySet()) {
-            Tuple2<Long, ColumnStatisticsImpl> stats = mergedStatistics.get(conglomId);
-            long size = stats._1;
-            int numPartition = (int)(size/(maxRegionSize)/sampleFraction) + 1;
+            Tuple2<Double, ColumnStatisticsImpl> stats = mergedStatistics.get(conglomId);
+            double size = stats._1;
+            int numPartition = (int)(size/sampleFraction/(1.0*maxRegionSize)) + 1;
+
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "total size of the table is %d", size);
+            }
             if (numPartition > 1) {
                 numPartitions.put(conglomId, numPartition);
             }
@@ -433,16 +445,18 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
      * @return
      * @throws StandardException
      */
-    private Map<Long, Tuple2<Long, ColumnStatisticsImpl>> mergeResults(
-            List<Tuple2<Long, Tuple2<Long, ColumnStatisticsImpl>>> tuples) throws StandardException{
+    private Map<Long, Tuple2<Double, ColumnStatisticsImpl>> mergeResults(
+            List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> tuples) throws StandardException{
 
         Map<Long, ColumnStatisticsMerge> sm = new HashMap<>();
-        Map<Long, Long> sizeMap = new HashMap<>();
+        Map<Long, Double> sizeMap = new HashMap<>();
 
-        for (Tuple2<Long,Tuple2<Long, ColumnStatisticsImpl>> t : tuples) {
+        for (Tuple2<Long,Tuple2<Double, ColumnStatisticsImpl>> t : tuples) {
             Long conglomId = t._1;
-            Long size = t._2._1;
-
+            Double size = t._2._1;
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "conglomerate=%d, size=%d", conglomId, size);
+            }
             // Merge statistics for keys
             ColumnStatisticsImpl cs = t._2._2;
             ColumnStatisticsMerge columnStatisticsMerge = sm.get(conglomId);
@@ -453,16 +467,19 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
             columnStatisticsMerge.accumulate(cs);
 
             // merge key/value size from all partition
-            Long totalSize = sizeMap.get(conglomId);
+            Double totalSize = sizeMap.get(conglomId);
             if (totalSize == null)
-                totalSize = new Long(0);
+                totalSize = new Double(0);
             totalSize += size;
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "totalSize=%s", totalSize);
+            }
             sizeMap.put(conglomId, totalSize);
         }
 
-        Map<Long, Tuple2<Long, ColumnStatisticsImpl>> statisticsMap = new HashMap<>();
+        Map<Long, Tuple2<Double, ColumnStatisticsImpl>> statisticsMap = new HashMap<>();
         for (Long conglomId : sm.keySet()) {
-            Long totalSize = sizeMap.get(conglomId);
+            Double totalSize = sizeMap.get(conglomId);
             ColumnStatisticsImpl columnStatistics = sm.get(conglomId).terminate();
             statisticsMap.put(conglomId, new Tuple2(totalSize, columnStatistics));
         }

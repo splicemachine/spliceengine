@@ -1129,13 +1129,15 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              int partitionBy,
                                              String bulkImportDirectory,
                                              boolean samplingOnly,
-                                             boolean outputKeysOnly)
+                                             boolean outputKeysOnly,
+                                             boolean skipSampling)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
                     statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
-                    delimited,escaped,lines,storedAs,location, compression, partitionBy,bulkImportDirectory, samplingOnly, outputKeysOnly);
+                    delimited,escaped,lines,storedAs,location, compression, partitionBy,bulkImportDirectory,
+                    samplingOnly, outputKeysOnly, skipSampling);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);

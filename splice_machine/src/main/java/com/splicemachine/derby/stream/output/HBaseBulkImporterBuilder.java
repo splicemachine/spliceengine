@@ -44,5 +44,7 @@ public interface HBaseBulkImporterBuilder {
 
     HBaseBulkImporterBuilder outputKeysOnly(boolean outputKeysOnly);
 
+    HBaseBulkImporterBuilder skipSampling(boolean skipSampling);
+
     HBaseBulkImporter build();
 }

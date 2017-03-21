@@ -28,7 +28,7 @@ import java.util.*;
  * Created by jyuan on 3/17/17.
  */
 public class RowKeyGenerator <Op extends SpliceOperation>
-        extends SpliceFlatMapFunction<SpliceBaseOperation, Iterator<Tuple2<Long,KVPair>>, String> implements Serializable{
+        extends SpliceFlatMapFunction<SpliceBaseOperation, Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>>, String> implements Serializable{
 
     private String bulkImportDirectory;
 
@@ -44,16 +44,16 @@ public class RowKeyGenerator <Op extends SpliceOperation>
 
     }
 
-    public Iterator<String> call(Iterator<Tuple2<Long,KVPair>> iterator) throws Exception {
+    public Iterator<String> call(Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> iterator) throws Exception {
         if (!initialized) {
             init();
             initialized = true;
         }
         while(iterator.hasNext()) {
-            Tuple2<Long,KVPair> t = iterator.next();
+            Tuple2<Long,Tuple2<byte[], byte[]>> t = iterator.next();
             Long conglomerateId = t._1;
-            KVPair kvPair = t._2;
-            byte[] key = kvPair.getRowKey();
+            Tuple2<byte[], byte[]> kvPair = t._2;
+            byte[] key = kvPair._1;
             List<byte[]> keys = keyMap.get(conglomerateId);
             if (keys == null) {
                 keys = Lists.newArrayList();

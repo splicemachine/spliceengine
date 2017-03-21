@@ -98,6 +98,7 @@ public final class InsertNode extends DMLModStatementNode {
 	public static final String BULK_IMPORT_DIRECTORY = "bulkImportDirectory";
 	public static final String SAMPLING_ONLY = "samplingOnly";
     public static final String OUTPUT_KEYS_ONLY = "outputKeysOnly";
+    public static final String SKIP_SAMPLING = "skipSampling";
 
 	public		ResultColumnList	targetColumnList;
 	public 		boolean				deferred;
@@ -113,6 +114,7 @@ public final class InsertNode extends DMLModStatementNode {
 	private		String 				bulkImportDirectory;
 	private     boolean             samplingOnly;
 	private     boolean             outputKeysOnly;
+    private     boolean             skipSampling;
 	private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
 
 
@@ -727,7 +729,8 @@ public final class InsertNode extends DMLModStatementNode {
 		bulkImportDirectory = targetProperties.getProperty(BULK_IMPORT_DIRECTORY);
 		samplingOnly = Boolean.parseBoolean(targetProperties.getProperty(SAMPLING_ONLY));
         outputKeysOnly = Boolean.parseBoolean(targetProperties.getProperty(OUTPUT_KEYS_ONLY));
-		String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
+		skipSampling = Boolean.parseBoolean(targetProperties.getProperty(SKIP_SAMPLING));
+        String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
         Boolean pin = Boolean.parseBoolean(targetProperties.getProperty(PIN));
         if(pin){
 			throw StandardException.newException(SQLState.INSERT_PIN_VIOLATION);
@@ -1008,7 +1011,8 @@ public final class InsertNode extends DMLModStatementNode {
 			BaseJoinStrategy.pushNullableString(mb,bulkImportDirectory);
             mb.push(samplingOnly);
             mb.push(outputKeysOnly);
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 20);
+            mb.push(skipSampling);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 21);
 		}
 		else
 		{

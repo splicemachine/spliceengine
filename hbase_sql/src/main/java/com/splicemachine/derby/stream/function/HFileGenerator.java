@@ -85,6 +85,7 @@ public class HFileGenerator <Op extends SpliceOperation>
                     operationContext.recordWrite();
                 }
             }
+            generatedHFiles.add(writer.getPath().toString());
         }
         finally {
             close(writer);

@@ -157,7 +157,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
     private static final int DEFAULT_PIPELINE_KRYO_POOL_SIZE=1024;
 
     public static final String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
-    private static final double DEFAULT_BULK_IMPORT_SAMPLE_FRACTION = 0.1d;
+    private static final double DEFAULT_BULK_IMPORT_SAMPLE_FRACTION = 0.01d;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
