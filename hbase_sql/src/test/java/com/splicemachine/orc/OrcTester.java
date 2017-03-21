@@ -13,6 +13,9 @@
  */
 package com.splicemachine.orc;
 
+import com.google.common.base.Preconditions;
+import com.splicemachine.orc.block.BlockFactory;
+import com.splicemachine.orc.block.ColumnBlock;
 import com.splicemachine.orc.memory.AggregatedMemoryContext;
 import com.splicemachine.orc.metadata.DwrfMetadataReader;
 import com.splicemachine.orc.metadata.MetadataReader;
@@ -21,6 +24,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.*;
 import io.airlift.units.DataSize;
 import io.airlift.units.DataSize.Unit;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
@@ -56,10 +60,9 @@ import static com.splicemachine.orc.OrcTester.Compression.NONE;
 import static com.splicemachine.orc.OrcTester.Compression.ZLIB;
 import static com.splicemachine.orc.OrcTester.Format.DWRF;
 import static com.splicemachine.orc.OrcTester.Format.ORC_12;
-import static com.splicemachine.orc.TestingOrcPredicate.createOrcPredicate;
+import static com.splicemachine.orc.OrcTester.Format.ORC_11;
 import static com.google.common.base.Functions.constant;
 import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Iterators.advance;
 import static com.google.common.io.Files.createTempDir;
 import static io.airlift.testing.FileUtils.deleteRecursively;
 import static io.airlift.units.DataSize.succinctBytes;
@@ -72,7 +75,7 @@ import static org.junit.Assert.*;
 
 public class OrcTester
 {
-    public static final DateTimeZone HIVE_STORAGE_TIME_ZONE = DateTimeZone.forID("Asia/Katmandu");
+    public static final DateTimeZone HIVE_STORAGE_TIME_ZONE = DateTimeZone.UTC;
 
     public enum Format
     {
@@ -100,7 +103,8 @@ public class OrcTester
     {
         OrcTester orcTester = new OrcTester();
         orcTester.structTestsEnabled = true;
-        orcTester.mapTestsEnabled = true;
+//        orcTester.mapTestsEnabled = true; // ENABLE MAP Streams JL
+        orcTester.mapTestsEnabled = false;
         orcTester.listTestsEnabled = true;
         orcTester.nullTestsEnabled = true;
         orcTester.skipBatchTestsEnabled = true;
@@ -113,7 +117,8 @@ public class OrcTester
     {
         OrcTester orcTester = new OrcTester();
         orcTester.structTestsEnabled = true;
-        orcTester.mapTestsEnabled = true;
+//        orcTester.mapTestsEnabled = true;
+        orcTester.mapTestsEnabled = false;
         orcTester.listTestsEnabled = true;
         orcTester.complexStructuralTestsEnabled = true;
         orcTester.structuralNullTestsEnabled = true;
@@ -121,7 +126,7 @@ public class OrcTester
         orcTester.nullTestsEnabled = true;
         orcTester.skipBatchTestsEnabled = true;
         orcTester.skipStripeTestsEnabled = true;
-        orcTester.formats = ImmutableSet.copyOf(Format.values());
+        orcTester.formats = ImmutableSet.copyOf(new Format[]{ORC_12,ORC_11});
         orcTester.compressions = ImmutableSet.copyOf(Compression.values());
         return orcTester;
     }
@@ -307,7 +312,7 @@ public class OrcTester
             DataType type)
             throws IOException
     {
-        OrcRecordReader recordReader = createCustomOrcRecordReader(tempFile, metadataReader, createOrcPredicate(objectInspector, expectedValues), type);
+        OrcRecordReader recordReader = createCustomOrcRecordReader(tempFile, metadataReader, OrcPredicate.TRUE, type);
         assertEquals(recordReader.getReaderPosition(), 0);
         assertEquals(recordReader.getFilePosition(), 0);
 
@@ -324,17 +329,19 @@ public class OrcTester
             }
             else {
                 ColumnVector vector = recordReader.readBlock(type, 0);
+                ColumnBlock block = BlockFactory.getColumnBlock(vector,type);
                 List<Object> data = new ArrayList<>(vector.getElementsAppended());
                 for (int position = 0; position < vector.getElementsAppended(); position++) {
-                    data.add(vector.getArray(position).array()[0]);
+                    data.add(block.getTestObject(position));
                 }
-
+//                System.out.println("batchSize? " + batchSize);
                 for (int i = 0; i < batchSize; i++) {
                     assertTrue(iterator.hasNext());
                     Object expected = iterator.next();
                     Object actual = data.get(i);
                     assertColumnValueEquals(type, actual, expected);
                 }
+ //               System.out.println("rows processed before... " + rowsProcessed);
             }
             assertEquals(recordReader.getReaderPosition(), rowsProcessed);
             assertEquals(recordReader.getFilePosition(), rowsProcessed);
@@ -415,7 +422,7 @@ public class OrcTester
             }
         }
         else if (!Objects.equals(actual, expected)) {
-            assertEquals(actual, expected);
+            assertEquals(expected, actual);
         }
     }
 
@@ -659,8 +666,9 @@ public class OrcTester
         @Override
         public void close()
         {
+            FileUtils.deleteQuietly(tempDir);
             // hadoop creates crc files that must be deleted also, so just delete the whole directory
-            deleteRecursively(tempDir);
+//            deleteRecursively(tempDir);
         }
     }
 
@@ -758,8 +766,8 @@ public class OrcTester
         throw new IllegalArgumentException("Unknown object inspector type " + objectInspector);
     }
 
-    private static DataType arrayType(DataType type) {
-        return ((ArrayType) type).elementType();
+    private static DataType arrayType(DataType elementType) {
+        return DataTypes.createArrayType(elementType);
     }
 
     private static DataType mapType(DataType keyType, DataType valueType) {
@@ -772,4 +780,18 @@ public class OrcTester
             structField[i] = DataTypes.createStructField("field_" + i, fieldTypes[i], true);
         return DataTypes.createStructType(structField);
     }
+
+    public static int advance(Iterator<?> iterator, int numberToAdvance) {
+        Preconditions.checkNotNull(iterator);
+        Preconditions.checkArgument(numberToAdvance >= 0, "numberToAdvance must be nonnegative");
+
+        int i;
+        for(i = 0; i < numberToAdvance && iterator.hasNext(); ++i) {
+            iterator.next();
+        }
+
+        return i;
+    }
+
+
 }

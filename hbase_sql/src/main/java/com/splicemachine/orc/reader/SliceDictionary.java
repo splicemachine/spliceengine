@@ -75,4 +75,10 @@ public class SliceDictionary extends Dictionary {
         assert obj != null;
         return Arrays.equals(slice,((SliceDictionary) obj).slice);
     }
+
+    public boolean sliceEquals(Slice[] slice) {
+        assert slice != null;
+        return Arrays.equals(this.slice,slice);
+    }
+
 }

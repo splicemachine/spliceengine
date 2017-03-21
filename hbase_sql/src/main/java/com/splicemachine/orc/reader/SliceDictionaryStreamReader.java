@@ -19,8 +19,10 @@ import com.splicemachine.orc.metadata.ColumnEncoding;
 import com.splicemachine.orc.stream.*;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
+import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -91,6 +93,12 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
     }
 
     @Override
+    public ColumnVector readBlock(DataType type)
+            throws IOException {
+        return readBlock(type,ColumnVector.allocate(nextBatchSize, DataTypes.IntegerType, MemoryMode.ON_HEAP));
+    }
+
+    @Override
     public ColumnVector readBlock(DataType type, ColumnVector vector)
             throws IOException
     {
@@ -137,6 +145,13 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
             }
         }
 
+        /*
+        System.out.println("Data Vector");
+        for (int i=0;i<dataVector.length; i++) {
+            System.out.println(String.format("(%s,%s)",i,dataVector[i]));
+        }
+        */
+
         if (inDictionary.length < nextBatchSize) {
             inDictionary = new boolean[nextBatchSize];
         }
@@ -146,23 +161,34 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
         else {
             inDictionaryStream.getSetBits(nextBatchSize, inDictionary, isNullVector);
         }
+        vector.reserveDictionaryIds(dataVector.length);
+        vector.setDictionary(dictionaryBlock);
+        ColumnVector dictionaryVector = vector.getDictionaryIds();
 
         // create the dictionary ids
-        for (int i = 0; i < nextBatchSize; i++) {
+        for (int i = 0, j = 0; i < nextBatchSize; i++) {
+            while (vector.isNullAt(i+j)) {
+                vector.appendNull();
+                dictionaryVector.appendInt(dictionaryBlock.size() - 1); // Null
+                j++;
+            }
             if (isNullVector[i]) {
                 // null is the last entry in the slice dictionary
-                dataVector[i] = dictionaryBlock.size() - 1;
+                vector.appendNull();
+                dictionaryVector.appendInt(dictionaryBlock.size() - 1);
             }
             else if (inDictionary[i]) {
+                vector.appendNotNull();
+                dictionaryVector.appendInt(dataVector[i]);
                 // stripe dictionary elements have the same dictionary id
             }
             else {
+                vector.appendNotNull();
                 // row group dictionary elements are after the main dictionary
-                dataVector[i] += stripeDictionarySize;
+                dictionaryVector.appendInt(dataVector[i] + stripeDictionarySize);
             }
         }
 
-        vector.setDictionary(dictionaryBlock);
         readOffset = 0;
         nextBatchSize = 0;
         return vector;
@@ -172,7 +198,7 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
     {
         // only update the block if the array changed to prevent creation of new Block objects, since
         // the engine currently uses identity equality to test if dictionaries are the same
-        if (!dictionaryBlock.equals(dictionary)) {
+        if (!dictionaryBlock.sliceEquals(dictionary)) {
             dictionaryBlock = new SliceDictionary(dictionary);
         }
     }
@@ -261,6 +287,7 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
                     value = trimSpacesAndTruncateToLength(value, type);
                 }
                 */
+//                System.out.println(String.format("Reading Dictionary (%s,%s)",dictionaryOutputOffset + i,value.toStringUtf8()));
                 dictionary[dictionaryOutputOffset + i] = value;
             }
         }

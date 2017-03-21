@@ -137,7 +137,11 @@ public class LongDictionaryStreamReader
             inDictionaryStream.getSetBits(nextBatchSize, inDictionary, nullVector);
         }
 
-        for (int i = 0; i < nextBatchSize; i++) {
+        for (int i = 0, j = 0; i < nextBatchSize; i++) {
+            while (vector.isNullAt(i+j)) {
+                vector.appendNull();
+                j++;
+            }
             if (nullVector[i]) {
                 vector.appendNull();
             }

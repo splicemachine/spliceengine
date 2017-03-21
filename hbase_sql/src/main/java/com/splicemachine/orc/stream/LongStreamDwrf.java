@@ -148,4 +148,28 @@ public class LongStreamDwrf
             }
         }
     }
+
+
+    @Override
+    public void nextIntVector(DataType type, int items, ColumnVector columnVector)
+            throws IOException
+    {
+        for (int i = 0; i < items; i++) {
+            columnVector.appendInt((int)next());
+        }
+    }
+
+    @Override
+    public void nextIntVector(DataType type, int items, ColumnVector columnVector, boolean[] isNull)
+            throws IOException
+    {
+        for (int i = 0; i < items; i++) {
+            if (isNull[i]) {
+                columnVector.appendNull();
+            }
+            else {
+                columnVector.appendInt((int)next());
+            }
+        }
+    }
 }

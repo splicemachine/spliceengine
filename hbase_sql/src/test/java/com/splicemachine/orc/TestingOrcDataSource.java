@@ -15,10 +15,10 @@ package com.splicemachine.orc;
 
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.FixedLengthSliceInput;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import static java.util.Objects.requireNonNull;
 
 class TestingOrcDataSource
         implements OrcDataSource

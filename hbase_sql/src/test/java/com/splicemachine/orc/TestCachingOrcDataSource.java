@@ -13,16 +13,15 @@
  */
 package com.splicemachine.orc;
 
-import com.facebook.presto.orc.OrcTester.Compression;
-import com.facebook.presto.orc.OrcTester.Format;
-import com.facebook.presto.orc.OrcTester.TempFile;
-import com.facebook.presto.orc.memory.AggregatedMemoryContext;
-import com.facebook.presto.orc.metadata.OrcMetadataReader;
-import com.facebook.presto.orc.metadata.StripeInformation;
-import com.facebook.presto.spi.block.Block;
+import com.splicemachine.orc.OrcTester.Compression;
+import com.splicemachine.orc.OrcTester.Format;
+import com.splicemachine.orc.OrcTester.TempFile;
+import com.splicemachine.orc.memory.AggregatedMemoryContext;
+import com.splicemachine.orc.metadata.OrcMetadataReader;
+import com.splicemachine.orc.metadata.StripeInformation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.splicemachine.orc.stream.TestingOrcDataSource;
+import com.splicemachine.orc.TestingOrcDataSource;
 import io.airlift.slice.FixedLengthSliceInput;
 import io.airlift.units.DataSize;
 import io.airlift.units.DataSize.Unit;
@@ -32,36 +31,38 @@ import org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
+import org.apache.spark.sql.execution.vectorized.ColumnVector;
+import org.apache.spark.sql.types.DataTypes;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
-
-import static com.facebook.presto.orc.OrcRecordReader.LinearProbeRangeFinder.createTinyStripesRangeFinder;
-import static com.facebook.presto.orc.OrcRecordReader.wrapWithCacheIfTinyStripes;
-import static com.facebook.presto.orc.OrcTester.Compression.NONE;
-import static com.facebook.presto.orc.OrcTester.Compression.ZLIB;
-import static com.facebook.presto.orc.OrcTester.Format.ORC_12;
-import static com.facebook.presto.orc.OrcTester.HIVE_STORAGE_TIME_ZONE;
-import static com.facebook.presto.orc.OrcTester.writeOrcFileColumnOld;
-import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
+import static com.splicemachine.orc.OrcRecordReader.LinearProbeRangeFinder.createTinyStripesRangeFinder;
+import static com.splicemachine.orc.OrcRecordReader.wrapWithCacheIfTinyStripes;
+import static com.splicemachine.orc.OrcTester.Compression.NONE;
+import static com.splicemachine.orc.OrcTester.Compression.ZLIB;
+import static com.splicemachine.orc.OrcTester.Format.ORC_12;
+import static com.splicemachine.orc.OrcTester.HIVE_STORAGE_TIME_ZONE;
+import static com.splicemachine.orc.OrcTester.writeOrcFileColumnOld;
 import static io.airlift.testing.Assertions.assertGreaterThanOrEqual;
 import static io.airlift.testing.Assertions.assertInstanceOf;
 import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory.javaStringObjectInspector;
-import static org.testng.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 public class TestCachingOrcDataSource
 {
     private static final int POSITION_COUNT = 50000;
 
-    private TempFile tempFile;
+    private static TempFile tempFile;
 
     @BeforeClass
-    public void setUp()
+    public static void setUp()
             throws Exception
     {
         tempFile = new TempFile();
@@ -71,7 +72,7 @@ public class TestCachingOrcDataSource
     }
 
     @AfterClass
-    public void tearDown()
+    public static void tearDown()
             throws Exception
     {
         tempFile.close();
@@ -194,7 +195,7 @@ public class TestCachingOrcDataSource
         assertInstanceOf(wrapWithCacheIfTinyStripes(orcDataSource, stripes, maxMergeDistance, maxReadSize), CachingOrcDataSource.class);
 
         OrcRecordReader orcRecordReader = orcReader.createRecordReader(
-                ImmutableMap.of(0, VARCHAR),
+                ImmutableMap.of(0, DataTypes.StringType),
                 (numberOfRows, statisticsByColumnIndex) -> true,
                 HIVE_STORAGE_TIME_ZONE,
                 new AggregatedMemoryContext());
@@ -204,16 +205,16 @@ public class TestCachingOrcDataSource
             if (batchSize <= 0) {
                 break;
             }
-            Block block = orcRecordReader.readBlock(VARCHAR, 0);
-            positionCount += block.getPositionCount();
+            ColumnVector block = orcRecordReader.readBlock(DataTypes.StringType, 0);
+            positionCount += block.getElementsAppended();
         }
         assertEquals(positionCount, POSITION_COUNT);
     }
 
     public static <T, U extends T> void assertNotInstanceOf(T actual, Class<U> expectedType)
     {
-        assertNotNull(actual, "actual is null");
-        assertNotNull(expectedType, "expectedType is null");
+        assertNotNull("actual is null",actual);
+        assertNotNull("expectedType is null",expectedType);
         if (expectedType.isInstance(actual)) {
             fail(String.format("expected:<%s> to not be an instance of <%s>", actual, expectedType.getName()));
         }

@@ -163,7 +163,7 @@ public class DecimalStreamReader
             }
 
             Arrays.fill(nullVector, false);
-            if (isShort(decimalType)) {
+            if (inLong(decimalType)) {
                 decimalStream.nextLongVector(nextBatchSize, shortDecimalVector);
             }
             else {
@@ -182,7 +182,7 @@ public class DecimalStreamReader
                     throw new OrcCorruptionException("Value is not null but scale stream is not present");
                 }
 
-                if (isShort(decimalType)) {
+                if (inLong(decimalType)) {
                     decimalStream.nextLongVector(nextBatchSize, shortDecimalVector, nullVector);
                 }
                 else {
@@ -197,7 +197,18 @@ public class DecimalStreamReader
     private ColumnVector buildDecimalsBlock(DecimalType decimalType, ColumnVector vector)
             throws OrcCorruptionException {
 
-        if (isShort(decimalType)) {
+        if (inInt(decimalType)) {
+            for (int i = 0; i < nextBatchSize; i++) {
+                if (!nullVector[i]) {
+                    long rescaledDecimal = rescale(shortDecimalVector[i], (int) scaleVector[i], decimalType.scale());
+                    vector.appendInt((int)rescaledDecimal);
+                }
+                else {
+                    vector.appendNull();
+                }
+            }
+        }
+        else if (inLong(decimalType)) {
             for (int i = 0; i < nextBatchSize; i++) {
                 if (!nullVector[i]) {
                     long rescaledDecimal = rescale(shortDecimalVector[i], (int) scaleVector[i], decimalType.scale());
@@ -208,6 +219,7 @@ public class DecimalStreamReader
                 }
             }
         }
+
         else {
             for (int i = 0; i < nextBatchSize; i++) {
                 if (!nullVector[i]) {
@@ -267,7 +279,11 @@ public class DecimalStreamReader
                 .toString();
     }
 
-    public static boolean isShort(DecimalType type) {
+    public static boolean inInt(DecimalType type) {
+        return type.precision() <= Decimal.MAX_LONG_DIGITS();
+    }
+
+    public static boolean inLong(DecimalType type) {
         return type.precision() <= Decimal.MAX_LONG_DIGITS();
     }
 

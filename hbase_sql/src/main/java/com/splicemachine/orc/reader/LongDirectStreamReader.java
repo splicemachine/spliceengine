@@ -104,7 +104,11 @@ public class LongDirectStreamReader
                 dataStream.nextLongVector(type, nextBatchSize, vector, nullVector);
             }
             else {
-                for (int i = 0; i < nextBatchSize; i++) {
+                for (int i = 0, j = 0; i < nextBatchSize; i++) {
+                    while (vector.isNullAt(i+j)) {
+                        vector.appendNull();
+                        j++;
+                    }
                     vector.appendNull();
                 }
             }

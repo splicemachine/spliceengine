@@ -120,16 +120,28 @@ public class ListStreamReader
             int length = lengthVector[i - 1];
             offsets[i] = offsets[i - 1] + length;
         }
+        // Put Array Offsets and Lengths
+        for (int i =0, j= 0; i< nextBatchSize; i++) {
+            while (vector.isNullAt(i+j)) {
+                vector.appendNull();
+                j++;
+            }
+            if (nullVector[i+j]) {
+                vector.appendNull();
+            } else {
+                vector.appendNotNull(); // Optimize
+                vector.putArray(i+j, offsets[i], lengthVector[i]);
+            }
+        }
 
         int elementCount = offsets[offsets.length - 1];
-
-        ColumnVector arrayVector;
+        ColumnVector arrayVector = vector.arrayData();
         if (elementCount > 0) {
             elementStreamReader.prepareNextRead(elementCount);
-            arrayVector = elementStreamReader.readBlock(elementType);
+            arrayVector.reserve(elementCount);
+            arrayVector = elementStreamReader.readBlock(elementType,arrayVector);
         }
         else {
-            arrayVector = vector.arrayData();
         }
 
         readOffset = 0;

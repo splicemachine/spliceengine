@@ -47,13 +47,48 @@ public class SpliceTestOrcReader {
         OrcReader reader = new OrcReader(orcDataSource,new OrcMetadataReader(), DataSize.succinctDataSize(16, DataSize.Unit.KILOBYTE),DataSize.succinctDataSize(16, DataSize.Unit.MEGABYTE));
         OrcRecordReader orcRecordReader =
         reader.createRecordReader(
-                ImmutableMap.of(0,DataTypes.LongType),
+                ImmutableMap.of(0,DataTypes.LongType,1,DataTypes.IntegerType,5,DataTypes.createDecimalType(15,2),
+                        9,DataTypes.StringType,14,DataTypes.StringType),
                 (numberOfRows, statisticsByColumnIndex) -> true,
                 DateTimeZone.UTC,new AggregatedMemoryContext());
         int foo = orcRecordReader.nextBatch();
         ColumnVector columnVector = orcRecordReader.readBlock(DataTypes.LongType,0);
+    //    ColumnVector columnVector2 = orcRecordReader.readBlock(DataTypes.IntegerType,1);
+    //    ColumnVector columnVector3 = orcRecordReader.readBlock(DataTypes.createDecimalType(15,2),5);
+    //    ColumnVector columnVector4 = orcRecordReader.readBlock(DataTypes.StringType,9);
+    //    ColumnVector columnVector5 = orcRecordReader.readBlock(DataTypes.StringType,14);
+        System.out.println("---:" + columnVector.getLong(0));
         System.out.println(reader.getColumnNames());
         //OrcDataSource orcDataSource, MetadataReader metadataReader, DataSize maxMergeDistance, DataSize maxReadSize)
     }
+
+    @Test
+    public void testSimple() throws Exception {
+        DataSize orcMaxMergeDistance = new DataSize(1, MEGABYTE);
+        DataSize orcMaxBufferSize = new DataSize(8, MEGABYTE);
+        DataSize orcStreamBufferSize = new DataSize(8, MEGABYTE);
+        Configuration config = new Configuration();
+
+        FileSystem fs = FileSystem.get(new URI("file:///tmp/aaron"),
+                config);
+        Path path = new Path("file:///tmp/aaron/part-00000-a9ee58a6-6253-4fc1-9793-6bbdbcc4a598.orc");
+        long size = fs.getFileStatus(path).getLen();
+        FSDataInputStream is = fs.open(path);
+        OrcDataSource orcDataSource = new HdfsOrcDataSource(path.toString(), size, orcMaxMergeDistance,
+                orcMaxBufferSize, orcStreamBufferSize, is);
+        OrcPredicate orcPredicate;
+        OrcReader reader = new OrcReader(orcDataSource,new OrcMetadataReader(), DataSize.succinctDataSize(16, DataSize.Unit.KILOBYTE),DataSize.succinctDataSize(16, DataSize.Unit.MEGABYTE));
+        OrcRecordReader orcRecordReader =
+                reader.createRecordReader(
+                        ImmutableMap.of(0,DataTypes.IntegerType),
+                        (numberOfRows, statisticsByColumnIndex) -> true,
+                        DateTimeZone.UTC,new AggregatedMemoryContext());
+        int foo = orcRecordReader.nextBatch();
+        ColumnVector columnVector = orcRecordReader.readBlock(DataTypes.IntegerType,0);
+
+        System.out.println(reader.getColumnNames());
+        //OrcDataSource orcDataSource, MetadataReader metadataReader, DataSize maxMergeDistance, DataSize maxReadSize)
+    }
+
 
 }

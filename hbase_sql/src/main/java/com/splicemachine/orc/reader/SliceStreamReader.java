@@ -17,6 +17,7 @@ import com.splicemachine.orc.StreamDescriptor;
 import com.splicemachine.orc.metadata.ColumnEncoding;
 import com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind;
 import com.splicemachine.orc.stream.StreamSources;
+import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 import java.io.IOException;
@@ -40,10 +41,17 @@ public class SliceStreamReader
     }
 
     @Override
+    public ColumnVector readBlock(DataType type)
+            throws IOException {
+        return readBlock(type,ColumnVector.allocate(currentReader.getBatchSize(),type, MemoryMode.ON_HEAP));
+    }
+
+
+    @Override
     public ColumnVector readBlock(DataType type, ColumnVector vector)
             throws IOException
     {
-        return currentReader.readBlock(type,vector);
+        return currentReader.readBlock(type, vector);
     }
 
     @Override

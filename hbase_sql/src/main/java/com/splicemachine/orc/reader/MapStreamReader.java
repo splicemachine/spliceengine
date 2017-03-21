@@ -20,9 +20,11 @@ import com.splicemachine.orc.stream.BooleanStream;
 import com.splicemachine.orc.stream.LongStream;
 import com.splicemachine.orc.stream.StreamSource;
 import com.splicemachine.orc.stream.StreamSources;
+import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.MapType;
+import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nonnull;
@@ -72,9 +74,16 @@ public class MapStreamReader
     }
 
     @Override
+    public ColumnVector readBlock(DataType type)
+            throws IOException {
+        return readBlock(type,null); // Cannot Allocate a Map Vector
+    }
+
+    @Override
     public ColumnVector readBlock(DataType type, ColumnVector vector)
             throws IOException {
         MapType mapType = (MapType)type;
+
         if (!rowGroupOpen) {
             openRowGroup();
         }
@@ -114,6 +123,9 @@ public class MapStreamReader
                     throw new OrcCorruptionException("Value is not null but data stream is not present");
                 }
                 lengthStream.nextIntVector(nextBatchSize, lengthVector, nullVector);
+            } else {
+                // All Nulls
+                // iterate over structs
             }
         }
 
@@ -121,8 +133,8 @@ public class MapStreamReader
         for (int length : lengthVector) {
             entryCount += length;
         }
+        /*
         //Convert map to array
-    /*
         if (entryCount > 0) {
             keyStreamReader.prepareNextRead(entryCount);
             valueStreamReader.prepareNextRead(entryCount);

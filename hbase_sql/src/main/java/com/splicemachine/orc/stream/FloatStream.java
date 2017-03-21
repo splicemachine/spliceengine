@@ -68,20 +68,28 @@ public class FloatStream
     public void nextVector(DataType type, int items, ColumnVector columnVector)
             throws IOException
     {
-        for (int i = 0; i < items; i++) {
-            columnVector.appendLong(floatToRawIntBits(next()));
+        for (int i = 0, j = 0; i < items; i++) {
+            while (columnVector.isNullAt(i+j)) {
+                columnVector.appendNull();
+                j++;
+            }
+            columnVector.appendFloat(next());
         }
     }
 
     public void nextVector(DataType type, long items, ColumnVector columnVector, boolean[] isNull)
             throws IOException
     {
-        for (int i = 0; i < items; i++) {
+        for (int i = 0, j = 0; i < items; i++) {
+            while (columnVector.isNullAt(i+j)) {
+                columnVector.appendNull();
+                j++;
+            }
             if (isNull[i]) {
                 columnVector.appendNull();
             }
             else {
-                columnVector.appendLong(floatToRawIntBits(next()));
+                columnVector.appendFloat(next());
             }
         }
     }

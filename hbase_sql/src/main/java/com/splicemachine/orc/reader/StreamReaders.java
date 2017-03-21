@@ -29,10 +29,11 @@ public final class StreamReaders
                 return new BooleanStreamReader(streamDescriptor);
             case BYTE:
                 return new ByteStreamReader(streamDescriptor);
-            case SHORT:
             case INT:
-            case LONG:
             case DATE:
+                return new IntStreamReader(streamDescriptor);
+            case SHORT:
+            case LONG:
                 return new LongStreamReader(streamDescriptor);
             case FLOAT:
                 return new FloatStreamReader(streamDescriptor);

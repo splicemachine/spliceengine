@@ -185,9 +185,12 @@ public class BooleanStream
      * Sets the vector element to true if the bit is set.
      */
     public void getSetBits(DataType type, int batchSize, ColumnVector columnVector)
-            throws IOException
-    {
-        for (int i = 0; i < batchSize; i++) {
+            throws IOException {
+        for (int i = 0, j = 0; i < batchSize; i++) {
+            while (columnVector.isNullAt(i+j)) {
+                columnVector.appendNull();
+                j++;
+            }
             // read more data if necessary
             if (bitsInData == 0) {
                 readByte();
@@ -206,9 +209,12 @@ public class BooleanStream
      * Sets the vector element to true if the bit is set, skipping the null values.
      */
     public void getSetBits(DataType type, int batchSize, ColumnVector columnVector, boolean[] isNull)
-            throws IOException
-    {
-        for (int i = 0; i < batchSize; i++) {
+            throws IOException {
+        for (int i = 0, j = 0; i < batchSize; i++) {
+            while (columnVector.isNullAt(i+j)) {
+                columnVector.appendNull();
+                j++;
+            }
             if (isNull[i]) {
                 columnVector.appendNull();
             }

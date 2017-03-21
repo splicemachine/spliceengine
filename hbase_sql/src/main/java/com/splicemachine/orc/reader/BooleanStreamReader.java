@@ -104,7 +104,12 @@ public class BooleanStreamReader
                 dataStream.getSetBits(type, nextBatchSize, vector, nullVector);
             }
             else {
-                for (int i = 0; i < nextBatchSize; i++) {
+                // need to check nesting!!
+                for (int i = 0, j = 0; i < nextBatchSize; i++) {
+                    while (vector.isNullAt(i+j)) {
+                        vector.appendNull();
+                        j++;
+                    }
                     vector.appendNull();
                 }
             }

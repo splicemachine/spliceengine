@@ -15,14 +15,12 @@ package com.splicemachine.orc;
 
 import com.google.common.collect.ImmutableList;
 import io.airlift.units.DataSize;
-import org.testng.annotations.Test;
-
+import org.junit.Test;
 import java.util.List;
-
-import static com.facebook.presto.orc.OrcDataSourceUtils.mergeAdjacentDiskRanges;
+import static com.splicemachine.orc.OrcDataSourceUtils.mergeAdjacentDiskRanges;
 import static io.airlift.units.DataSize.Unit.BYTE;
 import static io.airlift.units.DataSize.Unit.GIGABYTE;
-import static org.testng.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 public class TestOrcDataSourceUtils
 {

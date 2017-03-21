@@ -15,14 +15,13 @@ package com.splicemachine.orc;
 
 import com.splicemachine.orc.AbstractTestOrcReader;
 import com.splicemachine.orc.OrcTester;
-import org.testng.annotations.Test;
+import org.junit.Test;
 
-@Test(groups = "ci")
 public class TestFullOrcReader
-        extends AbstractTestOrcReader
-{
+        extends AbstractTestOrcReader {
     public TestFullOrcReader()
     {
         super(OrcTester.fullOrcTester());
     }
+
 }

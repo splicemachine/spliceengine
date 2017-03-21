@@ -89,48 +89,76 @@ public class StructStreamReader
             }
         }
 
-
         boolean[] nullVector = new boolean[nextBatchSize];
-        if (presentStream == null) {
+        if (presentStream == null) { // No Nulls
             for (int i = 0; i < structElements.size(); i++) {
                 StreamReader structField = structFields[i];
                 structField.prepareNextRead(nextBatchSize);
                 ColumnVector childVector = vector.getChildColumn(i);
-//                childVector.
-//                vector.getChildColumn(i) = structField.readBlock(structElements.get(i));
+                // Mark Child Vectors null positions based on interleaving
+                int j = 0;
+                for (int k=0;k<nextBatchSize;k++) {
+                    while (vector.isNullAt(k+j)) {
+                        childVector.putNull(k+j); // Set Child Vector to null at that position
+                        if (i == 0) { // first element
+                            vector.appendStruct(false);
+                            vector.putNull(k+j);
+                        }
+                        j++;
+                    }
+                    if (i==0)
+                        vector.appendStruct(false);
+                }
+                structField.readBlock(structType.fields()[i].dataType(),childVector);
             }
         }
         else {
             int nullValues = presentStream.getUnsetBits(nextBatchSize, nullVector);
             if (nullValues != nextBatchSize) {
+                int lastStructElement = structElements.size()-1;
                 for (int i = 0; i < structElements.size(); i++) {
                     StreamReader structField = structFields[i];
-                    structField.prepareNextRead(nextBatchSize - nullValues);
-  //                  blocks[i] = structField.readBlock(structElements.get(i));
+                    structField.prepareNextRead(nextBatchSize-nullValues);
+                    ColumnVector childVector = vector.getChildColumn(i);
+                    // Mark Child Vectors null positions based on interleaving
+                    int j = 0;
+                    for (int k=0;k<nextBatchSize;k++) {
+                        while (vector.isNullAt(k+j)) {
+                            childVector.putNull(k+j); // Set Child Vector to null at that position
+                            if (i == lastStructElement) { // first element
+                                vector.appendStruct(false);
+                                vector.putNull(k+j);
+                            }
+                            j++;
+                        }
+                        if (i==lastStructElement)
+                            vector.appendStruct(false);
+                        if (nullVector[k]) {
+                            childVector.putNull(k+j);
+                            if (i==lastStructElement)
+                                vector.putNull(k+j);
+                        }
+                    }
+                    structField.readBlock(structType.fields()[i].dataType(),childVector);
                 }
+
             }
             else {
-                for (int i = 0; i < structElements.size(); i++) {
-    //                blocks[i] = ColumnVector.allocate(1,structElements.get(i), MemoryMode.ON_HEAP);
+                int j = 0;
+                for (int k=0;k<nextBatchSize;k++) {
+                    while (vector.isNullAt(k+j)) {
+                        vector.appendStruct(false);
+                        vector.putNull(k+j);
+                        j++;
+                    }
+                    vector.appendStruct(false);
+                    vector.putNull(k+j);
                 }
             }
         }
-
-        // Build offsets for array block (null valued have no positions)
-        int[] offsets = new int[nextBatchSize + 1];
-        for (int i = 1; i < offsets.length; i++) {
-            int length = nullVector[i - 1] ? 0 : structElements.size();
-            offsets[i] = offsets[i - 1] + length;
-        }
-
-
-        // Struct is represented as an array block holding an interleaved block
-     //   InterleavedBlock interleavedBlock = new InterleavedBlock(blocks);
-     //   ArrayBlock arrayBlock = new ArrayBlock(nextBatchSize, nullVector, offsets, interleavedBlock);
 
         readOffset = 0;
         nextBatchSize = 0;
-
         return vector;
     }
 

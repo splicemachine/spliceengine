@@ -15,9 +15,8 @@ package com.splicemachine.orc;
 
 import com.splicemachine.orc.AbstractTestOrcReader;
 import com.splicemachine.orc.OrcTester;
-import org.testng.annotations.Test;
+import org.junit.Test;
 
-@Test
 public class TestOrcReader
     extends AbstractTestOrcReader
 {

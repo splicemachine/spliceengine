@@ -133,11 +133,19 @@ public class SliceDirectStreamReader
             }
             data = dataStream.next(totalLength);
         }
-        // Take another look at this JL TODO
-        for (int i = 0; i < nextBatchSize; i++) {
+
+        int offset = 0;
+        for (int i = 0, j = 0; i < nextBatchSize; i++) {
+            while (vector.isNullAt(i+j)) {
+                vector.appendNull();
+                j++;
+            }
             if (!isNullVector[i]) {
                 int length = lengthVector[i];
-                vector.putByteArray(i,data);
+                vector.appendByteArray(data,offset,length);
+                offset += length;
+            } else {
+                vector.appendNull();
             }
         }
 
