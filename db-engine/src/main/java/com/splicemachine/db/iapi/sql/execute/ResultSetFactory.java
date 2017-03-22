@@ -126,6 +126,7 @@ public interface ResultSetFactory {
 								 String statusDirectory,
 								 int failBadRecordCount,
 								 boolean skipConflictDetection,
+								 boolean skipWAL,
                                  double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost,
                                  String tableVersion,

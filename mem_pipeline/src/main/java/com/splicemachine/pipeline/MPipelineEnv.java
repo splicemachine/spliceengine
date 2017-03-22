@@ -35,6 +35,7 @@ import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -184,6 +185,11 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public SnowflakeFactory snowflakeFactory() {
         return siEnv.snowflakeFactory();
+    }
+
+    @Override
+    public ClusterHealth clusterHealthFactory() {
+        return siEnv.clusterHealthFactory();
     }
 
     @Override

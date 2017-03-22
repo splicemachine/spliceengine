@@ -10,29 +10,23 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
 package com.splicemachine.storage;
 
+import com.splicemachine.si.api.server.ClusterHealth;
+
 /**
- * @author Scott Fines
- *         Date: 12/16/15
+ * Created by dgomezferro on 3/16/17.
  */
-public interface DataPut extends DataMutation{
+public class MClusterHealthWatcher implements ClusterHealth.ClusterHealthWatcher {
+    @Override
+    public int failedServers() {
+        return 0;
+    }
 
-    void tombstone(long txnIdLong);
-
-    void antiTombstone(long txnIdLong);
-
-    void addCell(byte[] family, byte[] qualifier, long timestamp, byte[] value);
-
-    void addCell(byte[] family, byte[] qualifier, byte[] value);
-
-    byte[] key();
-
-    Iterable<DataCell> cells();
-
-    void addCell(DataCell kv);
-
-    void skipWAL();
+    @Override
+    public void close() {
+    }
 }

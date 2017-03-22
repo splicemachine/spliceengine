@@ -29,6 +29,7 @@ import com.splicemachine.si.api.readresolve.AsyncReadResolver;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
@@ -92,6 +93,7 @@ public class SIDriver {
     private final PartitionInfoCache partitionInfoCache;
     private final SnowflakeFactory snowflakeFactory;
     private final SIEnvironment env;
+    private final ClusterHealth clusterHealth;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -123,6 +125,7 @@ public class SIDriver {
         readResolver = initializedReadResolver(config,env.keyedReadResolver());
         this.baseOpFactory = env.baseOperationFactory();
         this.env = env;
+        this.clusterHealth = env.clusterHealthFactory();
     }
 
 
@@ -221,6 +224,10 @@ public class SIDriver {
 
     public DistributedFileSystem getFileSystem(String path) throws URISyntaxException, IOException {
         return SIDriver.driver().getSIEnvironment().fileSystem(path);
+    }
+
+    public ClusterHealth clusterHealth() {
+        return clusterHealth;
     }
 
 

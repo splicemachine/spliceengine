@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.pipeline.config.UnsafeWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.client.WriteCoordinator;
@@ -72,9 +73,12 @@ public class SharedCallBufferFactory{
                                                       TxnView txn) throws IOException{
         SharedPreFlushHook hook = new SharedPreFlushHook();
         WriteConfiguration writeConfiguration=writerPool.defaultWriteConfiguration();
-        SharedWriteConfiguration wc = new SharedWriteConfiguration(writeConfiguration.getMaximumRetries(),
+        WriteConfiguration wc = new SharedWriteConfiguration(writeConfiguration.getMaximumRetries(),
                 writeConfiguration.getPause(),
                 writeConfiguration.getExceptionFactory());
+        if (context.skipConflictDetection() || context.skipWAL()) {
+            wc = new UnsafeWriteConfiguration(wc, context.skipConflictDetection(), context.skipWAL());
+        }
         hook.registerContext(context, indexToMainMutationMap);
         wc.registerContext(context, indexToMainMutationMap);
         CallBuffer<KVPair> writeBuffer;

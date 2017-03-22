@@ -14,11 +14,13 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.collect.Iterables;
+import org.apache.hadoop.hbase.client.Durability;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.spark_project.guava.collect.Iterables;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -88,6 +90,11 @@ public class HPut implements HMutation,DataPut{
         }catch(IOException e){
             throw new RuntimeException(e); //should never happen
         }
+    }
+
+    @Override
+    public void skipWAL() {
+        put.setDurability(Durability.SKIP_WAL);
     }
 
     @Override
