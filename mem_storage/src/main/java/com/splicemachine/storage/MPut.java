@@ -94,6 +94,11 @@ public class MPut implements DataPut{
     }
 
     @Override
+    public void skipWAL() {
+        // no-op in mem
+    }
+
+    @Override
     public void addAttribute(String key,byte[] value){
         this.attributes.put(key,value);
     }
