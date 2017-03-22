@@ -235,4 +235,12 @@ public interface DataSetProcessor {
      */
     void dropPinnedTable(long conglomerateId) throws StandardException;
 
+
+    /**
+     *  Returns true if the table is currently cached in-memory.
+     * @param conglomerateId
+     * @throws StandardException
+     */
+
+    Boolean isCached(long conglomerateId) throws StandardException;
 }
