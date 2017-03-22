@@ -19,7 +19,19 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.db.client.am.SqlCode;
+import com.splicemachine.db.client.am.SqlState;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.si.api.server.ClusterHealth;
+import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.EngineDriver;
@@ -50,6 +62,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 
+import static com.splicemachine.derby.utils.BaseAdminProcedures.getDefaultConn;
+
 
 /**
  * Operation that handles inserts into Splice Machine.
@@ -71,7 +85,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     public String statusDirectory;
     private int failBadRecordCount;
     private boolean skipConflictDetection;
-
+    private boolean skipWAL;
 
     @Override
     public String getName(){
@@ -90,6 +104,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String statusDirectory,
                            int failBadRecordCount,
                            boolean skipConflictDetection,
+                           boolean skipWAL,
                            double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost,
                            String tableVersion) throws StandardException{
@@ -97,6 +112,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
         this.skipConflictDetection=skipConflictDetection;
+        this.skipWAL=skipWAL;
         this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
         init();
     }
@@ -218,6 +234,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             statusDirectory=in.readUTF();
         failBadRecordCount=in.readInt();
         skipConflictDetection=in.readBoolean();
+        skipWAL=in.readBoolean();
     }
 
     @Override
@@ -234,6 +251,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             out.writeUTF(statusDirectory);
         out.writeInt(failBadRecordCount);
         out.writeBoolean(skipConflictDetection);
+        out.writeBoolean(skipWAL);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -250,6 +268,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
             throw ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+heapConglom+"");
         TxnView txn=getCurrentTransaction();
+
+        ClusterHealth.ClusterHealthWatcher healthWatcher = null;
+        if (skipWAL) {
+            healthWatcher = SIDriver.driver().clusterHealth().registerWatcher();
+        }
 
         operationContext.pushScope();
         try{
@@ -270,11 +293,35 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .build();
             return writer.write();
         }finally{
+            if (skipWAL) {
+                flushAndCheckErrors(healthWatcher);
+            }
             operationContext.popScope();
         }
-
     }
 
+    private void flushAndCheckErrors(ClusterHealth.ClusterHealthWatcher healthWatcher) throws StandardException {
+        PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
+
+        try {
+            for (long cid : writeInfo.getIndexConglomerateIds()) {
+                Partition table = tableFactory.getTable(Long.toString(cid));
+                table.flush();
+            }
+            Partition table = tableFactory.getTable(Long.toString(writeInfo.getConglomerateId()));
+            table.flush();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        try {
+            if (healthWatcher.failedServers() > 0) {
+                throw StandardException.newException(SQLState.REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR, healthWatcher.failedServers());
+            }
+        } finally {
+            healthWatcher.close();
+        }
+    }
     @Override
     public String getVTIFileName(){
         return getSubOperations().get(0).getVTIFileName();
@@ -283,5 +330,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
     public boolean skipConflictDetection() {
         return skipConflictDetection;
+    }
+
+    public boolean skipWAL() {
+        return skipWAL;
     }
 }

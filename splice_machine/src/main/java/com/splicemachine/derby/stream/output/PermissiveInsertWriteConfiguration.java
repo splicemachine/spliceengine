@@ -42,12 +42,11 @@ import java.util.concurrent.ExecutionException;
  */
 public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfiguration {
     private static final Logger LOG = Logger.getLogger(PermissiveInsertWriteConfiguration.class);
-    protected boolean skipConflictDetection;
     protected OperationContext operationContext;
     protected ThreadLocal<PairDecoder> pairDecoder;
 
     public PermissiveInsertWriteConfiguration(WriteConfiguration delegate, OperationContext operationContext,
-                                              final PairEncoder encoder, final ExecRow execRowDefinition, boolean skipConflictDetection) {
+                                              final PairEncoder encoder, final ExecRow execRowDefinition) {
         super(delegate);
         assert operationContext!=null && encoder != null:"Passed in null values to PermissiveInsert";
         this.operationContext = operationContext;
@@ -57,7 +56,6 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
                 return encoder.getDecoder(execRowDefinition.getClone());
             }
         };
-        this.skipConflictDetection = skipConflictDetection;
     }
 
     @Override
@@ -146,11 +144,6 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
         }
         sb.append(": " + row);
         return sb.toString();
-    }
-
-    @Override
-    public boolean skipConflictDetection() {
-        return skipConflictDetection;
     }
 }
 
