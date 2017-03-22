@@ -103,7 +103,15 @@ public class BulkImportUtils implements Serializable{
                 return -1;
             else {
                 // conglomerate1 == conglomerate2
-                return Bytes.compareTo(startKey1, startKey2);
+                if ((startKey1 == null || startKey1.length == 0) &&
+                        (startKey2 == null || startKey2.length ==0))
+                    return 0;
+                else if (startKey1 == null || startKey1.length == 0)
+                    return -1;
+                else if (startKey2 == null || startKey2.length ==0)
+                    return 1;
+                else
+                    return Bytes.compareTo(startKey1, startKey2);
             }
         }
     }

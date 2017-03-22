@@ -34,12 +34,9 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -54,24 +51,26 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.URI;
 import java.util.*;
 
-public class SparkHBaseBulkImport implements HBaseBulkImporter {
+public class SparkHBaseBulkImport implements HBaseBulkImporter, Externalizable{
 
     private static final Logger LOG=Logger.getLogger(SparkHBaseBulkImport.class);
 
@@ -195,7 +194,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
 
 
                 // get the actual start/end key for each partition after split
-                List<BulkImportPartition> bulkImportPartitions =
+                final List<BulkImportPartition> bulkImportPartitions =
                         getBulkImportPartitions(allCongloms, bulkImportDirectory);
 
                 // Read data again and encode rows in main table and index
@@ -203,9 +202,46 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
                         autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
                         operationContext, tentativeIndexList);
                 DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
+                assert rowAndIndexes instanceof SparkDataSet;
+
+                // Create a data frame for main table and index key/values, and sort data
+                JavaRDD<Row> javaRdd =
+                        ((SparkDataSet)rowAndIndexes).rdd.map(
+                                new Function<Tuple2<Long,Tuple2<byte[], byte[]>>, Row>() {
+                                    @Override
+                                    public Row call(
+                                            Tuple2<Long,Tuple2<byte[], byte[]>> t) throws Exception {
+                                        
+                                        Long conglomerateId = t._1;
+                                        byte[] key = t._2._1;
+                                        byte[] value = t._2._2;
+                                        int partition = Collections.binarySearch(
+                                                bulkImportPartitions, new BulkImportPartition(conglomerateId, key, key, null),
+                                                BulkImportUtils.getSearchComparator());
+                                        return RowFactory.create(conglomerateId, Bytes.toHex(key), value, partition);
+                                    }
+                                });
+                SparkSession sparkSession = SparkSession.builder().getOrCreate();
+                SQLContext sqlContext = new SQLContext(sparkSession);
+                StructType schema = createSchema();
+                        Dataset<Row> rowAndIndexesDataFrame =
+                        sqlContext.createDataFrame(javaRdd, schema);
+
+                Dataset partitionAndSorted =  rowAndIndexesDataFrame
+                        .repartition(bulkImportPartitions.size()*2, new Column("partition"))
+                        .sortWithinPartitions(new Column("conglomerateId"), new Column("key"));
+
+                HFileGenerationFunction writer =
+                        new HFileGenerationFunction<String>(operationContext, txn.getTxnId(),
+                                heapConglom, bulkImportPartitions);
+
+                Dataset<String> HFileSet = partitionAndSorted.mapPartitions(writer, Encoders.STRING());
+
+                Object files = HFileSet.collect();
 
                 // Repartition and sort within a partition
-                PairDataSet pairDataSet = rowAndIndexes.keyBy(new BulkImportKeyerFunction());
+                
+                /*PairDataSet pairDataSet = rowAndIndexes.keyBy(new BulkImportKeyerFunction());
 
                 DataSet partitionAndSorted =
                         pairDataSet.partitionBy(new BulkImportPartitioner(bulkImportPartitions),
@@ -218,7 +254,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
                 if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.debug(LOG, "created %d HFiles", files.size());
                 }
-
+                                                        */
                 bulkLoad(bulkImportPartitions);
             }
         }
@@ -242,6 +278,24 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
     }
 
+    private StructType createSchema() {
+        List<StructField> fields = new ArrayList<>();
+        StructField field = DataTypes.createStructField("conglomerateId", DataTypes.LongType, true);
+        fields.add(field);
+
+        field = DataTypes.createStructField("key", DataTypes.StringType, true);
+        fields.add(field);
+
+        field = DataTypes.createStructField("value", DataTypes.BinaryType, true);
+        fields.add(field);
+
+        field = DataTypes.createStructField("partition", DataTypes.IntegerType, true);
+        fields.add(field);
+
+        StructType schema = DataTypes.createStructType(fields);
+
+        return schema;
+    }
     /**
      * Output cut points to files
      * @param cutPointsList
@@ -486,4 +540,14 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter {
 
         return statisticsMap;
     }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException {
+
+    }
+
 }
