@@ -208,9 +208,14 @@ public class GenericScanQualifier implements ScanQualifier
         properInit = true;
     }
 
-    public String getText() {
-        return null;
-    }
+	public String getText() {
+			return null;
+		}
+
+	@Override
+	public int getVariantType() {
+		return SCAN_INVARIANT;
+	}
 }
 
 

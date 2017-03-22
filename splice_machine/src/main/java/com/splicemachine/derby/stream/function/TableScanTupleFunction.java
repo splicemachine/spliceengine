@@ -16,33 +16,78 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.Scans;
 import scala.Tuple2;
-
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
+import java.util.Collections;
 
 /**
  * Created by jleach on 4/20/15.
  */
-public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFunction<Op, Tuple2<RowLocation,ExecRow>,LocatedRow> implements Serializable {
+public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,Tuple2<RowLocation,ExecRow>,LocatedRow> implements Serializable {
+    protected boolean initialized;
+    protected ScanOperation op;
+    protected ExecutionFactory executionFactory;
+    protected Qualifier[][] qualifiers;
+    protected int[] baseColumnMap;
+    protected boolean rowIdKey; // HACK Row ID Qualifiers point to the projection above them ?  TODO JL
+    protected DataValueDescriptor optionalProbeValue;
+
+
     public TableScanTupleFunction() {
         super();
     }
 
-    public TableScanTupleFunction(OperationContext<Op> operationContext) {
+    public TableScanTupleFunction(OperationContext<Op> operationContext, DataValueDescriptor optionalProbeValue) {
         super(operationContext);
+        this.optionalProbeValue = optionalProbeValue;
     }
 
     @Override
-    public LocatedRow call(Tuple2<RowLocation, ExecRow> tuple) throws Exception {
-        this.operationContext.recordRead();
-        LocatedRow locatedRow = new LocatedRow(tuple._1(), tuple._2());
-        if (operationContext.getOperation() != null) {
-            operationContext.getOperation().setCurrentLocatedRow(locatedRow);
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeBoolean(optionalProbeValue!=null);
+        if (optionalProbeValue!=null)
+            out.writeObject(optionalProbeValue);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        if (in.readBoolean())
+            optionalProbeValue = (DataValueDescriptor) in.readObject();
+    }
+
+    @Override
+    public Iterable<LocatedRow> call(Tuple2<RowLocation,ExecRow> from) throws Exception {
+        if (!initialized) {
+            initialized = true;
+            op = (ScanOperation) getOperation();
+            if (op != null) {
+                this.qualifiers = op.getScanInformation().getScanQualifiers();
+                this.baseColumnMap = op.getOperationInformation().getBaseColumnMap();
+                this.rowIdKey = op.getRowIdKey();
+            }
         }
-        return locatedRow;
+        if (qualifiers == null || rowIdKey || Scans.qualifyRecordFromRow(from._2().getRowArray(), qualifiers,baseColumnMap,optionalProbeValue)) {
+            LocatedRow locatedRow = new LocatedRow(from._1(), from._2());
+            this.operationContext.recordRead();
+            if (op!=null)
+                op.setCurrentLocatedRow(locatedRow);
+            return Collections.singletonList(locatedRow);
+        }
+        this.operationContext.recordFilter();
+        return Collections.emptyList();
     }
 }

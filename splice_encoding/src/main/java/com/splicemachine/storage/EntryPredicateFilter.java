@@ -102,6 +102,7 @@ public class EntryPredicateFilter {
 										}
 								}
 						}
+
 						accumulate(index, encodedPos, accumulator, array, offset, limit);
 				}
 				return true;

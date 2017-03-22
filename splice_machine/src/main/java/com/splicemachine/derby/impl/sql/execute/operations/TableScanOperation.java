@@ -332,7 +332,8 @@ public class TableScanOperation extends ScanOperation{
                 .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
-                .rowDecodingMap(baseColumnMap)
+                .rowDecodingMap(getRowDecodingMap())
+                .baseColumnMap(baseColumnMap)
                 .buildDataSet(this);
     }
 }

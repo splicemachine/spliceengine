@@ -54,8 +54,10 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected int[] columnOrdering;
     protected int[] getColumnOrdering;
     protected int[] keyDecodingMap;
+    protected int[] rowDecodingMap;
     protected String scanQualifiersField;
     protected String tableVersion;
+    protected boolean rowIdKey;
 
     public ScanOperation(){
         super();
@@ -80,6 +82,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         this.oneRowScan=oneRowScan;
         this.scanQualifiersField=scanQualifiersField;
         this.tableVersion=tableVersion;
+        this.rowIdKey = rowIdKey;
         this.scanInformation=new DerbyScanInformation(resultRowAllocator.getMethodName(),
                 startKeyGetter!=null?startKeyGetter.getMethodName():null,
                 stopKeyGetter!=null?stopKeyGetter.getMethodName():null,
@@ -111,6 +114,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         isolationLevel=in.readInt();
         scanInformation=(ScanInformation<ExecRow>)in.readObject();
         tableVersion=in.readUTF();
+        rowIdKey = in.readBoolean();
     }
 
     @Override
@@ -121,6 +125,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         out.writeInt(isolationLevel);
         out.writeObject(scanInformation);
         out.writeUTF(tableVersion);
+        out.writeBoolean(rowIdKey);
     }
 
     @Override
@@ -217,11 +222,23 @@ public abstract class ScanOperation extends SpliceBaseOperation{
             int baseKeyColumnPosition=keyColumnEncodingOrder[i]; //the position of the column in the base row
             if(accessedPKColumns.get(i)){
                 kDecoderMap[i]=baseColumnMap[baseKeyColumnPosition];
-                baseColumnMap[baseKeyColumnPosition]=-1;
             }else
                 kDecoderMap[i]=-1;
         }
         return kDecoderMap;
+    }
+
+    public static int[] getRowDecodingMap(FormatableBitSet accessedPKColumns,
+                                          int[] keyColumnEncodingOrder,
+                                          int[] baseColumnMap) throws StandardException {
+
+        int[] rowDecodingMap=baseColumnMap.clone();
+        for(int i=0;i<keyColumnEncodingOrder.length;i++){
+            int baseKeyColumnPosition=keyColumnEncodingOrder[i]; //the position of the column in the base row
+            if(accessedPKColumns.get(i))
+                rowDecodingMap[baseKeyColumnPosition]=-1;
+        }
+        return rowDecodingMap;
     }
 
     protected int[] getKeyDecodingMap() throws StandardException{
@@ -234,6 +251,16 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return keyDecodingMap;
     }
 
+    public int[] getRowDecodingMap() throws StandardException {
+        if(rowDecodingMap==null) {
+            rowDecodingMap = getRowDecodingMap(
+                    scanInformation.getAccessedPkColumns(),
+                    scanInformation.getColumnOrdering(),
+                    operationInformation.getBaseColumnMap());
+        }
+        return rowDecodingMap;
+
+    }
     /**
      * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
      */
@@ -326,5 +353,20 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 
     protected String getScopeBaseOpName() {
         return super.getScopeName();
+    }
+
+
+    public ScanInformation<ExecRow> getScanInformation() {
+        return scanInformation;
+    }
+
+    /**
+     *
+     * Hack until we figure out rowid qualifiers.
+     *
+     * @return
+     */
+    public boolean getRowIdKey() {
+        return rowIdKey;
     }
 }

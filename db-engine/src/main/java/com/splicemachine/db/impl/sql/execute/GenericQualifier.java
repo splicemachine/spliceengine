@@ -235,4 +235,10 @@ public class GenericQualifier implements Qualifier
 			return "";
 		}
 	}
+
+
+	@Override
+	public int getVariantType() {
+		return variantType;
+	}
 }

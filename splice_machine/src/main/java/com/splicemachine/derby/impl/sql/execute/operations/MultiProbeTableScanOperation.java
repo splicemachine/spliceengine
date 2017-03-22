@@ -189,6 +189,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 Arrays.sort(probeValues);
             else
                 Arrays.sort(probeValues, Collections.reverseOrder());
+            this.probeValues = probeValues;
         }
         this.scanInformation = new MultiProbeDerbyScanInformation(
                 resultRowAllocator.getMethodName(),
@@ -235,6 +236,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         TxnView txn = getCurrentTransaction();
         List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
         DataSet<LocatedRow> dataSet = dsp.getEmpty();
+        int i = 0;
         for (DataScan scan: scans) {
             deSiify(scan);
             DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation,LocatedRow>newScanSet(this,tableName)
@@ -252,9 +254,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
-                    .rowDecodingMap(baseColumnMap)
+                    .rowDecodingMap(getRowDecodingMap())
+                    .baseColumnMap(baseColumnMap)
+                    .optionalProbeValue(probeValues[i])
                     .buildDataSet(this);
             dataSet = dataSet.union(ds);
+            i++;
         }
         return dataSet;
     }
