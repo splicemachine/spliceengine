@@ -361,4 +361,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         return proc.getExternalFileSchema(storedAs,location);
     }
+
+
+    @Override
+    public Boolean isCached(long conglomerateId) throws StandardException {
+        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+        return proc.isCached(conglomerateId);
+    }
 }

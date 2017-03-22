@@ -9060,6 +9060,13 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>exception</arg>
            </msg>
 
+           <msg>
+               <name>EXT35</name>
+               <text> Table {0} already pinned</text>
+               <arg>tableName</arg>
+           </msg>
+
+
        </family>
     </section>
 
