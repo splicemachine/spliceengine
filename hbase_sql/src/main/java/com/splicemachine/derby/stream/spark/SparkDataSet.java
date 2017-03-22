@@ -623,10 +623,7 @@ public class SparkDataSet<V> implements DataSet<V> {
                     ((SparkDataSet)rightDataSet).rdd.map(new LocatedRowToRowFunction()),
                     context.getOperation().getRightOperation().getExecRowDefinition().schema());
                 if (isBroadcast) {
-                    if (op.wasRightOuterJoin)
-                        leftDF = broadcast(leftDF);
-                    else
-                        rightDF = broadcast(rightDF);
+                    rightDF = broadcast(rightDF);
                 }
             Column expr = null;
             int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
@@ -639,7 +636,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             }
             DataSet joinedSet;
             if (op.wasRightOuterJoin)
-                joinedSet =  new SparkDataSet(rightDF.join(leftDF,expr,joinType.strategy()).rdd().toJavaRDD().map(
+                joinedSet =  new SparkDataSet(rightDF.join(leftDF,expr,joinType.RIGHTOUTER.strategy()).rdd().toJavaRDD().map(
                         new RowToLocatedRowFunction(context)));
             else
                 joinedSet =  new SparkDataSet(leftDF.join(rightDF,expr,joinType.strategy()).rdd().toJavaRDD().map(

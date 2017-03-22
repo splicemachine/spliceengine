@@ -34,6 +34,8 @@ public class BroadcastJoinIT{
     public static final SpliceTableWatcher a= new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c1 int, c2 int)");
     public static final SpliceTableWatcher b= new SpliceTableWatcher("B",schemaWatcher.schemaName,"(c2 int,c3 int)");
     public static final SpliceTableWatcher date_dim= new SpliceTableWatcher("date_dim",schemaWatcher.schemaName,"(d_year int, d_qoy int)");
+    public static final SpliceTableWatcher t1= new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(a1 int, b1 int, c1 int)");
+    public static final SpliceTableWatcher t2= new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(a2 int, b2 int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
     @ClassRule
@@ -42,6 +44,8 @@ public class BroadcastJoinIT{
             .around(a)
             .around(b)
             .around(date_dim)
+            .around(t1)
+            .around(t2)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description){
@@ -81,6 +85,25 @@ public class BroadcastJoinIT{
                         ps.setInt(1,2001);ps.setInt(2,3);ps.execute();
                         ps.setInt(1,2001);ps.setInt(2,4);ps.execute();
                     } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + t1 + "(a1, b1, c1) values (?,?,?)")) {
+                        ps.setInt(1, 1);ps.setInt(2, 2);ps.setInt(3, 3);ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try(PreparedStatement ps = classWatcher.prepareStatement("insert into "+t2 +"(a2,b2) values (?,?)")){
+                        ps.setInt(1,1);ps.setInt(2,22);ps.execute();
+                        ps.setInt(1,4);ps.setInt(2,44);ps.execute();
+                    }catch(Exception e){
                         throw new RuntimeException(e);
                     }
                 }
@@ -134,6 +157,20 @@ public class BroadcastJoinIT{
         Assert.assertTrue("rs.next() failed", rs.next());
         c = rs.getInt(1);
         Assert.assertTrue("count(*) returned incorrect number of rows:", (c == 6));
+        rs.close();
+    }
+
+    @Test
+    public void testRightOuterJoinViaBroadCastJoin() throws Exception {
+        String sqlText = "select a1,a2,b1,b2,c1 from " + t1 + " right join " + t2 +" --SPLICE-PROPERTIES useSpark = true \n" +
+                "on a1 = a2 order by 2 desc" ;
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        int a1 = rs.getInt(1);
+        Assert.assertTrue("incorrect result:", rs.wasNull());
+        int a2 = rs.getInt(2);
+        Assert.assertTrue("incorrect result:", (a2==4));
         rs.close();
     }
 }
