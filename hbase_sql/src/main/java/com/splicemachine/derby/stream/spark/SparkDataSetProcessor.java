@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -32,6 +33,7 @@ import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.io.orc.OrcNewInputFormat;
+import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -83,6 +85,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private boolean permissive;
     private String statusDirectory;
     private String importFileName;
+    private static final Joiner CSV_JOINER = Joiner.on(",").skipNulls();
+
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
@@ -461,18 +465,23 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
-
-            ColumnarBatch columnarBatch = null;
-            columnarBatch.rowIterator();
-
-            return SpliceSpark.getContext().newAPIHadoopFile(
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0 ; i < baseColumnMap.length; i++) {
+                if (i!=0)
+                    sb.append(",");
+                sb.append(baseColumnMap[i]);
+            }
+            Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
+            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType().json());
+            configuration.set(ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR,sb.toString());
+            JavaRDD<Row> rows = SpliceSpark.getContext().newAPIHadoopFile(
                     location,
                     SpliceOrcNewInputFormat.class,
                     NullWritable.class,
-                    ColumnarBatch.Row.class,
-                    new Configuration(HConfiguration.unwrapDelegate()))
-                            .values()
-                    .map(new RowToLocatedRowFunction(context,execRow)));
+                    Row.class,
+                    configuration)
+                            .values();
+            return new SparkDataSet(rows.map(new RowToLocatedRowFunction(context,execRow)));
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());

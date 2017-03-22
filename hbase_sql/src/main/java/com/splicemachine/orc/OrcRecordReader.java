@@ -318,8 +318,12 @@ public class OrcRecordReader
 
     public ColumnarBatch getColumnarBatch(StructType schema) throws IOException {
         ColumnarBatch columnarBatch = ColumnarBatch.allocate(schema, MemoryMode.ON_HEAP,currentBatchSize);
-        for (int i = 0; i< streamReaders.length; i++) {
-            columnarBatch.setColumn(0,streamReaders[i].readBlock(schema.fields()[i].dataType()));
+        int i = 0;
+        for (int column: this.presentColumns) {
+            columnarBatch.setColumn(i,streamReaders[column].readBlock(schema.fields()[i].dataType()));
+            if (i == 0)
+                columnarBatch.setNumRows(columnarBatch.column(0).getElementsAppended());
+            i++;
         }
         return columnarBatch;
     }
@@ -405,7 +409,6 @@ public class OrcRecordReader
             Map<Integer, DataType> includedColumns)
     {
         List<StreamDescriptor> streamDescriptors = createStreamDescriptor("", "", 0, types, orcDataSource).getNestedStreams();
-
         OrcType rowType = types.get(0);
         StreamReader[] streamReaders = new StreamReader[rowType.getFieldCount()];
         for (int columnId = 0; columnId < rowType.getFieldCount(); columnId++) {

@@ -15,10 +15,16 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeProjection;
+import org.apache.spark.sql.catalyst.CatalystTypeConverters;
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
+import org.apache.spark.sql.catalyst.expressions.codegen.GenerateSafeProjection;
 import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTimeZone;
+import scala.Function1;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,13 +34,14 @@ import java.util.Map;
 /**
  * Created by jleach on 3/21/17.
  */
-public class OrcMapreduceRecordReader extends RecordReader<NullWritable,ColumnarBatch.Row> {
+public class OrcMapreduceRecordReader extends RecordReader<NullWritable,Row> {
     public static final DateTimeZone HIVE_STORAGE_TIME_ZONE = DateTimeZone.UTC;
     public static final String SPARK_STRUCT ="com.splicemachine.spark.struct";
     OrcRecordReader orcRecordReader;
     private StructType structType;
     private ColumnarBatch columnarBatch;
     private Iterator<ColumnarBatch.Row> currentIterator;
+
 
     @Override
     public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
@@ -67,8 +74,8 @@ public class OrcMapreduceRecordReader extends RecordReader<NullWritable,Columnar
     }
 
     @Override
-    public ColumnarBatch.Row getCurrentValue() throws IOException, InterruptedException {
-        return currentIterator.next();
+    public Row getCurrentValue() throws IOException, InterruptedException {
+        return new ColumnarBatchRow(currentIterator.next(),structType);
     }
 
     @Override
@@ -83,12 +90,12 @@ public class OrcMapreduceRecordReader extends RecordReader<NullWritable,Columnar
 
     public Map getColumnsAndTypes(Configuration configuration) throws IOException {
         List<Integer> columnIds = ColumnProjectionUtils.getReadColumnIDs(configuration);
-        String sparkStruct = configuration.get("SPARK_STRUCT");
+        String sparkStruct = configuration.get(SPARK_STRUCT);
         if (sparkStruct == null)
             throw new IOException("Spark struct not passed in configuration, please set "+ SPARK_STRUCT);
         structType = (StructType) StructType.fromJson(sparkStruct);
         int size = structType.size();
-        if (size == columnIds.size())
+        if (size != columnIds.size())
             throw new IOException(String.format("Column IDS do not match the underlying struct columnIds(%s), struct(%s)",columnIds,structType.json()));
         Map columnsAndTypes = new HashMap<>();
         for (int i = 0; i < size; i++) {
