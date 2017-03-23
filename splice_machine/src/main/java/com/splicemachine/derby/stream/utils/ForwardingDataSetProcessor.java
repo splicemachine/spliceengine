@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.utils;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -172,11 +171,5 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     public void dropPinnedTable(long conglomerateId) throws StandardException {
         delegate.dropPinnedTable(conglomerateId);
     }
-
-    @Override
-    public Boolean isCached(long conglomerateId) throws StandardException {
-        return delegate.isCached(conglomerateId);
-    }
-
 }
 

@@ -46,7 +46,6 @@ public class PinTableIT extends SpliceUnitTest{
     private static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("PinTable5",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("PinTable6",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("PinTable7",SCHEMA_NAME,"(col1 int)");
-    private static final SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("PinTable8",SCHEMA_NAME,"(col1 int)");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -60,8 +59,7 @@ public class PinTableIT extends SpliceUnitTest{
             .around(spliceTableWatcher4)
             .around(spliceTableWatcher5)
             .around(spliceTableWatcher6)
-            .around(spliceTableWatcher7)
-            .around(spliceTableWatcher8);
+            .around(spliceTableWatcher7);
     @Test
     public void testPinTableDoesNotExist() throws Exception {
         try {
@@ -72,7 +70,6 @@ public class PinTableIT extends SpliceUnitTest{
             Assert.assertEquals("Wrong Exception","X0X05",e.getSQLState());
         }
     }
-
 
     @Test
     public void testPinTable() throws Exception {
@@ -105,6 +102,33 @@ public class PinTableIT extends SpliceUnitTest{
 
 
     @Test
+    public void testPinTableMarkedInDictionnary() throws Exception {
+        methodWatcher.executeUpdate("insert into PinTable3 values (1)");
+        methodWatcher.executeUpdate("pin table PinTable3");
+        ResultSet rs = methodWatcher.executeQuery("select IS_PINNED from SYS.SYSTABLES where TABLENAME='PINTABLE3'");
+        Assert.assertEquals("IS_PINNED |\n" +
+                "------------\n" +
+                "   true    |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        methodWatcher.executeUpdate("unpin table PinTable3");
+        rs = methodWatcher.executeQuery("select IS_PINNED from SYS.SYSTABLES where TABLENAME='PINTABLE3'");
+        Assert.assertEquals("IS_PINNED |\n" +
+                "------------\n" +
+                "   false   |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
+    @Test
+    public void testPinTableNotMarkedInDictionnary() throws Exception {
+        methodWatcher.executeUpdate("insert into PinTable4 values (1)");
+        ResultSet rs = methodWatcher.executeQuery("select IS_PINNED from SYS.SYSTABLES where TABLENAME='PINTABLE4'");
+        Assert.assertEquals("IS_PINNED |\n" +
+                "------------\n" +
+                "   false   |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
+    @Test
     public void testPinTableInsertViolation() throws Exception {
         try {
             methodWatcher.executeUpdate("insert into PinTable5  --splice-properties pin=true \n values (1)");
@@ -130,7 +154,7 @@ public class PinTableIT extends SpliceUnitTest{
             methodWatcher.executeUpdate("DELETE FROM PinTable5 --splice-properties pin=true \n");
             Assert.fail("DELETE from a pin table but it didn't failed");
         } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT31",e.getSQLState());
+            Assert.assertEquals("Wrong Exception","EXT30",e.getSQLState());
         }
     }
 
@@ -157,17 +181,5 @@ public class PinTableIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate("unpin table PinTable7");
         methodWatcher.executeUpdate("drop table PinTable7");
-    }
-
-    @Test
-    public void testPinTwice() throws Exception {
-        try {
-            // Row Format not supported for Parquet
-            methodWatcher.executeUpdate("pin table PinTable8");
-            methodWatcher.executeUpdate("pin table PinTable8");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT35",e.getSQLState());
-        }
     }
 }

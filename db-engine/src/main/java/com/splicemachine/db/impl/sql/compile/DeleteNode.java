@@ -1061,7 +1061,7 @@ public class DeleteNode extends DMLModStatementNode
 		if(targetTable.getProperties()!=null) {
 			Boolean pin = Boolean.parseBoolean(targetTable.getProperties().getProperty(PIN));
 			if (pin) {
-				throw StandardException.newException(SQLState.DELETE_PIN_VIOLATION);
+				throw StandardException.newException(SQLState.UPDATE_PIN_VIOLATION);
 			}
 		}
 		if (targetTableDescriptor.getTableType() == TableDescriptor.EXTERNAL_TYPE)
