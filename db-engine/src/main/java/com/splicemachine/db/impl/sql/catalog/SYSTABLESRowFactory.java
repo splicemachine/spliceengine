@@ -77,8 +77,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_STORED_AS = 11;
 	protected static final int		SYSTABLES_LOCATION = 12;
 	protected static final int		SYSTABLES_COMPRESSION = 13;
-	// SYSTABLES_IS_PINNED : NOT USED ANYMORE, for backward compatibility only
-	@Deprecated
 	protected static final int 		SYSTABLES_IS_PINNED = 14;
 	/* End External Tables Columns	*/
 	protected static final int		SYSTABLES_INDEX1_ID = 0;
@@ -157,8 +155,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String 					storedAs = null;
 		String 					location = null;
 		String 					compression = null;
-		// NOT USED ANYMORE, for backward compatibility only
-		@Deprecated
 		boolean 				isPinned = false;
 
 		if (td != null)
@@ -234,7 +230,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			storedAs = descriptor.getStoredAs();
 			location = descriptor.getLocation();
 			compression = descriptor.getCompression();
-			//NOT USED ANYMORE, for backward compatibility only
 			isPinned = descriptor.isPinned();
 		}
 
@@ -273,7 +268,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		row.setColumn(SYSTABLES_STORED_AS,new SQLVarchar(storedAs));
 		row.setColumn(SYSTABLES_LOCATION,new SQLVarchar(location));
 		row.setColumn(SYSTABLES_COMPRESSION,new SQLVarchar(compression));
-		//NOT USED ANYMORE, for backward compatibility only
 		row.setColumn(SYSTABLES_IS_PINNED,new SQLBoolean(isPinned));
 
 		return row;
@@ -403,8 +397,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String storedAs;
 		String location;
 		String compression;
-		// NOT USED ANYMORE, for backward compatibility only
-		@Deprecated
 		boolean isPinned;
 
 
@@ -480,8 +472,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		DataValueDescriptor storedDVD = row.getColumn(SYSTABLES_STORED_AS);
 		DataValueDescriptor locationDVD = row.getColumn(SYSTABLES_LOCATION);
 		DataValueDescriptor compressionDVD = row.getColumn(SYSTABLES_COMPRESSION);
-		// NOT USED ANYMORE, for backward compatibility only
-		@Deprecated
 		DataValueDescriptor isPinnedDVD = row.getColumn(SYSTABLES_IS_PINNED);
 
 
@@ -548,7 +538,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			SystemColumnImpl.getColumn("STORED", Types.VARCHAR, true),
 			SystemColumnImpl.getColumn("LOCATION", Types.VARCHAR, true),
 			SystemColumnImpl.getColumn("COMPRESSION", Types.VARCHAR, true),
-			// NOT USED ANYMORE, for backward compatibility only
 			SystemColumnImpl.getColumn("IS_PINNED", Types.BOOLEAN, false)
         };
 	}

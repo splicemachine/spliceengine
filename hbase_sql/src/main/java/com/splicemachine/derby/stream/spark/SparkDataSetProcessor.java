@@ -411,13 +411,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
-    @Override
-    public Boolean isCached(long conglomerateId) throws StandardException {
-        return  SpliceSpark.getSession().catalog().tableExists("SPLICE_"+conglomerateId)
-                && SpliceSpark.getSession().catalog().isCached("SPLICE_"+conglomerateId);
-
-    }
-
     private Dataset<Row> processExternalDataset(Dataset<Row> rawDataset,int[] baseColumnMap,Qualifier[][] qualifiers,DataValueDescriptor probeValue) throws StandardException {
         String[] allCols = rawDataset.columns();
         List<Column> cols = new ArrayList();
