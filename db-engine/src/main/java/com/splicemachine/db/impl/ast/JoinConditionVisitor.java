@@ -523,10 +523,15 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
         boolean isLeft = node.getLeftResultSet() == child ? true : false;
         ResultColumnList rcl = node.getResultColumns();
+        boolean wasRightOuterJoin = false;
 
-        if (isLeft) {
+        if (node instanceof HalfOuterJoinNode)
+        {
+            wasRightOuterJoin = ((HalfOuterJoinNode)node).isRightOuterJoin();
+        }
+
+        if (isLeft && !wasRightOuterJoin) {
             int size = rcl.size();
-            JBitSet leftReferencedTableMap=node.getLeftResultSet().getReferencedTableMap();
             // make a copy of result column list
             ResultColumnList temp = new ResultColumnList();
             for (int i = 0; i < size; ++i) {
@@ -549,6 +554,40 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             rcl.addResultColumn(rc);
 
             // copy columns that reference to the right result set
+            while(temp.size() > 0) {
+                rcl.addResultColumn(temp.elementAt(0));
+                temp.removeElementAt(0);
+            }
+        }
+        else if (!isLeft && wasRightOuterJoin)
+        {
+            // for right outer join, we have switched the left and right resultset, however, the result columns
+            // still follow the order of inner table columns first then outer table columns. When adding a column
+            // from the inner table, we need to insert the new column after the original inner table columns and
+            // before the original outer table columns
+            int size = rcl.size();
+            // make a copy of result column list
+            ResultColumnList temp = new ResultColumnList();
+            for (int i = 0; i < size; ++i) {
+                temp.addResultColumn(rcl.elementAt(0));
+                rcl.removeElementAt(0);
+            }
+
+            // copy result columns that reference to right result set
+            Set<ResultSetNode>  rightResultSetNodeSet = getResultSetNodes(node.getRightResultSet());
+            Iterator<ResultColumn> iter=temp.iterator();
+            while(iter.hasNext()){
+                ResultColumn resultColumn = iter.next();
+                if (fromResultSets(rightResultSetNodeSet, resultColumn)) {
+                    rcl.addResultColumn(resultColumn);
+                    iter.remove();
+                }else break;
+            }
+
+            // Add a new column to join result column list
+            rcl.addResultColumn(rc);
+
+            // copy columns that reference to the left result set
             while(temp.size() > 0) {
                 rcl.addResultColumn(temp.elementAt(0));
                 temp.removeElementAt(0);
