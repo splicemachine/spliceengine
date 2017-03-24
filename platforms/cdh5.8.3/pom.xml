@@ -40,6 +40,7 @@
         </profile>
     </profiles>
     <modules>
+        <module>../../splice_aws</module>
         <module>../../hbase_storage</module>
         <module>../../hbase_pipeline</module>
         <module>../../hbase_sql</module>
