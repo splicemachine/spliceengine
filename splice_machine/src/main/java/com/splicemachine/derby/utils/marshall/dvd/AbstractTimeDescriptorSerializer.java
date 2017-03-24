@@ -26,14 +26,15 @@ import java.util.GregorianCalendar;
 public abstract class AbstractTimeDescriptorSerializer implements TimeValuedSerializer {
     // Must isolate Calendar objects to a single thread here b/c Serializer objects are
     // evidently shared; this fixes obscure cluster-only bug
-    private ThreadLocal<Calendar> calendar = initCal();
+    private static final ThreadLocal<Calendar> calendar = new ThreadLocal<Calendar>() {
+        @Override
+        protected Calendar initialValue() {
+            return new GregorianCalendar();
+        }
+    };
 
     @Override
     public void setCalendar(Calendar calendar) {
-        if (this.calendar == null) {
-            // could have been closed (these are closables)
-            this.calendar = initCal();
-        }
         this.calendar.set(calendar);
     }
 
@@ -51,7 +52,7 @@ public abstract class AbstractTimeDescriptorSerializer implements TimeValuedSeri
     public boolean isDoubleType() { return false; }
 
     @Override
-    public void close() { calendar = null; }
+    public void close() { calendar.set(null); }
 
     public static abstract class Factory implements DescriptorSerializer.Factory {
         @Override
@@ -67,14 +68,5 @@ public abstract class AbstractTimeDescriptorSerializer implements TimeValuedSeri
 
         @Override
         public boolean isDouble() { return false; }
-    }
-
-    private ThreadLocal<Calendar> initCal() {
-        return new ThreadLocal<Calendar>() {
-            @Override
-            protected Calendar initialValue() {
-                return new GregorianCalendar();
-            }
-        };
     }
 }
