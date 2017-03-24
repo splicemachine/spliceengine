@@ -15,7 +15,6 @@ import java.util.List;
 public class SpliceOrcNewInputFormat extends InputFormat<NullWritable,Row>
         implements DataSourceRegister {
     public static final DateTimeZone HIVE_STORAGE_TIME_ZONE = DateTimeZone.UTC;
-    public static final String SPARK_STRUCT ="com.splicemachine.spark.struct";
 
     @Override
     public List<InputSplit> getSplits(JobContext jobContext) throws IOException, InterruptedException {

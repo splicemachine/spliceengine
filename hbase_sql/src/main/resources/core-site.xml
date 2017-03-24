@@ -35,39 +35,39 @@
 
     <property>
         <name>fs.s3.awsAccessKeyId</name>
-        <value>AKIAJ4YJKO4MWOFWPXKA</value>
+        <value>AKIAIWVXS5FSUZHSGQ7A</value>
     </property>
 
     <property>
         <name>fs.s3.awsSecretAccessKey</name>
-        <value>zVOJbTpLfGO8Ujlr17PX2iwat4qqSFkLpcornpYe</value>
+        <value>SZnh4OurVM6dKT2juf+BVeR/kgxfAK662nPF1AYz</value>
     </property>
 
     <property>
         <name>fs.s3a.access.key</name>
-        <value>AKIAJ4YJKO4MWOFWPXKA</value>
+        <value>AKIAIWVXS5FSUZHSGQ7A</value>
     </property>
 
     <property>
         <name>fs.s3a.secret.key</name>
-        <value>zVOJbTpLfGO8Ujlr17PX2iwat4qqSFkLpcornpYe</value>
+        <value>SZnh4OurVM6dKT2juf+BVeR/kgxfAK662nPF1AYz</value>
     </property>
 
 
     <property>
         <name>presto.s3.access-key</name>
-        <value>AKIAJ4YJKO4MWOFWPXKA</value>
+        <value>AKIAIWVXS5FSUZHSGQ7A</value>
     </property>
 
     <property>
         <name>presto.s3.secret-key</name>
-        <value>zVOJbTpLfGO8Ujlr17PX2iwat4qqSFkLpcornpYe</value>
+        <value>SZnh4OurVM6dKT2juf+BVeR/kgxfAK662nPF1AYz</value>
     </property>
 
 
     <property>
         <name>fs.s3a.impl</name>
-        <value>splice.presto.com.facebook.presto.hive.PrestoS3FileSystem</value>
+        <value>com.splicemachine.fs.PrestoS3FileSystem</value>
     </property>
 
 

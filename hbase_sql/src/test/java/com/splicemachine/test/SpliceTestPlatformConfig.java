@@ -193,14 +193,16 @@ class SpliceTestPlatformConfig {
         // Splice
         //
 
+        config.set("hive.exec.orc.split.strategy","BI");
+
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
 
 
-        config.set("presto.s3.access-key","AKIAJ4YJKO4MWOFWPXKA");
-        config.set("presto.s3.secret-key","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");
+        config.set("presto.s3.access-key","AKIAIWVXS5FSUZHSGQ7A");
+        config.set("presto.s3.secret-key","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");
 
-        config.set("fs.s3a.impl","splice.presto.com.splicemachine.hive.PrestoS3FileSystem");
+        config.set("fs.s3a.impl",com.splicemachine.fs.s3.PrestoS3FileSystem.class.getCanonicalName());
 
         //
         // Snapshots

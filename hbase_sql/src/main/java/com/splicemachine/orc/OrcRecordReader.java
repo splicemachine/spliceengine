@@ -318,8 +318,16 @@ public class OrcRecordReader
 
     public ColumnarBatch getColumnarBatch(StructType schema) throws IOException {
         ColumnarBatch columnarBatch = ColumnarBatch.allocate(schema, MemoryMode.ON_HEAP,currentBatchSize);
+
+        // This is the place for predicate evaluation on the column level
+        // ouch !!!
+
+        // Count(*) optimization
+        if (presentColumns.size() == 0)
+            columnarBatch.setNumRows(currentBatchSize);
+
         int i = 0;
-        for (int column: this.presentColumns) {
+        for (int column: presentColumns) {
             columnarBatch.setColumn(i,streamReaders[column].readBlock(schema.fields()[i].dataType()));
             if (i == 0)
                 columnarBatch.setNumRows(columnarBatch.column(0).getElementsAppended());

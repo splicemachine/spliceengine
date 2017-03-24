@@ -38,12 +38,17 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 /**
  *	This is the implementation for Qualifier.  It is used for generated scans.
  *
  */
 
-public class GenericQualifier implements Qualifier
+public class GenericQualifier implements Qualifier, Externalizable
 {
 	private int columnId;
     private int storagePosition;
@@ -55,8 +60,11 @@ public class GenericQualifier implements Qualifier
 	private boolean negateCompareResult;
 	protected int variantType;
     protected String text;
-
 	private DataValueDescriptor orderableCache = null;
+
+	public GenericQualifier() {
+
+	}
 
     public GenericQualifier(int columnId,
                             int storagePosition,
@@ -235,6 +243,30 @@ public class GenericQualifier implements Qualifier
 		{
 			return "";
 		}
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeInt(columnId);
+		out.writeInt(storagePosition);
+		out.writeInt(operator);
+		out.writeBoolean(orderedNulls);
+		out.writeBoolean(unknownRV);
+		out.writeBoolean(negateCompareResult);
+		out.writeInt(variantType);
+		out.writeObject(orderableCache);
+	}
+
+	@Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		columnId = in.readInt();
+		storagePosition = in.readInt();
+		operator = in.readInt();
+		orderedNulls = in.readBoolean();
+		unknownRV = in.readBoolean();
+		negateCompareResult = in.readBoolean();
+		variantType = in.readInt();
+		orderableCache = (DataValueDescriptor) in.readObject();
 	}
 
 	@Override

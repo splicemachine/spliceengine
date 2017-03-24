@@ -13,9 +13,11 @@
  */
 package com.splicemachine.orc.metadata;
 
-public interface RangeStatistics<T>
-{
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+
+public interface RangeStatistics<T> {
     T getMin();
 
     T getMax();
+
 }

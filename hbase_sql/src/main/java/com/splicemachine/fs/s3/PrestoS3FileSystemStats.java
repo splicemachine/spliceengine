@@ -13,7 +13,7 @@
  */
 package com.splicemachine.fs.s3;
 
-import com.amazonaws.AbortedException;
+import splice.aws.com.amazonaws.AbortedException;
 import io.airlift.stats.CounterStat;
 import io.airlift.stats.TimeStat;
 import io.airlift.units.Duration;

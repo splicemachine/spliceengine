@@ -44,7 +44,7 @@ public class OrcReader
     private static final Slice MAGIC = Slices.utf8Slice("ORC");
     private static final int CURRENT_MAJOR_VERSION = 0;
     private static final int CURRENT_MINOR_VERSION = 12;
-    private static final int EXPECTED_FOOTER_SIZE = 16 * 1024;
+    private static final int EXPECTED_FOOTER_SIZE = 128 * 1024;
 
     private final OrcDataSource orcDataSource;
     private final MetadataReader metadataReader;

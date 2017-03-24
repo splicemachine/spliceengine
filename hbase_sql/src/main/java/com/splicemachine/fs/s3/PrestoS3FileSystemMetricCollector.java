@@ -13,14 +13,14 @@
  */
 package com.splicemachine.fs.s3;
 
-import com.amazonaws.Request;
-import com.amazonaws.Response;
-import com.amazonaws.metrics.RequestMetricCollector;
-import com.amazonaws.util.AWSRequestMetrics;
-import com.amazonaws.util.TimingInfo;
+import splice.aws.com.amazonaws.Request;
+import splice.aws.com.amazonaws.Response;
+import splice.aws.com.amazonaws.metrics.RequestMetricCollector;
+import splice.aws.com.amazonaws.util.AWSRequestMetrics;
+import splice.aws.com.amazonaws.util.TimingInfo;
 import io.airlift.units.Duration;
 
-import static com.amazonaws.util.AWSRequestMetrics.Field.*;
+import static splice.aws.com.amazonaws.util.AWSRequestMetrics.Field.*;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 

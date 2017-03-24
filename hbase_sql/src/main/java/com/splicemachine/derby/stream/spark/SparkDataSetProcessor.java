@@ -29,7 +29,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.vti.SpliceFileVTI;
+import com.splicemachine.orc.input.OrcMapreduceRecordReader;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
+import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.io.orc.OrcNewInputFormat;
@@ -47,6 +49,11 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.expressions.Expression;
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection;
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext;
+import org.apache.spark.sql.catalyst.expressions.codegen.ExprCode;
 import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
@@ -75,6 +82,7 @@ import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import scala.collection.JavaConverters;
+import scala.collection.Seq;
 
 /**
  * Spark-based DataSetProcessor.
@@ -430,8 +438,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 .select(cols.toArray(new Column[cols.size()]));
         if (qualifiers !=null) {
             Column filter = createFilterCondition(dataset,allCols, qualifiers, baseColumnMap, probeValue);
-            if (filter != null)
+            if (filter != null) {
                 dataset = dataset.filter(filter);
+            }
         }
         return dataset;
 
@@ -466,13 +475,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
             StringBuilder sb = new StringBuilder();
+            boolean first = true;
             for (int i = 0 ; i < baseColumnMap.length; i++) {
-                if (i!=0)
+                if (!first)
                     sb.append(",");
                 sb.append(baseColumnMap[i]);
+                first = false;
             }
+            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType());
+
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
-            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType().json());
+            configuration.set(OrcMapreduceRecordReader.SPLICE_PREDICATE,predicate.serialize());
+            configuration.set(OrcMapreduceRecordReader.SPARK_STRUCT,execRow.createStructType().json());
             configuration.set(ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR,sb.toString());
             JavaRDD<Row> rows = SpliceSpark.getContext().newAPIHadoopFile(
                     location,

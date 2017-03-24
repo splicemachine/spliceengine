@@ -13,8 +13,9 @@
  */
 package com.splicemachine.orc.metadata;
 
-public class BooleanStatistics
-{
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+
+public class BooleanStatistics {
     private final long trueValueCount;
 
     public BooleanStatistics(long trueValueCount)
@@ -26,4 +27,5 @@ public class BooleanStatistics
     {
         return trueValueCount;
     }
+
 }

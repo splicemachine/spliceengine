@@ -13,24 +13,25 @@
  */
 package com.splicemachine.fs.s3;
 
-import com.amazonaws.AbortedException;
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.Protocol;
-import com.amazonaws.auth.*;
-import com.amazonaws.event.ProgressEvent;
-import com.amazonaws.event.ProgressEventType;
-import com.amazonaws.event.ProgressListener;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3EncryptionClient;
-import com.amazonaws.services.s3.model.*;
-import com.amazonaws.services.s3.transfer.Transfer;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.TransferManagerConfiguration;
-import com.amazonaws.services.s3.transfer.Upload;
+import splice.aws.com.amazonaws.AbortedException;
+import splice.aws.com.amazonaws.AmazonClientException;
+import splice.aws.com.amazonaws.ClientConfiguration;
+import splice.aws.com.amazonaws.Protocol;
+import splice.aws.com.amazonaws.auth.*;
+import splice.aws.com.amazonaws.event.ProgressEvent;
+import splice.aws.com.amazonaws.event.ProgressEventType;
+import splice.aws.com.amazonaws.event.ProgressListener;
+import splice.aws.com.amazonaws.internal.StaticCredentialsProvider;
+import splice.aws.com.amazonaws.regions.Region;
+import splice.aws.com.amazonaws.regions.Regions;
+import splice.aws.com.amazonaws.services.s3.AmazonS3;
+import splice.aws.com.amazonaws.services.s3.AmazonS3Client;
+import splice.aws.com.amazonaws.services.s3.AmazonS3EncryptionClient;
+import splice.aws.com.amazonaws.services.s3.model.*;
+import splice.aws.com.amazonaws.services.s3.transfer.Transfer;
+import splice.aws.com.amazonaws.services.s3.transfer.TransferManager;
+import splice.aws.com.amazonaws.services.s3.transfer.TransferManagerConfiguration;
+import splice.aws.com.amazonaws.services.s3.transfer.Upload;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.collect.AbstractSequentialIterator;
@@ -46,7 +47,7 @@ import org.apache.hadoop.util.Progressable;
 import java.io.*;
 import java.net.URI;
 import java.util.*;
-import static com.amazonaws.services.s3.Headers.UNENCRYPTED_CONTENT_LENGTH;
+import static splice.aws.com.amazonaws.services.s3.Headers.UNENCRYPTED_CONTENT_LENGTH;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -161,9 +162,9 @@ public class PrestoS3FileSystem
                 .withProtocol(sslEnabled ? Protocol.HTTPS : Protocol.HTTP)
                 .withConnectionTimeout(toIntExact(connectTimeout.toMillis()))
                 .withSocketTimeout(toIntExact(socketTimeout.toMillis()))
-                .withMaxConnections(maxConnections)
-                .withUserAgentPrefix(userAgentPrefix)
-                .withUserAgentSuffix(S3_USER_AGENT_SUFFIX);
+                .withMaxConnections(maxConnections);
+            //    .withUserAgentPrefix(userAgentPrefix)
+//                .withUserAgentSuffix(S3_USER_AGENT_SUFFIX);
 
         this.s3 = createAmazonS3Client(uri, conf, configuration);
 
@@ -639,7 +640,7 @@ public class PrestoS3FileSystem
     {
         Optional<AWSCredentials> credentials = getAwsCredentials(uri, conf);
         if (credentials.isPresent()) {
-            return new AWSStaticCredentialsProvider(credentials.get());
+            return new StaticCredentialsProvider(credentials.get());
         }
 
         if (useInstanceCredentials) {

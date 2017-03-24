@@ -2,6 +2,7 @@ package com.splicemachine.orc.input;
 
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructType;
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -45,7 +47,8 @@ public class ColumnarBatchRow implements Row {
 
     @Override
     public <T> List<T> getList(int i) {
-        throw new UnsupportedOperationException("dsfd");
+        ArrayData arrayData = row.getArray(i); // Slow but functional
+        return Arrays.<T>asList((T[])arrayData.array());
     }
 
     @Override
