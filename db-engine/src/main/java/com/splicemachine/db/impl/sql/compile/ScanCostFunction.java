@@ -55,6 +55,7 @@ public class ScanCostFunction{
     private final int[] keyColumns;
     private final int baseColumnCount;
     private final boolean forUpdate; // Will be used shortly
+    private boolean basePredicatePossible = true;
 
     /**
      *
@@ -150,8 +151,11 @@ public class ScanCostFunction{
             addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION));
         else if (p.isInQualifier(lookupColumns)) // In Qualifier against looked up columns (FILTER_PROJECTION)
             addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION));
-        else if (p.isStartKey() || p.isStopKey()) // Range Qualifier on Start/Stop Keys (BASE)
-            performQualifierSelectivity(p,QualifierPhase.BASE);
+        else if ( (p.isStartKey() || p.isStopKey()) && basePredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
+            performQualifierSelectivity(p, QualifierPhase.BASE);
+            if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
+                basePredicatePossible = false;
+        }
         else if (p.isQualifier()) // Qualifier in Base Table (FILTER_BASE)
             performQualifierSelectivity(p, QualifierPhase.FILTER_BASE);
         else if (PredicateList.isQualifier(p,baseTable,false)) // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
