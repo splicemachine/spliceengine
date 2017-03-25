@@ -89,6 +89,22 @@ public class ScanSelectivityIT extends SpliceUnitTest {
                 .create();
 
         new TableCreator(conn)
+                .withCreate("create table pk_multiple_scan (i bigint, " +
+                        "dt1 date, ch1 char(16), vc1 varchar(2) default 'aa', primary key (dt1,ch1))")
+                .withInsert("insert into pk_multiple_scan(dt1, ch1) values(?, ?)")
+                .withRows(rows(
+                        row("2016-07-12", "100001"),
+                        row("2016-07-12", "100002"),
+                        row("2016-07-12", "100003"),
+                        row("2016-07-12", "100004"),
+                        row("2016-07-13", "100005"),
+                        row("2016-07-14", "100006"),
+                        row("2016-07-15", "100007"),
+                        row("2016-07-16", "100008")))
+                .withIndex("create index ia on pk_multiple_scan(ch1)")
+                .create();
+
+        new TableCreator(conn)
                 .withCreate("create table ts_char (c char(10), v varchar(20), l long varchar, b clob)")
                 .withInsert("insert into ts_char values(?,?,?,?)")
                 .withRows(rows(
@@ -130,6 +146,18 @@ public class ScanSelectivityIT extends SpliceUnitTest {
                         row(4, 4, 4, 4, 4),
                         row(5, 5, 5, 5, 5)))
                 .create();
+
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+16) from pk_multiple_scan");
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+32) from pk_multiple_scan");
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+64) from pk_multiple_scan");
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+128) from pk_multiple_scan");
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+256) from pk_multiple_scan");
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+512) from pk_multiple_scan");
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+1024) from pk_multiple_scan");
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+2048) from pk_multiple_scan");
+        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+4096) from pk_multiple_scan");
+
+
 
         for (int i = 0; i < 10; ++i) {
             spliceClassWatcher.executeUpdate("insert into ts_numeric select * from ts_numeric");
@@ -727,6 +755,15 @@ public class ScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from tns_datetime where ts>=timestamp('1962-09-23 03:23:34.234') and ts is not null", "rows=17", methodWatcher);
         firstRowContainsQuery("explain select * from tns_datetime where ts<timestamp('1962-09-27 03:23:34.234') and ts is not null", "rows=17", methodWatcher);
         firstRowContainsQuery("explain select * from tns_datetime where ts<>timestamp('1962-09-23 03:23:34.234')","rows=2",methodWatcher);
+    }
+
+    @Test
+    public void testPrimaryKeyMultipleLevelSelectivityIT() throws Exception {
+        rowContainsQuery(5,"explain select * from pk_multiple_scan where dt1 >= '2016-07-12' and ch1 = '100004'",
+                "IndexScan[IA", methodWatcher);
+        // both the predicates tobe applied on base tablescan
+        rowContainsQuery(3,"explain select * from pk_multiple_scan where dt1 = '2016-07-12' and ch1 != '100004'",
+                "TableScan[PK_MULTIPLE_SCAN", methodWatcher);
     }
 
     @Test
