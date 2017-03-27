@@ -364,6 +364,6 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public HBaseBulkImporterBuilder bulkImportData(OperationContext operationContext) {
-       return null;
+       throw new RuntimeException("bulk load not supported");
     };
 }
