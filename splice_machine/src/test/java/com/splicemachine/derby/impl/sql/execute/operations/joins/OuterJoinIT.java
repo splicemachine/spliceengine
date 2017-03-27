@@ -31,6 +31,7 @@ import java.sql.Statement;
 import java.util.*;
 
 import static com.splicemachine.homeless.TestUtils.o;
+import static org.junit.Assert.assertEquals;
 
 public class OuterJoinIT extends SpliceUnitTest { 
 
@@ -70,6 +71,9 @@ public class OuterJoinIT extends SpliceUnitTest {
     private static SpliceTableWatcher tab_a = new SpliceTableWatcher("tab_a", CLASS_NAME, "(id int)");
     private static SpliceTableWatcher tab_b = new SpliceTableWatcher("tab_b", CLASS_NAME, "(id int)");
     private static SpliceTableWatcher tab_c = new SpliceTableWatcher("tab_c", CLASS_NAME, "(id int)");
+    private static SpliceTableWatcher t5 = new SpliceTableWatcher("t5", CLASS_NAME, "(a5 int, b5 int, c5 int)");
+    private static SpliceTableWatcher t6 = new SpliceTableWatcher("t6", CLASS_NAME, "(a6 int, b6 int, c6 int)");
+
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -91,6 +95,8 @@ public class OuterJoinIT extends SpliceUnitTest {
             .around(tab_a)
             .around(tab_b)
             .around(tab_c)
+            .around(t5)
+            .around(t6)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -181,6 +187,20 @@ public class OuterJoinIT extends SpliceUnitTest {
 
                         statement.execute(String.format("insert into %s values  (3)", tab_c));
                         statement.execute(String.format("insert into %s values  (6)", tab_c));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+            })
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        Statement statement = spliceClassWatcher.getStatement();
+                        statement.execute(String.format("insert into %s values (1,1,1), (2,2,2), (3,3,3), (4,4,4), (5,5,5)", t5));
+                        statement.execute(String.format("insert into %s values (3,3,3), (4,4,4), (5,5,5), (6,6,6), (7,7,7)", t6));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -487,6 +507,29 @@ public class OuterJoinIT extends SpliceUnitTest {
         for(Pair<String,String> result:correctResults){
             Assert.assertTrue("Missing row for "+result,results.contains(result));
         }
+    }
+
+    @Test
+    public void testRightOuterJoinWithExpression() throws Exception {
+        String sqlText = "select a5, a6, c5 from t5 right join t6 on t5.a5 = t6.a6+1 order by 1,2,3";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String EXPECTED =
+                "A5  |A6 | C5  |\n" +
+                "----------------\n" +
+                "  4  | 3 |  4  |\n" +
+                "  5  | 4 |  5  |\n" +
+                "NULL | 5 |NULL |\n" +
+                "NULL | 6 |NULL |\n" +
+                "NULL | 7 |NULL |";
+
+        assertEquals(EXPECTED, TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        sqlText = "select a5, a6, c5 from t5 --splice-properties useSpark=true\n" +
+                  "right join t6 on t5.a5 = t6.a6+1 order by 1,2,3";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals(EXPECTED, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     /* ****************************************************************************************************************/
