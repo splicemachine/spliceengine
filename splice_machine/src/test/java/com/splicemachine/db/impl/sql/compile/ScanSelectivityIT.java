@@ -758,6 +758,7 @@ public class ScanSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("SPLICE-1537")
     public void testPrimaryKeyMultipleLevelSelectivityIT() throws Exception {
         rowContainsQuery(5,"explain select * from pk_multiple_scan where dt1 >= '2016-07-12' and ch1 = '100004'",
                 "IndexScan[IA", methodWatcher);
