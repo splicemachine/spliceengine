@@ -51,6 +51,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     private static final String PART = "PART";
     private static final String NATION = "NATION";
     private static final String REGION = "REGION";
+    private static boolean notSupported;
 
     @ClassRule
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -63,27 +64,33 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void loadData() throws Exception {
-        TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("DATA"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), getResource("DATA"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), getResource("DATA"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), getResource("DATA"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"), getResource("DATA"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), getResource("DATA"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), getResource("DATA"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), getResource("DATA"))).execute();
+        try {
+            TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("DATA"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), getResource("DATA"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), getResource("DATA"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), getResource("DATA"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"), getResource("DATA"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), getResource("DATA"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), getResource("DATA"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), getResource("DATA"))).execute();
 
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
-        spliceClassWatcher.prepareStatement(format("create table A(c varchar(200))"));
-        // validate
-        assertEquals(9958L, (long)spliceClassWatcher.query("select count(*) from " + LINEITEM));
-        assertEquals(2500L, (long)spliceClassWatcher.query("select count(*) from " + ORDERS));
-        assertEquals(250L, (long)spliceClassWatcher.query("select count(*) from " + CUSTOMERS));
-        assertEquals(1332L, (long)spliceClassWatcher.query("select count(*) from " + PARTSUPP));
-        assertEquals(16L, (long)spliceClassWatcher.query("select count(*) from " + SUPPLIER));
-        assertEquals(333L, (long)spliceClassWatcher.query("select count(*) from " + PART));
-        assertEquals(25L, (long)spliceClassWatcher.query("select count(*) from " + NATION));
-        assertEquals(5L, (long)spliceClassWatcher.query("select count(*) from " + REGION));
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
+            spliceClassWatcher.prepareStatement(format("create table A(c varchar(200))"));
+            // validate
+            assertEquals(9958L, (long) spliceClassWatcher.query("select count(*) from " + LINEITEM));
+            assertEquals(2500L, (long) spliceClassWatcher.query("select count(*) from " + ORDERS));
+            assertEquals(250L, (long) spliceClassWatcher.query("select count(*) from " + CUSTOMERS));
+            assertEquals(1332L, (long) spliceClassWatcher.query("select count(*) from " + PARTSUPP));
+            assertEquals(16L, (long) spliceClassWatcher.query("select count(*) from " + SUPPLIER));
+            assertEquals(333L, (long) spliceClassWatcher.query("select count(*) from " + PART));
+            assertEquals(25L, (long) spliceClassWatcher.query("select count(*) from " + NATION));
+            assertEquals(5L, (long) spliceClassWatcher.query("select count(*) from " + REGION));
+        }
+        catch (Exception e) {
+             if (e.getMessage().compareToIgnoreCase("bulk load not supported") == 0)
+                 notSupported = true;
+        }
     }
 
     @AfterClass
@@ -93,11 +100,15 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     }
     @Test
     public void sql1() throws Exception {
+        if (!notSupported)
+            return;
         executeQuery(getContent("1.sql"), getContent("1.expected.txt"), true);
     }
 
     @Test
     public void sql2() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("2.sql");
         executeQuery(sql, "", true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -105,11 +116,15 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql3() throws Exception {
+        if (!notSupported)
+            return;
         executeQuery(getContent("3.sql"), "", true);
     }
 
     @Test
     public void sql4() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("4.sql");
         executeQuery(sql, getContent("4.expected.txt"), true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -117,16 +132,22 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql5() throws Exception {
+        if (!notSupported)
+            return;
         executeQuery(getContent("5.sql"), "", true);
     }
 
     @Test
     public void sql6() throws Exception {
+        if (!notSupported)
+            return;
         executeQuery(getContent("6.sql"), getContent("6.expected.txt"), false);
     }
 
     @Test
     public void sql7() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("7.sql");
         executeQuery(sql, "", true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -134,6 +155,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql8() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("8.sql");
         executeQuery(sql, "", true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -141,6 +164,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql8InvalidMergeJoin() throws Exception {
+        if (!notSupported)
+            return;
         try {
             executeQuery(getContent("8-invalid-merge.sql"), "", true);
         } catch (SQLException e) {
@@ -152,6 +177,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql9() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("9.sql");
         executeQuery(sql, "", true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -159,6 +186,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql9Repeated() throws Exception {
+        if (!notSupported)
+            return;
         for (int i = 0; i < 3; i++) {
             sql9();
         }
@@ -166,11 +195,15 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql10() throws Exception {
+        if (!notSupported)
+            return;
         executeQuery(getContent("10.sql"), "", true);
     }
 
     @Test
     public void sql11() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("11.sql");
         executeQuery(sql, "", true);
         assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
@@ -178,11 +211,15 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql12() throws Exception {
+        if (!notSupported)
+            return;
         executeQuery(getContent("12.sql"), getContent("12.expected.txt"), true);
     }
 
     @Test
     public void sql13() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("13.sql");
         executeQuery(sql, getContent("13.expected.txt"), true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -190,11 +227,15 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql14() throws Exception {
+        if (!notSupported)
+            return;
         executeQuery(getContent("14.sql"), getContent("14.expected.txt"), false);
     }
 
     @Test
     public void sql15() throws Exception {
+        if (!notSupported)
+            return;
         String sql15a = getContent("15a.sql");
         String sql15b = getContent("15b.sql");
 
@@ -206,6 +247,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql16() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("16.sql");
         executeQuery(sql, getContent("16.expected.txt"), true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -213,6 +256,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql17() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("17.sql");
         executeQuery(sql, getContent("17.expected.txt"), false);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -220,6 +265,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test(timeout = 30000)
     public void sql18() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("18.sql");
         executeQuery(sql, "", true);
         assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
@@ -227,11 +274,15 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql19() throws Exception {
+        if (!notSupported)
+            return;
         executeQuery(getContent("19.sql"), getContent("19.expected.txt"), false);
     }
 
     @Test
     public void sql20() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("20.sql");
         executeQuery(sql, "", true);
         assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
@@ -239,6 +290,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql21() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("21.sql");
         executeQuery(sql, "", true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -246,6 +299,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql22() throws Exception {
+        if (!notSupported)
+            return;
         String sql = getContent("22.sql");
         executeQuery(sql, getContent("22.expected.txt"), true);
         assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
@@ -253,26 +308,17 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void testPredicatePushdownOnRightSideOfJoin() throws Exception {
+        if (!notSupported)
+            return;
         rowContainsQuery(7,"explain select count(*) from --splice-properties joinOrder=fixed\n" +
                 " ORDERS, LINEITEM --splice-properties joinStrategy=BROADCAST\n" +
                 " where l_orderkey = o_orderkey and l_shipdate > date('1995-03-15') and o_orderdate > date('1995-03-15')","preds=[(L_SHIPDATE[2:2] > 1995-03-15)]",methodWatcher);
     }
 
-    @Test(expected = SQLException.class)
-    public void noMergeOverMergeSort() throws Exception {
-        String mergeOverMergeSort = "select s_name from  --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                "%s.supplier, " +
-                "%s.nation, " +
-                "%s.lineitem l3 --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n " +
-                " ,%s.orders --SPLICE-PROPERTIES joinStrategy=MERGE\n" +
-                " where " +
-                "s_suppkey = l3.l_suppkey " +
-                "and o_orderkey = l3.l_orderkey";
-        methodWatcher.executeQuery(format(mergeOverMergeSort,SCHEMA_NAME,SCHEMA_NAME,SCHEMA_NAME,SCHEMA_NAME));
-    }
-
     @Test
     public void testComputeTableSplitKeys() throws Exception {
+        if (!notSupported)
+            return;
        String sql =
                " select conglomeratenumber from sys.systables t, sys.sysconglomerates c, sys.sysschemas s " +
                "where c.tableid=t.tableid and t.tablename='LINEITEM' and s.schemaid=c.schemaid and s.schemaname='%s' order by 1";
@@ -307,6 +353,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void testComputeIndexSplitKeys() throws Exception {
+        if (!notSupported)
+            return;
         String sql =
                 " select conglomeratenumber from sys.systables t, sys.sysconglomerates c, sys.sysschemas s " +
                         "where c.tableid=t.tableid and t.tablename='LINEITEM' and s.schemaid=c.schemaid and " +
